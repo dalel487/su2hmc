@@ -1,0 +1,2155 @@
+ ksize=  2 ksizet=  1 Nf=  1
+ time step: dt=0.0040 trajectory length= 1.000000
+ # trajectories=    10 beta= 1.700000
+ kappa = 0.178000 chemical potential= 0.000000
+ diquark source = 0.000000 diquark phase angle = 0.000000
+
+
+ Stopping residuals: guidance: .10E-05 acceptance: .10E-08 estimator: .10E-05
+ seed =   967580160.000000     
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999637991282E-017
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999637991282E-017
+                     NaN                     NaN
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  1.279999993536621E-010
+       10000   3000000.00000000        20000.0000000000     
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999637991282E-017
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999637991282E-017
+                     NaN                     NaN
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  1.279999993536621E-010
+       10000   6000000.00000000        40000.0000000000     
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999637991282E-017
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011
+ # iterations of congrad exceeds niterc
+ Iter (CG)  =        10001 , resid =                      NaN , toler = 
+  6.399999967683107E-011

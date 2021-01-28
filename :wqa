@@ -1,0 +1,1649 @@
+#include "coord.h"
+#ifdef USE_CUDA
+#include <curand.h>
+#endif
+#include "par_mpi.h"
+#include <math.h>
+#include "random.h"
+#include "slash.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include "su2hmc.h"
+
+//Extern definitions, especially default values for fmu, beta and akappa
+const complex zi = 0.0+1.0*I;
+const complex real1 = 1.0+0.0*I;
+complex jqq = 0;
+double fmu = 0.0;
+double beta = 1.7;
+double akappa = 0.1780;
+const int gamin[4][4] =	{{4,3,2,1},
+	{4,3,2,1},
+	{3,4,1,2},
+	{3,4,1,2}};
+complex gamval[5][4] =	{{-1*zi,-1*zi,zi,zi},
+	{-1*real1,real1,real1,-1*real1},
+	{-1*zi,zi,zi,-1*zi},
+	{real1,real1,real1,real1},
+	{real1,real1,-1*real1,-1*real1}};
+
+/*
+ * For the early phases of this translation, I'm going to try and
+ * copy the original format as much as possible and keep things
+ * in one file. Hopefully this will change as we move through
+ * the methods so we can get a more logical structure.
+ *
+ * Another vestiage of the Fortran code that will be implimented here is
+ * the frequent flattening of arrays. But while FORTRAN Allows you to write
+ * array(i,j) as array(i+M*j) where M is the number of rows, C resorts to 
+ * pointers
+ *
+ * One change I will try and make is the introdction of error-codes (nothing
+ * to do with the Irish postal service)
+ * These can be found in the file errorcode.h and can help with debugging
+ *
+ * Lastly, the comment style for the start of a function is based off of 
+ * Niall Moran's python style (which may have come from numpy?) It should
+ * consist of a description of the function, a list of parameters with a brief
+ * explaination and lastly what is returned by the function (on success or failure)
+ */
+int main(int argc, char *argv){
+	/*******************************************************************
+	 *    Hybrid Monte Carlo algorithm for Two Color QCD with Wilson-Gor'kov fermions
+	 *    based on the algorithm of Duane et al. Phys. Lett. B195 (1987) 216. 
+	 *
+	 *    There is "up/down partitioning": each update requires
+	 *    one operation of congradq on complex*16 vectors to determine
+	 *    (Mdagger M)**-1  Phi where Phi has dimension 4*kvol*nc*Nf - 
+	 *    The matrix M is the Wilson matrix for a single flavor
+	 *    there is no extra species doubling as a result
+	 *
+	 *    matrix multiplies done using routines hdslash and hdslashd
+	 *
+	 *    Hence, the number of lattice flavors Nf is related to the
+	 *    number of continuum flavors N_f by
+	 *                  N_f = 2 * Nf
+	 *
+	 *    Fermion expectation values are measured using a noisy estimator.
+	 *    on the Wilson-Gor'kov matrix, which has dimension 8*kvol*nc*Nf
+	 *    inversions done using congradp, and matrix multiplies with dslash,
+	 *    dslashd
+	 *
+	 *    trajectory length is random with mean dt*iterl
+	 *    The code runs for a fixed number iter2 of trajectories.
+	 *
+	 *    Phi: pseudofermion field 
+	 *    bmass: bare fermion mass 
+	 *    fmu: chemical potential 
+	 *    actiona: running average of total action
+	 *
+	 *    Fermion expectation values are measured using a noisy estimator.
+	 *    outputs:
+	 *    fort.11   psibarpsi, energy density, baryon density
+	 *    fort.12   spatial plaquette, temporal plaquette, Polyakov line
+	 *    fort.13   real<qq>, real <qbar qbar>, imag <qq>= imag<qbar qbar>
+	 *
+	 *                                               SJH March 2005
+	 *
+	 *     Hybrid code, P.Giudice, May 2013
+	 *     Converted from Fortran to C by D. Lawlor 2020-2021
+	 *
+	 ******************************************************************/
+	const char *funcname = "main";
+	Par_begin(argc, &argv);
+	//Add error catching code...
+	MPI_Comm_rank(comm, &rank);
+	MPI_Comm_size(comm, &size);
+
+	//Input
+	//The default values here are straight from the FORTRAN
+	//=====================================================
+	int iread = 0;
+	int istart = 1;
+	int ibound = 1;
+	int iwrite = 1;
+	int iprint = 1; //For the measures
+	int icheck = 5; //Save conf (ICHEC could be a better name...)
+	complex i = 0 +I*1;
+#ifdef USE_MATH_DEFINES
+	const double tpi = 2*M_PI;
+#else
+	const double tpi = 2*acos(0.0);
+#endif
+	//End of input
+	//===========
+	//rank is zero means it must be the "master process"
+	double dt=0.004; double ajq = 0.0;
+	double delb; //Not used?
+	double athq = 0.0;
+	int iterl = 250; int iter2 = 10;
+	if(!rank){
+		//I'm hoping to use scoping to avoid any accidents.
+		FILE *midout;
+		//Instead of hardcoding so the error messages are easier to impliment
+		char *filename = "midout";
+		char *fileop = "rb";
+		if( !(midout = fopen(filename, fileop) ) ){
+			fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n"\
+					, OPENERROR, funcname, filename, fileop);
+			exit(OPENERROR);
+		}
+		fscanf(midout, "%lf %lf %lf %lf %lf %lf %lf %d %d", &dt, &beta, &akappa, &ajq, &athq, &fmu, &delb, &iterl, &iter2);
+		fclose(midout);
+	}
+	if(iread){
+#ifdef DEBUG
+		if(!rank) printf("Calling Par_sread() with seed: %i\n", seed);
+#endif
+		Par_sread();
+	}
+	//Send inputs to other ranks
+	Par_ccopy(&dt); Par_ccopy(&beta); Par_ccopy(&akappa); Par_ccopy(&ajq);
+	Par_ccopy(&athq); Par_ccopy(&fmu); //Par_ccopy(&delb); Not used?
+	Par_icopy(&iterl); Par_icopy(&iter2); 
+	jqq=ajq*cexp(athq*I);
+	Par_ranset(&seed);
+
+	//Initialisation
+	//istart < 0: Start from tape?!? How old is this code?
+	//istart = 0: Ordered/Cold Start
+	//istart > 0: Random/Hot Start
+	Init(istart);
+
+	//Initial Measurements
+	//====================
+	poly = Polyakov();
+#ifdef DEBUG
+	if(!rank) printf("Initial Polyakov loop evaluated as %f\n", poly);
+#endif
+	double hg, avplaqs, avplaqt;
+	SU2plaq(&hg,&avplaqs,&avplaqt);
+	//Loop on β
+	//Print Heading
+	double traj=iterl*dt;
+	double proby = 2.5/iterl;
+	char *outname = "output"; char *outop="w";
+	FILE *output;
+	if(!rank){
+		if(!(output=fopen(outname, outop) )){
+			fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n", OPENERROR, funcname, outname, outop);
+			MPI_Finalize();
+			exit(OPENERROR);
+		}
+		printf("hg = %f, <Ps> = %f, <Pt> = %f, <Poly> = %f\n", hg, avplaqs, avplaqt, poly);
+		fprintf(output, "ksize = %i ksizet = %i Nf = %i\nTime step dt = %f Trajectory length = %f\n"\
+				"No. of Trajectories = %i β = %f\nκ = %f μ = %f\n Diquark source = %f Diquark phase angle = %f\n"\
+				"Stopping Residuals: Guidance: %f Acceptance: %f, Estimator: %f\nSeed = %i\n",
+				ksize, ksizet, nf, dt, traj, iter2, beta, akappa, fmu, ajq, athq, rescgg, rescga, respbp, seed);
+#ifdef DEBUG
+		//Print to terminal during debugging
+		printf("ksize = %i ksizet = %i Nf = %i\nTime step dt = %f Trajectory length = %f\n"\
+				"No. of Trajectories = %i β = %f\nκ = %f μ = %f\n Diquark source = %f Diquark phase angle = %f\n"\
+				"Stopping Residuals: Guidance: %f Acceptance: %f, Estimator: %f\nSeed = %i\n",
+				ksize, ksizet, nf, dt, traj, iter2, beta, akappa, fmu, rescgg, rescga, respbp, seed);
+
+#endif
+	}
+	//Initialise for averages
+	//======================
+	double actiona = 0.0; double vel2a = 0.0; double pbpa = 0.0; double endenfa = 0.0; double denfa = 0.0;
+	double yav = 0.0; double yyav = 0.0; 
+
+	int naccp = 0; int ibpb = 0; int itot = 0;
+
+	ancg = 0; ancgh = 0;
+	//This was originally in the half-step of the fortran code, but it makes more sense to declare
+	//it outside the loop
+	double d = dt/2;
+	//Start of classical evolution
+	//===========================
+	int ipbp;
+	double pbp;
+	complex qq;
+	//Open the output files that haven't been opened yet
+	for(int isweep = 1; isweep <= iter2; isweep++){
+#ifdef DEBUG
+		if(!rank)
+			printf("Starting isweep %i\n", isweep);
+#endif
+		for(int na=0; na<nf; na++){
+			complex R[kvol+halo][ngorkov][nc] __attribute__((aligned(AVX)));
+#ifdef USE_MKL
+			//Multiply the dimension of R by 2 because R is complex
+			vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*nc*ngorkov*kvol, **R, 0, 1);
+#else
+					Gauss_z(**R, nc*ngorkov*kvol, 0, 1);
+#endif
+			Dslashd(R1, R);
+			memcpy(Phi[na],R1, nc*ngorkov*kvol*sizeof(complex));
+			//Slamming on the brakes. Can we simply memcpy here because ndirac<ngorkov?
+			//Up/down partitioning causes this
+			for(int i=0; i<kvol; i++)
+				for(int idirac = 0; idirac <ndirac; idirac++)
+					for(int ic = 0; ic <nc; ic++)
+						X0[na][i][idirac][ic]=R[i][idirac][ic];
+		}	
+		//Heatbath
+		//========
+		//We're going to make the most of the new Gauss_d routine to send a flattened array
+		//and do this all in one step.
+#ifdef USE_MKL
+		vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, nadj*ndim*kvol, pp, 0, 1);
+#else
+		Gauss_d(pp, nadj*ndim*kvol, 0, 1);
+#endif
+
+		//Initialise Trial Fields
+		memcpy(u11t, u11, ndim*(kvol+halo)*sizeof(complex));
+		memcpy(u12t, u12, ndim*(kvol+halo)*sizeof(complex));
+		double H0, S0;
+		Hamilton(&H0, &S0, rescga);
+#ifdef DEBUG
+		if(!rank) printf("H0: %f S0: %f\n", H0, S0);
+#endif
+		double action;
+		if(isweep==1)
+			action = S0/gvol;
+
+		//Half step forward for p
+		//=======================
+		double dSdpi[kvol+halo][3][ndim];
+#ifdef DEBUG
+		printf("Evaluating force on rank %i\n", rank);
+#endif
+		Force(dSdpi, 1, rescgg);
+#ifdef USE_MKL
+		cblas_daxpy(nadj*ndim*kvol, -d, dSdpi, 1, pp, 1);
+#else
+		for(int i=0;i<kvol;i++)
+			for(int iadj=0;iadj<kvol;iadj++)
+				for(int mu=0;mu<ndim;mu++)
+					pp[i][iadj][mu]-=d*dSdpi[i][iadj][mu];
+#endif
+		//Main loop for classical time evolution
+		//======================================
+		for(int iter = 0; iter<itermax; iter++){
+#ifdef DEBUG
+			if(!rank)
+				printf("iter: %i\n", iter);
+#endif
+			//The FORTRAN redefines d=dt here, which makes sense if you have a limited line length.
+			//I'll stick to using dt though.
+			for(int i=0;i<kvol;i++)
+				for(int mu = 0; mu<ndim; mu++){
+					//Sticking to what was in the FORTRAN for variable names.
+					//CCC for cosine SSS for sine AAA for...
+					double AAA = dt*sqrt(pp[i][0][mu]*pp[i][0][mu]+pp[i][1][mu]*pp[i][1][mu]+pp[i][2][mu]*pp[i][2][mu]);
+					double CCC = cos(AAA);
+					double SSS = dt*sin(AAA)/AAA;
+					complex a11 = CCC+I*SSS*pp[i][2][mu];
+					complex a12 = pp[i][1][mu]*SSS + I*SSS*pp[i][0][mu];
+					//b11 and b12 are u11t and u12t terms, so we'll use u12t directly
+					//but use b11 for u11t to prevent RAW dependency
+					complex b11 = u11t[mu][i];
+					u11t[mu][i] = a11*b11-a12*conj(u12t[mu][i]);
+					u12t[mu][i] = a11*u12t[mu][i]+a12*conj(b11);
+				}
+			Reunitarise();
+			Force(dSdpi, 0, rescgg);
+			//Need to check Par_granf again 
+			double ytest = Par_granf();
+			//This was pretty awkward looking in the original code.
+			//The same for loop is given in both the if and else
+			//statement but only the value of d changes. This is due to the break in the if part
+			//Also, why are we looking for iterl*6/5? What is the point of iterl if we just
+			//choose a bigger one?
+
+			if((ytest<proby || iter>=iterl*(6/5)) && iter>=iterl*4/5){
+#ifdef USE_MKL
+				cblas_daxpy(ndim*nadj*kvol, -d, dSdpi, 1, pp, 1);
+#else
+				for(int i = 0; i<kvol; i++)
+					for(int iadj=0; iadj<nadj; iadj++)
+						for(int mu = 0; mu < ndim; mu++)
+							pp[i][iadj][mu]-=d*dSdpi[i][iadj][mu];
+#endif
+				itot+=iter;
+				break;
+			}
+			else{
+#ifdef USE_MKL
+				cblas_daxpy(ndim*nadj*kvol, -dt, dSdpi, 1, pp, 1);
+#else
+				for(int i = 0; i<kvol; i++)
+					for(int iadj=0; iadj<nadj; iadj++)
+						for(int mu = 0; mu < ndim; mu++)
+							pp[i][iadj][mu]-=dt*dSdpi[i][iadj][mu];
+#endif
+
+			}
+		}
+		//Monte Carlo step: Accept new fields with the probability of min(1,exp(H0-X0))
+		Reunitarise();
+		double H1, S1;
+		Hamilton(&H1, &S1, rescga);
+		double dH = H0 - H1;
+		double dS = S0 - S1;
+		if(!rank){
+			fprintf(output, "%f %f\n", dH, dS);
+#ifdef DEBUG
+			printf("dH = %f dS = %f\n");
+#endif
+		}
+		double y = exp(dH);
+		yav+=y;
+		yyav+=y*y;
+		//The Monte-Carlo
+		//x is unassigned in the FORTRAN at declaration, so hopefully that won't be an issue here...
+		double x;
+		//Only update x if dH is negative
+		if(dH<0)
+			x=Par_granf();
+
+		// We only test x if it is updated (inside the previous if block)
+		//But that required a goto in FORTRAN to get around doing the acceptance operations
+		//in the case where dH>=0 or x<=y. We'll nest the if statements in C to 
+		//get around this using the reverse test to the FORTRAN if (x<=y instead of x>y).
+		if(dH>=0 || x<=y){
+			//Step is accepted. Set s=st
+#ifdef DEBUG
+			if(!rank)
+				printf("New configuration accepted.\n");
+#endif
+			//Original FORTRAN Comment:
+			//JIS 20100525: write config here to preempt troubles during measurement!
+			//JIS 20100525: remove when all is ok....
+			//On closer inspection, this is more clever than I first thought. Using
+			//integer division like that
+			if((isweep/icheck)*icheck==isweep){
+				//ranget(seed);
+				Par_swrite(isweep);
+			}
+			memcpy(u11,u11t,ndim*(kvol+halo)*sizeof(complex));
+			memcpy(u12,u12t,ndim*(kvol+halo)*sizeof(complex));
+			naccp++;
+			//Divide by gvol because of halos?
+			action=S1/gvol;
+		}
+		actiona+=action; 
+		double vel2=0.0;
+
+#ifdef USE_MKL
+		vel2 += cblas_ddot(kmom, pp[0][0], 1, pp[0][0], 1 );
+#else
+		for(int i=0; i<kvol; i++)
+			for(int iadj = 0; iadj<nadj; iadj++)
+				for(int mu=0; mu<ndim; mu++)
+					vel2+=pp[i][iadj][mu]*pp[i][iadj][mu];
+#endif
+		Par_csum(&vel2);
+		vel2a+=vel2/(12*gvol);
+
+		if((isweep/iprint)*iprint==isweep){
+			memcpy(u11t, u11, ndim*(kvol+halo)*sizeof(complex));
+			memcpy(u12t, u12, ndim*(kvol+halo)*sizeof(complex));
+#ifdef DEBUG
+			if(!rank)
+				printf("Starting measurements\n");
+#endif
+			int itercg;
+			double endenf, denf;
+			complex qbqb;
+			Measure(&pbp,&endenf,&denf,&qq,&qbqb,respbp,&itercg);
+#ifdef DEBUG
+			if(!rank)
+				printf("Finished measurements\n");
+#endif
+			pbpa+=pbp; endenfa+=endenf; denfa+=denf; ipbp++;
+			SU2plaq(&hg,&avplaqs,&avplaqt); 
+			poly = Polyakov();
+			//We have four output files, so may as well get the other ranks to help out
+			//and abuse scoping rules while we're at it.
+			if(rank==0)
+				//Output code... Some files weren't opened in the main loop of the FORTRAN code 
+				//That will need to be looked into for the C version
+				//It would explain the weird names like fort.1X that looked like they were somehow
+				//FORTRAN related...
+				//Not yet implemented
+				fprintf(output, "%i %f %f\n", itercg, ancg, ancgh);
+			else if(rank==1){
+				//The origninal code implicitly created these files with the name fort.XX where XX is the file label
+				//from FORTRAN. We'll stick with that for now.
+				FILE *fortout;
+				char *fortname = "fort11";
+				char *fortop= (isweep==0) ? "w" : "a";
+				if(!(fortout=fopen(fortname, fortop) )){
+					fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n", OPENERROR, funcname, fortname, fortop);
+					MPI_Finalize();
+					exit(OPENERROR);
+				}
+				free(fortname); free(fortop);
+				fprintf(fortout, "%f %f %f\n", pbp, endenf, denf);
+				fclose(fortout);
+			}
+			else if(rank == 2){
+				//The origninal code implicitly created these files with the name fort.XX where XX is the file label
+				//from FORTRAN. We'll stick with that for now.
+				FILE *fortout;
+				char *fortname = "fort12"; 
+				char *fortop= (isweep==0) ? "w" : "a";
+				if(!(fortout=fopen(fortname, fortop) )){
+					fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n", OPENERROR, funcname, fortname, fortop);
+					MPI_Finalize();
+					exit(OPENERROR);
+				}
+				free(fortname); free(fortop);
+				fprintf(fortout, "%f %f %f\n", avplaqs, avplaqt, poly);
+				fclose(fortout);
+			}
+			else if(rank == 3){
+				FILE *fortout;
+				char *fortname = "fort13";
+				char *fortop= (isweep==0) ? "w" : "a";
+				if(!(fortout=fopen(fortname, fortop) )){
+					fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n", OPENERROR, funcname, fortname, fortop);
+					MPI_Finalize();
+					exit(OPENERROR);
+				}
+				free(fortname); free(fortop);
+				fprintf(fortout, "%f\n", creal(qq));
+				fclose(fortout);
+			}
+			if((isweep/icheck)*icheck==isweep){
+				//ranget(seed);
+				Par_swrite(isweep);
+			}
+		}
+	}
+	//End of main loop
+	actiona/=iter2; vel2a/=iter2; pbpa/=ibpb; endenfa/=ipbp; denfa/=ipbp;
+	ancg/=nf*itot; ancgh/=2*nf*iter2; yav/=iter2; yyav=yyav/iter2 - yav*yav;
+	double atraj=dt*itot/iter2;
+
+	if(!rank)
+		fprintf(output, "Averages for the last %i trajectories\n"\
+				"Number of acceptances: %i Average Trajectory Length = %f\n"\
+				"exp(dh) = %f +/- %f\n"\
+				"Average number of congrad iter guidance: %f acceptance %f\n"\
+				"psibarpsi = %f\n"\
+				"Mean Square Velocity = %f Action Per Site = %f\n"\
+				"Energy Density = %f Number Density %f\n",\
+				iter2, naccp, atraj, yav, yyav, ancg, ancgh, pbpa, vel2a, actiona, endenfa, denfa);
+	fclose(output);	
+	//Not yet implimented
+	MPI_Finalize();
+	fflush(stdout);
+	return 0;
+}
+int Init(int istart){
+	/*
+	 * Initialises the system
+	 *
+	 * Calls:
+	 * ======
+	 * Addrc. Rand_init
+	 *
+	 *
+	 * Globals:
+	 * ========
+	 * u11t, u12t, dk4m, dk4p
+	 *
+	 * Parameters:
+	 * ==========
+	 * int istart: Zero for cold, >1 for hot, <1 for none
+	 *
+	 * Returns:
+	 * =======
+	 * Zero on success, integer error code otherwise
+	 */
+	const char *funcname = "Init";
+
+	//First things first, calculate a few constants
+	Addrc();
+	//And confirm they're legit
+	Check_addr(iu, ksize, ksizet, 0, kvol+halo);
+	Check_addr(id, ksize, ksizet, 0, kvol+halo);
+#ifdef DEBUG
+	printf("Checked addresses\n");
+#endif
+	double chem1=exp(fmu); double chem2 = 1/chem1;
+	int i, j, k, l;
+	memset(dk4p, akappa*chem1, kvol);
+	memset(dk4m, akappa*chem2, kvol);
+	//Each gamma matrix is rescaled by akappa by flattening the gamval array
+#ifdef USE_MKL
+	cblas_zdscal(5*4, akappa, gamval, 1);
+#else
+	for(i=0;i<5;i++)
+		for(j=0;j<4;j++)
+			gamval[i][j]*=akappa;
+#endif
+	if(istart==0){
+		//Initialise a cold start to zero
+		memset(u11t, 0, sizeof(u11t)*ndim*(kvol+halo));
+		memset(u12t, 0, sizeof(u11t)*ndim*(kvol+halo));
+	}
+	else if(istart>0){
+#ifdef USE_CUDA
+		complex *cu_u1xt;
+		cudaMalloc(&cu_u1xt, ndim*kvol*sizeof(complex));
+
+#elif defined USE_MKL
+		//Good news, casting works for using a double to create random complex numbers
+		//Bad News, we wasted our time with the gaussian stuff here.
+		vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*(kvol+halo), u11t, 0, 1);
+		vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*(kvol+halo), u12t, 0, 1);
+#else
+		//Depending if we have the RANLUX or SFMT19977 generator.	
+#pragma unroll
+		for(i=0; i<ndim;i++)
+			for(j=0; j<kvol; j++){
+				u11t[i][j]=sfmt_genrand_real1(&sfmt)+sfmt_genrand_real1(&sfmt)*I;
+				u12t[i][j]=sfmt_genrand_real1(&sfmt)+sfmt_genrand_real1(&sfmt)*I;
+			}
+#endif
+	}
+	else{
+		fprintf(stderr,"Waring %i in %s: Gauge fields are not initialised.\n", NOINIT, funcname);
+	}
+#ifdef DEBUG
+	printf("Initialisation Complete\n");
+#endif
+	Reunitarise();
+	memcpy(u11, u11t, 2*ndim*(kvol+halo)*sizeof(complex));
+	memcpy(u12, u12t, 2*ndim*(kvol+halo)*sizeof(complex));
+	return 0;
+}
+int Force(double dSdpi[][3][ndirac], int iflag, double res1){
+	/*
+	 *	Calculates dSds at each intermediate time
+	 *	
+	 *	Calls:
+	 *	=====
+	 *
+	 *	Globals:
+	 *	=======
+	 *	u11t, u12t, X1, Phi
+	 *
+	 *	This X1 is the one being referred to in the common/vector/ statement in the original FORTRAN
+	 *	code. There may subroutines with a different X1 (or use a different common block definition
+	 *	for this X1) so keep your wits about you
+	 *
+	 *	Parameters:
+	 *	===========
+	 *	double dSdpi[][3][kvol+halo]
+	 *	int	iflag
+	 *	double	res1;
+	 *
+	 *	Returns:
+	 *	=======
+	 *	Zero on success, integer error code otherwise
+	 */
+	const char *funcname = "Force";
+
+	complex X2[kvol+halo][ndirac][nc] __attribute__((aligned(AVX)));
+	Gauge_force(dSdpi);
+#ifdef USE_MKL
+	double blasa, blasb;
+#endif
+	//X1=(M†M)^{1} Phi
+	int itercg;
+	for(int na = 0; na<nf; na++){
+		memcpy(X1, X0[na], nc*ndirac*kvol*sizeof(complex));
+		//FORTRAN's logic is backwards due to the implied goto method
+		//If iflag is zero we do some initalisation stuff? 
+		if(!iflag){
+			Congradq(na, res1, &itercg);
+			ancg+=itercg;
+			//BLASable? If we cheat and flatten the array it is!
+			//This is not a general BLAS Routine, just an MKL one
+#ifdef USE_MKL
+			blasa=2.0; blasb=-1.0;
+			cblas_zaxpby(kvol*ndirac*nc, &blasa, X1, 1, &blasb, &X0[na], 1); 
+#else
+			for(int i=0;i<kvol;i++){
+				for(int idirac=0;idirac<ndirac;idirac++){
+					X0[na][i][idirac][0]=2*X1[i][idirac][0]-X0[na][i][idirac][0];
+					X0[na][i][idirac][1]=2*X1[i][idirac][1]-X0[na][i][idirac][1];
+				}
+			}
+#endif
+		}
+		Hdslash(X2,X1);
+#ifdef USE_MKL
+		blasa=2.0;
+		cblas_zdscal((kvol+halo)*ndirac*nc, blasa, X2, 1);
+#else
+		for(int i=0;i<kvol;i++)
+#pragma unroll
+			for(int idirac=0;idirac<ndirac;idirac++){
+				X2[i][idirac][0]*=2;
+				X2[i][idirac][1]*=2;
+			}
+#endif
+		for(int i=0;i<4;i++){
+			ZHalo_swap_dir(X1,8,i,DOWN);
+			ZHalo_swap_dir(X2,8,i,DOWN);
+		}
+
+		//	The original FORTRAN Comment:
+		//    dSdpi=dSdpi-Re(X1*(d(Mdagger)dp)*X2) -- Yikes!
+		//   we're gonna need drugs for this one......
+		//
+		//  Makes references to X1(.,.,iu(i,mu)) AND X2(.,.,iu(i,mu))
+		//  as a result, need to swap the DOWN halos in all dirs for
+		//  both these arrays, each of which has 8 cpts
+		//
+		//  The real crisis here is loop ordering. Do we put kvol on the inside to 
+		//  keep memory access somewhat continuous or on the outside to reduce the
+		//  number of loop initialisations?
+		//
+		//  For now, we'll almost match the FORTRAN and sacrifice continuous memory access.
+		//  In which case we may as well swap mu and ndirac so we can treat the time direction
+		//  without declaring new kvol and ndirac loops.
+		int mu, did, uid, igork1;
+		for(int i=0;i<kvol;i++)
+			for(int idirac=0;idirac<ndirac;idirac++){
+				//Unrolling the loop
+#pragma unroll (3) 
+				for(mu=0; mu<3; mu++){
+					//Long term ambition. I used the diff command on the different
+					//spacial components of dSdpi and saw a lot of the values required
+					//for them are duplicates (u11(i,mu)*X2(1,idirac,i) is used again with
+					//a minus in front for example. Why not evaluate them first /and then plug 
+					//them into the equation? Reduce the number of evaluations needed and look
+					//a bit neater (although harder to follow as a consequence).
+
+					//Up and down indices
+					did = id[mu][i]; uid = iu[mu][i];
+					igork1 = gamin[mu][idirac];	
+					dSdpi[i][0][mu]+=akappa*creal(zi*(\
+								conj(X1[i][idirac][0])*(\
+									-conj(u12[mu][i])*X2[uid][idirac][0]+conj(u11[mu][i]*X2[uid][idirac][1]))+\
+								conj(X1[uid][idirac][0])*(\
+									u12[mu][i]*X2[i][idirac][0]-conj(u11[mu][i])*X2[uid][idirac][1])+\
+								conj(X1[i][idirac][1])*(\
+									u11[mu][i]*X2[uid][idirac][0]+u12[mu][i]*X2[uid][idirac][1])+\
+								conj(X1[uid][idirac][1])*-(\
+									u11[mu][i]*X2[i][idirac][0]+conj(u12[mu][i])*X2[i][idirac][1])))+\
+							     //FORTRAN did this as a second sum.
+							     //dSdpi[mu][2][i]+=
+							     creal(zi*gamval[mu][idirac]*(\
+							     conj(X1[i][idirac][0])*(\
+								     -conj(u12[mu][i])*X2[uid][igork1][0]+conj(u11[mu][i])*X2[uid][igork1][1])+\
+							     conj(X1[uid][idirac][0])*(\
+								     -u12[mu][i]*X2[i][igork1][0]+conj(u11[mu][i])*X2[uid][igork1][1])+\
+							     conj(X1[i][idirac][1])*(\
+								     u11[mu][i]*X2[uid][igork1][0]+u12[mu][i]*X2[uid][igork1][1])+\
+							     conj(X1[uid][idirac][1])*(\
+								     +u11[mu][i]*X2[i][igork1][0]+conj(u12[mu][i])*X2[i][igork1][1])));
+
+					//This was yanked from the first case, so if there is a problem there it's here too!	
+					dSdpi[i][1][mu]+=akappa*creal(zi*(\
+								conj(X1[i][idirac][0])*(\
+								//No change
+									-conj(u12[mu][i])*X2[uid][idirac][0]+conj(u11[mu][i])*X2[uid][idirac][1])+\
+								conj(X1[uid][idirac][0])*-(\
+									//Both terms negative in the second direction
+									u12[mu][i]*X2[i][idirac][0]+conj(u11[mu][i])*X2[uid][idirac][1])+\
+								conj(X1[i][idirac][1])*-(\
+									//Negative instead of positive in the second direction
+									u11[mu][i]*X2[uid][idirac][0]+u12[mu][i]*X2[uid][idirac][1])+\
+								conj(X1[uid][idirac][1])*(\
+									//First term becomes positive in second direction
+									+u11[mu][i]*X2[i][idirac][0]-conj(u12[mu][i])*X2[i][idirac][1])))+\
+							     //FORTRAN did this as a second sum.
+							     //dSdpi[mu][1][i]+=
+							     creal(i*gamval[mu][idirac]*(\
+							     //No zi in the second direction
+							     conj(X1[i][idirac][0])*(\
+								     //No change
+								     -conj(u12[mu][i])*X2[uid][igork1][0]+conj(u11[mu][i])*X2[uid][igork1][1])+\
+							     conj(X1[uid][idirac][0])*(\
+								     //Both terms positive in the second direction
+								     u12[mu][i]*X2[i][igork1][0]+conj(u11[mu][i])*X2[uid][igork1][1])+\
+							     conj(X1[i][idirac][1])*-(\
+								     //Both terms negative in the second direction
+								     u11[mu][i]*X2[uid][igork1][0]+u12[mu][i]*X2[uid][igork1][1])+\
+							     conj(X1[uid][idirac][1])*(\
+								     //First term negative in the second direction
+								     -u11[mu][i]*X2[i][igork1][0]+conj(u12[mu][i])*X2[i][igork1][1])));
+
+					//This was again yanked from the first case, so if there is a problem there it's here too!	
+					dSdpi[i][2][mu]+=akappa*creal(zi*(\
+								conj(X1[i][idirac][0])*(\
+									//Don't conj the u's, swap them and both positive
+									u11[mu][i]*X2[uid][idirac][0]+u12[mu][i]*X2[uid][idirac][1])+\
+								conj(X1[uid][idirac][0])*-(\
+									//Swap u12 and conj(u11) and both negative
+									u12[mu][i]*X2[i][idirac][1]+conj(u11[mu][i])*X2[uid][idirac][0])+\
+								conj(X1[i][idirac][1])*(\
+									//Conj both u's, swap, u11 negative
+									-conj(u11[mu][i])*X2[uid][idirac][1]+conj(u12[mu][i])*X2[uid][idirac][0])+\
+								conj(X1[uid][idirac][1])*(\
+									//Swap u11 and conj(u12) and swap signs
+									+u11[mu][i]*X2[i][idirac][1]-conj(u12[mu][i])*X2[i][idirac][0])))+\
+							     //FORTRAN did this as a second sum.
+							     //dSdpi[mu][2][i]+=
+							     creal(zi*gamval[mu][idirac]*(\
+							     conj(X1[i][idirac][0])*(\
+								     //No conj, both positive, swap u's
+								     u12[mu][i]*X2[uid][igork1][1]+u11[mu][i]*X2[uid][igork1][0])+\
+							     conj(X1[uid][idirac][0])*(\
+								     //Make both positive and swap u12 and conj(u11)
+								     u12[mu][i]*X2[i][igork1][1]+conj(u11[mu][i])*X2[uid][igork1][0])+\
+							     conj(X1[i][idirac][1])*(\
+								     //Swap u's, conjugate both, u11 negative
+								     -conj(u11[mu][i])*X2[uid][igork1][1]+conj(u12[mu][i])*X2[uid][igork1][0])+\
+							     conj(X1[uid][idirac][1])*(\
+								     //No conj, swap u's, u11 negative
+								     -u11[mu][i]*X2[i][igork1][1]+u12[mu][i]*X2[i][igork1][0])));
+				}
+				//We're not done tripping yet!! Time like term is different. dk4? shows up
+				//For consistency we'll leave mu in instead of hard coding.
+				mu=3;
+				did = id[mu][i]; uid = iu[mu][i];
+				//We are mutiplying terms by dk4?[i] Also there is no akappa or gamval factor in the time direction		
+				//for the "gamval" terms the sign of d4kp flips
+				dSdpi[i][0][mu]+=creal(zi*(\
+							conj(X1[i][idirac][0])*dk4m[i]*(\
+								-conj(u12[mu][i])*X2[uid][idirac][0]+conj(u11[mu][i]*X2[uid][idirac][1]))+\
+							conj(X1[uid][idirac][0])*dk4p[i]*(\
+								u12[mu][i]*X2[i][idirac][0]-conj(u11[mu][i])*X2[uid][idirac][1])+\
+							conj(X1[i][idirac][1])*dk4m[i]*(\
+								u11[mu][i]*X2[uid][idirac][0]+u12[mu][i]*X2[uid][idirac][1])+\
+							conj(X1[uid][idirac][1])*dk4p[i]*-(\
+								u11[mu][i]*X2[i][idirac][0]+conj(u12[mu][i])*X2[i][idirac][1])))+\
+						     //FORTRAN did this as a second sum.
+						     //dSdpi[mu][2][i]+=
+						     creal(zi*(\
+						     conj(X1[i][idirac][0])*dk4m[i]*(\
+							     -conj(u12[mu][i])*X2[uid][igork1][0]+conj(u11[mu][i])*X2[uid][igork1][1])-\
+						     conj(X1[uid][idirac][0])*dk4p[i]*(\
+							     -u12[mu][i]*X2[i][igork1][0]+conj(u11[mu][i])*X2[uid][igork1][1])+\
+						     conj(X1[i][idirac][1])*dk4m[i]*(\
+							     u11[mu][i]*X2[uid][igork1][0]+u12[mu][i]*X2[uid][igork1][1])-\
+						     conj(X1[uid][idirac][1])*dk4p[i]*(\
+							     +u11[mu][i]*X2[i][igork1][0]+conj(u12[mu][i])*X2[i][igork1][1])));
+
+				//This was yanked from the first case, so if there is a problem there it's here too!	
+				dSdpi[i][1][mu]+=creal(zi*(\
+							conj(X1[i][idirac][0])*dk4m[i]*(\
+								//No change
+								-conj(u12[mu][i])*X2[uid][idirac][0]+conj(u11[mu][i])*X2[uid][idirac][1])+\
+							conj(X1[uid][idirac][0])*dk4p[i]*-(\
+								//Both terms negative in the second direction
+								u12[mu][i]*X2[i][idirac][0]+conj(u11[mu][i])*X2[uid][idirac][1])+\
+							conj(X1[i][idirac][1])*dk4m[i]*-(\
+								//Negative instead of positive in the second direction
+								u11[mu][i]*X2[uid][idirac][0]+u12[mu][i]*X2[uid][idirac][1])+\
+							conj(X1[uid][idirac][1])*dk4p[i]*(\
+								//First term becomes positive in second direction
+								+u11[mu][i]*X2[i][idirac][0]-conj(u12[mu][i])*X2[i][idirac][1])))+\
+						     //FORTRAN did this as a second sum.
+						     //dSdpi[mu][1][i]+=
+						     creal(\
+						     //No zi in the second direction
+						     conj(X1[i][idirac][0])*dk4m[i]*(\
+							     //No change
+							     -conj(u12[mu][i])*X2[uid][igork1][0]+conj(u11[mu][i])*X2[uid][igork1][1])-\ 
+						     conj(X1[uid][idirac][0])*dk4p[i]*(\
+							     //Both terms positive in the second direction
+							     u12[mu][i]*X2[i][igork1][0]+conj(u11[mu][i])*X2[uid][igork1][1])+\
+						     conj(X1[i][idirac][1])*dk4m[i]*-(\
+							     //Both terms negative in the second direction
+							     u11[mu][i]*X2[uid][igork1][0]+u12[mu][i]*X2[uid][igork1][1])-
+						     conj(X1[uid][idirac][1])*dk4p[i]*(\
+							     //First term negative in the second direction
+							     -u11[mu][i]*X2[i][igork1][0]+conj(u12[mu][i])*X2[i][igork1][1]));
+
+				//This was again yanked from the first case, so if there is a problem there it's here too!	
+				dSdpi[i][2][mu]+=creal(zi*(\
+							conj(X1[i][idirac][0])*dk4m[i]*(\
+								//Don't conj the u's, swap them and both positive
+								u11[mu][i]*X2[uid][idirac][0]+u12[mu][i]*X2[uid][idirac][1])+\
+							conj(X1[uid][idirac][0])*dk4p[i]*-(\
+								//Swap u12 and conj(u11) and both negative
+								u12[mu][i]*X2[i][idirac][1]+conj(u11[mu][i])*X2[uid][idirac][0])+\
+							conj(X1[i][idirac][1])*dk4m[i]*(\
+								//Conj both u's, swap, u11 negative
+								-conj(u11[mu][i])*X2[uid][idirac][1]+conj(u12[mu][i])*X2[uid][idirac][0])+\
+							conj(X1[uid][idirac][1])*dk4p[i]*(\
+								//Swap u11 and conj(u12) and swap signs
+								u11[mu][i]*X2[i][idirac][1]-conj(u12[mu][i])*X2[i][idirac][0])))+\
+						     //FORTRAN did this as a second sum.
+						     //dSdpi[mu][2][i]+=
+						     creal(zi*(\
+						     conj(X1[i][idirac][0])*dk4m[i]*(\
+								     //No conj, both positive, swap u's
+								     u12[mu][i]*X2[uid][igork1][1]+u11[mu][i]*X2[uid][igork1][0])-
+							     conj(X1[uid][idirac][0])*dk4p[i]*(\
+								     //Make both positive and swap u12 and conj(u11)
+								     u12[mu][i]*X2[i][igork1][1]+conj(u11[mu][i])*X2[uid][igork1][0])+\
+							     conj(X1[i][idirac][1])*dk4m[i]*(\
+								     //Swap u's, conjugate both, u11 negative
+								     -conj(u11[mu][i])*X2[uid][igork1][1]+conj(u12[mu][i])*X2[uid][igork1][0])-\
+							     conj(X1[uid][idirac][1])*dk4p[i]*(\
+								     //No conj, swap u's, u11 negative
+								     -u11[mu][i]*X2[i][igork1][1]+u12[mu][i]*X2[i][igork1][0])));
+			}
+	}
+	return 0;
+}
+int Gauge_force(double dSdpi[][3][ndirac]){
+	/*
+	 * Calculates dSdpi due to the Wilson Action at each intermediate time
+	 *
+	 * Globals:
+	 * =======
+	 * u11t, u12t, u11, u12, iu, id, beta
+	 * Calls:
+	 * =====
+	 * Z_Halo_swap_all, Z_gather, Z_Halo_swap_dir
+	 */
+	const char *funcname = "Gauge_force";
+
+	//We define zero halos for debugging
+	//	#ifdef DEBUG
+	//		u11t=calloc(ndim*(kvol+halo),sizeof(complex));
+	//		u12t=calloc(ndim*(kvol+halo),sizeof(complex));
+	//	#endif
+	for(int mu=0; mu<ndim; mu++){
+		ZHalo_swap_all(u11t[mu],0);
+		ZHalo_swap_all(u12t[mu],0);
+	}
+	complex Sigma11[kvol], Sigma12[kvol] __attribute__((aligned(AVX)));
+	complex u11sh[kvol+halo], u12sh[kvol+halo] __attribute__((aligned(AVX)));
+	//Holders for directions
+	int didm, didn, uidm, uidn;
+	for(int mu=0; mu<ndim; mu++){
+		//There has to be an efficient way to reset the Sigmas
+		for(int i=0;i<kvol;i++){
+			Sigma11[i]=0.0; Sigma12[i]=0;
+		}
+		complex a11[kvol], a12[kvol] __attribute__((aligned(AVX)));
+		for(int nu=0; nu<ndim; nu++){
+			//The +ν Staple
+			for(int i=0;i<kvol;i++){
+				uidm = iu[mu][i];
+				uidn = iu[nu][i];
+				a11[i]=u11t[nu][uidm]*conj(u11t[nu][uidn])+\
+					 u12t[mu][uidm]*conj(u12t[mu][uidn]);
+				a12[i]=-u11t[nu][uidm]*u12t[mu][uidn]+\
+					 u12t[nu][uidm]*u11t[mu][uidn];
+
+				Sigma11[i]+=a11[i]*conj(u11t[nu][i])+a12[i]*conj(u12t[nu][i]);
+				Sigma12[i]+=-a11[i]*u12t[nu][i]+a12[i]*u11t[nu][i];
+			}
+			Z_gather(u11sh, u11t[nu], kvol, id[nu]);
+			Z_gather(u12sh, u12t[nu], kvol, id[nu]);
+			ZHalo_swap_dir(u11sh, 0, mu, DOWN);
+			ZHalo_swap_dir(u12sh, 0, mu, DOWN);
+			//Next up, the -ν staple
+			for(int i=0;i<kvol;i++){
+				uidm = iu[mu][i];	uidn = iu[nu][i];
+				didm = id[mu][i];	didn = id[nu][i];
+				//uidm is correct here
+				a11[i]=conj(u11sh[uidm])*conj(u11t[mu][didn])-\
+					 u12sh[uidm]*conj(u12t[mu][didn]);
+				a12[i]=conj(u11sh[uidm])*u12t[mu][didn]-\
+					 u12sh[uidm]*u11t[mu][didn];
+
+				Sigma11[i]+=a11[i]*conj(u11t[nu][didn])+a12[i]*conj(u12t[nu][didn]);
+				Sigma12[i]+=-a11[i]*u12t[nu][didn]+a12[i]*u11t[nu][didn];
+			}
+		}
+		for(int i=0;i<kvol;i++){
+			a11[i] = u11t[mu][i]*Sigma12[i]+u12t[mu][i]*conj(Sigma11[i]);
+			a12[i] = u11t[mu][i]*Sigma11[i]+conj(u11t[mu][i])*Sigma12[i];
+
+			dSdpi[i][0][mu]=beta*cimag(a11[i]);
+			dSdpi[i][1][mu]=beta*creal(a11[i]);
+			dSdpi[i][2][mu]=beta*cimag(a12[i]);
+		}
+	}
+	return 0;
+}
+int Hamilton(double *h, double *s, double res2){
+	/* Evaluates the Hamiltonian function
+	 * 
+	 * Calls:
+	 * =====
+	 * SU2plaq
+	 * Par_csum
+	 * Congradq
+	 * Fill_Small_Phi
+	 *
+	 * Globals:
+	 * =======
+	 * pp, kmom, rank, ancgh, X0, Phi
+	 *
+	 * Parameters:
+	 * ===========
+	 * double *h:
+	 * double *s:
+	 * double res2:
+	 * int isweep:	The current sweep number
+	 *
+	 * Returns:
+	 * =======
+	 * Zero on success. Integer Error code otherwise.
+	 */	
+	const char *funcname = "Hamilton";
+	double hp;	int i;	
+	//Itereate over momentum terms.
+#ifdef USE_MKL
+	//Can we use BLAS here with the halo?
+	//The halo could interfere with things
+	hp = cblas_ddot(kmom, **pp, 1, **pp, 1);
+#else
+	hp=0;
+	for(i = 0; i<kmom; i++)
+		//Three dimensions, so three pointers to get down the the actual value
+		//What we're effectively doing is
+		hp+=(***(pp+i))*(***(pp+i)); 
+#endif
+	complex smallPhi[kferm2Halo] __attribute__((aligned(AVX)));
+	hp*=0.5;
+	double avplaqs, avplaqt;
+	double hg = 0;
+	//avplaqs isn't seen again here. Global scope?
+	SU2plaq(&hg,&avplaqs,&avplaqt);
+	int j, itercg;
+	double hf = 0;
+	//Iterating over flavours
+	for(i=0;i<nf;i++){
+		memcpy(X1,&X0[i],kvol*ndirac*nc*sizeof(complex));
+		Congradq(i,res2,&itercg);
+		ancgh+=itercg;
+		Fill_Small_Phi(i, smallPhi);
+		memcpy(&X0[i],X1,kvol*ndirac*nc*sizeof(complex));
+#ifdef USE_MKL
+		double dot;
+		cblas_zdotc_sub(kferm2, smallPhi, 1, X1, 1, &dot);
+		hf+=dot;
+#else
+		//It is a dot product of the flattend arrays, could use
+		//a module to convert index to coordinate array...
+		for(j=0;j<kferm2;j++)
+			//Cheat using pointer for now
+			hf+= ***(X1+j)*conj(*(smallPhi+j)) ;
+#endif
+	}
+	//hg was summed over inside of SU2plaq.
+	Par_csum(&hp); Par_csum(&hf);
+	*s=hg+hf; *h=*s+hp;
+	//Here the FORTRAN code prints isweep and the values of all the h's.
+	//I'm going to use the preprocessor to do that instead, with the isweep
+	//outside the function.
+#ifdef DEBUG
+	if(!rank)
+		printf("hg=%f; hp=%f; hf=%f; h=%f\n", hg, hp, hf, *h);
+#endif
+
+	return 0;
+}
+int Congradq(int na, double res, int *itercg){
+	/*
+	 * Matrix Inversion via Conjugate Gradient
+	 * Solves (M^†)Mx=Phi
+	 * Impliments up/down partitioning
+	 * 
+	 * Calls:
+	 * =====
+	 * Fill_Small_Phi
+	 * Hdslash
+	 * Hdslashd
+	 *
+	 * Globals:
+	 * =======
+	 * Phi, X0, X1, jqq 
+	 * WARNING: Due to how the common statement works in FORTRAN X1 here is the X1 in force and Hamilton, but
+	 * 		called x in the FORTRAN congradq as so not to clash with the placeholder x1 (FORTRAN is 
+	 * 		case insensitive.)
+	 *
+	 * Parameters:
+	 * ==========
+	 * int na: Flavour index
+	 * double res: Resolution
+	 * int itercg: Counts the iterations of the conjugate gradiant?
+	 *
+	 * Returns:
+	 * =======
+	 * 0 on success, integer error code otherwise
+	 */
+	const char *funcname = "Congradq";
+	double resid = kferm2*res*res;
+	itercg = 0;
+	//These were evaluated only in the first loop of niterx so we'll just do it ouside of the loop.
+	double betad = 1.0; double alpha, alphad, alphan, beta;
+	//Because we're dealing with flattened arrays here we can call cblas safely without the halo
+	complex p[kferm2Halo], r[kferm2], smallPhi[kferm2Halo] __attribute__((aligned(AVX)));
+	Fill_Small_Phi(na, smallPhi);
+	//Instead of copying elementwise in a loop, use memcpy.
+	memcpy(p, X1, kferm2Halo*sizeof(complex));
+	memcpy(r, smallPhi, kferm2*sizeof(complex));
+
+	//	Declaring placeholder vectors
+	complex *x1, *x2;
+#ifdef USE_MKL
+	x1=mkl_calloc(kferm2Halo, sizeof(complex), AVX);
+	x2=mkl_calloc(kferm2Halo, sizeof(complex), AVX);
+#else
+	x1=calloc(kferm2Halo,sizeof(complex));
+	x2=calloc(kferm2Halo,sizeof(complex));
+#endif
+
+	//niterx isn't called as an index but we'll start from zero with the C code to make the
+	//if statements quicker to type
+	for(int niterx=0; niterx<niterc; niterx++){
+		itercg++;
+		alphad=0;
+		//x2 =  (M^† M + J^2)p in a single step
+		Hdslash(x1,p); Hdslashd(x2, x1);
+		//The κ^2 factor is needed to normalise the fields correctly
+		//jqq is the diquark codensate and is global scope.
+		double fac = conj(jqq)*jqq*akappa*akappa;
+#ifdef USE_MKL
+		cblas_zaxpy(kferm2, &fac, p, 1, x2, 1);
+#else
+		for(int i=0; i<kferm2; i++)
+			x2[i]+=fac*p[i];
+#endif
+		//We can't evaluate α on the first niterx because we need to get β_n.
+		if(niterx){
+			//(p*).x2
+#ifdef USE_MKL
+			cblas_zdotc_sub(kferm2, p, 1, x2, 1, &alphad);
+#else
+			alphad=0;
+			for(int i=0; i<kferm2; i++)
+				alphad+=conj(p[i])*x2[i];
+#endif
+			//And reduce
+			Par_csum(&alphad);
+			//α=α_n/α_d = (r.r)/p(M^†M)p 
+			alpha=alphan/alphad;
+			//x-αp, 
+#ifdef USE_MKL
+			cblas_zaxpy(kferm2, &alpha, p, 1, X1, 1);
+#else
+			for(int i=0; i<kferm2; i++)
+				***(X1+i)+=alpha*p[i];
+#endif
+		}			
+		// r-α(M^† M)p and β_n=r*.r
+		double betan;
+#ifdef USE_MKL
+		alpha*=-1;
+		cblas_zaxpy(kferm2, &alpha, x2, 1, r, 1);
+		cblas_zdotc_sub(kferm2,r,1,r,1,&betan);
+#else
+		betan=0;
+		for(int i=0; i<kferm2; i++){
+			r[i]-=alpha*x2[i];
+			betan += conj(r[i])*r[i];
+		}
+#endif
+		//And... reduce.
+		Par_csum(&betan);
+		//Here we evaluate β=(r_{k+1}.r_{k+1})/(r_k.r_k) and then shuffle our indices down the line.
+		//On the first iteration we define beta to be zero.
+		beta = (niterx) ?  betan/betad : 0;
+		betad=betan; alphan=betan;
+		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multipyling y by
+		//β instead of x.
+		//There is cblas_zaxpby in the MKL though, set a = 1 and b = β.
+#ifdef USE_MKL
+		int a = 1;
+		cblas_zaxpby(kferm2, &a, r, 1, &beta,  r, 1);
+#else 
+		for(int i=0; i<kferm2; i++)
+			p[i]=r[i]+beta*p[i];
+#endif
+		//If we get a small enough β_n before hitting the iteration cap we break
+		if(betan<resid){ 
+#ifdef DEBUG
+			if(!rank) fprintf("Iter (CG) = %i resid = %f toler = %f", niterx, betan, resid);
+#endif
+			break;
+		}
+		return 0;
+	}
+}
+int Congradp(int na, double res, int *itercg){
+	/*
+	 * Matrix Inversion via Conjugate Gradient
+	 * Solves (M^†)Mx=Phi
+	 * No even/odd partitioning
+	 *
+	 * Calls:
+	 * =====
+	 * Fill_Small_Phi
+	 * Hdslash
+	 * Hdslashd
+	 *
+	 * Globals:
+	 * =======
+	 * Phi, X0, xi
+	 * WARNING: Due to how the FORTRAN common statement works, you can have different names for the same global
+	 * 		variable in different functions. It is the order they appear on the list that matters. xi here
+	 * 		was called xi in the FORTRAN Measure subroutine and x in the congradp subroutine. We'll use
+	 * 		xi for both as it does not appear elsewhere
+	 *
+	 * Parameters:
+	 * ==========
+	 * int na: Flavour index
+	 * double res:
+	 * int itercg:
+	 *
+	 * Returns:
+	 * =======
+	 * 0 on success, integer error code otherwise
+	 */
+	const char *funcname = "Congradq";
+	double resid = kferm*res*res;
+	itercg = 0;
+	//These were evaluated only in the first loop of niterx so we'll just do it ouside of the loop.
+	double betad = 1.0; double alpha, alphad, alphan, beta;
+	complex p[kfermHalo], r[kferm] __attribute__((aligned(AVX)));
+	//Instead of copying elementwise in a loop, use memcpy.
+	memcpy(p, xi, kfermHalo*sizeof(complex));
+	memcpy(r, &Phi[na], kferm*sizeof(complex));
+
+	// Declaring placeholder arrays 
+	// This x1 is NOT related to the /common/vectorp/X1 in the FORTRAN code and should not
+	// be confused with X1 the global variable
+	complex *x1, *x2;
+#ifdef USE_MKL
+	x1=mkl_calloc(kfermHalo, sizeof(complex), AVX);
+	x2=mkl_calloc(kfermHalo, sizeof(complex), AVX);
+#else
+	x1=calloc(kfermHalo,sizeof(complex));
+	x2=calloc(kfermHalo,sizeof(complex));
+#endif
+	
+	alpha = 1.0;
+	//niterx isn't called as an index but we'll start from zero with the C code to make the
+	//if statements quicker to type
+	for(int niterx=0; niterx<niterc; niterx++){
+		itercg++;
+		Dslash(x1,p);
+		//We can't evaluate α on the first niterx because we need to get β_n.
+		if(niterx){
+			//x*.x
+#ifdef USE_MKL
+			cblas_zdotc_sub(kferm, x1, 1, x1, 1, &alphad);
+#else
+			alphad=0;
+			for(int i = 0; i<kferm; i++)
+				alphad+=conj(x1[i])*x1[i];
+#endif
+			Par_csum(&alphad);
+			//α=(r.r)/p(M^†)Mp
+			alpha=alphan/alphad;
+			//x+αp
+#ifdef USE_MKL
+			cblas_zaxpy(kferm, &alpha, p, 1, xi, 1);
+#else
+			for(int i = 0; i<kferm; i++)
+				***(xi+i)+=alpha*p[i];
+#endif
+		}
+		//x2=(M^†)x1=(M^†)Mp
+		Dslashd(x2,x1);
+		//r-α(M^†)Mp and β_n=r*.r
+		double betan;
+#ifdef USE_MKL
+		alpha*=-1;
+		cblas_zaxpy(kferm, &alpha, x2, 1, r, 1);
+		//r*.r
+		cblas_zdotc_sub(kferm, r, 1, r, 1, &betan);
+#else
+		//Just like Congradq, this loop could be unrolled but will need a reduction to deal with the betan 
+		//addition.
+		betan = 0;
+		for(int i = 0; i<kferm;i++){
+			r[i]-=alpha* *(x2+i);
+			betan+=conj(r[i])*r[i];
+		}
+#endif
+		//This is basically just congradq at the end. Check there for comments
+		Par_csum(&betan);
+		beta = (niterx) ? betan/betad : 0;
+		betad=betan; alphan=betan;
+		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multipyling y by 
+		//β instead of x.
+		//There is cblas_zaxpby in the MKL though, set a = 1 and b = β.
+#ifdef USE_MKL
+		int a = 1;
+		cblas_zaxpby(kferm, &a, r, 1, &beta,  r, 1);
+#else
+		for(int i=0; i<kferm; i++)
+			p[i]=r[i]+beta*p[i];
+#endif
+		//If we get a small enough β_n before hitting the iteration cap we break
+		//If we get a small enough β_n before hitting the iteration cap we break
+		if(betan<resid){ 
+#ifdef DEBUG
+			if(!rank) fprintf("Iter (CG) = %i resid = %f toler = %f", niterx, betan, resid);
+#endif
+			break;
+		}
+	}
+	return 0;
+}
+int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbqb, double res, int *itercg){
+	/*
+	 * Calculate fermion expectation values via a noisy estimator
+	 * -matrix inversion via conjugate gradient algorithm
+	 * solves Mx=x1
+	 * (Numerical Recipes section 2.10 pp.70-73)   
+	 * uses NEW lookup tables **
+	 * Implimented in CongradX
+	 *
+	 * Calls:
+	 * =====
+	 * Gauss_z
+	 * Par_csum
+	 * ZHalo_swap_dir
+	 * CHalo_swap_dir
+	 *
+	 * Globals:
+	 * =======
+	 * Phi, X0, xi, R1, u11t, u12t 
+	 *
+	 * Parameters:
+	 * ==========
+	 * double *pbp:		Pointer to ψ-bar ψ
+	 * double endenf:
+	 * double denf:
+	 * complex qq:
+	 * complex qbqb:
+	 * double res:
+	 * int itercg:
+	 *
+	 * Returns:
+	 * =======
+	 * Zero on success, integer error code otherwise
+	 */
+	const char *funcname = "Measure";
+	complex *ps;
+	//This x is just a storage container
+	complex x[kvol+halo][8][2] __attribute__((aligned(64)));
+#ifdef USE_MKL
+	ps = mkl_calloc(kvol+halo, sizeof(complex), AVX);
+#else
+	ps = calloc(kvol+halo, sizeof(complex));
+#endif
+	//Setting up noise. I don't see any reason to loop
+	//over colour indices as it is a two-colour code.
+	//where I do have an issue is the loop ordering.
+
+#ifdef USE_MKL
+	vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*ngorkov*nc*kvol, xi[0], 0, 1);
+#else
+	Gauss_z(xi[0], ngorkov, 0, 1);
+#endif
+	memcpy(x, xi, ngorkov*kvol*sizeof(complex));
+
+	//R_1= M^† xi
+	Dslashd(R1, xi);
+	//Copying R1 to the first (zeroth) flavour index of Phi
+	//This should be safe with memcpy since the pointer name
+	//references the first block of memory for that pointer
+	memcpy(Phi, R1, 2*ngorkov*kvol*sizeof(complex));
+	memcpy(xi, R1, 2*ngorkov*kvol*sizeof(complex));
+
+	//Evaluate xi = (M^† M)^-1 R_1 
+	Congradp(1, res, itercg);
+	*pbp = 0;
+#ifdef USE_MKL
+	cblas_zdotc_sub(kvol*ngorkov*nc, x, 1, x, 1, pbp);
+#else
+	for(int i=0;i<kvol;i++){
+		for(int igorkov = 0; igorkov<ngorkov; igorkov++){
+			*pbp+=conj(x[i][igorkov][0])*x[i][igorkov][0];
+			*pbp+=conj(x[i][igorkov][1])*x[i][igorkov][1];
+		}
+	}
+#endif
+	Par_csum(pbp);
+	*pbp/=4*gvol;
+
+	*qbqb=0; *qq=0;
+	for(int idirac = 0; idirac<ndirac; idirac++){
+		int igork=idirac+4;
+		//Unrolling the colour indices, Then its just (γ_5*x).χi or (γ_5*χi)*x 
+#ifdef USE_MKL
+		//Only realised after that double dot was already defined inside another for
+		//loop, but scoping should make it safe
+		complex *dot;
+		cblas_zdotc_sub(kvol,x[0][idirac],1,xi[0][igork],1,dot);
+		*qbqb+=*dot*gamval[5][idirac];
+		cblas_zdotc_sub(kvol,x[0][igork],1,xi[0][idirac],1,dot);
+		*qq-=*dot*gamval[5][idirac];
+		cblas_zdotc_sub(kvol,x[1][idirac],1,xi[1][igork],1,dot);
+		*qbqb+=*dot*gamval[5][idirac];
+		cblas_zdotc_sub(kvol,x[1][igork],1,xi[1][idirac],1,dot);
+		*qq-=*dot*gamval[5][idirac];
+#else
+		for(int i=0; i<kvol; i++){
+			//What is the optimal order to evaluate these in?
+			*qbqb+=gamval[5][idirac]*conj(x[0][idirac][i])*xi[0][igork][i];
+			*qq-=gamval[5][idirac]*conj(x[0][igork][i])*xi[0][idirac][i];
+			*qbqb+=gamval[5][idirac]*conj(x[1][idirac][i])*xi[1][igork][i];
+			*qq-=gamval[5][idirac]*conj(x[1][igork][i])*xi[1][idirac][i];
+		}
+#endif
+	}
+	//In the FORTRAN Code csum was used instead despite qq and qbqb being complex
+	//Does that extract the real component?
+	Par_zsum(qq); Par_zsum(qbqb);
+	*qq=(*qq+*qbqb)/(2*gvol);
+	double xu, xd, xuu, xdd;
+
+	//Halos
+	ZHalo_swap_dir(x,16,3,DOWN);		ZHalo_swap_dir(x,16,3,UP);
+	ZHalo_swap_dir(&u11t[3][0],1,3, UP);	ZHalo_swap_dir(&u12t[3][0],1,3, UP);
+	CHalo_swap_dir(dk4p, 1, 3, UP);		CHalo_swap_dir(dk4m, 1, 3, UP);	
+	//Instead of typin id[i][3] a lot, we'll just assign them to variables.
+	int did, uid, igork1;
+	//Idea. One loop instead of two loops but for xuu and xdd just use ngorkov-(igorkov+1) instead
+	for(int igorkov=0; igorkov<4; igorkov++){
+		igork1=gamin[3][igorkov];
+		for(int i = 0; i<kvol; i++){
+			did=id[3][i];
+			//For the C Version I'll try and factorise where possible
+			//Also, is id[3][i] just counting down the axis in reverse
+			//order?
+
+			xu+=dk4p[did]*(conj(x[did][igorkov][0])*(\
+						u11t[3][did]*(xi[i][igork1][0]-xi[i][igorkov][0])+\
+						u12t[3][did]*(xi[i][igork1][1]-xi[i][igorkov][1]) )+\
+					conj(x[did][igorkov][1])*(\
+						conj(u11t[3][did])*(xi[i][igork1][1]-xi[i][igorkov][0])+\
+						conj(u12t[3][did])*(xi[i][igorkov][0]-xi[i][igork1][1]) ) );			
+
+			uid=iu[3][i];
+			//This looks very BLASable if not for the UID terms. Could BLAS the vector sums?
+			//No. That's stupid and won't work.
+			xd+=dk4m[i]*(conj(x[uid][igorkov][0])*(\
+						conj(u11t[3][i])*(xi[i][igork1][0]+xi[i][igorkov][0])-\
+						u12t[3][i]*(xi[i][igork1][1]+xi[i][igorkov][1]) )+\
+					conj(x[uid][igorkov][1])*(\
+						u11t[3][i]*(xi[i][igork1][1]+xi[i][igorkov][1])+\
+						conj(u12t[3][i])*(xi[i][igorkov][0]+xi[i][igork1][0]) ) );
+		}
+	}
+	int idirac;
+	for(int igorkov = 4; igorkov<ngorkov; igorkov++){
+		idirac=igorkov-4;
+		igork1=gamin[3][idirac]+4;
+		for(int i = 0; i<kvol; i++){
+			did=id[3][i];
+			xuu-=dk4m[did]*(conj(x[did][igorkov][0])*(\
+						u11t[3][did]*(xi[i][igork1][0]-xi[i][igorkov][0])+\
+						u12t[3][did]*(xi[i][igork1][1]-xi[i][igorkov][1]) )+\
+					conj(x[1][igorkov][did])*(\
+						conj(u11t[3][did])*(xi[i][igork1][1]-xi[i][igorkov][1])+\
+						conj(u12t[3][did])*(xi[i][igorkov][0]-xi[i][igork1][0]) ) );
+
+			uid=id[3][i];
+			xdd-=dk4p[uid]*(conj(x[uid][igorkov][0])*(\
+						conj(u11t[3][i])*(xi[i][igork1][0]+xi[i][igorkov][0])-\
+						u12t[3][i]*(xi[i][igork1][1]+xi[i][igorkov][1]) )+\
+					conj(x[i][igorkov][1])*(\
+						u11t[3][i]*(xi[i][igork1][1]+xi[i][igorkov][1])+\
+						conj(u12t[3][i])*(xi[i][igorkov][0]+xi[i][igork1][0]) ) );
+		}
+	}
+	*endenf=xu-xd-xuu+xdd;
+	*denf=xu+xd+xuu+xdd;
+
+	Par_csum(endenf); Par_csum(denf);
+	*endenf/=2*gvol; *denf/=2*gvol;
+	//Future task. Chiral susceptibility measurements
+#ifdef USE_MKL
+	mkl_free(ps);
+#else
+	free(ps);
+#endif
+	return 0;
+}
+int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
+	/* 
+	 * Calculates the gauge action using new (how new?) lookup table
+	 * Follows a routine called qedplaq in some QED3 code
+	 *
+	 * Globals:
+	 * =======
+	 * 
+	 *
+	 * Parameters:
+	 * ===========
+	 * double hg
+	 * double avplaqs
+	 * double avplaqt
+	 *
+	 * Returns:
+	 * =======
+	 * Zero on success, integer error code otherwise
+	 */
+	const char *funcname = "SU2plaq";
+	int idir, mu;
+	//Do equivalent of a halo swap
+	for(mu=0;mu<ndim;mu++)
+		for(idir=0;idir<4;idir++){
+			ZHalo_swap_dir(&u11t[1][mu],1,idir,DOWN);
+			ZHalo_swap_dir(&u12t[1][mu],1,idir,DOWN);
+		}
+	complex Sigma11[kvol], Sigma12[kvol] __attribute__((aligned(AVX)));
+	//	The fortran code used several consecutive loops to get the plaquette
+	//	Instead we'll just make a11 and a12 values and do everything in one loop
+	//	complex a11[kvol], a12[kvol]  __attribute__((aligned(AVX)));
+	complex a11, a12;
+	int nu, i;
+	double hgs = 0; double hgt = 0;
+	for(mu=0;mu<ndim;mu++)
+		for(nu=0;nu<mu;nu++){
+			//Don't merge into a single loop. Makes vectorisation easier?
+			//Or merge into a single loop and dispense with the a arrays?
+			for(i=0;i<kvol;i++){
+				Sigma11[i]=u11t[mu][i]*u11t[nu][iu[mu][i]]-u12t[mu][i]*conj(u12t[nu][iu[mu][i]]);
+				Sigma12[i]=u11t[mu][i]*u12t[nu][iu[mu][i]]+u12t[mu][i]*conj(u11t[nu][iu[mu][i]]);
+				//			}
+				//			for(i=0;i<kvol;i++){
+				a11=Sigma11[i]*conj(u11t[mu][iu[nu][i]])+Sigma12[i]*conj(u12t[nu][iu[mu][i]]);
+				a12=Sigma12[i]*u12t[mu][iu[nu][i]]+Sigma12[i]*u11t[nu][iu[mu][i]];
+				//			}
+				//			for(i=0;i<kvol;i++){
+				Sigma11[i]=a11*conj(u11t[nu][i])+a12*conj(u12t[mu][i]);
+				//				Sigma12[i]=-a11[i]*u12t[nu][i]+a12*u11t[mu][i];
+				//				Not needed in final result as it traces out?
+		}
+		//Space component
+		if(mu<ndim-1)
+			//Is there a BLAS routine for this
+			for(i=0;i<kvol;i++)
+				hgs-=creal(Sigma11[i]);
+		//Time component
+		else
+			for(i=0;i<kvol;i++)
+				hgt-=creal(Sigma11[i]);
+		}
+	Par_csum(&hgs); Par_csum(&hgt);
+	*avplaqs=-hgs/(3*gvol); *avplaqt=-hgt/(gvol*3);
+	if(!rank)
+		printf("hgs=%f  hgt=%f  hg=%f\n", hgs, hgt, *hg);
+	return 0;
+}
+double Polyakov(){
+	/*
+	 * Calculate the Polyakov loop (no prizes for guessing that one...)
+	 *
+	 * Globals:
+	 * =======
+	 * u11t, u12t, u11t, u12t
+	 *
+	 * Calls:
+	 * ======
+	 * Par_tmul, Par_csum
+	 * 
+	 * Parameters:
+	 * ==========
+	 * double *poly The Polyakov Loop value
+	 * 
+	 * Returns:
+	 * =======
+	 * Double corresponding to the polyakov loop
+	 */
+	const char *funcname = "Polyakov";
+	complex Sigma11[kvol3], Sigma12[kvol3] __attribute__((aligned(AVX)));
+	memcpy(Sigma11, u11t[3], kvol3*sizeof(complex));
+	memcpy(Sigma12, u11t[3], kvol3*sizeof(complex));
+
+	//	Some Fortran commentary
+	//	Changed this routine.
+	//	u11t and u12t now defined as normal ie (kvol+halo,4).
+	//	Copy of Sigma11 and Sigma12 is changed so that it copies
+	//	in blocks of ksizet.
+	//	Variable indexu also used to select correct element of u11t and u12t 
+	//	in loop 10 below.
+	//
+	//	Change the order of multiplication so that it can
+	//	be done in parallel. Start at t=1 and go up to t=T:
+	//	previously started at t+T and looped back to 1, 2, ... T-1
+	int indexu=0;
+	//Buffers
+	complex a11=0; complex  a12 = 0;
+	for(int it=1;it<ksizet;it++){
+		//Need to be careful with indexu. Row vs column major etc.
+		indexu=it*kvol3-1;
+		for(int i=0;i<kvol3;i++){
+			//Seems a bit more efficient to increment indexu instead of reassigning
+			//it every single loop
+			indexu++;
+			a11=Sigma11[i]*u11t[3][indexu]-Sigma12[i]*conj(u12t[3][indexu]);
+			a12=Sigma11[i]*u12t[3][indexu]+Sigma12[i]*conj(u11t[3][indexu]);
+			Sigma11[i]=a11; Sigma12[i]=a12;
+		}
+	}
+	//Multiply this partial loop with the contributions of the other cores in the
+	//timelike dimension
+#ifdef DEBUG
+	printf("Multiplying with MPI\n");
+#endif
+	Par_tmul(Sigma11, Sigma12);
+	double poly = 0;
+	//There has to be a vectorised method of doing this somewhere, or a reduction method
+	//for large k
+	for(int i=0;i<kvol3;i++)
+		poly+=creal(Sigma11[i]);
+	//Now all cores have the value for the complete Polyakov line at all spacial sites
+	//We need to globally sum over spacial processores but not across time as these
+	//are duplicates. So we zero the value for all but t=0
+
+	//This is (according to the FORTRAN code) a bit of a hack
+	if(pcoord[3][rank]) poly = 0;
+	Par_csum(&poly);
+	poly/=gvol3;
+	return poly;	
+}
+inline int Reunitarise(){
+	/*
+	 * Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1
+	 *
+	 * If you're looking at the FORTRAN code be careful. There are two header files
+	 * for the /trial/ header. One with u11 u12 (which was included here originally)
+	 * and the other with u11t and u12t.
+	 *
+	 * Globals:
+	 * =======
+	 * u11t, u12t
+	 *
+	 * Returns:
+	 * ========
+	 * Zero on success, integer error code otherwise
+	 */
+	const char *funcname = "Reunitarise";
+
+	for(int mu = 0; mu<ndim; mu++)
+		for(int i=0; i<kvol; i++){
+			//Declaring anorm inside the loop will hopefully let the compiler know it
+			//is safe to vectorise aggessively
+			double anorm=sqrt(conj(u11t[mu][i])*u11t[mu][i]+conj(u12t[mu][i])*u12t[mu][i]);
+			if(anorm==0){
+				fprintf(stderr, "Error %i in %s on rank %i: anorm = 0 for μ=%i and i=%i.\nExiting...\n\n",
+						DIVZERO, funcname, mu, i);
+				MPI_Finalize();
+				exit(DIVZERO);
+			}
+			u11t[mu][i]/=anorm;
+			u12t[mu][i]/=anorm;
+		}
+	return 0;
+}
+inline int Z_gather(complex *x, complex *y, int n, int *table){
+	for(int i=0; i<n; i++)
+		x[i]=y[table[i]];
+	return 0;
+}
+int Fill_Small_Phi(int na, complex smallPhi[][ndirac][nc]){
+	/*Copies necessary (2*4*kvol) elements of Phi into a vector variable
+	 *
+	 * Globals:
+	 * =======
+	 * Phi:	  The source array
+	 * 
+	 * Parameters:
+	 * ==========
+	 * int na: flavour index
+	 * complex *smallPhi:	  The target array
+	 *
+	 * Returns:
+	 * =======
+	 * Zero on success, integer error code otherwise
+	 */
+	const char *funcname = "Fill_Small_Phi";
+	//BIG and small phi index
+	int PHI_index, phi_index;
+	phi_index = 0;
+	for(int i = 0; i<kvol;i++)
+		for(int idirac = 0; idirac<ndirac; idirac++)
+			for(int ic= 0; ic<nc; ic++){
+				// The original code behaves in this manner, same loop order and same formula for PHI_index
+				// We end up hiting the first 8 elements of the Phi array. But because i is multiplied by
+				// 2*ndirac*nc we end up skipping the second, fourth, sixth etc. groups of 8 elements.
+				// This is not yet clear to me why, but I'll update when it is clarified.
+				//	  PHI_index=i*16+j*2+k;
+				smallPhi[i][idirac][ic]=Phi[na][ic][2*idirac][i];
+				phi_index++;
+			}
+	return 0;
+}
+double Norm_squared(complex *z, int n){
+	/* Called znorm2 in the original FORTRAN.
+	 * Takes a complex number vector of length n and finds the square of its 
+	 * norm using the formula
+	 * 
+	 *	    |z(i)|^2 = z(i)Xz*(i)
+	 *
+	 * Parameters:
+	 * ==========
+	 *  complex z:	The Number being normalised
+	 *  int n:	The length of the vector
+	 * 
+	 * Returns:
+	 * =======
+	 *  double: The norm of the complex number
+	 * 
+	 */
+	//BLAS? Use cblas_zdotc instead for vectorisation
+	const char *funcname = "Norm_squared";
+	double norm = 0;
+	for(int i=0; i<n; i++)
+		norm+=z[i]*conj(z[i]);
+	return norm;
+}

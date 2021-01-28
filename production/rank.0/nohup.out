@@ -1,0 +1,34 @@
+
+(advixe-gui:68874): Gdk-CRITICAL **: 11:45:03.644: _gdk_pixmap_new: assertion '(width != 0) && (height != 0)' failed
+
+(advixe-gui:68874): Gdk-CRITICAL **: 11:45:03.644: IA__gdk_draw_rectangle: assertion 'GDK_IS_DRAWABLE (drawable)' failed
+
+(advixe-gui:68874): Gdk-CRITICAL **: 11:45:03.645: IA__gdk_drawable_get_depth: assertion 'GDK_IS_DRAWABLE (drawable)' failed
+
+(advixe-gui:68874): Gtk-CRITICAL **: 11:45:03.645: IA__gtk_paint_arrow: assertion 'style->depth == gdk_drawable_get_depth (window)' failed
+
+(advixe-gui:68874): Gdk-CRITICAL **: 11:45:03.645: IA__gdk_drawable_get_depth: assertion 'GDK_IS_DRAWABLE (drawable)' failed
+
+(advixe-gui:68874): Gtk-CRITICAL **: 11:45:03.645: IA__gtk_paint_arrow: assertion 'style->depth == gdk_drawable_get_depth (window)' failed
+
+(advixe-gui:68874): Gdk-CRITICAL **: 11:45:03.645: _gdk_pixmap_new: assertion '(width != 0) && (height != 0)' failed
+
+(advixe-gui:68874): Gdk-CRITICAL **: 11:45:03.645: IA__gdk_drawable_get_size: assertion 'GDK_IS_DRAWABLE (drawable)' failed
+
+(advixe-gui:68874): Gdk-CRITICAL **: 11:45:05.810: _gdk_pixmap_new: assertion '(width != 0) && (height != 0)' failed
+
+(advixe-gui:68874): Gdk-CRITICAL **: 11:45:05.810: IA__gdk_draw_rectangle: assertion 'GDK_IS_DRAWABLE (drawable)' failed
+
+(advixe-gui:68874): Gdk-CRITICAL **: 11:45:05.810: IA__gdk_drawable_get_depth: assertion 'GDK_IS_DRAWABLE (drawable)' failed
+
+(advixe-gui:68874): Gtk-CRITICAL **: 11:45:05.810: IA__gtk_paint_arrow: assertion 'style->depth == gdk_drawable_get_depth (window)' failed
+
+(advixe-gui:68874): Gdk-CRITICAL **: 11:45:05.810: IA__gdk_drawable_get_depth: assertion 'GDK_IS_DRAWABLE (drawable)' failed
+
+(advixe-gui:68874): Gtk-CRITICAL **: 11:45:05.810: IA__gtk_paint_arrow: assertion 'style->depth == gdk_drawable_get_depth (window)' failed
+
+(advixe-gui:68874): Gdk-CRITICAL **: 11:45:05.810: _gdk_pixmap_new: assertion '(width != 0) && (height != 0)' failed
+
+(advixe-gui:68874): Gdk-CRITICAL **: 11:45:05.811: IA__gdk_drawable_get_size: assertion 'GDK_IS_DRAWABLE (drawable)' failed
+
+(advixe-gui:68874): Gtk-CRITICAL **: 11:45:05.813: IA__gtk_widget_set_size_request: assertion 'width >= -1' failed

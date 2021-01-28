@@ -1,0 +1,76 @@
+
+=== Start: [2020/11/21 20:16:19] === 
+Analysis started...
+Result file: /home/postgrad/dalel487/Code/su2hybridcode/production/rank.0/mp002/mp002.advixe 
+Found target process /home/postgrad/dalel487/Code/su2hybridcode/production/su2hmc.exe (PID = 626187). Analysis started... 
+Loaded module: /home/postgrad/dalel487/Code/su2hybridcode/production/su2hmc.exe. 
+Loaded module: /lib64/ld-linux-x86-64.so.2. 
+Loaded module: [vdso]. 
+Loaded module: /opt/intel/compilers_and_libraries_2020.4.304/linux/mkl/lib/intel64_lin/libmkl_intel_lp64.so. 
+Loaded module: /opt/intel/compilers_and_libraries_2020.4.304/linux/mkl/lib/intel64_lin/libmkl_intel_thread.so. 
+Loaded module: /opt/intel/compilers_and_libraries_2020.4.304/linux/mkl/lib/intel64_lin/libmkl_core.so. 
+Loaded module: /opt/intel/compilers_and_libraries_2020.4.304/linux/compiler/lib/intel64_lin/libiomp5.so. 
+Loaded module: /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/libmpifort.so.12. 
+Loaded module: /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release/libmpi.so.12. 
+Loaded module: /lib/x86_64-linux-gnu/libdl.so.2. 
+Loaded module: /lib/x86_64-linux-gnu/librt.so.1. 
+Loaded module: /lib/x86_64-linux-gnu/libpthread.so.0. 
+Loaded module: /lib/x86_64-linux-gnu/libm.so.6. 
+Loaded module: /lib/x86_64-linux-gnu/libc.so.6. 
+Loaded module: /lib/x86_64-linux-gnu/libgcc_s.so.1. 
+Loaded module: /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/libfabric.so.1. 
+Loaded module: /usr/lib/x86_64-linux-gnu/libnuma.so. 
+Loaded module: /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/prov/librxm-fi.so. 
+Loaded module: /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/prov/libefa-fi.so. 
+Loaded module: /usr/lib/x86_64-linux-gnu/libefa.so.1. 
+Loaded module: /usr/lib/x86_64-linux-gnu/libibverbs.so.1. 
+Loaded module: /usr/lib/x86_64-linux-gnu/libnl-route-3.so.200. 
+Loaded module: /lib/x86_64-linux-gnu/libnl-3.so.200. 
+Unloaded module: /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/prov/libefa-fi.so. 
+Unloaded module: /usr/lib/x86_64-linux-gnu/libefa.so.1. 
+Unloaded module: /usr/lib/x86_64-linux-gnu/libibverbs.so.1. 
+Unloaded module: /usr/lib/x86_64-linux-gnu/libnl-route-3.so.200. 
+Unloaded module: /lib/x86_64-linux-gnu/libnl-3.so.200. 
+Loaded module: /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/prov/libverbs-fi.so. 
+Loaded module: /usr/lib/x86_64-linux-gnu/librdmacm.so.1. 
+Loaded module: /usr/lib/x86_64-linux-gnu/libibverbs.so.1. 
+Loaded module: /lib/x86_64-linux-gnu/libnl-3.so.200. 
+Loaded module: /usr/lib/x86_64-linux-gnu/libnl-route-3.so.200. 
+Unloaded module: /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/prov/libverbs-fi.so. 
+Unloaded module: /usr/lib/x86_64-linux-gnu/librdmacm.so.1. 
+Unloaded module: /usr/lib/x86_64-linux-gnu/libibverbs.so.1. 
+Unloaded module: /usr/lib/x86_64-linux-gnu/libnl-route-3.so.200. 
+Unloaded module: /lib/x86_64-linux-gnu/libnl-3.so.200. 
+Loaded module: /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/prov/libtcp-fi.so. 
+Loaded module: /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/prov/libsockets-fi.so. 
+Loaded module: /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/prov/libpsmx2-fi.so. 
+Loaded module: /usr/lib/x86_64-linux-gnu/libpsm2.so.2. 
+Loaded module: /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/prov/libshm-fi.so. 
+Unloaded module: /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/prov/libpsmx2-fi.so. 
+Unloaded module: /usr/lib/x86_64-linux-gnu/libpsm2.so.2. 
+Unloaded module: /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/prov/librxm-fi.so. 
+Unloaded module: /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/prov/libtcp-fi.so. 
+Unloaded module: /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/prov/libsockets-fi.so. 
+Unloaded module: /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/prov/libshm-fi.so. 
+Unloaded module: /home/postgrad/dalel487/Code/su2hybridcode/production/su2hmc.exe. 
+Unloaded module: /lib64/ld-linux-x86-64.so.2. 
+Unloaded module: [vdso]. 
+Unloaded module: /opt/intel/compilers_and_libraries_2020.4.304/linux/mkl/lib/intel64_lin/libmkl_intel_lp64.so. 
+Unloaded module: /opt/intel/compilers_and_libraries_2020.4.304/linux/mkl/lib/intel64_lin/libmkl_intel_thread.so. 
+Unloaded module: /opt/intel/compilers_and_libraries_2020.4.304/linux/mkl/lib/intel64_lin/libmkl_core.so. 
+Unloaded module: /opt/intel/compilers_and_libraries_2020.4.304/linux/compiler/lib/intel64_lin/libiomp5.so. 
+Unloaded module: /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/libmpifort.so.12. 
+Unloaded module: /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release/libmpi.so.12. 
+Unloaded module: /lib/x86_64-linux-gnu/libdl.so.2. 
+Unloaded module: /lib/x86_64-linux-gnu/librt.so.1. 
+Unloaded module: /lib/x86_64-linux-gnu/libpthread.so.0. 
+Unloaded module: /lib/x86_64-linux-gnu/libm.so.6. 
+Unloaded module: /lib/x86_64-linux-gnu/libc.so.6. 
+Unloaded module: /lib/x86_64-linux-gnu/libgcc_s.so.1. 
+Unloaded module: /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/libfabric.so.1. 
+Unloaded module: /usr/lib/x86_64-linux-gnu/libnuma.so. 
+Process /home/postgrad/dalel487/Code/su2hybridcode/production/su2hmc.exe (PID = 626187) has terminated. 
+Application exit code: 0 
+Result file: /home/postgrad/dalel487/Code/su2hybridcode/production/rank.0/mp002/mp002.advixe 
+Analysis completed
+=== End: [2020/11/21 20:18:37] === 

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- <!DOCTYPE IntelParallelAdvisorSummaryCollection SYSTEM  "IntelParallelAdvisorSummaryCollection.dtd"> -->
+
+<IntelParallelAdvisorSummary version="" 
+                             kind="DATAKIND_SURVEY_EX" >
+  <hotspot filename="/home/postgrad/dalel487/Code/su2hybridcode/production/su2hmc.f"
+           line_no="2894"
+           routine="hdslashd"
+           is_vectorized="0"
+           self_time="7.080323E-01"
+           total_time="7.080323E-01"
+           trip_counts="32"
+           func_instance="55"
+           priority="0"/>
+  <hotspot filename="/home/postgrad/dalel487/Code/su2hybridcode/production/su2hmc.f"
+           line_no="2768"
+           routine="hdslash"
+           is_vectorized="0"
+           self_time="5.720297E-01"
+           total_time="5.720297E-01"
+           trip_counts="32"
+           func_instance="79"
+           priority="0"/>
+  <hotspot filename="/home/postgrad/dalel487/Code/su2hybridcode/production/su2hmc.f"
+           line_no="622"
+           routine="force"
+           is_vectorized="1"
+           self_time="6.400315E-02"
+           total_time="6.400315E-02"
+           trip_counts="16; 32; 8; 16; 16; 16; 16; 8; 8"
+           func_instance="971"
+           confidence="1"
+           efficiency="1.697308E+01"
+           referenceEfficiency="2.500000E+01"
+           priority="0"/>
+  <hotspot filename="/home/postgrad/dalel487/Code/su2hybridcode/production/par_mpi.f"
+           line_no="637"
+           routine="zuphaloswapdir"
+           is_vectorized="1"
+           self_time="5.600010E-02"
+           total_time="5.600010E-02"
+           trip_counts="4; 1"
+           func_instance="980"
+           confidence="1"
+           efficiency="6.805629E+01"
+           referenceEfficiency="5.000000E+01"
+           priority="0"/>
+  <hotspot filename="/home/postgrad/dalel487/Code/su2hybridcode/production/par_mpi.f"
+           line_no="637"
+           routine="zuphaloswapdir"
+           is_vectorized="1"
+           self_time="3.199700E-02"
+           total_time="3.199700E-02"
+           trip_counts="1; 8"
+           func_instance="981"
+           confidence="1"
+           efficiency="9.147049E+01"
+           referenceEfficiency="5.000000E+01"
+           priority="0"/>
+</IntelParallelAdvisorSummary >

@@ -1,0 +1,6 @@
+
+Stopped at target entry
+ - waiting for debugger to connect...
+
+If you chose to start the debugger manually or the debugger does not appear due to an error, start a supported debugger now and enter the following command at the debugger prompt:  target remote :40659
+

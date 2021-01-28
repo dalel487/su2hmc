@@ -1,0 +1,92 @@
+su2hmc.c(136): warning #167: argument of type "int *" is incompatible with parameter of type "double *"
+  	Par_icopy(&iterl); Par_icopy(&iter2); jqq=ajq*cexp(athq*I); Par_ranset(&seed);
+  	                                                                       ^
+
+su2hmc.c(220): warning #167: argument of type "double (*)[3][4]" is incompatible with parameter of type "double *"
+  		Gauss_d(pp, nadj*ndim*(kvol+halo), 0, 1);
+  		        ^
+
+su2hmc.c(438): warning #167: argument of type "int (*)[64]" is incompatible with parameter of type "int *"
+  	Check_addr(iu, ksize, ksizet, 0, kvol+halo);
+  	           ^
+
+su2hmc.c(439): warning #167: argument of type "int (*)[64]" is incompatible with parameter of type "int *"
+  	Check_addr(id, ksize, ksizet, 0, kvol+halo);
+  	           ^
+
+su2hmc.c(539): warning #167: argument of type "double __complex__ (*)[4][2]" is incompatible with parameter of type "double __complex__ (*)[8][2]"
+  		Hdslash(X2,X1);
+  		        ^
+
+su2hmc.c(539): warning #167: argument of type "double __complex__ (*)[4][2]" is incompatible with parameter of type "double __complex__ (*)[8][2]"
+  		Hdslash(X2,X1);
+  		           ^
+
+su2hmc.c(551): warning #167: argument of type "double __complex__ (*)[4][2]" is incompatible with parameter of type "double __complex__ *"
+  			ZHalo_swap_dir(X1,8,i,DOWN);
+  			               ^
+
+su2hmc.c(552): warning #167: argument of type "double __complex__ (*)[4][2]" is incompatible with parameter of type "double __complex__ *"
+  			ZHalo_swap_dir(X2,8,i,DOWN);
+  			               ^
+
+su2hmc.c(715): warning #1692: white space between backslash and newline in line splice ignored
+  					-conj(u12[mu][i])*X2[uid][igork1][0]+conj(u11[mu][i])*X2[uid][igork1][1])-\
+  					                                                                           ^
+
+su2hmc.c(885): warning #167: argument of type "double __complex__ *" is incompatible with parameter of type "double __complex__ (*)[4][2]"
+  		Fill_Small_Phi(i, smallPhi);
+  		                  ^
+
+su2hmc.c(951): warning #167: argument of type "double __complex__ *" is incompatible with parameter of type "double __complex__ (*)[4][2]"
+  	Fill_Small_Phi(na, smallPhi);
+  	                   ^
+
+su2hmc.c(972): warning #167: argument of type "double __complex__ *" is incompatible with parameter of type "double __complex__ (*)[8][2]"
+  		Hdslash(x1,p); Hdslashd(x2, x1);
+  		        ^
+
+su2hmc.c(972): warning #167: argument of type "double __complex__ *" is incompatible with parameter of type "double __complex__ (*)[8][2]"
+  		Hdslash(x1,p); Hdslashd(x2, x1);
+  		           ^
+
+su2hmc.c(972): warning #167: argument of type "double __complex__ *" is incompatible with parameter of type "double __complex__ (*)[8][2]"
+  		Hdslash(x1,p); Hdslashd(x2, x1);
+  		                        ^
+
+su2hmc.c(972): warning #167: argument of type "double __complex__ *" is incompatible with parameter of type "double __complex__ (*)[8][2]"
+  		Hdslash(x1,p); Hdslashd(x2, x1);
+  		                            ^
+
+su2hmc.c(1100): warning #167: argument of type "double __complex__ *" is incompatible with parameter of type "double __complex__ (*)[8][2]"
+  		Dslash(x1,p);
+  		       ^
+
+su2hmc.c(1100): warning #167: argument of type "double __complex__ *" is incompatible with parameter of type "double __complex__ (*)[8][2]"
+  		Dslash(x1,p);
+  		          ^
+
+su2hmc.c(1123): warning #167: argument of type "double __complex__ *" is incompatible with parameter of type "double __complex__ (*)[8][2]"
+  		Dslashd(x2,x1);
+  		        ^
+
+su2hmc.c(1123): warning #167: argument of type "double __complex__ *" is incompatible with parameter of type "double __complex__ (*)[8][2]"
+  		Dslashd(x2,x1);
+  		           ^
+
+su2hmc.c(1211): warning #167: argument of type "double __complex__ (*)[2]" is incompatible with parameter of type "double __complex__ *"
+  	Gauss_z(xi[0], ngorkov, 0, 1);
+  	        ^
+
+su2hmc.c(1212): warning #167: argument of type "double __complex__ (*)[2]" is incompatible with parameter of type "double __complex__ *"
+  	Gauss_z(xi[1], ngorkov, 0, 1);
+  	        ^
+
+su2hmc.c(1273): warning #167: argument of type "double __complex__ (*)[8][2]" is incompatible with parameter of type "double __complex__ *"
+  	ZHalo_swap_dir(x,16,3,DOWN);		ZHalo_swap_dir(x,16,3,UP);
+  	               ^
+
+su2hmc.c(1273): warning #167: argument of type "double __complex__ (*)[8][2]" is incompatible with parameter of type "double __complex__ *"
+  	ZHalo_swap_dir(x,16,3,DOWN);		ZHalo_swap_dir(x,16,3,UP);
+  	                            		               ^
+

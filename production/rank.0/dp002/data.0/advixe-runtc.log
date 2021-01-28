@@ -1,0 +1,590 @@
+<?xml version="1.0" encoding="utf-8"?>
+<log version="1.0" tool="runtool">
+
+<msg id="1" tool="runtool">
+  <type>log-start</type>
+  <arg>2020/11/25 11:55:40</arg>
+</msg>
+<msg id="2" tool="runtool">
+  <type>collector-starts</type>
+</msg>
+<msg id="3" tool="runtool">
+  <type>marker-file</type>
+  <arg>/media/boltzmann_2TB/HOME_BACKUP/Code/su2hybridcode/production/rank.0/dp002/dp002.advixe</arg>
+</msg>
+<msg id="4" tool="tc">
+  <type>START</type>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:40 2020</timestamp>
+</msg>
+<msg id="5" tool="tc">
+  <type>EXEC_OF_INTEREST</type>
+  <arg>/home/postgrad/dalel487/Code/su2hybridcode/production/su2hmc.exe</arg>
+  <arg>71488</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:40 2020</timestamp>
+</msg>
+<msg id="6" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/home/postgrad/dalel487/Code/su2hybridcode/production/su2hmc.exe</arg>
+  <arg>0x400000</arg>
+  <arg>0x6711c67</arg>
+  <arg>2</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:40 2020</timestamp>
+</msg>
+<msg id="7" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/lib64/ld-linux-x86-64.so.2</arg>
+  <arg>0x7f94f886b000</arg>
+  <arg>0x7f94f889a18f</arg>
+  <arg>3</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:40 2020</timestamp>
+</msg>
+<msg id="8" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>[vdso]</arg>
+  <arg>0x7ffd64b26000</arg>
+  <arg>0x7ffd64b26a3b</arg>
+  <arg>4</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:40 2020</timestamp>
+</msg>
+<msg id="9" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/opt/intel/compilers_and_libraries_2020.4.304/linux/mkl/lib/intel64_lin/libmkl_intel_lp64.so</arg>
+  <arg>0x7f94e19ae000</arg>
+  <arg>0x7f94e26cdc7f</arg>
+  <arg>5</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:41 2020</timestamp>
+</msg>
+<msg id="10" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/opt/intel/compilers_and_libraries_2020.4.304/linux/mkl/lib/intel64_lin/libmkl_intel_thread.so</arg>
+  <arg>0x7f94de041000</arg>
+  <arg>0x7f94e192ba47</arg>
+  <arg>6</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:41 2020</timestamp>
+</msg>
+<msg id="11" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/opt/intel/compilers_and_libraries_2020.4.304/linux/mkl/lib/intel64_lin/libmkl_core.so</arg>
+  <arg>0x7f94d9a00000</arg>
+  <arg>0x7f94de0409cf</arg>
+  <arg>7</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:41 2020</timestamp>
+</msg>
+<msg id="12" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/opt/intel/compilers_and_libraries_2020.4.304/linux/compiler/lib/intel64_lin/libiomp5.so</arg>
+  <arg>0x7f94d95c2000</arg>
+  <arg>0x7f94d99c71ff</arg>
+  <arg>8</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:42 2020</timestamp>
+</msg>
+<msg id="13" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/libmpifort.so.12</arg>
+  <arg>0x7f94d9204000</arg>
+  <arg>0x7f94d95c1817</arg>
+  <arg>9</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:42 2020</timestamp>
+</msg>
+<msg id="14" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release/libmpi.so.12</arg>
+  <arg>0x7f94d7ea4000</arg>
+  <arg>0x7f94d9203217</arg>
+  <arg>10</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:42 2020</timestamp>
+</msg>
+<msg id="15" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/lib/x86_64-linux-gnu/libdl.so.2</arg>
+  <arg>0x7f94d7e30000</arg>
+  <arg>0x7f94d7e3510f</arg>
+  <arg>11</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:42 2020</timestamp>
+</msg>
+<msg id="16" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/lib/x86_64-linux-gnu/librt.so.1</arg>
+  <arg>0x7f94d7e25000</arg>
+  <arg>0x7f94d7e2fbdf</arg>
+  <arg>12</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:42 2020</timestamp>
+</msg>
+<msg id="17" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/lib/x86_64-linux-gnu/libpthread.so.0</arg>
+  <arg>0x7f94d7df9000</arg>
+  <arg>0x7f94d7e1b477</arg>
+  <arg>13</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:42 2020</timestamp>
+</msg>
+<msg id="18" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/lib/x86_64-linux-gnu/libm.so.6</arg>
+  <arg>0x7f94d7ca0000</arg>
+  <arg>0x7f94d7dee10f</arg>
+  <arg>14</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:42 2020</timestamp>
+</msg>
+<msg id="19" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/lib/x86_64-linux-gnu/libc.so.6</arg>
+  <arg>0x7f94d7aae000</arg>
+  <arg>0x7f94d7c9f4d7</arg>
+  <arg>15</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:42 2020</timestamp>
+</msg>
+<msg id="20" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/lib/x86_64-linux-gnu/libgcc_s.so.1</arg>
+  <arg>0x7f94d7a93000</arg>
+  <arg>0x7f94d7aad447</arg>
+  <arg>16</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:42 2020</timestamp>
+</msg>
+<msg id="21" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/libfabric.so.1</arg>
+  <arg>0x7f94d7825000</arg>
+  <arg>0x7f94d7a66777</arg>
+  <arg>17</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:42 2020</timestamp>
+</msg>
+<msg id="22" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/usr/lib/x86_64-linux-gnu/libnuma.so</arg>
+  <arg>0x7f94c9e09000</arg>
+  <arg>0x7f94c9e1579f</arg>
+  <arg>18</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:46 2020</timestamp>
+</msg>
+<msg id="23" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/prov/librxm-fi.so</arg>
+  <arg>0x7f94c9544000</arg>
+  <arg>0x7f94c9791b57</arg>
+  <arg>19</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:47 2020</timestamp>
+</msg>
+<msg id="24" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/prov/libefa-fi.so</arg>
+  <arg>0x7f94c91b1000</arg>
+  <arg>0x7f94c940be57</arg>
+  <arg>20</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:47 2020</timestamp>
+</msg>
+<msg id="25" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/usr/lib/x86_64-linux-gnu/libefa.so.1</arg>
+  <arg>0x7f94c9412000</arg>
+  <arg>0x7f94c941b00f</arg>
+  <arg>21</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:47 2020</timestamp>
+</msg>
+<msg id="26" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/usr/lib/x86_64-linux-gnu/libibverbs.so.1</arg>
+  <arg>0x7f94c916a000</arg>
+  <arg>0x7f94c918831f</arg>
+  <arg>22</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:47 2020</timestamp>
+</msg>
+<msg id="27" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/usr/lib/x86_64-linux-gnu/libnl-route-3.so.200</arg>
+  <arg>0x7f94c90f2000</arg>
+  <arg>0x7f94c916943f</arg>
+  <arg>23</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:47 2020</timestamp>
+</msg>
+<msg id="28" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/lib/x86_64-linux-gnu/libnl-3.so.200</arg>
+  <arg>0x7f94c90cf000</arg>
+  <arg>0x7f94c90f144f</arg>
+  <arg>24</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:47 2020</timestamp>
+</msg>
+<msg id="29" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/prov/libefa-fi.so</arg>
+  <arg>20</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:47 2020</timestamp>
+</msg>
+<msg id="30" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/usr/lib/x86_64-linux-gnu/libefa.so.1</arg>
+  <arg>21</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:47 2020</timestamp>
+</msg>
+<msg id="31" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/usr/lib/x86_64-linux-gnu/libibverbs.so.1</arg>
+  <arg>22</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:47 2020</timestamp>
+</msg>
+<msg id="32" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/usr/lib/x86_64-linux-gnu/libnl-route-3.so.200</arg>
+  <arg>23</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:47 2020</timestamp>
+</msg>
+<msg id="33" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/lib/x86_64-linux-gnu/libnl-3.so.200</arg>
+  <arg>24</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:47 2020</timestamp>
+</msg>
+<msg id="34" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/prov/libverbs-fi.so</arg>
+  <arg>0x7f9423376000</arg>
+  <arg>0x7f94235c5e57</arg>
+  <arg>25</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:47 2020</timestamp>
+</msg>
+<msg id="35" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/usr/lib/x86_64-linux-gnu/librdmacm.so.1</arg>
+  <arg>0x7f94c9334000</arg>
+  <arg>0x7f94c93521a7</arg>
+  <arg>26</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:47 2020</timestamp>
+</msg>
+<msg id="36" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/usr/lib/x86_64-linux-gnu/libibverbs.so.1</arg>
+  <arg>0x7f94c9315000</arg>
+  <arg>0x7f94c933331f</arg>
+  <arg>27</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:47 2020</timestamp>
+</msg>
+<msg id="37" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/lib/x86_64-linux-gnu/libnl-3.so.200</arg>
+  <arg>0x7f94c92f2000</arg>
+  <arg>0x7f94c931444f</arg>
+  <arg>28</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:47 2020</timestamp>
+</msg>
+<msg id="38" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/usr/lib/x86_64-linux-gnu/libnl-route-3.so.200</arg>
+  <arg>0x7f94c927a000</arg>
+  <arg>0x7f94c92f143f</arg>
+  <arg>29</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:47 2020</timestamp>
+</msg>
+<msg id="39" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/prov/libverbs-fi.so</arg>
+  <arg>25</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:47 2020</timestamp>
+</msg>
+<msg id="40" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/usr/lib/x86_64-linux-gnu/librdmacm.so.1</arg>
+  <arg>26</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:47 2020</timestamp>
+</msg>
+<msg id="41" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/usr/lib/x86_64-linux-gnu/libibverbs.so.1</arg>
+  <arg>27</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:47 2020</timestamp>
+</msg>
+<msg id="42" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/usr/lib/x86_64-linux-gnu/libnl-route-3.so.200</arg>
+  <arg>29</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:47 2020</timestamp>
+</msg>
+<msg id="43" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/lib/x86_64-linux-gnu/libnl-3.so.200</arg>
+  <arg>28</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:47 2020</timestamp>
+</msg>
+<msg id="44" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/prov/libtcp-fi.so</arg>
+  <arg>0x7f9423389000</arg>
+  <arg>0x7f94235c56d7</arg>
+  <arg>30</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:47 2020</timestamp>
+</msg>
+<msg id="45" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/prov/libsockets-fi.so</arg>
+  <arg>0x7f9423134000</arg>
+  <arg>0x7f9423388e57</arg>
+  <arg>31</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:47 2020</timestamp>
+</msg>
+<msg id="46" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/prov/libpsmx2-fi.so</arg>
+  <arg>0x7f9422ebb000</arg>
+  <arg>0x7f9423133837</arg>
+  <arg>32</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:47 2020</timestamp>
+</msg>
+<msg id="47" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/usr/lib/x86_64-linux-gnu/libpsm2.so.2</arg>
+  <arg>0x7f94c8b8c000</arg>
+  <arg>0x7f94c8bf51ff</arg>
+  <arg>33</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:47 2020</timestamp>
+</msg>
+<msg id="48" tool="tc">
+  <type>LOAD_MODULE</type>
+  <arg>/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/prov/libshm-fi.so</arg>
+  <arg>0x7f9422aef000</arg>
+  <arg>0x7f9422d2d837</arg>
+  <arg>34</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:48 2020</timestamp>
+</msg>
+<msg id="49" tool="runtool">
+  <type>internal-error-with-log</type>
+  <arg>/media/boltzmann_2TB/HOME_BACKUP/Code/su2hybridcode/production/rank.0/dp002/data.0/advixe-runtc.log</arg>
+  <description>waitpid(): [Interrupted system call]</description>
+</msg>
+<msg id="50" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/prov/libpsmx2-fi.so</arg>
+  <arg>32</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:50 2020</timestamp>
+</msg>
+<msg id="51" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/usr/lib/x86_64-linux-gnu/libpsm2.so.2</arg>
+  <arg>33</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:50 2020</timestamp>
+</msg>
+<msg id="52" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/prov/librxm-fi.so</arg>
+  <arg>19</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:50 2020</timestamp>
+</msg>
+<msg id="53" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/prov/libtcp-fi.so</arg>
+  <arg>30</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:50 2020</timestamp>
+</msg>
+<msg id="54" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/prov/libsockets-fi.so</arg>
+  <arg>31</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:50 2020</timestamp>
+</msg>
+<msg id="55" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/prov/libshm-fi.so</arg>
+  <arg>34</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:50 2020</timestamp>
+</msg>
+<msg id="56" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/home/postgrad/dalel487/Code/su2hybridcode/production/su2hmc.exe</arg>
+  <arg>2</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:50 2020</timestamp>
+</msg>
+<msg id="57" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/lib64/ld-linux-x86-64.so.2</arg>
+  <arg>3</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:50 2020</timestamp>
+</msg>
+<msg id="58" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>[vdso]</arg>
+  <arg>4</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:50 2020</timestamp>
+</msg>
+<msg id="59" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/opt/intel/compilers_and_libraries_2020.4.304/linux/mkl/lib/intel64_lin/libmkl_intel_lp64.so</arg>
+  <arg>5</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:50 2020</timestamp>
+</msg>
+<msg id="60" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/opt/intel/compilers_and_libraries_2020.4.304/linux/mkl/lib/intel64_lin/libmkl_intel_thread.so</arg>
+  <arg>6</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:50 2020</timestamp>
+</msg>
+<msg id="61" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/opt/intel/compilers_and_libraries_2020.4.304/linux/mkl/lib/intel64_lin/libmkl_core.so</arg>
+  <arg>7</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:50 2020</timestamp>
+</msg>
+<msg id="62" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/opt/intel/compilers_and_libraries_2020.4.304/linux/compiler/lib/intel64_lin/libiomp5.so</arg>
+  <arg>8</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:50 2020</timestamp>
+</msg>
+<msg id="63" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/libmpifort.so.12</arg>
+  <arg>9</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:50 2020</timestamp>
+</msg>
+<msg id="64" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release/libmpi.so.12</arg>
+  <arg>10</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:50 2020</timestamp>
+</msg>
+<msg id="65" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/lib/x86_64-linux-gnu/libdl.so.2</arg>
+  <arg>11</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:50 2020</timestamp>
+</msg>
+<msg id="66" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/lib/x86_64-linux-gnu/librt.so.1</arg>
+  <arg>12</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:50 2020</timestamp>
+</msg>
+<msg id="67" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/lib/x86_64-linux-gnu/libpthread.so.0</arg>
+  <arg>13</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:50 2020</timestamp>
+</msg>
+<msg id="68" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/lib/x86_64-linux-gnu/libm.so.6</arg>
+  <arg>14</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:50 2020</timestamp>
+</msg>
+<msg id="69" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/lib/x86_64-linux-gnu/libc.so.6</arg>
+  <arg>15</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:50 2020</timestamp>
+</msg>
+<msg id="70" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/lib/x86_64-linux-gnu/libgcc_s.so.1</arg>
+  <arg>16</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:50 2020</timestamp>
+</msg>
+<msg id="71" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib/libfabric.so.1</arg>
+  <arg>17</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:50 2020</timestamp>
+</msg>
+<msg id="72" tool="tc">
+  <type>UNLOAD_MODULE</type>
+  <arg>/usr/lib/x86_64-linux-gnu/libnuma.so</arg>
+  <arg>18</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:50 2020</timestamp>
+</msg>
+<msg id="73" tool="tc">
+  <type>PROCESS_TERMINATE</type>
+  <arg>/home/postgrad/dalel487/Code/su2hybridcode/production/su2hmc.exe</arg>
+  <arg>71488</arg>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:50 2020</timestamp>
+</msg>
+<msg id="74" tool="tc">
+  <type>ANALYSIS_COMPLETE</type>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:50 2020</timestamp>
+</msg>
+<msg id="75" tool="tc">
+  <type>STOP</type>
+  <severity>INFO</severity>
+  <timestamp>Wed Nov 25 11:55:50 2020</timestamp>
+</msg>
+<msg id="76" tool="runtool">
+  <type>marker-file</type>
+  <arg>/media/boltzmann_2TB/HOME_BACKUP/Code/su2hybridcode/production/rank.0/dp002/dp002.advixe</arg>
+</msg>
+<msg id="77" tool="runtool">
+  <type>collector-aborted</type>
+</msg>
+<msg id="78" tool="runtool">
+  <type>log-end</type>
+  <arg>2020/11/25 11:55:53</arg>
+</msg>
+
+</log>
+

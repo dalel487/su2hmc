@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='UTF-8'?>
+
+<bag xmlns:boolean="http://www.w3.org/2001/XMLSchema#boolean" xmlns:int="http://www.w3.org/2001/XMLSchema#int" int:version="1">
+ <SurveyView int:survey_view_int_operations_mode="0">
+  <BottomUpGrid>
+   <ColumnStructure DefaultColumnLayout="Default"/>
+   <ColumnWidth int:fdVectInfoInstSets="55" int:fdVectorEfficiency="74" int:fdVectorGain="73" int:fdVectorLength="93" int:fdFunctionName="270" int:fdLoopAnnotation="42" int:fdRecommendationPresence="96" int:fdTotalTime="76" int:fdSelfTime="120" int:fdCompilerOptInfoVectLoopTypeSplitting="96" int:fdCompilerOptInfoVectMsg="132" int:fdSelfGFLOPS="96" int:fdTotalGFLOPS="96" int:fdSelfArithmeticIntensity="96" int:fdTotalArithmeticIntensity="96" int:fdMaskUtilization="96" int:fdMemory="81" int:fdTripCountMedian="72" int:fdTripCountOccurrences="72" int:fdVectInfoInstClasses="132" int:fdVectInfoVectDataTypes="54" int:fdCompilerOptDetails="96" int:fdLocation="83"/>
+  </BottomUpGrid>
+  <TopDownGrid>
+   <ColumnStructure DefaultColumnLayout="Top Down"/>
+  </TopDownGrid>
+  <RooflineChart rooflineState="{&quot;threadCount4RoofIdx&quot;:4,&quot;roofsState&quot;:{&quot;drambandwidth&quot;:{&quot;selected&quot;:false},&quot;l1bandwidth&quot;:{&quot;selected&quot;:true},&quot;scalarl1bandwidth&quot;:{&quot;selected&quot;:false,&quot;hidden&quot;:true},&quot;l2bandwidth&quot;:{&quot;selected&quot;:false},&quot;scalarl2bandwidth&quot;:{&quot;selected&quot;:false,&quot;hidden&quot;:true},&quot;l3bandwidth&quot;:{&quot;selected&quot;:false},&quot;scalarl3bandwidth&quot;:{&quot;selected&quot;:false,&quot;hidden&quot;:true},&quot;spvectorfmapeak&quot;:{&quot;selected&quot;:false},&quot;dpvectorfmapeak&quot;:{&quot;selected&quot;:true},&quot;scalaraddpeak&quot;:{&quot;selected&quot;:false},&quot;spvectoraddpeak&quot;:{&quot;selected&quot;:false},&quot;dpvectoraddpeak&quot;:{&quot;selected&quot;:false},&quot;integerscalaraddpeak&quot;:{&quot;selected&quot;:false},&quot;int64vectoraddpeak&quot;:{&quot;selected&quot;:true},&quot;int32vectoraddpeak&quot;:{&quot;selected&quot;:false}},&quot;stackViewVisible&quot;:false,&quot;rooflineType&quot;:&quot;b-1-L1-L2-L3-DRAM-all&quot;}"/>
+ </SurveyView>
+ <FilterView boolean:VectorizedButtonChecked="false" boolean:NotVectorizedButtonChecked="true" boolean:FakeLoopButtonChecked="true" boolean:LibrariesButtonChecked="false" ModuleFilterValue="All Modules" SourceFilterValue="All Sources" LoopModeFilterValue="Loops And Functions" ThreadFilterValue="All Threads"/>
+ <workflow int:selected="0" boolean:accuracyEnable="true">
+  <pmVectorization>
+   <commonKnobs>
+    <accuracy id="accuracy" boolean:visibility="true" value="high"/>
+    <overheadIndicator id="overheadIndicator" boolean:visibility="true"/>
+   </commonKnobs>
+   <checked boolean:a1="true" boolean:a3="true" boolean:a6="true" boolean:a7="false"/>
+  </pmVectorization>
+ </workflow>
+</bag>
