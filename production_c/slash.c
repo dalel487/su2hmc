@@ -126,22 +126,22 @@ int Dslash(complex phi[][8][nc], complex r[][8][nc]){
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			phi[i][igorkov][0]+=-dk4p[i]*(u11t[i][3]*(r[uid][igorkov][0]+r[uid][igork1][0])+\
 					u12t[i][3]*(r[uid][igorkov][1]+r[uid][igork1][1]))-\
-						  dk4m[i]*(conj(u11t[did][3])*(r[did][igorkov][0]+r[did][igork1][0])-\
+						  dk4m[did]*(conj(u11t[did][3])*(r[did][igorkov][0]+r[did][igork1][0])-\
 								  u12t[did][3]*(r[did][igorkov][1]+r[did][igork1][1]));
 
 			phi[i][igorkov][1]+=-dk4p[i]*(-conj(u12t[i][3])*(r[uid][igorkov][0]-r[uid][igork1][0])+\
 					conj(u11t[i][3])*(r[uid][igorkov][1]+r[uid][igork1][1]))-\
-						  dk4m[i]*(conj(u12t[did][3])*(r[did][igorkov][0]+r[did][igork1][0])+\
+						  dk4m[did]*(conj(u12t[did][3])*(r[did][igorkov][0]+r[did][igork1][0])+\
 								  u11t[did][3]*(r[did][igorkov][1]+r[did][igork1][1]));
 			//And the +4 terms. Note that dk4p and dk4m swap positions compared to the above				
 			phi[i][igorkovPP][0]+=-dk4m[i]*(u11t[i][3]*(r[uid][igorkov][0]-r[uid][igork1PP][0])+\
 					u12t[i][3]*(r[uid][igorkov][1]-r[uid][igork1PP][1]))-\
-						    dk4p[i]*(conj(u11t[did][3])*(r[did][igorkov][0]+r[did][igork1PP][0])-\
+						    dk4p[did]*(conj(u11t[did][3])*(r[did][igorkov][0]+r[did][igork1PP][0])-\
 								    u12t[did][3]*(r[1][igorkov][did]+r[1][igork1PP][did]));
 
 			phi[i][igorkovPP][1]+=-dk4m[i]*(conj(-u12t[i][3])*(r[uid][igorkovPP][0]-r[uid][igork1PP][0])+\
 					conj(u11t[i][3])*(r[uid][igorkovPP][1]-r[uid][igork1PP][1]))-\
-						    dk4p[i]*(conj(u12t[did][3])*(r[did][igorkovPP][0]+r[did][igork1PP][0])+\
+						    dk4p[did]*(conj(u12t[did][3])*(r[did][igorkovPP][0]+r[did][igork1PP][0])+\
 								    u11t[did][3]*(r[did][igorkovPP][1]+r[did][igork1PP][1]));
 		}
 	}
@@ -272,22 +272,22 @@ int Dslashd(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			phi[i][igorkov][0]+=-dk4m[i]*(u11t[i][3]*(r[uid][igorkov][0]+r[uid][igork1][0])+\
 					u12t[i][3]*(r[uid][igorkov][1]+r[uid][igork1][1]))-\
-						  dk4p[i]*(conj(u11t[did][3])*(r[did][igorkov][0]-r[did][igork1][0])-\
+						  dk4p[did]*(conj(u11t[did][3])*(r[did][igorkov][0]-r[did][igork1][0])-\
 								  u12t[did][3]*(r[did][igorkov][1]-r[did][igork1][1]));
 
 			phi[i][igorkov][1]+=dk4m[i]*(conj(u12t[i][3])*(r[uid][igorkov][0]+r[uid][igork1][0])-\
 					conj(u11t[i][3])*(r[uid][igorkov][1]+r[uid][igork1][1]))-\
-						  dk4p[i]*(conj(u12t[did][3])*(r[did][igorkov][0]-r[did][igork1][0])-\
+						  dk4p[did]*(conj(u12t[did][3])*(r[did][igorkov][0]-r[did][igork1][0])-\
 								  u11t[did][3]*(r[did][igorkov][1]+r[did][igork1][1]));
 			//And the +4 terms. Note that dk4p and dk4m swap positions compared to the above				
 			phi[i][igorkovPP][0]+=-dk4p[i]*(u11t[i][3]*(r[uid][igorkov][0]+r[uid][igork1PP][0])+\
 					u12t[i][3]*(r[uid][igorkov][1]+r[uid][igork1PP][1]))-\
-						    dk4m[i]*(conj(u11t[did][3])*(r[did][igorkov][0]-r[did][igork1PP][0])-\
+						    dk4m[did]*(conj(u11t[did][3])*(r[did][igorkov][0]-r[did][igork1PP][0])-\
 								    u12t[did][3]*(r[1][igorkov][did]-r[1][igork1PP][did]));
 
 			phi[i][igorkovPP][1]+=dk4p[i]*(conj(u12t[i][3])*(r[uid][igorkovPP][0]+r[uid][igork1PP][0])-\
 					conj(u11t[i][3])*(r[uid][igorkovPP][1]+r[uid][igork1PP][1]))-\
-						    dk4m[i]*(conj(u12t[did][3])*(r[did][igorkovPP][0]-r[did][igork1PP][0])+\
+						    dk4m[did]*(conj(u12t[did][3])*(r[did][igorkovPP][0]-r[did][igork1PP][0])+\
 								    u11t[did][3]*(r[did][igorkovPP][1]-r[did][igork1PP][1]));
 		}
 	}
@@ -354,7 +354,7 @@ int Hdslash(complex phi[][4][nc], complex r[][4][nc]){
 	//Mass term
 	memcpy(phi, r, kferm2Halo*sizeof(complex));
 	//Spacelike term
-#pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(2) private(akappa)
 	for(int i=0;i<kvol;i++)
 		for(int mu = 0; mu <3; mu++){
 			int did=id[mu][i]; int uid = iu[mu][i];
@@ -396,12 +396,12 @@ int Hdslash(complex phi[][4][nc], complex r[][4][nc]){
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			phi[i][idirac][0]+=-dk4p[i]*(u11t[i][3]*(r[uid][idirac][0]-r[uid][igork1][0])+\
 					u12t[i][3]*(r[uid][idirac][1]-r[uid][igork1][1]))-\
-						 dk4m[i]*(conj(u11t[did][3])*(r[did][idirac][0]+r[did][igork1][0])-\
+						 dk4m[did]*(conj(u11t[did][3])*(r[did][idirac][0]+r[did][igork1][0])-\
 								 u12t[did][3]*(r[did][idirac][1]+r[did][igork1][1]));
 
 			phi[i][idirac][1]+=dk4p[i]*(conj(u12t[i][3])*(r[uid][idirac][0]-r[uid][igork1][0])-\
 					conj(u11t[i][3])*(r[uid][idirac][1]-r[uid][igork1][1]))-\
-						 dk4m[i]*(conj(u12t[did][3])*(r[did][idirac][0]+r[did][igork1][0])+\
+						 dk4m[did]*(conj(u12t[did][3])*(r[did][idirac][0]+r[did][igork1][0])+\
 								 u11t[did][3]*(r[did][idirac][1]+r[did][igork1][1]));
 		}
 	}
@@ -517,13 +517,13 @@ int Hdslashd(complex phi[][4][nc], complex r[][4][nc]){
 			//dk4m and dk4p swap under dagger
 			phi[i][idirac][0]+=-dk4m[i]*(u11t[i][3]*(r[uid][idirac][0]+r[uid][igork1][0])+\
 					u12t[i][3]*(r[uid][idirac][1]+r[uid][igork1][1]))-\
-						 dk4p[i]*(conj(u11t[did][3])*(r[did][idirac][0]-r[did][igork1][0])-\
+						 dk4p[did]*(conj(u11t[did][3])*(r[did][idirac][0]-r[did][igork1][0])-\
 								 u12t[did][3]*(r[did][idirac][1]-r[did][igork1][1]));
 
-			phi[i][idirac][1]+=-dk4m[i]*(-conj(u12t[i][3])*(r[uid][idirac][0]+r[uid][igork1][0]+\
+			phi[i][idirac][1]+=-dk4m[i]*(-conj(u12t[i][3])*(r[uid][idirac][0]+r[uid][igork1][0])+\
 						conj(u11t[i][3])*(r[uid][idirac][1]+r[uid][igork1][1]))-\
-					dk4p[i]*(conj(u12t[did][3])*(r[did][idirac][0]-r[did][igork1][0]))+\
-					u11t[did][3]*(r[did][idirac][1]-r[did][igork1][1]));
+					dk4p[did]*(conj(u12t[did][3])*(r[did][idirac][0]-r[did][igork1][0]))+\
+					u11t[did][3]*(r[did][idirac][1]-r[did][igork1][1]);
 		}
 	}
 	return 0;

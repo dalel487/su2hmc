@@ -690,7 +690,7 @@ int Par_swrite(int isweep){
 					MPI_Finalize();
 					exit(CANTSEND);
 				}
-				if(MPI_Recv(d, msg_size, MPI_DOUBLE, pu[idir], tag, comm, &status)){
+				if(MPI_Recv(&d[ncpt*h1u[idir]], msg_size, MPI_DOUBLE, pu[idir], tag, comm, &status)){
 					fprintf(stderr, "Error %i in %s: Rank %i failed to receive into up halo from rank %i.\nExiting...\n\n",
 							CANTRECV, funcname, rank, pu[idir]);
 					MPI_Finalize();
@@ -714,7 +714,7 @@ int Par_swrite(int isweep){
 					MPI_Finalize();
 					exit(CANTSEND);
 				}
-				if(MPI_Recv(d, msg_size, MPI_DOUBLE, pd[idir], tag, comm, &status)){
+				if(MPI_Recv(&d[ncpt*h1d[idir]], msg_size, MPI_DOUBLE, pd[idir], tag, comm, &status)){
 					fprintf(stderr, "Error %i in %s: Rank %i failed to receive into doww halo from rank %i.\nExiting...\n\n",
 							CANTRECV, funcname, rank, pd[idir]);
 					MPI_Finalize();
