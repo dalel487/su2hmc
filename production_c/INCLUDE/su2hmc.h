@@ -7,7 +7,7 @@
 #ifdef	USE_MKL
 #include	<mkl.h>
 #endif
-#include	"sizes.h"
+#include	<sizes.h>
 
 //Definitions:
 //###########

@@ -1,4 +1,4 @@
-#include "par_mpi.h"
+#include <par_mpi.h>
 
 //NOTE: In FORTRAN code everything was capitalised (despite being case insensitive)
 //C is case sensitive, so the equivalent C command has the case format MPI_Xyz_abc

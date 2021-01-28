@@ -5,9 +5,8 @@
       #include <mkl.h>
       #include <mkl_vsl.h>
 #endif
-#include "par_mpi.h"
-#include "SFMT.h"
-//#include <TRandom3.h>
+#include <par_mpi.h>
+#include <SFMT.h>
 //Configuration for existing generators if called
 //===============================================
 extern int seed;
@@ -24,8 +23,6 @@ double ranget(double *seed);
 int ranset(int *seed);
 //Generators:
 //==========
-//Mersenne twister from root
-//TRandom *mersenne;
 //Distributions
 //=============
 //Use Box-Müller to generate an array of complex numbers

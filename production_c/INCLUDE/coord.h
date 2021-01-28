@@ -3,8 +3,8 @@
 #ifdef USE_MKL
 	#include <mkl.h>
 #endif
-#include "par_mpi.h"
-#include "sizes.h"
+#include <par_mpi.h>
+#include <sizes.h>
 //Global Variables
 unsigned int id[ndim][kvol], iu[ndim][kvol] __attribute__((aligned(AVX)));
 unsigned int hu[4][halo], hd[4][halo] __attribute__((aligned(AVX)));

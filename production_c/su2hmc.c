@@ -1,15 +1,15 @@
-#include "coord.h"
+#include <coord.h>
 #ifdef USE_CUDA
 #include <curand.h>
 #endif
-#include "par_mpi.h"
+#include <par_mpi.h>
 #include <math.h>
-#include "random.h"
-#include "slash.h"
+#include <random.h>
+#include <slash.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "su2hmc.h"
+#include <su2hmc.h>
 
 //Extern definitions, especially default values for fmu, beta and akappa
 const complex zi = 0.0+1.0*I;

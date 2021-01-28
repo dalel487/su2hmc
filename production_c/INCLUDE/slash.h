@@ -1,7 +1,7 @@
 #ifndef SLASH
 #define SLASH
-#include "par_mpi.h"
-#include "su2hmc.h"
+#include <par_mpi.h>
+#include <su2hmc.h>
 
 //D Slash Functions
 //=================

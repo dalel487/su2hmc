@@ -1,8 +1,8 @@
 #ifndef PAR_MPI
 #define	PAR_MPI
 #include	<complex.h>
-#include	"coord.h"
-#include	"errorcodes.h"
+#include	<coord.h>
+#include	<errorcodes.h>
 #include	<math.h>
 #ifdef	USE_MKL
 //If using mkl and BLAS, it is good practice to use mkl_malloc to align the arrays better
@@ -10,7 +10,7 @@
 #include	<mkl.h>
 #endif
 #include	<mpi.h> 
-#include	"sizes.h"
+#include	<sizes.h>
 #include	<stdio.h>
 #include	<stdlib.h>
 #include    <string.h>
@@ -19,7 +19,7 @@
 //Definitons
 //==========
 #define	DOWN	0
-#define UP	1
+#define     UP	1
 
 #define masterproc 0
 
