@@ -542,8 +542,11 @@ int Init(int istart){
 	if(istart==0){
 		//Initialise a cold start to zero
 		//memset is safe to use here because zero is zero 
-		memset(u11t, 0, sizeof(complex)*ndim*(kvol+halo));
-		memset(u12t, 0, sizeof(complex)*ndim*(kvol+halo));
+		for(int i=0; i<kvol;i++)
+			for(int mu=0; mu<ndim; mu++){
+				u11t[i][mu]=0.5+0.5I;
+				u12t[i][mu]=0.5+0.5I;
+		}
 	}
 	else if(istart>0){
 #ifdef USE_CUDA

@@ -2,7 +2,7 @@
 #include <string.h>
 //TO DO: Check and see are there any terms we are evaluating twice in the same loop
 //and use a variable to hold them instead to reduce the number of evaluations.
-int Dslash(complex phi[][8][nc], complex r[][8][nc]){
+int Dslash(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -293,7 +293,7 @@ int Dslashd(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 	}
 	return 0;
 }
-int Hdslash(complex phi[][4][nc], complex r[][4][nc])
+int Hdslash(complex phi[][ndirac][nc], complex r[][ndirac][nc]){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -407,7 +407,7 @@ int Hdslash(complex phi[][4][nc], complex r[][4][nc])
 	}
 	return 0;
 }
-int Hdslashd(complex phi[][4][nc], complex r[][4][nc]){
+int Hdslashd(complex phi[][ndirac][nc], complex r[][ndirac][nc]){
 	/*
 	 * Evaluates phi= M*r
 	 *
