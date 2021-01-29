@@ -3,8 +3,8 @@ if &cp | set nocp | endif
 let s:cpo_save=&cpo
 set cpo&vim
 inoremap <C-U> u
-nnoremap <silent> y :CCTreeWindowSaveCopy
 nnoremap <silent> w :CCTreeWindowToggle
+nnoremap <silent> y :CCTreeWindowSaveCopy
 map Q gq
 vmap gx <Plug>NetrwBrowseXVis
 nmap gx <Plug>NetrwBrowseX
@@ -195,26 +195,16 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-5
+391
 normal! zo
-68
+394
 normal! zo
-118
-normal! zo
-121
-normal! zo
-150
-normal! zo
-264
-normal! zo
-267
-normal! zo
-let s:l = 289 - ((157 * winheight(0) + 38) / 76)
+let s:l = 404 - ((403 * winheight(0) + 36) / 73)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-289
-normal! 048|
+404
+normal! 077|
 wincmd w
 argglobal
 if bufexists("production/su2hmc.f") | buffer production/su2hmc.f | else | edit production/su2hmc.f | endif
@@ -340,22 +330,23 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-let s:l = 2457 - ((70 * winheight(0) + 38) / 76)
+let s:l = 2850 - ((67 * winheight(0) + 36) / 73)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-2457
-normal! 07|
+2850
+normal! 0
 wincmd w
 exe 'vert 1resize ' . ((&columns * 136 + 138) / 277)
 exe 'vert 2resize ' . ((&columns * 140 + 138) / 277)
 tabnext 1
-badd +59 production_c/Makefile
+badd +282 production_c/slash.c
 badd +609 production/par_mpi.f
-badd +10 production_c/su2hmc.c
-badd +1 production_c/slash.c
 badd +1 production/su2hmc.f
+badd +59 production_c/Makefile
+badd +10 production_c/su2hmc.c
 badd +1 production_c/par_mpi.c
+badd +18 /usr/include/string.h
 if exists('s:wipebuf') && len(win_findbuf(s:wipebuf)) == 0
   silent exe 'bwipe ' . s:wipebuf
 endif
@@ -367,6 +358,7 @@ if file_readable(s:sx)
   exe "source " . fnameescape(s:sx)
 endif
 let &so = s:so_save | let &siso = s:siso_save
+nohlsearch
 doautoall SessionLoadPost
 unlet SessionLoad
 " vim: set ft=vim :

@@ -124,13 +124,13 @@ int Dslash(complex phi[][8][nc], complex r[][8][nc]){
 			int igork1 = gamin[3][igorkov];	int igork1PP = igork1+4;
 
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
-			phi[i][igorkov][0]+=-dk4p[i]*(u11t[i][3]*(r[uid][igorkov][0]+r[uid][igork1][0])+\
-					u12t[i][3]*(r[uid][igorkov][1]+r[uid][igork1][1]))-\
+			phi[i][igorkov][0]+=-dk4p[i]*(u11t[i][3]*(r[uid][igorkov][0]-r[uid][igork1][0])+\
+					u12t[i][3]*(r[uid][igorkov][1]-r[uid][igork1][1]))-\
 						  dk4m[did]*(conj(u11t[did][3])*(r[did][igorkov][0]+r[did][igork1][0])-\
 								  u12t[did][3]*(r[did][igorkov][1]+r[did][igork1][1]));
 
-			phi[i][igorkov][1]+=-dk4p[i]*(-conj(u12t[i][3])*(r[uid][igorkov][0]-r[uid][igork1][0])+\
-					conj(u11t[i][3])*(r[uid][igorkov][1]+r[uid][igork1][1]))-\
+			phi[i][igorkov][1]+=-dk4p[i]*(-conj(u12t[i][3])*(r[uid][igorkov][0]+r[uid][igork1][0])+\
+					conj(u11t[i][3])*(r[uid][igorkov][1]-r[uid][igork1][1]))-\
 						  dk4m[did]*(conj(u12t[did][3])*(r[did][igorkov][0]+r[did][igork1][0])+\
 								  u11t[did][3]*(r[did][igorkov][1]+r[did][igork1][1]));
 			//And the +4 terms. Note that dk4p and dk4m swap positions compared to the above				
@@ -293,7 +293,7 @@ int Dslashd(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 	}
 	return 0;
 }
-int Hdslash(complex phi[][4][nc], complex r[][4][nc]){
+int Hdslash(complex phi[][4][nc], complex r[][4][nc])
 	/*
 	 * Evaluates phi= M*r
 	 *
