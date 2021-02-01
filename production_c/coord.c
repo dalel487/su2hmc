@@ -98,7 +98,7 @@ int Addrc(){
 							exit(HALOLIM);
 						}
 						hd[0][ih[0][0]]=ic;
-						iaddr=h1d[0]+ih[0][0]-1;
+						iaddr=h1d[0]+ih[0][0];
 					}
 					id[0][ic]=iaddr;
 					if(jx<ksize-1)
@@ -112,7 +112,7 @@ int Addrc(){
 							exit(HALOLIM);
 						}
 						hu[0][ih[1][0]]=ic;
-						iaddr=ih[1][0]+h1u[0]-1;	
+						iaddr=ih[1][0]+h1u[0];	
 					}
 					iu[0][ic]=iaddr;
 					if(jy)
@@ -126,7 +126,7 @@ int Addrc(){
 							exit(HALOLIM);
 						}
 						hd[1][ih[0][1]]=ic;
-						iaddr=h1d[1]+ih[0][1]-1;
+						iaddr=h1d[1]+ih[0][1];
 					}
 					id[1][ic]=iaddr;
 					if(jy<ksize-1)
@@ -140,7 +140,7 @@ int Addrc(){
 							exit(HALOLIM);
 						}
 						hu[1][ih[1][1]]=ic;
-						iaddr=ih[1][1]+h1u[1]-1;	
+						iaddr=ih[1][1]+h1u[1];	
 					}
 					iu[1][ic]=iaddr;
 					if(jz)
@@ -154,7 +154,7 @@ int Addrc(){
 							exit(HALOLIM);
 						}
 						hd[2][ih[0][2]]=ic;
-						iaddr=h1d[2]+ih[0][2]-1;
+						iaddr=h1d[2]+ih[0][2];
 					}
 					id[2][ic]=iaddr;
 					if(jz<ksize-1)
@@ -168,7 +168,7 @@ int Addrc(){
 							exit(HALOLIM);
 						}
 						hu[2][ih[1][2]]=ic;
-						iaddr=ih[1][2]+h1u[2]-1;	
+						iaddr=ih[1][2]+h1u[2];	
 					}
 					iu[2][ic]=iaddr;
 					if(jt)
@@ -182,7 +182,7 @@ int Addrc(){
 							exit(HALOLIM);
 						}
 						hd[3][ih[0][3]]=ic;
-						iaddr=h1d[3]+ih[0][3]-1;
+						iaddr=h1d[3]+ih[0][3];
 					}
 					id[3][ic]=iaddr;
 					if(jt<ksizet-1)
@@ -196,7 +196,7 @@ int Addrc(){
 							exit(HALOLIM);
 						}
 						hu[3][ih[1][3]]=ic;
-						iaddr=ih[1][3]+h1u[3]-1;	
+						iaddr=ih[1][3]+h1u[3];	
 					}
 					iu[3][ic]=iaddr;
 #ifdef DEBUG

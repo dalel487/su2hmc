@@ -3,8 +3,8 @@ if &cp | set nocp | endif
 let s:cpo_save=&cpo
 set cpo&vim
 inoremap <C-U> u
-nnoremap <silent> w :CCTreeWindowToggle
 nnoremap <silent> y :CCTreeWindowSaveCopy
+nnoremap <silent> w :CCTreeWindowToggle
 map Q gq
 vmap gx <Plug>NetrwBrowseXVis
 nmap gx <Plug>NetrwBrowseX
@@ -57,7 +57,7 @@ set shortmess=aoO
 argglobal
 %argdel
 $argadd production/par_mpi.f
-edit production_c/slash.c
+edit production_c/su2hmc.c
 set splitbelow splitright
 wincmd _ | wincmd |
 vsplit
@@ -70,8 +70,8 @@ set winminheight=0
 set winheight=1
 set winminwidth=0
 set winwidth=1
-exe 'vert 1resize ' . ((&columns * 136 + 138) / 277)
-exe 'vert 2resize ' . ((&columns * 140 + 138) / 277)
+exe 'vert 1resize ' . ((&columns * 156 + 158) / 317)
+exe 'vert 2resize ' . ((&columns * 160 + 158) / 317)
 argglobal
 setlocal keymap=
 setlocal noarabic
@@ -195,16 +195,24 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-391
+976
 normal! zo
-394
+976
+normal! zc
+1545
 normal! zo
-let s:l = 404 - ((403 * winheight(0) + 36) / 73)
+1567
+normal! zo
+1600
+normal! zo
+1604
+normal! zo
+let s:l = 1620 - ((426 * winheight(0) + 37) / 75)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-404
-normal! 077|
+1620
+normal! 03|
 wincmd w
 argglobal
 if bufexists("production/su2hmc.f") | buffer production/su2hmc.f | else | edit production/su2hmc.f | endif
@@ -330,21 +338,22 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-let s:l = 2850 - ((67 * winheight(0) + 36) / 73)
+let s:l = 2038 - ((69 * winheight(0) + 37) / 75)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-2850
-normal! 0
+2038
+normal! 014|
 wincmd w
-exe 'vert 1resize ' . ((&columns * 136 + 138) / 277)
-exe 'vert 2resize ' . ((&columns * 140 + 138) / 277)
+2wincmd w
+exe 'vert 1resize ' . ((&columns * 156 + 158) / 317)
+exe 'vert 2resize ' . ((&columns * 160 + 158) / 317)
 tabnext 1
-badd +282 production_c/slash.c
+badd +1 production_c/su2hmc.c
 badd +609 production/par_mpi.f
 badd +1 production/su2hmc.f
+badd +404 production_c/slash.c
 badd +59 production_c/Makefile
-badd +10 production_c/su2hmc.c
 badd +1 production_c/par_mpi.c
 badd +18 /usr/include/string.h
 if exists('s:wipebuf') && len(win_findbuf(s:wipebuf)) == 0
@@ -358,7 +367,6 @@ if file_readable(s:sx)
   exe "source " . fnameescape(s:sx)
 endif
 let &so = s:so_save | let &siso = s:siso_save
-nohlsearch
 doautoall SessionLoadPost
 unlet SessionLoad
 " vim: set ft=vim :
