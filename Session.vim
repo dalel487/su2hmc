@@ -3,8 +3,8 @@ if &cp | set nocp | endif
 let s:cpo_save=&cpo
 set cpo&vim
 inoremap <C-U> u
-nnoremap <silent> y :CCTreeWindowSaveCopy
 nnoremap <silent> w :CCTreeWindowToggle
+nnoremap <silent> y :CCTreeWindowSaveCopy
 map Q gq
 vmap gx <Plug>NetrwBrowseXVis
 nmap gx <Plug>NetrwBrowseX
@@ -21,7 +21,6 @@ set cscopeprg=/usr/bin/cscope
 set cscopetag
 set cscopeverbose
 set display=truncate
-set expandtab
 set fileencodings=ucs-bom,utf-8,default,latin1
 set formatoptions=tqcro
 set guicursor=n-v-c:block,o:hor50,i-ci:hor15,r-cr:hor30,sm:block,a:blinkon0
@@ -45,6 +44,7 @@ set ttimeoutlen=100
 set updatecount=10000
 set viminfo='20,\"50
 set wildmenu
+set window=77
 let s:so_save = &so | let s:siso_save = &siso | set so=0 siso=0
 let v:this_session=expand("<sfile>:p")
 silent only
@@ -70,8 +70,8 @@ set winminheight=0
 set winheight=1
 set winminwidth=0
 set winwidth=1
-exe 'vert 1resize ' . ((&columns * 156 + 158) / 317)
-exe 'vert 2resize ' . ((&columns * 160 + 158) / 317)
+exe 'vert 1resize ' . ((&columns * 136 + 138) / 277)
+exe 'vert 2resize ' . ((&columns * 140 + 138) / 277)
 argglobal
 setlocal keymap=
 setlocal noarabic
@@ -106,7 +106,7 @@ setlocal dictionary=
 setlocal nodiff
 setlocal equalprg=
 setlocal errorformat=
-setlocal expandtab
+setlocal noexpandtab
 if &filetype != 'c'
 setlocal filetype=c
 endif
@@ -195,24 +195,30 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-976
+51
+normal! zo
+203
+normal! zo
+208
 normal! zo
 976
-normal! zc
-1545
 normal! zo
-1567
+1025
 normal! zo
-1600
+1056
 normal! zo
-1604
+1116
 normal! zo
-let s:l = 1620 - ((426 * winheight(0) + 37) / 75)
+1128
+normal! zo
+1163
+normal! zo
+let s:l = 227 - ((107 * winheight(0) + 38) / 76)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-1620
-normal! 03|
+227
+normal! 036|
 wincmd w
 argglobal
 if bufexists("production/su2hmc.f") | buffer production/su2hmc.f | else | edit production/su2hmc.f | endif
@@ -338,24 +344,25 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-let s:l = 2038 - ((69 * winheight(0) + 37) / 75)
+let s:l = 978 - ((37 * winheight(0) + 38) / 76)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-2038
-normal! 014|
+978
+normal! 0
 wincmd w
 2wincmd w
-exe 'vert 1resize ' . ((&columns * 156 + 158) / 317)
-exe 'vert 2resize ' . ((&columns * 160 + 158) / 317)
+exe 'vert 1resize ' . ((&columns * 136 + 138) / 277)
+exe 'vert 2resize ' . ((&columns * 140 + 138) / 277)
 tabnext 1
-badd +1 production_c/su2hmc.c
+badd +231 production_c/su2hmc.c
 badd +609 production/par_mpi.f
-badd +1 production/su2hmc.f
-badd +404 production_c/slash.c
+badd +978 production/su2hmc.f
+badd +363 production_c/slash.c
 badd +59 production_c/Makefile
-badd +1 production_c/par_mpi.c
+badd +717 production_c/par_mpi.c
 badd +18 /usr/include/string.h
+badd +199 production_c/coord.c
 if exists('s:wipebuf') && len(win_findbuf(s:wipebuf)) == 0
   silent exe 'bwipe ' . s:wipebuf
 endif

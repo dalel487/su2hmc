@@ -1004,7 +1004,8 @@ int Hamilton(double *h, double *s, double res2){
 #ifdef USE_MKL
 	//Can we use BLAS here with the halo?
 	//The halo could interfere with things
-	hp = cblas_ddot(kmom, **pp, 1, **pp, 1);
+	hp = cblas_dnrm2(kmom, **pp, 1);
+	hp*=hp;
 #else
 	hp=0;
 	for(int i = 0; i<kmom; i++)

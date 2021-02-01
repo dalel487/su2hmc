@@ -30,7 +30,7 @@ int Dslash(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 	for(int mu=0;mu<ndim;mu++){
 		complex z[kvol+halo] __attribute__((aligned(AVX)));
 #ifdef USE_MKL
-		cblas_zcopy(kvol+halo, &u11t[0][mu], ndim, z, 1);
+		cblas_zcopy(kvol, &u11t[0][mu], ndim, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
 			z[i]=u11t[i][mu];
@@ -44,7 +44,7 @@ int Dslash(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 			u11t[i][mu]=z[i];
 #endif
 #ifdef USE_MKL
-		cblas_zcopy(kvol+halo, &u12t[0][mu], 4, z, 1);
+		cblas_zcopy(kvol, &u12t[0][mu], 4, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
 			z[i]=u12t[i][mu];
@@ -61,7 +61,7 @@ int Dslash(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 	DHalo_swap_dir(dk4m, 1, 3, UP);
 
 	//Mass term
-	memcpy(phi, r, kferm2Halo*sizeof(complex));
+	memcpy(phi, r, kferm*sizeof(complex));
 	//Diquark Term (antihermitian)
 #pragma omp parallel for collapse(2)
 	for(int i=0; i<kvol; i++)
@@ -134,10 +134,10 @@ int Dslash(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 						  dk4m[did]*(conj(u12t[did][3])*(r[did][igorkov][0]+r[did][igork1][0])+\
 								  u11t[did][3]*(r[did][igorkov][1]+r[did][igork1][1]));
 			//And the +4 terms. Note that dk4p and dk4m swap positions compared to the above				
-			phi[i][igorkovPP][0]+=-dk4m[i]*(u11t[i][3]*(r[uid][igorkov][0]-r[uid][igork1PP][0])+\
-					u12t[i][3]*(r[uid][igorkov][1]-r[uid][igork1PP][1]))-\
-						    dk4p[did]*(conj(u11t[did][3])*(r[did][igorkov][0]+r[did][igork1PP][0])-\
-								    u12t[did][3]*(r[1][igorkov][did]+r[1][igork1PP][did]));
+			phi[i][igorkovPP][0]+=-dk4m[i]*(u11t[i][3]*(r[uid][igorkovPP][0]-r[uid][igork1PP][0])+\
+					u12t[i][3]*(r[uid][igorkovPP][1]-r[uid][igork1PP][1]))-\
+						    dk4p[did]*(conj(u11t[did][3])*(r[did][igorkovPP][0]+r[did][igork1PP][0])-\
+								    u12t[did][3]*(r[did][igorkovPP][1]+r[did][igork1PP][1]));
 
 			phi[i][igorkovPP][1]+=-dk4m[i]*(conj(-u12t[i][3])*(r[uid][igorkovPP][0]-r[uid][igork1PP][0])+\
 					conj(u11t[i][3])*(r[uid][igorkovPP][1]-r[uid][igork1PP][1]))-\
@@ -175,7 +175,7 @@ int Dslashd(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 	for(int mu=0;mu<ndim;mu++){
 		complex z[kvol+halo] __attribute__((aligned(AVX)));
 #ifdef USE_MKL
-		cblas_zcopy(kvol+halo, &u11t[0][mu], ndim, z, 1);
+		cblas_zcopy(kvol, &u11t[0][mu], ndim, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
 			z[i]=u11t[i][mu];
@@ -189,7 +189,7 @@ int Dslashd(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 			u11t[i][mu]=z[i];
 #endif
 #ifdef USE_MKL
-		cblas_zcopy(kvol+halo, &u12t[0][mu], 4, z, 1);
+		cblas_zcopy(kvol, &u12t[0][mu], 4, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
 			z[i]=u12t[i][mu];
@@ -206,7 +206,7 @@ int Dslashd(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 	DHalo_swap_dir(dk4m, 1, 3, UP);
 
 	//Mass term
-	memcpy(phi, r, kferm2Halo*sizeof(complex));
+	memcpy(phi, r, kfermHalo*sizeof(complex));
 	//Diquark Term (antihermitian) The signs of a_1 and a_2 below flip under dagger
 #pragma omp parallel for collapse(2)
 	for(int i=0; i<kvol; i++)
@@ -234,7 +234,7 @@ int Dslashd(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 				int igork1 = (igorkov<4) ? gamin[mu][idirac] : gamin[mu][idirac]+4;
 				//Can manually vectorise with a pragma?
 				//Wilson + Dirac term in that order. Definitely easier
-				//to read when split into different loops, but should be faster this way
+			//to read when split into different loops, but should be faster this way
 				phi[i][igorkov][0]+=-akappa*(u11t[i][mu]*r[uid][igorkov][0]+\
 						u12t[i][mu]*r[uid][igorkov][1]+\
 						conj(u11t[did][mu])*r[did][igorkov][0]-\
@@ -277,13 +277,13 @@ int Dslashd(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 
 			phi[i][igorkov][1]+=dk4m[i]*(conj(u12t[i][3])*(r[uid][igorkov][0]+r[uid][igork1][0])-\
 					conj(u11t[i][3])*(r[uid][igorkov][1]+r[uid][igork1][1]))-\
-						  dk4p[did]*(conj(u12t[did][3])*(r[did][igorkov][0]-r[did][igork1][0])-\
-								  u11t[did][3]*(r[did][igorkov][1]+r[did][igork1][1]));
+						  dk4p[did]*(conj(u12t[did][3])*(r[did][igorkov][0]-r[did][igork1][0])+\
+								  u11t[did][3]*(r[did][igorkov][1]-r[did][igork1][1]));
 			//And the +4 terms. Note that dk4p and dk4m swap positions compared to the above				
-			phi[i][igorkovPP][0]+=-dk4p[i]*(u11t[i][3]*(r[uid][igorkov][0]+r[uid][igork1PP][0])+\
-					u12t[i][3]*(r[uid][igorkov][1]+r[uid][igork1PP][1]))-\
-						    dk4m[did]*(conj(u11t[did][3])*(r[did][igorkov][0]-r[did][igork1PP][0])-\
-								    u12t[did][3]*(r[1][igorkov][did]-r[1][igork1PP][did]));
+			phi[i][igorkovPP][0]+=-dk4p[i]*(u11t[i][3]*(r[uid][igorkovPP][0]+r[uid][igork1PP][0])+\
+					u12t[i][3]*(r[uid][igorkovPP][1]+r[uid][igork1PP][1]))-\
+						    dk4m[did]*(conj(u11t[did][3])*(r[did][igorkovPP][0]-r[did][igork1PP][0])-\
+								    u12t[did][3]*(r[did][igorkovPP][1]-r[did][igork1PP][1]));
 
 			phi[i][igorkovPP][1]+=dk4p[i]*(conj(u12t[i][3])*(r[uid][igorkovPP][0]+r[uid][igork1PP][0])-\
 					conj(u11t[i][3])*(r[uid][igorkovPP][1]+r[uid][igork1PP][1]))-\
@@ -321,7 +321,7 @@ int Hdslash(complex phi[][ndirac][nc], complex r[][ndirac][nc]){
 	for(int mu=0;mu<ndim;mu++){
 		complex z[kvol+halo] __attribute__((aligned(AVX)));
 #ifdef USE_MKL
-		cblas_zcopy(kvol+halo, &u11t[0][mu], ndim, z, 1);
+		cblas_zcopy(kvol, &u11t[0][mu], ndim, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
 			z[i]=u11t[i][mu];
@@ -331,11 +331,11 @@ int Hdslash(complex phi[][ndirac][nc], complex r[][ndirac][nc]){
 #ifdef USE_MKL
 		cblas_zcopy(kvol+halo, z, 1, &u11t[0][mu], ndim);
 #else
-		for(int i=0; i<kvol;i++)
+		for(int i=0; i<kvol+halo;i++)
 			u11t[i][mu]=z[i];
 #endif
 #ifdef USE_MKL
-		cblas_zcopy(kvol+halo, &u12t[0][mu], 4, z, 1);
+		cblas_zcopy(kvol, &u12t[0][mu], 4, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
 			z[i]=u12t[i][mu];
@@ -344,7 +344,7 @@ int Hdslash(complex phi[][ndirac][nc], complex r[][ndirac][nc]){
 #ifdef USE_MKL
 		cblas_zcopy(kvol+halo, z, 1, &u12t[0][mu], 4);
 #else
-		for(int i=0; i<kvol;i++)
+		for(int i=0; i<kvol+halo;i++)
 			u12t[i][mu]=z[i];
 #endif
 	}
@@ -352,7 +352,7 @@ int Hdslash(complex phi[][ndirac][nc], complex r[][ndirac][nc]){
 	DHalo_swap_dir(dk4m, 1, 3, UP);
 
 	//Mass term
-	memcpy(phi, r, kferm2Halo*sizeof(complex));
+	memcpy(phi, r, kferm2*sizeof(complex));
 	//Spacelike term
 #pragma omp parallel for collapse(2) private(akappa)
 	for(int i=0;i<kvol;i++)
@@ -437,7 +437,7 @@ int Hdslashd(complex phi[][ndirac][nc], complex r[][ndirac][nc]){
 	for(int mu=0;mu<ndim;mu++){
 		complex z[kvol+halo] __attribute__((aligned(AVX)));
 #ifdef USE_MKL
-		cblas_zcopy(kvol+halo, &u11t[0][mu], ndim, z, 1);
+		cblas_zcopy(kvol, &u11t[0][mu], ndim, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
 			z[i]=u11t[i][mu];
@@ -447,11 +447,11 @@ int Hdslashd(complex phi[][ndirac][nc], complex r[][ndirac][nc]){
 #ifdef USE_MKL
 		cblas_zcopy(kvol+halo, z, 1, &u11t[0][mu], ndim);
 #else
-		for(int i=0; i<kvol;i++)
+		for(int i=0; i<kvol+halo;i++)
 			u11t[i][mu]=z[i];
 #endif
 #ifdef USE_MKL
-		cblas_zcopy(kvol+halo, &u12t[0][mu], 4, z, 1);
+		cblas_zcopy(kvol, &u12t[0][mu], 4, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
 			z[i]=u12t[i][mu];
@@ -460,7 +460,7 @@ int Hdslashd(complex phi[][ndirac][nc], complex r[][ndirac][nc]){
 #ifdef USE_MKL
 		cblas_zcopy(kvol+halo, z, 1, &u12t[0][mu], 4);
 #else
-		for(int i=0; i<kvol;i++)
+		for(int i=0; i<kvol+halo;i++)
 			u12t[i][mu]=z[i];
 #endif
 	}
@@ -472,7 +472,7 @@ int Hdslashd(complex phi[][ndirac][nc], complex r[][ndirac][nc]){
 	//anyways so memory access patterns mightn't be as big of an limiting factor here anyway
 
 	//Mass term
-	memcpy(phi, r, kferm2Halo*sizeof(complex));
+	memcpy(phi, r, kferm2*sizeof(complex));
 	//Spacelike term
 #pragma omp parallel for collapse(2)
 	for(int i=0;i<kvol;i++)
