@@ -1422,16 +1422,16 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 			cblas_zdotc_sub(kvol, &x[0][igork][ic], ngorkov*nc, &xi[0][idirac][ic], ngorkov*nc, &dot);
 			*qq-=dot;
 		}
-		*qbqb *= gamval[5][idirac];
-		*qq *= gamval[5][idirac];
+		*qbqb *= gamval[4][idirac];
+		*qq *= gamval[4][idirac];
 #else
 #pragma unroll
 		for(int i=0; i<kvol; i++){
 			//What is the optimal order to evaluate these in?
-			*qbqb+=gamval[5][idirac]*conj(x[i][idirac][0])*xi[i][igork][0];
-			*qq-=gamval[5][idirac]*conj(x[i][igork][0])*xi[i][idirac][0];
-			*qbqb+=gamval[5][idirac]*conj(x[i][idirac][1])*xi[i][igork][1];
-			*qq-=gamval[5][idirac]*conj(x[i][igork][1])*xi[i][idirac][1];
+			*qbqb+=gamval[4][idirac]*conj(x[i][idirac][0])*xi[i][igork][0];
+			*qq-=gamval[4][idirac]*conj(x[i][igork][0])*xi[i][idirac][0];
+			*qbqb+=gamval[4][idirac]*conj(x[i][idirac][1])*xi[i][igork][1];
+			*qq-=gamval[4][idirac]*conj(x[i][igork][1])*xi[i][idirac][1];
 		}
 #endif
 	}
@@ -1446,7 +1446,7 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 	//Pesky halo exchange indices again
 	complex z[kvol+halo] __attribute__((aligned(AVX)));
 #ifdef USE_MKL
-	cblas_zcopy(kvol+halo, &u11t[0][3], 4, z, 1);
+	cblas_zcopy(kvol, &u11t[0][3], 4, z, 1);
 #else
 #pragma unroll
 	for(int i=0; i<kvol;i++)
@@ -1461,7 +1461,7 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 		u11t[i][3]=z[i];
 #endif
 #ifdef USE_MKL
-	cblas_zcopy(kvol+halo, &u12t[0][3], 4, z, 1);
+	cblas_zcopy(kvol, &u12t[0][3], 4, z, 1);
 #else
 #pragma unroll
 	for(int i=0; i<kvol;i++)

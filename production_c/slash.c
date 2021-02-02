@@ -68,9 +68,9 @@ int Dslash(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork = idirac+4;
 			complex a_1, a_2;
-			a_1=conj(jqq)*gamval[5][idirac];
+			a_1=conj(jqq)*gamval[4][idirac];
 			//We subtract a_2, hence the minus
-			a_2=-jqq*gamval[5][idirac];
+			a_2=-jqq*gamval[4][idirac];
 			phi[i][idirac][0]+=a_1*r[i][igork][0];
 			phi[i][idirac][1]+=a_1*r[i][igork][1];
 			phi[i][igork][0]+=a_2*r[i][idirac][0];
@@ -84,7 +84,7 @@ int Dslash(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 			int did=id[mu][i]; int uid = iu[mu][i];
 #pragma unroll
 			for(int igorkov=0; igorkov<ngorkov; igorkov++){
-				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing.
+				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing in the dirac term.
 				int idirac=igorkov%4;		
 				int igork1 = (igorkov<4) ? gamin[mu][idirac] : gamin[mu][idirac]+4;
 				//Can manually vectorise with a pragma?
@@ -213,9 +213,9 @@ int Dslashd(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork = idirac+4;
 			complex a_1, a_2;
-			a_1=-conj(jqq)*gamval[5][idirac];
+			a_1=-conj(jqq)*gamval[4][idirac];
 			//We subtract a_2, hence the minus
-			a_2=jqq*gamval[5][idirac];
+			a_2=jqq*gamval[4][idirac];
 			phi[i][idirac][0]+=a_1*r[i][igork][0];
 			phi[i][idirac][1]+=a_1*r[i][igork][1];
 			phi[i][igork][0]+=a_2*r[i][idirac][0];

@@ -3,8 +3,8 @@ if &cp | set nocp | endif
 let s:cpo_save=&cpo
 set cpo&vim
 inoremap <C-U> u
-nnoremap <silent> w :CCTreeWindowToggle
 nnoremap <silent> y :CCTreeWindowSaveCopy
+nnoremap <silent> w :CCTreeWindowToggle
 map Q gq
 vmap gx <Plug>NetrwBrowseXVis
 nmap gx <Plug>NetrwBrowseX
@@ -44,7 +44,6 @@ set ttimeoutlen=100
 set updatecount=10000
 set viminfo='20,\"50
 set wildmenu
-set window=77
 let s:so_save = &so | let s:siso_save = &siso | set so=0 siso=0
 let v:this_session=expand("<sfile>:p")
 silent only
@@ -57,7 +56,7 @@ set shortmess=aoO
 argglobal
 %argdel
 $argadd production/par_mpi.f
-edit production_c/su2hmc.c
+edit production_c/slash.c
 set splitbelow splitright
 wincmd _ | wincmd |
 vsplit
@@ -70,8 +69,8 @@ set winminheight=0
 set winheight=1
 set winminwidth=0
 set winwidth=1
-exe 'vert 1resize ' . ((&columns * 136 + 138) / 277)
-exe 'vert 2resize ' . ((&columns * 140 + 138) / 277)
+exe 'vert 1resize ' . ((&columns * 156 + 158) / 317)
+exe 'vert 2resize ' . ((&columns * 160 + 158) / 317)
 argglobal
 setlocal keymap=
 setlocal noarabic
@@ -195,30 +194,18 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-51
+5
 normal! zo
-203
+83
 normal! zo
-208
+86
 normal! zo
-976
-normal! zo
-1025
-normal! zo
-1056
-normal! zo
-1116
-normal! zo
-1128
-normal! zo
-1163
-normal! zo
-let s:l = 227 - ((107 * winheight(0) + 38) / 76)
+let s:l = 98 - ((97 * winheight(0) + 37) / 75)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-227
-normal! 036|
+98
+normal! 095|
 wincmd w
 argglobal
 if bufexists("production/su2hmc.f") | buffer production/su2hmc.f | else | edit production/su2hmc.f | endif
@@ -255,7 +242,7 @@ setlocal dictionary=
 setlocal nodiff
 setlocal equalprg=
 setlocal errorformat=
-setlocal expandtab
+setlocal noexpandtab
 if &filetype != 'fortran'
 setlocal filetype=fortran
 endif
@@ -344,21 +331,20 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-let s:l = 978 - ((37 * winheight(0) + 38) / 76)
+let s:l = 2436 - ((69 * winheight(0) + 37) / 75)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-978
-normal! 0
+2436
+normal! 018|
 wincmd w
-2wincmd w
-exe 'vert 1resize ' . ((&columns * 136 + 138) / 277)
-exe 'vert 2resize ' . ((&columns * 140 + 138) / 277)
+exe 'vert 1resize ' . ((&columns * 156 + 158) / 317)
+exe 'vert 2resize ' . ((&columns * 160 + 158) / 317)
 tabnext 1
-badd +231 production_c/su2hmc.c
+badd +155 production_c/su2hmc.c
 badd +609 production/par_mpi.f
-badd +978 production/su2hmc.f
-badd +363 production_c/slash.c
+badd +0 production/su2hmc.f
+badd +1 production_c/slash.c
 badd +59 production_c/Makefile
 badd +717 production_c/par_mpi.c
 badd +18 /usr/include/string.h
