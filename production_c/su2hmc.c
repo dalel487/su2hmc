@@ -1110,7 +1110,6 @@ int Congradq(int na, double res, int *itercg){
 	x1=calloc(kferm2Halo,sizeof(complex));
 	x2=calloc(kferm2Halo,sizeof(complex));
 #endif
-
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
 	//if statements quicker to type
 	for(int niterx=0; niterx<niterc; niterx++){
@@ -1363,9 +1362,9 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 	//This x is just a storage container
 	complex x[kvol+halo][ngorkov][nc] __attribute__((aligned(64)));
 #ifdef USE_MKL
-	ps = mkl_calloc(kvol+halo, sizeof(complex), AVX);
+	ps = mkl_calloc(kvol, sizeof(complex), AVX);
 #else
-	ps = calloc(kvol+halo, sizeof(complex));
+	ps = calloc(kvol, sizeof(complex));
 #endif
 	//Setting up noise. I don't see any reason to loop
 	//over colour indices as it is a two-colour code.
@@ -1379,7 +1378,7 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 #endif
 	memcpy(x, xi, nc*ngorkov*kvol*sizeof(complex));
 
-	//R_1= M^† xi
+	//R_1= M^† Ξ 
 	Dslashd(R1, xi);
 	//Copying R1 to the first (zeroth) flavour index of Phi
 	//This should be safe with memcpy since the pointer name
@@ -1408,10 +1407,8 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 	*qbqb=0; *qq=0;
 	for(int idirac = 0; idirac<ndirac; idirac++){
 		int igork=idirac+4;
-		//Unrolling the colour indices, Then its just (γ_5*x).χi or (γ_5*χi)*x 
+		//Unrolling the colour indices, Then its just (γ_5*x)*Ξ or (γ_5*Ξ)*x 
 #ifdef USE_MKL
-		//Only realised after that double dot was already defined inside another for
-		//loop, but scoping should make it safe
 #pragma unroll
 		for(int ic = 0; ic<nc; ic++){
 			complex dot;
