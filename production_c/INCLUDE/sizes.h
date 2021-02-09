@@ -27,6 +27,7 @@
 #ifndef SIZES
 #define SIZES
 // Define booleans for C because they don't exist natively
+// They do in C99...
 #define	TRUE	1
 #define	FALSE	0
 
@@ -44,8 +45,8 @@
 #define gvol3   (nx*ny*nz)
 
 
-#define npx   1 
-#define npt   1 
+#define npx   2 
+#define npt   2 
 
 // Initially restrict to npz = npy = npx
 // This allows us to have a single ksize variable

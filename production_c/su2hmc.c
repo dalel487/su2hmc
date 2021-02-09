@@ -1112,6 +1112,7 @@ int Congradq(int na, double res, int *itercg){
 #endif
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
 	//if statements quicker to type
+		complex betan;
 	for(int niterx=0; niterx<niterc; niterx++){
 		(*itercg)++;
 		//x2 =  (M^†M)p 
@@ -1125,7 +1126,7 @@ int Congradq(int na, double res, int *itercg){
 #endif
 		//We can't evaluate α on the first niterx because we need to get β_n.
 		if(niterx){
-			//(p*).x2
+			//α_d= p* (M^†M+J^2)p
 #ifdef USE_MKL
 			cblas_zdotc_sub(kferm2, p, 1, x2, 1, &alphad);
 #else
@@ -1148,7 +1149,6 @@ int Congradq(int na, double res, int *itercg){
 #endif
 		}			
 		// r_n+1 = r_n-α(M^† M)p_n and β_n=r*.r
-		complex betan;
 #ifdef USE_MKL
 		alpha *= -1;
 		cblas_zaxpy(kferm2, &alpha, x2, 1, r, 1);
@@ -1188,7 +1188,8 @@ int Congradq(int na, double res, int *itercg){
 			return 0;
 		}
 	}
-	if(!rank) fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i\n", ITERLIM, funcname, niterc);
+	if(!rank)
+		fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i β_n=%f\n", ITERLIM, funcname, niterc, creal(betan));
 	return 0;
 }
 int Congradp(int na, double res, int *itercg){
@@ -1221,7 +1222,7 @@ int Congradp(int na, double res, int *itercg){
 	 * =======
 	 * 0 on success, integer error code otherwise
 	 */
-	const char *funcname = "Congradq";
+	const char *funcname = "Congradp";
 	double resid = kferm*res*res;
 	*itercg = 0;
 	//The κ^2 factor is needed to normalise the fields correctly
@@ -1628,8 +1629,10 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 	Par_dsum(&hgs); Par_dsum(&hgt);
 	*avplaqs=-hgs/(3*gvol); *avplaqt=-hgt/(gvol*3);
 	*hg=(hgs+hgt)*beta;
+	#ifdef DEBUG
 	if(!rank)
 		printf("hgs=%f  hgt=%f  hg=%f\n", hgs, hgt, *hg);
+		#endif
 	return 0;
 }
 double Polyakov(){
