@@ -6,7 +6,7 @@ CC= mpiicc
 #FFLAGS= -O3 -I /bgsys/drivers/toolchain/V1R1M2/gnu-linux/lib/gcc/powerpc64-bgq-linux/4.4.6/finclude/
 IFLAGS=     -I./INCLUDE -I./SFMT-src-1.5.1
 
-CFLAGS=     -ipo -xCASCADELAKE -DHAVE_SSE2 -qopt-zmm-usage=high -check-pointers=none \
+CFLAGS=     -ipo -xHASWELL -DHAVE_SSE2 -qopt-zmm-usage=high -check-pointers=none \
 		$(IFLAGS) -mkl -std=gnu99 -DUSE_MKL 
 
 LFLAGS=
