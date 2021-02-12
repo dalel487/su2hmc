@@ -45,8 +45,8 @@
 #define gvol3   (nx*ny*nz)
 
 
-#define npx   2 
-#define npt   2 
+#define npx   1 
+#define npt   1 
 
 // Initially restrict to npz = npy = npx
 // This allows us to have a single ksize variable

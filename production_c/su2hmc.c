@@ -194,12 +194,11 @@ int main(int argc, char *argv){
 	ancg = 0; ancgh = 0;
 	//This was originally in the half-step of the fortran code, but it makes more sense to declare
 	//it outside the loop
-	double d = dt/2;
+	const	double d = dt/2;
 	//Start of classical evolution
 	//===========================
 	double pbp;
 	complex qq;
-	//Open the output files that haven't been opened yet
 	for(int isweep = 1; isweep <= iter2; isweep++){
 #ifdef DEBUG
 		if(!rank)
@@ -513,7 +512,7 @@ int Init(int istart){
 	printf("Checked addresses\n");
 #endif
 	double chem1=exp(fmu); double chem2 = 1/chem1;
-#pragma omp parallel for 
+#pragma omp parallel for private(akappa, chem1, chem2)
 	for(int i = 0; i<kvol; i++){
 		dk4p[i]=akappa*chem1;
 		dk4m[i]=akappa*chem2;
@@ -968,7 +967,6 @@ int Gauge_force(double dSdpi[][3][ndirac]){
 			dSdpi[i][0][mu]=beta*cimag(a11[i]);
 			dSdpi[i][1][mu]=beta*creal(a11[i]);
 			dSdpi[i][2][mu]=beta*cimag(a12[i]);
-
 		}
 	}
 	return 0;
@@ -1476,15 +1474,14 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 
 	DHalo_swap_dir(dk4p, 1, 3, UP);		DHalo_swap_dir(dk4m, 1, 3, UP);	
 	//Instead of typing id[i][3] a lot, we'll just assign them to variables.
-	int did, uid, igork1;
 	//Idea. One loop instead of two loops but for xuu and xdd just use ngorkov-(igorkov+1) instead
 #pragma omp parallel for reduction(+:xd,xu) 
 	for(int i = 0; i<kvol; i++){
-		did=id[3][i];
-		uid=iu[3][i];
+		int did=id[3][i];
+		int uid=iu[3][i];
 #pragma unroll
 		for(int igorkov=0; igorkov<4; igorkov++){
-			igork1=gamin[3][igorkov];
+			int igork1=gamin[3][igorkov];
 			//For the C Version I'll try and factorise where possible
 
 			xu+=dk4p[did]*(conj(x[did][igorkov][0])*(\
@@ -1504,15 +1501,14 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 						conj(u12t[i][3])*(xi[i][igorkov][0]+xi[i][igork1][0]) ) );
 		}
 	}
-	int idirac;
 #pragma omp parallel for reduction(+:xdd,xuu) 
 	for(int i = 0; i<kvol; i++){
-		did=id[3][i];
-		uid=id[3][i];
+		int did=id[3][i];
+		int uid=id[3][i];
 #pragma unroll
 		for(int igorkov = 4; igorkov<ngorkov; igorkov++){
-			idirac=igorkov-4;
-			igork1=gamin[3][idirac]+4;
+			int idirac=igorkov-4;
+			int igork1=gamin[3][idirac]+4;
 			xuu-=dk4m[did]*(conj(x[did][igorkov][0])*(\
 						u11t[did][3]*(xi[i][igork1][0]-xi[i][igorkov][0])+\
 						u12t[did][3]*(xi[i][igork1][1]-xi[i][igorkov][1]) )+\
@@ -1752,6 +1748,7 @@ inline int Reunitarise(){
 	return 0;
 }
 inline int Z_gather(complex *x, complex *y, int n, int *table){
+#pragma omp parallel for
 	for(int i=0; i<n; i++)
 		x[i]=y[table[i]];
 	return 0;
@@ -1808,6 +1805,7 @@ double Norm_squared(complex *z, int n){
 	//BLAS? Use cblas_zdotc instead for vectorisation
 	const char *funcname = "Norm_squared";
 	double norm = 0;
+	#pragma omp parallel for reduction(+:norm)
 	for(int i=0; i<n; i++)
 		norm+=z[i]*conj(z[i]);
 	return norm;
