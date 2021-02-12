@@ -660,8 +660,8 @@ int Force(double dSdpi[][3][ndirac], int iflag, double res1){
 		//  as a result, need to swap the DOWN halos in all dirs for
 		//  both these arrays, each of which has 8 cpts
 		//
-		int mu, did, uid, igork1;
-#pragma omp parallel for private(mu,did,uid,igork1)
+		int mu, uid, igork1;
+#pragma omp parallel for private(mu,uid,igork1)
 		for(int i=0;i<kvol;i++)
 			for(int idirac=0;idirac<ndirac;idirac++){
 				//Unrolling the loop
@@ -674,174 +674,178 @@ int Force(double dSdpi[][3][ndirac], int iflag, double res1){
 					//them into the equation? Reduce the number of evaluations needed and look
 					//a bit neater (although harder to follow as a consequence).
 
-					//Up and down indices
-					did = id[mu][i]; uid = iu[mu][i];
+					//Up indices
+					uid = iu[mu][i];
 					igork1 = gamin[mu][idirac];	
-					dSdpi[i][0][mu]+=akappa*creal(zi*(\
-								conj(X1[i][idirac][0])*(\
-									-conj(u12[i][mu])*X2[uid][idirac][0]+conj(u11[i][mu]*X2[uid][idirac][1]))+\
-								conj(X1[uid][idirac][0])*(\
-									u12[i][mu]*X2[i][idirac][0]-conj(u11[i][mu])*X2[i][idirac][1])+\
-								conj(X1[i][idirac][1])*(\
-									u11[i][mu]*X2[uid][idirac][0]+u12[i][mu]*X2[uid][idirac][1])+\
-								conj(X1[uid][idirac][1])*-(\
-									u11[i][mu]*X2[i][idirac][0]+conj(u12[i][mu])*X2[i][idirac][1])))+\
-							     creal(zi*gamval[mu][idirac]*(\
-										     conj(X1[i][idirac][0])*(\
-											     -conj(u12[i][mu])*X2[uid][igork1][0]+conj(u11[i][mu])*X2[uid][igork1][1])+\
-										     conj(X1[uid][idirac][0])*(\
-											     -u12[i][mu]*X2[i][igork1][0]+conj(u11[i][mu])*X2[i][igork1][1])+\
-										     conj(X1[i][idirac][1])*(\
-											     u11[i][mu]*X2[uid][igork1][0]+u12[i][mu]*X2[uid][igork1][1])+\
-										     conj(X1[uid][idirac][1])*(\
-											     +u11[i][mu]*X2[i][igork1][0]+conj(u12[i][mu])*X2[i][igork1][1])));
+					dSdpi[i][0][mu]+=akappa*creal(zi*
+							(conj(X1[i][idirac][0])*
+							 (-conj(u12t[i][mu])*X2[uid][idirac][0]
+							  +conj(u11t[i][mu])*X2[uid][idirac][1])
+							 +conj(X1[uid][idirac][0])*
+							 ( u12t[i][mu] *X2[i][idirac][0]
+							   -conj(u11t[i][mu])*X2[i][idirac][1])
+							 +conj(X1[i][idirac][1])*
+							 (u11t[i][mu] *X2[uid][idirac][0]
+							  +u12t[i][mu] *X2[uid][idirac][1])
+							 +conj(X1[uid][idirac][1])*
+							 (-u11t[i][mu] *X2[i][idirac][0]
+							  -conj(u12t[i][mu])*X2[i][idirac][1])))
+						+creal(zi*gamval[idirac][mu]*
+								(conj(X1[i][idirac][0])*
+								 (-conj(u12t[i][mu])*X2[uid][igork1][0]
+								  +conj(u11t[i][mu])*X2[uid][igork1][1])
+								 +conj(X1[uid][idirac][0])*
+								 (-u12t[i][mu] *X2[i][igork1][0]
+								  +conj(u11t[i][mu])*X2[i][igork1][1])
+								 +conj(X1[i][idirac][1])*
+								 (u11t[i][mu] *X2[uid][igork1][0]
+								  +u12t[i][mu] *X2[uid][igork1][1])
+								 +conj(X1[uid][idirac][1])*
+								 (u11t[i][mu] *X2[i][igork1][0]
+								  +conj(u12t[i][mu])*X2[i][igork1][1])));
 
-					//This was yanked from the first case, so if there is a problem there it's here too!	
-					dSdpi[i][1][mu]+=akappa*creal(zi*(\
-								conj(X1[i][idirac][0])*(\
-									//No change
-									-conj(u12[i][mu])*X2[uid][idirac][0]+conj(u11[i][mu])*X2[uid][idirac][1])+\
-								conj(X1[uid][idirac][0])*-(\
-									//Both terms negative in the second direction
-									u12[i][mu]*X2[i][idirac][0]+conj(u11[i][mu])*X2[i][idirac][1])+\
-								conj(X1[i][idirac][1])*-(\
-									//Negative instead of positive in the second direction
-									u11[i][mu]*X2[uid][idirac][0]+u12[i][mu]*X2[uid][idirac][1])+\
-								conj(X1[uid][idirac][1])*(\
-									//First term becomes positive in second direction
-									+u11[i][mu]*X2[i][idirac][0]-conj(u12[i][mu])*X2[i][idirac][1])))+\
-							     creal(i*gamval[mu][idirac]*(\
-										     //No zi in the second direction
-										     conj(X1[i][idirac][0])*(\
-											     //No change
-											     -conj(u12[i][mu])*X2[uid][igork1][0]+conj(u11[i][mu])*X2[uid][igork1][1])+\
-										     conj(X1[uid][idirac][0])*(\
-											     //Both terms positive in the second direction
-											     u12[i][mu]*X2[i][igork1][0]+conj(u11[i][mu])*X2[i][igork1][1])+\
-										     conj(X1[i][idirac][1])*-(\
-											     //Both terms negative in the second direction
-											     u11[i][mu]*X2[uid][igork1][0]+u12[i][mu]*X2[uid][igork1][1])+\
-										     conj(X1[uid][idirac][1])*(\
-											     //First term negative in the second direction
-											     -u11[i][mu]*X2[i][igork1][0]+conj(u12[i][mu])*X2[i][igork1][1])));
+					dSdpi[i][1][mu]+=akappa*creal(
+							(conj(X1[i][idirac][0])*
+							 (-conj(u12t[i][mu])*X2[uid][idirac][0]
+							  +conj(u11t[i][mu])*X2[uid][idirac][1])
+							 +conj(X1[uid][idirac][0])*
+							 (-u12t[i][mu] *X2[i][idirac][0]
+							  -conj(u11t[i][mu])*X2[i][idirac][1])
+							 +conj(X1[i][idirac][1])*
+							 (-u11t[i][mu] *X2[uid][idirac][0]
+							  -u12t[i][mu] *X2[uid][idirac][1])
+							 +conj(X1[uid][idirac][1])*
+							 (u11t[i][mu] *X2[i][idirac][0]
+							  -conj(u12t[i][mu])*X2[i][idirac][1])))
+						+creal(gamval[idirac][mu]*
+								(conj(X1[i][idirac][0])*
+								 (-conj(u12t[i][mu])*X2[uid][igork1][0]
+								  +conj(u11t[i][mu])*X2[uid][igork1][1])
+								 +conj(X1[uid][idirac][0])*
+								 (u12t[i][mu] *X2[i][igork1][0]
+								  +conj(u11t[i][mu])*X2[i][igork1][1])
+								 +conj(X1[i][idirac][1])*
+								 (-u11t[i][mu] *X2[uid][igork1][0]
+								  -u12t[i][mu] *X2[uid][igork1][1])
+								 +conj(X1[uid][idirac][1])*
+								 (-u11t[i][mu] *X2[i][igork1][0]
+								  +conj(u12t[i][mu])*X2[i][igork1][1])));
 
-					//This was again yanked from the first case, so if there is a problem there it's here too!	
-					dSdpi[i][2][mu]+=akappa*creal(zi*(\
-								conj(X1[i][idirac][0])*(\
-									//Don't conj the u's, swap them and both positive
-									u11[i][mu]*X2[uid][idirac][0]+u12[i][mu]*X2[uid][idirac][1])+\
-								conj(X1[uid][idirac][0])*-(\
-									//Swap u12 and conj(u11) and both negative
-									u12[i][mu]*X2[i][idirac][1]+conj(u11[i][mu])*X2[i][idirac][0])+\
-								conj(X1[i][idirac][1])*(\
-									//Conj both u's, swap, u11 negative
-									-conj(u11[i][mu])*X2[uid][idirac][1]+conj(u12[i][mu])*X2[uid][idirac][0])+\
-								conj(X1[uid][idirac][1])*(\
-									//Swap u11 and conj(u12) and swap signs
-									+u11[i][mu]*X2[i][idirac][1]-conj(u12[i][mu])*X2[i][idirac][0])))+\
-							     //FORTRAN did this as a second sum.
-							     //dSdpi[mu][2][i]+=
-							     creal(zi*gamval[mu][idirac]*(\
-										     conj(X1[i][idirac][0])*(\
-											     //No conj, both positive, swap u's
-											     u12[i][mu]*X2[uid][igork1][1]+u11[i][mu]*X2[uid][igork1][0])+\
-										     conj(X1[uid][idirac][0])*(\
-											     //Make both positive and swap u12 and conj(u11)
-											     u12[i][mu]*X2[i][igork1][1]+conj(u11[i][mu])*X2[i][igork1][0])+\
-										     conj(X1[i][idirac][1])*(\
-											     //Swap u's, conjugate both, u11 negative
-											     -conj(u11[i][mu])*X2[uid][igork1][1]+conj(u12[i][mu])*X2[uid][igork1][0])+\
-										     conj(X1[uid][idirac][1])*(\
-											     //No conj, swap u's, u11 negative
-											     -u11[i][mu]*X2[i][igork1][1]+u12[i][mu]*X2[i][igork1][0])));
+					dSdpi[i][2][mu]+=akappa*creal(zi*
+							(conj(X1[i][idirac][0])*
+							 (u11t[i][mu] *X2[uid][idirac][0]
+							  +u12t[i][mu] *X2[uid][idirac][1])
+							 +conj(X1[uid][idirac][0])*
+							 (-conj(u11t[i][mu])*X2[i][idirac][0]
+							  -u12t[i][mu] *X2[i][idirac][1])
+							 +conj(X1[i][idirac][1])*
+							 (conj(u12t[i][mu])*X2[uid][idirac][0]
+							  -conj(u11t[i][mu])*X2[uid][idirac][1])
+							 +conj(X1[uid][idirac][1])*
+							 (-conj(u12t[i][mu])*X2[i][idirac][0]
+							  +u11t[i][mu] *X2[i][idirac][1])))
+						+creal(zi*gamval[idirac][mu]*
+								(conj(X1[i][idirac][0])*
+								 (u11t[i][mu] *X2[uid][igork1][0]
+								  +u12t[i][mu] *X2[uid][igork1][1])
+								 +conj(X1[uid][idirac][0])*
+								 (conj(u11t[i][mu])*X2[i][igork1][0]
+								  +u12t[i][mu] *X2[i][igork1][1])
+								 +conj(X1[i][idirac][1])*
+								 (conj(u12t[i][mu])*X2[uid][igork1][0]
+								  -conj(u11t[i][mu])*X2[uid][igork1][1])
+								 +conj(X1[uid][idirac][1])*
+								 (conj(u12t[i][mu])*X2[i][igork1][0]
+								  -u11t[i][mu] *X2[i][igork1][1])));
+
 				}
 				//We're not done tripping yet!! Time like term is different. dk4? shows up
 				//For consistency we'll leave mu in instead of hard coding.
 				mu=3;
-				did = id[mu][i]; uid = iu[mu][i];
+				uid = iu[mu][i];
 				//We are mutiplying terms by dk4?[i] Also there is no akappa or gamval factor in the time direction		
 				//for the "gamval" terms the sign of d4kp flips
-				dSdpi[i][0][mu]+=creal(zi*(\
-							conj(X1[i][idirac][0])*dk4m[i]*(\
-								-conj(u12[i][mu])*X2[uid][idirac][0]+conj(u11[i][mu]*X2[uid][idirac][1]))+\
-							conj(X1[uid][idirac][0])*dk4p[i]*(\
-								u12[i][mu]*X2[i][idirac][0]-conj(u11[i][mu])*X2[i][idirac][1])+\
-							conj(X1[i][idirac][1])*dk4m[i]*(\
-								u11[i][mu]*X2[uid][idirac][0]+u12[i][mu]*X2[uid][idirac][1])+\
-							conj(X1[uid][idirac][1])*dk4p[i]*-(\
-								u11[i][mu]*X2[i][idirac][0]+conj(u12[i][mu])*X2[i][idirac][1])))+\
-						     //FORTRAN did this as a second sum.
-						     //dSdpi[mu][2][i]+=
-						     creal(zi*(\
-									     conj(X1[i][idirac][0])*dk4m[i]*(\
-										     -conj(u12[i][mu])*X2[uid][igork1][0]+conj(u11[i][mu])*X2[uid][igork1][1])-\
-									     conj(X1[uid][idirac][0])*dk4p[i]*(\
-										     -u12[i][mu]*X2[i][igork1][0]+conj(u11[i][mu])*X2[i][igork1][1])+\
-									     conj(X1[i][idirac][1])*dk4m[i]*(\
-										     u11[i][mu]*X2[uid][igork1][0]+u12[i][mu]*X2[uid][igork1][1])-\
-									     conj(X1[uid][idirac][1])*dk4p[i]*(\
-										     +u11[i][mu]*X2[i][igork1][0]+conj(u12[i][mu])*X2[i][igork1][1])));
+				dSdpi[i][0][mu]+=creal(zi*
+						(conj(X1[i][idirac][0])*
+						 (dk4m[i]*(-conj(u12t[i][mu])*X2[uid][idirac][0]
+							     +conj(u11t[i][mu])*X2[uid][idirac][1]))
+						 +conj(X1[uid][idirac][0])*
+						 (dk4p[i]*      (+u12t[i][mu] *X2[i][idirac][0]
+								     -conj(u11t[i][mu])*X2[i][idirac][1]))
+						 +conj(X1[i][idirac][1])*
+						 (dk4m[i]*       (u11t[i][mu] *X2[uid][idirac][0]
+									+u12t[i][mu] *X2[uid][idirac][1]))
+						 +conj(X1[uid][idirac][1])*
+						 (dk4p[i]*      (-u11t[i][mu] *X2[i][idirac][0]
+								     -conj(u12t[i][mu])*X2[i][idirac][1]))))
+					+creal(zi*
+							(conj(X1[i][idirac][0])*
+							 (dk4m[i]*(-conj(u12t[i][mu])*X2[uid][igork1][0]
+								     +conj(u11t[i][mu])*X2[uid][igork1][1]))
+							 +conj(X1[uid][idirac][0])*
+							 (-dk4p[i]*       (u12t[i][mu] *X2[i][igork1][0]
+										 -conj(u11t[i][mu])*X2[i][igork1][1]))
+							 +conj(X1[i][idirac][1])*
+							 (dk4m[i]*       (u11t[i][mu] *X2[uid][igork1][0]
+										+u12t[i][mu] *X2[uid][igork1][1]))
+							 +conj(X1[uid][idirac][1])*
+							 (-dk4p[i]*      (-u11t[i][mu] *X2[i][igork1][0]
+										-conj(u12t[i][mu])*X2[i][igork1][1]))));
 
-				//This was yanked from the first case, so if there is a problem there it's here too!	
-				dSdpi[i][1][mu]+=creal(zi*(\
-							conj(X1[i][idirac][0])*dk4m[i]*(\
-								//No change
-								-conj(u12[i][mu])*X2[uid][idirac][0]+conj(u11[i][mu])*X2[uid][idirac][1])+\
-							conj(X1[uid][idirac][0])*dk4p[i]*-(\
-								//Both terms negative in the second direction
-								u12[i][mu]*X2[i][idirac][0]+conj(u11[i][mu])*X2[i][idirac][1])+\
-							conj(X1[i][idirac][1])*dk4m[i]*-(\
-								//Negative instead of positive in the second direction
-								u11[i][mu]*X2[uid][idirac][0]+u12[i][mu]*X2[uid][idirac][1])+\
-							conj(X1[uid][idirac][1])*dk4p[i]*(\
-								//First term becomes positive in second direction
-								+u11[i][mu]*X2[i][idirac][0]-conj(u12[i][mu])*X2[i][idirac][1])))+\
-						     //FORTRAN did this as a second sum.
-						     //dSdpi[mu][1][i]+=
-						     creal(\
-								     //No zi in the second direction
-								     conj(X1[i][idirac][0])*dk4m[i]*(\
-									     //No change
-									     -conj(u12[i][mu])*X2[uid][igork1][0]+conj(u11[i][mu])*X2[uid][igork1][1])-\
-								     conj(X1[uid][idirac][0])*dk4p[i]*(\
-									     //Both terms positive in the second direction
-									     u12[i][mu]*X2[i][igork1][0]+conj(u11[i][mu])*X2[i][igork1][1])+\
-								     conj(X1[i][idirac][1])*dk4m[i]*-(\
-									     //Both terms negative in the second direction
-									     u11[i][mu]*X2[uid][igork1][0]+u12[i][mu]*X2[uid][igork1][1])-
-								     conj(X1[uid][idirac][1])*dk4p[i]*(\
-									     //First term negative in the second direction
-									     -u11[i][mu]*X2[i][igork1][0]+conj(u12[i][mu])*X2[i][igork1][1]));
+				dSdpi[i][1][mu]+=creal(
+						conj(X1[i][idirac][0])*
+						(dk4m[i]*(-conj(u12t[i][mu])*X2[uid][idirac][0]
+							    +conj(u11t[i][mu])*X2[uid][idirac][1]))
+						+conj(X1[uid][idirac][0])*
+						(dk4p[i]*      (-u12t[i][mu] *X2[i][idirac][0]
+								    -conj(u11t[i][mu])*X2[i][idirac][1]))
+						+conj(X1[i][idirac][1])*
+						(dk4m[i]*      (-u11t[i][mu] *X2[uid][idirac][0]
+								    -u12t[i][mu] *X2[uid][idirac][1]))
+						+conj(X1[uid][idirac][1])*
+						(dk4p[i]*      ( u11t[i][mu] *X2[i][idirac][0]
+								     -conj(u12t[i][mu])*X2[i][idirac][1])))
+					+creal(
+							(conj(X1[i][idirac][0])*
+							 (dk4m[i]*(-conj(u12t[i][mu])*X2[uid][igork1][0]
+								     +conj(u11t[i][mu])*X2[uid][igork1][1]))
+							 +conj(X1[uid][idirac][0])*
+							 (-dk4p[i]*      (-u12t[i][mu] *X2[i][igork1][0]
+										-conj(u11t[i][mu])*X2[i][igork1][1]))
+							 +conj(X1[i][idirac][1])*
+							 (dk4m[i]*      (-u11t[i][mu] *X2[uid][igork1][0]
+									     -u12t[i][mu] *X2[uid][igork1][1]))
+							 +conj(X1[uid][idirac][1])*
+							 (-dk4p[i]*       (u11t[i][mu] *X2[i][igork1][0]
+										 -conj(u12t[i][mu])*X2[i][igork1][1]))));
 
-				//This was again yanked from the first case, so if there is a problem there it's here too!	
-				dSdpi[i][2][mu]+=creal(zi*(\
-							conj(X1[i][idirac][0])*dk4m[i]*(\
-								//Don't conj the u's, swap them and both positive
-								u11[i][mu]*X2[uid][idirac][0]+u12[i][mu]*X2[uid][idirac][1])+\
-							conj(X1[uid][idirac][0])*dk4p[i]*-(\
-								//Swap u12 and conj(u11) and both negative
-								u12[i][mu]*X2[i][idirac][1]+conj(u11[i][mu])*X2[i][idirac][0])+\
-							conj(X1[i][idirac][1])*dk4m[i]*(\
-								//Conj both u's, swap, u11 negative
-								-conj(u11[i][mu])*X2[uid][idirac][1]+conj(u12[i][mu])*X2[uid][idirac][0])+\
-							conj(X1[uid][idirac][1])*dk4p[i]*(\
-								//Swap u11 and conj(u12) and swap signs
-								u11[i][mu]*X2[i][idirac][1]-conj(u12[i][mu])*X2[i][idirac][0])))+\
-						     //FORTRAN did this as a second sum.
-						     //dSdpi[mu][2][i]+=
-						     creal(zi*(\
-									     conj(X1[i][idirac][0])*dk4m[i]*(\
-										     //No conj, both positive, swap u's
-										     u12[i][mu]*X2[uid][igork1][1]+u11[i][mu]*X2[uid][igork1][0])-
-									     conj(X1[uid][idirac][0])*dk4p[i]*(\
-										     //Make both positive and swap u12 and conj(u11)
-										     u12[i][mu]*X2[i][igork1][1]+conj(u11[i][mu])*X2[i][igork1][0])+\
-									     conj(X1[i][idirac][1])*dk4m[i]*(\
-										     //Swap u's, conjugate both, u11 negative
-										     -conj(u11[i][mu])*X2[uid][igork1][1]+conj(u12[i][mu])*X2[uid][igork1][0])-\
-									     conj(X1[uid][idirac][1])*dk4p[i]*(\
-										     //No conj, swap u's, u11 negative
-										     -u11[i][mu]*X2[i][igork1][1]+u12[i][mu]*X2[i][igork1][0])));
+				dSdpi[i][2][mu]+=creal(zi*
+						(conj(X1[i][idirac][0])*
+						 (dk4m[i]*       (u11t[i][mu] *X2[uid][idirac][0]
+									+u12t[i][mu] *X2[uid][idirac][1]))
+						 +conj(X1[uid][idirac][0])*
+						 (dk4p[i]*(-conj(u11t[i][mu])*X2[i][idirac][0]
+							     -u12t[i][mu] *X2[i][idirac][1]))
+						 +conj(X1[i][idirac][1])*
+						 (dk4m[i]* (conj(u12t[i][mu])*X2[uid][idirac][0]
+								-conj(u11t[i][mu])*X2[uid][idirac][1]))
+						 +conj(X1[uid][idirac][1])*
+						 (dk4p[i]*(-conj(u12t[i][mu])*X2[i][idirac][0]
+							     +u11t[i][mu] *X2[i][idirac][1]))))
+					+creal(zi*
+							(conj(X1[i][idirac][0])*
+							 (dk4m[i]*       (u11t[i][mu] *X2[uid][igork1][0]
+										+u12t[i][mu] *X2[uid][igork1][1]))
+							 +conj(X1[uid][idirac][0])*
+							 (-dk4p[i]*(-conj(u11t[i][mu])*X2[i][igork1][0]
+									-u12t[i][mu] *X2[i][igork1][1]))
+							 +conj(X1[i][idirac][1])*
+							 (dk4m[i]* (conj(u12t[i][mu])*X2[uid][igork1][0]
+									-conj(u11t[i][mu])*X2[uid][igork1][1]))
+							 +conj(X1[uid][idirac][1])*
+							 (-dk4p[i]*(-conj(u12t[i][mu])*X2[i][igork1][0]
+									+u11t[i][mu] *X2[i][igork1][1]))));
+
 			}
 	}
 	return 0;
@@ -901,13 +905,9 @@ int Gauge_force(double dSdpi[][3][ndirac]){
 	complex Sigma11[kvol], Sigma12[kvol] __attribute__((aligned(AVX)));
 	complex u11sh[kvol+halo], u12sh[kvol+halo] __attribute__((aligned(AVX)));
 	//Holders for directions
-	int didm, didn, uidm, uidn;
 	for(int mu=0; mu<ndim; mu++){
-		//There has to be an efficient way to reset the Sigmas
-#pragma omp parallel for
-		for(int i=0;i<kvol;i++){
-			Sigma11[i]=0.0; Sigma12[i]=0;
-		}
+		memset(Sigma11,0, kvol*sizeof(complex));
+		memset(Sigma12,0, kvol*sizeof(complex));
 		complex a11[kvol], a12[kvol] __attribute__((aligned(AVX)));
 		for(int nu=0; nu<ndim; nu++){
 			if(mu!=nu){
@@ -915,8 +915,8 @@ int Gauge_force(double dSdpi[][3][ndirac]){
 #pragma omp parallel for
 				for(int i=0;i<kvol;i++){
 
-					uidm = iu[mu][i];
-					uidn = iu[nu][i];
+					int uidm = iu[mu][i];
+					int uidn = iu[nu][i];
 					a11[i]=u11t[uidm][nu]*conj(u11t[uidn][mu])+\
 						 u12t[uidm][nu]*conj(u12t[uidn][mu]);
 					a12[i]=-u11t[uidm][nu]*u12t[uidn][mu]+\
@@ -947,16 +947,16 @@ int Gauge_force(double dSdpi[][3][ndirac]){
 				//Next up, the -ν staple
 #pragma omp parallel for
 				for(int i=0;i<kvol;i++){
-					uidm = iu[mu][i];	uidn = iu[nu][i];
-					didm = id[mu][i];	didn = id[nu][i];
+					int uidm = iu[mu][i];	int uidn = iu[nu][i];
+					int didm = id[mu][i];	int didn = id[nu][i];
 					//uidm is correct here
 					a11[i]=conj(u11sh[uidm])*conj(u11t[didn][mu])-\
 						 u12sh[uidm]*conj(u12t[didn][mu]);
-					a12[i]=conj(u11sh[uidm])*u12t[didn][mu]-\
+					a12[i]=-conj(u11sh[uidm])*u12t[didn][mu]-\
 						 u12sh[uidm]*u11t[didn][mu];
 
-					Sigma11[i]+=a11[i]*conj(u11t[didn][nu])+a12[i]*conj(u12t[didn][nu]);
-					Sigma12[i]+=-a11[i]*u12t[didn][nu]+a12[i]*u11t[didn][nu];
+					Sigma11[i]+=a11[i]*u11t[didn][nu]-a12[i]*conj(u12t[didn][nu]);
+					Sigma12[i]+=a11[i]*u12t[didn][nu]+a12[i]*conj(u11t[didn][nu]);
 				}
 			}
 		}
@@ -1112,7 +1112,7 @@ int Congradq(int na, double res, int *itercg){
 #endif
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
 	//if statements quicker to type
-		complex betan;
+	complex betan;
 	for(int niterx=0; niterx<niterc; niterx++){
 		(*itercg)++;
 		//x2 =  (M^†M)p 
@@ -1629,10 +1629,10 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 	Par_dsum(&hgs); Par_dsum(&hgt);
 	*avplaqs=-hgs/(3*gvol); *avplaqt=-hgt/(gvol*3);
 	*hg=(hgs+hgt)*beta;
-	#ifdef DEBUG
+#ifdef DEBUG
 	if(!rank)
 		printf("hgs=%f  hgt=%f  hg=%f\n", hgs, hgt, *hg);
-		#endif
+#endif
 	return 0;
 }
 double Polyakov(){

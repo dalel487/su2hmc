@@ -54,7 +54,7 @@ all:	$(EXE)
 release:	CFLAGS += -O3 -inline-level=2 -qopenmp
 release:	$(EXE)
 
-debug:	CFLAGS += -O0 -g -inline-level=0 -DDEBUG
+debug:	CFLAGS += -O0 -g -inline-level=0 -DDEBUG 
 debug:	$(EXE)
 
 $(EXE):	$(OBJ)
