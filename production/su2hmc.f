@@ -910,7 +910,7 @@ c     common_vector.h is not in master
       integer itercg,niterx,i
       real(kind=realkind) na,res,resid,betad,alpha,alphad
       real(kind=realkind) fac,alphan,betan,beta
-c     write(6,111)
+c      write(6,111)
 111   format(' Hi from congradq')
 c
       resid=kferm2*res*res
@@ -996,7 +996,12 @@ c
       p(i)=r(i)+beta*p(i)
 7     continue
 
-      if(betan.lt.resid) goto 8
+      if(betan.lt.resid) then
+         write(*,648)  niterx, betan, resid
+648      format('Iter (CG) = ',i, ' resid = ', f, ' toler = ',f)
+         call flush(7)
+	   goto 8
+      endif
 1     continue
 
       write(7,1000)
@@ -1004,11 +1009,8 @@ c
 
 8     continue
 
-      if (ismaster) then
-         write(7,*) 'Iter (CG)  = ', niterx, ', resid = ',
-     %        betan, ', toler = ',resid
-         call flush(7)
-      endif
+c      if (ismaster) then
+c      endif
 
       return
       end      
@@ -1120,7 +1122,7 @@ c
 8     continue
 
       if (ismaster) then
-         write(7,*) 'Iter (CG)  = ', niterx, ', resid = ',
+         write(*,*) 'Iter (CG)  = ', niterx, ', resid = ',
      %        betan, ', toler = ',resid
          call flush(7)
       endif

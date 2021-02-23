@@ -75,7 +75,7 @@ int Addrc(){
 	int iaddr, ic;
 	//if using ic++ inside the loop instead
 	ic=-1;
-#ifdef DEBUG
+#ifdef _DEBUG
 	printf("ksizex = %i, ksizet=%i\n", ksizex, ksizet);
 #endif
 	//The loop order here matters as it affects the value of ic corresponding to each entry
@@ -199,7 +199,7 @@ int Addrc(){
 						iaddr=ih[1][3]+h1u[3];	
 					}
 					iu[3][ic]=iaddr;
-#ifdef DEBUG
+#ifdef _DEBUG
 					printf("For loop x=%i,y=%i,z=%i,t=%i:\n"\
 							"ic=%i\n"\
 							"id={%i,%i,%i,%i}\n"\
@@ -210,7 +210,7 @@ int Addrc(){
 				}
 	return 0;
 }
-int ia(int x, int y, int z, int t){
+inline int ia(int x, int y, int z, int t){
 	/*
 	 * Described as a 21st Century address calculator, it gets the memory
 	 * address of an array entry. Kinda like Coord2?index
@@ -451,8 +451,10 @@ int Testgcoord(int cap){
 	 */
 	char *funcname = "Testgcoord";
 	int coord[4], index, index2;
+	#pragma omp parallel for private(coord, index, index2)
 	for(index=0; index<cap; index++){
 		Index2gcoord(index, coord);
+		#pragma omp critical
 		printf("Coordinates for %i are (x,y,z,t):[%i,%i,%i,%i].\n", index,\
 				coord[0], coord[1], coord[2], coord[3]);
 		index2 = Coord2gindex(coord);

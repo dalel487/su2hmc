@@ -24,10 +24,10 @@ extern const int gamin[4][4];
 extern complex gamval[5][4];
 
 //From common_pseud
-complex Phi[nf][kvol+halo][ngorkov][nc], X0[nf][kvol+halo][ndirac][nc], X1[kvol+halo][ndirac][nc] __attribute__((aligned(AVX)));
-complex	xi[kvol+halo][8][2], R1[kvol+halo][8][2]  __attribute__((aligned(AVX)));
+complex Phi[nf][kvol+halo][ngorkov][nc], X0[nf][kvol+halo][ndirac][nc],X1[kvol+halo][ndirac][nc] __attribute__((aligned(AVX)));
+complex xi[kvol+halo][8][2], R1[kvol+halo][8][2]  __attribute__((aligned(AVX)));
 //From common_mat
-double	dk4m[kvol+halo], dk4p[kvol+halo] __attribute__((aligned(AVX)));
+double dk4m[kvol+halo], dk4p[kvol+halo] __attribute__((aligned(AVX)));
 //From common_trial_u11u12
 //complex *u11, *u12;
 double pp[kvol+halo][nadj][ndim] __attribute__((aligned(AVX)));

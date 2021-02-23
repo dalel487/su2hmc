@@ -29,7 +29,7 @@ int Dslash(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 	ZHalo_swap_all(r, 16);
 	for(int mu=0;mu<ndim;mu++){
 		complex z[kvol+halo] __attribute__((aligned(AVX)));
-#ifdef USE_MKL
+#if (defined USE_MKL || USE_BLAS)
 		cblas_zcopy(kvol, &u11t[0][mu], ndim, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
@@ -37,20 +37,20 @@ int Dslash(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 #endif
 		ZHalo_swap_dir(z, 1, mu, UP);
 		//And the swap back
-#ifdef USE_MKL
+#if (defined USE_MKL || USE_BLAS)
 		cblas_zcopy(kvol+halo, z, 1, &u11t[0][mu], ndim);
 #else
 		for(int i=0; i<kvol;i++)
 			u11t[i][mu]=z[i];
 #endif
-#ifdef USE_MKL
+#if (defined USE_MKL || USE_BLAS)
 		cblas_zcopy(kvol, &u12t[0][mu], 4, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
 			z[i]=u12t[i][mu];
 #endif
 		ZHalo_swap_dir(z, 1, mu, UP);
-#ifdef USE_MKL
+#if (defined USE_MKL || USE_BLAS)
 		cblas_zcopy(kvol+halo, z, 1, &u12t[0][mu], 4);
 #else
 		for(int i=0; i<kvol;i++)
@@ -65,7 +65,7 @@ int Dslash(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 	//Diquark Term (antihermitian)
 #pragma omp parallel for 
 	for(int i=0;i<kvol;i++){
-#pragma unroll
+#pragma omp simd
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork = idirac+4;
 			complex a_1, a_2;
@@ -81,7 +81,7 @@ int Dslash(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 		//Spacelike terms. Here's hoping I haven't put time as the zeroth component somewhere!
 		for(int mu = 0; mu <3; mu++){
 			int did=id[mu][i]; int uid = iu[mu][i];
-#pragma unroll
+#pragma omp simd
 			for(int igorkov=0; igorkov<ngorkov; igorkov++){
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing in the dirac term.
 				int idirac=igorkov%4;		
@@ -114,7 +114,7 @@ int Dslash(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 		//We can fit it into a single loop by declaring igorkovPP=igorkov+4 instead of looping igorkov=4..7  separately
 		//Note that for the igorkov 4..7 loop idirac=igorkov-4, so we don't need to declare idiracPP separately
 		int did=id[3][i]; int uid = iu[3][i];
-#pragma unroll
+#pragma omp simd
 		for(int igorkov=0; igorkov<4; igorkov++){
 			int igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
 			//the FORTRAN code did it.
@@ -173,7 +173,7 @@ int Dslashd(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 	ZHalo_swap_all(r, 16);
 	for(int mu=0;mu<ndim;mu++){
 		complex z[kvol+halo] __attribute__((aligned(AVX)));
-#ifdef USE_MKL
+#if (defined USE_MKL || USE_BLAS)
 		cblas_zcopy(kvol, &u11t[0][mu], ndim, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
@@ -181,20 +181,20 @@ int Dslashd(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 #endif
 		ZHalo_swap_dir(z, 1, mu, UP);
 		//And the swap back
-#ifdef USE_MKL
+#if (defined USE_MKL || USE_BLAS)
 		cblas_zcopy(kvol+halo, z, 1, &u11t[0][mu], ndim);
 #else
 		for(int i=0; i<kvol;i++)
 			u11t[i][mu]=z[i];
 #endif
-#ifdef USE_MKL
+#if (defined USE_MKL || USE_BLAS)
 		cblas_zcopy(kvol, &u12t[0][mu], 4, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
 			z[i]=u12t[i][mu];
 #endif
 		ZHalo_swap_dir(z, 1, mu, UP);
-#ifdef USE_MKL
+#if (defined USE_MKL || USE_BLAS)
 		cblas_zcopy(kvol+halo, z, 1, &u12t[0][mu], 4);
 #else
 		for(int i=0; i<kvol;i++)
@@ -208,13 +208,13 @@ int Dslashd(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 	memcpy(phi, r, kferm*sizeof(complex));
 #pragma omp parallel for
 	for(int i=0;i<kvol;i++){
-#pragma unroll
+#pragma omp simd
 		//Diquark Term (antihermitian) The signs of a_1 and a_2 below flip under dagger
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork = idirac+4;
 			complex a_1, a_2;
+			//We subtract a_1, hence the minus
 			a_1=-conj(jqq)*gamval[4][idirac];
-			//We subtract a_2, hence the minus
 			a_2=jqq*gamval[4][idirac];
 			phi[i][idirac][0]+=a_1*r[i][igork][0];
 			phi[i][idirac][1]+=a_1*r[i][igork][1];
@@ -225,7 +225,7 @@ int Dslashd(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 		//Spacelike terms. Here's hoping I haven't put time as the zeroth component somewhere!
 		for(int mu = 0; mu <3; mu++){
 			int did=id[mu][i]; int uid = iu[mu][i];
-#pragma unroll
+#pragma omp simd
 			for(int igorkov=0; igorkov<ngorkov; igorkov++){
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing.
 				int idirac=igorkov%4;		
@@ -233,25 +233,27 @@ int Dslashd(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 				//Can manually vectorise with a pragma?
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
-				phi[i][igorkov][0]+=-akappa*(u11t[i][mu]*r[uid][igorkov][0]+\
-						u12t[i][mu]*r[uid][igorkov][1]+\
-						conj(u11t[did][mu])*r[did][igorkov][0]-\
-						u12t[did][mu]*r[did][igorkov][1])-\
-							  //Dirac term. Sign flips under dagger
-							  gamval[mu][idirac]*(u11t[i][mu]*r[uid][igork1][0]+\
-									  u12t[i][mu]*r[uid][igork1][1]-\
-									  conj(u11t[did][mu])*r[did][igork1][0]+\
-									  u12t[did][mu]*r[did][igork1][1]);
+				phi[i][igorkov][0]+=
+					-akappa*(      u11t[i][mu]*r[uid][igorkov][0]
+							+u12t[i][mu]*r[uid][igorkov][1]
+							+conj(u11t[did][mu])*r[did][igorkov][0]
+							-u12t[did][mu] *r[did][igorkov][1])
+					-gamval[mu][idirac]*
+					(          u11t[i][mu]*r[uid][igork1][0]
+						     +u12t[i][mu]*r[uid][igork1][1]
+						     -conj(u11t[did][mu])*r[did][igork1][0]
+						     +u12t[did][mu] *r[did][igork1][1]);
 
-				phi[i][igorkov][1]+=-akappa*(-conj(u12t[i][mu])*r[uid][igorkov][0]+\
-						conj(u11t[i][mu])*r[uid][igorkov][1]+\
-						conj(u12t[did][mu])*r[did][igorkov][0]+\
-						u11t[did][mu]*r[did][igorkov][1])-\
-							  //Dirac term. Sign flips under dagger
-							  gamval[mu][idirac]*(-conj(u12t[i][mu])*r[uid][igork1][0]+\
-									  conj(u11t[i][mu])*r[uid][igork1][1]-\
-									  conj(u12t[did][mu])*r[did][igork1][0]-\
-									  u11t[did][mu]*r[did][igork1][1]);
+				phi[i][igorkov][1]+=
+					-akappa*(-conj(u12t[i][mu])*r[uid][igorkov][0]
+							+conj(u11t[i][mu])*r[uid][igorkov][1]
+							+conj(u12t[did][mu])*r[did][igorkov][0]
+							+u11t[did][mu] *r[did][igorkov][1])
+					-gamval[mu][idirac]*
+					(-conj(u12t[i][mu])*r[uid][igork1][0]
+					 +conj(u11t[i][mu])*r[uid][igork1][1]
+					 -conj(u12t[did][mu])*r[did][igork1][0]
+					 -u11t[did][mu] *r[did][igork1][1]);
 			}
 		}
 		//Timelike terms next. These run from igorkov=0..3 and 4..7 with slightly different rules for each
@@ -259,7 +261,7 @@ int Dslashd(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 		//Note that for the igorkov 4..7 loop idirac=igorkov-4, so we don't need to declare idiracPP separately
 		//Under dagger, dk4p and dk4m get swapped and the dirac component flips sign.
 		int did=id[3][i]; int uid = iu[3][i];
-#pragma unroll
+#pragma omp simd
 		for(int igorkov=0; igorkov<4; igorkov++){
 			//the FORTRAN code did it.
 			int igork1 = gamin[3][igorkov];	
@@ -286,7 +288,9 @@ int Dslashd(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 
 			phi[i][igorkovPP][1]+=dk4p[i]*(conj(u12t[i][3])*(r[uid][igorkovPP][0]+r[uid][igork1PP][0])-\
 					conj(u11t[i][3])*(r[uid][igorkovPP][1]+r[uid][igork1PP][1]))-\
-						    dk4m[did]*(conj(u12t[did][3])*(r[did][igorkovPP][0]-r[did][igork1PP][0])+								    u11t[did][3]*(r[did][igorkovPP][1]-r[did][igork1PP][1]));
+						    dk4m[did]*(conj(u12t[did][3])*(r[did][igorkovPP][0]-r[did][igork1PP][0])+
+								    u11t[did][3]*(r[did][igorkovPP][1]-r[did][igork1PP][1]));
+
 		}
 	}
 	return 0;
@@ -318,7 +322,7 @@ int Hdslash(complex phi[][ndirac][nc], complex r[][ndirac][nc]){
 	ZHalo_swap_all(r, 8);
 	for(int mu=0;mu<ndim;mu++){
 		complex z[kvol+halo] __attribute__((aligned(AVX)));
-#ifdef USE_MKL
+#if (defined USE_MKL || USE_BLAS)
 		cblas_zcopy(kvol, &u11t[0][mu], ndim, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
@@ -326,20 +330,20 @@ int Hdslash(complex phi[][ndirac][nc], complex r[][ndirac][nc]){
 #endif
 		ZHalo_swap_dir(z, 1, mu, UP);
 		//And the swap back
-#ifdef USE_MKL
+#if (defined USE_MKL || USE_BLAS)
 		cblas_zcopy(kvol+halo, z, 1, &u11t[0][mu], ndim);
 #else
 		for(int i=0; i<kvol+halo;i++)
 			u11t[i][mu]=z[i];
 #endif
-#ifdef USE_MKL
+#if (defined USE_MKL || USE_BLAS)
 		cblas_zcopy(kvol, &u12t[0][mu], 4, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
 			z[i]=u12t[i][mu];
 #endif
 		ZHalo_swap_dir(z, 1, mu, UP);
-#ifdef USE_MKL
+#if (defined USE_MKL || USE_BLAS)
 		cblas_zcopy(kvol+halo, z, 1, &u12t[0][mu], 4);
 #else
 		for(int i=0; i<kvol+halo;i++)
@@ -352,11 +356,11 @@ int Hdslash(complex phi[][ndirac][nc], complex r[][ndirac][nc]){
 	//Mass term
 	memcpy(phi, r, kferm2*sizeof(complex));
 	//Spacelike term
-#pragma omp parallel for private(akappa)
+#pragma omp parallel for
 	for(int i=0;i<kvol;i++){
 		for(int mu = 0; mu <3; mu++){
 			int did=id[mu][i]; int uid = iu[mu][i];
-#pragma unroll
+#pragma omp simd 
 			for(int idirac=0; idirac<ndirac; idirac++){
 				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
 				int igork1 = gamin[mu][idirac];
@@ -386,7 +390,7 @@ int Hdslash(complex phi[][ndirac][nc], complex r[][ndirac][nc]){
 		}
 		//Timelike terms
 		int did=id[3][i]; int uid = iu[3][i];
-#pragma unroll
+#pragma omp simd
 		for(int idirac=0; idirac<ndirac; idirac++){
 			int igork1 = gamin[3][idirac];
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
@@ -433,7 +437,7 @@ int Hdslashd(complex phi[][ndirac][nc], complex r[][ndirac][nc]){
 	ZHalo_swap_all(r, 8);
 	for(int mu=0;mu<ndim;mu++){
 		complex z[kvol+halo] __attribute__((aligned(AVX)));
-#ifdef USE_MKL
+#if (defined USE_MKL || USE_BLAS)
 		cblas_zcopy(kvol, &u11t[0][mu], ndim, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
@@ -441,20 +445,20 @@ int Hdslashd(complex phi[][ndirac][nc], complex r[][ndirac][nc]){
 #endif
 		ZHalo_swap_dir(z, 1, mu, UP);
 		//And the swap back
-#ifdef USE_MKL
+#if (defined USE_MKL || USE_BLAS)
 		cblas_zcopy(kvol+halo, z, 1, &u11t[0][mu], ndim);
 #else
 		for(int i=0; i<kvol+halo;i++)
 			u11t[i][mu]=z[i];
 #endif
-#ifdef USE_MKL
+#if (defined USE_MKL || USE_BLAS)
 		cblas_zcopy(kvol, &u12t[0][mu], 4, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
 			z[i]=u12t[i][mu];
 #endif
 		ZHalo_swap_dir(z, 1, mu, UP);
-#ifdef USE_MKL
+#if (defined USE_MKL || USE_BLAS)
 		cblas_zcopy(kvol+halo, z, 1, &u12t[0][mu], 4);
 #else
 		for(int i=0; i<kvol+halo;i++)
@@ -471,41 +475,44 @@ int Hdslashd(complex phi[][ndirac][nc], complex r[][ndirac][nc]){
 	//Mass term
 	memcpy(phi, r, kferm2*sizeof(complex));
 	//Spacelike term
-#pragma omp parallel for private(akappa)
+#pragma omp parallel for
 	for(int i=0;i<kvol;i++){
 		for(int mu = 0; mu <ndim-1; mu++){
 			int did=id[mu][i]; int uid = iu[mu][i];
-#pragma unroll
+#pragma omp simd
 			for(int idirac=0; idirac<ndirac; idirac++){
 				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
 				int igork1 = gamin[mu][idirac];
 				//Can manually vectorise with a pragma?
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
-				phi[i][idirac][0]+=-akappa*(u11t[i][mu]*r[uid][idirac][0]+\
-						u12t[i][mu]*r[uid][idirac][1]+\
-						conj(u11t[did][mu])*r[did][idirac][0]-\
-						u12t[did][mu]*r[did][idirac][1])-\
-							 //Dirac term. Subtract under dagger
-							 gamval[mu][idirac]*(u11t[i][mu]*r[uid][igork1][0]+\
-									 u12t[i][mu]*r[uid][igork1][1]-\
-									 conj(u11t[did][mu])*r[did][igork1][0]+\
-									 u12t[did][mu]*r[did][igork1][1]);
 
-				phi[i][idirac][1]+=-akappa*(-conj(u12t[i][mu])*r[uid][idirac][0]+\
-						conj(u11t[i][mu])*r[uid][idirac][1]+\
-						conj(u12t[did][mu])*r[did][idirac][0]+\
-						u11t[did][mu]*r[did][idirac][1])-\
-							 //Dirac term. Subtract under dagger
-							 gamval[mu][idirac]*(-conj(u12t[i][mu])*r[uid][igork1][0]+\
-									 conj(u11t[i][mu])*r[uid][igork1][1]-\
-									 conj(u12t[did][mu])*r[did][igork1][0]-\
-									 u11t[did][mu]*r[did][igork1][1]);
+				phi[i][idirac][0]+=
+					-akappa*(u11t[i][mu]*r[uid][idirac][0]
+							+u12t[i][mu]*r[uid][idirac][1]
+							+conj(u11t[did][mu])*r[did][idirac][0]
+							-u12t[did][mu] *r[did][idirac][1])
+					-gamval[mu][idirac]*
+					(          u11t[i][mu]*r[uid][igork1][0]
+						     +u12t[i][mu]*r[uid][igork1][1]
+						     -conj(u11t[did][mu])*r[did][igork1][0]
+						     +u12t[did][mu] *r[did][igork1][1]);
+
+				phi[i][idirac][1]+=
+					-akappa*(-conj(u12t[i][mu])*r[uid][idirac][0]
+							+conj(u11t[i][mu])*r[uid][idirac][1]
+							+conj(u12t[did][mu])*r[did][idirac][0]
+							+u11t[did][mu] *r[did][idirac][1])
+					-gamval[mu][idirac]*
+					(-conj(u12t[i][mu])*r[uid][igork1][0]
+					 +conj(u11t[i][mu])*r[uid][igork1][1]
+					 -conj(u12t[did][mu])*r[did][igork1][0]
+					 -u11t[did][mu] *r[did][igork1][1]);
 			}
 		}
 		//Timelike terms
 		int did=id[3][i]; int uid = iu[3][i];
-#pragma unroll
+#pragma omp simd 
 		for(int idirac=0; idirac<ndirac; idirac++){
 			int igork1 = gamin[3][idirac];
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)

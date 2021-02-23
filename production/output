@@ -1,4 +1,4 @@
- ksize=  4 ksizet=  4 Nf=  1
+ ksize=  8 ksizet= 16 Nf=  1
  time step: dt=0.0040 trajectory length= 1.000000
  # trajectories=    10 beta= 1.700000
  kappa = 0.178000 chemical potential= 0.000000
@@ -7,25 +7,3 @@
 
  Stopping residuals: guidance: .10E-05 acceptance: .10E-08 estimator: .10E-05
  seed =   967580160.000000     
- Iter (CG)  =           46 , resid =   1.534130197044332E-016 , toler = 
-  2.047999884157210E-015
- Iter (CG)  =           37 , resid =   1.560136165838393E-009 , toler = 
-  2.047999989658594E-009
- Iter (CG)  =           24 , resid =   1.636799400758210E-009 , toler = 
-  2.047999989658594E-009
- Iter (CG)  =           38 , resid =   1.458676270496311E-009 , toler = 
-  2.047999989658594E-009
- Iter (CG)  =           28 , resid =   1.628269779876548E-009 , toler = 
-  2.047999989658594E-009
- Iter (CG)  =           38 , resid =   1.637313810882642E-009 , toler = 
-  2.047999989658594E-009
- Iter (CG)  =           30 , resid =   1.171038610785406E-009 , toler = 
-  2.047999989658594E-009
- Iter (CG)  =           38 , resid =   1.767072851089366E-009 , toler = 
-  2.047999989658594E-009
- Iter (CG)  =           31 , resid =   8.479133296499495E-010 , toler = 
-  2.047999989658594E-009
- Iter (CG)  =           38 , resid =   1.922202535060134E-009 , toler = 
-  2.047999989658594E-009
- Iter (CG)  =           31 , resid =   1.960403907403950E-009 , toler = 
-  2.047999989658594E-009

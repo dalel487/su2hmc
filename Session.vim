@@ -3,8 +3,8 @@ if &cp | set nocp | endif
 let s:cpo_save=&cpo
 set cpo&vim
 inoremap <C-U> u
-nnoremap <silent> w :CCTreeWindowToggle
 nnoremap <silent> y :CCTreeWindowSaveCopy
+nnoremap <silent> w :CCTreeWindowToggle
 map Q gq
 vmap gx <Plug>NetrwBrowseXVis
 nmap gx <Plug>NetrwBrowseX
@@ -56,7 +56,7 @@ set shortmess=aoO
 argglobal
 %argdel
 $argadd production/par_mpi.f
-edit production_c/slash.c
+edit production_c/su2hmc.c
 set splitbelow splitright
 wincmd _ | wincmd |
 vsplit
@@ -69,8 +69,8 @@ set winminheight=0
 set winheight=1
 set winminwidth=0
 set winwidth=1
-exe 'vert 1resize ' . ((&columns * 136 + 138) / 277)
-exe 'vert 2resize ' . ((&columns * 140 + 138) / 277)
+exe 'vert 1resize ' . ((&columns * 158 + 158) / 317)
+exe 'vert 2resize ' . ((&columns * 158 + 158) / 317)
 argglobal
 setlocal keymap=
 setlocal noarabic
@@ -194,36 +194,52 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-5
+51
 normal! zo
-5
+120
+normal! zo
+120
 normal! zc
-147
+167
 normal! zo
-147
+167
 normal! zc
-290
+202
 normal! zo
-352
+267
 normal! zo
-353
+277
 normal! zo
-356
+299
 normal! zo
-386
+311
 normal! zo
-402
+579
 normal! zo
-403
+848
 normal! zo
-429
+849
 normal! zo
-let s:l = 452 - ((67 * winheight(0) + 36) / 73)
+903
+normal! zo
+906
+normal! zo
+907
+normal! zo
+943
+normal! zo
+958
+normal! zo
+969
+normal! zo
+970
+normal! zo
+let s:l = 927 - ((17 * winheight(0) + 37) / 75)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-452
-normal! 08|
+927
+normal! 012|
 wincmd w
 argglobal
 if bufexists("production/su2hmc.f") | buffer production/su2hmc.f | else | edit production/su2hmc.f | endif
@@ -349,27 +365,23 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-let s:l = 2834 - ((37 * winheight(0) + 36) / 73)
+let s:l = 2272 - ((69 * winheight(0) + 37) / 75)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-2834
+2272
 normal! 07|
 wincmd w
 2wincmd w
-exe 'vert 1resize ' . ((&columns * 136 + 138) / 277)
-exe 'vert 2resize ' . ((&columns * 140 + 138) / 277)
+exe 'vert 1resize ' . ((&columns * 158 + 158) / 317)
+exe 'vert 2resize ' . ((&columns * 158 + 158) / 317)
 tabnext 1
-badd +290 production_c/slash.c
-badd +609 production/par_mpi.f
-badd +2697 production/su2hmc.f
-badd +1103 production_c/su2hmc.c
-badd +59 production_c/Makefile
-badd +717 production_c/par_mpi.c
-badd +18 /usr/include/string.h
-badd +199 production_c/coord.c
-badd +37 ~/Code/su2hybridcode/production_c/INCLUDE/sizes.h
-badd +1 production_c/midout
+badd +1 production_c/su2hmc.c
+badd +1 production/par_mpi.f
+badd +180 production/su2hmc.f
+badd +298 production_c/slash.c
+badd +60 production_c/Makefile
+badd +530 production_c/par_mpi.c
 if exists('s:wipebuf') && len(win_findbuf(s:wipebuf)) == 0
   silent exe 'bwipe ' . s:wipebuf
 endif
