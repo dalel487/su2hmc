@@ -41890,3 +41890,22 @@ Starting isweep 2
 munmap_chunk(): invalid pointer
 munmap_chunk(): invalid pointer
 munmap_chunk(): invalid pointer
+
+(advixe-gui:3013917): dbind-WARNING **: 15:25:43.415: Couldn't register with accessibility bus: Did not receive a reply. Possible causes include: the remote application did not send a reply, the message bus security policy blocked the reply, the reply timeout expired, or the network connection was broken.
+Collection has stopped.
+
+(advixe-gui:3018091): dbind-WARNING **: 15:42:21.345: Couldn't register with accessibility bus: Did not receive a reply. Possible causes include: the remote application did not send a reply, the message bus security policy blocked the reply, the reply timeout expired, or the network connection was broken.
+
+(crashreport:3018239): dbind-WARNING **: 15:42:34.953: Couldn't register with accessibility bus: Did not receive a reply. Possible causes include: the remote application did not send a reply, the message bus security policy blocked the reply, the reply timeout expired, or the network connection was broken.
+
+(advixe-gui:3018406): dbind-WARNING **: 15:43:19.111: Couldn't register with accessibility bus: Did not receive a reply. Possible causes include: the remote application did not send a reply, the message bus security policy blocked the reply, the reply timeout expired, or the network connection was broken.
+
+(advixe-gui:3018636): dbind-WARNING **: 15:44:09.342: Couldn't register with accessibility bus: Did not receive a reply. Possible causes include: the remote application did not send a reply, the message bus security policy blocked the reply, the reply timeout expired, or the network connection was broken.
+
+(crashreport:3018766): dbind-WARNING **: 15:44:14.561: Couldn't register with accessibility bus: Did not receive a reply. Possible causes include: the remote application did not send a reply, the message bus security policy blocked the reply, the reply timeout expired, or the network connection was broken.
+Collection has stopped.
+Collection has stopped.
+Error: Value validation problem in argument '--command': Option 'command' does not allow value 'pause'. Possible values follows: 'stop', 'cancel', 'analysis-mode', 'breakpoint-file', 'suppress' 
+Error: Value validation problem in argument '--command': Option 'command' does not allow value 'pause'. Possible values follows: 'stop', 'cancel', 'analysis-mode', 'breakpoint-file', 'suppress' 
+Collection has stopped.
+Collection has paused.

@@ -15,6 +15,8 @@
 #include	<stdlib.h>
 #include    <string.h>
 
+//Avoid any accidents with US/UK spelling
+#define MPI_Finalise() MPI_Finalize()
 
 //Definitons
 //==========
@@ -76,7 +78,7 @@ complex u11[kvol+halo][ndim], u12[kvol+halo][ndim] __attribute__((aligned(AVX)))
 complex u11t[kvol+halo][ndim], u12t[kvol+halo][ndim] __attribute__((aligned(AVX)));;
 //Halos indices
 //-------------
-unsigned int id[ndim][kvol], iu[ndim][kvol];
+static unsigned int id[ndim][kvol], iu[ndim][kvol];
 unsigned int h1u[4], h1d[4];
 unsigned int halosize[4];
 

@@ -1,6 +1,6 @@
 #include <coord.h>
 #ifdef USE_CUDA
-#include <curand.h>
+	#include <curand.h>
 #endif
 #include <par_mpi.h>
 #include <math.h>
@@ -132,7 +132,7 @@ int main(int argc, char *argv){
 		fclose(midout);
 	}
 	if(iread){
-#ifdef DEBUG
+#ifdef _DEBUG
 		if(!rank) printf("Calling Par_sread() with seed: %i\n", seed);
 #endif
 		Par_sread();
@@ -153,7 +153,7 @@ int main(int argc, char *argv){
 	//Initial Measurements
 	//====================
 	poly = Polyakov();
-#ifdef DEBUG
+#ifdef _DEBUG
 	if(!rank) printf("Initial Polyakov loop evaluated as %f\n", poly);
 #endif
 	double hg, avplaqs, avplaqt;
@@ -167,7 +167,7 @@ int main(int argc, char *argv){
 	if(!rank){
 		if(!(output=fopen(outname, outop) )){
 			fprintf(stderr,"Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",OPENERROR,funcname,outname,outop);
-			MPI_Finalize();
+			MPI_Finalise();
 			exit(OPENERROR);
 		}
 		printf("hg = %f, <Ps> = %f, <Pt> = %f, <Poly> = %f\n", hg, avplaqs, avplaqt, poly);
@@ -175,7 +175,7 @@ int main(int argc, char *argv){
 				"No. of Trajectories = %i β = %f\nκ = %f μ = %f\nDiquark source = %f Diquark phase angle = %f\n"\
 				"Stopping Residuals: Guidance: %f Acceptance: %f, Estimator: %f\nSeed = %i\n",
 				ksize, ksizet, nf, dt, traj, iter2, beta, akappa, fmu, ajq, athq, rescgg, rescga, respbp, seed);
-#ifdef DEBUG
+#ifdef _DEBUG
 		//Print to terminal during debugging
 		printf("ksize = %i ksizet = %i Nf = %i\nTime step dt = %f Trajectory length = %f\n"\
 				"No. of Trajectories = %i β = %f\nκ = %f μ = %f\nDiquark source = %f Diquark phase angle = %f\n"\
@@ -194,13 +194,13 @@ int main(int argc, char *argv){
 	ancg = 0; ancgh = 0;
 	//This was originally in the half-step of the fortran code, but it makes more sense to declare
 	//it outside the loop
-	const	double d = dt/2;
+	const	double d = dt*0.5;
 	//Start of classical evolution
 	//===========================
 	double pbp;
 	complex qq;
 	for(int isweep = 1; isweep <= iter2; isweep++){
-#ifdef DEBUG
+#ifdef _DEBUG
 		if(!rank)
 			printf("Starting isweep %i\n", isweep);
 #endif
@@ -219,7 +219,7 @@ int main(int argc, char *argv){
 			memcpy(Phi[na],R1, nc*ngorkov*kvol*sizeof(complex));
 			//Slamming on the brakes. Can we simply memcpy here because ndirac<ngorkov?
 			//Up/down partitioning (using only pseudofermions of flavour 1) causes this
-#pragma omp parallel for collapse(3)
+#pragma omp parallel for simd collapse(3)
 			for(int i=0; i<kvol; i++)
 				for(int idirac = 0; idirac < ndirac; idirac++)
 					for(int ic = 0; ic <nc; ic++)
@@ -240,7 +240,7 @@ int main(int argc, char *argv){
 		memcpy(u12t, u12, ndim*kvol*sizeof(complex));
 		double H0, S0;
 		Hamilton(&H0, &S0, rescga);
-#ifdef DEBUG
+#ifdef _DEBUG
 		if(!rank) printf("H0: %f S0: %f\n", H0, S0);
 #endif
 		double action;
@@ -249,12 +249,12 @@ int main(int argc, char *argv){
 
 		//Half step forward for p
 		//=======================
-		double dSdpi[kvol+halo][3][ndim];
-#ifdef DEBUG
+		double dSdpi[kvol+halo][nadj][ndim];
+#ifdef _DEBUG
 		printf("Evaluating force on rank %i\n", rank);
 #endif
 		Force(dSdpi, 1, rescgg);
-#ifdef USE_MKL
+#if (defined USE_MKL || defined USE_BLAS)
 		cblas_daxpy(nadj*ndim*kvol, -d, dSdpi, 1, pp, 1);
 #else
 		for(int i=0;i<kvol;i++)
@@ -265,14 +265,15 @@ int main(int argc, char *argv){
 		//Main loop for classical time evolution
 		//======================================
 		for(int iter = 0; iter<itermax; iter++){
-#ifdef DEBUG
+#ifdef _DEBUG
 			if(!rank)
 				printf("iter: %i\n", iter);
 #endif
 			//The FORTRAN redefines d=dt here, which makes sense if you have a limited line length.
 			//I'll stick to using dt though.
-#pragma omp parallel for collapse(2)
+#pragma omp parallel for 
 			for(int i=0;i<kvol;i++)
+#pragma omp simd
 				for(int mu = 0; mu<ndim; mu++){
 					//Sticking to what was in the FORTRAN for variable names.
 					//CCC for cosine SSS for sine AAA for...
@@ -288,17 +289,15 @@ int main(int argc, char *argv){
 					u12t[i][mu] = a11*u12t[i][mu]+a12*conj(b11);
 				}
 			Reunitarise();
+			//p(t+3dt/2)=p(t+dt/2)-dSds(t+dt)*dt
 			Force(dSdpi, 0, rescgg);
 			//Need to check Par_granf again 
-			double ytest = Par_granf();
-			//This was pretty awkward looking in the original code.
+			//MOVED INTO THE IF STATEMENT TO REDUCE NUMBER OF CALLS
+			
 			//The same for loop is given in both the if and else
 			//statement but only the value of d changes. This is due to the break in the if part
-			//Also, why are we looking for iterl*6/5? What is the point of iterl if we just
-			//choose a bigger one?
-
-			if((ytest<proby || iter>=iterl*(6/5)) && iter>=iterl*4/5){
-#ifdef USE_MKL
+			if(iter>=iterl*4.0/5.0 && (iter>=iterl*(6.0/5.0) || Par_granf()<proby)){
+#if (defined USE_MKL || defined USE_BLAS)
 				cblas_daxpy(ndim*nadj*kvol, -d, dSdpi, 1, pp, 1);
 #else
 				for(int i = 0; i<kvol; i++)
@@ -310,7 +309,7 @@ int main(int argc, char *argv){
 				break;
 			}
 			else{
-#ifdef USE_MKL
+#if (defined USE_MKL || defined USE_BLAS)
 				cblas_daxpy(ndim*nadj*kvol, -dt, dSdpi, 1, pp, 1);
 #else
 				for(int i = 0; i<kvol; i++)
@@ -329,7 +328,7 @@ int main(int argc, char *argv){
 		double dS = S0 - S1;
 		if(!rank){
 			fprintf(output, "%f %f\n", dH, dS);
-#ifdef DEBUG
+#ifdef _DEBUG
 			printf("dH = %f dS = %f\n", dH, dS);
 #endif
 		}
@@ -349,7 +348,7 @@ int main(int argc, char *argv){
 			//get around this using the reverse test to the FORTRAN if (x<=y instead of x>y).
 			if(x<=y){
 				//Step is accepted. Set s=st
-#ifdef DEBUG
+#ifdef _DEBUG
 				if(!rank)
 					printf("New configuration accepted.\n");
 #endif
@@ -371,7 +370,7 @@ int main(int argc, char *argv){
 			actiona+=action; 
 			double vel2=0.0;
 
-#ifdef USE_MKL
+#if (defined USE_MKL || defined USE_BLAS)
 			vel2 += cblas_ddot(kmom, pp[0][0], 1, pp[0][0], 1 );
 #else
 #pragma unroll
@@ -386,7 +385,7 @@ int main(int argc, char *argv){
 			if((isweep/iprint)*iprint==isweep){
 				memcpy(u11t, u11, ndim*(kvol+halo)*sizeof(complex));
 				memcpy(u12t, u12, ndim*(kvol+halo)*sizeof(complex));
-#ifdef DEBUG
+#ifdef _DEBUG
 				if(!rank)
 					printf("Starting measurements\n");
 #endif
@@ -394,7 +393,7 @@ int main(int argc, char *argv){
 				double endenf, denf;
 				complex qbqb;
 				Measure(&pbp,&endenf,&denf,&qq,&qbqb,respbp,&itercg);
-#ifdef DEBUG
+#ifdef _DEBUG
 				if(!rank)
 					printf("Finished measurements\n");
 #endif
@@ -418,7 +417,7 @@ int main(int argc, char *argv){
 					char *fortop= (isweep==0) ? "w" : "a";
 					if(!(fortout=fopen(fortname, fortop) )){
 						fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n", OPENERROR, funcname, fortname, fortop);
-						MPI_Finalize();
+						MPI_Finalise();
 						exit(OPENERROR);
 					}
 					free(fortname); free(fortop);
@@ -433,7 +432,7 @@ int main(int argc, char *argv){
 					char *fortop= (isweep==0) ? "w" : "a";
 					if(!(fortout=fopen(fortname, fortop) )){
 						fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n", OPENERROR, funcname, fortname, fortop);
-						MPI_Finalize();
+						MPI_Finalise();
 						exit(OPENERROR);
 					}
 					free(fortname); free(fortop);
@@ -446,7 +445,7 @@ int main(int argc, char *argv){
 					char *fortop= (isweep==0) ? "w" : "a";
 					if(!(fortout=fopen(fortname, fortop) )){
 						fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n", OPENERROR, funcname, fortname, fortop);
-						MPI_Finalize();
+						MPI_Finalise();
 						exit(OPENERROR);
 					}
 					free(fortname); free(fortop);
@@ -476,7 +475,7 @@ int main(int argc, char *argv){
 				iter2, naccp, atraj, yav, yyav, ancg, ancgh, pbpa, vel2a, actiona, endenfa, denfa);
 	fclose(output);	
 	//Not yet implimented
-	MPI_Finalize();
+	MPI_Finalise();
 	fflush(stdout);
 	return 0;
 }
@@ -508,11 +507,11 @@ int Init(int istart){
 	//And confirm they're legit
 	Check_addr(iu, ksize, ksizet, 0, kvol+halo);
 	Check_addr(id, ksize, ksizet, 0, kvol+halo);
-#ifdef DEBUG
+#ifdef _DEBUG
 	printf("Checked addresses\n");
 #endif
 	double chem1=exp(fmu); double chem2 = 1/chem1;
-#pragma omp parallel for private(akappa, chem1, chem2)
+#pragma omp parallel for 
 	for(int i = 0; i<kvol; i++){
 		dk4p[i]=akappa*chem1;
 		dk4m[i]=akappa*chem2;
@@ -520,7 +519,7 @@ int Init(int istart){
 	//Antiperiodic Boundary Conditions. Flip the terms at the edge of the time
 	//direction
 	if(ibound == -1 && pcoord[3][rank]==npt -1){
-#ifdef DEBUG
+#ifdef _DEBUG
 		printf("Implimenting antiperiodic boundary conditions on rank %i\n", rank);
 #endif
 #pragma omp parallel for
@@ -531,7 +530,7 @@ int Init(int istart){
 		}
 	}
 	//Each gamma matrix is rescaled by akappa by flattening the gamval array
-#ifdef USE_MKL
+#if (defined USE_MKL || defined USE_BLAS)
 	cblas_zdscal(5*4, akappa, gamval, 1);
 #else
 	for(int i=0;i<5;i++)
@@ -569,7 +568,7 @@ int Init(int istart){
 	else{
 		fprintf(stderr,"Waring %i in %s: Gauge fields are not initialised.\n", NOINIT, funcname);
 	}
-#ifdef DEBUG
+#ifdef _DEBUG
 	printf("Initialisation Complete\n");
 #endif
 	Reunitarise();
@@ -604,11 +603,7 @@ int Force(double dSdpi[][3][ndirac], int iflag, double res1){
 	 */
 	const char *funcname = "Force";
 
-	complex X2[kvol+halo][ndirac][nc] __attribute__((aligned(AVX)));
 	Gauge_force(dSdpi);
-#ifdef USE_MKL
-	complex blasa, blasb;
-#endif
 	//X1=(M†M)^{1} Phi
 	int itercg;
 	for(int na = 0; na<nf; na++){
@@ -621,7 +616,7 @@ int Force(double dSdpi[][3][ndirac], int iflag, double res1){
 			//BLASable? If we cheat and flatten the array it is!
 			//This is not a general BLAS Routine, just an MKL one
 #ifdef USE_MKL
-			blasa=2.0; blasb=-1.0;
+			complex blasa=2.0; complex blasb=-1.0;
 			cblas_zaxpby(kvol*ndirac*nc, &blasa, X1, 1, &blasb, X0[na], 1); 
 #else
 			for(int i=0;i<kvol;i++){
@@ -633,8 +628,9 @@ int Force(double dSdpi[][3][ndirac], int iflag, double res1){
 			}
 #endif
 		}
+		complex X2[kvol+halo][ndirac][nc] __attribute__((aligned(AVX)));
 		Hdslash(X2,X1);
-#ifdef USE_MKL
+#if (defined USE_MKL || defined USE_BLAS)
 		double blasd=2.0;
 		cblas_zdscal(kvol*ndirac*nc, blasd, X2, 1);
 #else
@@ -659,12 +655,12 @@ int Force(double dSdpi[][3][ndirac], int iflag, double res1){
 		//  as a result, need to swap the DOWN halos in all dirs for
 		//  both these arrays, each of which has 8 cpts
 		//
-		int mu, uid, igork1;
-#pragma omp parallel for private(mu,uid,igork1)
+#pragma omp parallel for
 		for(int i=0;i<kvol;i++)
 			for(int idirac=0;idirac<ndirac;idirac++){
+				int mu, uid, igork1;
 				//Unrolling the loop
-#pragma unroll (3) 
+#pragma unroll
 				for(mu=0; mu<3; mu++){
 					//Long term ambition. I used the diff command on the different
 					//spacial components of dSdpi and saw a lot of the values required
@@ -762,7 +758,7 @@ int Force(double dSdpi[][3][ndirac], int iflag, double res1){
 				//For consistency we'll leave mu in instead of hard coding.
 				mu=3;
 				uid = iu[mu][i];
-				//We are mutiplying terms by dk4?[i] Also there is no akappa or gamval factor in the time direction		
+				//We are mutiplying terms by dk4?[i] Also there is no akappa or gamval factor in the time direction	
 				//for the "gamval" terms the sign of d4kp flips
 				dSdpi[i][0][mu]+=creal(zi*
 						(conj(X1[i][idirac][0])*
@@ -863,9 +859,9 @@ int Gauge_force(double dSdpi[][3][ndirac]){
 	const char *funcname = "Gauge_force";
 
 	//We define zero halos for debugging
-	//	#ifdef DEBUG
-	//		u11t=calloc(ndim*(kvol+halo),sizeof(complex));
-	//		u12t=calloc(ndim*(kvol+halo),sizeof(complex));
+	//	#ifdef _DEBUG
+	//		memset(u11t[kvol], 0, ndim*halo*sizeof(complex));	
+	//		memset(u12t[kvol], 0, ndim*halo*sizeof(complex));	
 	//	#endif
 #pragma unroll
 	for(int mu=0; mu<ndim; mu++){
@@ -873,7 +869,7 @@ int Gauge_force(double dSdpi[][3][ndirac]){
 		//correct terms for a halo exchange
 		//A better approach is clearly needed
 		complex z[kvol+halo] __attribute__((aligned(AVX)));
-#ifdef USE_MKL
+#if (defined USE_MKL || defined USE_BLAS)
 		cblas_zcopy(kvol+halo, &u11t[0][mu], ndim, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
@@ -881,21 +877,21 @@ int Gauge_force(double dSdpi[][3][ndirac]){
 #endif
 		ZHalo_swap_all(z,1);
 		//And the swap back
-#ifdef USE_MKL
+#if (defined USE_MKL || defined USE_BLAS)
 		cblas_zcopy(kvol+halo, z, 1, &u11t[0][mu], ndim);
 #else
 		for(int i=0; i<kvol;i++)
 			u11t[i][mu]=z[i];
 #endif
-#ifdef USE_MKL
-		cblas_zcopy(kvol+halo, &u12t[0][mu], 4, z, 1);
+#if (defined USE_MKL || defined USE_BLAS)
+		cblas_zcopy(kvol+halo, &u12t[0][mu], ndim, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
 			z[i]=u12t[i][mu];
 #endif
 		ZHalo_swap_all(z,1);
-#ifdef USE_MKL
-		cblas_zcopy(kvol+halo, z, 1, &u12t[0][mu], 4);
+#if (defined USE_MKL || defined USE_BLAS)
+		cblas_zcopy(kvol+halo, z, 1, &u12t[0][mu], ndim);
 #else
 		for(int i=0; i<kvol;i++)
 			u12t[i][mu]=z[i];
@@ -907,25 +903,24 @@ int Gauge_force(double dSdpi[][3][ndirac]){
 	for(int mu=0; mu<ndim; mu++){
 		memset(Sigma11,0, kvol*sizeof(complex));
 		memset(Sigma12,0, kvol*sizeof(complex));
-		complex a11[kvol], a12[kvol] __attribute__((aligned(AVX)));
 		for(int nu=0; nu<ndim; nu++){
 			if(mu!=nu){
 				//The +ν Staple
-#pragma omp parallel for
+#pragma omp parallel for simd
 				for(int i=0;i<kvol;i++){
 
 					int uidm = iu[mu][i];
 					int uidn = iu[nu][i];
-					a11[i]=u11t[uidm][nu]*conj(u11t[uidn][mu])+\
-						 u12t[uidm][nu]*conj(u12t[uidn][mu]);
-					a12[i]=-u11t[uidm][nu]*u12t[uidn][mu]+\
-						 u12t[uidm][nu]*u11t[uidn][mu];
+					complex	a11=u11t[uidm][nu]*conj(u11t[uidn][mu])+\
+							    u12t[uidm][nu]*conj(u12t[uidn][mu]);
+					complex	a12=-u11t[uidm][nu]*u12t[uidn][mu]+\
+							    u12t[uidm][nu]*u11t[uidn][mu];
 
-					Sigma11[i]+=a11[i]*conj(u11t[i][nu])+a12[i]*conj(u12t[i][nu]);
-					Sigma12[i]+=-a11[i]*u12t[i][nu]+a12[i]*u11t[i][nu];
+					Sigma11[i]+=a11*conj(u11t[i][nu])+a12*conj(u12t[i][nu]);
+					Sigma12[i]+=-a11*u12t[i][nu]+a12*u11t[i][nu];
 				}
 				complex z[kvol+halo] __attribute__((aligned(AVX)));
-#ifdef USE_MKL
+#if (defined USE_MKL || defined USE_BLAS)
 				cblas_zcopy(kvol+halo, &u11t[0][nu], 4, z, 1);
 #else
 #pragma unroll
@@ -933,7 +928,7 @@ int Gauge_force(double dSdpi[][3][ndirac]){
 					z[i]=u11t[i][nu];
 #endif
 				Z_gather(u11sh, z, kvol, id[nu]);
-#ifdef USE_MKL
+#if (defined USE_MKL || defined USE_BLAS)
 				cblas_zcopy(kvol+halo, &u12t[0][nu], 4, z, 1);
 #else
 #pragma unroll
@@ -944,29 +939,29 @@ int Gauge_force(double dSdpi[][3][ndirac]){
 				ZHalo_swap_dir(u11sh, 1, mu, DOWN);
 				ZHalo_swap_dir(u12sh, 1, mu, DOWN);
 				//Next up, the -ν staple
-#pragma omp parallel for
+#pragma omp parallel for simd
 				for(int i=0;i<kvol;i++){
-					int uidm = iu[mu][i];	int uidn = iu[nu][i];
+					int uidm = iu[mu][i];
 					int didm = id[mu][i];	int didn = id[nu][i];
 					//uidm is correct here
-					a11[i]=conj(u11sh[uidm])*conj(u11t[didn][mu])-\
-						 u12sh[uidm]*conj(u12t[didn][mu]);
-					a12[i]=-conj(u11sh[uidm])*u12t[didn][mu]-\
-						 u12sh[uidm]*u11t[didn][mu];
+					complex a11=conj(u11sh[uidm])*conj(u11t[didn][mu])-\
+							u12sh[uidm]*conj(u12t[didn][mu]);
+					complex a12=-conj(u11sh[uidm])*u12t[didn][mu]-\
+							u12sh[uidm]*u11t[didn][mu];
 
-					Sigma11[i]+=a11[i]*u11t[didn][nu]-a12[i]*conj(u12t[didn][nu]);
-					Sigma12[i]+=a11[i]*u12t[didn][nu]+a12[i]*conj(u11t[didn][nu]);
+					Sigma11[i]+=a11*u11t[didn][nu]-a12*conj(u12t[didn][nu]);
+					Sigma12[i]+=a11*u12t[didn][nu]+a12*conj(u11t[didn][nu]);
 				}
 			}
 		}
-#pragma omp parallel for
+#pragma omp parallel for simd
 		for(int i=0;i<kvol;i++){
-			a11[i] = u11t[i][mu]*Sigma12[i]+u12t[i][mu]*conj(Sigma11[i]);
-			a12[i] = u11t[i][mu]*Sigma11[i]+conj(u11t[i][mu])*Sigma12[i];
+			complex a11 = u11t[i][mu]*Sigma12[i]+u12t[i][mu]*conj(Sigma11[i]);
+			complex a12 = u11t[i][mu]*Sigma11[i]+conj(u12t[i][mu])*Sigma12[i];
 
-			dSdpi[i][0][mu]=beta*cimag(a11[i]);
-			dSdpi[i][1][mu]=beta*creal(a11[i]);
-			dSdpi[i][2][mu]=beta*cimag(a12[i]);
+			dSdpi[i][0][mu]=beta*cimag(a11);
+			dSdpi[i][1][mu]=beta*creal(a11);
+			dSdpi[i][2][mu]=beta*cimag(a12);
 		}
 	}
 	return 0;
@@ -999,7 +994,7 @@ int Hamilton(double *h, double *s, double res2){
 	const char *funcname = "Hamilton";
 	double hp;
 	//Itereate over momentum terms.
-#ifdef USE_MKL
+#if (defined USE_MKL || defined USE_BLAS)
 	//Can we use BLAS here with the halo?
 	//The halo could interfere with things
 	hp = cblas_dnrm2(kmom, **pp, 1);
@@ -1017,7 +1012,7 @@ int Hamilton(double *h, double *s, double res2){
 	//avplaq? isn't seen again here.
 	SU2plaq(&hg,&avplaqs,&avplaqt);
 
-	double hf = 0; int itercg;
+	double hf = 0; int itercg = 0;
 	complex smallPhi[kferm2Halo] __attribute__((aligned(AVX)));
 	//Iterating over flavours
 	for(int na=0;na<nf;na++){
@@ -1026,7 +1021,7 @@ int Hamilton(double *h, double *s, double res2){
 		ancgh+=itercg;
 		Fill_Small_Phi(na, smallPhi);
 		memcpy(X0[na],X1,kferm2*sizeof(complex));
-#ifdef USE_MKL
+#if (defined USE_MKL || defined USE_BLAS)
 		complex dot;
 		cblas_zdotc_sub(kferm2, smallPhi, 1, X1, 1, &dot);
 		hf+=creal(dot);
@@ -1044,7 +1039,7 @@ int Hamilton(double *h, double *s, double res2){
 	//Here the FORTRAN code prints isweep and the values of all the h's.
 	//I'm going to use the preprocessor to do that instead, with the isweep
 	//outside the function.
-#ifdef DEBUG
+#ifdef _DEBUG
 	if(!rank)
 		printf("hg=%f; hp=%f; hf=%f; h=%f\n", hg, hp, hf, *h);
 #endif
@@ -1116,7 +1111,7 @@ int Congradq(int na, double res, int *itercg){
 		//x2 =  (M^†M)p 
 		Hdslash(x1,p); Hdslashd(x2, x1);
 		//x2 =  (M^†M+J^2)p 
-#ifdef USE_MKL
+#if (defined USE_MKL || defined USE_BLAS)
 		cblas_zaxpy(kferm2, &fac, p, 1, x2, 1);
 #else
 		for(int i=0; i<kferm2; i++)
@@ -1125,7 +1120,7 @@ int Congradq(int na, double res, int *itercg){
 		//We can't evaluate α on the first niterx because we need to get β_n.
 		if(niterx){
 			//α_d= p* (M^†M+J^2)p
-#ifdef USE_MKL
+#if (defined USE_MKL || defined USE_BLAS)
 			cblas_zdotc_sub(kferm2, p, 1, x2, 1, &alphad);
 #else
 			alphad=0;
@@ -1139,7 +1134,7 @@ int Congradq(int na, double res, int *itercg){
 			//α=α_n/α_d = (r.r)/p(M^†M)p 
 			alpha=creal(alphan)/creal(alphad);
 			//x-αp, 
-#ifdef USE_MKL
+#if (defined USE_MKL || defined USE_BLAS)
 			cblas_zaxpy(kferm2, &alpha, p, 1, X1, 1);
 #else
 			for(int i=0; i<kferm2; i++)
@@ -1147,7 +1142,7 @@ int Congradq(int na, double res, int *itercg){
 #endif
 		}			
 		// r_n+1 = r_n-α(M^† M)p_n and β_n=r*.r
-#ifdef USE_MKL
+#if (defined USE_MKL || defined USE_BLAS)
 		alpha *= -1;
 		cblas_zaxpy(kferm2, &alpha, x2, 1, r, 1);
 		//Undo the negation for the BLAS routine
@@ -1180,14 +1175,17 @@ int Congradq(int na, double res, int *itercg){
 #endif
 		//If we get a small enough β_n before hitting the iteration cap we break
 		if(creal(betan)<resid){ 
-#ifdef DEBUG
+#ifdef _DEBUG
 			if(!rank) printf("Iter (CG) = %i resid = %f toler = %f\n", niterx, creal(betan), resid);
 #endif
 			return 0;
 		}
 	}
-	if(!rank)
+	if(!rank){
 		fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i β_n=%f\n", ITERLIM, funcname, niterc, creal(betan));
+		MPI_Finalise();
+		exit(ITERLIM);
+	}
 	return 0;
 }
 int Congradp(int na, double res, int *itercg){
@@ -1257,7 +1255,7 @@ int Congradp(int na, double res, int *itercg){
 		//We can't evaluate α on the first niterx because we need to get β_n.
 		if(niterx){
 			//x*.x
-#ifdef USE_MKL
+#if (defined USE_MKL || defined USE_BLAS)
 			cblas_zdotc_sub(kferm, x1, 1, x1, 1, &alphad);
 #else
 			alphad=0;
@@ -1268,7 +1266,7 @@ int Congradp(int na, double res, int *itercg){
 			//α=(r.r)/p(M^†)Mp
 			alpha=alphan/alphad;
 			//x+αp
-#ifdef USE_MKL
+#if (defined USE_MKL || defined USE_BLAS)
 			cblas_zaxpy(kferm, &alpha, p, 1, xi, 1);
 #else
 			for(int i = 0; i<kferm; i++)
@@ -1279,7 +1277,7 @@ int Congradp(int na, double res, int *itercg){
 		Dslashd(x2,x1);
 		//r-α(M^†)Mp and β_n=r*.r
 		complex betan;
-#ifdef USE_MKL
+#if (defined USE_MKL || defined USE_BLAS)
 		alpha*=-1;
 		cblas_zaxpy(kferm, &alpha, x2, 1, r, 1);
 		//Undoing the negation from the BLAS routine
@@ -1313,7 +1311,7 @@ int Congradp(int na, double res, int *itercg){
 #endif
 		//If we get a small enough β_n before hitting the iteration cap we break
 		if(creal(betan)<resid){ 
-#ifdef DEBUG
+#ifdef _DEBUG
 			if(!rank) printf("Iter (CG) = %i resid = %f toler = %f", niterx, betan, resid);
 #endif
 			return 0;
@@ -1388,7 +1386,7 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 	//Evaluate xi = (M^† M)^-1 R_1 
 	Congradp(1, res, itercg);
 	*pbp = 0;
-#ifdef USE_MKL
+#if (defined USE_MKL || defined USE_BLAS)
 	*pbp = cblas_dznrm2(kvol*ngorkov*nc, x, 1);
 	*pbp*=*pbp;
 #else
@@ -1407,7 +1405,7 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 	for(int idirac = 0; idirac<ndirac; idirac++){
 		int igork=idirac+4;
 		//Unrolling the colour indices, Then its just (γ_5*x)*Ξ or (γ_5*Ξ)*x 
-#ifdef USE_MKL
+#if (defined USE_MKL || defined USE_BLAS)
 #pragma unroll
 		for(int ic = 0; ic<nc; ic++){
 			complex dot;
@@ -1441,7 +1439,7 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 	ZHalo_swap_dir(x,16,3,DOWN);		ZHalo_swap_dir(x,16,3,UP);
 	//Pesky halo exchange indices again
 	complex z[kvol+halo] __attribute__((aligned(AVX)));
-#ifdef USE_MKL
+#if (defined USE_MKL || defined USE_BLAS)
 	cblas_zcopy(kvol, &u11t[0][3], 4, z, 1);
 #else
 #pragma unroll
@@ -1449,14 +1447,14 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 		z[i]=u11t[i][3];
 #endif
 	ZHalo_swap_dir(z,1,3, UP);
-#ifdef USE_MKL
+#if (defined USE_MKL || defined USE_BLAS)
 	cblas_zcopy(kvol+halo, z, 1, &u11t[0][3], 4);
 #else
 #pragma unroll
 	for(int i=0; i<kvol;i++)
 		u11t[i][3]=z[i];
 #endif
-#ifdef USE_MKL
+#if (defined USE_MKL || defined USE_BLAS)
 	cblas_zcopy(kvol, &u12t[0][3], 4, z, 1);
 #else
 #pragma unroll
@@ -1464,7 +1462,7 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 		z[i]=u12t[i][3];
 #endif
 	ZHalo_swap_dir(z,1,3, UP);
-#ifdef USE_MKL
+#if (defined USE_MKL || defined USE_BLAS)
 	cblas_zcopy(kvol+halo, z, 1, &u12t[0][3], 4);
 #else
 #pragma unroll
@@ -1475,7 +1473,7 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 	DHalo_swap_dir(dk4p, 1, 3, UP);		DHalo_swap_dir(dk4m, 1, 3, UP);	
 	//Instead of typing id[i][3] a lot, we'll just assign them to variables.
 	//Idea. One loop instead of two loops but for xuu and xdd just use ngorkov-(igorkov+1) instead
-#pragma omp parallel for reduction(+:xd,xu) 
+#pragma omp parallel for simd reduction(+:xd,xu,xdd,xuu) 
 	for(int i = 0; i<kvol; i++){
 		int did=id[3][i];
 		int uid=iu[3][i];
@@ -1499,29 +1497,22 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 					conj(x[uid][igorkov][1])*(\
 						u11t[3][i]*(xi[i][igork1][1]+xi[i][igorkov][1])+\
 						conj(u12t[i][3])*(xi[i][igorkov][0]+xi[i][igork1][0]) ) );
-		}
-	}
-#pragma omp parallel for reduction(+:xdd,xuu) 
-	for(int i = 0; i<kvol; i++){
-		int did=id[3][i];
-		int uid=id[3][i];
-#pragma unroll
-		for(int igorkov = 4; igorkov<ngorkov; igorkov++){
-			int idirac=igorkov-4;
-			int igork1=gamin[3][idirac]+4;
-			xuu-=dk4m[did]*(conj(x[did][igorkov][0])*(\
-						u11t[did][3]*(xi[i][igork1][0]-xi[i][igorkov][0])+\
-						u12t[did][3]*(xi[i][igork1][1]-xi[i][igorkov][1]) )+\
-					conj(x[1][igorkov][did])*(\
-						conj(u11t[did][3])*(xi[i][igork1][1]-xi[i][igorkov][1])+\
-						conj(u12t[did][3])*(xi[i][igorkov][0]-xi[i][igork1][0]) ) );
 
-			xdd-=dk4p[uid]*(conj(x[uid][igorkov][0])*(\
-						conj(u11t[3][i])*(xi[i][igork1][0]+xi[i][igorkov][0])-\
-						u12t[i][3]*(xi[i][igork1][1]+xi[i][igorkov][1]) )+\
-					conj(x[i][igorkov][1])*(\
-						u11t[3][i]*(xi[i][igork1][1]+xi[i][igorkov][1])+\
-						conj(u12t[i][3])*(xi[i][igorkov][0]+xi[i][igork1][0]) ) );
+			int igorkovPP=igorkov+4;
+			int igork1PP=igork1+4;
+			xuu-=dk4m[did]*(conj(x[did][igorkovPP][0])*(\
+						u11t[did][3]*(xi[i][igork1PP][0]-xi[i][igorkovPP][0])+\
+						u12t[did][3]*(xi[i][igork1PP][1]-xi[i][igorkovPP][1]) )+\
+					conj(x[1][igorkovPP][did])*(\
+						conj(u11t[did][3])*(xi[i][igork1PP][1]-xi[i][igorkovPP][1])+\
+						conj(u12t[did][3])*(xi[i][igorkovPP][0]-xi[i][igork1PP][0]) ) );
+
+			xdd-=dk4p[i]*(conj(x[uid][igorkovPP][0])*(\
+						conj(u11t[3][i])*(xi[i][igork1PP][0]+xi[i][igorkovPP][0])-\
+						u12t[i][3]*(xi[i][igork1PP][1]+xi[i][igorkovPP][1]) )+\
+					conj(x[i][igorkovPP][1])*(\
+						u11t[3][i]*(xi[i][igork1PP][1]+xi[i][igorkovPP][1])+\
+						conj(u12t[i][3])*(xi[i][igorkovPP][0]+xi[i][igork1PP][0]) ) );
 		}
 	}
 	*endenf=xu-xd-xuu+xdd;
@@ -1560,7 +1551,7 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 	//Do equivalent of a halo swap
 	for(int mu=0;mu<ndim;mu++){
 		complex z1[kvol+halo], z2[kvol+halo] __attribute__((aligned(AVX)));
-#ifdef USE_MKL
+#if (defined USE_MKL || defined USE_BLAS)
 		cblas_zcopy(kvol+halo, &u11t[0][mu], ndim, z1, 1);
 		cblas_zcopy(kvol+halo, &u12t[0][mu], ndim, z2, 1);
 #else
@@ -1574,7 +1565,7 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 			ZHalo_swap_dir(z1,1,idir,DOWN);
 			ZHalo_swap_dir(z2,1,idir,DOWN);
 		}
-#ifdef USE_MKL
+#if (defined USE_MKL || defined USE_BLAS)
 		cblas_zcopy(kvol+halo, z1, 1, &u11t[0][mu], ndim);
 		cblas_zcopy(kvol+halo, z2, 1, &u12t[0][mu], ndim);
 #else
@@ -1593,7 +1584,7 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 		for(int nu=0;nu<mu;nu++){
 			//Don't merge into a single loop. Makes vectorisation easier?
 			//Or merge into a single loop and dispense with the a arrays?
-#pragma omp parallel for
+#pragma omp parallel for simd
 			for(int i=0;i<kvol;i++){
 				int uidm = iu[mu][i]; 
 
@@ -1613,19 +1604,19 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 		//Space component
 		if(mu<ndim-1)
 			//Is there a BLAS routine for this
-#pragma omp parallel for reduction(+:hgs)
+#pragma omp parallel for simd reduction(+:hgs)
 			for(int i=0;i<kvol;i++)
 				hgs-=creal(Sigma11[i]);
 		//Time component
 		else
-#pragma omp parallel for reduction(+:hgt)
+#pragma omp parallel for simd reduction(+:hgt)
 			for(int i=0;i<kvol;i++)
 				hgt-=creal(Sigma11[i]);
 		}
 	Par_dsum(&hgs); Par_dsum(&hgt);
 	*avplaqs=-hgs/(3*gvol); *avplaqt=-hgt/(gvol*3);
 	*hg=(hgs+hgt)*beta;
-#ifdef DEBUG
+#ifdef _DEBUG
 	if(!rank)
 		printf("hgs=%f  hgt=%f  hg=%f\n", hgs, hgt, *hg);
 #endif
@@ -1653,7 +1644,7 @@ double Polyakov(){
 	 */
 	const char *funcname = "Polyakov";
 	complex Sigma11[kvol3], Sigma12[kvol3] __attribute__((aligned(AVX)));
-#ifdef USE_MKL
+#if (defined USE_MKL || defined USE_BLAS)
 	cblas_zcopy(kvol3, &u11t[0][3], ndim, Sigma11, 1);
 	cblas_zcopy(kvol3, &u12t[0][3], ndim, Sigma12, 1);
 #else
@@ -1673,32 +1664,34 @@ double Polyakov(){
 	//	Change the order of multiplication so that it can
 	//	be done in parallel. Start at t=1 and go up to t=T:
 	//	previously started at t+T and looped back to 1, 2, ... T-1
-	int indexu=kvol3;
 	//Buffers
 	complex a11=0; complex  a12 = 0;
-	for(int it=1;it<ksizet;it++){
+#pragma omp parallel for simd collapse(2)
+	for(int it=1;it<ksizet;it++)
+		//will be faster for parallel code
 		for(int i=0;i<kvol3;i++){
 			//Seems a bit more efficient to increment indexu instead of reassigning
 			//it every single loop
+			int indexu=(it+1)*kvol3+i;
 			a11=Sigma11[i]*u11t[indexu][3]-Sigma12[i]*conj(u12t[indexu][3]);
 			a12=Sigma11[i]*u12t[indexu][3]+Sigma12[i]*conj(u11t[indexu][3]);
 			Sigma11[i]=a11; Sigma12[i]=a12;
-			indexu++;
 		}
-	}
+	
 	//Multiply this partial loop with the contributions of the other cores in the
 	//timelike dimension
-#ifdef DEBUG
+#if (npt>1)
+#ifdef _DEBUG
 	printf("Multiplying with MPI\n");
 #endif
 	//Par_tmul does nothing if there is only a single processor in the time direction. So we only compile
 	//its call if it is required
-#if (npt>1)
 	Par_tmul(Sigma11, Sigma12);
 #endif
 	double poly = 0;
 	//There has to be a vectorised method of doing this somewhere, or a reduction method
 	//for large k
+	//Maybe... Us
 #pragma omp parallel for reduction(+:poly)
 	for(int i=0;i<kvol3;i++)
 		poly+=creal(Sigma11[i]);
@@ -1730,25 +1723,28 @@ inline int Reunitarise(){
 	 */
 	const char *funcname = "Reunitarise";
 
-#pragma omp parallel for collapse(2)
+#pragma omp parallel for simd collapse(2)
 	for(int i=0; i<kvol; i++)
 		for(int mu = 0; mu<ndim; mu++){
 			//Declaring anorm inside the loop will hopefully let the compiler know it
 			//is safe to vectorise aggessively
 			double anorm=sqrt(conj(u11t[i][mu])*u11t[i][mu]+conj(u12t[i][mu])*u12t[i][mu]);
-			if(anorm==0){
-				fprintf(stderr, "Error %i in %s on rank %i: anorm = 0 for μ=%i and i=%i.\nExiting...\n\n",
-						DIVZERO, funcname, rank, mu, i);
-				MPI_Finalize();
-				exit(DIVZERO);
-			}
+			//		Exception handling code. May be faster to leave out as the exit prevents vectorisation.
+			//		if(anorm==0){
+			//			fprintf(stderr, "Error %i in %s on rank %i: anorm = 0 for μ=%i and i=%i.\nExiting...\n\n",
+			//					DIVZERO, funcname, rank, mu, i);
+			//			MPI_Finalise();
+			//			exit(DIVZERO);
+			//		}
 			u11t[i][mu]/=anorm;
 			u12t[i][mu]/=anorm;
 		}
 	return 0;
 }
 inline int Z_gather(complex *x, complex *y, int n, int *table){
-#pragma omp parallel for
+//FORTRAN had a second parameter m gving the size of y (kvol+halo) normally
+//Pointers mean that's not an issue for us so I'm leaving it out
+#pragma omp parallel for simd 
 	for(int i=0; i<n; i++)
 		x[i]=y[table[i]];
 	return 0;
@@ -1771,10 +1767,11 @@ inline int Fill_Small_Phi(int na, complex smallPhi[][ndirac][nc]){
 	 */
 	const char *funcname = "Fill_Small_Phi";
 	//BIG and small phi index
-#pragma omp parallel for collapse(2)
+#pragma omp parallel for simd
 	for(int i = 0; i<kvol;i++)
+		#pragma unroll
 		for(int idirac = 0; idirac<ndirac; idirac++)
-#pragma unroll
+		#pragma unroll
 			for(int ic= 0; ic<nc; ic++){
 				// The original code behaves in this manner, same loop order and same formula for PHI_index
 				// We end up hiting the first 8 elements of the Phi array. But because i is multiplied by
@@ -1805,7 +1802,7 @@ double Norm_squared(complex *z, int n){
 	//BLAS? Use cblas_zdotc instead for vectorisation
 	const char *funcname = "Norm_squared";
 	double norm = 0;
-	#pragma omp parallel for reduction(+:norm)
+#pragma omp parallel for simd reduction(+:norm)
 	for(int i=0; i<n; i++)
 		norm+=z[i]*conj(z[i]);
 	return norm;

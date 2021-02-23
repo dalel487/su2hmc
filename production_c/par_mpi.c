@@ -29,19 +29,19 @@ int Par_begin(int argc, char *argv[]){
 
 	if(MPI_Comm_rank(comm, &rank)){
 		fprintf(stderr, "Error %i in %s: Failed to find rank.\nExiting...\n\n", NO_MPI_RANK, funcname);
-		MPI_Finalize();
+		MPI_Finalise();
 		exit(NO_MPI_RANK);
 	}
 	if(MPI_Comm_size(comm, &size)){
 		fprintf(stderr, "Error %i in %s: Failed to find size\nExiting...\n\n", NO_MPI_SIZE, funcname);
-		MPI_Finalize();
+		MPI_Finalise();
 		exit(NO_MPI_SIZE);
 	}
 	//If size isn't the same as the max allowed number of processes, then there's a problem somewhere.
 	if(size!=nproc){
 		fprintf(stderr, "Error %i in %s: For process %i, size %i is not equal to nproc %i.\n"
 				"Exiting...\n\n", SIZEPROC, funcname, rank, &size, nproc);
-		MPI_Finalize();
+		MPI_Finalise();
 		exit(SIZEPROC);
 	}
 	//gsize is the size of the system, lsize is the size of each MPI Grid
@@ -71,7 +71,7 @@ int Par_begin(int argc, char *argv[]){
 	//Get coordinates of processors in the grid
 	for(int iproc = 0; iproc<nproc; iproc++){
 		MPI_Cart_coords(commcart, iproc, ndim, &pcoord[iproc]);
-		#pragma unroll
+		#pragma omp simd
 		for(int idim = 0; idim<ndim; idim++){
 			//Need to double check the +/- ones at the end. Is that FORTRAN or is it algorithm
 			pstart[idim][iproc] = pcoord[idim][iproc]*lsize[idim];
@@ -79,7 +79,7 @@ int Par_begin(int argc, char *argv[]){
 		}
 	}
 
-#ifdef DEBUG
+#ifdef _DEBUG
 	if(!rank)
 		printf("Running on %i processors.\n Grid layout is %ix%ix%ix%i\n",
 				nproc, npx,npy,npz,npt);
@@ -106,7 +106,6 @@ int Par_sread(){
 	//	complex ubuff[kvol];
 	complex u1buff[kvol], u2buff[kvol];
 	int icoord[ndim];
-	int i, iproc, idim;
 	double seed;
 	//We shall allow the almighty master thread to open the file
 	if(!rank){
@@ -118,9 +117,11 @@ int Par_sread(){
 		fclose(con);
 
 		//Run over processors, dimensions and colours
-		for(iproc = 0; iproc < nproc; iproc++)
-			for(idim = 0; idim < ndim; idim++){
-				i = 0;
+		//Could be sped up with omp but parallel MPI_Sends is risky. 
+		//#pragma omp parallel for collapse(2)
+		for(int iproc = 0; iproc < nproc; iproc++)
+			for(int idim = 0; idim < ndim; idim++){
+				int i = 0;
 				//Index order is reversed from FORTRAN for performance
 				//Going to split up assigning icoord[i] to reduce the
 				//number of assignments.
@@ -144,11 +145,10 @@ int Par_sread(){
 						}
 					}
 				}
-				//Think its i+1 in C as C indexes from 0 not 1
 				if(i+1!=kvol){
 					fprintf(stderr, "Error %i in %s: Number of elements %i is not equal to\
 							kvol %i.\nExiting...\n\n", NUMELEM, funcname, i, kvol);
-					MPI_Finalize();
+					MPI_Finalise();
 					exit(NUMELEM);
 				}
 				//Likewise, C indexes from zero so should just use iproc
@@ -164,31 +164,31 @@ int Par_sread(){
 					if(MPI_Ssend(u1buff, kvol, MPI_C_DOUBLE_COMPLEX,iproc, tag, comm)){
 						fprintf(stderr, "Error %i in %s: Failed to send ubuff to process %i.\nExiting...\n\n",
 								CANTSEND, funcname, iproc);
-						MPI_Finalize();
+						MPI_Finalise();
 						exit(CANTSEND);
 					}
 					if(MPI_Ssend(u2buff, kvol, MPI_C_DOUBLE_COMPLEX,iproc, tag, comm)){
 						fprintf(stderr, "Error %i in %s: Failed to send ubuff to process %i.\nExiting...\n\n",
 								CANTSEND, funcname, iproc);
-						MPI_Finalize();
+						MPI_Finalise();
 						exit(CANTSEND);
 					}
 				}
 			}
 	}
 	else{
-		for(idim = 0; idim<ndim; idim++){
+		for(int idim = 0; idim<ndim; idim++){
 			//Receiving the data from the master threads.
 			if(MPI_Recv(&u11[idim][0], kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm, &status)){
 				fprintf(stderr, "Error %i in %s: Falied to receive u11 from process %i.\nExiting...\n\n",
 						CANTRECV, funcname, masterproc);
-				MPI_Finalize();
+				MPI_Finalise();
 				exit(CANTRECV);
 			}
 			if(MPI_Recv(&u12[idim][0], kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm, &status)){
 				fprintf(stderr, "Error %i in %s: Falied to receive u12 from process %i.\nExiting...\n\n",
 						CANTRECV, funcname, masterproc);
-				MPI_Finalize();
+				MPI_Finalise();
 				exit(CANTRECV);
 			}
 		}
@@ -219,7 +219,7 @@ int Par_psread(char *filename, double *ps){
 	if(!rank){
 		if(!(dest = fopen(filename, "rb"))){
 			fprintf(stderr, "Error %i in %s: Failed to open %s.\nExiting...\n\n", OPENERROR, funcname, filename);
-			MPI_Finalize();
+			MPI_Finalise();
 			exit(OPENERROR); 
 		}
 		fread(&gps, sizeof(gps), 1, dest);	
@@ -234,6 +234,7 @@ int Par_psread(char *filename, double *ps){
 					icoord[1]=iy;
 					for(int iz=pstart[2][iproc]; iz<pstop[2][iproc]; iz++){
 						icoord[2]=iz;
+						#pragma omp simd
 						for(int it=pstart[3][iproc]; it<pstop[3][iproc]; it++){
 							icoord[3]=it;
 							i++;
@@ -247,7 +248,7 @@ int Par_psread(char *filename, double *ps){
 			if(i+1!=kvol){
 				fprintf(stderr, "Error %i in %s: Number of elements %i is not equal to\
 						kvol %i.\nExiting...\n\n", NUMELEM, funcname, i, kvol);
-				MPI_Finalize();
+				MPI_Finalise();
 				exit(NUMELEM);
 			}
 			if(!iproc)
@@ -257,7 +258,7 @@ int Par_psread(char *filename, double *ps){
 				if(MPI_Ssend(psbuff, kvol, MPI_DOUBLE,iproc, tag, comm)){
 					fprintf(stderr, "Error %i in %s: Failed to send psbuff to process %i.\nExiting...\n\n",
 							CANTSEND, funcname, iproc);
-					MPI_Finalize();
+					MPI_Finalise();
 					exit(CANTSEND);
 				}
 		}
@@ -266,7 +267,7 @@ int Par_psread(char *filename, double *ps){
 		if(MPI_Recv(psbuff, kvol, MPI_DOUBLE, masterproc, tag, comm, &status)){
 			fprintf(stderr, "Error %i in %s: Falied to receive psbuff from process %i.\nExiting...\n\n",
 					CANTRECV, funcname, masterproc);
-			MPI_Finalize();
+			MPI_Finalise();
 			exit(CANTRECV);
 		}
 	return 0;
@@ -304,13 +305,13 @@ int Par_swrite(int isweep){
 					if(MPI_Recv(&u1buff, kvol, MPI_C_COMPLEX, iproc, tag, comm, &status)){
 						fprintf(stderr, "Error %i in %s: Falied to receive u11 from process %i.\nExiting...\n\n",
 								CANTRECV, funcname, iproc);
-						MPI_Finalize();
+						MPI_Finalise();
 						exit(CANTRECV);
 					}
 		if(MPI_Recv(&u2buff, kvol, MPI_C_COMPLEX, iproc, tag, comm, &status)){
 			fprintf(stderr, "Error %i in %s: Falied to receive u12 from process %i.\nExiting...\n\n",
 					CANTRECV, funcname, iproc);
-			MPI_Finalize();
+			MPI_Finalise();
 			exit(CANTRECV);
 		}
 		else{
@@ -341,7 +342,7 @@ int Par_swrite(int isweep){
 		if(i+1!=kvol){
 			fprintf(stderr, "Error %i in %s: Number of elements %i is not equal to\
 					kvol %i.\nExiting...\n\n", NUMELEM, funcname, i, kvol);
-			MPI_Finalize();
+			MPI_Finalise();
 			exit(NUMELEM);
 		}
 		char *c;
@@ -353,7 +354,7 @@ int Par_swrite(int isweep){
 		FILE *con;
 		if(!(con=fopen(gauge_file, "wb"))){
 			fprintf(stderr, "Error %i in %s: Failed to open %s.\nExiting...\n\n", OPENERROR, funcname, gauge_file);
-			MPI_Finalize();
+			MPI_Finalise();
 			exit(OPENERROR);	
 		}
 		fwrite(&u11Write, sizeof(u11Write), 1, con);
@@ -366,13 +367,13 @@ int Par_swrite(int isweep){
 				if(MPI_Send(&u11[idim][0], kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm)){
 					fprintf(stderr, "Error %i in %s: Falied to send u11 from process %i.\nExiting...\n\n",
 							CANTSEND, funcname, iproc);
-					MPI_Finalize();
+					MPI_Finalise();
 					exit(CANTSEND);
 				}
 				if(MPI_Send(&u12[idim][0], kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm)){
 					fprintf(stderr, "Error %i in %s: Falied to send u12 from process %i.\nExiting...\n\n",
 							CANTSEND, funcname, iproc);
-					MPI_Finalize();
+					MPI_Finalise();
 					exit(CANTSEND);
 				}
 			}
@@ -403,7 +404,7 @@ int Par_swrite(int isweep){
 
 		if(MPI_Allreduce(ival, itmp, 1, MPI_DOUBLE, MPI_SUM, comm)){
 			fprintf(stderr,"Error %i in %s: Couldn't complete reduction for %i.\nExiting...\n\n", REDUCERR, funcname, *ival);
-			MPI_Finalize();
+			MPI_Finalise();
 			exit(REDUCERR);	
 		}
 		return 0;
@@ -429,7 +430,7 @@ int Par_swrite(int isweep){
 
 		if(MPI_Allreduce(dval, &dtmp, 1, MPI_DOUBLE, MPI_SUM, comm)){
 			fprintf(stderr,"Error %i in %s: Couldn't complete reduction for %f.\nExiting...\n\n", REDUCERR, funcname, *dval);
-			MPI_Finalize();
+			MPI_Finalise();
 			exit(REDUCERR);	
 		}
 		*dval = dtmp;
@@ -457,7 +458,7 @@ int Par_swrite(int isweep){
 		if(MPI_Allreduce(zval, &ztmp, 1, MPI_C_DOUBLE_COMPLEX, MPI_SUM, comm)){
 			fprintf(stderr, "Error %i in %s: Couldn't complete reduction for %f+%f i.\nExiting...\n\n",
 					REDUCERR, funcname, creal(*zval), cimag(*zval));
-			MPI_Finalize();
+			MPI_Finalise();
 			exit(REDUCERR);	
 		}
 		*zval = ztmp;
@@ -479,7 +480,7 @@ int Par_swrite(int isweep){
 		if(MPI_Bcast(ival,1,MPI_INT,masterproc,comm)){
 			fprintf(stderr, "Error %i in %s: Failed to broadcast %i from %i.\nExiting...\n\n",
 					BROADERR, funcname, *ival, rank);
-			MPI_Finalize();
+			MPI_Finalise();
 			exit(BROADERR);
 		}
 	}
@@ -499,7 +500,7 @@ int Par_swrite(int isweep){
 		if(MPI_Bcast(dval,1,MPI_DOUBLE,masterproc,comm)){
 			fprintf(stderr, "Error %i in %s: Failed to broadcast %d from %i.\nExiting...\n\n",
 					BROADERR, funcname, *dval, rank);
-			MPI_Finalize();
+			MPI_Finalise();
 			exit(BROADERR);
 		}
 		return 0;
@@ -520,7 +521,7 @@ int Par_swrite(int isweep){
 		if(MPI_Bcast(zval,1,MPI_C_DOUBLE_COMPLEX,masterproc,comm)){
 			fprintf(stderr, "Error %i in %s: Failed to broadcast %d+i%d from %i.\nExiting...\n\n",
 					BROADERR, funcname, creal(*zval), cimag(*zval), rank);
-			MPI_Finalize();
+			MPI_Finalise();
 			exit(BROADERR);
 		}
 		return 0;
@@ -582,7 +583,7 @@ int Par_swrite(int isweep){
 		if(layer!=DOWN && layer!=UP){
 			fprintf(stderr, "Error %i in %s: Cannot swap in the direction given by %i.\nExiting...\n\n",
 					LAYERROR, funcname, layer);
-			MPI_Finalize();
+			MPI_Finalise();
 			exit(LAYERROR);
 		}
 		complex sendbuf[halo][ncpt];
@@ -595,23 +596,25 @@ int Par_swrite(int isweep){
 					fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
 							"a memory leak on rank %i.\nExiting...\n\n"
 							,BOUNDERROR, funcname, msg_size, ncpt*h1u[idir], rank);
-					MPI_Finalize();
+					MPI_Finalise();
 					exit(BOUNDERROR);
 				}
+				#pragma omp parallel for
 				for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
+				#pragma omp simd
 					for(int icpt = 0; icpt <ncpt; icpt++)
 						sendbuf[ihalo][icpt]=z[ncpt*hd[idir][ihalo]+icpt];
 				//For the zdnhaloswapdir we send off the down halo and receive into the up halo
 				if(MPI_Isend(sendbuf, msg_size, MPI_C_DOUBLE_COMPLEX, pd[idir], tag, comm, &request)){
 					fprintf(stderr,"Error %i in %s: Failed to send off the down halo from rank %i to rank %i.\nExiting...\n"
 							,CANTSEND, funcname, rank, pd[idir]);
-					MPI_Finalize();
+					MPI_Finalise();
 					exit(CANTSEND);
 				}
 				if(MPI_Recv(&z[ncpt*h1u[idir]], msg_size, MPI_C_DOUBLE_COMPLEX, pu[idir], tag, comm, &status)){
 					fprintf(stderr,"Error %i in %s: Rank %i failed to receive into up halo from rank %i.\nExiting...\n",
 							CANTRECV, funcname, rank, pu[idir]);
-					MPI_Finalize();
+					MPI_Finalise();
 					exit(CANTRECV);
 				}
 				break;
@@ -620,23 +623,25 @@ int Par_swrite(int isweep){
 					fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
 							"a memory leak on rank %i.\nExiting...\n\n"
 							,BOUNDERROR, funcname, msg_size, ncpt*h1d[idir], rank);
-					MPI_Finalize();
+					MPI_Finalise();
 					exit(BOUNDERROR);
 				}
+				#pragma omp parallel for
 				for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
+				#pragma omp simd
 					for(int icpt = 0; icpt <ncpt; icpt++)
 						sendbuf[ihalo][icpt]=z[ncpt*hu[idir][ihalo]+icpt];
 				//For the zuphaloswapdir we send off the up halo and receive into the down halo
 				if(MPI_Isend(sendbuf, msg_size, MPI_C_DOUBLE_COMPLEX, pu[idir], 0, comm, &request)){
 					fprintf(stderr,"Error %i in %s: Failed to send off the up halo from rank %i to rank %i.\nExiting...\n",
 							CANTSEND, funcname, rank, pu[idir]);
-					MPI_Finalize();
+					MPI_Finalise();
 					exit(CANTSEND);
 				}
 				if(MPI_Recv(&z[ncpt*h1d[idir]], msg_size, MPI_C_DOUBLE_COMPLEX, pd[idir], tag, comm, &status)){
 					fprintf(stderr,"Error %i in %s: Rank %i failed to receive into doww halo from rank %i.\nExiting...\n",
 							CANTRECV, funcname, rank, pd[idir]);
-					MPI_Finalize();
+					MPI_Finalise();
 					exit(CANTRECV);
 				}
 				break;
@@ -665,7 +670,7 @@ int Par_swrite(int isweep){
 		if(layer!=DOWN && layer!=UP){
 			fprintf(stderr, "Error %i in %s: Cannot swap in the direction given by %i.\nExiting...\n\n",
 					LAYERROR, funcname, layer);
-			MPI_Finalize();
+			MPI_Finalise();
 			exit(LAYERROR);
 		}
 		//How big is the data being sent and received
@@ -677,23 +682,25 @@ int Par_swrite(int isweep){
 					fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
 							"a memory leak on rank %i.\nExiting...\n\n"
 							,BOUNDERROR, funcname, msg_size, ncpt*h1u[idir], rank);
-					MPI_Finalize();
+					MPI_Finalise();
 					exit(BOUNDERROR);
 				}
+				#pragma omp parallel for
 				for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
+				#pragma omp simd
 					for(int icpt = 0; icpt <ncpt; icpt++)
 						sendbuf[ihalo][icpt]=d[ncpt*hd[idir][ihalo]+icpt];
 				//For the cdnhaloswapdir we send off the down halo and receive into the up halo
 				if(MPI_Isend(sendbuf, msg_size, MPI_DOUBLE, pd[idir], tag, comm, &request)){
 					fprintf(stderr, "Error %i in %s: Failed to send off the down halo from rank %i to rank %i.\nExiting...\n\n",
 							CANTSEND, funcname, rank, pd[idir]);
-					MPI_Finalize();
+					MPI_Finalise();
 					exit(CANTSEND);
 				}
 				if(MPI_Recv(&d[ncpt*h1u[idir]], msg_size, MPI_DOUBLE, pu[idir], tag, comm, &status)){
 					fprintf(stderr, "Error %i in %s: Rank %i failed to receive into up halo from rank %i.\nExiting...\n\n",
 							CANTRECV, funcname, rank, pu[idir]);
-					MPI_Finalize();
+					MPI_Finalise();
 					exit(CANTRECV);
 				}
 			case(UP):
@@ -701,23 +708,25 @@ int Par_swrite(int isweep){
 					fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
 							"a memory leak on rank %i.\nExiting...\n\n"
 							,BOUNDERROR, funcname, msg_size, ncpt*h1d[idir], rank);
-					MPI_Finalize();
+					MPI_Finalise();
 					exit(BOUNDERROR);
 				}
+				#pragma omp parallel for
 				for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
+				#pragma omp simd
 					for(int icpt = 0; icpt <ncpt; icpt++)
 						sendbuf[ihalo][icpt]=d[ncpt*hu[idir][ihalo]+icpt];
 				//For the cuphaloswapdir we send off the up halo and receive into the down halo
 				if(MPI_Isend(sendbuf, msg_size, MPI_DOUBLE, pu[idir], 0, comm, &request)){
 					fprintf(stderr,"Error %i in %s: Failed to send off the up halo from rank %i to rank %i.\nExiting...\n\n",
 							CANTSEND, funcname, rank, pu[idir]);
-					MPI_Finalize();
+					MPI_Finalise();
 					exit(CANTSEND);
 				}
 				if(MPI_Recv(&d[ncpt*h1d[idir]], msg_size, MPI_DOUBLE, pd[idir], tag, comm, &status)){
 					fprintf(stderr, "Error %i in %s: Rank %i failed to receive into doww halo from rank %i.\nExiting...\n\n",
 							CANTRECV, funcname, rank, pd[idir]);
-					MPI_Finalize();
+					MPI_Finalise();
 					exit(CANTRECV);
 				}
 		}	
@@ -759,14 +768,14 @@ int Par_swrite(int isweep){
 		//Looping through time like it's Groundhog Day
 		//since the index of the outer loop isn't used as an array index anywher
 		//I'm going format it exactly like the original FORTRAN
-#ifdef DEBUG
+#ifdef _DEBUG
 		if(!rank) printf("Sending between halos in the time direction. For rank %i pu[3]=%i and pd[3] = %i\n",
 				rank, pu[3], pd[3]);
 #endif
 		for(itime=1;itime<npt; itime++){
 			memcpy(t11, a11, kvol3*sizeof(complex));	
 			memcpy(t12, a12, kvol3*sizeof(complex));	
-#ifdef DEBUG
+#ifdef _DEBUG
 			if(!rank) printf("t11 and t12 assigned. Getting ready to send to other processes.\n");
 #endif
 			//Send results to other processes down the line
@@ -776,35 +785,35 @@ int Par_swrite(int isweep){
 			if(MPI_Isend(t11, kvol3, MPI_C_DOUBLE_COMPLEX, pd[3], tag, comm, &request)){
 				fprintf(stderr, "Error %i in %s: Failed to send t11 to process %i.\nExiting...\n\n",
 						CANTSEND, funcname, pd[3]);
-				MPI_Finalize();
+				MPI_Finalise();
 				exit(CANTSEND);
 			}
-#ifdef DEBUG
+#ifdef _DEBUG
 			printf("Sent t11 from rank %i to the down halo on rank %i\n", rank, pd[3]);
 #endif
 			if(MPI_Recv(a11, kvol3, MPI_C_DOUBLE_COMPLEX, pu[3], tag, comm, &status)){
 				fprintf(stderr, "Error %i in %s: Failed to receive a11 from process %i.\nExiting...\n\n",
 						CANTSEND, funcname, pu[3]);
-				MPI_Finalize();
+				MPI_Finalise();
 				exit(CANTSEND);
 			}
-#ifdef DEBUG
+#ifdef _DEBUG
 			printf("Received t11 from rank %i in the up halo on rank %i\n",  pu[3], rank);
 #endif
 			MPI_Wait(&request, &status);
 			if(MPI_Isend(t12, kvol3, MPI_C_DOUBLE_COMPLEX, pd[3], tag, comm, &request)){
 				fprintf(stderr, "Error %i in %s: Failed to send t12 to process %i.\nExiting...\n\n",
 						CANTSEND, funcname, pd[3]);
-				MPI_Finalize();
+				MPI_Finalise();
 				exit(CANTSEND);
 			}
 			if(MPI_Recv(a12, kvol3, MPI_C_DOUBLE_COMPLEX, pu[3], tag, comm, &status)){
 				fprintf(stderr, "Error %i in %s: Failed to receive a12 from process %i.\nExiting...\n\n",
 						CANTSEND, funcname, pu[3]);
-				MPI_Finalize();
+				MPI_Finalise();
 				exit(CANTSEND);
 			}
-#ifdef DEBUG
+#ifdef _DEBUG
 			printf("Finished sending and receiving  on  rank %i\n",  rank);
 #endif
 			MPI_Wait(&request, &status);
