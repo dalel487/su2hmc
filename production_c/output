@@ -1,0 +1,7 @@
+ksize = 8 ksizet = 8 Nf = 1
+Time step dt = 0.004000 Trajectory length = 1.200000
+No. of Trajectories = 10 β = 1.700000
+κ = 0.178000 μ = 0.000000
+Diquark source = 0.000000 Diquark phase angle = 0.000000
+Stopping Residuals: Guidance: 0.000010 Acceptance: 0.000000, Estimator: 0.000010
+Seed = 9678165

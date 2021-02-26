@@ -74,11 +74,16 @@
 //      #define niterc 2*gvol
 //    jis: hard limit to avoid runaway trajectories
 #define niterc  10000
-//    
+//    Constants for dimensions.
+#define nc    2
+#define nadj   3
+#define ndirac   4
+#define ndim  4
+#define ngorkov  8
 
-#define kmom (12*kvol)
-#define kferm (16*kvol)
-#define kferm2 (8*kvol)
+#define kmom (ndim*nadj*kvol)
+#define kferm (nc*ngorkov*kvol)
+#define kferm2 (nc*ndirac*kvol)
 //    For those who may not have used MPI Before, halos are just a bit 
 //    of padding we put on the outside of the subarrays we're using in MPI
 //    so we can look at terms outside the subarray we're actively working
@@ -89,20 +94,14 @@
 #define halot (ksizex*ksizey*ksizez)
 #define halo (2*(halox+haloy+haloz+halot))
 
-#define kfermHalo (16*(kvol+halo))
-#define kferm2Halo (8*(kvol+halo))
-#define kmomHalo (12*(kvol+halo))
+#define kfermHalo (nc*ngorkov*(kvol+halo))
+#define kferm2Halo (nc*ndirac*(kvol+halo))
+#define kmomHalo (ndim*nadj*(kvol+halo))
 
 #define respbp  1E-5
 #define rescgg  1E-5 
 #define rescga  1E-8 
 
-//    Constants for dimensions.
-#define nc    2
-#define nadj   3
-#define ndirac   4
-#define ndim  4
-#define ngorkov  8
 
 //New entry here, the size of the AVX buffer. 64 for AVX-512, 32 for AVX/AVX2 and 16
 #define AVX  64
