@@ -70,8 +70,8 @@ int main(int argc, char *argv){
 	 *    inversions done using congradp, and matrix multiplies with dslash,
 	 *    dslashd
 	 *
-	 *    trajectory length is random with mean dt*iterl
-	 *    The code runs for a fixed number iter2 of trajectories.
+	 *    trajectory length is random with mean dt*stepl
+	 *    The code runs for a fixed number ntraj of trajectories.
 	 *
 	 *    Phi: pseudofermion field 
 	 *    bmass: bare fermion mass 
@@ -116,7 +116,7 @@ int main(int argc, char *argv){
 	double dt=0.004; double ajq = 0.0;
 	double delb; //Not used?
 	double athq = 0.0;
-	int iterl = 250; int iter2 = 10;
+	int stepl = 250; int ntraj = 10;
 	if(!rank){
 		//I'm hoping to use scoping to avoid any accidents.
 		FILE *midout;
@@ -128,7 +128,7 @@ int main(int argc, char *argv){
 					, OPENERROR, funcname, filename, fileop);
 			exit(OPENERROR);
 		}
-		fscanf(midout, "%lf %lf %lf %lf %lf %lf %lf %d %d", &dt, &beta, &akappa, &ajq, &athq, &fmu, &delb, &iterl, &iter2);
+		fscanf(midout, "%lf %lf %lf %lf %lf %lf %lf %d %d", &dt, &beta, &akappa, &ajq, &athq, &fmu, &delb, &stepl, &ntraj);
 		fclose(midout);
 	}
 	if(iread){
@@ -140,7 +140,7 @@ int main(int argc, char *argv){
 	//Send inputs to other ranks
 	Par_dcopy(&dt); Par_dcopy(&beta); Par_dcopy(&akappa); Par_dcopy(&ajq);
 	Par_dcopy(&athq); Par_dcopy(&fmu); //Par_dcopy(&delb); Not used?
-	Par_icopy(&iterl); Par_icopy(&iter2); 
+	Par_icopy(&stepl); Par_icopy(&ntraj); 
 	jqq=ajq*cexp(athq*I);
 	Par_ranset(&seed);
 
@@ -160,8 +160,8 @@ int main(int argc, char *argv){
 	SU2plaq(&hg,&avplaqs,&avplaqt);
 	//Loop on β
 	//Print Heading
-	double traj=iterl*dt;
-	double proby = 2.5/iterl;
+	double traj=stepl*dt;
+	double proby = 2.5/stepl;
 	char *outname = "output"; char *outop="w";
 	FILE *output;
 	if(!rank){
@@ -174,13 +174,13 @@ int main(int argc, char *argv){
 		fprintf(output, "ksize = %i ksizet = %i Nf = %i\nTime step dt = %f Trajectory length = %f\n"\
 				"No. of Trajectories = %i β = %f\nκ = %f μ = %f\nDiquark source = %f Diquark phase angle = %f\n"\
 				"Stopping Residuals: Guidance: %f Acceptance: %f, Estimator: %f\nSeed = %i\n",
-				ksize, ksizet, nf, dt, traj, iter2, beta, akappa, fmu, ajq, athq, rescgg, rescga, respbp, seed);
+				ksize, ksizet, nf, dt, traj, ntraj, beta, akappa, fmu, ajq, athq, rescgg, rescga, respbp, seed);
 #ifdef _DEBUG
 		//Print to terminal during debugging
 		printf("ksize = %i ksizet = %i Nf = %i\nTime step dt = %f Trajectory length = %f\n"\
 				"No. of Trajectories = %i β = %f\nκ = %f μ = %f\nDiquark source = %f Diquark phase angle = %f\n"\
 				"Stopping Residuals: Guidance: %f Acceptance: %f, Estimator: %f\nSeed = %i\n",
-				ksize, ksizet, nf, dt, traj, iter2, beta, akappa, fmu, ajq, athq, rescgg, rescga, respbp, seed);
+				ksize, ksizet, nf, dt, traj, ntraj, beta, akappa, fmu, ajq, athq, rescgg, rescga, respbp, seed);
 
 #endif
 	}
@@ -203,6 +203,7 @@ int main(int argc, char *argv){
 	//check the sizes in sizes.h
 #ifdef USE_MKL
 	R1= mkl_malloc(kfermHalo*sizeof(complex),AVX);
+	xi= mkl_malloc(kfermHalo*sizeof(complex),AVX);
 	Phi= mkl_malloc(nf*kfermHalo*sizeof(complex),AVX); 
 	X0= mkl_malloc(nf*kferm2Halo*sizeof(complex),AVX); 
 	X1= mkl_malloc(kferm2Halo*sizeof(complex),AVX); 
@@ -210,16 +211,17 @@ int main(int argc, char *argv){
 	pp = mkl_malloc(kmomHalo*sizeof(double), AVX);
 #else
 	R1= malloc(kfermHalo*sizeof(complex));
+	xi= malloc(kfermHalo*sizeof(complex));
 	Phi= malloc(nf*kfermHalo*sizeof(complex)); 
 	X0= malloc(nf*kferm2Halo*sizeof(complex)); 
 	X1= malloc(kferm2Halo*sizeof(complex)); 
 	double *dSdpi = malloc(kmomHalo*sizeof(double));
 	pp = malloc(kmomHalo*sizeof(double));
 #endif
-	for(int isweep = 1; isweep <= iter2; isweep++){
+	for(int itraj = 1; itraj <= ntraj; itraj++){
 #ifdef _DEBUG
 		if(!rank)
-			printf("Starting isweep %i\n", isweep);
+			printf("Starting itraj %i\n", itraj);
 #endif
 		for(int na=0; na<nf; na++){
 #ifdef USE_MKL
@@ -254,9 +256,9 @@ int main(int argc, char *argv){
 		//We're going to make the most of the new Gauss_d routine to send a flattened array
 		//and do this all in one step.
 #ifdef USE_MKL
-		vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, nadj*ndim*kvol, pp, 0, 1);
+		vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, kmom, pp, 0, 1);
 #else
-		Gauss_d(pp, nadj*ndim*kvol, 0, 1);
+		Gauss_d(pp, kmom, 0, 1);
 #endif
 
 		//Initialise Trial Fields
@@ -268,7 +270,7 @@ int main(int argc, char *argv){
 		if(!rank) printf("H0: %f S0: %f\n", H0, S0);
 #endif
 		double action;
-		if(isweep==1)
+		if(itraj==1)
 			action = S0/gvol;
 
 		//Half step forward for p
@@ -280,17 +282,15 @@ int main(int argc, char *argv){
 #if (defined USE_MKL || defined USE_BLAS)
 		cblas_daxpy(nadj*ndim*kvol, -d, dSdpi, 1, pp, 1);
 #else
-		for(int i=0;i<kvol;i++)
-			for(int iadj=0;iadj<nadj;iadj++)
-				for(int mu=0;mu<ndim;mu++)
-					pp[(i*nadj+iadj)*nc+mu]-=d*dSdpi[(i*nadj+iadj)*nc+mu];
+		for(int i=0;i<kmom;i++)
+					pp[i]-=d*dSdpi[i];
 #endif
 		//Main loop for classical time evolution
 		//======================================
-		for(int iter = 0; iter<itermax; iter++){
+		for(int step = 0; step<stepmax; step++){
 #ifdef _DEBUG
 			if(!rank)
-				printf("iter: %i\n", iter);
+				printf("step: %i\n", step);
 #endif
 			//The FORTRAN redefines d=dt here, which makes sense if you have a limited line length.
 			//I'll stick to using dt though.
@@ -309,9 +309,9 @@ int main(int argc, char *argv){
 					complex a12 = pp[(i*nadj+1)*ndim+mu]*SSS + I*SSS*pp[i*nadj*ndim+mu];
 					//b11 and b12 are u11t and u12t terms, so we'll use u12t directly
 					//but use b11 for u11t to prevent RAW dependency
-					complex b11 = u11t[i][mu];
-					u11t[i][mu] = a11*b11-a12*conj(u12t[i][mu]);
-					u12t[i][mu] = a11*u12t[i][mu]+a12*conj(b11);
+					complex b11 = u11t[i*ndim+mu];
+					u11t[i*ndim+mu] = a11*b11-a12*conj(u12t[i*ndim+mu]);
+					u12t[i*ndim+mu] = a11*u12t[i*ndim+mu]+a12*conj(b11);
 				}
 			Reunitarise();
 			//p(t+3dt/2)=p(t+dt/2)-dSds(t+dt)*dt
@@ -321,7 +321,7 @@ int main(int argc, char *argv){
 
 			//The same for loop is given in both the if and else
 			//statement but only the value of d changes. This is due to the break in the if part
-			if(iter>=iterl*4.0/5.0 && (iter>=iterl*(6.0/5.0) || Par_granf()<proby)){
+			if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
 #if (defined USE_MKL || defined USE_BLAS)
 				cblas_daxpy(ndim*nadj*kvol, -d, dSdpi, 1, pp, 1);
 #else
@@ -330,7 +330,7 @@ int main(int argc, char *argv){
 						for(int mu = 0; mu < ndim; mu++)
 							pp[(i*nadj+iadj)*nc+mu]-=d*dSdpi[(i*nadj+iadj)*nc+mu];
 #endif
-				itot+=iter;
+				itot+=step;
 				break;
 			}
 			else{
@@ -382,9 +382,9 @@ int main(int argc, char *argv){
 				//JIS 20100525: remove when all is ok....
 				//On closer inspection, this is more clever than I first thought. Using
 				//integer division like that
-				if((isweep/icheck)*icheck==isweep){
+				if((itraj/icheck)*icheck==itraj){
 					//ranget(seed);
-					Par_swrite(isweep);
+					Par_swrite(itraj);
 				}
 				memcpy(u11,u11t,ndim*kvol*sizeof(complex));
 				memcpy(u12,u12t,ndim*kvol*sizeof(complex));
@@ -396,18 +396,17 @@ int main(int argc, char *argv){
 			double vel2=0.0;
 
 #if (defined USE_MKL || defined USE_BLAS)
-			vel2 += cblas_ddot(kmom, pp, 1, pp, 1 );
+			vel2 = cblas_dnrm2(kmom, pp, 1);
+			vel2*=vel2;
 #else
 #pragma unroll
-			for(int i=0; i<kvol; i++)
-				for(int iadj = 0; iadj<nadj; iadj++)
-					for(int mu=0; mu<ndim; mu++)
-						vel2+=pp[(i*nadj+iadj)*ndim+mu]*pp[(i*nadj+iadj)*ndim+mu];
+			for(int i=0; i<kmom; i++)
+						vel2+=pp[i]*pp[(i)];
 #endif
 			Par_dsum(&vel2);
 			vel2a+=vel2/(12*gvol);
 
-			if((isweep/iprint)*iprint==isweep){
+			if((itraj/iprint)*iprint==itraj){
 				memcpy(u11t, u11, ndim*(kvol+halo)*sizeof(complex));
 				memcpy(u12t, u12, ndim*(kvol+halo)*sizeof(complex));
 #ifdef _DEBUG
@@ -439,7 +438,7 @@ int main(int argc, char *argv){
 					//from FORTRAN. We'll stick with that for now.
 					FILE *fortout;
 					char *fortname = "fort11";
-					char *fortop= (isweep==0) ? "w" : "a";
+					char *fortop= (itraj==0) ? "w" : "a";
 					if(!(fortout=fopen(fortname, fortop) )){
 						fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
 								OPENERROR, funcname, fortname, fortop);
@@ -455,7 +454,7 @@ int main(int argc, char *argv){
 					//from FORTRAN. We'll stick with that for now.
 					FILE *fortout;
 					char *fortname = "fort12"; 
-					char *fortop= (isweep==0) ? "w" : "a";
+					char *fortop= (itraj==0) ? "w" : "a";
 					if(!(fortout=fopen(fortname, fortop) )){
 						fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
 								OPENERROR, funcname, fortname, fortop);
@@ -469,7 +468,7 @@ int main(int argc, char *argv){
 				else if(rank == 3){
 					FILE *fortout;
 					char *fortname = "fort13";
-					char *fortop= (isweep==0) ? "w" : "a";
+					char *fortop= (itraj==0) ? "w" : "a";
 					if(!(fortout=fopen(fortname, fortop) )){
 						fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
 								OPENERROR, funcname, fortname, fortop);
@@ -480,9 +479,9 @@ int main(int argc, char *argv){
 					fprintf(fortout, "%f\n", creal(qq));
 					fclose(fortout);
 				}
-				if((isweep/icheck)*icheck==isweep){
+				if((itraj/icheck)*icheck==itraj){
 					//ranget(seed);
-					Par_swrite(isweep);
+					Par_swrite(itraj);
 				}
 			}
 		}
@@ -491,13 +490,14 @@ int main(int argc, char *argv){
 	//Free arrays
 #ifdef USE_MKL
 	mkl_free(dk4m); mkl_free(dk4p); mkl_free(R1); mkl_free(dSdpi); mkl_free(pp);
-	mkl_free(Phi);
+	mkl_free(Phi); mkl_free(u11t); mkl_free(u12t); mkl_free(xi);
 #else
 	free(dk4m); free(dk4p); free(R1); free(dSdpi); free(pp); free(Phi);
+	free(u11t); free(u12t); free(xi);
 #endif
-	actiona/=iter2; vel2a/=iter2; pbpa/=ipbp; endenfa/=ipbp; denfa/=ipbp;
-	ancg/=nf*itot; ancgh/=2*nf*iter2; yav/=iter2; yyav=yyav/iter2 - yav*yav;
-	double atraj=dt*itot/iter2;
+	actiona/=ntraj; vel2a/=ntraj; pbpa/=ipbp; endenfa/=ipbp; denfa/=ipbp;
+	ancg/=nf*itot; ancgh/=2*nf*ntraj; yav/=ntraj; yyav=yyav/ntraj - yav*yav;
+	double atraj=dt*itot/ntraj;
 
 	if(!rank)
 		fprintf(output, "Averages for the last %i trajectories\n"\
@@ -507,7 +507,7 @@ int main(int argc, char *argv){
 				"psibarpsi = %f\n"\
 				"Mean Square Velocity = %f Action Per Site = %f\n"\
 				"Energy Density = %f Number Density %f\n",\
-				iter2, naccp, atraj, yav, yyav, ancg, ancgh, pbpa, vel2a, actiona, endenfa, denfa);
+				ntraj, naccp, atraj, yav, yyav, ancg, ancgh, pbpa, vel2a, actiona, endenfa, denfa);
 	fclose(output);	
 	//Not yet implimented
 	MPI_Finalise();
@@ -579,14 +579,25 @@ int Init(int istart){
 		for(int j=0;j<4;j++)
 			gamval[i][j]*=akappa;
 #endif
+#ifdef USE_MKL
+	u11 = mkl_malloc(ndim*(kvol+halo)*sizeof(complex),AVX);
+	u12 = mkl_calloc(ndim*(kvol+halo),sizeof(complex),AVX);
+	u11t = mkl_malloc(ndim*(kvol+halo)*sizeof(complex),AVX);
+	u12t = mkl_calloc(ndim*(kvol+halo),sizeof(complex),AVX);
+
+#else
+	u11 = malloc(ndim*(kvol+halo)*sizeof(complex));
+	u12 = calloc(ndim*(kvol+halo),sizeof(complex));
+	u11t = malloc(ndim*(kvol+halo)*sizeof(complex));
+	u12t = calloc(ndim*(kvol+halo),sizeof(complex));
+#endif
 	if(istart==0){
 		//Initialise a cold start to zero
 		//memset is safe to use here because zero is zero 
-		for(int i=0; i<kvol;i++)
-			for(int mu=0; mu<ndim; mu++){
-				u11t[i][mu]=1;
-				u12t[i][mu]=0;
-			}
+		#pragma omp parallel for simd
+		for(int i=0; i<kvol*ndim;i++)
+				u11t[i]=1;
+			
 	}
 	else if(istart>0){
 #ifdef USE_CUDA
@@ -600,15 +611,14 @@ int Init(int istart){
 #else
 		//Depending if we have the RANLUX or SFMT19977 generator.	
 #pragma unroll
-		for(int i=0; i<kvol;i++)
-			for(int j=0; j<ndim; j++){
-				u11t[i][j]=sfmt_genrand_real1(&sfmt)+sfmt_genrand_real1(&sfmt)*I;
-				u12t[i][j]=sfmt_genrand_real1(&sfmt)+sfmt_genrand_real1(&sfmt)*I;
+		for(int i=0; i<kvol*ndim;i++){
+				u11t[i]=sfmt_genrand_real1(&sfmt)+sfmt_genrand_real1(&sfmt)*I;
+				u12t[i]=sfmt_genrand_real1(&sfmt)+sfmt_genrand_real1(&sfmt)*I;
 			}
 #endif
 	}
 	else{
-		fprintf(stderr,"Waring %i in %s: Gauge fields are not initialised.\n", NOINIT, funcname);
+		fprintf(stderr,"Warning %i in %s: Gauge fields are not initialised.\n", NOINIT, funcname);
 	}
 #ifdef _DEBUG
 	printf("Initialisation Complete\n");
@@ -648,11 +658,11 @@ int Force(double dSdpi[][3][ndirac], int iflag, double res1){
 	Gauge_force(dSdpi);
 	//X1=(M†M)^{1} Phi
 	int itercg;
-		#ifdef USE_MKL
-		complex *X2= mkl_malloc(kferm2Halo*sizeof(complex), AVX);
-		#else
-		complex *X2= malloc(kferm2Halo*sizeof(complex));
-		#endif
+#ifdef USE_MKL
+	complex *X2= mkl_malloc(kferm2Halo*sizeof(complex), AVX);
+#else
+	complex *X2= malloc(kferm2Halo*sizeof(complex));
+#endif
 	for(int na = 0; na<nf; na++){
 		memcpy(X1, X0+na*kferm2Halo, nc*ndirac*kvol*sizeof(complex));
 		//FORTRAN's logic is backwards due to the implied goto method
@@ -670,9 +680,9 @@ int Force(double dSdpi[][3][ndirac], int iflag, double res1){
 #pragma unroll
 				for(int idirac=0;idirac<ndirac;idirac++){
 					X0[((na*(kvol+halo)+i)*ndirac+idirac)*nc]=\
-					2*X1[(i*ndirac+idirac)*nc]-X0[((na*(kvol+halo)+i)*ndirac+idirac)*nc];
+												2*X1[(i*ndirac+idirac)*nc]-X0[((na*(kvol+halo)+i)*ndirac+idirac)*nc];
 					X0[((na*(kvol+halo)+i)*ndirac+idirac)*nc+1]=\
-					2*X1[(i*ndirac+idirac)*nc+1]-X0[((na*(kvol+halo)+i)*ndirac+idirac)*nc+1];
+												  2*X1[(i*ndirac+idirac)*nc+1]-X0[((na*(kvol+halo)+i)*ndirac+idirac)*nc+1];
 				}
 			}
 #endif
@@ -684,7 +694,7 @@ int Force(double dSdpi[][3][ndirac], int iflag, double res1){
 #else
 #pragma unroll
 		for(int i=0;i<kferm2;i++)
-				X2[i]*=2;
+			X2[i]*=2;
 #endif
 #pragma unroll
 		for(int mu=0;mu<4;mu++){
@@ -719,84 +729,84 @@ int Force(double dSdpi[][3][ndirac], int iflag, double res1){
 					igork1 = gamin[mu][idirac];	
 					dSdpi[i][0][mu]+=akappa*creal(zi*
 							(conj(X1[(i*ndirac+idirac)*nc])*
-							 (-conj(u12t[i][mu])*X2[(uid*ndirac+idirac)*nc]
-							  +conj(u11t[i][mu])*X2[(uid*ndirac+idirac)*nc+1])
+							 (-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
+							  +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc])*
-							 ( u12t[i][mu] *X2[(i*ndirac+idirac)*nc]
-							   -conj(u11t[i][mu])*X2[(i*ndirac+idirac)*nc+1])
+							 ( u12t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
+							   -conj(u11t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])
 							 +conj(X1[(i*ndirac+idirac)*nc+1])*
-							 (u11t[i][mu] *X2[(uid*ndirac+idirac)*nc]
-							  +u12t[i][mu] *X2[(uid*ndirac+idirac)*nc+1])
+							 (u11t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
+							  +u12t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-							 (-u11t[i][mu] *X2[(i*ndirac+idirac)*nc]
-							  -conj(u12t[i][mu])*X2[(i*ndirac+idirac)*nc+1])))
+							 (-u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
+							  -conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])))
 						+creal(zi*gamval[idirac][mu]*
 								(conj(X1[(i*ndirac+idirac)*nc])*
-								 (-conj(u12t[i][mu])*X2[(uid*ndirac+igork1)*nc]
-								  +conj(u11t[i][mu])*X2[(uid*ndirac+igork1)*nc+1])
+								 (-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
+								  +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1])
 								 +conj(X1[(uid*ndirac+idirac)*nc])*
-								 (-u12t[i][mu] *X2[(i*ndirac+igork1)*nc]
-								  +conj(u11t[i][mu])*X2[(i*ndirac+igork1)*nc+1])
+								 (-u12t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
+								  +conj(u11t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1])
 								 +conj(X1[(i*ndirac+idirac)*nc+1])*
-								 (u11t[i][mu] *X2[(uid*ndirac+igork1)*nc]
-								  +u12t[i][mu] *X2[(uid*ndirac+igork1)*nc+1])
+								 (u11t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
+								  +u12t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1])
 								 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-								 (u11t[i][mu] *X2[(i*ndirac+igork1)*nc]
-								  +conj(u12t[i][mu])*X2[(i*ndirac+igork1)*nc+1])));
+								 (u11t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
+								  +conj(u12t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1])));
 
 					dSdpi[i][1][mu]+=akappa*creal(
 							(conj(X1[(i*ndirac+idirac)*nc])*
-							 (-conj(u12t[i][mu])*X2[(uid*ndirac+idirac)*nc]
-							  +conj(u11t[i][mu])*X2[(uid*ndirac+idirac)*nc+1])
+							 (-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
+							  +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc])*
-							 (-u12t[i][mu] *X2[(i*ndirac+idirac)*nc]
-							  -conj(u11t[i][mu])*X2[(i*ndirac+idirac)*nc+1])
+							 (-u12t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
+							  -conj(u11t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])
 							 +conj(X1[(i*ndirac+idirac)*nc+1])*
-							 (-u11t[i][mu] *X2[(uid*ndirac+idirac)*nc]
-							  -u12t[i][mu] *X2[(uid*ndirac+idirac)*nc+1])
+							 (-u11t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
+							  -u12t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-							 (u11t[i][mu] *X2[(i*ndirac+idirac)*nc]
-							  -conj(u12t[i][mu])*X2[(i*ndirac+idirac)*nc+1])))
+							 (u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
+							  -conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])))
 						+creal(gamval[idirac][mu]*
 								(conj(X1[(i*ndirac+idirac)*nc])*
-								 (-conj(u12t[i][mu])*X2[(uid*ndirac+igork1)*nc]
-								  +conj(u11t[i][mu])*X2[(uid*ndirac+igork1)*nc+1])
+								 (-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
+								  +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1])
 								 +conj(X1[(uid*ndirac+idirac)*nc])*
-								 (u12t[i][mu] *X2[(i*ndirac+igork1)*nc]
-								  +conj(u11t[i][mu])*X2[(i*ndirac+igork1)*nc+1])
+								 (u12t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
+								  +conj(u11t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1])
 								 +conj(X1[(i*ndirac+idirac)*nc+1])*
-								 (-u11t[i][mu] *X2[(uid*ndirac+igork1)*nc]
-								  -u12t[i][mu] *X2[(uid*ndirac+igork1)*nc+1])
+								 (-u11t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
+								  -u12t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1])
 								 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-								 (-u11t[i][mu] *X2[(i*ndirac+igork1)*nc]
-								  +conj(u12t[i][mu])*X2[(i*ndirac+igork1)*nc+1])));
+								 (-u11t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
+								  +conj(u12t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1])));
 
 					dSdpi[i][2][mu]+=akappa*creal(zi*
 							(conj(X1[(i*ndirac+idirac)*nc])*
-							 (u11t[i][mu] *X2[(uid*ndirac+idirac)*nc]
-							  +u12t[i][mu] *X2[(uid*ndirac+idirac)*nc+1])
+							 (u11t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
+							  +u12t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc])*
-							 (-conj(u11t[i][mu])*X2[(i*ndirac+idirac)*nc]
-							  -u12t[i][mu] *X2[(i*ndirac+idirac)*nc+1])
+							 (-conj(u11t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc]
+							  -u12t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc+1])
 							 +conj(X1[(i*ndirac+idirac)*nc+1])*
-							 (conj(u12t[i][mu])*X2[(uid*ndirac+idirac)*nc]
-							  -conj(u11t[i][mu])*X2[(uid*ndirac+idirac)*nc+1])
+							 (conj(u12t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
+							  -conj(u11t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-							 (-conj(u12t[i][mu])*X2[(i*ndirac+idirac)*nc]
-							  +u11t[i][mu] *X2[(i*ndirac+idirac)*nc+1])))
+							 (-conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc]
+							  +u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc+1])))
 						+creal(zi*gamval[idirac][mu]*
 								(conj(X1[(i*ndirac+idirac)*nc])*
-								 (u11t[i][mu] *X2[(uid*ndirac+igork1)*nc]
-								  +u12t[i][mu] *X2[(uid*ndirac+igork1)*nc+1])
+								 (u11t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
+								  +u12t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1])
 								 +conj(X1[(uid*ndirac+idirac)*nc])*
-								 (conj(u11t[i][mu])*X2[(i*ndirac+igork1)*nc]
-								  +u12t[i][mu] *X2[(i*ndirac+igork1)*nc+1])
+								 (conj(u11t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc]
+								  +u12t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc+1])
 								 +conj(X1[(i*ndirac+idirac)*nc+1])*
-								 (conj(u12t[i][mu])*X2[(uid*ndirac+igork1)*nc]
-								  -conj(u11t[i][mu])*X2[(uid*ndirac+igork1)*nc+1])
+								 (conj(u12t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
+								  -conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1])
 								 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-								 (conj(u12t[i][mu])*X2[(i*ndirac+igork1)*nc]
-								  -u11t[i][mu] *X2[(i*ndirac+igork1)*nc+1])));
+								 (conj(u12t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc]
+								  -u11t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc+1])));
 
 				}
 				//We're not done tripping yet!! Time like term is different. dk4? shows up
@@ -807,92 +817,92 @@ int Force(double dSdpi[][3][ndirac], int iflag, double res1){
 				//for the "gamval" terms the sign of d4kp flips
 				dSdpi[i][0][mu]+=creal(zi*
 						(conj(X1[(i*ndirac+idirac)*nc])*
-						 (dk4m[i]*(-conj(u12t[i][mu])*X2[(uid*ndirac+idirac)*nc]
-							     +conj(u11t[i][mu])*X2[(uid*ndirac+idirac)*nc+1]))
+						 (dk4m[i]*(-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
+							     +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1]))
 						 +conj(X1[(uid*ndirac+idirac)*nc])*
-						 (dk4p[i]*      (+u12t[i][mu] *X2[(i*ndirac+idirac)*nc]
-								     -conj(u11t[i][mu])*X2[(i*ndirac+idirac)*nc+1]))
+						 (dk4p[i]*      (+u12t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
+								     -conj(u11t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1]))
 						 +conj(X1[(i*ndirac+idirac)*nc+1])*
-						 (dk4m[i]*       (u11t[i][mu] *X2[(uid*ndirac+idirac)*nc]
-									+u12t[i][mu] *X2[(uid*ndirac+idirac)*nc+1]))
+						 (dk4m[i]*       (u11t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
+									+u12t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1]))
 						 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-						 (dk4p[i]*      (-u11t[i][mu] *X2[(i*ndirac+idirac)*nc]
-								     -conj(u12t[i][mu])*X2[(i*ndirac+idirac)*nc+1]))))
+						 (dk4p[i]*      (-u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
+								     -conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1]))))
 					+creal(zi*
 							(conj(X1[(i*ndirac+idirac)*nc])*
-							 (dk4m[i]*(-conj(u12t[i][mu])*X2[(uid*ndirac+igork1)*nc]
-								     +conj(u11t[i][mu])*X2[(uid*ndirac+igork1)*nc+1]))
+							 (dk4m[i]*(-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
+								     +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1]))
 							 +conj(X1[(uid*ndirac+idirac)*nc])*
-							 (-dk4p[i]*       (u12t[i][mu] *X2[(i*ndirac+igork1)*nc]
-										 -conj(u11t[i][mu])*X2[(i*ndirac+igork1)*nc+1]))
+							 (-dk4p[i]*       (u12t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
+										 -conj(u11t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1]))
 							 +conj(X1[(i*ndirac+idirac)*nc+1])*
-							 (dk4m[i]*       (u11t[i][mu] *X2[(uid*ndirac+igork1)*nc]
-										+u12t[i][mu] *X2[(uid*ndirac+igork1)*nc+1]))
+							 (dk4m[i]*       (u11t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
+										+u12t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1]))
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-							 (-dk4p[i]*      (-u11t[i][mu] *X2[(i*ndirac+igork1)*nc]
-										-conj(u12t[i][mu])*X2[(i*ndirac+igork1)*nc+1]))));
+							 (-dk4p[i]*      (-u11t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
+										-conj(u12t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1]))));
 
 				dSdpi[i][1][mu]+=creal(
 						conj(X1[(i*ndirac+idirac)*nc])*
-						(dk4m[i]*(-conj(u12t[i][mu])*X2[(uid*ndirac+idirac)*nc]
-							    +conj(u11t[i][mu])*X2[(uid*ndirac+idirac)*nc+1]))
+						(dk4m[i]*(-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
+							    +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1]))
 						+conj(X1[(uid*ndirac+idirac)*nc])*
-						(dk4p[i]*      (-u12t[i][mu] *X2[(i*ndirac+idirac)*nc]
-								    -conj(u11t[i][mu])*X2[(i*ndirac+idirac)*nc+1]))
+						(dk4p[i]*      (-u12t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
+								    -conj(u11t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1]))
 						+conj(X1[(i*ndirac+idirac)*nc+1])*
-						(dk4m[i]*      (-u11t[i][mu] *X2[(uid*ndirac+idirac)*nc]
-								    -u12t[i][mu] *X2[(uid*ndirac+idirac)*nc+1]))
+						(dk4m[i]*      (-u11t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
+								    -u12t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1]))
 						+conj(X1[(uid*ndirac+idirac)*nc+1])*
-						(dk4p[i]*      ( u11t[i][mu] *X2[(i*ndirac+idirac)*nc]
-								     -conj(u12t[i][mu])*X2[(i*ndirac+idirac)*nc+1])))
+						(dk4p[i]*      ( u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
+								     -conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])))
 					+creal(
 							(conj(X1[(i*ndirac+idirac)*nc])*
-							 (dk4m[i]*(-conj(u12t[i][mu])*X2[(uid*ndirac+igork1)*nc]
-								     +conj(u11t[i][mu])*X2[(uid*ndirac+igork1)*nc+1]))
+							 (dk4m[i]*(-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
+								     +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1]))
 							 +conj(X1[(uid*ndirac+idirac)*nc])*
-							 (-dk4p[i]*      (-u12t[i][mu] *X2[(i*ndirac+igork1)*nc]
-										-conj(u11t[i][mu])*X2[(i*ndirac+igork1)*nc+1]))
+							 (-dk4p[i]*      (-u12t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
+										-conj(u11t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1]))
 							 +conj(X1[(i*ndirac+idirac)*nc+1])*
-							 (dk4m[i]*      (-u11t[i][mu] *X2[(uid*ndirac+igork1)*nc]
-									     -u12t[i][mu] *X2[(uid*ndirac+igork1)*nc+1]))
+							 (dk4m[i]*      (-u11t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
+									     -u12t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1]))
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-							 (-dk4p[i]*       (u11t[i][mu] *X2[(i*ndirac+igork1)*nc]
-										 -conj(u12t[i][mu])*X2[(i*ndirac+igork1)*nc+1]))));
+							 (-dk4p[i]*       (u11t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
+										 -conj(u12t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1]))));
 
 				dSdpi[i][2][mu]+=creal(zi*
 						(conj(X1[(i*ndirac+idirac)*nc])*
-						 (dk4m[i]*       (u11t[i][mu] *X2[(uid*ndirac+idirac)*nc]
-									+u12t[i][mu] *X2[(uid*ndirac+idirac)*nc+1]))
+						 (dk4m[i]*       (u11t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
+									+u12t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1]))
 						 +conj(X1[(uid*ndirac+idirac)*nc])*
-						 (dk4p[i]*(-conj(u11t[i][mu])*X2[(i*ndirac+idirac)*nc]
-							     -u12t[i][mu] *X2[(i*ndirac+idirac)*nc+1]))
+						 (dk4p[i]*(-conj(u11t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc]
+							     -u12t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc+1]))
 						 +conj(X1[(i*ndirac+idirac)*nc+1])*
-						 (dk4m[i]* (conj(u12t[i][mu])*X2[(uid*ndirac+idirac)*nc]
-								-conj(u11t[i][mu])*X2[(uid*ndirac+idirac)*nc+1]))
+						 (dk4m[i]* (conj(u12t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
+								-conj(u11t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1]))
 						 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-						 (dk4p[i]*(-conj(u12t[i][mu])*X2[(i*ndirac+idirac)*nc]
-							     +u11t[i][mu] *X2[(i*ndirac+idirac)*nc+1]))))
+						 (dk4p[i]*(-conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc]
+							     +u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc+1]))))
 					+creal(zi*
 							(conj(X1[(i*ndirac+idirac)*nc])*
-							 (dk4m[i]*       (u11t[i][mu] *X2[(uid*ndirac+igork1)*nc]
-										+u12t[i][mu] *X2[(uid*ndirac+igork1)*nc+1]))
+							 (dk4m[i]*       (u11t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
+										+u12t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1]))
 							 +conj(X1[(uid*ndirac+idirac)*nc])*
-							 (-dk4p[i]*(-conj(u11t[i][mu])*X2[(i*ndirac+igork1)*nc]
-									-u12t[i][mu] *X2[(i*ndirac+igork1)*nc+1]))
+							 (-dk4p[i]*(-conj(u11t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc]
+									-u12t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc+1]))
 							 +conj(X1[(i*ndirac+idirac)*nc+1])*
-							 (dk4m[i]* (conj(u12t[i][mu])*X2[(uid*ndirac+igork1)*nc]
-									-conj(u11t[i][mu])*X2[(uid*ndirac+igork1)*nc+1]))
+							 (dk4m[i]* (conj(u12t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
+									-conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1]))
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-							 (-dk4p[i]*(-conj(u12t[i][mu])*X2[(i*ndirac+igork1)*nc]
-									+u11t[i][mu] *X2[(i*ndirac+igork1)*nc+1]))));
+							 (-dk4p[i]*(-conj(u12t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc]
+									+u11t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc+1]))));
 
 			}
 	}
-	#ifdef USE_MKL
-		mkl_free(X2);
-	#else
-		free(X2);
-	#endif
+#ifdef USE_MKL
+	mkl_free(X2);
+#else
+	free(X2);
+#endif
 	return 0;
 }
 int Gauge_force(double dSdpi[][3][ndirac]){
@@ -920,31 +930,31 @@ int Gauge_force(double dSdpi[][3][ndirac]){
 		//A better approach is clearly needed
 		complex z[kvol+halo] __attribute__((aligned(AVX)));
 #if (defined USE_MKL || defined USE_BLAS)
-		cblas_zcopy(kvol, &u11t[0][mu], ndim, z, 1);
+		cblas_zcopy(kvol, &u11t[mu], ndim, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
-			z[i]=u11t[i][mu];
+			z[i]=u11t[i*ndim+mu];
 #endif
 		ZHalo_swap_all(z,1);
 		//And the swap back
 #if (defined USE_MKL || defined USE_BLAS)
-		cblas_zcopy(kvol+halo, z, 1, &u11t[0][mu], ndim);
+		cblas_zcopy(kvol+halo, z, 1, &u11t[mu], ndim);
 #else
 		for(int i=0; i<kvol+halo;i++)
-			u11t[i][mu]=z[i];
+			u11t[i*ndim+mu]=z[i];
 #endif
 #if (defined USE_MKL || defined USE_BLAS)
-		cblas_zcopy(kvol+halo, &u12t[0][mu], ndim, z, 1);
+		cblas_zcopy(kvol+halo, &u12t[mu], ndim, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
-			z[i]=u12t[i][mu];
+			z[i]=u12t[i*ndim+mu];
 #endif
 		ZHalo_swap_all(z,1);
 #if (defined USE_MKL || defined USE_BLAS)
-		cblas_zcopy(kvol+halo, z, 1, &u12t[0][mu], ndim);
+		cblas_zcopy(kvol+halo, z, 1, &u12t[mu], ndim);
 #else
 		for(int i=0; i<kvol+halo;i++)
-			u12t[i][mu]=z[i];
+			u12t[i*ndim+mu]=z[i];
 #endif
 	}
 	complex Sigma11[kvol], Sigma12[kvol] __attribute__((aligned(AVX)));
@@ -961,29 +971,29 @@ int Gauge_force(double dSdpi[][3][ndirac]){
 
 					int uidm = iu[mu][i];
 					int uidn = iu[nu][i];
-					complex	a11=u11t[uidm][nu]*conj(u11t[uidn][mu])+\
-							    u12t[uidm][nu]*conj(u12t[uidn][mu]);
-					complex	a12=-u11t[uidm][nu]*u12t[uidn][mu]+\
-							    u12t[uidm][nu]*u11t[uidn][mu];
+					complex	a11=u11t[uidm*ndim+nu]*conj(u11t[uidn*ndim+mu])+\
+							    u12t[uidm*ndim+nu]*conj(u12t[uidn*ndim+mu]);
+					complex	a12=-u11t[uidm*ndim+nu]*u12t[uidn*ndim+mu]+\
+							    u12t[uidm*ndim+nu]*u11t[uidn*ndim+mu];
 
-					Sigma11[i]+=a11*conj(u11t[i][nu])+a12*conj(u12t[i][nu]);
-					Sigma12[i]+=-a11*u12t[i][nu]+a12*u11t[i][nu];
+					Sigma11[i]+=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
+					Sigma12[i]+=-a11*u12t[i*ndim+nu]+a12*u11t[i*ndim+nu];
 				}
 				complex z[kvol+halo] __attribute__((aligned(AVX)));
 #if (defined USE_MKL || defined USE_BLAS)
-				cblas_zcopy(kvol+halo, &u11t[0][nu], 4, z, 1);
+				cblas_zcopy(kvol+halo, &u11t[nu], 4, z, 1);
 #else
 #pragma unroll
 				for(int i=0; i<kvol+halo;i++)
-					z[i]=u11t[i][nu];
+					z[i]=u11t[i*ndim+nu];
 #endif
 				Z_gather(u11sh, z, kvol, id[nu]);
 #if (defined USE_MKL || defined USE_BLAS)
-				cblas_zcopy(kvol+halo, &u12t[0][nu], 4, z, 1);
+				cblas_zcopy(kvol+halo, &u12t[nu], 4, z, 1);
 #else
 #pragma unroll
 				for(int i=0; i<kvol+halo;i++)
-					z[i]=u12t[i][nu];
+					z[i]=u12t[i*ndim+nu];
 #endif
 				Z_gather(u12sh, z, kvol, id[nu]);
 				ZHalo_swap_dir(u11sh, 1, mu, DOWN);
@@ -994,20 +1004,20 @@ int Gauge_force(double dSdpi[][3][ndirac]){
 					int uidm = iu[mu][i];
 					int didm = id[mu][i];	int didn = id[nu][i];
 					//uidm is correct here
-					complex a11=conj(u11sh[uidm])*conj(u11t[didn][mu])-\
-							u12sh[uidm]*conj(u12t[didn][mu]);
-					complex a12=-conj(u11sh[uidm])*u12t[didn][mu]-\
-							u12sh[uidm]*u11t[didn][mu];
+					complex a11=conj(u11sh[uidm])*conj(u11t[didn*ndim+mu])-\
+							u12sh[uidm]*conj(u12t[didn*ndim+mu]);
+					complex a12=-conj(u11sh[uidm])*u12t[didn*ndim+mu]-\
+							u12sh[uidm]*u11t[didn*ndim+mu];
 
-					Sigma11[i]+=a11*u11t[didn][nu]-a12*conj(u12t[didn][nu]);
-					Sigma12[i]+=a11*u12t[didn][nu]+a12*conj(u11t[didn][nu]);
+					Sigma11[i]+=a11*u11t[didn*ndim+nu]-a12*conj(u12t[didn*ndim+nu]);
+					Sigma12[i]+=a11*u12t[didn*ndim+nu]+a12*conj(u11t[didn*ndim+nu]);
 				}
 			}
 		}
 #pragma omp parallel for simd
 		for(int i=0;i<kvol;i++){
-			complex a11 = u11t[i][mu]*Sigma12[i]+u12t[i][mu]*conj(Sigma11[i]);
-			complex a12 = u11t[i][mu]*Sigma11[i]+conj(u12t[i][mu])*Sigma12[i];
+			complex a11 = u11t[i*ndim+mu]*Sigma12[i]+u12t[i*ndim+mu]*conj(Sigma11[i]);
+			complex a12 = u11t[i*ndim+mu]*Sigma11[i]+conj(u12t[i*ndim+mu])*Sigma12[i];
 
 			dSdpi[i][0][mu]=beta*cimag(a11);
 			dSdpi[i][1][mu]=beta*creal(a11);
@@ -1035,7 +1045,6 @@ int Hamilton(double *h, double *s, double res2){
 	 * double *h:
 	 * double *s:
 	 * double res2:
-	 * int isweep:	The current sweep number
 	 *
 	 * Returns:
 	 * =======
@@ -1086,8 +1095,8 @@ int Hamilton(double *h, double *s, double res2){
 	//hg was summed over inside of SU2plaq.
 	Par_dsum(&hp); Par_dsum(&hf);
 	*s=hg+hf; *h=*s+hp;
-	//Here the FORTRAN code prints isweep and the values of all the h's.
-	//I'm going to use the preprocessor to do that instead, with the isweep
+	//Here the FORTRAN code prints itraj and the values of all the h's.
+	//I'm going to use the preprocessor to do that instead, with the itraj
 	//outside the function.
 #ifdef _DEBUG
 	if(!rank)
@@ -1138,7 +1147,15 @@ int Congradq(int na, double res, int *itercg){
 	//Give initial values Will be overwritten if niterx>0
 	complex betad = 1.0; complex alphad=0; complex alpha = 1;
 	//Because we're dealing with flattened arrays here we can call cblas safely without the halo
-	complex p[kferm2Halo], r[kferm2], smallPhi[kferm2Halo] __attribute__((aligned(AVX)));
+	#ifdef USE_MKL
+	complex *p  = mkl_malloc(kferm2Halo*sizeof(complex),AVX);
+	complex *smallPhi = mkl_malloc(kferm2Halo*sizeof(complex),AVX);
+	complex *r  = mkl_malloc(kferm2*sizeof(complex),AVX);
+	#else
+	complex *p  = malloc(kferm2Halo*sizeof(complex));
+	complex *smallPhi = malloc(kferm2Halo*sizeof(complex));
+	complex *r  = malloc(kferm2*sizeof(complex));
+	#endif
 	Fill_Small_Phi(na, smallPhi);
 	//Instead of copying elementwise in a loop, use memcpy.
 	memcpy(p, X1, kferm2*sizeof(complex));
@@ -1188,7 +1205,7 @@ int Congradq(int na, double res, int *itercg){
 			cblas_zaxpy(kferm2, &alpha, p, 1, X1, 1);
 #else
 			for(int i=0; i<kferm2; i++)
-				***(X1+i)+=alpha*p[i];
+				X1[i]+=alpha*p[i];
 #endif
 		}			
 		// r_n+1 = r_n-α(M^† M)p_n and β_n=r*.r
@@ -1228,14 +1245,16 @@ int Congradq(int na, double res, int *itercg){
 #ifdef _DEBUG
 			if(!rank) printf("Iter (CG) = %i resid = %f toler = %f\n", niterx, creal(betan), resid);
 #endif
-			return 0;
+			break;
 		}
+		if(!rank && niterx==niterc-1)
+			fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i β_n=%f\n", ITERLIM, funcname, niterc, creal(betan));
 	}
-	if(!rank){
-		fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i β_n=%f\n", ITERLIM, funcname, niterc, creal(betan));
-		MPI_Finalise();
-		exit(ITERLIM);
-	}
+#ifdef USE_MKL
+	mkl_free(x1), mkl_free(x2), mkl_free(p), mkl_free(r), mkl_free(smallPhi);
+#else
+	free(x1), free(x2), free(p), free(r), free(smallPhi);
+#endif
 	return 0;
 }
 int Congradp(int na, double res, int *itercg){
@@ -1280,9 +1299,15 @@ int Congradp(int na, double res, int *itercg){
 	complex alphan;
 	//Give initial values Will be overwritten if niterx>0
 	complex betad = 1.0; complex alphad=0; complex alpha = 1;
-	complex p[kfermHalo], r[kferm] __attribute__((aligned(AVX)));
+#ifdef USE_MKL
+	complex *p  = mkl_malloc(kfermHalo*sizeof(complex),AVX);
+	complex *r  = mkl_malloc(kferm*sizeof(complex),AVX);
+#else
+	complex *p  = malloc(kfermHalo*sizeof(complex));
+	complex *r  = malloc(kferm*sizeof(complex));
+#endif
 	//Instead of copying elementwise in a loop, use memcpy.
-	memcpy(p, xi, kfermHalo*sizeof(complex));
+	memcpy(p, xi, kferm*sizeof(complex));
 	memcpy(r, Phi+na*kfermHalo, kferm*sizeof(complex));
 
 	// Declaring placeholder arrays 
@@ -1299,6 +1324,7 @@ int Congradp(int na, double res, int *itercg){
 
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
 	//if statements quicker to type
+	complex betan;
 	for(int niterx=0; niterx<niterc; niterx++){
 		(*itercg)++;
 		Dslash(x1,p);
@@ -1314,19 +1340,18 @@ int Congradp(int na, double res, int *itercg){
 #endif
 			Par_dsum(&alphad);
 			//α=(r.r)/p(M^†)Mp
-			alpha=alphan/alphad;
+			alpha=creal(alphan)/creal(alphad);
 			//x+αp
 #if (defined USE_MKL || defined USE_BLAS)
 			cblas_zaxpy(kferm, &alpha, p, 1, xi, 1);
 #else
 			for(int i = 0; i<kferm; i++)
-				***(xi+i)+=alpha*p[i];
+				xi[i]+=alpha*p[i];
 #endif
 		}
 		//x2=(M^†)x1=(M^†)Mp
 		Dslashd(x2,x1);
 		//r-α(M^†)Mp and β_n=r*.r
-		complex betan;
 #if (defined USE_MKL || defined USE_BLAS)
 		alpha*=-1;
 		cblas_zaxpy(kferm, &alpha, x2, 1, r, 1);
@@ -1341,13 +1366,13 @@ int Congradp(int na, double res, int *itercg){
 		//addition.
 		betan = 0;
 		for(int i = 0; i<kferm;i++){
-			r[i]-=alpha* *(x2+i);
+			r[i]-=alpha*x2[i];
 			betan+=conj(r[i])*r[i];
 		}
 #endif
 		//This is basically just congradq at the end. Check there for comments
 		Par_dsum(&betan);
-		beta = (niterx) ? betan/betad : 0;
+		complex beta = (niterx) ? betan/betad : 0;
 		betad=betan; alphan=betan;
 		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multipyling y by 
 		//β instead of x.
@@ -1360,14 +1385,20 @@ int Congradp(int na, double res, int *itercg){
 			p[i]=r[i]+beta*p[i];
 #endif
 		//If we get a small enough β_n before hitting the iteration cap we break
-		if(creal(betan)<resid){ 
+		if(creal(betan)<resid){
 #ifdef _DEBUG
 			if(!rank) printf("Iter (CG) = %i resid = %f toler = %f", niterx, betan, resid);
 #endif
-			return 0;
+			break;
 		}
+		if(!rank && niterx==niterc-1)
+			fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i β_n=%f\n", ITERLIM, funcname, niterc, creal(betan));
 	}
-	if(!rank) fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i\n", ITERLIM, funcname, niterc);
+	#ifdef USE_MKL
+	mkl_free(p); mkl_free(r); mkl_free(x1); mkl_free(x2);
+	#else
+	free(p); free(r); free(x1); free(x2);
+	#endif
 	return 0;
 }
 int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbqb, double res, int *itercg){
@@ -1405,13 +1436,14 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 	 * Zero on success, integer error code otherwise
 	 */
 	const char *funcname = "Measure";
-	complex *ps;
 	//This x is just a storage container
-	complex x[kvol+halo][ngorkov][nc] __attribute__((aligned(64)));
+		
 #ifdef USE_MKL
-	ps = mkl_calloc(kvol, sizeof(complex), AVX);
+	complex *ps = mkl_calloc(kvol, sizeof(complex), AVX);
+	complex *x = mkl_malloc(kfermHalo*sizeof(complex), AVX);
 #else
-	ps = calloc(kvol, sizeof(complex));
+	complex *ps = calloc(kvol, sizeof(complex));
+	complex *x = malloc(kfermHalo*sizeof(complex));
 #endif
 	//Setting up noise. I don't see any reason to loop
 	//over colour indices as it is a two-colour code.
@@ -1419,34 +1451,31 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 
 	//The root two term comes from the fact we called gauss0 in the fortran code instead of gaussp
 #ifdef USE_MKL
-	vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*ngorkov*nc*kvol, xi[0], 0, 1/sqrt(2));
+	vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, xi, 0, 1/sqrt(2));
 #else
-	Gauss_z(xi[0], ngorkov, 0, 1/sqrt(2));
+	Gauss_z(xi, kferm, 0, 1/sqrt(2));
 #endif
-	memcpy(x, xi, nc*ngorkov*kvol*sizeof(complex));
+	memcpy(x, xi, kferm*sizeof(complex));
 
 	//R_1= M^† Ξ 
 	Dslashd(R1, xi);
 	//Copying R1 to the first (zeroth) flavour index of Phi
 	//This should be safe with memcpy since the pointer name
 	//references the first block of memory for that pointer
-	memcpy(Phi, R1, 2*ngorkov*kvol*sizeof(complex));
-	memcpy(xi, R1, 2*ngorkov*kvol*sizeof(complex));
+	memcpy(Phi, R1, nc*ngorkov*kvol*sizeof(complex));
+	memcpy(xi, R1, nc*ngorkov*kvol*sizeof(complex));
 
 	//Evaluate xi = (M^† M)^-1 R_1 
 	Congradp(1, res, itercg);
 	*pbp = 0;
 #if (defined USE_MKL || defined USE_BLAS)
-	*pbp = cblas_dznrm2(kvol*ngorkov*nc, x, 1);
+	*pbp = cblas_dznrm2(kferm, x, 1);
 	*pbp*=*pbp;
 #else
-	for(int i=0;i<kvol;i++)
 #pragma unroll
-		for(int igorkov = 0; igorkov<ngorkov; igorkov++){
-			*pbp+=creal(conj(x[i][igorkov][0])*x[i][igorkov][0]);
-			*pbp+=creal(conj(x[i][igorkov][1])*x[i][igorkov][1]);
-		}
-
+	for(int i=0;i<kferm;i++)
+			*pbp+=creal(conj(x[i])*x[i]);
+		
 #endif
 	Par_dsum(pbp);
 	*pbp/=4*gvol;
@@ -1461,9 +1490,9 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 			complex dot;
 			//Because we have kvol on the outer index and are summing over it, we set the
 			//step for BLAS to be ngorkov*nc=16. 
-			cblas_zdotc_sub(kvol, &x[0][idirac][ic], ngorkov*nc, &xi[0][igork][ic], ngorkov*nc, &dot);
+			cblas_zdotc_sub(kvol, &x[idirac*nc+ic], ngorkov*nc, &xi[igork*nc+ic], ngorkov*nc, &dot);
 			*qbqb+=dot;
-			cblas_zdotc_sub(kvol, &x[0][igork][ic], ngorkov*nc, &xi[0][idirac][ic], ngorkov*nc, &dot);
+			cblas_zdotc_sub(kvol, &x[igork*nc+ic], ngorkov*nc, &xi[idirac*nc+ic], ngorkov*nc, &dot);
 			*qq-=dot;
 		}
 		*qbqb *= gamval[4][idirac];
@@ -1472,10 +1501,10 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 #pragma unroll
 		for(int i=0; i<kvol; i++){
 			//What is the optimal order to evaluate these in?
-			*qbqb+=gamval[4][idirac]*conj(x[i][idirac][0])*xi[i][igork][0];
-			*qq-=gamval[4][idirac]*conj(x[i][igork][0])*xi[i][idirac][0];
-			*qbqb+=gamval[4][idirac]*conj(x[i][idirac][1])*xi[i][igork][1];
-			*qq-=gamval[4][idirac]*conj(x[i][igork][1])*xi[i][idirac][1];
+			*qbqb+=gamval[4][idirac]*conj(x[(i*ngorkov+idirac)*nc])*xi[(i*ngorkov+igork)*nc];
+			*qq-=gamval[4][idirac]*conj(x[(i*ngorkov+igork)*nc])*xi[(i*ngorkov+idirac)*nc];
+			*qbqb+=gamval[4][idirac]*conj(x[(i*ngorkov+idirac)*nc+1])*xi[(i*ngorkov+igork)*nc+1];
+			*qq-=gamval[4][idirac]*conj(x[(i*ngorkov+igork)*nc+1])*xi[(i*ngorkov+idirac)*nc+1];
 		}
 #endif
 	}
@@ -1488,40 +1517,49 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 	//Halos
 	ZHalo_swap_dir(x,16,3,DOWN);		ZHalo_swap_dir(x,16,3,UP);
 	//Pesky halo exchange indices again
-	complex z[kvol+halo] __attribute__((aligned(AVX)));
-#if (defined USE_MKL || defined USE_BLAS)
-	cblas_zcopy(kvol, &u11t[0][3], 4, z, 1);
+#ifdef USE_MKL
+	complex *z = mkl_malloc((kvol+halo)*sizeof(complex),AVX);
 #else
-#pragma unroll
-	for(int i=0; i<kvol;i++)
-		z[i]=u11t[i][3];
-#endif
-	ZHalo_swap_dir(z,1,3, UP);
-#if (defined USE_MKL || defined USE_BLAS)
-	cblas_zcopy(kvol+halo, z, 1, &u11t[0][3], 4);
-#else
-#pragma unroll
-	for(int i=0; i<kvol;i++)
-		u11t[i][3]=z[i];
-#endif
-#if (defined USE_MKL || defined USE_BLAS)
-	cblas_zcopy(kvol, &u12t[0][3], 4, z, 1);
-#else
-#pragma unroll
-	for(int i=0; i<kvol;i++)
-		z[i]=u12t[i][3];
-#endif
-	ZHalo_swap_dir(z,1,3, UP);
-#if (defined USE_MKL || defined USE_BLAS)
-	cblas_zcopy(kvol+halo, z, 1, &u12t[0][3], 4);
-#else
-#pragma unroll
-	for(int i=0; i<kvol;i++)
-		u12t[i][3]=z[i];
+	complex *z = malloc((kvol+halo)*sizeof(complex));
 #endif
 
+#if (defined USE_MKL || defined USE_BLAS)
+	cblas_zcopy(kvol, &u11t[3], 4, z, 1);
+#else
+#pragma unroll
+	for(int i=0; i<kvol;i++)
+		z[i]=u11t[i*ndim+3];
+#endif
+	ZHalo_swap_dir(z,1,3, UP);
+#if (defined USE_MKL || defined USE_BLAS)
+	cblas_zcopy(kvol+halo, z, 1, &u11t[3], 4);
+#else
+#pragma unroll
+	for(int i=0; i<kvol;i++)
+		u11t[i*ndim+3]=z[i];
+#endif
+#if (defined USE_MKL || defined USE_BLAS)
+	cblas_zcopy(kvol, &u12t[3], 4, z, 1);
+#else
+#pragma unroll
+	for(int i=0; i<kvol;i++)
+		z[i]=u12t[i*ndim+3];
+#endif
+	ZHalo_swap_dir(z,1,3, UP);
+#if (defined USE_MKL || defined USE_BLAS)
+	cblas_zcopy(kvol+halo, z, 1, &u12t[3], 4);
+#else
+#pragma unroll
+	for(int i=0; i<kvol;i++)
+		u12t[i*ndim+3]=z[i];
+#endif
+#ifdef USE_MKL
+	mkl_free(z);
+#else
+	free(z);
+#endif
 	DHalo_swap_dir(dk4p, 1, 3, UP);		DHalo_swap_dir(dk4m, 1, 3, UP);	
-	//Instead of typing id[i][3] a lot, we'll just assign them to variables.
+	//Instead of typing id[i*ndim+3] a lot, we'll just assign them to variables.
 	//Idea. One loop instead of two loops but for xuu and xdd just use ngorkov-(igorkov+1) instead
 #pragma omp parallel for simd reduction(+:xd,xu,xdd,xuu) 
 	for(int i = 0; i<kvol; i++){
@@ -1532,37 +1570,37 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 			int igork1=gamin[3][igorkov];
 			//For the C Version I'll try and factorise where possible
 
-			xu+=dk4p[did]*(conj(x[did][igorkov][0])*(\
-						u11t[did][3]*(xi[i][igork1][0]-xi[i][igorkov][0])+\
-						u12t[did][3]*(xi[i][igork1][1]-xi[i][igorkov][1]) )+\
-					conj(x[did][igorkov][1])*(\
-						conj(u11t[did][3])*(xi[i][igork1][1]-xi[i][igorkov][0])+\
-						conj(u12t[did][3])*(xi[i][igorkov][0]-xi[i][igork1][1]) ) );			
+			xu+=dk4p[did]*(conj(x[(did*ngorkov+igorkov)*nc])*(\
+						u11t[did*ndim+3]*(xi[(i*ngorkov+igork1)*nc]-xi[(i*ngorkov+igorkov)*nc])+\
+						u12t[did*ndim+3]*(xi[(i*ngorkov+igork1)*nc+1]-xi[(i*ngorkov+igorkov)*nc+1]) )+\
+					conj(x[(did*ngorkov+igorkov)*nc+1])*(\
+						conj(u11t[did*ndim+3])*(xi[(i*ngorkov+igork1)*nc+1]-xi[(i*ngorkov+igorkov)*nc])+\
+						conj(u12t[did*ndim+3])*(xi[(i*ngorkov+igorkov)*nc]-xi[(i*ngorkov+igork1)*nc+1]) ) );			
 
 			//This looks very BLASable if not for the UID terms. Could BLAS the vector sums?
 			//No. That's stupid and won't work.
-			xd+=dk4m[i]*(conj(x[uid][igorkov][0])*(\
-						conj(u11t[3][i])*(xi[i][igork1][0]+xi[i][igorkov][0])-\
-						u12t[i][3]*(xi[i][igork1][1]+xi[i][igorkov][1]) )+\
-					conj(x[uid][igorkov][1])*(\
-						u11t[3][i]*(xi[i][igork1][1]+xi[i][igorkov][1])+\
-						conj(u12t[i][3])*(xi[i][igorkov][0]+xi[i][igork1][0]) ) );
+			xd+=dk4m[i]*(conj(x[(uid*ngorkov+igorkov)*nc])*(\
+						conj(u11t[i*ndim+3])*(xi[(i*ngorkov+igork1)*nc]+xi[(i*ngorkov+igorkov)*nc])-\
+						u12t[i*ndim+3]*(xi[(i*ngorkov+igork1)*nc+1]+xi[(i*ngorkov+igorkov)*nc+1]) )+\
+					conj(x[(uid*ngorkov+igorkov)*nc+1])*(\
+						u11t[i*ndim+3]*(xi[(i*ngorkov+igork1)*nc+1]+xi[(i*ngorkov+igorkov)*nc+1])+\
+						conj(u12t[i*ndim+3])*(xi[(i*ngorkov+igorkov)*nc]+xi[(i*ngorkov+igork1)*nc]) ) );
 
 			int igorkovPP=igorkov+4;
 			int igork1PP=igork1+4;
-			xuu-=dk4m[did]*(conj(x[did][igorkovPP][0])*(\
-						u11t[did][3]*(xi[i][igork1PP][0]-xi[i][igorkovPP][0])+\
-						u12t[did][3]*(xi[i][igork1PP][1]-xi[i][igorkovPP][1]) )+\
-					conj(x[1][igorkovPP][did])*(\
-						conj(u11t[did][3])*(xi[i][igork1PP][1]-xi[i][igorkovPP][1])+\
-						conj(u12t[did][3])*(xi[i][igorkovPP][0]-xi[i][igork1PP][0]) ) );
+			xuu-=dk4m[did]*(conj(x[(did*ngorkov+igorkovPP)*nc])*(\
+						u11t[did*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc]-xi[(i*ngorkov+igorkovPP)*nc])+\
+						u12t[did*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc+1]-xi[(i*ngorkov+igorkovPP)*nc+1]) )+\
+					conj(x[(did*ngorkov+igorkovPP)*nc+1])*(\
+						conj(u11t[did*ndim+3])*(xi[(i*ngorkov+igork1PP)*nc+1]-xi[(i*ngorkov+igorkovPP)*nc+1])+\
+						conj(u12t[did*ndim+3])*(xi[(i*ngorkov+igorkovPP)*nc]-xi[(i*ngorkov+igork1PP)*nc]) ) );
 
-			xdd-=dk4p[i]*(conj(x[uid][igorkovPP][0])*(\
-						conj(u11t[3][i])*(xi[i][igork1PP][0]+xi[i][igorkovPP][0])-\
-						u12t[i][3]*(xi[i][igork1PP][1]+xi[i][igorkovPP][1]) )+\
-					conj(x[i][igorkovPP][1])*(\
-						u11t[3][i]*(xi[i][igork1PP][1]+xi[i][igorkovPP][1])+\
-						conj(u12t[i][3])*(xi[i][igorkovPP][0]+xi[i][igork1PP][0]) ) );
+			xdd-=dk4p[i]*(conj(x[(uid*ngorkov+igorkovPP)*nc])*(\
+						conj(u11t[i*ndim+3])*(xi[(i*ngorkov+igork1PP)*nc]+xi[(i*ngorkov+igorkovPP)*nc])-\
+						u12t[i*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc+1]+xi[(i*ngorkov+igorkovPP)*nc+1]) )+\
+					conj(x[(uid*ngorkov+igorkovPP)*nc+1])*(\
+						u11t[i*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc+1]+xi[(i*ngorkov+igorkovPP)*nc+1])+\
+						conj(u12t[i*ndim+3])*(xi[(i*ngorkov+igorkovPP)*nc]+xi[(i*ngorkov+igork1PP)*nc]) ) );
 		}
 	}
 	*endenf=xu-xd-xuu+xdd;
@@ -1572,9 +1610,9 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 	*endenf/=2*gvol; *denf/=2*gvol;
 	//Future task. Chiral susceptibility measurements
 #ifdef USE_MKL
-	mkl_free(ps);
+	mkl_free(ps); mkl_free(x);
 #else
-	free(ps);
+	free(ps); free(x);
 #endif
 	return 0;
 }
@@ -1602,12 +1640,12 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 	for(int mu=0;mu<ndim;mu++){
 		complex z1[kvol+halo], z2[kvol+halo] __attribute__((aligned(AVX)));
 #if (defined USE_MKL || defined USE_BLAS)
-		cblas_zcopy(kvol+halo, &u11t[0][mu], ndim, z1, 1);
-		cblas_zcopy(kvol+halo, &u12t[0][mu], ndim, z2, 1);
+		cblas_zcopy(kvol+halo, &u11t[mu], ndim, z1, 1);
+		cblas_zcopy(kvol+halo, &u12t[mu], ndim, z2, 1);
 #else
 		for(int i=0; i<kvol;i++){
-			z1[i]=u11t[i][mu];
-			z2[i]=u12t[i][mu];
+			z1[i]=u11t[i*ndim+mu];
+			z2[i]=u12t[i*ndim+mu];
 		}
 #endif
 #pragma unroll
@@ -1616,12 +1654,12 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 			ZHalo_swap_dir(z2,1,idir,DOWN);
 		}
 #if (defined USE_MKL || defined USE_BLAS)
-		cblas_zcopy(kvol+halo, z1, 1, &u11t[0][mu], ndim);
-		cblas_zcopy(kvol+halo, z2, 1, &u12t[0][mu], ndim);
+		cblas_zcopy(kvol+halo, z1, 1, &u11t[mu], ndim);
+		cblas_zcopy(kvol+halo, z2, 1, &u12t[mu], ndim);
 #else
 		for(int i=0; i<kvol;i++){
-			u11t[i][mu]=z1[i];
-			u12t[i][mu]=z2[i];
+			u11t[i*ndim+mu]=z1[i];
+			u12t[i*ndim+mu]=z2[i];
 		}
 #endif
 	}
@@ -1638,17 +1676,17 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 			for(int i=0;i<kvol;i++){
 				int uidm = iu[mu][i]; 
 
-				Sigma11[i]=u11t[i][mu]*u11t[uidm][nu]-u12t[i][mu]*conj(u12t[uidm][nu]);
-				Sigma12[i]=u11t[i][mu]*u12t[uidm][nu]+u12t[i][mu]*conj(u11t[uidm][nu]);
+				Sigma11[i]=u11t[i*ndim+mu]*u11t[uidm*ndim+nu]-u12t[i*ndim+mu]*conj(u12t[uidm*ndim+nu]);
+				Sigma12[i]=u11t[i*ndim+mu]*u12t[uidm*ndim+nu]+u12t[i*ndim+mu]*conj(u11t[uidm*ndim+nu]);
 				//			}
 				//			for(i=0;i<kvol;i++){
 				int uidn = iu[nu][i]; 
-				complex a11=Sigma11[i]*conj(u11t[uidn][mu])+Sigma12[i]*conj(u12t[uidn][mu]);
-				complex a12=-Sigma12[i]*u12t[uidn][mu]+Sigma12[i]*u11t[uidn][mu];
+				complex a11=Sigma11[i]*conj(u11t[uidn*ndim+mu])+Sigma12[i]*conj(u12t[uidn*ndim+mu]);
+				complex a12=-Sigma12[i]*u12t[uidn*ndim+mu]+Sigma12[i]*u11t[uidn*ndim+mu];
 				//			}
 				//			for(i=0;i<kvol;i++){
-				Sigma11[i]=a11*conj(u11t[i][nu])+a12*conj(u12t[i][nu]);
-				//				Sigma12[i]=-a11[i]*u12t[i][nu]+a12*u11t[i][mu];
+				Sigma11[i]=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
+				//				Sigma12[i]=-a11[i]*u12t[i*ndim+nu]+a12*u11t[i*ndim+mu];
 				//				Not needed in final result as it traces out?
 		}
 		//Space component
@@ -1695,12 +1733,12 @@ double Polyakov(){
 	const char *funcname = "Polyakov";
 	complex Sigma11[kvol3], Sigma12[kvol3] __attribute__((aligned(AVX)));
 #if (defined USE_MKL || defined USE_BLAS)
-	cblas_zcopy(kvol3, &u11t[0][3], ndim, Sigma11, 1);
-	cblas_zcopy(kvol3, &u12t[0][3], ndim, Sigma12, 1);
+	cblas_zcopy(kvol3, &u11t[3], ndim, Sigma11, 1);
+	cblas_zcopy(kvol3, &u12t[3], ndim, Sigma12, 1);
 #else
 	for(int i=0; i<kvol3; i++){
-		Sigma11[i]=u11t[i][3];
-		Sigma12[i]=u12t[i][3];
+		Sigma11[i]=u11t[i*ndim+3];
+		Sigma12[i]=u12t[i*ndim+3];
 	}
 #endif
 	//	Some Fortran commentary
@@ -1723,8 +1761,8 @@ double Polyakov(){
 			//Seems a bit more efficient to increment indexu instead of reassigning
 			//it every single loop
 			int indexu=(it+1)*kvol3+i;
-			a11=Sigma11[i]*u11t[indexu][3]-Sigma12[i]*conj(u12t[indexu][3]);
-			a12=Sigma11[i]*u12t[indexu][3]+Sigma12[i]*conj(u11t[indexu][3]);
+			a11=Sigma11[i]*u11t[indexu*ndim+3]-Sigma12[i]*conj(u12t[indexu*ndim+3]);
+			a12=Sigma11[i]*u12t[indexu*ndim+3]+Sigma12[i]*conj(u11t[indexu*ndim+3]);
 			Sigma11[i]=a11; Sigma12[i]=a12;
 		}
 
@@ -1773,22 +1811,21 @@ inline int Reunitarise(){
 	 */
 	const char *funcname = "Reunitarise";
 
-#pragma omp parallel for simd collapse(2)
-	for(int i=0; i<kvol; i++)
-		for(int mu = 0; mu<ndim; mu++){
-			//Declaring anorm inside the loop will hopefully let the compiler know it
-			//is safe to vectorise aggessively
-			double anorm=sqrt(conj(u11t[i][mu])*u11t[i][mu]+conj(u12t[i][mu])*u12t[i][mu]);
-			//		Exception handling code. May be faster to leave out as the exit prevents vectorisation.
-			//		if(anorm==0){
-			//			fprintf(stderr, "Error %i in %s on rank %i: anorm = 0 for μ=%i and i=%i.\nExiting...\n\n",
-			//					DIVZERO, funcname, rank, mu, i);
-			//			MPI_Finalise();
-			//			exit(DIVZERO);
-			//		}
-			u11t[i][mu]/=anorm;
-			u12t[i][mu]/=anorm;
-		}
+#pragma omp parallel for simd
+	for(int i=0; i<kvol*ndim; i++){
+		//Declaring anorm inside the loop will hopefully let the compiler know it
+		//is safe to vectorise aggessively
+		double anorm=sqrt(conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]);
+		//		Exception handling code. May be faster to leave out as the exit prevents vectorisation.
+		//		if(anorm==0){
+		//			fprintf(stderr, "Error %i in %s on rank %i: anorm = 0 for μ=%i and i=%i.\nExiting...\n\n",
+		//					DIVZERO, funcname, rank, mu, i);
+		//			MPI_Finalise();
+		//			exit(DIVZERO);
+		//		}
+		u11t[i]/=anorm;
+		u12t[i]/=anorm;
+	}
 	return 0;
 }
 inline int Z_gather(complex *x, complex *y, int n, int *table){

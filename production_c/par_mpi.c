@@ -153,10 +153,10 @@ int Par_sread(){
 				}
 				//Likewise, C indexes from zero so should just use iproc
 				if(!iproc){
-					u11[idim][i]=u1buff[i];
-					u11t[idim][i]=u1buff[i];
-					u12[idim][i]=u2buff[i];
-					u12t[idim][i]=u2buff[i];
+					u11[i*ndim+idim]=u1buff[i];
+					u11t[i*ndim+idim]=u1buff[i];
+					u12[i*ndim+idim]=u2buff[i];
+					u12t[i*ndim+idim]=u2buff[i];
 				}		
 				else{
 					//The master thread did all the hard work, the minions just need to receive their
@@ -179,13 +179,13 @@ int Par_sread(){
 	else{
 		for(int idim = 0; idim<ndim; idim++){
 			//Receiving the data from the master threads.
-			if(MPI_Recv(&u11[idim][0], kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm, &status)){
+			if(MPI_Recv(&u11[idim], kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm, &status)){
 				fprintf(stderr, "Error %i in %s: Falied to receive u11 from process %i.\nExiting...\n\n",
 						CANTRECV, funcname, masterproc);
 				MPI_Finalise();
 				exit(CANTRECV);
 			}
-			if(MPI_Recv(&u12[idim][0], kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm, &status)){
+			if(MPI_Recv(&u12[idim], kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm, &status)){
 				fprintf(stderr, "Error %i in %s: Falied to receive u12 from process %i.\nExiting...\n\n",
 						CANTRECV, funcname, masterproc);
 				MPI_Finalise();
@@ -316,8 +316,8 @@ int Par_swrite(int isweep){
 		}
 		else{
 			//Array looping is slow so we use memcpy instead
-			memcpy(u1buff, u11[idim], kvol*sizeof(complex));
-			memcpy(u2buff, u12[idim], kvol*sizeof(complex));
+//			memcpy(u1buff, u11[idim], kvol*sizeof(complex));
+//			memcpy(u2buff, u12[idim], kvol*sizeof(complex));
 		}
 		int i=0;
 		//could move the ic check to here, but it will make the code look rather unsightly
@@ -364,13 +364,13 @@ int Par_swrite(int isweep){
 	}
 		else{
 			for(int idim = 0; idim<ndim; idim++){
-				if(MPI_Send(&u11[idim][0], kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm)){
+				if(MPI_Send(&u11[idim], kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm)){
 					fprintf(stderr, "Error %i in %s: Falied to send u11 from process %i.\nExiting...\n\n",
 							CANTSEND, funcname, iproc);
 					MPI_Finalise();
 					exit(CANTSEND);
 				}
-				if(MPI_Send(&u12[idim][0], kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm)){
+				if(MPI_Send(&u12[idim], kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm)){
 					fprintf(stderr, "Error %i in %s: Falied to send u12 from process %i.\nExiting...\n\n",
 							CANTSEND, funcname, iproc);
 					MPI_Finalise();

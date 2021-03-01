@@ -24,8 +24,7 @@ extern const int gamin[4][4];
 extern complex gamval[5][4];
 
 //From common_pseud
-complex xi[kvol+halo][8][2] __attribute__((aligned(AVX)));
-complex *Phi, *R1, *X0, *X1;
+complex *Phi, *R1, *X0, *X1, *xi;
 //From common_mat
 //double dk4m[kvol+halo], dk4p[kvol+halo] __attribute__((aligned(AVX)));
 double *dk4m, *dk4p, *pp;

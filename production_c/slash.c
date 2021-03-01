@@ -30,31 +30,31 @@ int Dslash(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 	for(int mu=0;mu<ndim;mu++){
 		complex z[kvol+halo] __attribute__((aligned(AVX)));
 #if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol, &u11t[0][mu], ndim, z, 1);
+		cblas_zcopy(kvol, &u11t[mu], ndim, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
-			z[i]=u11t[i][mu];
+			z[i]=u11t[i*ndim+mu];
 #endif
 		ZHalo_swap_dir(z, 1, mu, UP);
 		//And the swap back
 #if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol+halo, z, 1, &u11t[0][mu], ndim);
+		cblas_zcopy(kvol+halo, z, 1, &u11t[mu], ndim);
 #else
 		for(int i=0; i<kvol;i++)
-			u11t[i][mu]=z[i];
+			u11t[i*ndim+mu]=z[i];
 #endif
 #if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol, &u12t[0][mu], 4, z, 1);
+		cblas_zcopy(kvol, &u12t[mu], 4, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
-			z[i]=u12t[i][mu];
+			z[i]=u12t[i*ndim+mu];
 #endif
 		ZHalo_swap_dir(z, 1, mu, UP);
 #if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol+halo, z, 1, &u12t[0][mu], 4);
+		cblas_zcopy(kvol+halo, z, 1, &u12t[mu], 4);
 #else
 		for(int i=0; i<kvol;i++)
-			u12t[i][mu]=z[i];
+			u12t[i*ndim+mu]=z[i];
 #endif
 	}
 	DHalo_swap_dir(dk4p, 1, 3, UP);
@@ -89,25 +89,25 @@ int Dslash(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 				//Can manually vectorise with a pragma?
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
-				phi[i][igorkov][0]+=-akappa*(u11t[i][mu]*r[uid][igorkov][0]+\
-						u12t[i][mu]*r[uid][igorkov][1]+\
-						conj(u11t[did][mu])*r[did][igorkov][0]-\
-						u12t[did][mu]*r[did][igorkov][1])+\
+				phi[i][igorkov][0]+=-akappa*(u11t[i*ndim+mu]*r[uid][igorkov][0]+\
+						u12t[i*ndim+mu]*r[uid][igorkov][1]+\
+						conj(u11t[did*ndim+mu])*r[did][igorkov][0]-\
+						u12t[did*ndim+mu]*r[did][igorkov][1])+\
 							  //Dirac term
-							  gamval[mu][idirac]*(u11t[i][mu]*r[uid][igork1][0]+\
-									  u12t[i][mu]*r[uid][igork1][1]-\
-									  conj(u11t[did][mu])*r[did][igork1][0]+\
-									  u12t[did][mu]*r[did][igork1][1]);
+							  gamval[mu][idirac]*(u11t[i*ndim+mu]*r[uid][igork1][0]+\
+									  u12t[i*ndim+mu]*r[uid][igork1][1]-\
+									  conj(u11t[did*ndim+mu])*r[did][igork1][0]+\
+									  u12t[did*ndim+mu]*r[did][igork1][1]);
 
-				phi[i][igorkov][1]+=-akappa*(-conj(u12t[i][mu])*r[uid][igorkov][0]+\
-						conj(u11t[i][mu])*r[uid][igorkov][1]+\
-						conj(u12t[did][mu])*r[did][igorkov][0]+\
-						u11t[did][mu]*r[did][igorkov][1])+\
+				phi[i][igorkov][1]+=-akappa*(-conj(u12t[i*ndim+mu])*r[uid][igorkov][0]+\
+						conj(u11t[i*ndim+mu])*r[uid][igorkov][1]+\
+						conj(u12t[did*ndim+mu])*r[did][igorkov][0]+\
+						u11t[did*ndim+mu]*r[did][igorkov][1])+\
 							  //Dirac term
-							  gamval[mu][idirac]*(-conj(u12t[i][mu])*r[uid][igork1][0]+\
-									  conj(u11t[i][mu])*r[uid][igork1][1]-\
-									  conj(u12t[did][mu])*r[did][igork1][0]-\
-									  u11t[did][mu]*r[did][igork1][1]);
+							  gamval[mu][idirac]*(-conj(u12t[i*ndim+mu])*r[uid][igork1][0]+\
+									  conj(u11t[i*ndim+mu])*r[uid][igork1][1]-\
+									  conj(u12t[did*ndim+mu])*r[did][igork1][0]-\
+									  u11t[did*ndim+mu]*r[did][igork1][1]);
 			}
 		}
 		//Timelike terms next. These run from igorkov=0..3 and 4..7 with slightly different rules for each
@@ -122,26 +122,26 @@ int Dslash(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			phi[i][igorkov][0]+=
-				-dk4p[i]*(u11t[i][3]*(r[uid][igorkov][0]-r[uid][igork1][0])
-						+u12t[i][3]*(r[uid][igorkov][1]-r[uid][igork1][1]))
-				-dk4m[did]*(conj(u11t[did][3])*(r[did][igorkov][0]+r[did][igork1][0])
-						-u12t[did][3] *(r[did][igorkov][1]+r[did][igork1][1]));
+				-dk4p[i]*(u11t[i*ndim+3]*(r[uid][igorkov][0]-r[uid][igork1][0])
+						+u12t[i*ndim+3]*(r[uid][igorkov][1]-r[uid][igork1][1]))
+				-dk4m[did]*(conj(u11t[did*ndim+3])*(r[did][igorkov][0]+r[did][igork1][0])
+						-u12t[did*ndim+3] *(r[did][igorkov][1]+r[did][igork1][1]));
 			phi[i][igorkov][1]+=
-				-dk4p[i]*(-conj(u12t[i][3])*(r[uid][igorkov][0]+r[uid][igork1][0])
-						+conj(u11t[i][3])*(r[uid][igorkov][1]+r[uid][igork1][1]))
-				-dk4m[did]*(conj(u12t[did][3])*(r[did][igorkov][0]-r[did][igork1][0])
-						+u11t[did][3] *(r[did][igorkov][1]-r[did][igork1][1]));
+				-dk4p[i]*(-conj(u12t[i*ndim+3])*(r[uid][igorkov][0]+r[uid][igork1][0])
+						+conj(u11t[i*ndim+3])*(r[uid][igorkov][1]+r[uid][igork1][1]))
+				-dk4m[did]*(conj(u12t[did*ndim+3])*(r[did][igorkov][0]-r[did][igork1][0])
+						+u11t[did*ndim+3] *(r[did][igorkov][1]-r[did][igork1][1]));
 
 			//And the +4 terms. Note that dk4p and dk4m swap positions compared to the above				
-			phi[i][igorkovPP][0]+=-dk4m[i]*(u11t[i][3]*(r[uid][igorkovPP][0]-r[uid][igork1PP][0])+\
-					u12t[i][3]*(r[uid][igorkovPP][1]-r[uid][igork1PP][1]))-\
-						    dk4p[did]*(conj(u11t[did][3])*(r[did][igorkovPP][0]+r[did][igork1PP][0])-\
-								    u12t[did][3]*(r[did][igorkovPP][1]+r[did][igork1PP][1]));
+			phi[i][igorkovPP][0]+=-dk4m[i]*(u11t[i*ndim+3]*(r[uid][igorkovPP][0]-r[uid][igork1PP][0])+\
+					u12t[i*ndim+3]*(r[uid][igorkovPP][1]-r[uid][igork1PP][1]))-\
+						    dk4p[did]*(conj(u11t[did*ndim+3])*(r[did][igorkovPP][0]+r[did][igork1PP][0])-\
+								    u12t[did*ndim+3]*(r[did][igorkovPP][1]+r[did][igork1PP][1]));
 
-			phi[i][igorkovPP][1]+=-dk4m[i]*(conj(-u12t[i][3])*(r[uid][igorkovPP][0]-r[uid][igork1PP][0])+\
-					conj(u11t[i][3])*(r[uid][igorkovPP][1]-r[uid][igork1PP][1]))-\
-						    dk4p[did]*(conj(u12t[did][3])*(r[did][igorkovPP][0]+r[did][igork1PP][0])+\
-								    u11t[did][3]*(r[did][igorkovPP][1]+r[did][igork1PP][1]));
+			phi[i][igorkovPP][1]+=-dk4m[i]*(conj(-u12t[i*ndim+3])*(r[uid][igorkovPP][0]-r[uid][igork1PP][0])+\
+					conj(u11t[i*ndim+3])*(r[uid][igorkovPP][1]-r[uid][igork1PP][1]))-\
+						    dk4p[did]*(conj(u12t[did*ndim+3])*(r[did][igorkovPP][0]+r[did][igork1PP][0])+\
+								    u11t[did*ndim+3]*(r[did][igorkovPP][1]+r[did][igork1PP][1]));
 		}
 	}
 	return 0;
@@ -174,31 +174,31 @@ int Dslashd(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 	for(int mu=0;mu<ndim;mu++){
 		complex z[kvol+halo] __attribute__((aligned(AVX)));
 #if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol, &u11t[0][mu], ndim, z, 1);
+		cblas_zcopy(kvol, &u11t[mu], ndim, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
-			z[i]=u11t[i][mu];
+			z[i]=u11t[i*ndim+mu];
 #endif
 		ZHalo_swap_dir(z, 1, mu, UP);
 		//And the swap back
 #if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol+halo, z, 1, &u11t[0][mu], ndim);
+		cblas_zcopy(kvol+halo, z, 1, &u11t[mu], ndim);
 #else
 		for(int i=0; i<kvol;i++)
-			u11t[i][mu]=z[i];
+			u11t[i*ndim+mu]=z[i];
 #endif
 #if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol, &u12t[0][mu], 4, z, 1);
+		cblas_zcopy(kvol, &u12t[mu], 4, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
-			z[i]=u12t[i][mu];
+			z[i]=u12t[i*ndim+mu];
 #endif
 		ZHalo_swap_dir(z, 1, mu, UP);
 #if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol+halo, z, 1, &u12t[0][mu], 4);
+		cblas_zcopy(kvol+halo, z, 1, &u12t[mu], 4);
 #else
 		for(int i=0; i<kvol;i++)
-			u12t[i][mu]=z[i];
+			u12t[i*ndim+mu]=z[i];
 #endif
 	}
 	DHalo_swap_dir(dk4p, 1, 3, UP);
@@ -234,26 +234,26 @@ int Dslashd(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
 				phi[i][igorkov][0]+=
-					-akappa*(      u11t[i][mu]*r[uid][igorkov][0]
-							+u12t[i][mu]*r[uid][igorkov][1]
-							+conj(u11t[did][mu])*r[did][igorkov][0]
-							-u12t[did][mu] *r[did][igorkov][1])
+					-akappa*(      u11t[i*ndim+mu]*r[uid][igorkov][0]
+							+u12t[i*ndim+mu]*r[uid][igorkov][1]
+							+conj(u11t[did*ndim+mu])*r[did][igorkov][0]
+							-u12t[did*ndim+mu] *r[did][igorkov][1])
 					-gamval[mu][idirac]*
-					(          u11t[i][mu]*r[uid][igork1][0]
-						     +u12t[i][mu]*r[uid][igork1][1]
-						     -conj(u11t[did][mu])*r[did][igork1][0]
-						     +u12t[did][mu] *r[did][igork1][1]);
+					(          u11t[i*ndim+mu]*r[uid][igork1][0]
+						     +u12t[i*ndim+mu]*r[uid][igork1][1]
+						     -conj(u11t[did*ndim+mu])*r[did][igork1][0]
+						     +u12t[did*ndim+mu] *r[did][igork1][1]);
 
 				phi[i][igorkov][1]+=
-					-akappa*(-conj(u12t[i][mu])*r[uid][igorkov][0]
-							+conj(u11t[i][mu])*r[uid][igorkov][1]
-							+conj(u12t[did][mu])*r[did][igorkov][0]
-							+u11t[did][mu] *r[did][igorkov][1])
+					-akappa*(-conj(u12t[i*ndim+mu])*r[uid][igorkov][0]
+							+conj(u11t[i*ndim+mu])*r[uid][igorkov][1]
+							+conj(u12t[did*ndim+mu])*r[did][igorkov][0]
+							+u11t[did*ndim+mu] *r[did][igorkov][1])
 					-gamval[mu][idirac]*
-					(-conj(u12t[i][mu])*r[uid][igork1][0]
-					 +conj(u11t[i][mu])*r[uid][igork1][1]
-					 -conj(u12t[did][mu])*r[did][igork1][0]
-					 -u11t[did][mu] *r[did][igork1][1]);
+					(-conj(u12t[i*ndim+mu])*r[uid][igork1][0]
+					 +conj(u11t[i*ndim+mu])*r[uid][igork1][1]
+					 -conj(u12t[did*ndim+mu])*r[did][igork1][0]
+					 -u11t[did*ndim+mu] *r[did][igork1][1]);
 			}
 		}
 		//Timelike terms next. These run from igorkov=0..3 and 4..7 with slightly different rules for each
@@ -267,29 +267,29 @@ int Dslashd(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]){
 			int igork1 = gamin[3][igorkov];	
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			phi[i][igorkov][0]+=
-				-dk4m[i]*(u11t[i][3]*(r[uid][igorkov][0]+r[uid][igork1][0])
-						+u12t[i][3]*(r[uid][igorkov][1]+r[uid][igork1][1]))
-				-dk4p[did]*(conj(u11t[did][3])*(r[did][igorkov][0]-r[did][igork1][0])
-						-u12t[did][3] *(r[did][igorkov][1]-r[did][igork1][1]));
+				-dk4m[i]*(u11t[i*ndim+3]*(r[uid][igorkov][0]+r[uid][igork1][0])
+						+u12t[i*ndim+3]*(r[uid][igorkov][1]+r[uid][igork1][1]))
+				-dk4p[did]*(conj(u11t[did*ndim+3])*(r[did][igorkov][0]-r[did][igork1][0])
+						-u12t[did*ndim+3] *(r[did][igorkov][1]-r[did][igork1][1]));
 			phi[i][igorkov][1]+=
-				-dk4m[i]*(-conj(u12t[i][3])*(r[uid][igorkov][0]+r[uid][igork1][0])
-						+conj(u11t[i][3])*(r[uid][igorkov][1]+r[uid][igork1][1]))
-				-dk4p[did]*(conj(u12t[did][3])*(r[did][igorkov][0]-r[did][igork1][0])
-						+u11t[did][3] *(r[did][igorkov][1]-r[did][igork1][1]));
+				-dk4m[i]*(-conj(u12t[i*ndim+3])*(r[uid][igorkov][0]+r[uid][igork1][0])
+						+conj(u11t[i*ndim+3])*(r[uid][igorkov][1]+r[uid][igork1][1]))
+				-dk4p[did]*(conj(u12t[did*ndim+3])*(r[did][igorkov][0]-r[did][igork1][0])
+						+u11t[did*ndim+3] *(r[did][igorkov][1]-r[did][igork1][1]));
 
 
 			int igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
 			int igork1PP = igork1+4;
 			//And the +4 terms. Note that dk4p and dk4m swap positions compared to the above				
-			phi[i][igorkovPP][0]+=-dk4p[i]*(u11t[i][3]*(r[uid][igorkovPP][0]+r[uid][igork1PP][0])+\
-					u12t[i][3]*(r[uid][igorkovPP][1]+r[uid][igork1PP][1]))-\
-						    dk4m[did]*(conj(u11t[did][3])*(r[did][igorkovPP][0]-r[did][igork1PP][0])-\
-								    u12t[did][3]*(r[did][igorkovPP][1]-r[did][igork1PP][1]));
+			phi[i][igorkovPP][0]+=-dk4p[i]*(u11t[i*ndim+3]*(r[uid][igorkovPP][0]+r[uid][igork1PP][0])+\
+					u12t[i*ndim+3]*(r[uid][igorkovPP][1]+r[uid][igork1PP][1]))-\
+						    dk4m[did]*(conj(u11t[did*ndim+3])*(r[did][igorkovPP][0]-r[did][igork1PP][0])-\
+								    u12t[did*ndim+3]*(r[did][igorkovPP][1]-r[did][igork1PP][1]));
 
-			phi[i][igorkovPP][1]+=dk4p[i]*(conj(u12t[i][3])*(r[uid][igorkovPP][0]+r[uid][igork1PP][0])-\
-					conj(u11t[i][3])*(r[uid][igorkovPP][1]+r[uid][igork1PP][1]))-\
-						    dk4m[did]*(conj(u12t[did][3])*(r[did][igorkovPP][0]-r[did][igork1PP][0])+
-								    u11t[did][3]*(r[did][igorkovPP][1]-r[did][igork1PP][1]));
+			phi[i][igorkovPP][1]+=dk4p[i]*(conj(u12t[i*ndim+3])*(r[uid][igorkovPP][0]+r[uid][igork1PP][0])-\
+					conj(u11t[i*ndim+3])*(r[uid][igorkovPP][1]+r[uid][igork1PP][1]))-\
+						    dk4m[did]*(conj(u12t[did*ndim+3])*(r[did][igorkovPP][0]-r[did][igork1PP][0])+
+								    u11t[did*ndim+3]*(r[did][igorkovPP][1]-r[did][igork1PP][1]));
 
 		}
 	}
@@ -323,31 +323,31 @@ int Hdslash(complex phi[][ndirac][nc], complex r[][ndirac][nc]){
 	for(int mu=0;mu<ndim;mu++){
 		complex z[kvol+halo] __attribute__((aligned(AVX)));
 #if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol, &u11t[0][mu], ndim, z, 1);
+		cblas_zcopy(kvol, &u11t[mu], ndim, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
-			z[i]=u11t[i][mu];
+			z[i]=u11t[i*ndim+mu];
 #endif
 		ZHalo_swap_dir(z, 1, mu, UP);
 		//And the swap back
 #if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol+halo, z, 1, &u11t[0][mu], ndim);
+		cblas_zcopy(kvol+halo, z, 1, &u11t[mu], ndim);
 #else
 		for(int i=0; i<kvol+halo;i++)
-			u11t[i][mu]=z[i];
+			u11t[i*ndim+mu]=z[i];
 #endif
 #if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol, &u12t[0][mu], 4, z, 1);
+		cblas_zcopy(kvol, &u12t[mu], 4, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
-			z[i]=u12t[i][mu];
+			z[i]=u12t[i*ndim+mu];
 #endif
 		ZHalo_swap_dir(z, 1, mu, UP);
 #if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol+halo, z, 1, &u12t[0][mu], 4);
+		cblas_zcopy(kvol+halo, z, 1, &u12t[mu], 4);
 #else
 		for(int i=0; i<kvol+halo;i++)
-			u12t[i][mu]=z[i];
+			u12t[i*ndim+mu]=z[i];
 #endif
 	}
 	DHalo_swap_dir(dk4p, 1, 3, UP);
@@ -367,25 +367,25 @@ int Hdslash(complex phi[][ndirac][nc], complex r[][ndirac][nc]){
 				//Can manually vectorise with a pragma?
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
-				phi[i][idirac][0]+=-akappa*(u11t[i][mu]*r[uid][idirac][0]+\
-						u12t[i][mu]*r[uid][idirac][1]+\
-						conj(u11t[did][mu])*r[did][idirac][0]-\
-						u12t[did][mu]*r[did][idirac][1])+\
+				phi[i][idirac][0]+=-akappa*(u11t[i*ndim+mu]*r[uid][idirac][0]+\
+						u12t[i*ndim+mu]*r[uid][idirac][1]+\
+						conj(u11t[did*ndim+mu])*r[did][idirac][0]-\
+						u12t[did*ndim+mu]*r[did][idirac][1])+\
 							 //Dirac term
-							 gamval[mu][idirac]*(u11t[i][mu]*r[uid][igork1][0]+\
-									 u12t[i][mu]*r[uid][igork1][1]-\
-									 conj(u11t[did][mu])*r[did][igork1][0]+\
-									 u12t[did][mu]*r[did][igork1][1]);
+							 gamval[mu][idirac]*(u11t[i*ndim+mu]*r[uid][igork1][0]+\
+									 u12t[i*ndim+mu]*r[uid][igork1][1]-\
+									 conj(u11t[did*ndim+mu])*r[did][igork1][0]+\
+									 u12t[did*ndim+mu]*r[did][igork1][1]);
 
-				phi[i][idirac][1]+=-akappa*(-conj(u12t[i][mu])*r[uid][idirac][0]+\
-						conj(u11t[i][mu])*r[uid][idirac][1]+\
-						conj(u12t[did][mu])*r[did][idirac][0]+\
-						u11t[did][mu]*r[did][idirac][1])+\
+				phi[i][idirac][1]+=-akappa*(-conj(u12t[i*ndim+mu])*r[uid][idirac][0]+\
+						conj(u11t[i*ndim+mu])*r[uid][idirac][1]+\
+						conj(u12t[did*ndim+mu])*r[did][idirac][0]+\
+						u11t[did*ndim+mu]*r[did][idirac][1])+\
 							 //Dirac term
-							 gamval[mu][idirac]*(-conj(u12t[i][mu])*r[uid][igork1][0]+\
-									 conj(u11t[i][mu])*r[uid][igork1][1]-\
-									 conj(u12t[did][mu])*r[did][igork1][0]-\
-									 u11t[did][mu]*r[did][igork1][1]);
+							 gamval[mu][idirac]*(-conj(u12t[i*ndim+mu])*r[uid][igork1][0]+\
+									 conj(u11t[i*ndim+mu])*r[uid][igork1][1]-\
+									 conj(u12t[did*ndim+mu])*r[did][igork1][0]-\
+									 u11t[did*ndim+mu]*r[did][igork1][1]);
 			}
 		}
 		//Timelike terms
@@ -395,15 +395,15 @@ int Hdslash(complex phi[][ndirac][nc], complex r[][ndirac][nc]){
 			int igork1 = gamin[3][idirac];
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			phi[i][idirac][0]+=
-				-dk4p[i]*(u11t[i][3]*(r[uid][idirac][0]-r[uid][igork1][0])
-						+u12t[i][3]*(r[uid][idirac][1]-r[uid][igork1][1]))
-				-dk4m[did]*(conj(u11t[did][3])*(r[did][idirac][0]+r[did][igork1][0])
-						-u12t[did][3] *(r[did][idirac][1]-r[did][igork1][1]));
+				-dk4p[i]*(u11t[i*ndim+3]*(r[uid][idirac][0]-r[uid][igork1][0])
+						+u12t[i*ndim+3]*(r[uid][idirac][1]-r[uid][igork1][1]))
+				-dk4m[did]*(conj(u11t[did*ndim+3])*(r[did][idirac][0]+r[did][igork1][0])
+						-u12t[did*ndim+3] *(r[did][idirac][1]-r[did][igork1][1]));
 			phi[i][idirac][1]+=
-				-dk4p[i]*(-conj(u12t[i][3])*(r[uid][idirac][0]-r[uid][igork1][0])
-						+conj(u11t[i][3])*(r[uid][idirac][1]-r[uid][igork1][1]))
-				-dk4m[did]*(conj(u12t[did][3])*(r[did][idirac][0]+r[did][igork1][0])
-						+u11t[did][3] *(r[did][idirac][1]+r[did][igork1][1]));
+				-dk4p[i]*(-conj(u12t[i*ndim+3])*(r[uid][idirac][0]-r[uid][igork1][0])
+						+conj(u11t[i*ndim+3])*(r[uid][idirac][1]-r[uid][igork1][1]))
+				-dk4m[did]*(conj(u12t[did*ndim+3])*(r[did][idirac][0]+r[did][igork1][0])
+						+u11t[did*ndim+3] *(r[did][idirac][1]+r[did][igork1][1]));
 		}
 	}
 	return 0;
@@ -438,31 +438,31 @@ int Hdslashd(complex phi[][ndirac][nc], complex r[][ndirac][nc]){
 	for(int mu=0;mu<ndim;mu++){
 		complex z[kvol+halo] __attribute__((aligned(AVX)));
 #if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol, &u11t[0][mu], ndim, z, 1);
+		cblas_zcopy(kvol, &u11t[mu], ndim, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
-			z[i]=u11t[i][mu];
+			z[i]=u11t[i*ndim+mu];
 #endif
 		ZHalo_swap_dir(z, 1, mu, UP);
 		//And the swap back
 #if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol+halo, z, 1, &u11t[0][mu], ndim);
+		cblas_zcopy(kvol+halo, z, 1, &u11t[mu], ndim);
 #else
 		for(int i=0; i<kvol+halo;i++)
-			u11t[i][mu]=z[i];
+			u11t[i*ndim+mu]=z[i];
 #endif
 #if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol, &u12t[0][mu], 4, z, 1);
+		cblas_zcopy(kvol, &u12t[mu], 4, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
-			z[i]=u12t[i][mu];
+			z[i]=u12t[i*ndim+mu];
 #endif
 		ZHalo_swap_dir(z, 1, mu, UP);
 #if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol+halo, z, 1, &u12t[0][mu], 4);
+		cblas_zcopy(kvol+halo, z, 1, &u12t[mu], 4);
 #else
 		for(int i=0; i<kvol+halo;i++)
-			u12t[i][mu]=z[i];
+			u12t[i*ndim+mu]=z[i];
 #endif
 	}
 	DHalo_swap_dir(dk4p, 1, 3, UP);
@@ -488,26 +488,26 @@ int Hdslashd(complex phi[][ndirac][nc], complex r[][ndirac][nc]){
 				//to read when split into different loops, but should be faster this way
 
 				phi[i][idirac][0]+=
-					-akappa*(u11t[i][mu]*r[uid][idirac][0]
-							+u12t[i][mu]*r[uid][idirac][1]
-							+conj(u11t[did][mu])*r[did][idirac][0]
-							-u12t[did][mu] *r[did][idirac][1])
+					-akappa*(u11t[i*ndim+mu]*r[uid][idirac][0]
+							+u12t[i*ndim+mu]*r[uid][idirac][1]
+							+conj(u11t[did*ndim+mu])*r[did][idirac][0]
+							-u12t[did*ndim+mu] *r[did][idirac][1])
 					-gamval[mu][idirac]*
-					(          u11t[i][mu]*r[uid][igork1][0]
-						     +u12t[i][mu]*r[uid][igork1][1]
-						     -conj(u11t[did][mu])*r[did][igork1][0]
-						     +u12t[did][mu] *r[did][igork1][1]);
+					(          u11t[i*ndim+mu]*r[uid][igork1][0]
+						     +u12t[i*ndim+mu]*r[uid][igork1][1]
+						     -conj(u11t[did*ndim+mu])*r[did][igork1][0]
+						     +u12t[did*ndim+mu] *r[did][igork1][1]);
 
 				phi[i][idirac][1]+=
-					-akappa*(-conj(u12t[i][mu])*r[uid][idirac][0]
-							+conj(u11t[i][mu])*r[uid][idirac][1]
-							+conj(u12t[did][mu])*r[did][idirac][0]
-							+u11t[did][mu] *r[did][idirac][1])
+					-akappa*(-conj(u12t[i*ndim+mu])*r[uid][idirac][0]
+							+conj(u11t[i*ndim+mu])*r[uid][idirac][1]
+							+conj(u12t[did*ndim+mu])*r[did][idirac][0]
+							+u11t[did*ndim+mu] *r[did][idirac][1])
 					-gamval[mu][idirac]*
-					(-conj(u12t[i][mu])*r[uid][igork1][0]
-					 +conj(u11t[i][mu])*r[uid][igork1][1]
-					 -conj(u12t[did][mu])*r[did][igork1][0]
-					 -u11t[did][mu] *r[did][igork1][1]);
+					(-conj(u12t[i*ndim+mu])*r[uid][igork1][0]
+					 +conj(u11t[i*ndim+mu])*r[uid][igork1][1]
+					 -conj(u12t[did*ndim+mu])*r[did][igork1][0]
+					 -u11t[did*ndim+mu] *r[did][igork1][1]);
 			}
 		}
 		//Timelike terms
@@ -518,16 +518,16 @@ int Hdslashd(complex phi[][ndirac][nc], complex r[][ndirac][nc]){
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			//dk4m and dk4p swap under dagger
 			phi[i][idirac][0]+=
-				-dk4m[i]*(u11t[i][3]*(r[uid][idirac][0]+r[uid][igork1][0])
-						+u12t[i][3]*(r[uid][idirac][1]+r[uid][igork1][1]))
-				-dk4p[did]*(conj(u11t[did][3])*(r[did][idirac][0]-r[did][igork1][0])
-						-u12t[did][3] *(r[did][idirac][1]+r[did][igork1][1]));
+				-dk4m[i]*(u11t[i*ndim+3]*(r[uid][idirac][0]+r[uid][igork1][0])
+						+u12t[i*ndim+3]*(r[uid][idirac][1]+r[uid][igork1][1]))
+				-dk4p[did]*(conj(u11t[did*ndim+3])*(r[did][idirac][0]-r[did][igork1][0])
+						-u12t[did*ndim+3] *(r[did][idirac][1]+r[did][igork1][1]));
 
 			phi[i][idirac][1]+=
-				-dk4m[i]*(-conj(u12t[i][3])*(r[uid][idirac][0]+r[uid][igork1][0])
-						+conj(u11t[i][3])*(r[uid][idirac][1]+r[uid][igork1][1]))
-				-dk4p[did]*(conj(u12t[did][3])*(r[did][idirac][0]-r[did][igork1][0])
-						+u11t[did][3] *(r[did][idirac][1]-r[did][igork1][1]));
+				-dk4m[i]*(-conj(u12t[i*ndim+3])*(r[uid][idirac][0]+r[uid][igork1][0])
+						+conj(u11t[i*ndim+3])*(r[uid][idirac][1]+r[uid][igork1][1]))
+				-dk4p[did]*(conj(u12t[did*ndim+3])*(r[did][idirac][0]-r[did][igork1][0])
+						+u11t[did*ndim+3] *(r[did][idirac][1]-r[did][igork1][1]));
 		}
 	}
 	return 0;

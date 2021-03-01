@@ -194,55 +194,17 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-51
+1844
 normal! zo
-120
-normal! zo
-120
-normal! zc
-167
-normal! zo
-167
-normal! zc
-202
-normal! zo
-267
-normal! zo
-277
-normal! zo
-299
-normal! zo
-311
-normal! zo
-579
-normal! zo
-848
-normal! zo
-849
-normal! zo
-903
-normal! zo
-906
-normal! zo
-907
-normal! zo
-943
-normal! zo
-958
-normal! zo
-969
-normal! zo
-970
-normal! zo
-let s:l = 927 - ((17 * winheight(0) + 37) / 75)
+let s:l = 1868 - ((1849 * winheight(0) + 37) / 75)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-927
-normal! 012|
+1868
+normal! 0
 wincmd w
 argglobal
-if bufexists("production/su2hmc.f") | buffer production/su2hmc.f | else | edit production/su2hmc.f | endif
+if bufexists("production_c/par_mpi.c") | buffer production_c/par_mpi.c | else | edit production_c/par_mpi.c | endif
 setlocal keymap=
 setlocal noarabic
 setlocal autoindent
@@ -277,8 +239,8 @@ setlocal nodiff
 setlocal equalprg=
 setlocal errorformat=
 setlocal noexpandtab
-if &filetype != 'fortran'
-setlocal filetype=fortran
+if &filetype != 'c'
+setlocal filetype=c
 endif
 setlocal fixendofline
 setlocal foldcolumn=0
@@ -344,8 +306,8 @@ setlocal statusline=
 setlocal suffixesadd=
 setlocal swapfile
 setlocal synmaxcol=3000
-if &syntax != 'fortran'
-setlocal syntax=fortran
+if &syntax != 'c'
+setlocal syntax=c
 endif
 setlocal tabstop=6
 setlocal tagcase=
@@ -365,23 +327,68 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-let s:l = 2272 - ((69 * winheight(0) + 37) / 75)
+91
+normal! zo
+201
+normal! zo
+219
+normal! zo
+229
+normal! zo
+231
+normal! zo
+233
+normal! zo
+235
+normal! zo
+238
+normal! zo
+275
+normal! zo
+276
+normal! zo
+295
+normal! zo
+305
+normal! zo
+311
+normal! zo
+317
+normal! zo
+324
+normal! zo
+326
+normal! zo
+328
+normal! zo
+330
+normal! zo
+365
+normal! zo
+366
+normal! zo
+367
+normal! zo
+let s:l = 320 - ((82 * winheight(0) + 37) / 75)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-2272
-normal! 07|
+320
+normal! 06|
 wincmd w
-2wincmd w
 exe 'vert 1resize ' . ((&columns * 158 + 158) / 317)
 exe 'vert 2resize ' . ((&columns * 158 + 158) / 317)
 tabnext 1
-badd +1 production_c/su2hmc.c
+badd +593 production_c/su2hmc.c
 badd +1 production/par_mpi.f
-badd +180 production/su2hmc.f
+badd +0 production_c/par_mpi.c
+badd +306 production/su2hmc.f
 badd +298 production_c/slash.c
 badd +60 production_c/Makefile
-badd +530 production_c/par_mpi.c
+badd +26 production_c/INCLUDE/su2hmc.h
+badd +39 production_c/INCLUDE/sizes.h
+badd +1 production_c/midout
+badd +76 production_c/INCLUDE/par_mpi.h
 if exists('s:wipebuf') && len(win_findbuf(s:wipebuf)) == 0
   silent exe 'bwipe ' . s:wipebuf
 endif

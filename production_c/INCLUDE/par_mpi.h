@@ -73,12 +73,12 @@ int ismaster;
 //A couple of other components usually defined in common_*.h files in fortran. But since C has global scope
 //may as well put them in here instead.
 //Gauges
-complex u11[kvol+halo][ndim], u12[kvol+halo][ndim] __attribute__((aligned(AVX)));
+complex *u11, *u12;
 // Trial matrices
-complex u11t[kvol+halo][ndim], u12t[kvol+halo][ndim] __attribute__((aligned(AVX)));;
+complex *u11t, *u12t;
 //Halos indices
 //-------------
-static unsigned int id[ndim][kvol], iu[ndim][kvol];
+static unsigned int id[ndim][kvol], iu[ndim][kvol] __attribute__((aligned(AVX)));
 unsigned int h1u[4], h1d[4];
 unsigned int halosize[4];
 

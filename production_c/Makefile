@@ -57,7 +57,7 @@ release:	CFLAGS += -O3 -inline-level=2 -qopenmp -qopenmp-link=static\
 		-DMKL_ILP64  -I"${MKLROOT}/include"
 release:	$(EXE)
 
-debug:	CFLAGS += -g -traceback -O3 -inline-level=2 -D_DEBUG  -qopenmp -qopenmp-link=static
+debug:	CFLAGS += -g -traceback -O3 -inline-level=2 -D_DEBUG -qopenmp -qopenmp-link=static
 debug:	$(EXE)
 
 $(EXE):	$(OBJ)
