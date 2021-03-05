@@ -1,16 +1,9 @@
-ksize = 8 ksizet = 8 Nf = 1
-Time step dt = 0.004000 Trajectory length = 0.120000
-No. of Trajectories = 10 β = 1.700000
-κ = 0.178000 μ = 0.000000
-Diquark source = 0.000000 Diquark phase angle = 0.000000
-Stopping Residuals: Guidance: 0.000010 Acceptance: 0.000000, Estimator: 0.000010
+ksize = 16 ksizet = 16 Nf = 1
+Time step dt = 4.000000e-03 Trajectory length = 1.200000e-01
+No. of Trajectories = 10 β = 1.700000e+00
+κ = 1.780000e-01 μ = 0.000000e+00
+Diquark source = 0.000000e+00 Diquark phase angle = 0.000000e+00
+Stopping Residuals: Guidance: 1.000000e-06 Acceptance: 1.000000e-09, Estimator: 1.000000e-06
 Seed = 9678165
--487.418655 -2707.749690
-10000 520.000000 110.000000
--552.363911 -2277.126595
-10000 1066.000000 240.000000
--517.201159 -1887.326737
-10000 1627.000000 373.000000
--484.894044 -1528.768246
-10000 2205.000000 508.000000
--500.884036 -1387.653908
+dH = -8.125293e+04 dS = -9.649695e+04
+Iter (CG) 54 ancg 1.030000e+03 ancgh 1.480000e+02

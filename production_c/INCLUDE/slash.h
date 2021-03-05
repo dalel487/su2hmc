@@ -5,8 +5,8 @@
 
 //D Slash Functions
 //=================
-int Dslash(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]);
-int Dslashd(complex phi[][ngorkov][nc], complex r[][ngorkov][nc]);
-int Hdslash(complex phi[][ndirac][nc], complex r[][ndirac][nc]);
-int Hdslashd(complex phi[][ndirac][nc], complex r[][ndirac][nc]);
+int Dslash(complex *phi, complex *r);
+int Dslashd(complex *phi, complex *r);
+int Hdslash(complex *phi, complex *r);
+int Hdslashd(complex *phi, complex *r);
 #endif

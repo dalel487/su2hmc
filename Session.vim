@@ -44,6 +44,7 @@ set ttimeoutlen=100
 set updatecount=10000
 set viminfo='20,\"50
 set wildmenu
+set window=23
 let s:so_save = &so | let s:siso_save = &siso | set so=0 siso=0
 let v:this_session=expand("<sfile>:p")
 silent only
@@ -194,17 +195,179 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-1844
+51
 normal! zo
-let s:l = 1868 - ((1849 * winheight(0) + 37) / 75)
+222
+normal! zo
+404
+normal! zo
+430
+normal! zo
+442
+normal! zo
+446
+normal! zo
+459
+normal! zo
+463
+normal! zo
+475
+normal! zo
+479
+normal! zo
+492
+normal! zo
+516
+normal! zo
+531
+normal! zo
+532
+normal! zo
+581
+normal! zo
+587
+normal! zo
+592
+normal! zo
+618
+normal! zo
+626
+normal! zo
+638
+normal! zo
+644
+normal! zo
+655
+normal! zo
+656
+normal! zo
+690
+normal! zo
+694
+normal! zo
+703
+normal! zo
+705
+normal! zo
+724
+normal! zo
+739
+normal! zo
+744
+normal! zo
+933
+normal! zo
+934
+normal! zo
+952
+normal! zo
+1003
+normal! zo
+1006
+normal! zo
+1007
+normal! zo
+1010
+normal! zo
+1042
+normal! zo
+1057
+normal! zo
+1074
+normal! zo
+1075
+normal! zo
+1126
+normal! zo
+1162
+normal! zo
+1163
+normal! zo
+1230
+normal! zo
+1242
+normal! zo
+1276
+normal! zo
+1298
+normal! zo
+1314
+normal! zo
+1315
+normal! zo
+1382
+normal! zo
+1386
+normal! zo
+1421
+normal! zo
+1441
+normal! zo
+1457
+normal! zo
+1458
+normal! zo
+1537
+normal! zo
+1543
+normal! zo
+1556
+normal! zo
+1619
+normal! zo
+1624
+normal! zo
+1674
+normal! zo
+1675
+normal! zo
+1695
+normal! zo
+1701
+normal! zo
+1707
+normal! zo
+1715
+normal! zo
+1733
+normal! zo
+1738
+normal! zo
+1780
+normal! zo
+1781
+normal! zo
+1812
+normal! zo
+1833
+normal! zo
+1876
+normal! zo
+1877
+normal! zo
+1894
+normal! zo
+1910
+normal! zo
+1918
+normal! zo
+1919
+normal! zo
+1941
+normal! zo
+1951
+normal! zo
+1952
+normal! zo
+let s:l = 1480 - ((62 * winheight(0) + 39) / 79)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-1868
-normal! 0
+1480
+normal! 017|
 wincmd w
 argglobal
-if bufexists("production_c/par_mpi.c") | buffer production_c/par_mpi.c | else | edit production_c/par_mpi.c | endif
+if bufexists("production/su2hmc.f") | buffer production/su2hmc.f | else | edit production/su2hmc.f | endif
 setlocal keymap=
 setlocal noarabic
 setlocal autoindent
@@ -239,8 +402,8 @@ setlocal nodiff
 setlocal equalprg=
 setlocal errorformat=
 setlocal noexpandtab
-if &filetype != 'c'
-setlocal filetype=c
+if &filetype != 'fortran'
+setlocal filetype=fortran
 endif
 setlocal fixendofline
 setlocal foldcolumn=0
@@ -306,8 +469,8 @@ setlocal statusline=
 setlocal suffixesadd=
 setlocal swapfile
 setlocal synmaxcol=3000
-if &syntax != 'c'
-setlocal syntax=c
+if &syntax != 'fortran'
+setlocal syntax=fortran
 endif
 setlocal tabstop=6
 setlocal tagcase=
@@ -327,68 +490,22 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-91
-normal! zo
-201
-normal! zo
-219
-normal! zo
-229
-normal! zo
-231
-normal! zo
-233
-normal! zo
-235
-normal! zo
-238
-normal! zo
-275
-normal! zo
-276
-normal! zo
-295
-normal! zo
-305
-normal! zo
-311
-normal! zo
-317
-normal! zo
-324
-normal! zo
-326
-normal! zo
-328
-normal! zo
-330
-normal! zo
-365
-normal! zo
-366
-normal! zo
-367
-normal! zo
-let s:l = 320 - ((82 * winheight(0) + 37) / 75)
+let s:l = 438 - ((73 * winheight(0) + 39) / 79)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-320
-normal! 06|
+438
+normal! 013|
 wincmd w
 exe 'vert 1resize ' . ((&columns * 158 + 158) / 317)
 exe 'vert 2resize ' . ((&columns * 158 + 158) / 317)
 tabnext 1
-badd +593 production_c/su2hmc.c
-badd +1 production/par_mpi.f
-badd +0 production_c/par_mpi.c
-badd +306 production/su2hmc.f
-badd +298 production_c/slash.c
+badd +2 production_c/su2hmc.c
+badd +813 production/su2hmc.f
+badd +1 production_c/slash.c
 badd +60 production_c/Makefile
-badd +26 production_c/INCLUDE/su2hmc.h
+badd +761 production_c/par_mpi.c
 badd +39 production_c/INCLUDE/sizes.h
-badd +1 production_c/midout
-badd +76 production_c/INCLUDE/par_mpi.h
 if exists('s:wipebuf') && len(win_findbuf(s:wipebuf)) == 0
   silent exe 'bwipe ' . s:wipebuf
 endif

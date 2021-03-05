@@ -98,7 +98,7 @@ double Par_granf(){
 	double ran_val;
 	if(!rank)
 #ifdef USE_MKL
-		vsRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 1, &ran_val, 0,1);
+		vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 1, &ran_val, 0,1);
 #else
 	ran_val = sfmt_genrand_real1(&sfmt);
 #endif

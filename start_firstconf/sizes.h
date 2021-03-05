@@ -9,8 +9,8 @@ c*******************************************************************
 
 c Common block definition for parallel variables
 
-      integer, parameter :: nx = 16
-      integer, parameter :: nt = 32
+      integer, parameter :: nx = 8
+      integer, parameter :: nt = 8 
 
 c Keep original restriction of single spatial extent
 
@@ -23,8 +23,8 @@ c Keep original restriction of single spatial extent
 c      integer, parameter :: npx = 8
 c      integer, parameter :: npt = 4
 
-      integer, parameter :: npx = 2
-      integer, parameter :: npt = 2
+      integer, parameter :: npx = 1
+      integer, parameter :: npt = 1
 c Initially restrict to npz = npy = npx
 c This allows us to have a single ksize variable
 

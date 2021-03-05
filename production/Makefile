@@ -5,7 +5,7 @@ FC= mpiifort
 
 #FFLAGS= -O3 -I /bgsys/drivers/toolchain/V1R1M2/gnu-linux/lib/gcc/powerpc64-bgq-linux/4.4.6/finclude/
 
-FFLAGS= -O0 -xCORE-AVX512 -g -mkl -qopt-zmm-usage=high -I /bgsys/drivers/toolchain/V1R1M2/gnu-linux/lib/gcc/powerpc64-bgq-linux/4.4.6/finclude/
+FFLAGS= -O3 -ipo -xCORE-AVX512 -mkl -qopt-zmm-usage=high -I /bgsys/drivers/toolchain/V1R1M2/gnu-linux/lib/gcc/powerpc64-bgq-linux/4.4.6/finclude/
 
 LFLAGS=
 

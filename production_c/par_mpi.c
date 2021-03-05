@@ -70,8 +70,8 @@ int Par_begin(int argc, char *argv[]){
 		MPI_Cart_shift(commcart, i, 1, &pd[i], &pu[i]);
 	//Get coordinates of processors in the grid
 	for(int iproc = 0; iproc<nproc; iproc++){
-		MPI_Cart_coords(commcart, iproc, ndim, &pcoord[iproc]);
-		#pragma omp simd
+		MPI_Cart_coords(commcart, iproc, ndim, pcoord+iproc);
+		#pragma ivdep
 		for(int idim = 0; idim<ndim; idim++){
 			//Need to double check the +/- ones at the end. Is that FORTRAN or is it algorithm
 			pstart[idim][iproc] = pcoord[idim][iproc]*lsize[idim];
@@ -102,9 +102,18 @@ int Par_sread(){
 	 */
 	char *funcname = "Par_sread";
 	//Containers for input
-	complex u11Read[ndim][gvol], u12Read[ndim][gvol];
+	#ifdef USE_MKL
+	complex *u11Read = mkl_malloc(ndim*gvol*sizeof(complex),AVX);
+	complex *u12Read = mkl_malloc(ndim*gvol*sizeof(complex),AVX);
+	complex *u1buff = mkl_malloc(kvol*sizeof(complex),AVX);
+	complex *u2buff = mkl_malloc(kvol*sizeof(complex),AVX);
+	#else
+	complex *u11Read = malloc(ndim*gvol*sizeof(complex));
+	complex *u12Read = malloc(ndim*gvol*sizeof(complex));
+	complex *u1buff = malloc(kvol*sizeof(complex));
+	complex *u2buff = malloc(kvol*sizeof(complex));
+	#endif
 	//	complex ubuff[kvol];
-	complex u1buff[kvol], u2buff[kvol];
 	int icoord[ndim];
 	double seed;
 	//We shall allow the almighty master thread to open the file
@@ -139,8 +148,8 @@ int Par_sread(){
 								//j is the relative memory index of icoord
 								int j = Coord2gindex(icoord);
 								//ubuff[i]  = (ic == 0) ? u11read[j][idim] : u12read[j][idim];
-								u1buff[i]=u11Read[j][idim];
-								u2buff[i]=u12Read[j][idim];
+								u1buff[i]=u11Read[idim*gvol+j];
+								u2buff[i]=u12Read[idim*gvol+j];
 							}
 						}
 					}
@@ -179,13 +188,13 @@ int Par_sread(){
 	else{
 		for(int idim = 0; idim<ndim; idim++){
 			//Receiving the data from the master threads.
-			if(MPI_Recv(&u11[idim], kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm, &status)){
+			if(MPI_Recv(u11+(kvol+halo)*idim, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm, &status)){
 				fprintf(stderr, "Error %i in %s: Falied to receive u11 from process %i.\nExiting...\n\n",
 						CANTRECV, funcname, masterproc);
 				MPI_Finalise();
 				exit(CANTRECV);
 			}
-			if(MPI_Recv(&u12[idim], kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm, &status)){
+			if(MPI_Recv(u12+(kvol+halo)*idim, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm, &status)){
 				fprintf(stderr, "Error %i in %s: Falied to receive u12 from process %i.\nExiting...\n\n",
 						CANTRECV, funcname, masterproc);
 				MPI_Finalise();
@@ -193,6 +202,11 @@ int Par_sread(){
 			}
 		}
 	}
+#ifdef USE_MKL
+	mkl_free(u11Read); mkl_free(u12Read); mkl_free(u1buff); mkl_free(u2buff);
+#else
+	free(u11Read); free(u12Read); free(u1buff); free(u2buff);
+#endif
 	memcpy(u11t, u11, ndim*gvol*sizeof(complex));
 	memcpy(u12t, u12, ndim*gvol*sizeof(complex));
 	Par_dcopy(&seed);
@@ -213,7 +227,13 @@ int Par_psread(char *filename, double *ps){
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Par_psread";
-	double gps[gvol][2], psbuff[kvol][2]; 
+	#ifdef USE_MKL
+	double *psbuff = mkl_malloc(nc*kvol*sizeof(double),AVX);
+	double *gps= mkl_malloc(nc*gvol*sizeof(double),AVX);
+	#else
+	double *psbuff = malloc(nc*kvol*sizeof(double));
+	double *gps= malloc(nc*gvol*sizeof(double));
+	#endif
 	int icoord[ndim];
 	FILE *dest;
 	if(!rank){
@@ -234,15 +254,15 @@ int Par_psread(char *filename, double *ps){
 					icoord[1]=iy;
 					for(int iz=pstart[2][iproc]; iz<pstop[2][iproc]; iz++){
 						icoord[2]=iz;
-						#pragma omp simd
+#pragma ivdep
 						for(int it=pstart[3][iproc]; it<pstop[3][iproc]; it++){
 							icoord[3]=it;
 							i++;
 							//j is the relative memory index of icoord
 							int j = Coord2gindex(icoord);
 							//ubuff[i]  = (ic == 0) ? u11read[j][idim] : u12read[j][idim];
-							psbuff[i][0]=gps[j][0];
-							psbuff[i][1]=gps[j][1];
+							psbuff[i*nc]=gps[j*nc];
+							psbuff[i*nc+1]=gps[j*nc+1];
 						}}}}
 			//Think its i+1 in C as C indexes from 0 not 1
 			if(i+1!=kvol){
@@ -270,9 +290,14 @@ int Par_psread(char *filename, double *ps){
 			MPI_Finalise();
 			exit(CANTRECV);
 		}
+		#ifdef USE_MKL
+		mkl_free(psbuff); mkl_free(gps);
+		#else
+		free(psbuff); free(gps);
+		#endif
 	return 0;
 }
-int Par_swrite(int isweep){
+int Par_swrite(int itraj){
 	/*
 	 * Modified from an original version of swrite in FORTRAN
 	 *
@@ -288,89 +313,100 @@ int Par_swrite(int isweep){
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "par_swrite";
-	complex u11Write[ndim][gvol], u12Write[ndim][gvol]/*, ubuff[kvol]*/;
-	complex u1buff[kvol], u2buff[kvol];	
-	int icoord[4], iproc, idim, seed;
+#ifdef USE_MKL
+	complex *u11Write = mkl_malloc(ndim*gvol*sizeof(complex),AVX);
+	complex *u12Write = mkl_malloc(ndim*gvol*sizeof(complex),AVX);
+	complex *u1buff = mkl_malloc(kvol*sizeof(complex),AVX);
+	complex *u2buff = mkl_malloc(kvol*sizeof(complex),AVX);
+#else
+	complex *u11Write = malloc(ndim*gvol*sizeof(complex));
+	complex *u12Write = malloc(ndim*gvol*sizeof(complex));
+	complex *u1buff = malloc(kvol*sizeof(complex));
+	complex *u2buff = malloc(kvol*sizeof(complex));
+#endif
+	int icoord[4], iproc, seed;
 	char c[3];
 	if(!rank){
 		printf("Writing the gauge file on processor %i.\n", rank);
 		//Get correct parts of u11read etc from remote processors
 		for(iproc=0;iproc<nproc;iproc++)
-			for(idim=0;idim<ndim;idim++)
+			for(int idim=0;idim<ndim;idim++){
 				//Colour index will match FORTRAN as it isn't used for array
 				//indexing here
 				//		for(int ic=1; ic<=nc; ic++){
 				//		Getting rid of that ic loop
-				if(iproc)
+				if(iproc){
 					if(MPI_Recv(&u1buff, kvol, MPI_C_COMPLEX, iproc, tag, comm, &status)){
 						fprintf(stderr, "Error %i in %s: Falied to receive u11 from process %i.\nExiting...\n\n",
 								CANTRECV, funcname, iproc);
 						MPI_Finalise();
 						exit(CANTRECV);
 					}
-		if(MPI_Recv(&u2buff, kvol, MPI_C_COMPLEX, iproc, tag, comm, &status)){
-			fprintf(stderr, "Error %i in %s: Falied to receive u12 from process %i.\nExiting...\n\n",
-					CANTRECV, funcname, iproc);
-			MPI_Finalise();
-			exit(CANTRECV);
-		}
-		else{
-			//Array looping is slow so we use memcpy instead
-//			memcpy(u1buff, u11[idim], kvol*sizeof(complex));
-//			memcpy(u2buff, u12[idim], kvol*sizeof(complex));
-		}
-		int i=0;
-		//could move the ic check to here, but it will make the code look rather unsightly
-		for(int ix=pstart[0][iproc]; ix<pstop[0][iproc]; ix++){
-			icoord[0]=ix;
-			for(int iy=pstart[1][iproc]; iy<pstop[1][iproc]; iy++){
-				icoord[1]=iy;
-				for(int iz=pstart[2][iproc]; iz<pstop[2][iproc]; iz++){
-					icoord[2]=iz;
-					for(int it=pstart[3][iproc]; it<pstop[3][iproc]; it++){
-						icoord[3]=it;
-						i++;
-						//j is the relative memory index of icoord
-						int j = Coord2gindex(icoord);
-						//Since the for loop puts limits on ic we can skip the safety
-						//check in the FORTRAN code 
-						//	ubuff[i]  = (ic == 0) ? u11read[j][idim] : u12read[j][idim];
-						//	Instead of looping through ic
-						u11Write[idim][j] = u1buff[i];	
-						u12Write[idim][j] = u2buff[i];	
-					}}}}
-		if(i+1!=kvol){
-			fprintf(stderr, "Error %i in %s: Number of elements %i is not equal to\
-					kvol %i.\nExiting...\n\n", NUMELEM, funcname, i, kvol);
-			MPI_Finalise();
-			exit(NUMELEM);
-		}
-		char *c;
-		sprintf(c," %i", isweep);
-		char gauge_file[FILELEN]="con_";
-		strcat(gauge_file, c);
-		printf("Gauge file name is %s/n", gauge_file);
+					if(MPI_Recv(&u2buff, kvol, MPI_C_COMPLEX, iproc, tag, comm, &status)){
+						fprintf(stderr, "Error %i in %s: Falied to receive u12 from process %i.\nExiting...\n\n",
+								CANTRECV, funcname, iproc);
+						MPI_Finalise();
+						exit(CANTRECV);
+					}
+				}
+				else{
+					//Array looping is slow so we use memcpy instead
+					memcpy(u1buff, u11+idim*(kvol+halo), kvol*sizeof(complex));
+					memcpy(u2buff, u12+idim*(kvol+halo), kvol*sizeof(complex));
+				}
+				int i=0;
+				//could move the ic check to here, but it will make the code look rather unsightly
+				for(int ix=pstart[0][iproc]; ix<pstop[0][iproc]; ix++){
+					icoord[0]=ix;
+					for(int iy=pstart[1][iproc]; iy<pstop[1][iproc]; iy++){
+						icoord[1]=iy;
+						for(int iz=pstart[2][iproc]; iz<pstop[2][iproc]; iz++){
+							icoord[2]=iz;
+							for(int it=pstart[3][iproc]; it<pstop[3][iproc]; it++){
+								icoord[3]=it;
+								i++;
+								//j is the relative memory index of icoord
+								int j = Coord2gindex(icoord);
+								//Since the for loop puts limits on ic we can skip the safety
+								//check in the FORTRAN code 
+								//	ubuff[i]  = (ic == 0) ? u11read[j][idim] : u12read[j][idim];
+								//	Instead of looping through ic
+								u11Write[idim*gvol+j] = u1buff[i];	
+								u12Write[idim*gvol+j] = u2buff[i];	
+							}}}}
+				if(i!=kvol){
+					fprintf(stderr, "Error %i in %s: Number of elements %i is not equal to\
+							kvol %i.\nExiting...\n\n", NUMELEM, funcname, i, kvol);
+					MPI_Finalise();
+					exit(NUMELEM);
+				}
+			}
+			char c[4];
+			sprintf(c,"%i", itraj);
+			char gauge_file[FILELEN]="con_";
+			strcat(gauge_file, c);
+			printf("Gauge file name is %s\n", gauge_file);
 
-		FILE *con;
-		if(!(con=fopen(gauge_file, "wb"))){
-			fprintf(stderr, "Error %i in %s: Failed to open %s.\nExiting...\n\n", OPENERROR, funcname, gauge_file);
-			MPI_Finalise();
-			exit(OPENERROR);	
-		}
-		fwrite(&u11Write, sizeof(u11Write), 1, con);
-		fwrite(&u12Write, sizeof(u12Write), 1, con);
-		fwrite(&seed, sizeof(seed), 1, con);
-		fclose(con);
-	}
+			FILE *con;
+			if(!(con=fopen(gauge_file, "wb"))){
+				fprintf(stderr, "Error %i in %s: Failed to open %s.\nExiting...\n\n", OPENERROR, funcname, gauge_file);
+				MPI_Finalise();
+				exit(OPENERROR);	
+			}
+			fwrite(&u11Write, sizeof(u11Write), 1, con);
+			fwrite(&u12Write, sizeof(u12Write), 1, con);
+			fwrite(&seed, sizeof(seed), 1, con);
+			fclose(con);
+			}
 		else{
 			for(int idim = 0; idim<ndim; idim++){
-				if(MPI_Send(&u11[idim], kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm)){
+				if(MPI_Send(u11+(kvol+halo)*idim, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm)){
 					fprintf(stderr, "Error %i in %s: Falied to send u11 from process %i.\nExiting...\n\n",
 							CANTSEND, funcname, iproc);
 					MPI_Finalise();
 					exit(CANTSEND);
 				}
-				if(MPI_Send(&u12[idim], kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm)){
+				if(MPI_Send(u12+(kvol+halo)*idim, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm)){
 					fprintf(stderr, "Error %i in %s: Falied to send u12 from process %i.\nExiting...\n\n",
 							CANTSEND, funcname, iproc);
 					MPI_Finalise();
@@ -378,6 +414,11 @@ int Par_swrite(int isweep){
 				}
 			}
 		}
+#ifdef USE_MKL
+		mkl_free(u11Write); mkl_free(u12Write); mkl_free(u1buff); mkl_free(u2buff);
+#else
+		free(u11Write); free(u12Write); free(u1buff); free(u2buff);
+#endif
 		return 0;
 	}
 	//To be lazy, we've got modules to help us do reductions and broadcasts with a single argument
@@ -586,7 +627,11 @@ int Par_swrite(int isweep){
 			MPI_Finalise();
 			exit(LAYERROR);
 		}
-		complex sendbuf[halo][ncpt];
+#ifdef USE_MKL
+		complex *sendbuf = mkl_malloc(halo*ncpt*sizeof(complex), AVX);
+#else
+		complex *sendbuf = malloc(halo*ncpt*sizeof(complex));
+#endif
 		//How big is the data being sent and received
 		int msg_size=ncpt*halosize[idir];
 		//In each case we set up the data being sent then do the exchange
@@ -599,11 +644,11 @@ int Par_swrite(int isweep){
 					MPI_Finalise();
 					exit(BOUNDERROR);
 				}
-				#pragma omp parallel for
+#pragma omp parallel for if(halosize[idir]>2048)
 				for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
-				#pragma omp simd
+#pragma ivdep
 					for(int icpt = 0; icpt <ncpt; icpt++)
-						sendbuf[ihalo][icpt]=z[ncpt*hd[idir][ihalo]+icpt];
+						sendbuf[ihalo*ncpt+icpt]=z[ncpt*hd[ndim*ihalo+idir]+icpt];
 				//For the zdnhaloswapdir we send off the down halo and receive into the up halo
 				if(MPI_Isend(sendbuf, msg_size, MPI_C_DOUBLE_COMPLEX, pd[idir], tag, comm, &request)){
 					fprintf(stderr,"Error %i in %s: Failed to send off the down halo from rank %i to rank %i.\nExiting...\n"
@@ -626,11 +671,11 @@ int Par_swrite(int isweep){
 					MPI_Finalise();
 					exit(BOUNDERROR);
 				}
-				#pragma omp parallel for
+#pragma omp parallel for if(halosize[idir]>2048)
 				for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
-				#pragma omp simd
+#pragma ivdep
 					for(int icpt = 0; icpt <ncpt; icpt++)
-						sendbuf[ihalo][icpt]=z[ncpt*hu[idir][ihalo]+icpt];
+						sendbuf[ihalo*ncpt+icpt]=z[ncpt*hu[ndim*ihalo+idir]+icpt];
 				//For the zuphaloswapdir we send off the up halo and receive into the down halo
 				if(MPI_Isend(sendbuf, msg_size, MPI_C_DOUBLE_COMPLEX, pu[idir], 0, comm, &request)){
 					fprintf(stderr,"Error %i in %s: Failed to send off the up halo from rank %i to rank %i.\nExiting...\n",
@@ -646,6 +691,11 @@ int Par_swrite(int isweep){
 				}
 				break;
 		}
+#ifdef USE_MKL
+		mkl_free(sendbuf);
+#else
+		free(sendbuf);
+#endif
 		MPI_Wait(&request, &status);
 		return 0;
 	}
@@ -666,7 +716,11 @@ int Par_swrite(int isweep){
 		 *  Zero on success, Integer Error code otherwise
 		 */
 		char *funcname = "ZHalo_swap_dir";
-		double sendbuf[halo][ncpt];
+#ifdef USE_MKL
+		double *sendbuf = mkl_malloc(halo*ncpt*sizeof(double), AVX);
+#else
+		double *sendbuf = malloc(halo*ncpt*sizeof(double));
+#endif
 		if(layer!=DOWN && layer!=UP){
 			fprintf(stderr, "Error %i in %s: Cannot swap in the direction given by %i.\nExiting...\n\n",
 					LAYERROR, funcname, layer);
@@ -685,11 +739,11 @@ int Par_swrite(int isweep){
 					MPI_Finalise();
 					exit(BOUNDERROR);
 				}
-				#pragma omp parallel for
+#pragma omp parallel for if(halosize[idir]>2048)
 				for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
-				#pragma omp simd
+#pragma ivdep
 					for(int icpt = 0; icpt <ncpt; icpt++)
-						sendbuf[ihalo][icpt]=d[ncpt*hd[idir][ihalo]+icpt];
+						sendbuf[ihalo*ncpt+icpt]=d[ncpt*hd[ndim*ihalo+idir]+icpt];
 				//For the cdnhaloswapdir we send off the down halo and receive into the up halo
 				if(MPI_Isend(sendbuf, msg_size, MPI_DOUBLE, pd[idir], tag, comm, &request)){
 					fprintf(stderr, "Error %i in %s: Failed to send off the down halo from rank %i to rank %i.\nExiting...\n\n",
@@ -711,11 +765,11 @@ int Par_swrite(int isweep){
 					MPI_Finalise();
 					exit(BOUNDERROR);
 				}
-				#pragma omp parallel for
+#pragma omp parallel for if(halosize[idir]>2048)
 				for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
-				#pragma omp simd
+#pragma ivdep
 					for(int icpt = 0; icpt <ncpt; icpt++)
-						sendbuf[ihalo][icpt]=d[ncpt*hu[idir][ihalo]+icpt];
+						sendbuf[ihalo*ncpt+icpt]=d[ncpt*hu[ndim*ihalo+idir]+icpt];
 				//For the cuphaloswapdir we send off the up halo and receive into the down halo
 				if(MPI_Isend(sendbuf, msg_size, MPI_DOUBLE, pu[idir], 0, comm, &request)){
 					fprintf(stderr,"Error %i in %s: Failed to send off the up halo from rank %i to rank %i.\nExiting...\n\n",
@@ -730,6 +784,11 @@ int Par_swrite(int isweep){
 					exit(CANTRECV);
 				}
 		}	
+#ifdef USE_MKL
+		mkl_free(sendbuf);
+#else
+		free(sendbuf);
+#endif
 		MPI_Wait(&request, &status);
 		return 0;
 	}
@@ -820,7 +879,7 @@ int Par_swrite(int isweep){
 
 			//Post-multiply current loop by incoming one.
 			//This is begging to be done in CUDA or BLAS
-			#pragma omp parallel for
+#pragma omp parallel for
 			for(i=0;i<kvol3;i++){
 				t11[i]=z11[i]*a11[i]-z12[i]*conj(a12[i]);
 				t12[i]=z11[i]*a12[i]+z12[i]*conj(a11[i]);
@@ -832,6 +891,8 @@ int Par_swrite(int isweep){
 		mkl_thread_free_buffers();
 		mkl_free(a11); mkl_free(a12);
 		mkl_free(t11); mkl_free(t12);
+#else
+		free(a11); free(a12); free(t11); free(t12);
 #endif
 		return 0;
 	}

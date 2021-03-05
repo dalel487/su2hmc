@@ -46,9 +46,9 @@ double poly;
 
 //Function Declarations:
 //#####################
-int Force(double dSdpi[][3][ndirac], int iflag, double res1);
+int Force(double *dSdpi, int iflag, double res1);
 int Init(int istart);
-int Gauge_force(double dSdpi[][3][ndirac]);
+int Gauge_force(double *dSdpi);
 int Hamilton(double *h, double *s, double res2);
 int Congradq(int na, double res, int *itercg);
 int Congradp(int na, double res, int *itercg);
@@ -57,6 +57,6 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt);
 double Polyakov();
 inline int Reunitarise();
 inline int Z_gather(complex *x, complex *y, int n, int *table);
-inline int Fill_Small_Phi(int na, complex smallPhi[][ndirac][nc]);
+inline int Fill_Small_Phi(int na, complex *smallPhi);
 double Norm_squared(complex *z, int n);
 #endif

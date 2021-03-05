@@ -24,7 +24,18 @@ int Addrc(){
 	char *funcname = "Addrc";
 	//Rather than having 8 ih variables I'm going to use a 2x4 array
 	//down is 0, up is 1
-	int ih[2][4] = {{-1,-1,-1,-1},{-1,-1,-1,-1}};// __attribute__((aligned()));
+	int ih[2][4] = {{-1,-1,-1,-1},{-1,-1,-1,-1}};
+	#ifdef USE_MKL
+	id = mkl_malloc(ndim*kvol*sizeof(int),AVX);
+	iu = mkl_malloc(ndim*kvol*sizeof(int),AVX);
+	hd = mkl_malloc(ndim*halo*sizeof(int),AVX);
+	hu = mkl_malloc(ndim*halo*sizeof(int),AVX);
+	#else
+	id = malloc(ndim*kvol*sizeof(int));
+	iu = malloc(ndim*kvol*sizeof(int));
+	hd = malloc(ndim*halo*sizeof(int));
+	hu = malloc(ndim*halo*sizeof(int));
+	#endif
 
 	//Do the lookups appropriate for overindexing into halos
 	//order is down, up for each x y z t
@@ -97,10 +108,10 @@ int Addrc(){
 							MPI_Finalize();
 							exit(HALOLIM);
 						}
-						hd[0][ih[0][0]]=ic;
+						hd[0+ndim*ih[0][0]]=ic;
 						iaddr=h1d[0]+ih[0][0];
 					}
-					id[0][ic]=iaddr;
+					id[0+ndim*ic]=iaddr;
 					if(jx<ksize-1)
 						iaddr = ia(jx+1,jy,jz,jt);
 					else{
@@ -111,10 +122,10 @@ int Addrc(){
 							MPI_Finalize();
 							exit(HALOLIM);
 						}
-						hu[0][ih[1][0]]=ic;
+						hu[0+ndim*ih[1][0]]=ic;
 						iaddr=ih[1][0]+h1u[0];	
 					}
-					iu[0][ic]=iaddr;
+					iu[0+ndim*ic]=iaddr;
 					if(jy)
 						iaddr = ia(jx,jy-1,jz,jt);
 					else{
@@ -125,10 +136,10 @@ int Addrc(){
 							MPI_Finalize();
 							exit(HALOLIM);
 						}
-						hd[1][ih[0][1]]=ic;
+						hd[1+ndim*ih[0][1]]=ic;
 						iaddr=h1d[1]+ih[0][1];
 					}
-					id[1][ic]=iaddr;
+					id[1+ndim*ic]=iaddr;
 					if(jy<ksize-1)
 						iaddr = ia(jx,jy+1,jz,jt);
 					else{
@@ -139,10 +150,10 @@ int Addrc(){
 							MPI_Finalize();
 							exit(HALOLIM);
 						}
-						hu[1][ih[1][1]]=ic;
+						hu[1+ndim*ih[1][1]]=ic;
 						iaddr=ih[1][1]+h1u[1];	
 					}
-					iu[1][ic]=iaddr;
+					iu[1+ndim*ic]=iaddr;
 					if(jz)
 						iaddr = ia(jx,jy,jz-1,jt);
 					else{
@@ -153,10 +164,10 @@ int Addrc(){
 							MPI_Finalize();
 							exit(HALOLIM);
 						}
-						hd[2][ih[0][2]]=ic;
+						hd[2+ndim*ih[0][2]]=ic;
 						iaddr=h1d[2]+ih[0][2];
 					}
-					id[2][ic]=iaddr;
+					id[2+ndim*ic]=iaddr;
 					if(jz<ksize-1)
 						iaddr = ia(jx,jy,jz+1,jt);
 					else{
@@ -167,10 +178,10 @@ int Addrc(){
 							MPI_Finalize();
 							exit(HALOLIM);
 						}
-						hu[2][ih[1][2]]=ic;
+						hu[2+ndim*ih[1][2]]=ic;
 						iaddr=ih[1][2]+h1u[2];	
 					}
-					iu[2][ic]=iaddr;
+					iu[2+ndim*ic]=iaddr;
 					if(jt)
 						iaddr = ia(jx,jy,jz,jt-1);
 					else{
@@ -181,10 +192,10 @@ int Addrc(){
 							MPI_Finalize();
 							exit(HALOLIM);
 						}
-						hd[3][ih[0][3]]=ic;
+						hd[3+ndim*ih[0][3]]=ic;
 						iaddr=h1d[3]+ih[0][3];
 					}
-					id[3][ic]=iaddr;
+					id[3+ndim*ic]=iaddr;
 					if(jt<ksizet-1)
 						iaddr = ia(jx,jy,jz,jt+1);
 					else{
@@ -195,17 +206,17 @@ int Addrc(){
 							MPI_Finalize();
 							exit(HALOLIM);
 						}
-						hu[3][ih[1][3]]=ic;
+						hu[3+ndim*ih[1][3]]=ic;
 						iaddr=ih[1][3]+h1u[3];	
 					}
-					iu[3][ic]=iaddr;
+					iu[3+ndim*ic]=iaddr;
 #ifdef _DEBUG
 					printf("For loop x=%i,y=%i,z=%i,t=%i:\n"\
 							"ic=%i\n"\
 							"id={%i,%i,%i,%i}\n"\
 							"iu={%i,%i,%i,%i}\n\n",\
-							jx,jy,jz,jt,ic,id[0][ic],id[1][ic],id[2][ic],id[3][ic],iu[0][ic],\
-							iu[1][ic],iu[2][ic],iu[3][ic]);
+							jx,jy,jz,jt,ic,id[0+ndim*ic],id[1+ndim*ic],id[2+ndim*ic],id[3+ndim*ic],iu[0+ndim*ic],\
+							iu[1+ndim*ic],iu[2+ndim*ic],iu[3+ndim*ic]);
 #endif
 				}
 	return 0;

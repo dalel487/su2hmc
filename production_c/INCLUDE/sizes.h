@@ -34,8 +34,8 @@
 #define	FILELEN	64
 // Common block definition for parallel variables
 
-#define	nx	8		
-#define	nt	8	
+#define	nx	32		
+#define	nt	32
 
 // Keep original restriction of single spatial extent
 
@@ -98,11 +98,11 @@
 #define	kferm2Halo	(nc*ndirac*(kvol+halo))
 #define	kmomHalo	(ndim*nadj*(kvol+halo))
 
-#define	respbp	1E-5
-#define	rescgg	1E-5 
-#define	rescga	1E-8 
+#define	respbp	1E-6
+#define	rescgg	1E-6 
+#define	rescga	1E-9 
 
 
-//New entry here, the size of the AVX buffer. 64 for AVX-512, 32 for AVX/AVX2 and 16
+//New entry here, the size of the AVX buffer. 64 for AVX-512, 32 for AVX/AVX2 and 16 for good old SSE
 #define	AVX	64
 #endif

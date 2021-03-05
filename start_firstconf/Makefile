@@ -1,8 +1,8 @@
 MF=	Makefile
 
 #FC= mpixlf77_r -qsmp=omp
-FC	= mpiifort
-FFLAGS= -O0 -g -ipo -qopenmp -xHOST -mkl -I /bgsys/drivers/toolchain/V1R1M2/gnu-linux/lib/gcc/powerpc64-bgq-linux/4.4.6/finclude/
+FC	= mpifort
+FFLAGS= -Ofast  -I /bgsys/drivers/toolchain/V1R1M2/gnu-linux/lib/gcc/powerpc64-bgq-linux/4.4.6/finclude/
 
 LFLAGS=
 

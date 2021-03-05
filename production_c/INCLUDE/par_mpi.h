@@ -10,6 +10,9 @@
 #include	<mkl.h>
 #endif
 #include	<mpi.h> 
+#ifdef _OPENMP
+#include	<omp.h>
+#endif
 #include	<sizes.h>
 #include	<stdio.h>
 #include	<stdlib.h>
@@ -41,6 +44,9 @@ int pd[ndim] __attribute__((aligned(AVX)));
 //MPI Stuff
 int procid;
 int ierr;
+
+//Number of threads for OpenMP
+#define	nthreads	8	
 
 //In C and Fortran 2008, MPI_STATUS_SIZE is replaced with 
 //MPI_Status
@@ -78,7 +84,7 @@ complex *u11, *u12;
 complex *u11t, *u12t;
 //Halos indices
 //-------------
-static unsigned int id[ndim][kvol], iu[ndim][kvol] __attribute__((aligned(AVX)));
+static unsigned int *iu, *id;
 unsigned int h1u[4], h1d[4];
 unsigned int halosize[4];
 
