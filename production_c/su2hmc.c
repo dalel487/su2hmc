@@ -1948,7 +1948,7 @@ inline int Fill_Small_Phi(int na, complex *smallPhi){
 				// 2*ndirac*nc we end up skipping the second, fourth, sixth etc. groups of 8 elements.
 				// This is not yet clear to me why, but I'll update when it is clarified.
 				//	  PHI_index=i*16+j*2+k;
-				smallPhi[(i*ndirac+idirac)*nc+ic]=Phi[((na*kvol+i)*ngorkov+idirac*nc)+ic];
+				smallPhi[(i*ndirac+idirac)*nc+ic]=Phi[((na*kvol+i)*ngorkov+idirac)*nc+ic];
 			}
 	return 0;
 }

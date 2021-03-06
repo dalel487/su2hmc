@@ -1,9 +1,34 @@
-ksize = 16 ksizet = 16 Nf = 1
+ksize = 8 ksizet = 8 Nf = 1
 Time step dt = 4.000000e-03 Trajectory length = 1.200000e-01
 No. of Trajectories = 10 β = 1.700000e+00
 κ = 1.780000e-01 μ = 0.000000e+00
 Diquark source = 0.000000e+00 Diquark phase angle = 0.000000e+00
 Stopping Residuals: Guidance: 1.000000e-06 Acceptance: 1.000000e-09, Estimator: 1.000000e-06
 Seed = 9678165
-dH = -8.125293e+04 dS = -9.649695e+04
-Iter (CG) 54 ancg 1.030000e+03 ancgh 1.480000e+02
+dH = -1.631118e+03 dS = -5.431882e+03
+Iter (CG) 44 ancg 1.181000e+03 ancgh 1.240000e+02
+dH = -1.379441e+03 dS = -4.569741e+03
+Iter (CG) 44 ancg 2.233000e+03 ancgh 2.490000e+02
+dH = -7.253731e+02 dS = -2.695788e+03
+Iter (CG) 44 ancg 3.010000e+03 ancgh 3.730000e+02
+dH = -7.279431e+02 dS = -2.658462e+03
+Iter (CG) 44 ancg 3.793000e+03 ancgh 4.980000e+02
+dH = -8.096388e+02 dS = -2.905076e+03
+Iter (CG) 44 ancg 4.605000e+03 ancgh 6.160000e+02
+dH = -1.178679e+03 dS = -3.952598e+03
+Iter (CG) 44 ancg 5.585000e+03 ancgh 7.400000e+02
+dH = -9.653021e+02 dS = -3.320083e+03
+Iter (CG) 44 ancg 6.463000e+03 ancgh 8.590000e+02
+dH = -1.197022e+03 dS = -4.215293e+03
+Iter (CG) 44 ancg 7.475000e+03 ancgh 9.790000e+02
+dH = -9.411242e+02 dS = -3.455699e+03
+Iter (CG) 44 ancg 8.390000e+03 ancgh 1.105000e+03
+dH = -1.027508e+03 dS = -3.292856e+03
+Iter (CG) 44 ancg 9.268000e+03 ancgh 1.224000e+03
+Averages for the last 10 trajectories
+Number of acceptances: 0 Average Trajectory Length = 1.136000e-01
+exp(dh) = 0.000000e+00 +/- 0.000000e+00
+Average number of congrad iter guidance: 3.263380e+01 acceptance 6.120000e+01
+psibarpsi = 2.937936e+00
+Mean Square Velocity = 8.927583e-01 Action Per Site = -2.244482e-01
+Energy Density = 5.277338e-01 Number Density 3.058663e-03
