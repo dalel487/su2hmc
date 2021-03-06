@@ -56,7 +56,7 @@ int Par_begin(int argc, char *argv[]){
 	//Probably for us everything will be but using the four vector
 	//gives the choice at least
 	int periods[ndim] __attribute__((aligned(AVX)));
-	#pragma unroll
+#pragma unroll
 	for(int i=0; i<ndim; i++)
 		periods[i] = TRUE;
 	//Not going to change the rank order
@@ -65,13 +65,13 @@ int Par_begin(int argc, char *argv[]){
 	MPI_Cart_create(comm, ndim, cartsize, periods, reorder, &commcart);
 
 	//Get nearest neighbours of processors
-	#pragma unroll
+#pragma unroll
 	for(int i= 0; i<ndim; i++)
 		MPI_Cart_shift(commcart, i, 1, &pd[i], &pu[i]);
 	//Get coordinates of processors in the grid
 	for(int iproc = 0; iproc<nproc; iproc++){
 		MPI_Cart_coords(commcart, iproc, ndim, pcoord+iproc);
-		#pragma ivdep
+#pragma ivdep
 		for(int idim = 0; idim<ndim; idim++){
 			//Need to double check the +/- ones at the end. Is that FORTRAN or is it algorithm
 			pstart[idim][iproc] = pcoord[idim][iproc]*lsize[idim];
@@ -102,17 +102,17 @@ int Par_sread(){
 	 */
 	char *funcname = "Par_sread";
 	//Containers for input
-	#ifdef USE_MKL
+#ifdef USE_MKL
 	complex *u11Read = mkl_malloc(ndim*gvol*sizeof(complex),AVX);
 	complex *u12Read = mkl_malloc(ndim*gvol*sizeof(complex),AVX);
 	complex *u1buff = mkl_malloc(kvol*sizeof(complex),AVX);
 	complex *u2buff = mkl_malloc(kvol*sizeof(complex),AVX);
-	#else
+#else
 	complex *u11Read = malloc(ndim*gvol*sizeof(complex));
 	complex *u12Read = malloc(ndim*gvol*sizeof(complex));
 	complex *u1buff = malloc(kvol*sizeof(complex));
 	complex *u2buff = malloc(kvol*sizeof(complex));
-	#endif
+#endif
 	//	complex ubuff[kvol];
 	int icoord[ndim];
 	double seed;
@@ -227,13 +227,13 @@ int Par_psread(char *filename, double *ps){
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Par_psread";
-	#ifdef USE_MKL
+#ifdef USE_MKL
 	double *psbuff = mkl_malloc(nc*kvol*sizeof(double),AVX);
 	double *gps= mkl_malloc(nc*gvol*sizeof(double),AVX);
-	#else
+#else
 	double *psbuff = malloc(nc*kvol*sizeof(double));
 	double *gps= malloc(nc*gvol*sizeof(double));
-	#endif
+#endif
 	int icoord[ndim];
 	FILE *dest;
 	if(!rank){
@@ -290,11 +290,11 @@ int Par_psread(char *filename, double *ps){
 			MPI_Finalise();
 			exit(CANTRECV);
 		}
-		#ifdef USE_MKL
-		mkl_free(psbuff); mkl_free(gps);
-		#else
-		free(psbuff); free(gps);
-		#endif
+#ifdef USE_MKL
+	mkl_free(psbuff); mkl_free(gps);
+#else
+	free(psbuff); free(gps);
+#endif
 	return 0;
 }
 int Par_swrite(int itraj){
@@ -313,21 +313,20 @@ int Par_swrite(int itraj){
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "par_swrite";
-#ifdef USE_MKL
-	complex *u11Write = mkl_malloc(ndim*gvol*sizeof(complex),AVX);
-	complex *u12Write = mkl_malloc(ndim*gvol*sizeof(complex),AVX);
-	complex *u1buff = mkl_malloc(kvol*sizeof(complex),AVX);
-	complex *u2buff = mkl_malloc(kvol*sizeof(complex),AVX);
-#else
-	complex *u11Write = malloc(ndim*gvol*sizeof(complex));
-	complex *u12Write = malloc(ndim*gvol*sizeof(complex));
-	complex *u1buff = malloc(kvol*sizeof(complex));
-	complex *u2buff = malloc(kvol*sizeof(complex));
-#endif
 	int icoord[4], iproc, seed;
-	char c[3];
 	if(!rank){
-		printf("Writing the gauge file on processor %i.\n", rank);
+		//Only the master process  accesses these, so to save memory we only declare them on the master process
+#ifdef USE_MKL
+		complex *u11Write = mkl_malloc(ndim*gvol*sizeof(complex),AVX);
+		complex *u12Write = mkl_malloc(ndim*gvol*sizeof(complex),AVX);
+		complex *u1buff = mkl_malloc(kvol*sizeof(complex),AVX);
+		complex *u2buff = mkl_malloc(kvol*sizeof(complex),AVX);
+#else
+		complex *u11Write = malloc(ndim*gvol*sizeof(complex));
+		complex *u12Write = malloc(ndim*gvol*sizeof(complex));
+		complex *u1buff = malloc(kvol*sizeof(complex));
+		complex *u2buff = malloc(kvol*sizeof(complex));
+#endif
 		//Get correct parts of u11read etc from remote processors
 		for(iproc=0;iproc<nproc;iproc++)
 			for(int idim=0;idim<ndim;idim++){
@@ -350,6 +349,7 @@ int Par_swrite(int itraj){
 					}
 				}
 				else{
+					//No need to do MPI Send/Receive on the master rank
 					//Array looping is slow so we use memcpy instead
 					memcpy(u1buff, u11+idim*(kvol+halo), kvol*sizeof(complex));
 					memcpy(u2buff, u12+idim*(kvol+halo), kvol*sizeof(complex));
@@ -381,22 +381,29 @@ int Par_swrite(int itraj){
 					exit(NUMELEM);
 				}
 			}
+
+			FILE *con;
 			char c[4];
 			sprintf(c,"%i", itraj);
 			char gauge_file[FILELEN]="con_";
+			char *fileop = "wb";
 			strcat(gauge_file, c);
 			printf("Gauge file name is %s\n", gauge_file);
-
-			FILE *con;
-			if(!(con=fopen(gauge_file, "wb"))){
+			printf("Writing the gauge file on processor %i.\n", rank);
+			if(!(con=fopen(gauge_file, fileop))){
 				fprintf(stderr, "Error %i in %s: Failed to open %s.\nExiting...\n\n", OPENERROR, funcname, gauge_file);
 				MPI_Finalise();
 				exit(OPENERROR);	
 			}
-			fwrite(&u11Write, sizeof(u11Write), 1, con);
-			fwrite(&u12Write, sizeof(u12Write), 1, con);
+			fwrite(&u11Write, ndim*gvol*sizeof(complex), 1, con);
+			fwrite(&u12Write, ndim*gvol*sizeof(complex), 1, con);
 			fwrite(&seed, sizeof(seed), 1, con);
 			fclose(con);
+#ifdef USE_MKL
+			mkl_free(u11Write); mkl_free(u12Write); mkl_free(u1buff); mkl_free(u2buff);
+#else
+			free(u11Write); free(u12Write); free(u1buff); free(u2buff);
+#endif
 			}
 		else{
 			for(int idim = 0; idim<ndim; idim++){
@@ -414,11 +421,6 @@ int Par_swrite(int itraj){
 				}
 			}
 		}
-#ifdef USE_MKL
-		mkl_free(u11Write); mkl_free(u12Write); mkl_free(u1buff); mkl_free(u2buff);
-#else
-		free(u11Write); free(u12Write); free(u1buff); free(u2buff);
-#endif
 		return 0;
 	}
 	//To be lazy, we've got modules to help us do reductions and broadcasts with a single argument
