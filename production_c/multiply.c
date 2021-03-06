@@ -677,7 +677,7 @@ int Force(double *dSdpi, int iflag, double res1){
 					//Up indices
 					uid = iu[mu+ndim*i];
 					igork1 = gamin[mu][idirac];	
-					dSdpi[(i*nadj)*ndim+mu]+=akappa*creal(zi*
+					dSdpi[(i*nadj)*ndim+mu]+=akappa*creal(I*
 							(conj(X1[(i*ndirac+idirac)*nc])*
 							 (-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
 							  +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1])
@@ -690,7 +690,7 @@ int Force(double *dSdpi, int iflag, double res1){
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
 							 (-u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
 							  -conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])))
-						+creal(zi*gamval[idirac][mu]*
+						+creal(I*gamval[idirac][mu]*
 								(conj(X1[(i*ndirac+idirac)*nc])*
 								 (-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
 								  +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1])
@@ -731,7 +731,7 @@ int Force(double *dSdpi, int iflag, double res1){
 								 (-u11t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
 								  +conj(u12t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1])));
 
-					dSdpi[(i*nadj+2)*ndim+mu]+=akappa*creal(zi*
+					dSdpi[(i*nadj+2)*ndim+mu]+=akappa*creal(I*
 							(conj(X1[(i*ndirac+idirac)*nc])*
 							 (u11t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
 							  +u12t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1])
@@ -744,7 +744,7 @@ int Force(double *dSdpi, int iflag, double res1){
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
 							 (-conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc]
 							  +u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc+1])))
-						+creal(zi*gamval[idirac][mu]*
+						+creal(I*gamval[idirac][mu]*
 								(conj(X1[(i*ndirac+idirac)*nc])*
 								 (u11t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
 								  +u12t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1])
@@ -765,7 +765,7 @@ int Force(double *dSdpi, int iflag, double res1){
 				uid = iu[mu+ndim*i];
 				//We are mutiplying terms by dk4?[i] Also there is no akappa or gamval factor in the time direction	
 				//for the "gamval" terms the sign of d4kp flips
-				dSdpi[(i*nadj)*ndim+mu]+=creal(zi*
+				dSdpi[(i*nadj)*ndim+mu]+=creal(I*
 						(conj(X1[(i*ndirac+idirac)*nc])*
 						 (dk4m[i]*(-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
 							     +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1]))
@@ -778,7 +778,7 @@ int Force(double *dSdpi, int iflag, double res1){
 						 +conj(X1[(uid*ndirac+idirac)*nc+1])*
 						 (dk4p[i]*      (-u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
 								     -conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1]))))
-					+creal(zi*
+					+creal(I*
 							(conj(X1[(i*ndirac+idirac)*nc])*
 							 (dk4m[i]*(-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
 								     +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1]))
@@ -819,7 +819,7 @@ int Force(double *dSdpi, int iflag, double res1){
 							 (-dk4p[i]*       (u11t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
 										 -conj(u12t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1]))));
 
-				dSdpi[(i*nadj+2)*ndim+mu]+=creal(zi*
+				dSdpi[(i*nadj+2)*ndim+mu]+=creal(I*
 						(conj(X1[(i*ndirac+idirac)*nc])*
 						 (dk4m[i]*       (u11t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
 									+u12t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1]))
@@ -832,7 +832,7 @@ int Force(double *dSdpi, int iflag, double res1){
 						 +conj(X1[(uid*ndirac+idirac)*nc+1])*
 						 (dk4p[i]*(-conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc]
 							     +u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc+1]))))
-					+creal(zi*
+					+creal(I*
 							(conj(X1[(i*ndirac+idirac)*nc])*
 							 (dk4m[i]*       (u11t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
 										+u12t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1]))

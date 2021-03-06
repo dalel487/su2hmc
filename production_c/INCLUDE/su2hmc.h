@@ -11,8 +11,6 @@
 
 //Definitions:
 //###########
-extern const complex zi;
-extern const complex real1;
 //Variables:
 //#########
 int ibound; 

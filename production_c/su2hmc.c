@@ -12,8 +12,6 @@
 #include <su2hmc.h>
 
 //Extern definitions, especially default values for fmu, beta and akappa
-const complex zi = 0.0+1.0*I;
-const complex real1 = 1.0+0.0*I;
 complex jqq = 0;
 double fmu = 0.0;
 double beta = 1.7;
@@ -22,11 +20,11 @@ const int gamin[4][4] =	{{3,2,1,0},
 	{3,2,1,0},
 	{2,3,0,1},
 	{2,3,0,1}};
-complex gamval[5][4] =	{{-1*zi,-1*zi,zi,zi},
-	{-1*real1,real1,real1,-1*real1},
-	{-1*zi,zi,zi,-1*zi},
-	{real1,real1,real1,real1},
-	{real1,real1,-1*real1,-1*real1}};
+complex gamval[5][4] =	{{-I,-I,I,I},
+	{-1,1,1,-1},
+	{-I,I,I,-I},
+	{1,1,1,1},
+	{1,1,-1,-1}};
 
 /*
  * For the early phases of this translation, I'm going to try and
@@ -90,7 +88,7 @@ int main(int argc, char *argv[]){
 	 *     Converted from Fortran to C by D. Lawlor March 2021
 	 ******************************************************************/
 	const char *funcname = "main";
-	Par_begin(argc, &argv);
+	Par_begin(argc, argv);
 	//Add error catching code...
 	MPI_Comm_rank(comm, &rank);
 	MPI_Comm_size(comm, &size);
