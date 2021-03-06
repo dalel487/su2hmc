@@ -48,7 +48,7 @@ complex gamval[5][4] =	{{-1*zi,-1*zi,zi,zi},
  * consist of a description of the function, a list of parameters with a brief
  * explaination and lastly what is returned by the function (on success or failure)
  */
-int main(int argc, char *argv){
+int main(int argc, char *argv[]){
 	/*******************************************************************
 	 *    Hybrid Monte Carlo algorithm for Two Color QCD with Wilson-Gor'kov fermions
 	 *    based on the algorithm of Duane et al. Phys. Lett. B195 (1987) 216. 
@@ -201,7 +201,15 @@ int main(int argc, char *argv){
 	//Initialise Some Arrays. Leaving it late for scoping
 	//check the sizes in sizes.h
 	double *dSdpi;
-#ifdef USE_MKL
+#ifdef USE_CUDA
+	cudaMallocManaged(&R1, kfermHalo*sizeof(complex));
+	cudaMallocManaged(&xi, kfermHalo*sizeof(complex));
+	cudaMallocManaged(&Phi, nf*kfermHalo*sizeof(complex));
+	cudaMallocManaged(&X0, nf*kfermHalo*sizeof(complex));
+	cudaMallocManaged(&X1, kferm2Halo*sizeof(complex));
+	cudaMallocManaged(&dSdpi, kmommHalo*sizeof(complex));
+	cudaMallocManaged(&pp, kmomHalo*sizeof(complex));
+#elif defined USE_MKL
 	R1= mkl_malloc(kfermHalo*sizeof(complex),AVX);
 	xi= mkl_malloc(kfermHalo*sizeof(complex),AVX);
 	Phi= mkl_malloc(nf*kfermHalo*sizeof(complex),AVX); 
@@ -367,25 +375,25 @@ int main(int argc, char *argv){
 			//But that required a goto in FORTRAN to get around doing the acceptance operations
 			//in the case where dH>=0 or x<=y. We'll nest the if statements in C to 
 			//get around this using the reverse test to the FORTRAN if (x<=y instead of x>y).
-				//Step is accepted. Set s=st
+			//Step is accepted. Set s=st
 #ifdef _DEBUG
-				if(!rank)
-					printf("New configuration accepted.\n");
+			if(!rank)
+				printf("New configuration accepted.\n");
 #endif
-				//Original FORTRAN Comment:
-				//JIS 20100525: write config here to preempt troubles during measurement!
-				//JIS 20100525: remove when all is ok....
-				//On closer inspection, this is more clever than I first thought. Using
-				//integer division like that
-				if((itraj/icheck)*icheck==itraj){
-					//ranget(seed);
-					Par_swrite(itraj);
-				}
-				memcpy(u11,u11t,ndim*kvol*sizeof(complex));
-				memcpy(u12,u12t,ndim*kvol*sizeof(complex));
-				naccp++;
-				//Divide by gvol because of halos?
-				action=S1/gvol;
+			//Original FORTRAN Comment:
+			//JIS 20100525: write config here to preempt troubles during measurement!
+			//JIS 20100525: remove when all is ok....
+			//On closer inspection, this is more clever than I first thought. Using
+			//integer division like that
+			if((itraj/icheck)*icheck==itraj){
+				//ranget(seed);
+				Par_swrite(itraj);
+			}
+			memcpy(u11,u11t,ndim*kvol*sizeof(complex));
+			memcpy(u12,u12t,ndim*kvol*sizeof(complex));
+			naccp++;
+			//Divide by gvol because of halos?
+			action=S1/gvol;
 		}
 		actiona+=action; 
 		double vel2=0.0;
@@ -503,7 +511,12 @@ int main(int argc, char *argv){
 	}
 	//End of main loop
 	//Free arrays
-#ifdef USE_MKL
+#ifdef USE_CUDA
+	cudaFree(dk4m); cudaFree(dk4p); cudaFree(R1); cudaFree(dSdpi); cudaFree(pp);
+	cudaFree(Phi); cudaFree(u11t); cudaFree(u12t); cudaFree(xi);
+	cudaFree(X0); cudaFree(X1); cudaFree(u11); cudaFree(u12);
+	cudaFree(id); cudaFree(iu); cudaFree(hd); cudaFree(hu);
+#elif defined USE_MKL
 	mkl_free(dk4m); mkl_free(dk4p); mkl_free(R1); mkl_free(dSdpi); mkl_free(pp);
 	mkl_free(Phi); mkl_free(u11t); mkl_free(u12t); mkl_free(xi);
 	mkl_free(X0); mkl_free(X1); mkl_free(u11); mkl_free(u12);
@@ -574,7 +587,10 @@ int Init(int istart){
 	printf("Checked addresses\n");
 #endif
 	double chem1=exp(fmu); double chem2 = 1/chem1;
-#ifdef USE_MKL
+#ifdef USE_CUDA
+	cudaMallocManaged(&dk4m,(kvol+halo)*sizeof(double));
+	cudaMallocManaged(&dk4p,(kvol+halo)*sizeof(double));
+#elif defined USE_MKL
 	dk4m = mkl_malloc((kvol+halo)*sizeof(double), AVX);
 	dk4p = mkl_malloc((kvol+halo)*sizeof(double), AVX);
 #else
@@ -607,12 +623,16 @@ int Init(int istart){
 		for(int j=0;j<4;j++)
 			gamval[i][j]*=akappa;
 #endif
-#ifdef USE_MKL
+#ifdef USE_CUDA
+	cudaMallocManaged(u11,ndim*(kvol+halo)*sizeof(complex));
+	cudaMallocManaged(u12,ndim*(kvol+halo)*sizeof(complex));
+	cudaMallocManaged(u11t,ndim*(kvol+halo)*sizeof(complex));
+	cudaMallocManaged(u12t,ndim*(kvol+halo)*sizeof(complex));
+#elif defined USE_MKL
 	u11 = mkl_malloc(ndim*(kvol+halo)*sizeof(complex),AVX);
 	u12 = mkl_calloc(ndim*(kvol+halo),sizeof(complex),AVX);
 	u11t = mkl_malloc(ndim*(kvol+halo)*sizeof(complex),AVX);
 	u12t = mkl_calloc(ndim*(kvol+halo),sizeof(complex),AVX);
-
 #else
 	u11 = malloc(ndim*(kvol+halo)*sizeof(complex));
 	u12 = calloc(ndim*(kvol+halo),sizeof(complex));
@@ -628,11 +648,11 @@ int Init(int istart){
 
 	}
 	else if(istart>0){
-#ifdef USE_CUDA
-		complex *cu_u1xt;
-		cudaMalloc(&cu_u1xt, ndim*kvol*sizeof(complex));
+		//#ifdef USE_CUDA
+		//		complex *cu_u1xt;
+		//		cudaMallocManaged(&cu_u1xt, ndim*kvol*sizeof(complex));
 
-#elif defined USE_MKL
+#if defined USE_MKL
 		//Good news, casting works for using a double to create random complex numbers
 		vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*(kvol+halo), u11t, -1, 1);
 		vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*(kvol+halo), u12t, -1, 1);
@@ -686,17 +706,22 @@ int Force(double *dSdpi, int iflag, double res1){
 	Gauge_force(dSdpi);
 	//X1=(M†M)^{1} Phi
 	int itercg;
-#ifdef USE_MKL
+#ifdef USE_CUDA
+	complex *X2, *smallPhi;
+	cudaMallocManaged(&X2, kferm2Halo*sizeof(complex));
+#elif defined USE_MKL
 	complex *X2= mkl_malloc(kferm2Halo*sizeof(complex), AVX);
+	complex *smallPhi =mkl_malloc(kferm2Halo*sizeof(complex), AVX); 
 #else
 	complex *X2= malloc(kferm2Halo*sizeof(complex));
+	complex *smallPhi = malloc(kferm2Halo*sizeof(complex)); 
 #endif
 	for(int na = 0; na<nf; na++){
 		memcpy(X1, X0+na*kferm2Halo, nc*ndirac*kvol*sizeof(complex));
 		//FORTRAN's logic is backwards due to the implied goto method
 		//If iflag is zero we do some initalisation stuff? 
 		if(!iflag){
-			Congradq(na, res1, &itercg);
+			Congradq(na, res1,smallPhi, &itercg );
 			ancg+=itercg;
 			//BLASable? If we cheat and flatten the array it is!
 			//This is not a general BLAS Routine, just an MKL one
@@ -927,10 +952,12 @@ int Force(double *dSdpi, int iflag, double res1){
 
 			}
 	}
-#ifdef USE_MKL
-	mkl_free(X2);
+#ifdef USE_CUDA
+	cudaFree(X2); cudaFree(smallPhi);
+#elif defined USE_MKL
+	mkl_free(X2); mkl_free(smallPhi);
 #else
-	free(X2);
+	free(X2); free(smallPhi);
 #endif
 	return 0;
 }
@@ -1129,7 +1156,7 @@ int Hamilton(double *h, double *s, double res2){
 	//Iterating over flavours
 	for(int na=0;na<nf;na++){
 		memcpy(X1,X0+na*kferm2Halo,kferm2*sizeof(complex));
-		Congradq(na,res2,&itercg);
+		Congradq(na,res2,smallPhi,&itercg);
 		ancgh+=itercg;
 		Fill_Small_Phi(na, smallPhi);
 		memcpy(X0+na*kferm2Halo,X1,kferm2*sizeof(complex));
@@ -1163,7 +1190,7 @@ int Hamilton(double *h, double *s, double res2){
 
 	return 0;
 }
-int Congradq(int na, double res, int *itercg){
+int Congradq(int na, double res, complex *smallPhi, int *itercg){
 	/*
 	 * Matrix Inversion via Conjugate Gradient
 	 * Solves (M^†)Mx=Phi
@@ -1205,29 +1232,28 @@ int Congradq(int na, double res, int *itercg){
 	//Give initial values Will be overwritten if niterx>0
 	complex betad = 1.0; complex alphad=0; complex alpha = 1;
 	//Because we're dealing with flattened arrays here we can call cblas safely without the halo
-#ifdef USE_MKL
+#ifdef USE_CUDA
+	complex *p, *r, *x1, *x2;
+	cudaMallocManaged(&p, kferm2Halo*sizeof(complex));
+	cudaMallocManaged(&r, kferm2Halo*sizeof(complex));
+	cudaMallocManaged(&x1, kferm2Halo*sizeof(complex));
+	cudaMallocManaged(&x2, kferm2Halo*sizeof(complex));
+#elif defined USE_MKL
 	complex *p  = mkl_malloc(kferm2Halo*sizeof(complex),AVX);
-	complex *smallPhi = mkl_malloc(kferm2Halo*sizeof(complex),AVX);
 	complex *r  = mkl_malloc(kferm2*sizeof(complex),AVX);
+	complex *x1=mkl_calloc(kferm2Halo, sizeof(complex), AVX);
+	complex *x2=mkl_calloc(kferm2Halo, sizeof(complex), AVX);
 #else
 	complex *p  = malloc(kferm2Halo*sizeof(complex));
-	complex *smallPhi = malloc(kferm2Halo*sizeof(complex));
 	complex *r  = malloc(kferm2*sizeof(complex));
+	complex *x1=calloc(kferm2Halo,sizeof(complex));
+	complex *x2=calloc(kferm2Halo,sizeof(complex));
 #endif
 	Fill_Small_Phi(na, smallPhi);
 	//Instead of copying elementwise in a loop, use memcpy.
 	memcpy(p, X1, kferm2*sizeof(complex));
 	memcpy(r, smallPhi, kferm2*sizeof(complex));
 
-	//	Declaring placeholder vectors
-	complex *x1, *x2;
-#ifdef USE_MKL
-	x1=mkl_calloc(kferm2Halo, sizeof(complex), AVX);
-	x2=mkl_calloc(kferm2Halo, sizeof(complex), AVX);
-#else
-	x1=calloc(kferm2Halo,sizeof(complex));
-	x2=calloc(kferm2Halo,sizeof(complex));
-#endif
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
 	//if statements quicker to type
 	complex betan;
@@ -1308,10 +1334,12 @@ int Congradq(int na, double res, int *itercg){
 		if(!rank && niterx==niterc-1)
 			fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i β_n=%e\n", ITERLIM, funcname, niterc, creal(betan));
 	}
-#ifdef USE_MKL
-	mkl_free(x1), mkl_free(x2), mkl_free(p), mkl_free(r), mkl_free(smallPhi);
+#ifdef USE_CUDA
+	cudaFree(x1), cudaFree(x2), cudaFree(p), cudaFree(r);
+#elif defined USE_MKL
+	mkl_free(x1), mkl_free(x2), mkl_free(p), mkl_free(r);
 #else
-	free(x1), free(x2), free(p), free(r), free(smallPhi);
+	free(x1), free(x2), free(p), free(r);
 #endif
 	return 0;
 }
