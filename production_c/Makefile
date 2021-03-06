@@ -20,7 +20,7 @@ SRC= \
 	par_mpi.c \
       coord.c \
       random.c \
-      slash.c \
+      multiply.c \
       SFMT.c\
 
 INC= \
@@ -29,7 +29,7 @@ INC= \
       par_mpi.h \
       slash.h \
       random.h \
-      slash.h \
+      multiply.h \
       coord.h \
       errorcodes.h \
 
