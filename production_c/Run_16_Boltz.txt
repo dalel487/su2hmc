@@ -1,0 +1,280 @@
+Running on 16 processors.
+ Grid layout is 2x2x2x2
+Rank: 0 pu: 8 4 2 1 pd: 8 4 2 1
+Rank: 1 pu: 9 5 3 0 pd: 9 5 3 0
+Rank: 2 pu: 10 6 0 3 pd: 10 6 0 3
+Rank: 3 pu: 11 7 1 2 pd: 11 7 1 2
+Rank: 4 pu: 12 0 6 5 pd: 12 0 6 5
+Rank: 5 pu: 13 1 7 4 pd: 13 1 7 4
+Rank: 6 pu: 14 2 4 7 pd: 14 2 4 7
+Rank: 7 pu: 15 3 5 6 pd: 15 3 5 6
+Rank: 8 pu: 0 12 10 9 pd: 0 12 10 9
+Rank: 9 pu: 1 13 11 8 pd: 1 13 11 8
+Rank: 10 pu: 2 14 8 11 pd: 2 14 8 11
+Rank: 11 pu: 3 15 9 10 pd: 3 15 9 10
+Rank: 12 pu: 4 8 14 13 pd: 4 8 14 13
+Rank: 13 pu: 5 9 15 12 pd: 5 9 15 12
+Rank: 15 pu: 7 11 13 14 pd: 7 11 13 14
+Rank: 14 pu: 6 10 12 15 pd: 6 10 12 15
+ksizex = 2, ksizet=4
+For loop x=0,y=0,z=0,t=0:
+ic=0
+id={32,64,96,128}
+iu={16,8,4,1}
+
+For loop x=0,y=0,z=0,t=1:
+ic=1
+id={33,65,97,0}
+iu={17,9,5,2}
+
+For loop x=0,y=0,z=0,t=2:
+ic=2
+id={34,66,98,1}
+iu={18,10,6,3}
+
+For loop x=0,y=0,z=0,t=3:
+ic=3
+id={35,67,99,2}
+iu={19,11,7,136}
+
+For loop x=0,y=0,z=1,t=0:
+ic=4
+id={36,68,0,129}
+iu={20,12,112,5}
+
+For loop x=0,y=0,z=1,t=1:
+ic=5
+id={37,69,1,4}
+iu={21,13,113,6}
+
+For loop x=0,y=0,z=1,t=2:
+ic=6
+id={38,70,2,5}
+iu={22,14,114,7}
+
+For loop x=0,y=0,z=1,t=3:
+ic=7
+id={39,71,3,6}
+iu={23,15,115,137}
+
+For loop x=0,y=1,z=0,t=0:
+ic=8
+id={40,0,100,130}
+iu={24,80,12,9}
+
+For loop x=0,y=1,z=0,t=1:
+ic=9
+id={41,1,101,8}
+iu={25,81,13,10}
+
+For loop x=0,y=1,z=0,t=2:
+ic=10
+id={42,2,102,9}
+iu={26,82,14,11}
+
+For loop x=0,y=1,z=0,t=3:
+ic=11
+id={43,3,103,10}
+iu={27,83,15,138}
+
+For loop x=0,y=1,z=1,t=0:
+ic=12
+id={44,4,8,131}
+iu={28,84,116,13}
+
+For loop x=0,y=1,z=1,t=1:
+ic=13
+id={45,5,9,12}
+iu={29,85,117,14}
+
+For loop x=0,y=1,z=1,t=2:
+ic=14
+id={46,6,10,13}
+iu={30,86,118,15}
+
+For loop x=0,y=1,z=1,t=3:
+ic=15
+id={47,7,11,14}
+iu={31,87,119,139}
+
+For loop x=1,y=0,z=0,t=0:
+ic=16
+id={0,72,104,132}
+iu={48,24,20,17}
+
+For loop x=1,y=0,z=0,t=1:
+ic=17
+id={1,73,105,16}
+iu={49,25,21,18}
+
+For loop x=1,y=0,z=0,t=2:
+ic=18
+id={2,74,106,17}
+iu={50,26,22,19}
+
+For loop x=1,y=0,z=0,t=3:
+ic=19
+id={3,75,107,18}
+iu={51,27,23,140}
+
+For loop x=1,y=0,z=1,t=0:
+ic=20
+id={4,76,16,133}
+iu={52,28,120,21}
+
+For loop x=1,y=0,z=1,t=1:
+ic=21
+id={5,77,17,20}
+iu={53,29,121,22}
+
+For loop x=1,y=0,z=1,t=2:
+ic=22
+id={6,78,18,21}
+iu={54,30,122,23}
+
+For loop x=1,y=0,z=1,t=3:
+ic=23
+id={7,79,19,22}
+iu={55,31,123,141}
+
+For loop x=1,y=1,z=0,t=0:
+ic=24
+id={8,16,108,134}
+iu={56,88,28,25}
+
+For loop x=1,y=1,z=0,t=1:
+ic=25
+id={9,17,109,24}
+iu={57,89,29,26}
+
+For loop x=1,y=1,z=0,t=2:
+ic=26
+id={10,18,110,25}
+iu={58,90,30,27}
+
+For loop x=1,y=1,z=0,t=3:
+ic=27
+id={11,19,111,26}
+iu={59,91,31,142}
+
+For loop x=1,y=1,z=1,t=0:
+ic=28
+id={12,20,24,135}
+iu={60,92,124,29}
+
+For loop x=1,y=1,z=1,t=1:
+ic=29
+id={13,21,25,28}
+iu={61,93,125,30}
+
+For loop x=1,y=1,z=1,t=2:
+ic=30
+id={14,22,26,29}
+iu={62,94,126,31}
+
+For loop x=1,y=1,z=1,t=3:
+ic=31
+id={15,23,27,30}
+iu={63,95,127,143}
+
+Checked addresses
+Initialisation Complete
+Multiplying with MPI
+Sending between halos in the time direction. For rank 0 pu[3]=1 and pd[3] = 1
+t11 and t12 assigned. Getting ready to send to other processes.
+Sent t11 from rank 0 to the down halo on rank 1
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 0 PID 3469462 RUNNING AT boltzmann
+=   KILLED BY SIGNAL: 9 (Killed)
+===================================================================================
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 1 PID 3469463 RUNNING AT boltzmann
+=   KILLED BY SIGNAL: 9 (Killed)
+===================================================================================
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 2 PID 3469464 RUNNING AT boltzmann
+=   KILLED BY SIGNAL: 9 (Killed)
+===================================================================================
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 3 PID 3469465 RUNNING AT boltzmann
+=   KILLED BY SIGNAL: 11 (Segmentation fault)
+===================================================================================
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 4 PID 3469466 RUNNING AT boltzmann
+=   KILLED BY SIGNAL: 9 (Killed)
+===================================================================================
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 5 PID 3469467 RUNNING AT boltzmann
+=   KILLED BY SIGNAL: 9 (Killed)
+===================================================================================
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 6 PID 3469468 RUNNING AT boltzmann
+=   KILLED BY SIGNAL: 9 (Killed)
+===================================================================================
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 7 PID 3469469 RUNNING AT boltzmann
+=   KILLED BY SIGNAL: 9 (Killed)
+===================================================================================
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 8 PID 3469470 RUNNING AT boltzmann
+=   KILLED BY SIGNAL: 9 (Killed)
+===================================================================================
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 9 PID 3469471 RUNNING AT boltzmann
+=   KILLED BY SIGNAL: 9 (Killed)
+===================================================================================
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 10 PID 3469472 RUNNING AT boltzmann
+=   KILLED BY SIGNAL: 9 (Killed)
+===================================================================================
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 11 PID 3469474 RUNNING AT boltzmann
+=   KILLED BY SIGNAL: 9 (Killed)
+===================================================================================
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 12 PID 3469475 RUNNING AT boltzmann
+=   KILLED BY SIGNAL: 9 (Killed)
+===================================================================================
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 13 PID 3469476 RUNNING AT boltzmann
+=   KILLED BY SIGNAL: 9 (Killed)
+===================================================================================
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 14 PID 3469477 RUNNING AT boltzmann
+=   KILLED BY SIGNAL: 9 (Killed)
+===================================================================================
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   RANK 15 PID 3469479 RUNNING AT boltzmann
+=   KILLED BY SIGNAL: 9 (Killed)
+===================================================================================
