@@ -6,7 +6,7 @@ CC= mpiicc
 #FFLAGS= -O3 -I /bgsys/drivers/toolchain/V1R1M2/gnu-linux/lib/gcc/powerpc64-bgq-linux/4.4.6/finclude/
 IFLAGS=     -I./INCLUDE -I./SFMT-src-1.5.1
 
-CFLAGS=      $(IFLAGS) -mkl -std=gnu99 -DUSE_MKL -DHAVE_SSE2 -ipo -qopt-zmm-usage=high\
+CFLAGS=      $(IFLAGS) -mkl -DUSE_MKL -std=gnu99 -DHAVE_SSE2 -ipo -qopt-zmm-usage=high\
 		 -xCORE-AVX512 -static-intel -DMKL_DIRECT_CALL
 
 LFLAGS=	 -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a \
@@ -57,7 +57,8 @@ release:	CFLAGS += -O3 -inline-level=2 -qopenmp -qopenmp-link=static\
 		-DMKL_ILP64  -I"${MKLROOT}/include"
 release:	$(EXE)
 
-debug:	CFLAGS += -g -O3 -inline-level=2  -qopenmp -qopenmp-link=static -D_DEBUG
+debug:	CFLAGS += -g -O3 -inline-level=2  -qopenmp -qopenmp-link=static -D_DEBUG\
+		-qopt-report
 debug:	$(EXE)
 
 $(EXE):	$(OBJ)

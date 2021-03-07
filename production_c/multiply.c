@@ -103,21 +103,21 @@ int Dslash(complex *phi, complex *r){
 						u12t[i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc+1]+\
 						conj(u11t[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]-\
 						u12t[did*ndim+mu]*r[(did*ngorkov+igorkov)*nc+1])+\
-							  //Dirac term
-							  gamval[mu][idirac]*(u11t[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc]+\
-									  u12t[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc+1]-\
-									  conj(u11t[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]+\
-									  u12t[did*ndim+mu]*r[(did*ngorkov+igork1)*nc+1]);
+								     //Dirac term
+								     gamval[mu][idirac]*(u11t[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc]+\
+										     u12t[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc+1]-\
+										     conj(u11t[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]+\
+										     u12t[did*ndim+mu]*r[(did*ngorkov+igork1)*nc+1]);
 
 				phi[(i*ngorkov+igorkov)*nc+1]+=-akappa*(-conj(u12t[i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc]+\
 						conj(u11t[i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc+1]+\
 						conj(u12t[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]+\
 						u11t[did*ndim+mu]*r[(did*ngorkov+igorkov)*nc+1])+\
-							  //Dirac term
-							  gamval[mu][idirac]*(-conj(u12t[i*ndim+mu])*r[(uid*ngorkov+igork1)*nc]+\
-									  conj(u11t[i*ndim+mu])*r[(uid*ngorkov+igork1)*nc+1]-\
-									  conj(u12t[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]-\
-									  u11t[did*ndim+mu]*r[(did*ngorkov+igork1)*nc+1]);
+									 //Dirac term
+									 gamval[mu][idirac]*(-conj(u12t[i*ndim+mu])*r[(uid*ngorkov+igork1)*nc]+\
+											 conj(u11t[i*ndim+mu])*r[(uid*ngorkov+igork1)*nc+1]-\
+											 conj(u12t[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]-\
+											 u11t[did*ndim+mu]*r[(did*ngorkov+igork1)*nc+1]);
 			}
 		}
 		//Timelike terms next. These run from igorkov=0..3 and 4..7 with slightly different rules for each
@@ -145,13 +145,13 @@ int Dslash(complex *phi, complex *r){
 			//And the +4 terms. Note that dk4p and dk4m swap positions compared to the above				
 			phi[(i*ngorkov+igorkovPP)*nc]+=-dk4m[i]*(u11t[i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc]-r[(uid*ngorkov+igork1PP)*nc])+\
 					u12t[i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc+1]-r[(uid*ngorkov+igork1PP)*nc+1]))-\
-						    dk4p[did]*(conj(u11t[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])-\
-								    u12t[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
+								 dk4p[did]*(conj(u11t[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])-\
+										 u12t[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
 
 			phi[(i*ngorkov+igorkovPP)*nc+1]+=-dk4m[i]*(conj(-u12t[i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc]-r[(uid*ngorkov+igork1PP)*nc])+\
 					conj(u11t[i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc+1]-r[(uid*ngorkov+igork1PP)*nc+1]))-\
-						    dk4p[did]*(conj(u12t[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])+\
-								    u11t[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
+								   dk4p[did]*(conj(u12t[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])+\
+										   u11t[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
 		}
 	}
 	return 0;
@@ -235,9 +235,9 @@ int Dslashd(complex *phi, complex *r){
 			//We subtract a_1, hence the minus
 			a_1=-conj(jqq)*gamval[4][idirac];
 			a_2=jqq*gamval[4][idirac];
-			phi[(i*ngorkov+idirac)*nc]+=a_1*r[(i*ngorkov+igork)*nc+0];
+			phi[(i*ngorkov+idirac)*nc]+=a_1*r[(i*ngorkov+igork)*nc];
 			phi[(i*ngorkov+idirac)*nc+1]+=a_1*r[(i*ngorkov+igork)*nc+1];
-			phi[(i*ngorkov+igork)*nc+0]+=a_2*r[(i*ngorkov+idirac)*nc];
+			phi[(i*ngorkov+igork)*nc]+=a_2*r[(i*ngorkov+idirac)*nc];
 			phi[(i*ngorkov+igork)*nc+1]+=a_2*r[(i*ngorkov+idirac)*nc+1];
 		}
 
@@ -303,13 +303,13 @@ int Dslashd(complex *phi, complex *r){
 			//And the +4 terms. Note that dk4p and dk4m swap positions compared to the above				
 			phi[(i*ngorkov+igorkovPP)*nc]+=-dk4p[i]*(u11t[i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc]+r[(uid*ngorkov+igork1PP)*nc])+\
 					u12t[i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc+1]+r[(uid*ngorkov+igork1PP)*nc+1]))-\
-						    dk4m[did]*(conj(u11t[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]-r[(did*ngorkov+igork1PP)*nc])-\
-								    u12t[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]-r[(did*ngorkov+igork1PP)*nc+1]));
+								 dk4m[did]*(conj(u11t[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]-r[(did*ngorkov+igork1PP)*nc])-\
+										 u12t[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]-r[(did*ngorkov+igork1PP)*nc+1]));
 
 			phi[(i*ngorkov+igorkovPP)*nc+1]+=dk4p[i]*(conj(u12t[i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc]+r[(uid*ngorkov+igork1PP)*nc])-\
 					conj(u11t[i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc+1]+r[(uid*ngorkov+igork1PP)*nc+1]))-\
-						    dk4m[did]*(conj(u12t[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]-r[(did*ngorkov+igork1PP)*nc])+
-								    u11t[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]-r[(did*ngorkov+igork1PP)*nc+1]));
+								   dk4m[did]*(conj(u12t[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]-r[(did*ngorkov+igork1PP)*nc])+
+										   u11t[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]-r[(did*ngorkov+igork1PP)*nc+1]));
 
 		}
 	}
@@ -385,6 +385,12 @@ int Hdslash(complex *phi, complex *r){
 	//Mass term
 	memcpy(phi, r, kferm2*sizeof(complex));
 	//Spacelike term
+//#pragma offload target(mic)\
+	in(r: length(kferm2Halo))\
+	in(dk4m, dk4p: length(kvol+halo))\
+	in(id, iu: length(ndim*kvol))\
+	in(u11t, u12t: length(ndim*(kvol+halo)))\
+	inout(phi: length(kferm2Halo))
 #pragma omp parallel for
 	for(int i=0;i<kvol;i++){
 #pragma ivdep 
@@ -514,6 +520,12 @@ int Hdslashd(complex *phi, complex *r){
 	//Mass term
 	memcpy(phi, r, kferm2*sizeof(complex));
 	//Spacelike term
+//#pragma offload target(mic)\
+	in(r: length(kferm2Halo))\
+	in(dk4m, dk4p: length(kvol+halo))\
+	in(id, iu: length(ndim*kvol))\
+	in(u11t, u12t: length(ndim*(kvol+halo)))\
+	inout(phi: length(kferm2Halo))
 #pragma omp parallel for
 	for(int i=0;i<kvol;i++){
 #pragma ivdep
@@ -602,10 +614,7 @@ int Force(double *dSdpi, int iflag, double res1){
 	Gauge_force(dSdpi);
 	//X1=(M†M)^{1} Phi
 	int itercg;
-#ifdef USE_CUDA
-	complex *X2, *smallPhi;
-	cudaMallocManaged(&X2, kferm2Halo*sizeof(complex));
-#elif defined USE_MKL
+#if defined USE_MKL
 	complex *X2= mkl_malloc(kferm2Halo*sizeof(complex), AVX);
 	complex *smallPhi =mkl_malloc(kferm2Halo*sizeof(complex), AVX); 
 #else
@@ -848,9 +857,7 @@ int Force(double *dSdpi, int iflag, double res1){
 
 			}
 	}
-#ifdef USE_CUDA
-	cudaFree(X2); cudaFree(smallPhi);
-#elif defined USE_MKL
+#if defined USE_MKL
 	mkl_free(X2); mkl_free(smallPhi);
 #else
 	free(X2); free(smallPhi);

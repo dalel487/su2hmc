@@ -1,5 +1,5 @@
 #include <coord.h>
-#ifdef USE_CUDA
+#ifdef __NVCC__
 #include <curand.h>
 #endif
 #include <par_mpi.h>
@@ -198,7 +198,7 @@ int main(int argc, char *argv[]){
 	//Initialise Some Arrays. Leaving it late for scoping
 	//check the sizes in sizes.h
 	double *dSdpi;
-#ifdef USE_CUDA
+#ifdef __NVCC__
 	cudaMallocManaged(&R1, kfermHalo*sizeof(complex));
 	cudaMallocManaged(&xi, kfermHalo*sizeof(complex));
 	cudaMallocManaged(&Phi, nf*kfermHalo*sizeof(complex));
@@ -238,10 +238,10 @@ int main(int argc, char *argv[]){
 			//The FORTRAN code had two gaussian routines.
 			//gaussp was the normal box-muller and gauss0 didn't have 2 inside the square root
 			//Using σ=1/sqrt(2) in these routines has the same effect as gauss0
-			vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*nc*ngorkov*kvol, R, 0, 1/sqrt(2));
+			vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, R, 0, 1/sqrt(2));
 #else
-			complex *R=malloc(kfermHalo*sizeof(complex),AVX);
-			Gauss_z(R, kfermHalo, 0, 1/sqrt(2));
+			complex *R=malloc(kfermHalo*sizeof(complex));
+			Gauss_z(R, kferm, 0, 1/sqrt(2));
 #endif
 			Dslashd(R1, R);
 			memcpy(Phi+na*kfermHalo,R1, nc*ngorkov*kvol*sizeof(complex));
@@ -249,8 +249,8 @@ int main(int argc, char *argv[]){
 #pragma ivdep
 			for(int i=0; i<kvol; i++)
 				for(int idirac = 0; idirac < ndirac; idirac++){
-					X0[((na*(kvol+halo)+i)*ndirac+idirac*nc)]=R1[(i*ngorkov+idirac)*nc];
-					X0[((na*(kvol+halo)+i)*ndirac+idirac*nc)+1]=R1[(i*ngorkov+idirac)*nc+1];
+					X0[((na*(kvol+halo)+i)*ndirac+idirac)*nc]=R1[(i*ngorkov+idirac)*nc];
+					X0[((na*(kvol+halo)+i)*ndirac+idirac)*nc+1]=R1[(i*ngorkov+idirac)*nc+1];
 				}
 #ifdef USE_MKL
 			mkl_free(R);
@@ -329,10 +329,8 @@ int main(int argc, char *argv[]){
 #if (defined USE_MKL || defined USE_BLAS)
 				cblas_daxpy(ndim*nadj*kvol, -d, dSdpi, 1, pp, 1);
 #else
-				for(int i = 0; i<kvol; i++)
-					for(int iadj=0; iadj<nadj; iadj++)
-						for(int mu = 0; mu < ndim; mu++)
-							pp[(i*nadj+iadj)*nc+mu]-=d*dSdpi[(i*nadj+iadj)*nc+mu];
+				for(int i = 0; i<kmom; i++)
+							pp[i]-=d*dSdpi[i];
 #endif
 				itot+=step;
 				break;
@@ -501,7 +499,7 @@ int main(int argc, char *argv[]){
 	}
 	//End of main loop
 	//Free arrays
-#ifdef USE_CUDA
+#ifdef __NVCC__
 	cudaFree(dk4m); cudaFree(dk4p); cudaFree(R1); cudaFree(dSdpi); cudaFree(pp);
 	cudaFree(Phi); cudaFree(u11t); cudaFree(u12t); cudaFree(xi);
 	cudaFree(X0); cudaFree(X1); cudaFree(u11); cudaFree(u12);
@@ -577,7 +575,7 @@ int Init(int istart){
 	printf("Checked addresses\n");
 #endif
 	double chem1=exp(fmu); double chem2 = 1/chem1;
-#ifdef USE_CUDA
+#ifdef __NVCC__
 	cudaMallocManaged(&dk4m,(kvol+halo)*sizeof(double));
 	cudaMallocManaged(&dk4p,(kvol+halo)*sizeof(double));
 #elif defined USE_MKL
@@ -613,7 +611,7 @@ int Init(int istart){
 		for(int j=0;j<4;j++)
 			gamval[i][j]*=akappa;
 #endif
-#ifdef USE_CUDA
+#ifdef __NVCC__
 	cudaMallocManaged(u11,ndim*(kvol+halo)*sizeof(complex));
 	cudaMallocManaged(u12,ndim*(kvol+halo)*sizeof(complex));
 	cudaMallocManaged(u11t,ndim*(kvol+halo)*sizeof(complex));
@@ -638,7 +636,7 @@ int Init(int istart){
 
 	}
 	else if(istart>0){
-		//#ifdef USE_CUDA
+		//#ifdef __NVCC__
 		//		complex *cu_u1xt;
 		//		cudaMallocManaged(&cu_u1xt, ndim*kvol*sizeof(complex));
 
@@ -885,12 +883,9 @@ int Hamilton(double *h, double *s, double res2){
 	//hg was summed over inside of SU2plaq.
 	Par_dsum(&hp); Par_dsum(&hf);
 	*s=hg+hf; *h=*s+hp;
-	//Here the FORTRAN code prints itraj and the values of all the h's.
-	//I'm going to use the preprocessor to do that instead, with the itraj
-	//outside the function.
 #ifdef _DEBUG
 	if(!rank)
-		printf("hg=%e; hp=%e; hf=%e; h=%e\n", hg, hp, hf, *h);
+		printf("hg=%e; hf=%e; hp=%e; h=%e\n", hg, hf, hp, *h);
 #endif
 
 	return 0;
@@ -937,7 +932,7 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 	//Give initial values Will be overwritten if niterx>0
 	complex betad = 1.0; complex alphad=0; complex alpha = 1;
 	//Because we're dealing with flattened arrays here we can call cblas safely without the halo
-#ifdef USE_CUDA
+#ifdef __NVCC__
 	complex *p, *r, *x1, *x2;
 	cudaMallocManaged(&p, kferm2Halo*sizeof(complex));
 	cudaMallocManaged(&r, kferm2Halo*sizeof(complex));
@@ -1039,7 +1034,7 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 		if(!rank && niterx==niterc-1)
 			fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i β_n=%e\n", ITERLIM, funcname, niterc, creal(betan));
 	}
-#ifdef USE_CUDA
+#ifdef __NVCC__
 	cudaFree(x1), cudaFree(x2), cudaFree(p), cudaFree(r);
 #elif defined USE_MKL
 	mkl_free(x1), mkl_free(x2), mkl_free(p), mkl_free(r);

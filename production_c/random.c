@@ -1,6 +1,6 @@
 #include "coord.h"
 #include <complex.h>
-#ifdef	USE_CUDA
+#ifdef	__NVCC__
 #include <curand.h>
 #endif
 #include "errorcodes.h"

@@ -873,7 +873,7 @@ c     hg has already been summed within su2plaq
 
       h=hg+hp+hf
       if(ismaster) then 
-      write(6,*) isweep,':  hg', hg,'   hp', hp,'   hf', hf,'   h',h
+      write(6,*) isweep,':  hg', hg,'   hf', hf,'   hp', hp,'   h',h
       endif
       s=hg+hf
 c

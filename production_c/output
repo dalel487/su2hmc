@@ -1,34 +1,41 @@
-ksize = 8 ksizet = 8 Nf = 1
-Time step dt = 4.000000e-03 Trajectory length = 1.200000e-01
-No. of Trajectories = 10 β = 1.700000e+00
-κ = 1.780000e-01 μ = 0.000000e+00
-Diquark source = 0.000000e+00 Diquark phase angle = 0.000000e+00
-Stopping Residuals: Guidance: 1.000000e-06 Acceptance: 1.000000e-09, Estimator: 1.000000e-06
-Seed = 9678165
-dH = -1.545737e+03 dS = -5.186435e+03
-Iter (CG) 44 ancg 1.145000e+03 ancgh 1.200000e+02
-dH = -1.299950e+03 dS = -4.331753e+03
-Iter (CG) 44 ancg 2.161000e+03 ancgh 2.400000e+02
-dH = -6.688872e+02 dS = -2.499323e+03
-Iter (CG) 44 ancg 2.902000e+03 ancgh 3.590000e+02
-dH = -6.711098e+02 dS = -2.464538e+03
-Iter (CG) 44 ancg 3.649000e+03 ancgh 4.770000e+02
-dH = -7.496918e+02 dS = -2.702115e+03
-Iter (CG) 44 ancg 4.430000e+03 ancgh 6.020000e+02
-dH = -1.107246e+03 dS = -3.728190e+03
-Iter (CG) 44 ancg 5.374000e+03 ancgh 7.220000e+02
-dH = -8.990404e+02 dS = -3.107490e+03
-Iter (CG) 44 ancg 6.221000e+03 ancgh 8.460000e+02
-dH = -1.124233e+03 dS = -3.985140e+03
-Iter (CG) 44 ancg 7.201000e+03 ancgh 9.700000e+02
-dH = -8.761954e+02 dS = -3.241462e+03
-Iter (CG) 44 ancg 8.080000e+03 ancgh 1.089000e+03
-dH = -9.597832e+02 dS = -3.082076e+03
-Iter (CG) 44 ancg 8.927000e+03 ancgh 1.213000e+03
-Averages for the last 10 trajectories
-Number of acceptances: 0 Average Trajectory Length = 1.136000e-01
-exp(dh) = 3.553331e-292 +/- -0.000000e+00
-Average number of congrad iter guidance: 3.143310e+01 acceptance 6.065000e+01
-psibarpsi = 2.937936e+00
-Mean Square Velocity = 8.988117e-01 Action Per Site = -2.244482e-01
-Energy Density = 5.277338e-01 Number Density 3.058663e-03
+ ksize=  8 ksizet=  8 Nf=  1
+ time step: dt=0.0040 trajectory length= 0.200000
+ # trajectories=    10 beta= 1.700000
+ kappa = 0.178000 chemical potential= 0.000000
+ diquark source = 0.000000 diquark phase angle = 0.000000
+
+
+ Stopping residuals: guidance: .10E-05 acceptance: .10E-08 estimator: .10E-05
+ seed =   967580160.000000     
+ -0.874979462387273       -9771.90628025388     
+          45   1931.00000000000        129.000000000000     
+ -0.876084678660845       -9659.39502155641     
+          46   3874.00000000000        258.000000000000     
+ -0.884313461447164       -9823.50362666090     
+          45   5822.00000000000        387.000000000000     
+ -0.871308480553125       -9707.62526737773     
+          45   7758.00000000000        516.000000000000     
+ -0.872911326412577       -9706.68537256312     
+          45   9704.00000000000        645.000000000000     
+ -0.864693189145328       -9649.70857726463     
+          45   11650.0000000000        775.000000000000     
+ -0.880325634494511       -9873.68850283536     
+          45   13596.0000000000        904.000000000000     
+ -0.878599658659368       -9780.32275618490     
+          45   15549.0000000000        1034.00000000000     
+ -0.862933885873645       -9638.02475899804     
+          45   17494.0000000000        1163.00000000000     
+ -0.867574801810406       -9733.99619019192     
+          45   19447.0000000000        1292.00000000000     
+ averages for last     10 trajectories
+  # of acceptances:      0 average trajectory length=    0.240
+  <exp-dH>= 0.4175E+00 +/- 0.910E-03
+  av. # congrad itr. guidance:    32.412; acceptance:    64.600
+
+  psibarpsi=  0.293E+01
+  mean square velocity= 0.605E+00; action per site=-0.213E+01
+  energy density=  0.537E+00; number density=  0.755E-02
+
+
+
+
