@@ -18,7 +18,7 @@ int Addrc();
 	 * Loads the addresses required during the update
 	 */
 int ia(int x,int y,int z, int t);
-int Check_addr(int *table, int lns, int lnt, int imin, int imax);
+int Check_addr(unsigned int *table, int lns, int lnt, int imin, int imax);
 	/*  Checks that the addresses are all correct before an update
 	 *  Depends on nothing else
 	*/

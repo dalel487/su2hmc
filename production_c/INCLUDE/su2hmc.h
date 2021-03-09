@@ -54,7 +54,7 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 int SU2plaq(double *hg, double *avplaqs, double *avplaqt);
 double Polyakov();
 inline int Reunitarise();
-inline int Z_gather(complex *x, complex *y, int n, int *table);
+inline int Z_gather(complex *x, complex *y, int n, unsigned int *table);
 inline int Fill_Small_Phi(int na, complex *smallPhi);
 double Norm_squared(complex *z, int n);
 #endif

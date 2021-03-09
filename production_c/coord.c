@@ -248,7 +248,7 @@ inline int ia(int x, int y, int z, int t){
 	return t+ksizet*(z+ksizez*(y+ksizey*x));
 	//  	return ((t*ksizez+z)*ksizey+y)*ksizex+x;
 }
-int Check_addr(int *table, int lns, int lnt, int imin, int imax){
+int Check_addr(unsigned int *table, int lns, int lnt, int imin, int imax){
 	/* Checks that the addresses are within bounds before an update
 	 *
 	 * Parameters:

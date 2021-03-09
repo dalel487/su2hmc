@@ -40,7 +40,7 @@ int Par_begin(int argc, char *argv[]){
 	//If size isn't the same as the max allowed number of processes, then there's a problem somewhere.
 	if(size!=nproc){
 		fprintf(stderr, "Error %i in %s: For process %i, size %i is not equal to nproc %i.\n"
-				"Exiting...\n\n", SIZEPROC, funcname, rank, &size, nproc);
+				"Exiting...\n\n", SIZEPROC, funcname, rank, size, nproc);
 		MPI_Finalise();
 		exit(SIZEPROC);
 	}
@@ -335,13 +335,13 @@ int Par_swrite(int itraj){
 				//		for(int ic=1; ic<=nc; ic++){
 				//		Getting rid of that ic loop
 				if(iproc){
-					if(MPI_Recv(&u1buff, kvol, MPI_C_COMPLEX, iproc, tag, comm, &status)){
+					if(MPI_Recv(u1buff, kvol, MPI_C_COMPLEX, iproc, tag, comm, &status)){
 						fprintf(stderr, "Error %i in %s: Falied to receive u11 from process %i.\nExiting...\n\n",
 								CANTRECV, funcname, iproc);
 						MPI_Finalise();
 						exit(CANTRECV);
 					}
-					if(MPI_Recv(&u2buff, kvol, MPI_C_COMPLEX, iproc, tag, comm, &status)){
+					if(MPI_Recv(u2buff, kvol, MPI_C_COMPLEX, iproc, tag, comm, &status)){
 						fprintf(stderr, "Error %i in %s: Falied to receive u12 from process %i.\nExiting...\n\n",
 								CANTRECV, funcname, iproc);
 						MPI_Finalise();
@@ -395,8 +395,8 @@ int Par_swrite(int itraj){
 				MPI_Finalise();
 				exit(OPENERROR);	
 			}
-			fwrite(&u11Write, ndim*gvol*sizeof(complex), 1, con);
-			fwrite(&u12Write, ndim*gvol*sizeof(complex), 1, con);
+			fwrite(u11Write, ndim*gvol*sizeof(complex), 1, con);
+			fwrite(u12Write, ndim*gvol*sizeof(complex), 1, con);
 			fwrite(&seed, sizeof(seed), 1, con);
 			fclose(con);
 #ifdef USE_MKL
@@ -526,6 +526,7 @@ int Par_swrite(int itraj){
 			MPI_Finalise();
 			exit(BROADERR);
 		}
+		return 0;
 	}
 	int Par_dcopy(double *dval){
 		/*
@@ -541,7 +542,7 @@ int Par_swrite(int itraj){
 		 */
 		char *funcname = "Par_dcopy";
 		if(MPI_Bcast(dval,1,MPI_DOUBLE,masterproc,comm)){
-			fprintf(stderr, "Error %i in %s: Failed to broadcast %d from %i.\nExiting...\n\n",
+			fprintf(stderr, "Error %i in %s: Failed to broadcast %f from %i.\nExiting...\n\n",
 					BROADERR, funcname, *dval, rank);
 			MPI_Finalise();
 			exit(BROADERR);
@@ -562,7 +563,7 @@ int Par_swrite(int itraj){
 		 */
 		char *funcname = "Par_zcopy";
 		if(MPI_Bcast(zval,1,MPI_C_DOUBLE_COMPLEX,masterproc,comm)){
-			fprintf(stderr, "Error %i in %s: Failed to broadcast %d+i%d from %i.\nExiting...\n\n",
+			fprintf(stderr, "Error %i in %s: Failed to broadcast %f+i%f from %i.\nExiting...\n\n",
 					BROADERR, funcname, creal(*zval), cimag(*zval), rank);
 			MPI_Finalise();
 			exit(BROADERR);

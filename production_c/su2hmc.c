@@ -1,9 +1,6 @@
 #include <coord.h>
-#ifdef __NVCC__
-#include <curand.h>
-#endif
-#include <par_mpi.h>
 #include <math.h>
+#include <par_mpi.h>
 #include <random.h>
 #include <multiply.h>
 #include <stdlib.h>
@@ -330,7 +327,7 @@ int main(int argc, char *argv[]){
 				cblas_daxpy(ndim*nadj*kvol, -d, dSdpi, 1, pp, 1);
 #else
 				for(int i = 0; i<kmom; i++)
-							pp[i]-=d*dSdpi[i];
+					pp[i]-=d*dSdpi[i];
 #endif
 				itot+=step;
 				break;
@@ -420,75 +417,76 @@ int main(int argc, char *argv[]){
 #if (nproc>=4)
 			switch(rank)
 #else
-				for(int i=0; i<4; i++)
-					switch(i)
+				if(!rank){
+					for(int i=0; i<4; i++)
+						switch(i)
 #endif
-					{
-						case(0):	
-							//Output code... Some files weren't opened in the main loop of the FORTRAN code 
-							//That will need to be looked into for the C version
-							//It would explain the weird names like fort.1X that looked like they were somehow
-							//FORTRAN related...
-							//Not yet implemented
-							fprintf(output, "Iter (CG) %i ancg %e ancgh %e\n", itercg, ancg, ancgh);
-							fflush(output);
-						case(1):
-							//The origninal code implicitly created these files with the name fort.XX where XX is the file label
-							//from FORTRAN. We'll stick with that for now.
-							{
-								FILE *fortout;
-								char *fortname = "fort11";
-								char *fortop= (itraj==1) ? "w" : "a";
-								if(!(fortout=fopen(fortname, fortop) )){
-									fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
-											OPENERROR, funcname, fortname, fortop);
-									MPI_Finalise();
-									exit(OPENERROR);
+						{
+							case(0):	
+								//Output code... Some files weren't opened in the main loop of the FORTRAN code 
+								//That will need to be looked into for the C version
+								//It would explain the weird names like fort.1X that looked like they were somehow
+								//FORTRAN related...
+								//Not yet implemented
+								fprintf(output, "Iter (CG) %i ancg %e ancgh %e\n", itercg, ancg, ancgh);
+								fflush(output);
+							case(1):
+								//The origninal code implicitly created these files with the name fort.XX where XX
+								//is the file label from FORTRAN. We'll stick with that for now.
+								{
+									FILE *fortout;
+									char *fortname = "fort11";
+									char *fortop= (itraj==1) ? "w" : "a";
+									if(!(fortout=fopen(fortname, fortop) )){
+										fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
+												OPENERROR, funcname, fortname, fortop);
+										MPI_Finalise();
+										exit(OPENERROR);
+									}
+									if(itraj==1)
+										fprintf(fortout, "pbp\tendenf\tdenf\n");
+									fprintf(fortout, "%e\t%e\t%e\n", pbp, endenf, denf);
+									fclose(fortout);
 								}
-								if(itraj==1)
-									fprintf(fortout, "pbp\tendenf\tdenf\n");
-								fprintf(fortout, "%e\t%e\t%e\n", pbp, endenf, denf);
-								fclose(fortout);
-							}
-						case(2):
-							//The origninal code implicitly created these files with the name
-							//fort.XX where XX is the file label
-							//from FORTRAN. We'll stick with that for now.
-							{
-								FILE *fortout;
-								char *fortname = "fort12"; 
-								char *fortop= (itraj==1) ? "w" : "a";
-								if(!(fortout=fopen(fortname, fortop) )){
-									fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
-											OPENERROR, funcname, fortname, fortop);
-									MPI_Finalise();
-									exit(OPENERROR);
+							case(2):
+								//The origninal code implicitly created these files with the name
+								//fort.XX where XX is the file label
+								//from FORTRAN. We'll stick with that for now.
+								{
+									FILE *fortout;
+									char *fortname = "fort12"; 
+									char *fortop= (itraj==1) ? "w" : "a";
+									if(!(fortout=fopen(fortname, fortop) )){
+										fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
+												OPENERROR, funcname, fortname, fortop);
+										MPI_Finalise();
+										exit(OPENERROR);
+									}
+									if(itraj==1)
+										fprintf(fortout, "avplaqs\tavplaqt\tpoly\n");
+									fprintf(fortout, "%e\t%e\t%e\n", avplaqs, avplaqt, poly);
+									fclose(fortout);
 								}
-								if(itraj==1)
-									fprintf(fortout, "avplaqs\tavplaqt\tpoly\n");
-								fprintf(fortout, "%e\t%e\t%e\n", avplaqs, avplaqt, poly);
-								fclose(fortout);
-							}
 
-						case(3):
-							{
-								FILE *fortout;
-								char *fortname = "fort13";
-								char *fortop= (itraj==1) ? "w" : "a";
-								if(!(fortout=fopen(fortname, fortop) )){
-									fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
-											OPENERROR, funcname, fortname, fortop);
-									MPI_Finalise();
-									exit(OPENERROR);
+							case(3):
+								{
+									FILE *fortout;
+									char *fortname = "fort13";
+									char *fortop= (itraj==1) ? "w" : "a";
+									if(!(fortout=fopen(fortname, fortop) )){
+										fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
+												OPENERROR, funcname, fortname, fortop);
+										MPI_Finalise();
+										exit(OPENERROR);
+									}
+									if(itraj==1)
+										fprintf(fortout, "Re(qq)\t\n");
+									fprintf(fortout, "%e\n", creal(qq));
+									fclose(fortout);
 								}
-								if(itraj==1)
-									fprintf(fortout, "Re(qq)\t\n");
-								fprintf(fortout, "%e\n", creal(qq));
-								fclose(fortout);
-							}
-						default: continue;
-
-					}
+							default: continue;
+						}
+				}
 		}
 		if((itraj/icheck)*icheck==itraj){
 			//ranget(seed);
@@ -682,12 +680,16 @@ int Gauge_force(double *dSdpi){
 	//		memset(u11t[kvol], 0, ndim*halo*sizeof(complex));	
 	//		memset(u12t[kvol], 0, ndim*halo*sizeof(complex));	
 	//	#endif
+#ifdef USE_MKL
+	complex *z = mkl_malloc((kvol+halo)*sizeof(complex),AVX);
+#else
+	complex *z = malloc((kvol+halo)*sizeof(complex));
+#endif
 #pragma unroll
 	for(int mu=0; mu<ndim; mu++){
 		//Since we've had to swap the rows and columns of u11t and u12t we need to extract the 
 		//correct terms for a halo exchange
 		//A better approach is clearly needed
-		complex z[kvol+halo] __attribute__((aligned(AVX)));
 #if (defined USE_MKL || defined USE_BLAS)
 		cblas_zcopy(kvol, &u11t[mu], ndim, z, 1);
 #else
@@ -721,7 +723,6 @@ int Gauge_force(double *dSdpi){
 	complex *Sigma12= mkl_malloc(kvol*sizeof(complex),AVX); 
 	complex *u11sh = mkl_malloc(kvol*sizeof(complex),AVX); 
 	complex *u12sh = mkl_malloc(kvol*sizeof(complex),AVX); 
-
 #else
 	complex *Sigma11 = malloc(kvol*sizeof(complex)); 
 	complex *Sigma12= malloc(kvol*sizeof(complex)); 
@@ -729,11 +730,6 @@ int Gauge_force(double *dSdpi){
 	complex *u12sh = malloc(kvol*sizeof(complex)); 
 #endif
 	//Holders for directions
-#ifdef USE_MKL
-	complex *z = mkl_malloc((kvol+halo)*sizeof(complex),AVX);
-#else
-	complex *z = malloc((kvol+halo)*sizeof(complex));
-#endif
 	for(int mu=0; mu<ndim; mu++){
 		memset(Sigma11,0, kvol*sizeof(complex));
 		memset(Sigma12,0, kvol*sizeof(complex));
@@ -797,6 +793,7 @@ int Gauge_force(double *dSdpi){
 			dSdpi[(i*nadj+2)*ndim+mu]=beta*cimag(a12);
 		}
 	}
+	//MPI was acting funny here for more than one process
 #ifdef USE_MKL
 	mkl_free(u11sh); mkl_free(u12sh); mkl_free(Sigma11); mkl_free(Sigma12);
 	mkl_free(z);
@@ -930,7 +927,7 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 	//them complex and work with the real part (especially for α_d)
 	complex alphan;
 	//Give initial values Will be overwritten if niterx>0
-	complex betad = 1.0; complex alphad=0; complex alpha = 1;
+	double betad = 1.0; complex alphad=0; complex alpha = 1;
 	//Because we're dealing with flattened arrays here we can call cblas safely without the halo
 #ifdef __NVCC__
 	complex *p, *r, *x1, *x2;
@@ -979,9 +976,7 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 				alphad+=conj(p[i])*x2[i];
 #endif
 			//And reduce. α_d does have a complex component but we only care about the real part
-			//Since we pass the address into Par_?sum it will only reduce the first 8 bits of
-			//α_d (i.e. the real part)
-			Par_dsum(&alphad);
+			Par_zsum(&alphad);
 			//α=α_n/α_d = (r.r)/p(M^†M)p 
 			alpha=creal(alphan)/creal(alphad);
 			//x-αp, 
@@ -1009,10 +1004,10 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 		}
 #endif
 		//And... reduce.
-		Par_dsum(&betan);
+		Par_zsum(&betan);
 		//Here we evaluate β=(r_{k+1}.r_{k+1})/(r_k.r_k) and then shuffle our indices down the line.
 		//On the first iteration we define beta to be zero.
-		complex beta = (niterx) ?  betan/betad : 0;
+		complex beta = (niterx) ?  creal(betan)/betad : 0;
 		betad=betan; alphan=betan;
 		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multipyling y by
 		//β instead of x.
@@ -1084,7 +1079,7 @@ int Congradp(int na, double res, int *itercg){
 	//them complex and work with the real part (especially for α_d)
 	complex alphan;
 	//Give initial values Will be overwritten if niterx>0
-	complex betad = 1.0; double alphad=0; complex alpha = 1;
+	double betad = 1.0; double alphad=0; complex alpha = 1;
 #ifdef USE_MKL
 	complex *p  = mkl_malloc(kfermHalo*sizeof(complex),AVX);
 	complex *r  = mkl_malloc(kferm*sizeof(complex),AVX);
@@ -1156,7 +1151,7 @@ int Congradp(int na, double res, int *itercg){
 		}
 #endif
 		//This is basically just congradq at the end. Check there for comments
-		Par_dsum(&betan);
+		Par_zsum(&betan);
 		complex beta = (niterx) ? betan/betad : 0;
 		betad=betan; alphan=betan;
 		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multipyling y by 
@@ -1172,7 +1167,7 @@ int Congradp(int na, double res, int *itercg){
 		//If we get a small enough β_n before hitting the iteration cap we break
 		if(creal(betan)<resid){
 #ifdef _DEBUG
-			if(!rank) printf("Iter (CG) = %i resid = %e toler = %e\n", niterx, betan, resid);
+			if(!rank) printf("Iter (CG) = %i resid = %e toler = %e\n", niterx, creal(betan), resid);
 #endif
 			break;
 		}
@@ -1271,7 +1266,6 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 		//Unrolling the colour indices, Then its just (γ_5*x)*Ξ or (γ_5*Ξ)*x 
 #if (defined USE_MKL || defined USE_BLAS)
 #pragma unroll
-#pragma ivdep
 		for(int ic = 0; ic<nc; ic++){
 			complex dot;
 			//Because we have kvol on the outer index and are summing over it, we set the
@@ -1295,8 +1289,7 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 #endif
 	}
 	//In the FORTRAN Code dsum was used instead despite qq and qbqb being complex
-	//Does that extract the real component?
-	Par_dsum(qq); Par_dsum(qbqb);
+	Par_zsum(qq); Par_zsum(qbqb);
 	*qq=(*qq+*qbqb)/(2*gvol);
 	double xu, xd, xuu, xdd;
 
@@ -1364,8 +1357,6 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 						conj(u11t[did*ndim+3])*(xi[(i*ngorkov+igork1)*nc+1]-xi[(i*ngorkov+igorkov)*nc+1])+\
 						conj(u12t[did*ndim+3])*(xi[(i*ngorkov+igorkov)*nc]-xi[(i*ngorkov+igork1)*nc])));
 
-			//This looks very BLASable if not for the UID terms. Could BLAS the vector sums?
-			//No. That's stupid and won't work.
 			xd+=dk4m[i]*(conj(x[(uid*ngorkov+igorkov)*nc])*(\
 						conj(u11t[i*ndim+3])*(xi[(i*ngorkov+igork1)*nc]+xi[(i*ngorkov+igorkov)*nc])-\
 						u12t[i*ndim+3]*(xi[(i*ngorkov+igork1)*nc+1]+xi[(i*ngorkov+igorkov)*nc+1]) )+\
@@ -1424,8 +1415,14 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 	 */
 	const char *funcname = "SU2plaq";
 	//Do equivalent of a halo swap
+#ifdef USE_MKL
+	complex *z1 = mkl_malloc((kvol+halo)*sizeof(complex),AVX);
+	complex *z2 = mkl_malloc((kvol+halo)*sizeof(complex),AVX);
+#else
+	complex *z1 = malloc((kvol+halo)*sizeof(complex));
+	complex *z2 = malloc((kvol+halo)*sizeof(complex));
+#endif
 	for(int mu=0;mu<ndim;mu++){
-		complex z1[kvol+halo], z2[kvol+halo] __attribute__((aligned(AVX)));
 #if (defined USE_MKL || defined USE_BLAS)
 		cblas_zcopy(kvol+halo, &u11t[mu], ndim, z1, 1);
 		cblas_zcopy(kvol+halo, &u12t[mu], ndim, z2, 1);
@@ -1451,9 +1448,11 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 #endif
 	}
 #ifdef USE_MKL
+	mkl_free(z1); mkl_free(z2);
 	complex *Sigma11 = mkl_malloc(kvol*sizeof(complex),AVX);
 	complex *Sigma12 = mkl_malloc(kvol*sizeof(complex),AVX);
 #else
+	free(z1); free(z2);
 	complex *Sigma11 = malloc(kvol*sizeof(complex));
 	complex *Sigma12 = malloc(kvol*sizeof(complex));
 #endif
@@ -1465,7 +1464,7 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 		for(int nu=0;nu<mu;nu++){
 			//Don't merge into a single loop. Makes vectorisation easier?
 			//Or merge into a single loop and dispense with the a arrays?
-#pragma omp parallel
+#pragma omp parallel for
 #pragma ivdep
 			for(int i=0;i<kvol;i++){
 				int uidm = iu[mu+ndim*i]; 
@@ -1565,7 +1564,7 @@ double Polyakov(){
 		for(int i=0;i<kvol3;i++){
 			//Seems a bit more efficient to increment indexu instead of reassigning
 			//it every single loop
-			int indexu=(it+1)*kvol3+i;
+			int indexu=it*kvol3+i;
 			a11=Sigma11[i]*u11t[indexu*ndim+3]-Sigma12[i]*conj(u12t[indexu*ndim+3]);
 			//Instead of having to store a second buffer just assign it directly
 			Sigma12[i]=Sigma11[i]*u12t[indexu*ndim+3]+Sigma12[i]*conj(u11t[indexu*ndim+3]);
@@ -1639,7 +1638,7 @@ inline int Reunitarise(){
 	}
 	return 0;
 }
-inline int Z_gather(complex *x, complex *y, int n, int *table){
+inline int Z_gather(complex *x, complex *y, int n, unsigned int *table){
 	//FORTRAN had a second parameter m gving the size of y (kvol+halo) normally
 	//Pointers mean that's not an issue for us so I'm leaving it out
 #pragma ivdep

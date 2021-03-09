@@ -46,7 +46,7 @@ int procid;
 int ierr;
 
 //Number of threads for OpenMP
-#define	nthreads	8	
+#define	nthreads	4	
 
 //In C and Fortran 2008, MPI_STATUS_SIZE is replaced with 
 //MPI_Status
