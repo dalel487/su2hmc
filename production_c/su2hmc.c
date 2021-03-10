@@ -220,7 +220,10 @@ int main(int argc, char *argv[]){
 	dSdpi = malloc(kmomHalo*sizeof(double));
 	pp = malloc(kmomHalo*sizeof(double));
 #endif
-
+//Arabic for hour/watch so probably not defined elsewhere like TIME potentially is
+#if (defined SA3AT && defined _OPENMP)
+	double start_time = omp_get_wtime();
+#endif
 	for(int itraj = 1; itraj <= ntraj; itraj++){
 #ifdef _DEBUG
 		if(!rank)
@@ -495,6 +498,9 @@ int main(int argc, char *argv[]){
 		if(!rank)
 			fflush(output);
 	}
+#if (defined SA3AT && defined _OPENMP)
+	double elapsed = omp_get_wtime()-start_time;
+#endif
 	//End of main loop
 	//Free arrays
 #ifdef __NVCC__
@@ -511,6 +517,11 @@ int main(int argc, char *argv[]){
 	free(dk4m); free(dk4p); free(R1); free(dSdpi); free(pp); free(Phi);
 	free(u11t); free(u12t); free(xi); free(X0); free(X1);
 	free(u11); free(u12); free(id); free(iu); free(hd); free(hu);
+#endif
+#if (defined SA3AT && defined _OPENMP)
+	FILE *sa3at = fopen("Bench_times.csv", "a");
+	fprintf(sa3at, "%lu,%lu,%lu,%lu,%f,%f\n",nx,nt,kvol,nthreads,elapsed,elapsed/ntraj);
+	fclose(sa3at);
 #endif
 	actiona/=ntraj; vel2a/=ntraj; pbpa/=ipbp; endenfa/=ipbp; denfa/=ipbp;
 	ancg/=nf*itot; ancgh/=2*nf*ntraj; yav/=ntraj; yyav=yyav/ntraj - yav*yav;

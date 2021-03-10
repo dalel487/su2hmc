@@ -45,8 +45,6 @@ int pd[ndim] __attribute__((aligned(AVX)));
 int procid;
 int ierr;
 
-//Number of threads for OpenMP
-#define	nthreads	4	
 
 //In C and Fortran 2008, MPI_STATUS_SIZE is replaced with 
 //MPI_Status

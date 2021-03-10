@@ -55,7 +55,7 @@ TMP=	$(MOD) $(EDT) core
 all:	$(EXE)
 
 release:	CFLAGS += -O3 -inline-level=2 -qopenmp -qopenmp-link=static\
-		-DMKL_ILP64  -I"${MKLROOT}/include"
+		-DMKL_ILP64  -I"${MKLROOT}/include" -DSA3AT
 release:	$(EXE)
 
 debug:	CFLAGS += -g -O0 -inline-level=2  -qopenmp -qopenmp-link=static -D_DEBUG\
