@@ -27,45 +27,6 @@ int Dslash(complex *phi, complex *r){
 	char *funcname = "Dslash";
 	//Get the halos in order
 	ZHalo_swap_all(r, 16);
-#ifdef USE_MKL
-	complex *z = mkl_malloc((kvol+halo)*sizeof(complex),AVX);
-#else
-	complex *z = malloc((kvol+halo)*sizeof(complex));
-#endif
-	for(int mu=0;mu<ndim;mu++){
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol, u11t+mu, ndim, z, 1);
-#else
-		for(int i=0; i<kvol;i++)
-			z[i]=u11t[i*ndim+mu];
-#endif
-		ZHalo_swap_dir(z, 1, mu, UP);
-		//And the swap back
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol+halo, z, 1, u11t+mu, ndim);
-#else
-		for(int i=0; i<kvol;i++)
-			u11t[i*ndim+mu]=z[i];
-#endif
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol, u12t+mu, 4, z, 1);
-#else
-		for(int i=0; i<kvol;i++)
-			z[i]=u12t[i*ndim+mu];
-#endif
-		ZHalo_swap_dir(z, 1, mu, UP);
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol+halo, z, 1, u12t+mu, 4);
-#else
-		for(int i=0; i<kvol;i++)
-			u12t[i*ndim+mu]=z[i];
-#endif
-	}
-#ifdef USE_MKL
-	mkl_free(z);
-#else
-	free(z);
-#endif
 	DHalo_swap_dir(dk4p, 1, 3, UP);
 	DHalo_swap_dir(dk4m, 1, 3, UP);
 
@@ -181,45 +142,6 @@ int Dslashd(complex *phi, complex *r){
 	char *funcname = "Dslashd";
 	//Get the halos in order
 	ZHalo_swap_all(r, 16);
-#ifdef USE_MKL
-	complex *z = mkl_malloc((kvol+halo)*sizeof(complex),AVX);
-#else
-	complex *z = malloc((kvol+halo)*sizeof(complex));
-#endif
-	for(int mu=0;mu<ndim;mu++){
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol, u11t+mu, ndim, z, 1);
-#else
-		for(int i=0; i<kvol;i++)
-			z[i]=u11t[i*ndim+mu];
-#endif
-		ZHalo_swap_dir(z, 1, mu, UP);
-		//And the swap back
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol+halo, z, 1, u11t+mu, ndim);
-#else
-		for(int i=0; i<kvol;i++)
-			u11t[i*ndim+mu]=z[i];
-#endif
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol, u12t+mu, 4, z, 1);
-#else
-		for(int i=0; i<kvol;i++)
-			z[i]=u12t[i*ndim+mu];
-#endif
-		ZHalo_swap_dir(z, 1, mu, UP);
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol+halo, z, 1, u12t+mu, 4);
-#else
-		for(int i=0; i<kvol;i++)
-			u12t[i*ndim+mu]=z[i];
-#endif
-	}
-#ifdef USE_MKL
-	mkl_free(z);
-#else
-	free(z);
-#endif
 	DHalo_swap_dir(dk4p, 1, 3, UP);
 	DHalo_swap_dir(dk4m, 1, 3, UP);
 
@@ -340,45 +262,6 @@ int Hdslash(complex *phi, complex *r){
 	char *funcname = "Hdslash";
 	//Get the halos in order
 	ZHalo_swap_all(r, 8);
-#ifdef USE_MKL
-	complex *z = mkl_malloc((kvol+halo)*sizeof(complex),AVX);
-#else
-	complex *z = malloc((kvol+halo)*sizeof(complex));
-#endif
-	for(int mu=0;mu<ndim;mu++){
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol, &u11t[mu], ndim, z, 1);
-#else
-		for(int i=0; i<kvol;i++)
-			z[i]=u11t[i*ndim+mu];
-#endif
-		ZHalo_swap_dir(z, 1, mu, UP);
-		//And the swap back
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol+halo, z, 1, &u11t[mu], ndim);
-#else
-		for(int i=0; i<kvol+halo;i++)
-			u11t[i*ndim+mu]=z[i];
-#endif
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol, &u12t[mu], 4, z, 1);
-#else
-		for(int i=0; i<kvol;i++)
-			z[i]=u12t[i*ndim+mu];
-#endif
-		ZHalo_swap_dir(z, 1, mu, UP);
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol+halo, z, 1, &u12t[mu], 4);
-#else
-		for(int i=0; i<kvol+halo;i++)
-			u12t[i*ndim+mu]=z[i];
-#endif
-	}
-#ifdef USE_MKL
-	mkl_free(z);
-#else
-	free(z);
-#endif
 	DHalo_swap_dir(dk4p, 1, 3, UP);
 	DHalo_swap_dir(dk4m, 1, 3, UP);
 
@@ -471,45 +354,6 @@ int Hdslashd(complex *phi, complex *r){
 	//terms for each halo first. Changing the indices was considered but that caused
 	//issues with the BLAS routines.
 	ZHalo_swap_all(r, 8);
-#ifdef USE_MKL
-	complex *z = mkl_malloc((kvol+halo)*sizeof(complex),AVX);
-#else
-	complex *z = malloc((kvol+halo)*sizeof(complex));
-#endif
-	for(int mu=0;mu<ndim;mu++){
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol, &u11t[mu], ndim, z, 1);
-#else
-		for(int i=0; i<kvol;i++)
-			z[i]=u11t[i*ndim+mu];
-#endif
-		ZHalo_swap_dir(z, 1, mu, UP);
-		//And the swap back
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol+halo, z, 1, &u11t[mu], ndim);
-#else
-		for(int i=0; i<kvol+halo;i++)
-			u11t[i*ndim+mu]=z[i];
-#endif
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol, &u12t[mu], 4, z, 1);
-#else
-		for(int i=0; i<kvol;i++)
-			z[i]=u12t[i*ndim+mu];
-#endif
-		ZHalo_swap_dir(z, 1, mu, UP);
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol+halo, z, 1, &u12t[mu], 4);
-#else
-		for(int i=0; i<kvol+halo;i++)
-			u12t[i*ndim+mu]=z[i];
-#endif
-	}
-#ifdef USE_MKL
-	mkl_free(z);
-#else
-	free(z);
-#endif
 	DHalo_swap_dir(dk4p, 1, 3, UP);
 	DHalo_swap_dir(dk4m, 1, 3, UP);
 

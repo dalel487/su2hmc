@@ -795,6 +795,55 @@ int Par_swrite(int itraj){
 		MPI_Wait(&request, &status);
 		return 0;
 	}
+	int Trial_Exchange(){
+		/*
+		 *	Exchanges the trial fields. I noticed that this halo exchange was happening
+		 *	even though the trial fields hadn't been updated. To get around this
+		 *	I'm making a function that does the halo exchange and only calling it after
+		 *	the trial fields get updated.
+		 */
+		char *funchame = "Trial_Exchange";
+#ifdef USE_MKL
+		complex *z = mkl_malloc((kvol+halo)*sizeof(complex),AVX);
+#else
+		complex *z = malloc((kvol+halo)*sizeof(complex));
+#endif
+		for(int mu=0;mu<ndim;mu++){
+#if (defined USE_MKL || USE_BLAS)
+			cblas_zcopy(kvol, &u11t[mu], ndim, z, 1);
+#else
+			for(int i=0; i<kvol;i++)
+				z[i]=u11t[i*ndim+mu];
+#endif
+			ZHalo_swap_dir(z, 1, mu, UP);
+			//And the swap back
+#if (defined USE_MKL || USE_BLAS)
+			cblas_zcopy(kvol+halo, z, 1, &u11t[mu], ndim);
+#else
+			for(int i=0; i<kvol+halo;i++)
+				u11t[i*ndim+mu]=z[i];
+#endif
+#if (defined USE_MKL || USE_BLAS)
+			cblas_zcopy(kvol, &u12t[mu], 4, z, 1);
+#else
+			for(int i=0; i<kvol;i++)
+				z[i]=u12t[i*ndim+mu];
+#endif
+			ZHalo_swap_dir(z, 1, mu, UP);
+#if (defined USE_MKL || USE_BLAS)
+			cblas_zcopy(kvol+halo, z, 1, &u12t[mu], 4);
+#else
+			for(int i=0; i<kvol+halo;i++)
+				u12t[i*ndim+mu]=z[i];
+#endif
+		}
+#ifdef USE_MKL
+		mkl_free(z);
+#else
+		free(z);
+#endif
+		return 0;
+	}
 	int Par_tmul(complex *z11, complex *z12){
 		/*
 		 * Parameters:

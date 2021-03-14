@@ -104,6 +104,7 @@ int Par_zcopy(complex *zval);
 int ZHalo_swap_all(complex *z, int ncpt);
 int ZHalo_swap_dir(complex *z, int ncpt, int idir, int layer);
 int DHalo_swap_dir(double *d, int ncpt, int idir, int layer);
+int Trial_Exchange();
 
 int Par_tmul(complex *z11, complex *z12);
 #endif

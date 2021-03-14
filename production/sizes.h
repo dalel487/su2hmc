@@ -26,7 +26,7 @@ c     integer, parameter :: npx = 8
 c     integer, parameter :: npt = 4
 
       integer, parameter :: npx = 1
-      integer, parameter :: npt = 2
+      integer, parameter :: npt = 1 
 
 c Initially restrict to npz = npy = npx
 c This allows us to have a single ksize variable

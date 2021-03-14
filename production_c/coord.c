@@ -268,6 +268,7 @@ int Check_addr(unsigned int *table, int lns, int lnt, int imin, int imax){
 	int ntable = lns*lns*lns*lnt;
 	int iaddr;
 	//Collapsing two for loops together
+	#pragma omp parallel for simd
 	for(int j=0; j<ntable*ndim; j++){
 		iaddr = table[j];
 		if((iaddr<imin) || (iaddr>= imax)){

@@ -94,7 +94,7 @@ int main(int argc, char *argv[]){
 	//The default values here are straight from the FORTRAN
 	//=====================================================
 	int iread = 0;
-	int istart = 0;
+	int istart = 1;
 	ibound = 1;
 	int iwrite = 1;
 	int iprint = 1; //For the measures
@@ -151,6 +151,7 @@ int main(int argc, char *argv[]){
 	if(!rank) printf("Initial Polyakov loop evaluated as %e\n", poly);
 #endif
 	double hg, avplaqs, avplaqt;
+		Trial_Exchange();
 	SU2plaq(&hg,&avplaqs,&avplaqt);
 	//Loop on β
 	//Print Heading
@@ -220,7 +221,7 @@ int main(int argc, char *argv[]){
 	dSdpi = malloc(kmomHalo*sizeof(double));
 	pp = malloc(kmomHalo*sizeof(double));
 #endif
-//Arabic for hour/watch so probably not defined elsewhere like TIME potentially is
+	//Arabic for hour/watch so probably not defined elsewhere like TIME potentially is
 #if (defined SA3AT && defined _OPENMP)
 	double start_time = omp_get_wtime();
 #endif
@@ -271,6 +272,7 @@ int main(int argc, char *argv[]){
 		//Initialise Trial Fields
 		memcpy(u11t, u11, ndim*kvol*sizeof(complex));
 		memcpy(u12t, u12, ndim*kvol*sizeof(complex));
+		Trial_Exchange();
 		double H0, S0;
 		Hamilton(&H0, &S0, rescga);
 #ifdef _DEBUG
@@ -319,6 +321,7 @@ int main(int argc, char *argv[]){
 					u11t[i*ndim+mu] = a11*b11-a12*conj(u12t[i*ndim+mu]);
 					u12t[i*ndim+mu] = a11*u12t[i*ndim+mu]+a12*conj(b11);
 				}
+			Trial_Exchange();
 			Reunitarise();
 			//p(t+3dt/2)=p(t+dt/2)-dSds(t+dt)*dt
 			Force(dSdpi, 0, rescgg);
@@ -371,13 +374,12 @@ int main(int argc, char *argv[]){
 			//in the case where dH>=0 or x<=y. We'll nest the if statements in C to 
 			//get around this using the reverse test to the FORTRAN if (x<=y instead of x>y).
 			//Step is accepted. Set s=st
-#ifdef _DEBUG
 			if(!rank)
-				printf("New configuration accepted.\n");
-#endif
+				printf("New configuration accepted on trajectory %i.\n", itraj);
 			//Original FORTRAN Comment:
 			//JIS 20100525: write config here to preempt troubles during measurement!
 			//JIS 20100525: remove when all is ok....
+			memcpy(u11,u11t,ndim*kvol*sizeof(complex));
 			memcpy(u12,u12t,ndim*kvol*sizeof(complex));
 			naccp++;
 			//Divide by gvol because of halos?
@@ -594,7 +596,7 @@ int Init(int istart){
 	dk4m = malloc((kvol+halo)*sizeof(double));
 	dk4p = malloc((kvol+halo)*sizeof(double));
 #endif
-#pragma ivdep
+#pragma omp parallel for simd 
 	for(int i = 0; i<kvol; i++){
 		dk4p[i]=akappa*chem1;
 		dk4m[i]=akappa*chem2;
@@ -605,7 +607,7 @@ int Init(int istart){
 #ifdef _DEBUG
 		printf("Implimenting antiperiodic boundary conditions on rank %i\n", rank);
 #endif
-#pragma ivdep
+#pragma omp parallel for simd 
 		for(int i= 0; i<kvol3; i++){
 			int k = kvol - kvol3 + i;
 			dk4p[k]*=-1;
@@ -639,6 +641,7 @@ int Init(int istart){
 	if(istart==0){
 		//Initialise a cold start to zero
 		//memset is safe to use here because zero is zero 
+#pragma omp parallel for 
 #pragma ivdep
 		for(int i=0; i<kvol*ndim;i++)
 			u11t[i]=1;
@@ -747,6 +750,7 @@ int Gauge_force(double *dSdpi){
 		for(int nu=0; nu<ndim; nu++){
 			if(mu!=nu){
 				//The +ν Staple
+#pragma omp parallel for
 #pragma ivdep
 				for(int i=0;i<kvol;i++){
 
@@ -779,6 +783,7 @@ int Gauge_force(double *dSdpi){
 				ZHalo_swap_dir(u11sh, 1, mu, DOWN);
 				ZHalo_swap_dir(u12sh, 1, mu, DOWN);
 				//Next up, the -ν staple
+#pragma omp parallel for
 #pragma ivdep
 				for(int i=0;i<kvol;i++){
 					int uidm = iu[mu+ndim*i];
@@ -794,6 +799,7 @@ int Gauge_force(double *dSdpi){
 				}
 			}
 		}
+#pragma omp parallel for
 #pragma ivdep
 		for(int i=0;i<kvol;i++){
 			complex a11 = u11t[i*ndim+mu]*Sigma12[i]+u12t[i*ndim+mu]*conj(Sigma11[i]);
@@ -1117,6 +1123,7 @@ int Congradp(int na, double res, int *itercg){
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
 	//if statements quicker to type
 	complex betan;
+	Trial_Exchange();
 	for(int niterx=0; niterx<niterc; niterx++){
 		(*itercg)++;
 		Dslash(x1,p);
@@ -1307,47 +1314,9 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 	//Halos
 	ZHalo_swap_dir(x,16,3,DOWN);		ZHalo_swap_dir(x,16,3,UP);
 	//Pesky halo exchange indices again
-#ifdef USE_MKL
-	complex *z = mkl_malloc((kvol+halo)*sizeof(complex),AVX);
-#else
-	complex *z = malloc((kvol+halo)*sizeof(complex));
-#endif
+	//The halo exchange for the trial fields was done already at the end of the trajectory
+	//No point doing it again
 
-#if (defined USE_MKL || defined USE_BLAS)
-	cblas_zcopy(kvol, &u11t[3], 4, z, 1);
-#else
-#pragma unroll
-	for(int i=0; i<kvol;i++)
-		z[i]=u11t[i*ndim+3];
-#endif
-	ZHalo_swap_dir(z,1,3, UP);
-#if (defined USE_MKL || defined USE_BLAS)
-	cblas_zcopy(kvol+halo, z, 1, &u11t[3], 4);
-#else
-#pragma unroll
-	for(int i=0; i<kvol;i++)
-		u11t[i*ndim+3]=z[i];
-#endif
-#if (defined USE_MKL || defined USE_BLAS)
-	cblas_zcopy(kvol, &u12t[3], 4, z, 1);
-#else
-#pragma unroll
-	for(int i=0; i<kvol;i++)
-		z[i]=u12t[i*ndim+3];
-#endif
-	ZHalo_swap_dir(z,1,3, UP);
-#if (defined USE_MKL || defined USE_BLAS)
-	cblas_zcopy(kvol+halo, z, 1, &u12t[3], 4);
-#else
-#pragma unroll
-	for(int i=0; i<kvol;i++)
-		u12t[i*ndim+3]=z[i];
-#endif
-#ifdef USE_MKL
-	mkl_free(z);
-#else
-	free(z);
-#endif
 	DHalo_swap_dir(dk4p, 1, 3, UP);		DHalo_swap_dir(dk4m, 1, 3, UP);	
 	//Instead of typing id[i*ndim+3] a lot, we'll just assign them to variables.
 	//Idea. One loop instead of two loops but for xuu and xdd just use ngorkov-(igorkov+1) instead
@@ -1433,31 +1402,7 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 	complex *z1 = malloc((kvol+halo)*sizeof(complex));
 	complex *z2 = malloc((kvol+halo)*sizeof(complex));
 #endif
-	for(int mu=0;mu<ndim;mu++){
-#if (defined USE_MKL || defined USE_BLAS)
-		cblas_zcopy(kvol+halo, &u11t[mu], ndim, z1, 1);
-		cblas_zcopy(kvol+halo, &u12t[mu], ndim, z2, 1);
-#else
-		for(int i=0; i<kvol;i++){
-			z1[i]=u11t[i*ndim+mu];
-			z2[i]=u12t[i*ndim+mu];
-		}
-#endif
-#pragma unroll
-		for(int idir=0;idir<4;idir++){
-			ZHalo_swap_dir(z1,1,idir,DOWN);
-			ZHalo_swap_dir(z2,1,idir,DOWN);
-		}
-#if (defined USE_MKL || defined USE_BLAS)
-		cblas_zcopy(kvol+halo, z1, 1, &u11t[mu], ndim);
-		cblas_zcopy(kvol+halo, z2, 1, &u12t[mu], ndim);
-#else
-		for(int i=0; i<kvol;i++){
-			u11t[i*ndim+mu]=z1[i];
-			u12t[i*ndim+mu]=z2[i];
-		}
-#endif
-	}
+//Was a halo exchange here but moved it outside
 #ifdef USE_MKL
 	mkl_free(z1); mkl_free(z2);
 	complex *Sigma11 = mkl_malloc(kvol*sizeof(complex),AVX);
@@ -1496,12 +1441,12 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 		//Space component
 		if(mu<ndim-1)
 			//Is there a BLAS routine for this
-#pragma omp simd reduction(+:hgs)
+#pragma omp parallel for simd reduction(+:hgs)
 			for(int i=0;i<kvol;i++)
 				hgs-=creal(Sigma11[i]);
 		//Time component
 		else
-#pragma omp simd reduction(+:hgt)
+#pragma omp parallel for simd reduction(+:hgt)
 			for(int i=0;i<kvol;i++)
 				hgt-=creal(Sigma11[i]);
 		}
@@ -1568,7 +1513,8 @@ double Polyakov(){
 	//	be done in parallel. Start at t=1 and go up to t=T:
 	//	previously started at t+T and looped back to 1, 2, ... T-1
 	//Buffers
-	complex a11=0; 
+	complex a11=0;
+#pragma omp parallel for private(a11)
 #pragma ivdep
 	for(int it=1;it<ksizet;it++)
 		//will be faster for parallel code
@@ -1596,7 +1542,7 @@ double Polyakov(){
 	//There has to be a vectorised method of doing this somewhere, or a reduction method
 	//for large k
 	//Maybe... Us
-#pragma omp simd reduction(+:poly)
+#pragma omp parallel for simd reduction(+:poly)
 	for(int i=0;i<kvol3;i++)
 		poly+=creal(Sigma11[i]);
 #ifdef USE_MKL
