@@ -59,7 +59,7 @@ release:	CFLAGS += -O3 -inline-level=2 -qopenmp -qopenmp-link=static\
 release:	$(EXE)
 
 debug:	CFLAGS += -g -O0 -inline-level=2  -qopenmp -qopenmp-link=static -D_DEBUG\
-		-qopt-report
+		-qopt-report -DSA3AT
 debug:	$(EXE)
 
 $(EXE):	$(OBJ)

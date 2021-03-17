@@ -151,7 +151,7 @@ int main(int argc, char *argv[]){
 	if(!rank) printf("Initial Polyakov loop evaluated as %e\n", poly);
 #endif
 	double hg, avplaqs, avplaqt;
-		Trial_Exchange();
+	Trial_Exchange();
 	SU2plaq(&hg,&avplaqs,&avplaqt);
 	//Loop on β
 	//Print Heading
@@ -699,39 +699,7 @@ int Gauge_force(double *dSdpi){
 #else
 	complex *z = malloc((kvol+halo)*sizeof(complex));
 #endif
-#pragma unroll
-	for(int mu=0; mu<ndim; mu++){
-		//Since we've had to swap the rows and columns of u11t and u12t we need to extract the 
-		//correct terms for a halo exchange
-		//A better approach is clearly needed
-#if (defined USE_MKL || defined USE_BLAS)
-		cblas_zcopy(kvol, &u11t[mu], ndim, z, 1);
-#else
-		for(int i=0; i<kvol;i++)
-			z[i]=u11t[i*ndim+mu];
-#endif
-		ZHalo_swap_all(z,1);
-		//And the swap back
-#if (defined USE_MKL || defined USE_BLAS)
-		cblas_zcopy(kvol+halo, z, 1, &u11t[mu], ndim);
-#else
-		for(int i=0; i<kvol+halo;i++)
-			u11t[i*ndim+mu]=z[i];
-#endif
-#if (defined USE_MKL || defined USE_BLAS)
-		cblas_zcopy(kvol+halo, &u12t[mu], ndim, z, 1);
-#else
-		for(int i=0; i<kvol;i++)
-			z[i]=u12t[i*ndim+mu];
-#endif
-		ZHalo_swap_all(z,1);
-#if (defined USE_MKL || defined USE_BLAS)
-		cblas_zcopy(kvol+halo, z, 1, &u12t[mu], ndim);
-#else
-		for(int i=0; i<kvol+halo;i++)
-			u12t[i*ndim+mu]=z[i];
-#endif
-	}
+//Was a trial field halo exchange here at one point.
 #ifdef USE_MKL
 	complex *Sigma11 = mkl_malloc(kvol*sizeof(complex),AVX); 
 	complex *Sigma12= mkl_malloc(kvol*sizeof(complex),AVX); 
@@ -750,8 +718,7 @@ int Gauge_force(double *dSdpi){
 		for(int nu=0; nu<ndim; nu++){
 			if(mu!=nu){
 				//The +ν Staple
-#pragma omp parallel for
-#pragma ivdep
+#pragma omp parallel for simd
 				for(int i=0;i<kvol;i++){
 
 					int uidm = iu[mu+ndim*i];
@@ -783,8 +750,7 @@ int Gauge_force(double *dSdpi){
 				ZHalo_swap_dir(u11sh, 1, mu, DOWN);
 				ZHalo_swap_dir(u12sh, 1, mu, DOWN);
 				//Next up, the -ν staple
-#pragma omp parallel for
-#pragma ivdep
+#pragma omp parallel for simd
 				for(int i=0;i<kvol;i++){
 					int uidm = iu[mu+ndim*i];
 					int didm = id[mu+ndim*i];	int didn = id[nu+ndim*i];
@@ -799,8 +765,7 @@ int Gauge_force(double *dSdpi){
 				}
 			}
 		}
-#pragma omp parallel for
-#pragma ivdep
+#pragma omp parallel for simd
 		for(int i=0;i<kvol;i++){
 			complex a11 = u11t[i*ndim+mu]*Sigma12[i]+u12t[i*ndim+mu]*conj(Sigma11[i]);
 			complex a12 = u11t[i*ndim+mu]*Sigma11[i]+conj(u12t[i*ndim+mu])*Sigma12[i];
@@ -1402,7 +1367,7 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 	complex *z1 = malloc((kvol+halo)*sizeof(complex));
 	complex *z2 = malloc((kvol+halo)*sizeof(complex));
 #endif
-//Was a halo exchange here but moved it outside
+	//Was a halo exchange here but moved it outside
 #ifdef USE_MKL
 	mkl_free(z1); mkl_free(z2);
 	complex *Sigma11 = mkl_malloc(kvol*sizeof(complex),AVX);
