@@ -472,7 +472,6 @@ int Force(double *dSdpi, int iflag, double res1){
 		if(!iflag){
 			Congradq(na, res1,smallPhi, &itercg );
 			ancg+=itercg;
-			//BLASable? If we cheat and flatten the array it is!
 			//This is not a general BLAS Routine, just an MKL one
 #ifdef USE_MKL
 			complex blasa=2.0; complex blasb=-1.0;

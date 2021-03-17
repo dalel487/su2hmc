@@ -247,7 +247,7 @@ int main(int argc, char *argv[]){
 			Dslashd(R1, R);
 			memcpy(Phi+na*kfermHalo,R1, nc*ngorkov*kvol*sizeof(complex));
 			//Up/down partitioning (using only pseudofermions of flavour 1)
-#pragma ivdep
+#pragma omp parallel for simd
 			for(int i=0; i<kvol; i++)
 				for(int idirac = 0; idirac < ndirac; idirac++){
 					X0[((na*(kvol+halo)+i)*ndirac+idirac)*nc]=R1[(i*ngorkov+idirac)*nc];
@@ -572,7 +572,7 @@ int Init(int istart){
 	//Comment out to keep the threads spinning even when there's no work to do
 	//Commenting out decrease runtime but increases total CPU time dramatically
 	//This can throw of some profilers
-	//	kmp_set_defaults("KMP_BLOCKTIME=0");
+//		kmp_set_defaults("KMP_BLOCKTIME=0");
 #ifdef USE_MKL
 	mkl_set_num_threads(nthreads);
 #endif
@@ -753,7 +753,7 @@ int Gauge_force(double *dSdpi){
 #pragma omp parallel for simd
 				for(int i=0;i<kvol;i++){
 					int uidm = iu[mu+ndim*i];
-					int didm = id[mu+ndim*i];	int didn = id[nu+ndim*i];
+					int didn = id[nu+ndim*i];
 					//uidm is correct here
 					complex a11=conj(u11sh[uidm])*conj(u11t[didn*ndim+mu])-\
 							u12sh[uidm]*conj(u12t[didn*ndim+mu]);
@@ -775,7 +775,7 @@ int Gauge_force(double *dSdpi){
 			dSdpi[(i*nadj+2)*ndim+mu]=beta*cimag(a12);
 		}
 	}
-	//MPI was acting funny here for more than one process
+	//MPI was acting funny here for more than one process on Boltzmann
 #ifdef USE_MKL
 	mkl_free(u11sh); mkl_free(u12sh); mkl_free(Sigma11); mkl_free(Sigma12);
 	mkl_free(z);
