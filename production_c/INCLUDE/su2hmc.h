@@ -39,9 +39,6 @@ extern complex jqq;
 double ancg, ancgh;
 extern double fmu, beta, akappa;
 
-//Polyakov loop
-double poly;
-
 //Function Declarations:
 //#####################
 int Force(double *dSdpi, int iflag, double res1);

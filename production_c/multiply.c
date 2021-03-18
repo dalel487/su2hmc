@@ -367,11 +367,13 @@ int Hdslashd(complex *phi, complex *r){
 	in(id, iu: length(ndim*kvol))\
 	in(u11t, u12t: length(ndim*(kvol+halo)))\
 	inout(phi: length(kferm2Halo))
-#pragma omp parallel for simd aligned(phi:AVX,r:AVX,u11t:AVX,u12t:AVX)
-#pragma vector vecremainder
+#pragma omp parallel for
 	for(int i=0;i<kvol;i++){
+#pragma ivdep
 		for(int mu = 0; mu <ndim-1; mu++){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
+#pragma omp simd aligned(phi:AVX,r:AVX,u11t:AVX,u12t:AVX)
+#pragma vector vecremainder
 			for(int idirac=0; idirac<ndirac; idirac++){
 				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
 				int igork1 = gamin[mu][idirac];
@@ -404,8 +406,8 @@ int Hdslashd(complex *phi, complex *r){
 		}
 		//Timelike terms
 		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
-//#pragma omp simd aligned(phi:AVX,r:AVX,u11t:AVX,u12t:AVX)
-//#pragma vector vecremainder
+#pragma omp simd aligned(phi:AVX,r:AVX,u11t:AVX,u12t:AVX)
+#pragma vector vecremainder
 		for(int idirac=0; idirac<ndirac; idirac++){
 			int igork1 = gamin[3][idirac];
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
@@ -510,7 +512,7 @@ int Force(double *dSdpi, int iflag, double res1){
 		//
 #pragma omp parallel for
 		for(int i=0;i<kvol;i++)
-		#pragma omp simd aligned(dSdpi:AVX,X1:AVX,X2:AVX,u11t:AVX,u12t:AVX,dk4m:AVX,dk4p:AVX)
+		#pragma omp simd aligned(dSdpi:AVX,X1:AVX,X2:AVX,u11t:AVX,u12t:AVX)
 			for(int idirac=0;idirac<ndirac;idirac++){
 				int mu, uid, igork1;
 				//Unrolling the loop

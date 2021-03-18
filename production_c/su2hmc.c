@@ -94,7 +94,7 @@ int main(int argc, char *argv[]){
 	//The default values here are straight from the FORTRAN
 	//=====================================================
 	int iread = 0;
-	int istart = 1;
+	int istart = 0;
 	ibound = 1;
 	int iwrite = 1;
 	int iprint = 1; //For the measures
@@ -102,7 +102,7 @@ int main(int argc, char *argv[]){
 #ifdef USE_MATH_DEFINES
 	const double tpi = 2*M_PI;
 #else
-	const double tpi = 2*acos(0.0);
+	const double tpi = 2*acos(-1.0);
 #endif
 	//End of input
 	//===========
@@ -141,12 +141,13 @@ int main(int argc, char *argv[]){
 	//Initialisation
 	//istart < 0: Start from tape?!? How old is this code?
 	//istart = 0: Ordered/Cold Start
+	//			For some reason this leaves the trial fields as zero in the FORTRAN code?
 	//istart > 0: Random/Hot Start
 	Init(istart);
 
 	//Initial Measurements
 	//====================
-	poly = Polyakov();
+	double poly = Polyakov();
 #ifdef _DEBUG
 	if(!rank) printf("Initial Polyakov loop evaluated as %e\n", poly);
 #endif
@@ -196,6 +197,9 @@ int main(int argc, char *argv[]){
 	//Initialise Some Arrays. Leaving it late for scoping
 	//check the sizes in sizes.h
 	double *dSdpi;
+	//There is absolutely no reason to keep the trial fields as zero now, so I won't
+	memcpy(u11t,u11,kvol*ndim*sizeof(complex));
+	Trial_Exchange();
 #ifdef __NVCC__
 	cudaMallocManaged(&R1, kfermHalo*sizeof(complex));
 	cudaMallocManaged(&xi, kfermHalo*sizeof(complex));
@@ -515,10 +519,12 @@ int main(int argc, char *argv[]){
 	mkl_free(Phi); mkl_free(u11t); mkl_free(u12t); mkl_free(xi);
 	mkl_free(X0); mkl_free(X1); mkl_free(u11); mkl_free(u12);
 	mkl_free(id); mkl_free(iu); mkl_free(hd); mkl_free(hu);
+	mkl_free(pcoord);
 #else
 	free(dk4m); free(dk4p); free(R1); free(dSdpi); free(pp); free(Phi);
 	free(u11t); free(u12t); free(xi); free(X0); free(X1);
 	free(u11); free(u12); free(id); free(iu); free(hd); free(hu);
+	free(pcoord);
 #endif
 #if (defined SA3AT && defined _OPENMP)
 	FILE *sa3at = fopen("Bench_times.csv", "a");
@@ -603,7 +609,7 @@ int Init(int istart){
 	}
 	//Antiperiodic Boundary Conditions. Flip the terms at the edge of the time
 	//direction
-	if(ibound == -1 && pcoord[3][rank]==npt -1){
+	if(ibound == -1 && pcoord[3+ndim*rank]==npt -1){
 #ifdef _DEBUG
 		printf("Implimenting antiperiodic boundary conditions on rank %i\n", rank);
 #endif
@@ -635,12 +641,12 @@ int Init(int istart){
 #elif defined USE_MKL
 	u11 = mkl_malloc(ndim*(kvol+halo)*sizeof(complex),AVX);
 	u12 = mkl_calloc(ndim*(kvol+halo),sizeof(complex),AVX);
-	u11t = mkl_malloc(ndim*(kvol+halo)*sizeof(complex),AVX);
+	u11t = mkl_calloc(ndim*(kvol+halo),sizeof(complex),AVX);
 	u12t = mkl_calloc(ndim*(kvol+halo),sizeof(complex),AVX);
 #else
 	u11 = malloc(ndim*(kvol+halo)*sizeof(complex));
 	u12 = calloc(ndim*(kvol+halo),sizeof(complex));
-	u11t = malloc(ndim*(kvol+halo)*sizeof(complex));
+	u11t = calloc(ndim*(kvol+halo),sizeof(complex));
 	u12t = calloc(ndim*(kvol+halo),sizeof(complex));
 #endif
 	if(istart==0){
@@ -648,8 +654,7 @@ int Init(int istart){
 		//memset is safe to use here because zero is zero 
 #pragma omp parallel for simd aligned(u11t:AVX) 
 		for(int i=0; i<kvol*ndim;i++)
-			u11t[i]=1;
-
+			u11[i]=1;
 	}
 	else if(istart>0){
 		//#ifdef __NVCC__
@@ -668,6 +673,9 @@ int Init(int istart){
 			u12t[i]=sfmt_genrand_real1(&sfmt)+sfmt_genrand_real1(&sfmt)*I;
 		}
 #endif
+		Reunitarise();
+		memcpy(u11, u11t, ndim*(kvol+halo)*sizeof(complex));
+		memcpy(u12, u12t, ndim*(kvol+halo)*sizeof(complex));
 	}
 	else{
 		fprintf(stderr,"Warning %i in %s: Gauge fields are not initialised.\n", NOINIT, funcname);
@@ -675,9 +683,6 @@ int Init(int istart){
 #ifdef _DEBUG
 	printf("Initialisation Complete\n");
 #endif
-	Reunitarise();
-	memcpy(u11, u11t, ndim*(kvol+halo)*sizeof(complex));
-	memcpy(u12, u12t, ndim*(kvol+halo)*sizeof(complex));
 	return 0;
 }
 int Gauge_force(double *dSdpi){
@@ -703,7 +708,7 @@ int Gauge_force(double *dSdpi){
 #else
 	complex *z = malloc((kvol+halo)*sizeof(complex));
 #endif
-//Was a trial field halo exchange here at one point.
+	//Was a trial field halo exchange here at one point.
 #ifdef USE_MKL
 	complex *Sigma11 = mkl_malloc(kvol*sizeof(complex),AVX); 
 	complex *Sigma12= mkl_malloc(kvol*sizeof(complex),AVX); 
@@ -1452,77 +1457,79 @@ double Polyakov(){
 	 * Double corresponding to the polyakov loop
 	 */
 	const char *funcname = "Polyakov";
-#ifdef USE_MKL
-	complex *Sigma11 = mkl_malloc(kvol3*sizeof(complex),AVX);
-	complex *Sigma12 = mkl_malloc(kvol3*sizeof(complex),AVX);
-#else
-	complex *Sigma11 = malloc(kvol3*sizeof(complex));
-	complex *Sigma12 = malloc(kvol3*sizeof(complex));
-#endif
-#if (defined USE_MKL || defined USE_BLAS)
-	cblas_zcopy(kvol3, &u11t[3], ndim, Sigma11, 1);
-	cblas_zcopy(kvol3, &u12t[3], ndim, Sigma12, 1);
-#else
-	for(int i=0; i<kvol3; i++){
-		Sigma11[i]=u11t[i*ndim+3];
-		Sigma12[i]=u12t[i*ndim+3];
-	}
-#endif
-	//	Some Fortran commentary
-	//	Changed this routine.
-	//	u11t and u12t now defined as normal ie (kvol+halo,4).
-	//	Copy of Sigma11 and Sigma12 is changed so that it copies
-	//	in blocks of ksizet.
-	//	Variable indexu also used to select correct element of u11t and u12t 
-	//	in loop 10 below.
-	//
-	//	Change the order of multiplication so that it can
-	//	be done in parallel. Start at t=1 and go up to t=T:
-	//	previously started at t+T and looped back to 1, 2, ... T-1
-	//Buffers
-	complex a11=0;
-#pragma omp parallel for simd private(a11) aligned(u11t:AVX,u12t:AVX,Sigma11:AVX,Sigma12:AVX)
-	for(int it=1;it<ksizet;it++)
-		//will be faster for parallel code
-		for(int i=0;i<kvol3;i++){
-			//Seems a bit more efficient to increment indexu instead of reassigning
-			//it every single loop
-			int indexu=it*kvol3+i;
-			a11=Sigma11[i]*u11t[indexu*ndim+3]-Sigma12[i]*conj(u12t[indexu*ndim+3]);
-			//Instead of having to store a second buffer just assign it directly
-			Sigma12[i]=Sigma11[i]*u12t[indexu*ndim+3]+Sigma12[i]*conj(u11t[indexu*ndim+3]);
-			Sigma11[i]=a11;
-		}
-
-	//Multiply this partial loop with the contributions of the other cores in the
-	//timelike dimension
-#if (npt>1)
-#ifdef _DEBUG
-	printf("Multiplying with MPI\n");
-#endif
-	//Par_tmul does nothing if there is only a single processor in the time direction. So we only compile
-	//its call if it is required
-	Par_tmul(Sigma11, Sigma12);
-#endif
 	double poly = 0;
-	//There has to be a vectorised method of doing this somewhere, or a reduction method
-	//for large k
-	//Maybe... Us
-#pragma omp parallel for simd reduction(+:poly) aligned(Sigma11:AVX)
-	for(int i=0;i<kvol3;i++)
-		poly+=creal(Sigma11[i]);
-#ifdef USE_MKL
-	mkl_free(Sigma11); mkl_free(Sigma12);
-#else
-	free(Sigma11); free(Sigma12);
-#endif
+	//Originally at the very end before Par_dsum
 	//Now all cores have the value for the complete Polyakov line at all spacial sites
 	//We need to globally sum over spacial processores but not across time as these
 	//are duplicates. So we zero the value for all but t=0
-
-
 	//This is (according to the FORTRAN code) a bit of a hack
-	if(pcoord[3][rank]) poly = 0;
+	//I will expand on this hack and completely avoid any work
+	//for this case rather than calculating everything just to set it to zero
+	if(!pcoord[3+ndim*rank]){
+#ifdef USE_MKL
+		complex *Sigma11 = mkl_malloc(kvol3*sizeof(complex),AVX);
+		complex *Sigma12 = mkl_malloc(kvol3*sizeof(complex),AVX);
+#else
+		complex *Sigma11 = malloc(kvol3*sizeof(complex));
+		complex *Sigma12 = malloc(kvol3*sizeof(complex));
+#endif
+#if (defined USE_MKL || defined USE_BLAS)
+		cblas_zcopy(kvol3, &u11t[3], ndim, Sigma11, 1);
+		cblas_zcopy(kvol3, &u12t[3], ndim, Sigma12, 1);
+#else
+		for(int i=0; i<kvol3; i++){
+			Sigma11[i]=u11t[i*ndim+3];
+			Sigma12[i]=u12t[i*ndim+3];
+		}
+#endif
+		//	Some Fortran commentary
+		//	Changed this routine.
+		//	u11t and u12t now defined as normal ie (kvol+halo,4).
+		//	Copy of Sigma11 and Sigma12 is changed so that it copies
+		//	in blocks of ksizet.
+		//	Variable indexu also used to select correct element of u11t and u12t 
+		//	in loop 10 below.
+		//
+		//	Change the order of multiplication so that it can
+		//	be done in parallel. Start at t=1 and go up to t=T:
+		//	previously started at t+T and looped back to 1, 2, ... T-1
+		//Buffers
+		complex a11=0;
+		//There is a dependency. Can only parallelise the inner loop
+#pragma unroll
+		for(int it=1;it<ksizet;it++)
+			//will be faster for parallel code
+#pragma omp parallel for simd private(a11) aligned(u11t:AVX,u12t:AVX,Sigma11:AVX,Sigma12:AVX)
+			for(int i=0;i<kvol3;i++){
+				//Seems a bit more efficient to increment indexu instead of reassigning
+				//it every single loop
+				int indexu=it*kvol3+i;
+				a11=Sigma11[i]*u11t[indexu*ndim+3]-Sigma12[i]*conj(u12t[indexu*ndim+3]);
+				//Instead of having to store a second buffer just assign it directly
+				Sigma12[i]=Sigma11[i]*u12t[indexu*ndim+3]+Sigma12[i]*conj(u11t[indexu*ndim+3]);
+				Sigma11[i]=a11;
+			}
+
+		//Multiply this partial loop with the contributions of the other cores in the
+		//timelike dimension
+#if (npt>1)
+#ifdef _DEBUG
+		printf("Multiplying with MPI\n");
+#endif
+		//Par_tmul does nothing if there is only a single processor in the time direction. So we only compile
+		//its call if it is required
+		Par_tmul(Sigma11, Sigma12);
+#endif
+#pragma omp parallel for simd reduction(+:poly) aligned(Sigma11:AVX)
+		for(int i=0;i<kvol3;i++)
+			poly+=creal(Sigma11[i]);
+#ifdef USE_MKL
+		mkl_free(Sigma11); mkl_free(Sigma12);
+#else
+		free(Sigma11); free(Sigma12);
+#endif
+	}
+
 	Par_dsum(&poly);
 	poly/=gvol3;
 	return poly;	

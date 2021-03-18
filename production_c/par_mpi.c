@@ -69,12 +69,17 @@ int Par_begin(int argc, char *argv[]){
 	for(int i= 0; i<ndim; i++)
 		MPI_Cart_shift(commcart, i, 1, &pd[i], &pu[i]);
 	//Get coordinates of processors in the grid
+	#ifdef USE_MKL
+	pcoord = mkl_malloc(ndim*nproc*sizeof(int),AVX);
+	#else
+	pcoord = malloc(ndim*nproc*sizeof(int));
+	#endif
 	for(int iproc = 0; iproc<nproc; iproc++){
-		MPI_Cart_coords(commcart, iproc, ndim, pcoord+iproc);
+		MPI_Cart_coords(commcart, iproc, ndim, pcoord[iproc*ndim]);
 #pragma ivdep
 		for(int idim = 0; idim<ndim; idim++){
 			//Need to double check the +/- ones at the end. Is that FORTRAN or is it algorithm
-			pstart[idim][iproc] = pcoord[idim][iproc]*lsize[idim];
+			pstart[idim][iproc] = pcoord[idim+ndim*iproc]*lsize[idim];
 			pstop[idim][iproc]  = pstart[idim][iproc] + lsize[idim];
 		}
 	}

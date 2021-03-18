@@ -57,7 +57,7 @@ int request;
 int gsize[ndim];
 int lsize[ndim];
 
-int pcoord[ndim][nproc] __attribute__((aligned(AVX)));
+int *pcoord;
 int pstart[ndim][nproc] __attribute__((aligned(AVX)));
 int pstop [ndim][nproc] __attribute__((aligned(AVX)));
 int rank, size;
