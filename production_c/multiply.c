@@ -27,15 +27,14 @@ int Dslash(complex *phi, complex *r){
 	char *funcname = "Dslash";
 	//Get the halos in order
 	ZHalo_swap_all(r, 16);
-	DHalo_swap_dir(dk4p, 1, 3, UP);
-	DHalo_swap_dir(dk4m, 1, 3, UP);
 
 	//Mass term
 	memcpy(phi, r, kferm*sizeof(complex));
 	//Diquark Term (antihermitian)
 #pragma omp parallel for 
 	for(int i=0;i<kvol;i++){
-#pragma ivdep
+#pragma omp simd aligned(phi:AVX,r:AVX)
+#pragma vector vecremainder
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork = idirac+4;
 			complex a_1, a_2;
@@ -49,10 +48,10 @@ int Dslash(complex *phi, complex *r){
 		}
 
 		//Spacelike terms. Here's hoping I haven't put time as the zeroth component somewhere!
-#pragma ivdep 
 		for(int mu = 0; mu <3; mu++){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
-#pragma ivdep 
+#pragma omp simd aligned(phi:AVX,r:AVX,u11t:AVX,u12t:AVX)
+#pragma vector vecremainder
 			for(int igorkov=0; igorkov<ngorkov; igorkov++){
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing in the dirac term.
 				int idirac=igorkov%4;		
@@ -85,7 +84,8 @@ int Dslash(complex *phi, complex *r){
 		//We can fit it into a single loop by declaring igorkovPP=igorkov+4 instead of looping igorkov=4..7  separately
 		//Note that for the igorkov 4..7 loop idirac=igorkov-4, so we don't need to declare idiracPP separately
 		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
-#pragma ivdep
+#pragma omp simd aligned(phi:AVX,r:AVX,u11t:AVX,u12t:AVX)
+#pragma vector vecremainder
 		for(int igorkov=0; igorkov<4; igorkov++){
 			int igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
 			//the FORTRAN code did it.
@@ -142,14 +142,13 @@ int Dslashd(complex *phi, complex *r){
 	char *funcname = "Dslashd";
 	//Get the halos in order
 	ZHalo_swap_all(r, 16);
-	DHalo_swap_dir(dk4p, 1, 3, UP);
-	DHalo_swap_dir(dk4m, 1, 3, UP);
 
 	//Mass term
 	memcpy(phi, r, kferm*sizeof(complex));
 #pragma omp parallel for
 	for(int i=0;i<kvol;i++){
-#pragma ivdep
+#pragma omp simd aligned(phi:AVX,r:AVX)
+#pragma vector vecremainder
 		//Diquark Term (antihermitian) The signs of a_1 and a_2 below flip under dagger
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork = idirac+4;
@@ -164,10 +163,10 @@ int Dslashd(complex *phi, complex *r){
 		}
 
 		//Spacelike terms. Here's hoping I haven't put time as the zeroth component somewhere!
-#pragma ivdep
 		for(int mu = 0; mu <3; mu++){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
-#pragma ivdep 
+#pragma omp simd aligned(phi:AVX,r:AVX,u11t:AVX,u12t:AVX)
+#pragma vector vecremainder
 			for(int igorkov=0; igorkov<ngorkov; igorkov++){
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing.
 				int idirac=igorkov%4;		
@@ -203,7 +202,8 @@ int Dslashd(complex *phi, complex *r){
 		//Note that for the igorkov 4..7 loop idirac=igorkov-4, so we don't need to declare idiracPP separately
 		//Under dagger, dk4p and dk4m get swapped and the dirac component flips sign.
 		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
-#pragma ivdep
+#pragma omp simd aligned(phi:AVX,r:AVX,u11t:AVX,u12t:AVX)
+#pragma vector vecremainder
 		for(int igorkov=0; igorkov<4; igorkov++){
 			//the FORTRAN code did it.
 			int igork1 = gamin[3][igorkov];	
@@ -262,8 +262,6 @@ int Hdslash(complex *phi, complex *r){
 	char *funcname = "Hdslash";
 	//Get the halos in order
 	ZHalo_swap_all(r, 8);
-	DHalo_swap_dir(dk4p, 1, 3, UP);
-	DHalo_swap_dir(dk4m, 1, 3, UP);
 
 	//Mass term
 	memcpy(phi, r, kferm2*sizeof(complex));
@@ -276,10 +274,10 @@ int Hdslash(complex *phi, complex *r){
 	inout(phi: length(kferm2Halo))
 #pragma omp parallel for
 	for(int i=0;i<kvol;i++){
-#pragma ivdep 
 		for(int mu = 0; mu <3; mu++){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
-#pragma ivdep 
+#pragma omp simd aligned(phi:AVX,r:AVX,u11t:AVX,u12t:AVX)
+#pragma vector vecremainder
 			for(int idirac=0; idirac<ndirac; idirac++){
 				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
 				int igork1 = gamin[mu][idirac];
@@ -309,7 +307,8 @@ int Hdslash(complex *phi, complex *r){
 		}
 		//Timelike terms
 		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
-#pragma ivdep
+#pragma omp simd aligned(phi:AVX,r:AVX,u11t:AVX,u12t:AVX)
+#pragma vector vecremainder
 		for(int idirac=0; idirac<ndirac; idirac++){
 			int igork1 = gamin[3][idirac];
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
@@ -354,8 +353,6 @@ int Hdslashd(complex *phi, complex *r){
 	//terms for each halo first. Changing the indices was considered but that caused
 	//issues with the BLAS routines.
 	ZHalo_swap_all(r, 8);
-	DHalo_swap_dir(dk4p, 1, 3, UP);
-	DHalo_swap_dir(dk4m, 1, 3, UP);
 
 	//Looks like flipping the array ordering for C has meant a lot
 	//of for loops. Sense we're jumping around quite a bit the cache is probably getting refreshed
@@ -370,12 +367,11 @@ int Hdslashd(complex *phi, complex *r){
 	in(id, iu: length(ndim*kvol))\
 	in(u11t, u12t: length(ndim*(kvol+halo)))\
 	inout(phi: length(kferm2Halo))
-#pragma omp parallel for
+#pragma omp parallel for simd aligned(phi:AVX,r:AVX,u11t:AVX,u12t:AVX)
+#pragma vector vecremainder
 	for(int i=0;i<kvol;i++){
-#pragma ivdep
 		for(int mu = 0; mu <ndim-1; mu++){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
-#pragma ivdep 
 			for(int idirac=0; idirac<ndirac; idirac++){
 				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
 				int igork1 = gamin[mu][idirac];
@@ -408,7 +404,8 @@ int Hdslashd(complex *phi, complex *r){
 		}
 		//Timelike terms
 		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
-#pragma ivdep 
+//#pragma omp simd aligned(phi:AVX,r:AVX,u11t:AVX,u12t:AVX)
+//#pragma vector vecremainder
 		for(int idirac=0; idirac<ndirac; idirac++){
 			int igork1 = gamin[3][idirac];
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
@@ -513,11 +510,11 @@ int Force(double *dSdpi, int iflag, double res1){
 		//
 #pragma omp parallel for
 		for(int i=0;i<kvol;i++)
+		#pragma omp simd aligned(dSdpi:AVX,X1:AVX,X2:AVX,u11t:AVX,u12t:AVX,dk4m:AVX,dk4p:AVX)
 			for(int idirac=0;idirac<ndirac;idirac++){
 				int mu, uid, igork1;
 				//Unrolling the loop
 				//Tells the compiler that no vector dependencies exist
-#pragma ivdep
 				for(mu=0; mu<3; mu++){
 					//Long term ambition. I used the diff command on the different
 					//spacial components of dSdpi and saw a lot of the values required

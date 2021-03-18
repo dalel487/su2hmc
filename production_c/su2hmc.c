@@ -247,7 +247,7 @@ int main(int argc, char *argv[]){
 			Dslashd(R1, R);
 			memcpy(Phi+na*kfermHalo,R1, nc*ngorkov*kvol*sizeof(complex));
 			//Up/down partitioning (using only pseudofermions of flavour 1)
-#pragma omp parallel for simd
+#pragma omp parallel for simd aligned(X0:AVX,R1:AVX)
 			for(int i=0; i<kvol; i++)
 				for(int idirac = 0; idirac < ndirac; idirac++){
 					X0[((na*(kvol+halo)+i)*ndirac+idirac)*nc]=R1[(i*ngorkov+idirac)*nc];
@@ -303,7 +303,7 @@ int main(int argc, char *argv[]){
 #endif
 			//The FORTRAN redefines d=dt here, which makes sense if you have a limited line length.
 			//I'll stick to using dt though.
-#pragma ivdep
+#pragma omp parallel for simd collapse(2) aligned(pp:AVX, u11t:AVX, u12t:AVX)
 			for(int i=0;i<kvol;i++)
 				for(int mu = 0; mu<ndim; mu++){
 					//Sticking to what was in the FORTRAN for variable names.
@@ -572,7 +572,7 @@ int Init(int istart){
 	//Comment out to keep the threads spinning even when there's no work to do
 	//Commenting out decrease runtime but increases total CPU time dramatically
 	//This can throw of some profilers
-//		kmp_set_defaults("KMP_BLOCKTIME=0");
+	//kmp_set_defaults("KMP_BLOCKTIME=0");
 #ifdef USE_MKL
 	mkl_set_num_threads(nthreads);
 #endif
@@ -596,7 +596,7 @@ int Init(int istart){
 	dk4m = malloc((kvol+halo)*sizeof(double));
 	dk4p = malloc((kvol+halo)*sizeof(double));
 #endif
-#pragma omp parallel for simd 
+#pragma omp parallel for simd aligned(dk4m:AVX,dk4p:AVX)
 	for(int i = 0; i<kvol; i++){
 		dk4p[i]=akappa*chem1;
 		dk4m[i]=akappa*chem2;
@@ -607,12 +607,17 @@ int Init(int istart){
 #ifdef _DEBUG
 		printf("Implimenting antiperiodic boundary conditions on rank %i\n", rank);
 #endif
-#pragma omp parallel for simd 
+#pragma omp parallel for simd aligned(dk4m:AVX,dk4p:AVX)
 		for(int i= 0; i<kvol3; i++){
 			int k = kvol - kvol3 + i;
 			dk4p[k]*=-1;
 			dk4m[k]*=-1;
 		}
+	}
+	//These are constant so swap the halos when initialising and be done with it
+	for(int mu = 0; mu <ndim; mu++){
+		DHalo_swap_dir(dk4p, 1, 3, UP);
+		DHalo_swap_dir(dk4m, 1, 3, UP);
 	}
 	//Each gamma matrix is rescaled by akappa by flattening the gamval array
 #if (defined USE_MKL || defined USE_BLAS)
@@ -641,8 +646,7 @@ int Init(int istart){
 	if(istart==0){
 		//Initialise a cold start to zero
 		//memset is safe to use here because zero is zero 
-#pragma omp parallel for 
-#pragma ivdep
+#pragma omp parallel for simd aligned(u11t:AVX) 
 		for(int i=0; i<kvol*ndim;i++)
 			u11t[i]=1;
 
@@ -718,7 +722,7 @@ int Gauge_force(double *dSdpi){
 		for(int nu=0; nu<ndim; nu++){
 			if(mu!=nu){
 				//The +ν Staple
-#pragma omp parallel for simd
+#pragma omp parallel for simd aligned(u11t:AVX,u12t:AVX,Sigma11:AVX,Sigma12:AVX)
 				for(int i=0;i<kvol;i++){
 
 					int uidm = iu[mu+ndim*i];
@@ -750,7 +754,7 @@ int Gauge_force(double *dSdpi){
 				ZHalo_swap_dir(u11sh, 1, mu, DOWN);
 				ZHalo_swap_dir(u12sh, 1, mu, DOWN);
 				//Next up, the -ν staple
-#pragma omp parallel for simd
+#pragma omp parallel for simd aligned(u11t:AVX,u12t:AVX,Sigma11:AVX,Sigma12:AVX)
 				for(int i=0;i<kvol;i++){
 					int uidm = iu[mu+ndim*i];
 					int didn = id[nu+ndim*i];
@@ -765,7 +769,7 @@ int Gauge_force(double *dSdpi){
 				}
 			}
 		}
-#pragma omp parallel for simd
+#pragma omp parallel for simd aligned(u11t:AVX,u12t:AVX,Sigma11:AVX,Sigma12:AVX,dSdpi:AVX)
 		for(int i=0;i<kvol;i++){
 			complex a11 = u11t[i*ndim+mu]*Sigma12[i]+u12t[i*ndim+mu]*conj(Sigma11[i]);
 			complex a12 = u11t[i*ndim+mu]*Sigma11[i]+conj(u12t[i*ndim+mu])*Sigma12[i];
@@ -1282,7 +1286,6 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 	//The halo exchange for the trial fields was done already at the end of the trajectory
 	//No point doing it again
 
-	DHalo_swap_dir(dk4p, 1, 3, UP);		DHalo_swap_dir(dk4m, 1, 3, UP);	
 	//Instead of typing id[i*ndim+3] a lot, we'll just assign them to variables.
 	//Idea. One loop instead of two loops but for xuu and xdd just use ngorkov-(igorkov+1) instead
 #pragma omp parallel for reduction(+:xd,xu,xdd,xuu) 
@@ -1290,7 +1293,7 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 		int did=id[3+ndim*i];
 		int uid=iu[3+ndim*i];
 #pragma unroll
-#pragma ivdep
+#pragma omp simd aligned(u11t:AVX,u12t:AVX,xi:AVX,x:AVX,dk4m:AVX,dk4p:AVX) 
 		for(int igorkov=0; igorkov<4; igorkov++){
 			int igork1=gamin[3][igorkov];
 			//For the C Version I'll try and factorise where possible
@@ -1385,8 +1388,7 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 		for(int nu=0;nu<mu;nu++){
 			//Don't merge into a single loop. Makes vectorisation easier?
 			//Or merge into a single loop and dispense with the a arrays?
-#pragma omp parallel for
-#pragma ivdep
+#pragma omp parallel for simd aligned(Sigma11:AVX,Sigma12:AVX,u11t:AVX,u12t:AVX)
 			for(int i=0;i<kvol;i++){
 				int uidm = iu[mu+ndim*i]; 
 
@@ -1406,12 +1408,12 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 		//Space component
 		if(mu<ndim-1)
 			//Is there a BLAS routine for this
-#pragma omp parallel for simd reduction(+:hgs)
+#pragma omp parallel for simd reduction(+:hgs) aligned(Sigma11:AVX)
 			for(int i=0;i<kvol;i++)
 				hgs-=creal(Sigma11[i]);
 		//Time component
 		else
-#pragma omp parallel for simd reduction(+:hgt)
+#pragma omp parallel for simd reduction(+:hgt) aligned(Sigma11:AVX)
 			for(int i=0;i<kvol;i++)
 				hgt-=creal(Sigma11[i]);
 		}
@@ -1479,8 +1481,7 @@ double Polyakov(){
 	//	previously started at t+T and looped back to 1, 2, ... T-1
 	//Buffers
 	complex a11=0;
-#pragma omp parallel for private(a11)
-#pragma ivdep
+#pragma omp parallel for simd private(a11) aligned(u11t:AVX,u12t:AVX,Sigma11:AVX,Sigma12:AVX)
 	for(int it=1;it<ksizet;it++)
 		//will be faster for parallel code
 		for(int i=0;i<kvol3;i++){
@@ -1507,7 +1508,7 @@ double Polyakov(){
 	//There has to be a vectorised method of doing this somewhere, or a reduction method
 	//for large k
 	//Maybe... Us
-#pragma omp parallel for simd reduction(+:poly)
+#pragma omp parallel for simd reduction(+:poly) aligned(Sigma11:AVX)
 	for(int i=0;i<kvol3;i++)
 		poly+=creal(Sigma11[i]);
 #ifdef USE_MKL
@@ -1586,7 +1587,7 @@ inline int Fill_Small_Phi(int na, complex *smallPhi){
 	 */
 	const char *funcname = "Fill_Small_Phi";
 	//BIG and small phi index
-#pragma ivdep
+#pragma omp parallel for simd aligned(smallPhi:AVX,Phi:AVX)
 	for(int i = 0; i<kvol;i++)
 #pragma unroll
 		for(int idirac = 0; idirac<ndirac; idirac++)
