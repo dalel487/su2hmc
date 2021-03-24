@@ -98,7 +98,7 @@ int main(int argc, char *argv[]){
 	ibound = 1;
 	int iwrite = 1;
 	int iprint = 1; //For the measures
-	int icheck = 5; //Save conf (ICHEC could be a better name...)
+	int icheck = 5; //Save conf
 #ifdef USE_MATH_DEFINES
 	const double tpi = 2*M_PI;
 #else
@@ -112,7 +112,6 @@ int main(int argc, char *argv[]){
 	double athq = 0.0;
 	int stepl = 250; int ntraj = 10;
 	if(!rank){
-		//I'm hoping to use scoping to avoid any accidents.
 		FILE *midout;
 		//Instead of hardcoding so the error messages are easier to impliment
 		char *filename = "midout";
@@ -167,16 +166,16 @@ int main(int argc, char *argv[]){
 			exit(OPENERROR);
 		}
 		printf("hg = %e, <Ps> = %e, <Pt> = %e, <Poly> = %e\n", hg, avplaqs, avplaqt, poly);
-		fprintf(output, "ksize = %i ksizet = %i Nf = %i\nTime step dt = %e Trajectory length = %e\n"\
+		fprintf(output, "ksize = %i ksizet = %i Nf = %i Halo =%i\nTime step dt = %e Trajectory length = %e\n"\
 				"No. of Trajectories = %i β = %e\nκ = %e μ = %e\nDiquark source = %e Diquark phase angle = %e\n"\
 				"Stopping Residuals: Guidance: %e Acceptance: %e, Estimator: %e\nSeed = %i\n",
-				ksize, ksizet, nf, dt, traj, ntraj, beta, akappa, fmu, ajq, athq, rescgg, rescga, respbp, seed);
+				ksize, ksizet, nf, halo, dt, traj, ntraj, beta, akappa, fmu, ajq, athq, rescgg, rescga, respbp, seed);
 #ifdef _DEBUG
 		//Print to terminal during debugging
-		printf("ksize = %i ksizet = %i Nf = %i\nTime step dt = %e Trajectory length = %e\n"\
+		printf("ksize = %i ksizet = %i Nf = %i Halo = %i\nTime step dt = %e Trajectory length = %e\n"\
 				"No. of Trajectories = %i β = %e\nκ = %e μ = %e\nDiquark source = %e Diquark phase angle = %e\n"\
 				"Stopping Residuals: Guidance: %e Acceptance: %e, Estimator: %e\nSeed = %i\n",
-				ksize, ksizet, nf, dt, traj, ntraj, beta, akappa, fmu, ajq, athq, rescgg, rescga, respbp, seed);
+				ksize, ksizet, nf, halo, dt, traj, ntraj, beta, akappa, fmu, ajq, athq, rescgg, rescga, respbp, seed);
 #endif
 	}
 	//Initialise for averages
@@ -197,8 +196,9 @@ int main(int argc, char *argv[]){
 	//Initialise Some Arrays. Leaving it late for scoping
 	//check the sizes in sizes.h
 	double *dSdpi;
-	//There is absolutely no reason to keep the trial fields as zero now, so I won't
-	memcpy(u11t,u11,kvol*ndim*sizeof(complex));
+	//There is absolutely no reason to keep the cold trial fields as zero now, so I won't
+	if(istart==0)
+		memcpy(u11t,u11,(kvol+halo)*ndim*sizeof(complex));
 	Trial_Exchange();
 #ifdef __NVCC__
 	cudaMallocManaged(&R1, kfermHalo*sizeof(complex));
@@ -1367,66 +1367,40 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 	 * Zero on success, integer error code otherwise
 	 */
 	const char *funcname = "SU2plaq";
-	//Do equivalent of a halo swap
-#ifdef USE_MKL
-	complex *z1 = mkl_malloc((kvol+halo)*sizeof(complex),AVX);
-	complex *z2 = mkl_malloc((kvol+halo)*sizeof(complex),AVX);
-#else
-	complex *z1 = malloc((kvol+halo)*sizeof(complex));
-	complex *z2 = malloc((kvol+halo)*sizeof(complex));
-#endif
 	//Was a halo exchange here but moved it outside
-#ifdef USE_MKL
-	mkl_free(z1); mkl_free(z2);
-	complex *Sigma11 = mkl_malloc(kvol*sizeof(complex),AVX);
-	complex *Sigma12 = mkl_malloc(kvol*sizeof(complex),AVX);
-#else
-	free(z1); free(z2);
-	complex *Sigma11 = malloc(kvol*sizeof(complex));
-	complex *Sigma12 = malloc(kvol*sizeof(complex));
-#endif
 	//	The fortran code used several consecutive loops to get the plaquette
 	//	Instead we'll just make a11 and a12 values and do everything in one loop
-	//	complex a11[kvol], a12[kvol]  __attribute__((aligned(AVX)));
 	double hgs = 0; double hgt = 0;
-	for(int mu=0;mu<ndim;mu++)
-		for(int nu=0;nu<mu;nu++){
+	//Since the ν loop doesn't get called for μ=0 we'll start at μ=1
+	for(int mu=1;mu<ndim;mu++)
+		for(int nu=0;nu<mu;nu++)
 			//Don't merge into a single loop. Makes vectorisation easier?
 			//Or merge into a single loop and dispense with the a arrays?
-#pragma omp parallel for simd aligned(Sigma11:AVX,Sigma12:AVX,u11t:AVX,u12t:AVX)
+#pragma omp parallel for simd aligned(u11t:AVX,u12t:AVX) reduction(+:hgs,hgt)
 			for(int i=0;i<kvol;i++){
 				int uidm = iu[mu+ndim*i]; 
 
-				Sigma11[i]=u11t[i*ndim+mu]*u11t[uidm*ndim+nu]-u12t[i*ndim+mu]*conj(u12t[uidm*ndim+nu]);
-				Sigma12[i]=u11t[i*ndim+mu]*u12t[uidm*ndim+nu]+u12t[i*ndim+mu]*conj(u11t[uidm*ndim+nu]);
-				//			}
-				//			for(i=0;i<kvol;i++){
+				complex Sigma11=u11t[i*ndim+mu]*u11t[uidm*ndim+nu]-u12t[i*ndim+mu]*conj(u12t[uidm*ndim+nu]);
+				complex Sigma12=u11t[i*ndim+mu]*u12t[uidm*ndim+nu]+u12t[i*ndim+mu]*conj(u11t[uidm*ndim+nu]);
+
 				int uidn = iu[nu+ndim*i]; 
-				complex a11=Sigma11[i]*conj(u11t[uidn*ndim+mu])+Sigma12[i]*conj(u12t[uidn*ndim+mu]);
-				complex a12=-Sigma12[i]*u12t[uidn*ndim+mu]+Sigma12[i]*u11t[uidn*ndim+mu];
-				//			}
-				//			for(i=0;i<kvol;i++){
-				Sigma11[i]=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
+				complex a11=Sigma11*conj(u11t[uidn*ndim+mu])+Sigma12*conj(u12t[uidn*ndim+mu]);
+				complex a12=-Sigma12*u12t[uidn*ndim+mu]+Sigma12*u11t[uidn*ndim+mu];
+
+				Sigma11=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
 				//				Sigma12[i]=-a11[i]*u12t[i*ndim+nu]+a12*u11t[i*ndim+mu];
-				//				Not needed in final result as it traces out?
-		}
-		//Space component
-		if(mu<ndim-1)
-			//Is there a BLAS routine for this
-#pragma omp parallel for simd reduction(+:hgs) aligned(Sigma11:AVX)
-			for(int i=0;i<kvol;i++)
-				hgs-=creal(Sigma11[i]);
-		//Time component
-		else
-#pragma omp parallel for simd reduction(+:hgt) aligned(Sigma11:AVX)
-			for(int i=0;i<kvol;i++)
-				hgt-=creal(Sigma11[i]);
-		}
-#ifdef USE_MKL
-	mkl_free(Sigma11); mkl_free(Sigma12);
-#else
-	free(Sigma11); free(Sigma12);
-#endif
+				//				Not needed in final result as it traces out
+
+				switch(mu){
+					//Time component
+					case(ndim-1):	hgt -= creal(Sigma11);
+								break;
+							 //Space component
+					default:	hgs -= creal(Sigma11);
+							break;
+				}
+			}
+
 	Par_dsum(&hgs); Par_dsum(&hgt);
 	*avplaqs=-hgs/(3*gvol); *avplaqt=-hgt/(gvol*3);
 	*hg=(hgs+hgt)*beta;

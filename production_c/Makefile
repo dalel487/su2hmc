@@ -58,7 +58,7 @@ release:	CFLAGS += -O3 -inline-level=2 -qopenmp -qopenmp-link=static\
 		-DMKL_ILP64  -I"${MKLROOT}/include" -DSA3AT
 release:	$(EXE)
 
-debug:	CFLAGS += -g -O0 -qopenmp -qopenmp-link=static \
+debug:	CFLAGS += -g -O0  -qopenmp -qopenmp-link=static\
 		-qopt-report -DSA3AT -D_DEBUG
 debug:	$(EXE)
 

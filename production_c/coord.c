@@ -98,7 +98,6 @@ int Addrc(){
 					ic++;
 					//jx!=0 is logically equivalent to if(jx)
 					if(jx)
-						//I'm not sure if that -1 is a halo thing and not a FORTRAN thing.
 						iaddr = ia(jx-1,jy,jz,jt);
 					else{
 						ih[0][0]++;

@@ -75,10 +75,9 @@ int Par_begin(int argc, char *argv[]){
 	pcoord = malloc(ndim*nproc*sizeof(int));
 	#endif
 	for(int iproc = 0; iproc<nproc; iproc++){
-		MPI_Cart_coords(commcart, iproc, ndim, pcoord[iproc*ndim]);
-#pragma ivdep
+		MPI_Cart_coords(commcart, iproc, ndim, pcoord+iproc*ndim);
+#pragma omp simd aligned(pcoord:AVX)
 		for(int idim = 0; idim<ndim; idim++){
-			//Need to double check the +/- ones at the end. Is that FORTRAN or is it algorithm
 			pstart[idim][iproc] = pcoord[idim+ndim*iproc]*lsize[idim];
 			pstop[idim][iproc]  = pstart[idim][iproc] + lsize[idim];
 		}
@@ -820,7 +819,7 @@ int Par_swrite(int itraj){
 			for(int i=0; i<kvol;i++)
 				z[i]=u11t[i*ndim+mu];
 #endif
-			ZHalo_swap_dir(z, 1, mu, UP);
+			ZHalo_swap_all(z, 1);
 			//And the swap back
 #if (defined USE_MKL || USE_BLAS)
 			cblas_zcopy(kvol+halo, z, 1, &u11t[mu], ndim);
@@ -829,14 +828,14 @@ int Par_swrite(int itraj){
 				u11t[i*ndim+mu]=z[i];
 #endif
 #if (defined USE_MKL || USE_BLAS)
-			cblas_zcopy(kvol, &u12t[mu], 4, z, 1);
+			cblas_zcopy(kvol, &u12t[mu], ndim, z, 1);
 #else
 			for(int i=0; i<kvol;i++)
 				z[i]=u12t[i*ndim+mu];
 #endif
-			ZHalo_swap_dir(z, 1, mu, UP);
+			ZHalo_swap_all(z, 1);
 #if (defined USE_MKL || USE_BLAS)
-			cblas_zcopy(kvol+halo, z, 1, &u12t[mu], 4);
+			cblas_zcopy(kvol+halo, z, 1, &u12t[mu], ndim);
 #else
 			for(int i=0; i<kvol+halo;i++)
 				u12t[i*ndim+mu]=z[i];

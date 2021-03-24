@@ -3,8 +3,8 @@ if &cp | set nocp | endif
 let s:cpo_save=&cpo
 set cpo&vim
 inoremap <C-U> u
-nnoremap <silent> w :CCTreeWindowToggle
 nnoremap <silent> y :CCTreeWindowSaveCopy
+nnoremap <silent> w :CCTreeWindowToggle
 map Q gq
 vmap gx <Plug>NetrwBrowseXVis
 nmap gx <Plug>NetrwBrowseX
@@ -70,8 +70,8 @@ set winminheight=0
 set winheight=1
 set winminwidth=0
 set winwidth=1
-exe 'vert 1resize ' . ((&columns * 138 + 138) / 277)
-exe 'vert 2resize ' . ((&columns * 138 + 138) / 277)
+exe 'vert 1resize ' . ((&columns * 158 + 158) / 317)
+exe 'vert 2resize ' . ((&columns * 158 + 158) / 317)
 argglobal
 setlocal keymap=
 setlocal noarabic
@@ -195,41 +195,21 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-46
+1349
 normal! zo
-547
+1383
 normal! zo
-650
+1387
 normal! zo
-650
-normal! zc
-547
-normal! zc
-1342
-normal! zo
-1385
-normal! zo
-1385
-normal! zc
-1342
-normal! zc
-1432
-normal! zo
-1432
-normal! zc
-1604
-normal! zo
-1604
-normal! zc
-let s:l = 516 - ((362 * winheight(0) + 38) / 76)
+let s:l = 1406 - ((1391 * winheight(0) + 39) / 79)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-516
+1406
 normal! 0
 wincmd w
 argglobal
-if bufexists("production_c/INCLUDE/sizes.h") | buffer production_c/INCLUDE/sizes.h | else | edit production_c/INCLUDE/sizes.h | endif
+if bufexists("production/su2hmc.f") | buffer production/su2hmc.f | else | edit production/su2hmc.f | endif
 setlocal keymap=
 setlocal noarabic
 setlocal autoindent
@@ -264,8 +244,8 @@ setlocal nodiff
 setlocal equalprg=
 setlocal errorformat=
 setlocal noexpandtab
-if &filetype != 'cpp'
-setlocal filetype=cpp
+if &filetype != 'fortran'
+setlocal filetype=fortran
 endif
 setlocal fixendofline
 setlocal foldcolumn=0
@@ -331,8 +311,8 @@ setlocal statusline=
 setlocal suffixesadd=
 setlocal swapfile
 setlocal synmaxcol=3000
-if &syntax != 'cpp'
-setlocal syntax=cpp
+if &syntax != 'fortran'
+setlocal syntax=fortran
 endif
 setlocal tabstop=6
 setlocal tagcase=
@@ -352,28 +332,29 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-let s:l = 27 - ((26 * winheight(0) + 38) / 76)
+let s:l = 2053 - ((39 * winheight(0) + 39) / 79)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-27
+2053
 normal! 0
 wincmd w
-2wincmd w
-exe 'vert 1resize ' . ((&columns * 138 + 138) / 277)
-exe 'vert 2resize ' . ((&columns * 138 + 138) / 277)
+exe 'vert 1resize ' . ((&columns * 158 + 158) / 317)
+exe 'vert 2resize ' . ((&columns * 158 + 158) / 317)
 tabnext 1
-badd +1 production_c/su2hmc.c
+badd +1406 production_c/su2hmc.c
+badd +1 production/par_mpi.f
+badd +2053 production/su2hmc.f
+badd +40 production_c/INCLUDE/sizes.h
 badd +61 production_c/Makefile
 badd +371 production_c/par_mpi.c
 badd +588 production_c/multiply.c
-badd +1521 production/su2hmc.f
 badd +38 production_c/INCLUDE/multiply.h
 badd +7 production_c/multiply.cu
 badd +1 production_c/slash.c
-badd +1 production_c/INCLUDE/sizes.h
 badd +57 production_c/INCLUDE/su2hmc.h
 badd +1 production_c/midout
+badd +1 production/sizes.h
 if exists('s:wipebuf') && len(win_findbuf(s:wipebuf)) == 0
   silent exe 'bwipe ' . s:wipebuf
 endif
@@ -385,7 +366,6 @@ if file_readable(s:sx)
   exe "source " . fnameescape(s:sx)
 endif
 let &so = s:so_save | let &siso = s:siso_save
-nohlsearch
 doautoall SessionLoadPost
 unlet SessionLoad
 " vim: set ft=vim :
