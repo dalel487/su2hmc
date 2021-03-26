@@ -94,7 +94,7 @@ int main(int argc, char *argv[]){
 	//The default values here are straight from the FORTRAN
 	//=====================================================
 	int iread = 0;
-	int istart = 0;
+	int istart = 1;
 	ibound = 1;
 	int iwrite = 1;
 	int iprint = 1; //For the measures
@@ -197,9 +197,10 @@ int main(int argc, char *argv[]){
 	//check the sizes in sizes.h
 	double *dSdpi;
 	//There is absolutely no reason to keep the cold trial fields as zero now, so I won't
-	if(istart==0)
+	if(istart==0){
 		memcpy(u11t,u11,(kvol+halo)*ndim*sizeof(complex));
 	Trial_Exchange();
+	}
 #ifdef __NVCC__
 	cudaMallocManaged(&R1, kfermHalo*sizeof(complex));
 	cudaMallocManaged(&xi, kfermHalo*sizeof(complex));
@@ -712,13 +713,13 @@ int Gauge_force(double *dSdpi){
 #ifdef USE_MKL
 	complex *Sigma11 = mkl_malloc(kvol*sizeof(complex),AVX); 
 	complex *Sigma12= mkl_malloc(kvol*sizeof(complex),AVX); 
-	complex *u11sh = mkl_malloc(kvol*sizeof(complex),AVX); 
-	complex *u12sh = mkl_malloc(kvol*sizeof(complex),AVX); 
+	complex *u11sh = mkl_malloc((kvol+halo)*sizeof(complex),AVX); 
+	complex *u12sh = mkl_malloc((kvol+halo)*sizeof(complex),AVX); 
 #else
 	complex *Sigma11 = malloc(kvol*sizeof(complex)); 
 	complex *Sigma12= malloc(kvol*sizeof(complex)); 
-	complex *u11sh = malloc(kvol*sizeof(complex)); 
-	complex *u12sh = malloc(kvol*sizeof(complex)); 
+	complex *u11sh = malloc((kvol+halo)*sizeof(complex)); 
+	complex *u12sh = malloc((kvol+halo)*sizeof(complex)); 
 #endif
 	//Holders for directions
 	for(int mu=0; mu<ndim; mu++){
@@ -756,8 +757,8 @@ int Gauge_force(double *dSdpi){
 					z[i]=u12t[i*ndim+nu];
 #endif
 				Z_gather(u12sh, z, kvol, id+nu);
-				ZHalo_swap_dir(u11sh, 1, mu, DOWN);
-				ZHalo_swap_dir(u12sh, 1, mu, DOWN);
+				ZHalo_swap_all(u11sh, 1);
+				ZHalo_swap_all(u12sh, 1);
 				//Next up, the -ν staple
 #pragma omp parallel for simd aligned(u11t:AVX,u12t:AVX,Sigma11:AVX,Sigma12:AVX)
 				for(int i=0;i<kvol;i++){
@@ -828,9 +829,7 @@ int Hamilton(double *h, double *s, double res2){
 #else
 	hp=0;
 	for(int i = 0; i<kmom; i++)
-		//Three dimensions, so three pointers to get down the the actual value
-		//What we're effectively doing is
-		hp+=(*(pp+i))*(*(pp+i)); 
+		hp+=pp[i]*pp[i]; 
 #endif
 	hp*=0.5;
 	double avplaqs, avplaqt;
@@ -1547,7 +1546,7 @@ inline int Z_gather(complex *x, complex *y, int n, unsigned int *table){
 	//Pointers mean that's not an issue for us so I'm leaving it out
 #pragma ivdep
 	for(int i=0; i<n; i++)
-		x[i]=y[table[i]];
+		x[i]=y[table[i*ndim]];
 	return 0;
 }
 inline int Fill_Small_Phi(int na, complex *smallPhi){

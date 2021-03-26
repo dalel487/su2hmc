@@ -3,8 +3,8 @@ if &cp | set nocp | endif
 let s:cpo_save=&cpo
 set cpo&vim
 inoremap <C-U> u
-nnoremap <silent> y :CCTreeWindowSaveCopy
 nnoremap <silent> w :CCTreeWindowToggle
+nnoremap <silent> y :CCTreeWindowSaveCopy
 map Q gq
 vmap gx <Plug>NetrwBrowseXVis
 nmap gx <Plug>NetrwBrowseX
@@ -70,8 +70,8 @@ set winminheight=0
 set winheight=1
 set winminwidth=0
 set winwidth=1
-exe 'vert 1resize ' . ((&columns * 158 + 158) / 317)
-exe 'vert 2resize ' . ((&columns * 158 + 158) / 317)
+exe 'vert 1resize ' . ((&columns * 138 + 138) / 277)
+exe 'vert 2resize ' . ((&columns * 138 + 138) / 277)
 argglobal
 setlocal keymap=
 setlocal noarabic
@@ -195,18 +195,26 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-1349
+689
 normal! zo
-1383
+725
 normal! zo
-1387
+728
 normal! zo
-let s:l = 1406 - ((1391 * winheight(0) + 39) / 79)
+729
+normal! zo
+732
+normal! zo
+764
+normal! zo
+1544
+normal! zo
+let s:l = 1547 - ((813 * winheight(0) + 36) / 73)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-1406
-normal! 0
+1547
+normal! 013|
 wincmd w
 argglobal
 if bufexists("production/su2hmc.f") | buffer production/su2hmc.f | else | edit production/su2hmc.f | endif
@@ -332,29 +340,30 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-let s:l = 2053 - ((39 * winheight(0) + 39) / 79)
+let s:l = 2191 - ((66 * winheight(0) + 36) / 73)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-2053
+2191
 normal! 0
 wincmd w
-exe 'vert 1resize ' . ((&columns * 158 + 158) / 317)
-exe 'vert 2resize ' . ((&columns * 158 + 158) / 317)
+exe 'vert 1resize ' . ((&columns * 138 + 138) / 277)
+exe 'vert 2resize ' . ((&columns * 138 + 138) / 277)
 tabnext 1
-badd +1406 production_c/su2hmc.c
+badd +689 production_c/su2hmc.c
 badd +1 production/par_mpi.f
-badd +2053 production/su2hmc.f
-badd +40 production_c/INCLUDE/sizes.h
+badd +900 production/su2hmc.f
+badd +84 production_c/INCLUDE/sizes.h
 badd +61 production_c/Makefile
-badd +371 production_c/par_mpi.c
-badd +588 production_c/multiply.c
+badd +838 production_c/par_mpi.c
+badd +701 production_c/multiply.c
 badd +38 production_c/INCLUDE/multiply.h
 badd +7 production_c/multiply.cu
 badd +1 production_c/slash.c
 badd +57 production_c/INCLUDE/su2hmc.h
 badd +1 production_c/midout
 badd +1 production/sizes.h
+badd +101 production_c/coord.c
 if exists('s:wipebuf') && len(win_findbuf(s:wipebuf)) == 0
   silent exe 'bwipe ' . s:wipebuf
 endif
