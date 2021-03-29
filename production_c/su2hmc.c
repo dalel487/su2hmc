@@ -95,7 +95,7 @@ int main(int argc, char *argv[]){
 	//=====================================================
 	int iread = 0;
 	int istart = 1;
-	ibound = 1;
+	ibound = -1;
 	int iwrite = 1;
 	int iprint = 1; //For the measures
 	int icheck = 5; //Save conf
@@ -199,7 +199,7 @@ int main(int argc, char *argv[]){
 	//There is absolutely no reason to keep the cold trial fields as zero now, so I won't
 	if(istart==0){
 		memcpy(u11t,u11,(kvol+halo)*ndim*sizeof(complex));
-	Trial_Exchange();
+		Trial_Exchange();
 	}
 #ifdef __NVCC__
 	cudaMallocManaged(&R1, kfermHalo*sizeof(complex));
@@ -216,6 +216,7 @@ int main(int argc, char *argv[]){
 	X0= mkl_malloc(nf*kferm2Halo*sizeof(complex),AVX); 
 	X1= mkl_malloc(kferm2Halo*sizeof(complex),AVX); 
 	dSdpi = mkl_malloc(kmomHalo*sizeof(double), AVX);
+	//pp is the momentum field
 	pp = mkl_malloc(kmomHalo*sizeof(double), AVX);
 #else
 	R1= malloc(kfermHalo*sizeof(complex));
@@ -228,7 +229,9 @@ int main(int argc, char *argv[]){
 #endif
 	//Arabic for hour/watch so probably not defined elsewhere like TIME potentially is
 #if (defined SA3AT && defined _OPENMP)
-	double start_time = omp_get_wtime();
+	double start_time=0;
+	if(!rank)
+		start_time = omp_get_wtime();
 #endif
 	for(int itraj = 1; itraj <= ntraj; itraj++){
 #ifdef _DEBUG
@@ -308,6 +311,7 @@ int main(int argc, char *argv[]){
 #endif
 			//The FORTRAN redefines d=dt here, which makes sense if you have a limited line length.
 			//I'll stick to using dt though.
+			//step (i) st(t+dt)=st(t)+p(t+dt/2)*dt;
 #pragma omp parallel for simd collapse(2) aligned(pp:AVX, u11t:AVX, u12t:AVX)
 			for(int i=0;i<kvol;i++)
 				for(int mu = 0; mu<ndim; mu++){
@@ -350,7 +354,7 @@ int main(int argc, char *argv[]){
 				for(int i = 0; i<kvol; i++)
 					for(int iadj=0; iadj<nadj; iadj++)
 						for(int mu = 0; mu < ndim; mu++)
-							pp[(i*nadj+iadj)*nc+mu]-=d*dSdpi[(i*nadj+iadj)*nc+mu];
+							pp[(i*nadj+iadj)*nc+mu]-=dt*dSdpi[(i*nadj+iadj)*nc+mu];
 #endif
 
 			}
@@ -404,7 +408,7 @@ int main(int argc, char *argv[]){
 		Par_dsum(&vel2);
 		vel2a+=vel2/(ndim*nadj*gvol);
 
-		if((itraj/iprint)*iprint==itraj){
+		if(itraj%iprint==0){
 			memcpy(u11t, u11, ndim*(kvol+halo)*sizeof(complex));
 			memcpy(u12t, u12, ndim*(kvol+halo)*sizeof(complex));
 #ifdef _DEBUG
@@ -427,7 +431,8 @@ int main(int argc, char *argv[]){
 #if (nproc>=4)
 			switch(rank)
 #else
-				if(!rank){
+				if(!rank)
+#pragma omp parallel for
 					for(int i=0; i<4; i++)
 						switch(i)
 #endif
@@ -440,6 +445,7 @@ int main(int argc, char *argv[]){
 								//Not yet implemented
 								fprintf(output, "Iter (CG) %i ancg %e ancgh %e\n", itercg, ancg, ancgh);
 								fflush(output);
+								break;
 							case(1):
 								//The origninal code implicitly created these files with the name fort.XX where XX
 								//is the file label from FORTRAN. We'll stick with that for now.
@@ -457,6 +463,7 @@ int main(int argc, char *argv[]){
 										fprintf(fortout, "pbp\tendenf\tdenf\n");
 									fprintf(fortout, "%e\t%e\t%e\n", pbp, endenf, denf);
 									fclose(fortout);
+									break;
 								}
 							case(2):
 								//The origninal code implicitly created these files with the name
@@ -476,6 +483,7 @@ int main(int argc, char *argv[]){
 										fprintf(fortout, "avplaqs\tavplaqt\tpoly\n");
 									fprintf(fortout, "%e\t%e\t%e\n", avplaqs, avplaqt, poly);
 									fclose(fortout);
+									break;
 								}
 
 							case(3):
@@ -493,20 +501,21 @@ int main(int argc, char *argv[]){
 										fprintf(fortout, "Re(qq)\t\n");
 									fprintf(fortout, "%e\n", creal(qq));
 									fclose(fortout);
+									break;
 								}
-							default: continue;
+							default: break;
 						}
-				}
 		}
-		if((itraj/icheck)*icheck==itraj){
-			//ranget(seed);
+		if(itraj%icheck==0){
 			Par_swrite(itraj);
 		}
 		if(!rank)
 			fflush(output);
 	}
 #if (defined SA3AT && defined _OPENMP)
-	double elapsed = omp_get_wtime()-start_time;
+	double elapsed = 0;
+	if(!rank)
+		elapsed = omp_get_wtime()-start_time;
 #endif
 	//End of main loop
 	//Free arrays
@@ -528,9 +537,11 @@ int main(int argc, char *argv[]){
 	free(pcoord);
 #endif
 #if (defined SA3AT && defined _OPENMP)
-	FILE *sa3at = fopen("Bench_times.csv", "a");
-	fprintf(sa3at, "%lu,%lu,%lu,%lu,%f,%f\n",nx,nt,kvol,nthreads,elapsed,elapsed/ntraj);
-	fclose(sa3at);
+	if(!rank){
+		FILE *sa3at = fopen("Bench_times.csv", "a");
+		fprintf(sa3at, "%lu,%lu,%lu,%lu,%f,%f\n",nx,nt,kvol,nthreads,elapsed,elapsed/ntraj);
+		fclose(sa3at);
+	}
 #endif
 	actiona/=ntraj; vel2a/=ntraj; pbpa/=ipbp; endenfa/=ipbp; denfa/=ipbp;
 	ancg/=nf*itot; ancgh/=2*nf*ntraj; yav/=ntraj; yyav=yyav/ntraj - yav*yav;
@@ -1394,7 +1405,7 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 					//Time component
 					case(ndim-1):	hgt -= creal(Sigma11);
 								break;
-							 //Space component
+								//Space component
 					default:	hgs -= creal(Sigma11);
 							break;
 				}

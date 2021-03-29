@@ -319,7 +319,6 @@ int Par_swrite(int itraj){
 	char *funcname = "par_swrite";
 	int icoord[4], iproc, seed;
 	if(!rank){
-		//Only the master process  accesses these, so to save memory we only declare them on the master process
 #ifdef USE_MKL
 		complex *u11Write = mkl_malloc(ndim*gvol*sizeof(complex),AVX);
 		complex *u12Write = mkl_malloc(ndim*gvol*sizeof(complex),AVX);
@@ -334,18 +333,14 @@ int Par_swrite(int itraj){
 		//Get correct parts of u11read etc from remote processors
 		for(iproc=0;iproc<nproc;iproc++)
 			for(int idim=0;idim<ndim;idim++){
-				//Colour index will match FORTRAN as it isn't used for array
-				//indexing here
-				//		for(int ic=1; ic<=nc; ic++){
-				//		Getting rid of that ic loop
 				if(iproc){
-					if(MPI_Recv(u1buff, kvol, MPI_C_COMPLEX, iproc, tag, comm, &status)){
+					if(MPI_Recv(u1buff, kvol, MPI_C_DOUBLE_COMPLEX, iproc, tag, comm, &status)){
 						fprintf(stderr, "Error %i in %s: Falied to receive u11 from process %i.\nExiting...\n\n",
 								CANTRECV, funcname, iproc);
 						MPI_Finalise();
 						exit(CANTRECV);
 					}
-					if(MPI_Recv(u2buff, kvol, MPI_C_COMPLEX, iproc, tag, comm, &status)){
+					if(MPI_Recv(u2buff, kvol, MPI_C_DOUBLE_COMPLEX, iproc, tag, comm, &status)){
 						fprintf(stderr, "Error %i in %s: Falied to receive u12 from process %i.\nExiting...\n\n",
 								CANTRECV, funcname, iproc);
 						MPI_Finalise();
