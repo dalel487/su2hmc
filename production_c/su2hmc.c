@@ -202,13 +202,13 @@ int main(int argc, char *argv[]){
 		Trial_Exchange();
 	}
 #ifdef __NVCC__
-	cudaMallocManaged(&R1, kfermHalo*sizeof(complex));
-	cudaMallocManaged(&xi, kfermHalo*sizeof(complex));
-	cudaMallocManaged(&Phi, nf*kfermHalo*sizeof(complex));
-	cudaMallocManaged(&X0, nf*kfermHalo*sizeof(complex));
-	cudaMallocManaged(&X1, kferm2Halo*sizeof(complex));
-	cudaMallocManaged(&dSdpi, kmommHalo*sizeof(complex));
-	cudaMallocManaged(&pp, kmomHalo*sizeof(complex));
+	cudaMallocManaged(&R1, kfermHalo*sizeof(complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&xi, kfermHalo*sizeof(complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&Phi, nf*kfermHalo*sizeof(complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&X0, nf*kfermHalo*sizeof(complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&X1, kferm2Halo*sizeof(complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&dSdpi, kmomHalo*sizeof(complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&pp, kmomHalo*sizeof(complex),cudaMemAttachGlobal);
 #elif defined USE_MKL
 	R1= mkl_malloc(kfermHalo*sizeof(complex),AVX);
 	xi= mkl_malloc(kfermHalo*sizeof(complex),AVX);
@@ -605,8 +605,8 @@ int Init(int istart){
 #endif
 	double chem1=exp(fmu); double chem2 = 1/chem1;
 #ifdef __NVCC__
-	cudaMallocManaged(&dk4m,(kvol+halo)*sizeof(double));
-	cudaMallocManaged(&dk4p,(kvol+halo)*sizeof(double));
+	cudaMallocManaged(&dk4m,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
+	cudaMallocManaged(&dk4p,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
 #elif defined USE_MKL
 	dk4m = mkl_malloc((kvol+halo)*sizeof(double), AVX);
 	dk4p = mkl_malloc((kvol+halo)*sizeof(double), AVX);
@@ -646,10 +646,10 @@ int Init(int istart){
 			gamval[i][j]*=akappa;
 #endif
 #ifdef __NVCC__
-	cudaMallocManaged(u11,ndim*(kvol+halo)*sizeof(complex));
-	cudaMallocManaged(u12,ndim*(kvol+halo)*sizeof(complex));
-	cudaMallocManaged(u11t,ndim*(kvol+halo)*sizeof(complex));
-	cudaMallocManaged(u12t,ndim*(kvol+halo)*sizeof(complex));
+	cudaMallocManaged(&u11,ndim*(kvol+halo)*sizeof(complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&u12,ndim*(kvol+halo)*sizeof(complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&u11t,ndim*(kvol+halo)*sizeof(complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&u12t,ndim*(kvol+halo)*sizeof(complex),cudaMemAttachGlobal);
 #elif defined USE_MKL
 	u11 = mkl_malloc(ndim*(kvol+halo)*sizeof(complex),AVX);
 	u12 = mkl_calloc(ndim*(kvol+halo),sizeof(complex),AVX);
@@ -932,10 +932,10 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 	//Because we're dealing with flattened arrays here we can call cblas safely without the halo
 #ifdef __NVCC__
 	complex *p, *r, *x1, *x2;
-	cudaMallocManaged(&p, kferm2Halo*sizeof(complex));
-	cudaMallocManaged(&r, kferm2Halo*sizeof(complex));
-	cudaMallocManaged(&x1, kferm2Halo*sizeof(complex));
-	cudaMallocManaged(&x2, kferm2Halo*sizeof(complex));
+	cudaMallocManaged(&p, kferm2Halo*sizeof(complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&r, kferm2Halo*sizeof(complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&x1, kferm2Halo*sizeof(complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&x2, kferm2Halo*sizeof(complex),cudaMemAttachGlobal);
 #elif defined USE_MKL
 	complex *p  = mkl_malloc(kferm2Halo*sizeof(complex),AVX);
 	complex *r  = mkl_malloc(kferm2*sizeof(complex),AVX);
@@ -1449,7 +1449,6 @@ double Polyakov(){
 	//This is (according to the FORTRAN code) a bit of a hack
 	//I will expand on this hack and completely avoid any work
 	//for this case rather than calculating everything just to set it to zero
-	if(!pcoord[3+ndim*rank]){
 #ifdef USE_MKL
 		complex *Sigma11 = mkl_malloc(kvol3*sizeof(complex),AVX);
 		complex *Sigma12 = mkl_malloc(kvol3*sizeof(complex),AVX);
@@ -1512,8 +1511,8 @@ double Polyakov(){
 #else
 		free(Sigma11); free(Sigma12);
 #endif
-	}
 
+	if(pcoord[3+rank*ndim]) poly = 0;
 	Par_dsum(&poly);
 	poly/=gvol3;
 	return poly;	

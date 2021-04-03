@@ -55,7 +55,7 @@ TMP=	$(MOD) $(EDT) core
 
 all:	$(EXE)
 
-release:	CFLAGS += -O3 -g  -inline-level=2\
+release:	CFLAGS += -O3  -inline-level=2\
 		-DMKL_ILP64  -I"${MKLROOT}/include" -DSA3AT
 release:	$(EXE)
 

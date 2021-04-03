@@ -515,8 +515,7 @@ int Force(double *dSdpi, int iflag, double res1){
 		#pragma omp simd aligned(dSdpi:AVX,X1:AVX,X2:AVX,u11t:AVX,u12t:AVX)
 			for(int idirac=0;idirac<ndirac;idirac++){
 				int mu, uid, igork1;
-				//Unrolling the loop
-				//Tells the compiler that no vector dependencies exist
+				#pragma unroll
 				for(mu=0; mu<3; mu++){
 					//Long term ambition. I used the diff command on the different
 					//spacial components of dSdpi and saw a lot of the values required
@@ -526,7 +525,7 @@ int Force(double *dSdpi, int iflag, double res1){
 					//a bit neater (although harder to follow as a consequence).
 
 					//Up indices
-					uid = iu[mu+ndim*i];
+					uid = iu[mu*kvol+i];
 					igork1 = gamin[mu][idirac];	
 					dSdpi[(i*nadj)*ndim+mu]+=akappa*creal(I*
 							(conj(X1[(i*ndirac+idirac)*nc])*

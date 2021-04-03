@@ -3,8 +3,8 @@ if &cp | set nocp | endif
 let s:cpo_save=&cpo
 set cpo&vim
 inoremap <C-U> u
-nnoremap <silent> w :CCTreeWindowToggle
 nnoremap <silent> y :CCTreeWindowSaveCopy
+nnoremap <silent> w :CCTreeWindowToggle
 map Q gq
 vmap gx <Plug>NetrwBrowseXVis
 nmap gx <Plug>NetrwBrowseX
@@ -195,26 +195,20 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-689
+1423
 normal! zo
-725
+1463
 normal! zo
-728
+1486
 normal! zo
-729
+1486
 normal! zo
-732
-normal! zo
-764
-normal! zo
-1544
-normal! zo
-let s:l = 1547 - ((813 * winheight(0) + 36) / 73)
+let s:l = 1515 - ((64 * winheight(0) + 36) / 73)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-1547
-normal! 013|
+1515
+normal! 010|
 wincmd w
 argglobal
 if bufexists("production/su2hmc.f") | buffer production/su2hmc.f | else | edit production/su2hmc.f | endif
@@ -340,22 +334,22 @@ setlocal nowinfixheight
 setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
-let s:l = 2191 - ((66 * winheight(0) + 36) / 73)
+let s:l = 2122 - ((66 * winheight(0) + 36) / 73)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-2191
-normal! 0
+2122
+normal! 015|
 wincmd w
 exe 'vert 1resize ' . ((&columns * 138 + 138) / 277)
 exe 'vert 2resize ' . ((&columns * 138 + 138) / 277)
 tabnext 1
-badd +689 production_c/su2hmc.c
-badd +1 production/par_mpi.f
-badd +900 production/su2hmc.f
-badd +84 production_c/INCLUDE/sizes.h
+badd +1505 production_c/su2hmc.c
+badd +980 production/par_mpi.f
+badd +2191 production/su2hmc.f
+badd +49 production_c/INCLUDE/sizes.h
 badd +61 production_c/Makefile
-badd +838 production_c/par_mpi.c
+badd +883 production_c/par_mpi.c
 badd +701 production_c/multiply.c
 badd +38 production_c/INCLUDE/multiply.h
 badd +7 production_c/multiply.cu

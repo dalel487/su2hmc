@@ -2,6 +2,9 @@
 #define	PAR_MPI
 #include	<complex.h>
 #include	<coord.h>
+#ifdef __NVCC__
+#include	<cuComplex.h>
+#endif
 #include	<errorcodes.h>
 #include	<math.h>
 #ifdef	USE_MKL
@@ -77,9 +80,17 @@ int ismaster;
 //A couple of other components usually defined in common_*.h files in fortran. But since C has global scope
 //may as well put them in here instead.
 //Gauges
+#ifdef __NVCC__
+cuComplex *u11, *u12;
+#else
 complex *u11, *u12;
+#endif
 // Trial matrices
+#ifdef __NVCC__
+cuComplex *u11t, *u12t;
+#else
 complex *u11t, *u12t;
+#endif
 //Halos indices
 //-------------
 static unsigned int *iu, *id;

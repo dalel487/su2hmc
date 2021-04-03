@@ -1,5 +1,5 @@
-#ifndef SLASH
-#define SLASH
+#ifndef MULTIPLY
+#define MULTIPLY 
 #ifdef __NVCC__
 #include <cuda.h>
 #include <cuComplex.h>
@@ -16,8 +16,6 @@
 //between 128 and 256
 //Note that from Volta on that each SM (group of processors)
 //is smaller than on previous generations of GPUs
-dim3 dimBlock(192,1,1);
-dim3 dimGrid(kvol/dimBlock.x,1,1);
 int Dslash(cuComplex *phi, cuComplex *r);
 int Dslashd(cuComplex *phi, cuComplex *r);
 int Hdslash(cuComplex *phi, cuComplex *r);

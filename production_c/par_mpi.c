@@ -875,8 +875,7 @@ int Par_swrite(int itraj){
 		memcpy(a11, z11, kvol3*sizeof(complex));
 		memcpy(a12, z12, kvol3*sizeof(complex));
 
-		//Looping through time like it's Groundhog Day
-		//since the index of the outer loop isn't used as an array index anywher
+		//Since the index of the outer loop isn't used as an array index anywher
 		//I'm going format it exactly like the original FORTRAN
 #ifdef _DEBUG
 		if(!rank) printf("Sending between halos in the time direction. For rank %i pu[3]=%i and pd[3] = %i\n",
@@ -930,7 +929,7 @@ int Par_swrite(int itraj){
 
 			//Post-multiply current loop by incoming one.
 			//This is begging to be done in CUDA or BLAS
-#pragma omp parallel for
+#pragma omp parallel for simd
 			for(i=0;i<kvol3;i++){
 				t11[i]=z11[i]*a11[i]-z12[i]*conj(a12[i]);
 				t12[i]=z11[i]*a12[i]+z12[i]*conj(a11[i]);
@@ -939,7 +938,6 @@ int Par_swrite(int itraj){
 			memcpy(z12, t12, kvol3*sizeof(complex));
 		}
 #ifdef USE_MKL
-		mkl_thread_free_buffers();
 		mkl_free(a11); mkl_free(a12);
 		mkl_free(t11); mkl_free(t12);
 #else
