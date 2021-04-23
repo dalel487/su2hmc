@@ -68,6 +68,7 @@ c     include common block definitions - header file for each label
       real(kind=realkind) athq,h0,s0,action,d,aaa,ccc,sss
       real(kind=realkind) ytest,ranf,par_granf,h1,s1,dh,ds,y,x,vel2,pbp
       real(kind=realkind) endenf,denf,hg,avplaqs,avplaqt,poly,atraj
+      real(kind=realkind) av_for
 
       complex(kind=cmplxkind) usum
       real(kind=realkind) norm
@@ -104,7 +105,7 @@ c*******************************************************************
       ibound=-1
 
 c cj   istart.lt.0 : start from tape
-      istart=0
+      istart=2
 c      istart=-1
 c cj
 c     iread=1
@@ -150,6 +151,17 @@ c     istart=0    : ordered start
 c     istart=1    : random start
 c*******************************************************************
       call init(istart)
+!	#ifdef DIAGNOSTICS
+!     OMP PARALLEL FOR SIMD COLLAPSE(2)
+      DO 9026 MU= 1, NDIM
+      DO 9026 I = 1, KVOL
+      U11T(I,MU)=U11(1,MU)
+      U12T(I,MU)=U12(1,MU)
+9026  CONTINUE
+      CALL DIAG(ISTART)
+      CALL MPI_FINALIZE(IERR)
+      GOTO 9025
+!	#endif
 
 c Initial measurements
 c
@@ -215,7 +227,7 @@ c     write(6,9002) seed
       end if
 
 c*******************************************************************
-c       initialize for averages
+c       initialise for averages
 c*******************************************************************
       actiona=0.0
       vel2a=0.0
@@ -327,6 +339,13 @@ c*******************************************************************
 c      half-step forward for p
 c*******************************************************************
       call force(dSdpi,1,rescgg)
+	av_for=0
+	do 25 i = 1, kvol
+	do 25 iadj = 1, nadj
+	do 25 mu = 1, ndim
+		av_for=av_for+dSdpi(mu,iadj,i)
+25	continue
+	write(*,*) "Average force after trial init:", av_for/kmom
       d=dt*0.5
       do 2004 i=1,kvol
       do 2004 iadj=1,nadj
@@ -362,6 +381,13 @@ c
 c  step (ii)  p(t+3dt/2)=p(t+dt/2)-dSds(t+dt)*dt (1/2 step on last iteration)
 c
       call force(dSdpi,0,rescgg)
+	av_for=0
+	do 26 i = 1, kvol
+	do 26 iadj = 1, nadj
+	do 26 mu = 1, ndim
+		av_for=av_for+dSdpi(mu,iadj,i)
+26	continue
+	write(*,*) "Average force after trial update:", av_for/kmom
 c
 c test for end of random trajectory
 c 
@@ -545,8 +571,7 @@ c End parallel code
 c
 
       call par_end()
-
-      end
+9025  end
 c******************************************************************
 c   calculate dSds at each intermediate time
 c******************************************************************
@@ -578,7 +603,10 @@ c     write(6,111)
 c
       zi=(0.0,1.0)
 c
+#ifndef NO_GAUGE
+#warning "Compiling gauge"
       call gaugeforce(dSdpi)
+#endif
 c     return
 c
       do 3 na=1,Nf
@@ -624,6 +652,8 @@ c
       call zdnhaloswapall(X1, 8)
       call zdnhaloswapall(X2, 8)
 
+#ifndef NO_SPACE
+#warning "Compiling space"
       do 21 i=1,kvol
       do 21 mu=1,3
       do 21 idirac=1,ndirac
@@ -710,8 +740,11 @@ c
      &  (conjg(u12(i,mu))*X2(1,igork1,i)
      &        -u11(i,mu) *X2(2,igork1,i))))
 21     continue
+#endif
 c
 c 4th direction is special
+#ifndef NO_TIME
+#warning "Compiling time"
       do 214 idirac=1,ndirac
       igork1=gamin(4,idirac)
       do 214 i=1,kvol
@@ -796,6 +829,7 @@ c
      & (-dk4p(i)*(-conjg(u12(i,4))*X2(1,igork1,i)
      &                  +u11(i,4) *X2(2,igork1,i)))))
 214   continue
+#endif
 c 
 3     continue
 c
@@ -1514,7 +1548,7 @@ c
 c
       if(istart.lt.0) return
 c
-c     initialize gauge fields
+c     initialise gauge fields
 c
       if(istart .eq. 1)goto 40
 c     (else cold start)
@@ -2386,6 +2420,7 @@ c
 c
 c     Wilson term
 c
+#ifndef NO_SPACE
          do mu=1,3
             do igorkov=1,ngorkov
                Phi(1,igorkov,i)=Phi(1,igorkov,i)
@@ -2425,9 +2460,11 @@ c
      &              -u11(id(i,mu),mu) *R(2,igork1,id(i,mu)))
             enddo
          enddo
+#endif
 c
 c  Timelike Wilson term
 c
+#ifndef NO_TIME
          do igorkov=1,4
             Phi(1,igorkov,i)=Phi(1,igorkov,i)
      &           -dk4p(i)*(u11(i,4)*R(1,igorkov,iu(i,4))
@@ -2500,6 +2537,7 @@ c
      &           (conjg(u12(id(i,4),4))*R(1,igork1,id(i,4))
      &           +u11(id(i,4),4) *R(2,igork1,id(i,4)))
          enddo
+#endif
       enddo
 c$omp end parallel do
 
@@ -2584,6 +2622,7 @@ c
 c
 c     Wilson term
 c
+#ifndef NO_SPACE
          do mu=1,3
             do igorkov=1,ngorkov
                Phi(1,igorkov,i)=Phi(1,igorkov,i)
@@ -2623,9 +2662,11 @@ c
      &              -u11(id(i,mu),mu) *R(2,igork1,id(i,mu)))
             enddo
          enddo
+#endif
 c     
 c  Timelike Wilson term
 c
+#ifndef NO_TIME
          do igorkov=1,4
             Phi(1,igorkov,i)=Phi(1,igorkov,i)
      &           -dk4m(i)*(u11(i,4)*R(1,igorkov,iu(i,4))
@@ -2696,6 +2737,7 @@ c
      &           (conjg(u12(id(i,4),4))*R(1,igork1,id(i,4))
      &           +u11(id(i,4),4) *R(2,igork1,id(i,4)))
          enddo
+#endif
       enddo
 c$omp end parallel do
 
@@ -2769,6 +2811,7 @@ c
 c     Wilson term
 c     
          do idirac=1,ndirac
+#ifndef NO_SPACE
             do mu=1,3
                Phi(1,idirac,i)=Phi(1,idirac,i)
      &              -akappa*(      u11(i,mu)*R(1,idirac,iu(i,mu))
@@ -2797,6 +2840,8 @@ c
      &              -conjg(u12(id(i,mu),mu))*R(1,igork1,id(i,mu))
      &              -u11(id(i,mu),mu) *R(2,igork1,id(i,mu)))
             enddo
+#endif
+#ifndef NO_TIME
 c     
             Phi(1,idirac,i)=Phi(1,idirac,i)
      &           -dk4p(i)*(u11(i,4)*R(1,idirac,iu(i,4))
@@ -2826,6 +2871,7 @@ c
      &           -dk4m(id(i,4))*
      &           (conjg(u12(id(i,4),4))*R(1,igork1,id(i,4))
      &           +u11(id(i,4),4) *R(2,igork1,id(i,4)))
+#endif
          enddo
       enddo
 c$omp end parallel do
@@ -2895,6 +2941,7 @@ c
 c     Wilson term
 c     
          do idirac=1,ndirac
+#ifndef NO_SPACE
             do mu=1,3
                Phi(1,idirac,i)=Phi(1,idirac,i)
      &              -akappa*(      u11(i,mu)*R(1,idirac,iu(i,mu))
@@ -2924,6 +2971,8 @@ c
      &              -u11(id(i,mu),mu) *R(2,igork1,id(i,mu)))
             enddo
 c     
+#endif
+#ifndef NO_TIME
             Phi(1,idirac,i)=Phi(1,idirac,i)
      &           -dk4m(i)*(u11(i,4)*R(1,idirac,iu(i,4))
      &           +u12(i,4)*R(2,idirac,iu(i,4)))
@@ -2952,6 +3001,7 @@ c
      &           +dk4p(id(i,4))*
      &           (conjg(u12(id(i,4),4))*R(1,igork1,id(i,4))
      &           +u11(id(i,4),4) *R(2,igork1,id(i,4)))
+#endif
          enddo
       enddo
 c$omp end parallel do

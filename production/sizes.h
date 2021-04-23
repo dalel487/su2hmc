@@ -8,8 +8,8 @@ c
 c*******************************************************************
 
 c Common block definition for parallel variables
-      integer, parameter :: nx = 8 
-      integer, parameter :: nt = 8 
+      integer, parameter :: nx = 4 
+      integer, parameter :: nt = 4 
 c       integer, parameter :: nx = 4 
 c       integer, parameter :: nt = 8	
 c Keep original restriction of single spatial extent

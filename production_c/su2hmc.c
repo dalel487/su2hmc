@@ -94,7 +94,7 @@ int main(int argc, char *argv[]){
 	//The default values here are straight from the FORTRAN
 	//=====================================================
 	int iread = 0;
-	int istart = 1;
+	int istart = 2;
 	ibound = -1;
 	int iwrite = 1;
 	int iprint = 1; //For the measures
@@ -143,6 +143,9 @@ int main(int argc, char *argv[]){
 	//			For some reason this leaves the trial fields as zero in the FORTRAN code?
 	//istart > 0: Random/Hot Start
 	Init(istart);
+	#ifdef DIAGNOSTIC
+	Diagnostics(istart);
+	#endif
 
 	//Initial Measurements
 	//====================
@@ -296,6 +299,13 @@ int main(int argc, char *argv[]){
 		printf("Evaluating force on rank %i\n", rank);
 #endif
 		Force(dSdpi, 1, rescgg);
+#ifdef _DEBUG
+		double av_force=0;
+#pragma omp parallel for simd reduction(+:av_force) aligned(dSdpi:AVX)
+		for(int i = 0; i<kmom; i++)
+			av_force+=dSdpi[i];
+		printf("av_force before we do anything= %e\n", av_force/kmom);
+#endif
 #if (defined USE_MKL || defined USE_BLAS)
 		cblas_daxpy(nadj*ndim*kvol, -d, dSdpi, 1, pp, 1);
 #else
@@ -317,6 +327,8 @@ int main(int argc, char *argv[]){
 				for(int mu = 0; mu<ndim; mu++){
 					//Sticking to what was in the FORTRAN for variable names.
 					//CCC for cosine SSS for sine AAA for...
+					//Re-exponentiating the force field. Can be done analytically in SU(2)
+					//using sine and cosine which is nice
 					double AAA = dt*sqrt(pp[i*nadj*ndim+mu]*pp[i*nadj*ndim+mu]\
 							+pp[(i*nadj+1)*ndim+mu]*pp[(i*nadj+1)*ndim+mu]\
 							+pp[(i*nadj+2)*ndim+mu]*pp[(i*nadj+2)*ndim+mu]);
@@ -334,6 +346,12 @@ int main(int argc, char *argv[]){
 			Reunitarise();
 			//p(t+3dt/2)=p(t+dt/2)-dSds(t+dt)*dt
 			Force(dSdpi, 0, rescgg);
+#ifdef _DEBUG
+#pragma omp parallel for simd reduction(+:av_force) aligned(dSdpi:AVX)
+			for(int i = 0; i<kmom; i++)
+				av_force+=dSdpi[i];
+			printf("av_force after trial field update = %e\n", av_force/kmom);
+#endif
 			//Need to check Par_granf again 
 			//The same for loop is given in both the if and else
 			//statement but only the value of d changes. This is due to the break in the if part
@@ -675,8 +693,8 @@ int Init(int istart){
 
 #if defined USE_MKL
 		//Good news, casting works for using a double to create random complex numbers
-		vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*(kvol+halo), u11t, -1, 1);
-		vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*(kvol+halo), u12t, -1, 1);
+		vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*kvol, u11t, -1, 1);
+		vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*kvol, u12t, -1, 1);
 #else
 		//Depending if we have the RANLUX or SFMT19977 generator.	
 #pragma unroll
@@ -686,8 +704,8 @@ int Init(int istart){
 		}
 #endif
 		Reunitarise();
-		memcpy(u11, u11t, ndim*(kvol+halo)*sizeof(complex));
-		memcpy(u12, u12t, ndim*(kvol+halo)*sizeof(complex));
+		memcpy(u11, u11t, ndim*kvol*sizeof(complex));
+		memcpy(u12, u12t, ndim*kvol*sizeof(complex));
 	}
 	else{
 		fprintf(stderr,"Warning %i in %s: Gauge fields are not initialised.\n", NOINIT, funcname);
@@ -715,11 +733,6 @@ int Gauge_force(double *dSdpi){
 	//		memset(u11t[kvol], 0, ndim*halo*sizeof(complex));	
 	//		memset(u12t[kvol], 0, ndim*halo*sizeof(complex));	
 	//	#endif
-#ifdef USE_MKL
-	complex *z = mkl_malloc((kvol+halo)*sizeof(complex),AVX);
-#else
-	complex *z = malloc((kvol+halo)*sizeof(complex));
-#endif
 	//Was a trial field halo exchange here at one point.
 #ifdef USE_MKL
 	complex *Sigma11 = mkl_malloc(kvol*sizeof(complex),AVX); 
@@ -737,41 +750,25 @@ int Gauge_force(double *dSdpi){
 		memset(Sigma11,0, kvol*sizeof(complex));
 		memset(Sigma12,0, kvol*sizeof(complex));
 		for(int nu=0; nu<ndim; nu++){
-			if(mu!=nu){
+			if(nu!=mu){
 				//The +ν Staple
 #pragma omp parallel for simd aligned(u11t:AVX,u12t:AVX,Sigma11:AVX,Sigma12:AVX)
 				for(int i=0;i<kvol;i++){
-
 					int uidm = iu[mu+ndim*i];
 					int uidn = iu[nu+ndim*i];
 					complex	a11=u11t[uidm*ndim+nu]*conj(u11t[uidn*ndim+mu])+\
 							    u12t[uidm*ndim+nu]*conj(u12t[uidn*ndim+mu]);
 					complex	a12=-u11t[uidm*ndim+nu]*u12t[uidn*ndim+mu]+\
 							    u12t[uidm*ndim+nu]*u11t[uidn*ndim+mu];
-
 					Sigma11[i]+=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
 					Sigma12[i]+=-a11*u12t[i*ndim+nu]+a12*u11t[i*ndim+nu];
 				}
-#if (defined USE_MKL || defined USE_BLAS)
-				cblas_zcopy(kvol+halo, u11t+nu, 4, z, 1);
-#else
-#pragma unroll
-				for(int i=0; i<kvol+halo;i++)
-					z[i]=u11t[i*ndim+nu];
-#endif
-				Z_gather(u11sh, z, kvol, id+nu);
-#if (defined USE_MKL || defined USE_BLAS)
-				cblas_zcopy(kvol+halo, u12t+nu, 4, z, 1);
-#else
-#pragma unroll
-				for(int i=0; i<kvol+halo;i++)
-					z[i]=u12t[i*ndim+nu];
-#endif
-				Z_gather(u12sh, z, kvol, id+nu);
-				ZHalo_swap_all(u11sh, 1);
-				ZHalo_swap_all(u12sh, 1);
+				Z_gather(u11sh, u11t, kvol, id, nu);
+				Z_gather(u12sh, u12t, kvol, id, nu);
+				ZHalo_swap_dir(u11sh, 1, mu, DOWN);
+				ZHalo_swap_dir(u12sh, 1, mu, DOWN);
 				//Next up, the -ν staple
-#pragma omp parallel for simd aligned(u11t:AVX,u12t:AVX,Sigma11:AVX,Sigma12:AVX)
+#pragma omp parallel for simd aligned(u11t:AVX,u12t:AVX,u11sh:AVX,u12sh:AVX,Sigma11:AVX,Sigma12:AVX)
 				for(int i=0;i<kvol;i++){
 					int uidm = iu[mu+ndim*i];
 					int didn = id[nu+ndim*i];
@@ -780,7 +777,6 @@ int Gauge_force(double *dSdpi){
 							u12sh[uidm]*conj(u12t[didn*ndim+mu]);
 					complex a12=-conj(u11sh[uidm])*u12t[didn*ndim+mu]-\
 							u12sh[uidm]*u11t[didn*ndim+mu];
-
 					Sigma11[i]+=a11*u11t[didn*ndim+nu]-a12*conj(u12t[didn*ndim+nu]);
 					Sigma12[i]+=a11*u12t[didn*ndim+nu]+a12*conj(u11t[didn*ndim+nu]);
 				}
@@ -799,9 +795,8 @@ int Gauge_force(double *dSdpi){
 	//MPI was acting funny here for more than one process on Boltzmann
 #ifdef USE_MKL
 	mkl_free(u11sh); mkl_free(u12sh); mkl_free(Sigma11); mkl_free(Sigma12);
-	mkl_free(z);
 #else
-	free(u11sh); free(u12sh); free(Sigma11); free(Sigma12); free(z);
+	free(u11sh); free(u12sh); free(Sigma11); free(Sigma12);
 #endif
 	return 0;
 }
@@ -869,8 +864,7 @@ int Hamilton(double *h, double *s, double res2){
 		//It is a dot product of the flattend arrays, could use
 		//a module to convert index to coordinate array...
 		for(int j=0;j<kferm2;j++)
-			//Cheat using pointer for now
-			hf+= X1[j]*conj(smallPhi[j]) ;
+			hf+= conj(smallPhi[j])*X1[j];
 #endif
 	}
 #ifdef USE_MKL
@@ -1379,7 +1373,8 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 	const char *funcname = "SU2plaq";
 	//Was a halo exchange here but moved it outside
 	//	The fortran code used several consecutive loops to get the plaquette
-	//	Instead we'll just make a11 and a12 values and do everything in one loop
+	//	Instead we'll just make the arrays variables and do everything in one loop
+	//	Should work since in the fortran Sigma11[i] only depends on i components  for example
 	double hgs = 0; double hgt = 0;
 	//Since the ν loop doesn't get called for μ=0 we'll start at μ=1
 	for(int mu=1;mu<ndim;mu++)
@@ -1388,6 +1383,7 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 			//Or merge into a single loop and dispense with the a arrays?
 #pragma omp parallel for simd aligned(u11t:AVX,u12t:AVX) reduction(+:hgs,hgt)
 			for(int i=0;i<kvol;i++){
+				//Save us from typing iu[mu+ndim*i] everywhere
 				int uidm = iu[mu+ndim*i]; 
 
 				complex Sigma11=u11t[i*ndim+mu]*u11t[uidm*ndim+nu]-u12t[i*ndim+mu]*conj(u12t[uidm*ndim+nu]);
@@ -1395,7 +1391,7 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 
 				int uidn = iu[nu+ndim*i]; 
 				complex a11=Sigma11*conj(u11t[uidn*ndim+mu])+Sigma12*conj(u12t[uidn*ndim+mu]);
-				complex a12=-Sigma12*u12t[uidn*ndim+mu]+Sigma12*u11t[uidn*ndim+mu];
+				complex a12=-Sigma11*u12t[uidn*ndim+mu]+Sigma12*u11t[uidn*ndim+mu];
 
 				Sigma11=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
 				//				Sigma12[i]=-a11[i]*u12t[i*ndim+nu]+a12*u11t[i*ndim+mu];
@@ -1450,66 +1446,66 @@ double Polyakov(){
 	//I will expand on this hack and completely avoid any work
 	//for this case rather than calculating everything just to set it to zero
 #ifdef USE_MKL
-		complex *Sigma11 = mkl_malloc(kvol3*sizeof(complex),AVX);
-		complex *Sigma12 = mkl_malloc(kvol3*sizeof(complex),AVX);
+	complex *Sigma11 = mkl_malloc(kvol3*sizeof(complex),AVX);
+	complex *Sigma12 = mkl_malloc(kvol3*sizeof(complex),AVX);
 #else
-		complex *Sigma11 = malloc(kvol3*sizeof(complex));
-		complex *Sigma12 = malloc(kvol3*sizeof(complex));
+	complex *Sigma11 = malloc(kvol3*sizeof(complex));
+	complex *Sigma12 = malloc(kvol3*sizeof(complex));
 #endif
 #if (defined USE_MKL || defined USE_BLAS)
-		cblas_zcopy(kvol3, &u11t[3], ndim, Sigma11, 1);
-		cblas_zcopy(kvol3, &u12t[3], ndim, Sigma12, 1);
+	cblas_zcopy(kvol3, &u11t[3], ndim, Sigma11, 1);
+	cblas_zcopy(kvol3, &u12t[3], ndim, Sigma12, 1);
 #else
-		for(int i=0; i<kvol3; i++){
-			Sigma11[i]=u11t[i*ndim+3];
-			Sigma12[i]=u12t[i*ndim+3];
-		}
+	for(int i=0; i<kvol3; i++){
+		Sigma11[i]=u11t[i*ndim+3];
+		Sigma12[i]=u12t[i*ndim+3];
+	}
 #endif
-		//	Some Fortran commentary
-		//	Changed this routine.
-		//	u11t and u12t now defined as normal ie (kvol+halo,4).
-		//	Copy of Sigma11 and Sigma12 is changed so that it copies
-		//	in blocks of ksizet.
-		//	Variable indexu also used to select correct element of u11t and u12t 
-		//	in loop 10 below.
-		//
-		//	Change the order of multiplication so that it can
-		//	be done in parallel. Start at t=1 and go up to t=T:
-		//	previously started at t+T and looped back to 1, 2, ... T-1
-		//Buffers
-		complex a11=0;
-		//There is a dependency. Can only parallelise the inner loop
+	//	Some Fortran commentary
+	//	Changed this routine.
+	//	u11t and u12t now defined as normal ie (kvol+halo,4).
+	//	Copy of Sigma11 and Sigma12 is changed so that it copies
+	//	in blocks of ksizet.
+	//	Variable indexu also used to select correct element of u11t and u12t 
+	//	in loop 10 below.
+	//
+	//	Change the order of multiplication so that it can
+	//	be done in parallel. Start at t=1 and go up to t=T:
+	//	previously started at t+T and looped back to 1, 2, ... T-1
+	//Buffers
+	complex a11=0;
+	//There is a dependency. Can only parallelise the inner loop
 #pragma unroll
-		for(int it=1;it<ksizet;it++)
-			//will be faster for parallel code
+	for(int it=1;it<ksizet;it++)
+		//will be faster for parallel code
 #pragma omp parallel for simd private(a11) aligned(u11t:AVX,u12t:AVX,Sigma11:AVX,Sigma12:AVX)
-			for(int i=0;i<kvol3;i++){
-				//Seems a bit more efficient to increment indexu instead of reassigning
-				//it every single loop
-				int indexu=it*kvol3+i;
-				a11=Sigma11[i]*u11t[indexu*ndim+3]-Sigma12[i]*conj(u12t[indexu*ndim+3]);
-				//Instead of having to store a second buffer just assign it directly
-				Sigma12[i]=Sigma11[i]*u12t[indexu*ndim+3]+Sigma12[i]*conj(u11t[indexu*ndim+3]);
-				Sigma11[i]=a11;
-			}
+		for(int i=0;i<kvol3;i++){
+			//Seems a bit more efficient to increment indexu instead of reassigning
+			//it every single loop
+			int indexu=it*kvol3+i;
+			a11=Sigma11[i]*u11t[indexu*ndim+3]-Sigma12[i]*conj(u12t[indexu*ndim+3]);
+			//Instead of having to store a second buffer just assign it directly
+			Sigma12[i]=Sigma11[i]*u12t[indexu*ndim+3]+Sigma12[i]*conj(u11t[indexu*ndim+3]);
+			Sigma11[i]=a11;
+		}
 
-		//Multiply this partial loop with the contributions of the other cores in the
-		//timelike dimension
+	//Multiply this partial loop with the contributions of the other cores in the
+	//timelike dimension
 #if (npt>1)
 #ifdef _DEBUG
-		printf("Multiplying with MPI\n");
+	printf("Multiplying with MPI\n");
 #endif
-		//Par_tmul does nothing if there is only a single processor in the time direction. So we only compile
-		//its call if it is required
-		Par_tmul(Sigma11, Sigma12);
+	//Par_tmul does nothing if there is only a single processor in the time direction. So we only compile
+	//its call if it is required
+	Par_tmul(Sigma11, Sigma12);
 #endif
 #pragma omp parallel for simd reduction(+:poly) aligned(Sigma11:AVX)
-		for(int i=0;i<kvol3;i++)
-			poly+=creal(Sigma11[i]);
+	for(int i=0;i<kvol3;i++)
+		poly+=creal(Sigma11[i]);
 #ifdef USE_MKL
-		mkl_free(Sigma11); mkl_free(Sigma12);
+	mkl_free(Sigma11); mkl_free(Sigma12);
 #else
-		free(Sigma11); free(Sigma12);
+	free(Sigma11); free(Sigma12);
 #endif
 
 	if(pcoord[3+rank*ndim]) poly = 0;
@@ -1551,15 +1547,25 @@ inline int Reunitarise(){
 	}
 	return 0;
 }
-inline int Z_gather(complex *x, complex *y, int n, unsigned int *table){
+#ifdef __NVCC__
+inline int Z_gather(cuDoubleComplex *x, cuDoubleComplex *y, int n, unsigned int *table)
+#else
+inline int Z_gather(complex *x, complex *y, int n, unsigned int *table, unsigned int mu)
+#endif
+{
 	//FORTRAN had a second parameter m gving the size of y (kvol+halo) normally
 	//Pointers mean that's not an issue for us so I'm leaving it out
-#pragma ivdep
+#pragma omp parallel for simd aligned (x:AVX,y:AVX,table:AVX)
 	for(int i=0; i<n; i++)
-		x[i]=y[table[i*ndim]];
+		x[i]=y[table[i*ndim+mu]*ndim+mu];
 	return 0;
 }
-inline int Fill_Small_Phi(int na, complex *smallPhi){
+#ifdef __NVCC__
+inline int Fill_Small_Phi(int na, cuDoubleComplex *smallPhi)
+#else
+inline int Fill_Small_Phi(int na, complex *smallPhi)
+#endif
+{
 	/*Copies necessary (2*4*kvol) elements of Phi into a vector variable
 	 *
 	 * Globals:
@@ -1583,16 +1589,17 @@ inline int Fill_Small_Phi(int na, complex *smallPhi){
 		for(int idirac = 0; idirac<ndirac; idirac++)
 #pragma unroll
 			for(int ic= 0; ic<nc; ic++){
-				// The original code behaves in this manner, same loop order and same formula for PHI_index
-				// We end up hiting the first 8 elements of the Phi array. But because i is multiplied by
-				// 2*ndirac*nc we end up skipping the second, fourth, sixth etc. groups of 8 elements.
-				// This is not yet clear to me why, but I'll update when it is clarified.
 				//	  PHI_index=i*16+j*2+k;
 				smallPhi[(i*ndirac+idirac)*nc+ic]=Phi[((na*kvol+i)*ngorkov+idirac)*nc+ic];
 			}
 	return 0;
 }
-double Norm_squared(complex *z, int n){
+#ifdef __NVCC__
+double Norm_squared(cuDoubleComplex *z, int n)
+#else
+double Norm_squared(complex *z, int n)
+#endif
+{
 	/* Called znorm2 in the original FORTRAN.
 	 * Takes a complex number vector of length n and finds the square of its 
 	 * norm using the formula

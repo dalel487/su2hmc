@@ -209,14 +209,6 @@ int Addrc(){
 						iaddr=ih[1][3]+h1u[3];	
 					}
 					iu[3+ndim*ic]=iaddr;
-#ifdef _DEBUG
-					printf("For loop x=%i,y=%i,z=%i,t=%i:\n"\
-							"ic=%i\n"\
-							"id={%i,%i,%i,%i}\n"\
-							"iu={%i,%i,%i,%i}\n\n",\
-							jx,jy,jz,jt,ic,id[0+ndim*ic],id[1+ndim*ic],id[2+ndim*ic],id[3+ndim*ic],iu[0+ndim*ic],\
-							iu[1+ndim*ic],iu[2+ndim*ic],iu[3+ndim*ic]);
-#endif
 				}
 	return 0;
 }

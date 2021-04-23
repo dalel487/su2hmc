@@ -4,7 +4,7 @@
 //TO DO: Check and see are there any terms we are evaluating twice in the same loop
 //and use a variable to hold them instead to reduce the number of evaluations.
 //Host/Series Code
-int Dslash(cuComplex *phi, cuComplex *r){
+int Dslash(cuDoubleComplex *phi, cuDoubleComplex *r){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -19,9 +19,9 @@ int Dslash(cuComplex *phi, cuComplex *r){
 	 * Parametrer:
 	 * ==========
 	 *
-	 * cuComplex *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
+	 * cuDoubleComplex *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
 	 * 			for consistency with the fortran code I'll keep the name here
-	 * cuComplex r:		The array being acted on by M
+	 * cuDoubleComplex r:		The array being acted on by M
 	 *
 	 * Returns:
 	 * Zero on success, integer error code otherwise
@@ -29,56 +29,15 @@ int Dslash(cuComplex *phi, cuComplex *r){
 	char *funcname = "Dslash";
 	//Get the halos in order
 	ZHalo_swap_all(r, 16);
-#ifdef USE_MKL
-	cuComplex *z = mkl_malloc((kvol+halo)*sizeof(cuComplex),AVX);
-#else
-	cuComplex *z = malloc((kvol+halo)*sizeof(cuComplex));
-#endif
-	for(int mu=0;mu<ndim;mu++){
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol, u11t+mu, ndim, z, 1);
-#else
-		for(int i=0; i<kvol;i++)
-			z[i]=u11t[i*ndim+mu];
-#endif
-		ZHalo_swap_dir(z, 1, mu, UP);
-		//And the swap back
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol+halo, z, 1, u11t+mu, ndim);
-#else
-		for(int i=0; i<kvol;i++)
-			u11t[i*ndim+mu]=z[i];
-#endif
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol, u12t+mu, 4, z, 1);
-#else
-		for(int i=0; i<kvol;i++)
-			z[i]=u12t[i*ndim+mu];
-#endif
-		ZHalo_swap_dir(z, 1, mu, UP);
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol+halo, z, 1, u12t+mu, 4);
-#else
-		for(int i=0; i<kvol;i++)
-			u12t[i*ndim+mu]=z[i];
-#endif
-	}
-#ifdef USE_MKL
-	mkl_free(z);
-#else
-	free(z);
-#endif
-	DHalo_swap_dir(dk4p, 1, 3, UP);
-	DHalo_swap_dir(dk4m, 1, 3, UP);
 
 	//Mass term
-	memcpy(phi, r, kferm*sizeof(cuComplex));
+	memcpy(phi, r, kferm*sizeof(cuDoubleComplex));
 	cudaDeviceSynchronize();
 	cuDslash<<<dimGrid,dimBlock>>>(phi,r);
 	cudaDeviceSynchronize();
 	return 0;
 }
-int Dslashd(cuComplex *phi, cuComplex *r){
+int Dslashd(cuDoubleComplex *phi, cuDoubleComplex *r){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -93,9 +52,9 @@ int Dslashd(cuComplex *phi, cuComplex *r){
 	 * Parameter:
 	 * ==========
 	 *
-	 * cuComplex *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
+	 * cuDoubleComplex *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
 	 * 			for consistency with the fortran code I'll keep the name here
-	 * cuComplex r:		The array being acted on by M
+	 * cuDoubleComplex r:		The array being acted on by M
 	 *
 	 * Returns:
 	 * Zero on success, integer error code otherwise
@@ -103,56 +62,15 @@ int Dslashd(cuComplex *phi, cuComplex *r){
 	char *funcname = "Dslashd";
 	//Get the halos in order
 	ZHalo_swap_all(r, 16);
-#ifdef USE_MKL
-	cuComplex *z = mkl_malloc((kvol+halo)*sizeof(cuComplex),AVX);
-#else
-	cuComplex *z = malloc((kvol+halo)*sizeof(cuComplex));
-#endif
-	for(int mu=0;mu<ndim;mu++){
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol, u11t+mu, ndim, z, 1);
-#else
-		for(int i=0; i<kvol;i++)
-			z[i]=u11t[i*ndim+mu];
-#endif
-		ZHalo_swap_dir(z, 1, mu, UP);
-		//And the swap back
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol+halo, z, 1, u11t+mu, ndim);
-#else
-		for(int i=0; i<kvol;i++)
-			u11t[i*ndim+mu]=z[i];
-#endif
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol, u12t+mu, 4, z, 1);
-#else
-		for(int i=0; i<kvol;i++)
-			z[i]=u12t[i*ndim+mu];
-#endif
-		ZHalo_swap_dir(z, 1, mu, UP);
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol+halo, z, 1, u12t+mu, 4);
-#else
-		for(int i=0; i<kvol;i++)
-			u12t[i*ndim+mu]=z[i];
-#endif
-	}
-#ifdef USE_MKL
-	mkl_free(z);
-#else
-	free(z);
-#endif
-	DHalo_swap_dir(dk4p, 1, 3, UP);
-	DHalo_swap_dir(dk4m, 1, 3, UP);
 
 	//Mass term
-	memcpy(phi, r, kferm*sizeof(cuComplex));
+	memcpy(phi, r, kferm*sizeof(cuDoubleComplex));
 	cudaDeviceSynchronize();
 	cuDslashd<<<dimGrid,dimBlock>>>(phi,r);
 	cudaDeviceSynchronize();
 	return 0;
 }
-int Hdslash(cuComplex *phi, cuComplex *r){
+int Hdslash(cuDoubleComplex *phi, cuDoubleComplex *r){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -167,66 +85,25 @@ int Hdslash(cuComplex *phi, cuComplex *r){
 	 * Parametrer:
 	 * ==========
 	 *
-	 * cuComplex *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
+	 * cuDoubleComplex *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
 	 * 			for consistency with the fortran code I'll keep the name here
-	 * cuComplex r:		The array being acted on by M
+	 * cuDoubleComplex r:		The array being acted on by M
 	 *
 	 * Returns:
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Hdslash";
 	//Get the halos in order
-	ZHalo_swap_all(r, 8);
-#ifdef USE_MKL
-	cuComplex *z = mkl_malloc((kvol+halo)*sizeof(cuComplex),AVX);
-#else
-	cuComplex *z = malloc((kvol+halo)*sizeof(cuComplex));
-#endif
-	for(int mu=0;mu<ndim;mu++){
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol, &u11t[mu], ndim, z, 1);
-#else
-		for(int i=0; i<kvol;i++)
-			z[i]=u11t[i*ndim+mu];
-#endif
-		ZHalo_swap_dir(z, 1, mu, UP);
-		//And the swap back
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol+halo, z, 1, &u11t[mu], ndim);
-#else
-		for(int i=0; i<kvol+halo;i++)
-			u11t[i*ndim+mu]=z[i];
-#endif
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol, &u12t[mu], 4, z, 1);
-#else
-		for(int i=0; i<kvol;i++)
-			z[i]=u12t[i*ndim+mu];
-#endif
-		ZHalo_swap_dir(z, 1, mu, UP);
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol+halo, z, 1, &u12t[mu], 4);
-#else
-		for(int i=0; i<kvol+halo;i++)
-			u12t[i*ndim+mu]=z[i];
-#endif
-	}
-#ifdef USE_MKL
-	mkl_free(z);
-#else
-	free(z);
-#endif
-	DHalo_swap_dir(dk4p, 1, 3, UP);
 	DHalo_swap_dir(dk4m, 1, 3, UP);
 
 	//Mass term
-	memcpy(phi, r, kferm2*sizeof(cuComplex));
+	memcpy(phi, r, kferm2*sizeof(cuDoubleComplex));
 	cudaDeviceSynchronize();
 	cuHdslash<<<dimGrid,dimBlock>>>(phi,r);
 	cudaDeviceSynchronize();
 	return 0;
 }
-int Hdslashd(cuComplex *phi, cuComplex *r){
+int Hdslashd(cuDoubleComplex *phi, cuDoubleComplex *r){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -241,9 +118,9 @@ int Hdslashd(cuComplex *phi, cuComplex *r){
 	 * Parametrer:
 	 * ==========
 	 *
-	 * cuComplex *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
+	 * cuDoubleComplex *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
 	 * 			for consistency with the fortran code I'll keep the name here
-	 * cuComplex r:		The array being acted on by M
+	 * cuDoubleComplex r:		The array being acted on by M
 	 *
 	 * Returns:
 	 * Zero on success, integer error code otherwise
@@ -253,55 +130,10 @@ int Hdslashd(cuComplex *phi, cuComplex *r){
 	//terms for each halo first. Changing the indices was considered but that caused
 	//issues with the BLAS routines.
 	ZHalo_swap_all(r, 8);
-#ifdef USE_MKL
-	cuComplex *z = mkl_malloc((kvol+halo)*sizeof(cuComplex),AVX);
-#else
-	cuComplex *z = malloc((kvol+halo)*sizeof(cuComplex));
-#endif
-	for(int mu=0;mu<ndim;mu++){
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol, &u11t[mu], ndim, z, 1);
-#else
-		for(int i=0; i<kvol;i++)
-			z[i]=u11t[i*ndim+mu];
-#endif
-		ZHalo_swap_dir(z, 1, mu, UP);
-		//And the swap back
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol+halo, z, 1, &u11t[mu], ndim);
-#else
-		for(int i=0; i<kvol+halo;i++)
-			u11t[i*ndim+mu]=z[i];
-#endif
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol, &u12t[mu], 4, z, 1);
-#else
-		for(int i=0; i<kvol;i++)
-			z[i]=u12t[i*ndim+mu];
-#endif
-		ZHalo_swap_dir(z, 1, mu, UP);
-#if (defined USE_MKL || USE_BLAS)
-		cblas_zcopy(kvol+halo, z, 1, &u12t[mu], 4);
-#else
-		for(int i=0; i<kvol+halo;i++)
-			u12t[i*ndim+mu]=z[i];
-#endif
-	}
-#ifdef USE_MKL
-	mkl_free(z);
-#else
-	free(z);
-#endif
-	DHalo_swap_dir(dk4p, 1, 3, UP);
-	DHalo_swap_dir(dk4m, 1, 3, UP);
-
-	//Looks like flipping the array ordering for C has meant a lot
-	//of for loops. Sense we're jumping around quite a bit the cache is probably getting refreshed
-	//anyways so memory access patterns mightn't be as big of an limiting factor here anyway
 
 	//Mass term
-	memcpy(phi, r, kferm2*sizeof(cuComplex));
-	memcpy(phi, r, kferm2*sizeof(cuComplex));
+	memcpy(phi, r, kferm2*sizeof(cuDoubleComplex));
+	memcpy(phi, r, kferm2*sizeof(cuDoubleComplex));
 	cudaDeviceSynchronize();
 	cuHdslashd<<<dimGrid,dimBlock>>>(phi,r);
 	cudaDeviceSynchronize();
@@ -338,17 +170,17 @@ int Force(double *dSdpi, int iflag, double res1){
 	//X1=(M†M)^{1} Phi
 	int itercg;
 #ifdef USE_CUDA
-	cuComplex *X2, *smallPhi;
-	cudaMallocManaged(&X2, kferm2Halo*sizeof(cuComplex));
+	cuDoubleComplex *X2, *smallPhi;
+	cudaMallocManaged(&X2, kferm2Halo*sizeof(cuDoubleComplex));
 #elif defined USE_MKL
-	cuComplex *X2= mkl_malloc(kferm2Halo*sizeof(cuComplex), AVX);
-	cuComplex *smallPhi =mkl_malloc(kferm2Halo*sizeof(cuComplex), AVX); 
+	cuDoubleComplex *X2= mkl_malloc(kferm2Halo*sizeof(cuDoubleComplex), AVX);
+	cuDoubleComplex *smallPhi =mkl_malloc(kferm2Halo*sizeof(cuDoubleComplex), AVX); 
 #else
-	cuComplex *X2= malloc(kferm2Halo*sizeof(cuComplex));
-	cuComplex *smallPhi = malloc(kferm2Halo*sizeof(cuComplex)); 
+	cuDoubleComplex *X2= malloc(kferm2Halo*sizeof(cuDoubleComplex));
+	cuDoubleComplex *smallPhi = malloc(kferm2Halo*sizeof(cuDoubleComplex)); 
 #endif
 	for(int na = 0; na<nf; na++){
-		memcpy(X1, X0+na*kferm2Halo, nc*ndirac*kvol*sizeof(cuComplex));
+		memcpy(X1, X0+na*kferm2Halo, nc*ndirac*kvol*sizeof(cuDoubleComplex));
 		//FORTRAN's logic is backwards due to the implied goto method
 		//If iflag is zero we do some initalisation stuff? 
 		if(!iflag){
@@ -357,7 +189,7 @@ int Force(double *dSdpi, int iflag, double res1){
 			//BLASable? If we cheat and flatten the array it is!
 			//This is not a general BLAS Routine, just an MKL one
 #ifdef USE_MKL
-			cuComplex blasa=2.0; cuComplex blasb=-1.0;
+			cuDoubleComplex blasa=2.0; cuDoubleComplex blasb=-1.0;
 			cblas_zaxpby(kvol*ndirac*nc, &blasa, X1, 1, &blasb, X0+na*kferm2Halo, 1); 
 #else
 			for(int i=0;i<kvol;i++){
@@ -408,9 +240,9 @@ int Force(double *dSdpi, int iflag, double res1){
 }
 
 //Device code: Mainly the loops
-dim3 dimBlock(ksizez,ksizet,1);
-dim3 dimGrid(ksizex,ksizey,1);
-__global__ void cuDslash(cuComplex *phi, cuComplex *r){
+dim3 dimGrid(ksizez,ksizet,1);
+dim3 dimBlock(ksizex,ksizey,1);
+__global__ void cuDslash(cuDoubleComplex *phi, cuDoubleComplex *r){
 	int blockID = (gridDim.x*blockIdx.y)+blockIdx.x;
 	int threadID = (blockID*(blockDim.x*blockDim.y))+(threadIdx.y*blockDim.x)+threadIdx.y;
 	int thread_count = gridDim.x*gridDim.y*blockDim.x*blockDim.y;
@@ -418,7 +250,7 @@ __global__ void cuDslash(cuComplex *phi, cuComplex *r){
 
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork = idirac+4;
-			cuComplex a_1, a_2;
+			cuDoubleComplex a_1, a_2;
 			a_1=conj(jqq)*gamval[4][idirac];
 			//We subtract a_2, hence the minus
 			a_2=-jqq*gamval[4][idirac];
@@ -495,7 +327,7 @@ __global__ void cuDslash(cuComplex *phi, cuComplex *r){
 		}
 	}
 }
-__global__ void cuDslashd(cuComplex *phi, cuComplex *r){
+__global__ void cuDslashd(cuDoubleComplex *phi, cuDoubleComplex *r){
 	int blockID = (gridDim.x*blockIdx.y)+blockIdx.x;
 	int threadID = (blockID*(blockDim.x*blockDim.y))+(threadIdx.y*blockDim.x)+threadIdx.y;
 	int thread_count = gridDim.x*gridDim.y*blockDim.x*blockDim.y;
@@ -504,7 +336,7 @@ __global__ void cuDslashd(cuComplex *phi, cuComplex *r){
 		//Diquark Term (antihermitian) The signs of a_1 and a_2 below flip under dagger
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork = idirac+4;
-			cuComplex a_1, a_2;
+			cuDoubleComplex a_1, a_2;
 			//We subtract a_1, hence the minus
 			a_1=-conj(jqq)*gamval[4][idirac];
 			a_2=jqq*gamval[4][idirac];
@@ -587,7 +419,7 @@ __global__ void cuDslashd(cuComplex *phi, cuComplex *r){
 		}
 	}
 }
-__global__ void cuHdslash(cuComplex *phi, cuComplex *r){
+__global__ void cuHdslash(cuDoubleComplex *phi, cuDoubleComplex *r){
 	int blockID = (gridDim.x*blockIdx.y)+blockIdx.x;
 	int threadID = (blockID*(blockDim.x*blockDim.y))+(threadIdx.y*blockDim.x)+threadIdx.y;
 	int thread_count = gridDim.x*gridDim.y*blockDim.x*blockDim.y;
@@ -639,7 +471,7 @@ __global__ void cuHdslash(cuComplex *phi, cuComplex *r){
 		}
 	}
 }
-__global__ void cuHdslashd(cuComplex *phi, cuComplex *r){
+__global__ void cuHdslashd(cuDoubleComplex *phi, cuDoubleComplex *r){
 	int blockID = (gridDim.x*blockIdx.y)+blockIdx.x;
 	int threadID = (blockID*(blockDim.x*blockDim.y))+(threadIdx.y*blockDim.x)+threadIdx.y;
 	int thread_count = gridDim.x*gridDim.y*blockDim.x*blockDim.y;
@@ -696,7 +528,7 @@ __global__ void cuHdslashd(cuComplex *phi, cuComplex *r){
 		}
 	}
 }
-__global__ void cuForce(double *dSdpi, cuComplex *X2){
+__global__ void cuForce(double *dSdpi, cuDoubleComplex *X2){
 	int blockID = (gridDim.x*blockIdx.y)+blockIdx.x;
 	int threadID = (blockID*(blockDim.x*blockDim.y))+(threadIdx.y*blockDim.x)+threadIdx.y;
 	int thread_count = gridDim.x*gridDim.y*blockDim.x*blockDim.y;

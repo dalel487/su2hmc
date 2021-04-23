@@ -81,13 +81,13 @@ int ismaster;
 //may as well put them in here instead.
 //Gauges
 #ifdef __NVCC__
-cuComplex *u11, *u12;
+cuDoubleComplex *u11, *u12;
 #else
 complex *u11, *u12;
 #endif
 // Trial matrices
 #ifdef __NVCC__
-cuComplex *u11t, *u12t;
+cuDoubleComplex *u11t, *u12t;
 #else
 complex *u11t, *u12t;
 #endif

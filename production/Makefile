@@ -5,7 +5,9 @@ FC= mpiifort
 
 #FFLAGS= -O3 -I /bgsys/drivers/toolchain/V1R1M2/gnu-linux/lib/gcc/powerpc64-bgq-linux/4.4.6/finclude/
 
-FFLAGS= -g -O3 -ipo -xCORE-AVX512 -mkl -qopt-zmm-usage=high -I /bgsys/drivers/toolchain/V1R1M2/gnu-linux/lib/gcc/powerpc64-bgq-linux/4.4.6/finclude/ -qopenmp
+FFLAGS= -ipo -fpp -mkl -O0 -g -qopenmp -xCOMMON-AVX512 -mkl -qopt-zmm-usage=high -static-intel -DDIAGNOSTICS \
+		-DNO_TIME -DNO_SPACE
+
 
 LFLAGS=
 
@@ -13,7 +15,8 @@ EXE=	su2hmc.exe
 
 SRC= \
 	su2hmc.f \
-	par_mpi.f
+	par_mpi.f \
+      diag.f
 
 INC= \
 	precision.h \
