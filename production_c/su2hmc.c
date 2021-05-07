@@ -143,9 +143,9 @@ int main(int argc, char *argv[]){
 	//			For some reason this leaves the trial fields as zero in the FORTRAN code?
 	//istart > 0: Random/Hot Start
 	Init(istart);
-	#ifdef DIAGNOSTIC
+#ifdef DIAGNOSTIC
 	Diagnostics(istart);
-	#endif
+#endif
 
 	//Initial Measurements
 	//====================
@@ -246,14 +246,17 @@ int main(int argc, char *argv[]){
 			//Probably makes sense to declare this outside the loop
 			//but I do like scoping/don't want to break anything else just yeat
 			complex *R=mkl_malloc(kfermHalo*sizeof(complex),AVX);
+#else
+			complex *R=malloc(kfermHalo*sizeof(complex));
+#endif
 			//Multiply the dimension of R by 2 because R is complex
 			//The FORTRAN code had two gaussian routines.
 			//gaussp was the normal box-muller and gauss0 didn't have 2 inside the square root
 			//Using σ=1/sqrt(2) in these routines has the same effect as gauss0
-			vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, R, 0, 1/sqrt(2));
-#else
-			complex *R=malloc(kfermHalo*sizeof(complex));
+#if (defined(USE_RAN2)||!defined(USE_MKL))
 			Gauss_z(R, kferm, 0, 1/sqrt(2));
+#else
+			vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, R, 0, 1/sqrt(2));
 #endif
 			Dslashd(R1, R);
 			memcpy(Phi+na*kfermHalo,R1, nc*ngorkov*kvol*sizeof(complex));
@@ -274,10 +277,10 @@ int main(int argc, char *argv[]){
 		//========
 		//We're going to make the most of the new Gauss_d routine to send a flattened array
 		//and do this all in one step.
-#ifdef USE_MKL
-		vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, kmom, pp, 0, 1);
-#else
+#if (defined(USE_RAN2)||!defined(USE_MKL))
 		Gauss_d(pp, kmom, 0, 1);
+#else
+		vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, kmom, pp, 0, 1);
 #endif
 
 		//Initialise Trial Fields
@@ -691,16 +694,21 @@ int Init(int istart){
 		//		complex *cu_u1xt;
 		//		cudaMallocManaged(&cu_u1xt, ndim*kvol*sizeof(complex));
 
-#if defined USE_MKL
+#if (defined USE_MKL&&!defined USE_RAN2)
 		//Good news, casting works for using a double to create random complex numbers
 		vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*kvol, u11t, -1, 1);
 		vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*kvol, u12t, -1, 1);
 #else
 		//Depending if we have the RANLUX or SFMT19977 generator.	
-#pragma unroll
+//#pragma omp parallel for
 		for(int i=0; i<kvol*ndim;i++){
+#ifdef USE_RAN2
+			u11t[i]=ran2(&seed)+I*ran2(&seed);
+			u12t[i]=ran2(&seed)+I*ran2(&seed);
+#else
 			u11t[i]=sfmt_genrand_real1(&sfmt)+sfmt_genrand_real1(&sfmt)*I;
 			u12t[i]=sfmt_genrand_real1(&sfmt)+sfmt_genrand_real1(&sfmt)*I;
+#endif
 		}
 #endif
 		Reunitarise();
@@ -949,7 +957,7 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
 	//if statements quicker to type
 	complex betan;
-	for(int niterx=0; niterx<niterc; niterx++){
+	for(int niterx=1; niterx<=niterc; niterx++){
 		(*itercg)++;
 		//x2 =  (M^†M)p 
 		Hdslash(x1,p); Hdslashd(x2, x1);
@@ -1102,7 +1110,7 @@ int Congradp(int na, double res, int *itercg){
 	//if statements quicker to type
 	complex betan;
 	Trial_Exchange();
-	for(int niterx=0; niterx<niterc; niterx++){
+	for(int niterx=1; niterx<=niterc; niterx++){
 		(*itercg)++;
 		Dslash(x1,p);
 		//We can't evaluate α on the first niterx because we need to get β_n.
@@ -1226,10 +1234,10 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 	//where I do have an issue is the loop ordering.
 
 	//The root two term comes from the fact we called gauss0 in the fortran code instead of gaussp
-#ifdef USE_MKL
-	vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, xi, 0, 1/sqrt(2));
-#else
+#if (defined(USE_RAN2)||!defined(USE_MKL))
 	Gauss_z(xi, kferm, 0, 1/sqrt(2));
+#else
+	vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, xi, 0, 1/sqrt(2));
 #endif
 	memcpy(x, xi, kferm*sizeof(complex));
 

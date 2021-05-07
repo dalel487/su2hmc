@@ -105,7 +105,7 @@ c*******************************************************************
       ibound=-1
 
 c cj   istart.lt.0 : start from tape
-      istart=2
+      istart=1
 c      istart=-1
 c cj
 c     iread=1
@@ -145,7 +145,7 @@ c        open(unit=98,file='control',status='unknown')
       jqq=cmplx(ajq,0.0)*exp(cmplx(0.0,athq))
       call par_ranset(seed)
 c*******************************************************************
-c     initialization
+c     initialisation
 c     istart.lt.0 : start from tape
 c     istart=0    : ordered start
 c     istart=1    : random start
@@ -153,14 +153,14 @@ c*******************************************************************
       call init(istart)
 !	#ifdef DIAGNOSTICS
 !     OMP PARALLEL FOR SIMD COLLAPSE(2)
-      DO 9026 MU= 1, NDIM
-      DO 9026 I = 1, KVOL
-      U11T(I,MU)=U11(1,MU)
-      U12T(I,MU)=U12(1,MU)
+!      DO 9026 MU= 1, NDIM
+!      DO 9026 I = 1, KVOL
+!      U11T(I,MU)=U11(1,MU)
+!      U12T(I,MU)=U12(1,MU)
 9026  CONTINUE
-      CALL DIAG(ISTART)
-      CALL MPI_FINALIZE(IERR)
-      GOTO 9025
+!      CALL DIAG(ISTART)
+!      CALL MPI_FINALIZE(IERR)
+!      GOTO 9025
 !	#endif
 
 c Initial measurements
@@ -345,7 +345,7 @@ c*******************************************************************
 	do 25 mu = 1, ndim
 		av_for=av_for+dSdpi(mu,iadj,i)
 25	continue
-	write(*,*) "Average force after trial init:", av_for/kmom
+c	write(*,*) "Average force after trial init:", av_for/kmom
       d=dt*0.5
       do 2004 i=1,kvol
       do 2004 iadj=1,nadj
@@ -381,13 +381,15 @@ c
 c  step (ii)  p(t+3dt/2)=p(t+dt/2)-dSds(t+dt)*dt (1/2 step on last iteration)
 c
       call force(dSdpi,0,rescgg)
-	av_for=0
-	do 26 i = 1, kvol
-	do 26 iadj = 1, nadj
-	do 26 mu = 1, ndim
-		av_for=av_for+dSdpi(mu,iadj,i)
-26	continue
-	write(*,*) "Average force after trial update:", av_for/kmom
+#ifdef _DEBUG
+      av_for=0
+      do 26 i = 1, kvol
+      do 26 iadj = 1, nadj
+      do 26 mu = 1, ndim
+      av_for=av_for+dSdpi(mu,iadj,i)
+26    continue
+      write(*,*) "Average force after trial update:", av_for/kmom
+#endif
 c
 c test for end of random trajectory
 c 
@@ -1031,9 +1033,11 @@ c
 7     continue
 
       if(betan.lt.resid) then
-         write(*,648)  niterx, betan, resid
+	if(ismaster) then 
+	write(*,648)  niterx, betan, resid
 648      format('Iter (CG) = ',i, ' resid = ', f, ' toler = ',f)
          call flush(7)
+	endif
 	   goto 8
       endif
 1     continue
@@ -1425,7 +1429,7 @@ c*******************************************************************
 c     sets initial values
 c     istart=0 cold start
 c     istart=1 hot start
-c     istart<0 no initialization
+c     istart<0 no initialisation
 c*******************************************************************
       implicit none
       include "precision.h"
@@ -1442,7 +1446,7 @@ c     include common block definition
       complex(kind=cmplxkind) one,zi
 
       integer istart,k,l,j,i,ic,ksize3,ku,idirac,mu,ind
-      real(kind=realkind) chem1,chem2,ranf,ranf1,ranf2
+      real(kind=realkind) chem1,chem2,ranf,ranf1,ranf2,ran2
 c
       one=(1.0,0.0)
       zi=(0.0,1.0)
@@ -1562,12 +1566,17 @@ c
 40    continue
       do 61 mu=1,ndim
       do 61 ind=1,kvol
-      call random_number(ranf1)
-      call random_number(ranf2)
-      u11t(ind,mu)=cmplx(2.0*ranf1-1.0,2.0*ranf2-1.0)
-      call random_number(ranf1)
-      call random_number(ranf2)
-      u12t(ind,mu)=cmplx(2.0*ranf1-1.0,2.0*ranf2-1.0)
+c      call random_number(ranf1)
+c      call random_number(ranf2)
+c      RANF1 = RAN2(SEED)
+c      RANF2 = RAN2(SEED)
+c      u11t(ind,mu)=cmplx(2.0*ranf1-1.0,2.0*ranf2-1.0)
+      u11t(ind,mu)=cmplx(2.0*ran2(seed)-1.0,2.0*ran2(seed)-1.0)
+c      call random_number(ranf1)
+c      call random_number(ranf2)
+c      RANF1 = RAN2(SEED)
+c      RANF2 = RAN2(SEED)
+      u12t(ind,mu)=cmplx(2.0*ran2(seed)-1.0,2.0*ran2(seed)-1.0)
 61    continue
       call reunitarise
       do 62 mu=1,ndim
@@ -1876,6 +1885,7 @@ c**********************************************************************
       include "precision.h"
       include "sizes.h"
 c     include common block definition
+      include "common_gauge.h" 
       include "common_trans.h"
  
       integer :: icount = 0
@@ -1883,7 +1893,7 @@ c     include common block definition
       character(32) :: filename
 
       real(kind=realkind) ps(2,kvol+halo)
-      real(kind=realkind) ranf,theta, r , rand
+      real(kind=realkind) ranf,theta,r,rand,ran2
       integer il
 c       r was added by me for debugging      
 c      if(ismaster) then
@@ -1894,15 +1904,16 @@ c      endif
 c     Previously the programme used RANF() as defined later on
 c     But this was generating really weird outputs so is
 c     being replaced by the built in PRNG for now.
-1000  call random_number(r)
-      ps(2,il)=sqrt(-2.0*log(r))
+c1000  call random_number(r)
+1000  ps(2,il)=sqrt(-2.0*log(ran2(seed)))
 c      if(ismaster) then
 c              write(*,*) "r=", r, "sqrt(-2.0*log((rand()))=", ps(2,il)
 c      endif
 c      do 1001 il=1,kvol
 c      theta=tpi*rand()
-      call random_number(theta)
-      theta=tpi*theta
+c      call random_number(theta)
+c      theta = ran2(seed)
+      theta=tpi*ran2(seed)
       ps(1,il)=ps(2,il)*sin(theta)
       ps(2,il)=ps(2,il)*cos(theta)
 c1001  continue 
@@ -1931,6 +1942,7 @@ c**********************************************************************
       include "precision.h"
       include "sizes.h"
 c     include common block definition
+      include "common_gauge.h" 
       include "common_trans.h"
 
       integer :: icount = 0
@@ -1938,7 +1950,7 @@ c     include common block definition
       character(32) :: filename
 
       real(kind=realkind) ps(2,kvol+halo)
-      real(kind=realkind) ranf,theta
+      real(kind=realkind) ranf,theta,ran2,r
       integer il
 
 c      write(6,1)
@@ -1950,12 +1962,14 @@ c     But this was generating really weird outputs so is
 c     being replaced by the built in PRNG for now.
 c     Because recycling is good we'll use ranf as a variable
 c     instead of a function here. What could go wrong!
-1000  call random_number(ranf)
-      ps(2,il)=sqrt(-log(ranf))
+c1000  call random_number(ranf)
+c1000  r = ran2(seed)
+      ps(2,il)=sqrt(-log(ran2(seed)))
 c      do 1001 il=1,kvol
 c      theta=tpi*ranf()
-      call random_number(theta)
-      theta=theta*tpi
+c      call random_number(theta)
+      theta = ran2(seed)
+      theta=ran2(seed)*tpi
       ps(1,il)=ps(2,il)*sin(theta)
       ps(2,il)=ps(2,il)*cos(theta)
 c 1001  continue 
@@ -2291,59 +2305,107 @@ c
       end
 C========================================================================
 C
-          SUBROUTINE RANGET(SEED)
-          implicit none
-          DOUBLE PRECISION    SEED,     G900GT,   G900ST,   DUMMY
-          SEED  =  G900GT()
-          RETURN
-          ENTRY RANSET(SEED)
-          DUMMY  =  G900ST(SEED)
-          RETURN
-          END
+      SUBROUTINE RANGET(SEED)
+      implicit none
+      DOUBLE PRECISION    SEED,     G900GT,   G900ST,   DUMMY
+      SEED  =  G900GT()
+      RETURN
+      ENTRY RANSET(SEED)
+      DUMMY  =  G900ST(SEED)
+      RETURN
+      END
 
-          FUNCTION RANF()
-          implicit none
-          include "precision.h"
-          include "sizes.h"
-          real(kind=realkind) :: RANF
-          real(kind=realkind), parameter :: TINY = 1.0e-15
-          DOUBLE PRECISION    G900GT,   G900ST
-          DOUBLE PRECISION    DS(2),    DM(2),    DSEED
-          DOUBLE PRECISION    DX24,     DX48
-          DOUBLE PRECISION    DL,       DC,       DU,       DR
-          DATA      DS     /  1665 1885.D0, 286 8876.D0  /
-          DATA      DM     /  1518 4245.D0, 265 1554.D0  /
-          DATA      DX24   /  1677 7216.D0  /
-          DATA      DX48   /  281 4749 7671 0656.D0  /
-          DL  =  DS(1) * DM(1)
-          DC  =  DINT(DL/DX24)
-          DL  =  DL - DC*DX24
-          DU  =  DS(1)*DM(2) + DS(2)*DM(1) + DC
-          DS(2)  =  DU - DINT(DU/DX24)*DX24
-          DS(1)  =  DL
-          DR     =  (DS(2)*DX24 + DS(1)) / DX48
-          if (DR.gt.1.0) then
-             write(*,*) 'WARNING Capped ranf to 1.0'
-             RANF = 1.0
-          elseif (DR.le.0.0) then
-             write(*,*) 'WARNING SMALL ranf', DR
-             RANF = TINY
-          else
-             RANF=  DR
-          endif
-          RETURN
-          ENTRY G900GT()
-          G900GT  =  DS(2)*DX24 + DS(1)
-          RETURN
-          ENTRY G900ST(DSEED)
-          DS(2)  =  DINT(DSEED/DX24)
-          DS(1)  =  DSEED - DS(2)*DX24
-          G900ST =  DS(1)
-c          write(*,*) 'On proc ', procid, ', ds = ', ds(1), ds(2)
-c          call flush(6)
-          RETURN
-          END
-c***********************************************************************
+      FUNCTION RANF()
+      implicit none
+      include "precision.h"
+      include "sizes.h"
+      real(kind=realkind) :: RANF
+      real(kind=realkind), parameter :: TINY = 1.0e-15
+      DOUBLE PRECISION    G900GT,   G900ST
+      DOUBLE PRECISION    DS(2),    DM(2),    DSEED
+      DOUBLE PRECISION    DX24,     DX48
+      DOUBLE PRECISION    DL,       DC,       DU,       DR
+      DATA      DS     /  1665 1885.D0, 286 8876.D0  /
+      DATA      DM     /  1518 4245.D0, 265 1554.D0  /
+      DATA      DX24   /  1677 7216.D0  /
+      DATA      DX48   /  281 4749 7671 0656.D0  /
+      DL  =  DS(1) * DM(1)
+      DC  =  DINT(DL/DX24)
+      DL  =  DL - DC*DX24
+      DU  =  DS(1)*DM(2) + DS(2)*DM(1) + DC
+      DS(2)  =  DU - DINT(DU/DX24)*DX24
+      DS(1)  =  DL
+      DR     =  (DS(2)*DX24 + DS(1)) / DX48
+      if (DR.gt.1.0) then
+         write(*,*) 'WARNING Capped ranf to 1.0'
+         RANF = 1.0
+      elseif (DR.le.0.0) then
+         write(*,*) 'WARNING SMALL ranf', DR
+         RANF = TINY
+      else
+         RANF=  DR
+      endif
+      RETURN
+      ENTRY G900GT()
+      G900GT  =  DS(2)*DX24 + DS(1)
+      RETURN
+      ENTRY G900ST(DSEED)
+      DS(2)  =  DINT(DSEED/DX24)
+      DS(1)  =  DSEED - DS(2)*DX24
+      G900ST =  DS(1)
+c     write(*,*) 'On proc ', procid, ', ds = ', ds(1), ds(2)
+c     call flush(6)
+      RETURN
+      END
+      ! ran2 random generator program !
+      ! This function returns a random number between 0 ans 1.
+      ! The function is now threadsafe. Below is an example of how to ! use it.
+      !
+      ! REAL X
+      ! INTEGER SEED
+      ! X = RAN2(SEED)
+      !
+
+
+      FUNCTION RAN2(IDUM)
+      IMPLICIT NONE
+      INCLUDE "precision.h"
+      INTEGER IDUM,IM1,IM2,IMM1,IA1,IA2,IQ1,IQ2,IR1,IR2,NTAB,NDIV
+      REAL(KIND=REALKIND) :: RAN2,AM,EPS,RNMX
+      PARAMETER (IM1=2147483563,IM2=2147483399,AM=1./IM1,IMM1=IM1-1,
+     &IA1=40014,IA2=40692,IQ1=53668,IQ2=52774,IR1=12211,IR2=3791,
+     &NTAB=32,NDIV=1+IMM1/NTAB,EPS=1.2E-7,RNMX=1.-EPS)
+      INTEGER IDUM2,J,K,IV(NTAB),IY
+      SAVE IV,IY,IDUM2
+      DATA IDUM2/123456789/, IV/NTAB*0/, IY/0/
+!    $OMP THREADPRIVATE(IDUM2,IV,IY)
+      IF (IDUM.LE.0) THEN 
+            IDUM=MAX(-IDUM,1) 
+            IDUM2=IDUM
+
+            DO J=NTAB+8,1,-1
+                  K=IDUM/IQ1 
+                  IDUM=IA1*(IDUM-K*IQ1)-K*IR1 
+                  IF (IDUM.LT.0) IDUM=IDUM+IM1 
+                  IF (J.LE.NTAB) IV(J)=IDUM
+            END DO 
+            IY=IV(1)
+      ENDIF
+
+      K=IDUM/IQ1 
+      IDUM=IA1*(IDUM-K*IQ1)-K*IR1
+      IF (IDUM.LT.0) IDUM=IDUM+IM1 
+      K=IDUM2/IQ2 
+      IDUM2=IA2*(IDUM2-K*IQ2)-K*IR2 
+      IF (IDUM2.LT.0) IDUM2=IDUM2+IM2
+      J =1+IY/NDIV
+      IY=IV(J)-IDUM2
+      IV(J)=IDUM 
+      IF(IY.LT.1)IY=IY+IMM1 
+      RAN2=MIN(AM*IY,RNMX)
+      RETURN
+      END FUNCTION RAN2
+C***********************************************************************
       subroutine dslash(Phi,R,u11,u12)
 c
 c     calculates Phi = M*R

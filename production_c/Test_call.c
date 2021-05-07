@@ -43,6 +43,23 @@ int main(int argc, char *argv[]){
 	 /*Second test, is the Addrc function functioning?
 	  *
 	  */
-	Addrc();
+//	Addrc();
+	/* Test III: Gaussian distribution
+	 *
+	 */
+	double *R = mkl_malloc(8192*8192*sizeof(double),AVX);
+	Gauss_d(R, 8192*8192, 0,1.0);
+	FILE *dub_out = fopen("double_out", "w");
+	for(int i = 0; i<8192*8192;i++)
+		fprintf(dub_out, "%f\n", R[i]);
+	fclose(dub_out);
+	free(R);
+	complex *Rz = mkl_malloc(8192*8192*sizeof(complex),AVX);
+	Gauss_z(Rz, 8192*8192, 0,1.0);
+	FILE *com_out= fopen("complex_out", "w");
+	for(int i = 0; i<8192*8192;i++)
+		fprintf(com_out, "%f\t%f\n", creal(Rz[i]), cimag(Rz[i]));
+	fclose(dub_out);
+	free(Rz);
 	return 0;
 }

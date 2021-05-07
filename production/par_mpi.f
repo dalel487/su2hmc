@@ -877,11 +877,12 @@ c      call flush(6)
 
       include "precision.h"
       include "sizes.h"
+      include "common_gauge.h"
 
-      real(kind=realkind) :: par_granf, ranf
+      real(kind=realkind) :: par_granf, ran2
 
       if (procid .eq. masterproc) then
-        par_granf = ranf()
+        par_granf = ran2(seed)
 c        write(*,*) 'par_granf: ranf() gives ', par_granf
       end if
 

@@ -9,7 +9,7 @@ IFLAGS=     -I./INCLUDE -I./SFMT-src-1.5.1
 
 CFLAGS=      $(IFLAGS) -mkl -DUSE_MKL -std=gnu99 -DHAVE_SSE2 -ipo -qopt-zmm-usage=high\
 		 -xCOMMON-AVX512 -static-intel -static-libgcc -DMKL_DIRECT_CALL -I_MPI_FABRICS=ofi\
-		 -qopenmp-simd -qopenmp -qopenmp-link=static 
+		 -qopenmp-simd -qopenmp -qopenmp-link=static -DUSE_RAN2
 
 LFLAGS=	 -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a \
 		${MKLROOT}/lib/intel64/libmkl_intel_thread.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group\
@@ -60,7 +60,7 @@ release:	CFLAGS += -O3 -g -inline-level=2\
 release:	$(EXE)
 
 debug:	CFLAGS += -g -O0\
-		-qopt-report -DSA3AT -D_DEBUG -DDIAGNOSTIC -DNO_TIME -DNO_SPACE 
+		-qopt-report -DSA3AT -D_DEBUG #-DDIAGNOSTIC# -DNO_TIME -DNO_SPACE 
 
 	
 debug:	$(EXE)
