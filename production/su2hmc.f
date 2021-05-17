@@ -105,7 +105,7 @@ c*******************************************************************
       ibound=-1
 
 c cj   istart.lt.0 : start from tape
-      istart=1
+      istart=2
 c      istart=-1
 c cj
 c     iread=1
@@ -126,7 +126,7 @@ c        open(unit=98,file='control',status='unknown')
         close(25)
       end if
 
-      seed=967580165.0
+      seed=967580165
       if(iread.eq.1) then
         if (ismaster) write(*,*) 'Calling par_sread =  ', seed
         call par_sread()
@@ -151,17 +151,17 @@ c     istart=0    : ordered start
 c     istart=1    : random start
 c*******************************************************************
       call init(istart)
-!	#ifdef DIAGNOSTICS
+#ifdef DIAGNOSTICS
 !     OMP PARALLEL FOR SIMD COLLAPSE(2)
-!      DO 9026 MU= 1, NDIM
-!      DO 9026 I = 1, KVOL
-!      U11T(I,MU)=U11(1,MU)
-!      U12T(I,MU)=U12(1,MU)
+      DO 9026 MU= 1, NDIM
+      DO 9026 I = 1, KVOL
+      U11T(I,MU)=U11(I,MU)
+      U12T(I,MU)=U12(I,MU)
 9026  CONTINUE
-!      CALL DIAG(ISTART)
-!      CALL MPI_FINALIZE(IERR)
-!      GOTO 9025
-!	#endif
+      CALL DIAG(ISTART)
+      CALL MPI_FINALIZE(IERR)
+      GOTO 9025
+#endif
 
 c Initial measurements
 c
@@ -998,6 +998,9 @@ c
       x(i)=x(i)+alpha*p(i)
 4     continue
 201   continue
+      do i=1,kferm2
+      betan=betan+conjg(r(i))*r(i) 
+	end do
 c     
 c   r=r-alpha*(Mdagger)Mp
 c
@@ -1554,7 +1557,7 @@ c
 c
 c     initialise gauge fields
 c
-      if(istart .eq. 1)goto 40
+      if(istart .ge. 1)goto 40
 c     (else cold start)
       do 10 mu=1,ndim
       do 10 ind=1,kvol
@@ -1564,8 +1567,8 @@ c     (else cold start)
       return
 c
 40    continue
-      do 61 mu=1,ndim
       do 61 ind=1,kvol
+      do 61 mu=1,ndim
 c      call random_number(ranf1)
 c      call random_number(ranf2)
 c      RANF1 = RAN2(SEED)
@@ -1677,7 +1680,7 @@ c     where in the halo the core point i should go
 c
 c     Halo points are ordered "as they come" in the linear loop over
 c     core sites
-c     C NOTE: Reverse order of indices when translating!!
+c     C NOTE: Reverse order of indices when translating?
 c
 
       do 40 j4=1,ksizet
@@ -1828,8 +1831,19 @@ c      write(*,*) 'ihu3 = ', ihu3, ', check = ', h2u(3) - h1u(3) + 1
 
 c      write(*,*) 'ihd4 = ', ihd4, ', check = ', h2d(4) - h1d(4) + 1
 c      write(*,*) 'ihu4 = ', ihu4, ', check = ', h2u(4) - h1u(4) + 1
-
-
+#ifdef DIAGNOSTICS
+!	$OMP PARALLEL SECTIONS
+!	$OMP PARALLEL SECTION
+      DO 2132 IC = 1,KVOL
+      WRITE(7001,7003) ID(IC,1), ID(IC,2), ID(IC,3), ID(IC,4)
+2132  CONTINUE
+!	$OMP PARALLEL SECTION
+      DO 2133 IC = 1,KVOL
+      WRITE(7002,7003) IU(IC,1), IU(IC,2), IU(IC,3), IU(IC,4)
+2133  CONTINUE
+!	$OMP END SECTIONS
+7003  FORMAT(I,1X,I,1X,I,1X,I)
+#endif
       return
       end
 c

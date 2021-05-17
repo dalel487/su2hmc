@@ -25,17 +25,17 @@ int Addrc(){
 	//Rather than having 8 ih variables I'm going to use a 2x4 array
 	//down is 0, up is 1
 	int ih[2][4] = {{-1,-1,-1,-1},{-1,-1,-1,-1}};
-	#ifdef USE_MKL
+#ifdef USE_MKL
 	id = mkl_malloc(ndim*kvol*sizeof(int),AVX);
 	iu = mkl_malloc(ndim*kvol*sizeof(int),AVX);
 	hd = mkl_malloc(ndim*halo*sizeof(int),AVX);
 	hu = mkl_malloc(ndim*halo*sizeof(int),AVX);
-	#else
+#else
 	id = malloc(ndim*kvol*sizeof(int));
 	iu = malloc(ndim*kvol*sizeof(int));
 	hd = malloc(ndim*halo*sizeof(int));
 	hu = malloc(ndim*halo*sizeof(int));
-	#endif
+#endif
 
 	//Do the lookups appropriate for overindexing into halos
 	//order is down, up for each x y z t
@@ -85,17 +85,18 @@ int Addrc(){
 	 */	
 	int iaddr, ic;
 	//if using ic++ inside the loop instead
-	ic=-1;
+//	ic=-1;
 #ifdef _DEBUG
 	printf("ksizex = %i, ksizet=%i\n", ksizex, ksizet);
 #endif
 	//The loop order here matters as it affects the value of ic corresponding to each entry
-	for(int jx=0;jx<ksizex;jx++)
-		for(int jy=0;jy<ksizey;jy++)
-			for(int jz=0;jz<ksizez;jz++)
-				for(int jt=0;jt<ksizet;jt++){
+	for(int jt=0;jt<ksizet;jt++)
+		for(int jz=0;jz<ksizez;jz++)
+			for(int jy=0;jy<ksizey;jy++)
+				for(int jx=0;jx<ksizex;jx++){
 					//First value of ic is zero as planned.
-					ic++;
+					//ic++;
+					ic=(((jt)*ksizez+(jz))*ksizey+(jy))*ksizex+jx;
 					//jx!=0 is logically equivalent to if(jx)
 					if(jx)
 						iaddr = ia(jx-1,jy,jz,jt);
@@ -104,7 +105,7 @@ int Addrc(){
 						if(ih[0][0]>= halo){
 							fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."\
 									"\nExiting...\n\n", HALOLIM, funcname, 0, 0, ih[0][0], halo);
-							MPI_Finalize();
+							MPI_Finalise();
 							exit(HALOLIM);
 						}
 						hd[0+ndim*ih[0][0]]=ic;
@@ -118,7 +119,7 @@ int Addrc(){
 						if(ih[1][0]>= halo){
 							fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."
 									"\nExiting...\n\n", HALOLIM, funcname, 1, 0, ih[1][0], halo);
-							MPI_Finalize();
+							MPI_Finalise();
 							exit(HALOLIM);
 						}
 						hu[0+ndim*ih[1][0]]=ic;
@@ -132,7 +133,7 @@ int Addrc(){
 						if(ih[0][1]>= halo){
 							fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."\
 									"\nExiting...\n\n", HALOLIM, funcname, 0, 1, ih[0][1], halo);
-							MPI_Finalize();
+							MPI_Finalise();
 							exit(HALOLIM);
 						}
 						hd[1+ndim*ih[0][1]]=ic;
@@ -146,7 +147,7 @@ int Addrc(){
 						if(ih[1][1]>= halo){
 							fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."
 									"\nExiting...\n\n", HALOLIM, funcname, 1, 1, ih[1][1], halo);
-							MPI_Finalize();
+							MPI_Finalise();
 							exit(HALOLIM);
 						}
 						hu[1+ndim*ih[1][1]]=ic;
@@ -160,7 +161,7 @@ int Addrc(){
 						if(ih[0][2]>= halo){
 							fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."\
 									"\nExiting...\n\n", HALOLIM, funcname, 0, 2, ih[0][2], halo);
-							MPI_Finalize();
+							MPI_Finalise();
 							exit(HALOLIM);
 						}
 						hd[2+ndim*ih[0][2]]=ic;
@@ -174,7 +175,7 @@ int Addrc(){
 						if(ih[1][2]>= halo){
 							fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."
 									"\nExiting...\n\n", HALOLIM, funcname, 1, 2, ih[1][2], halo);
-							MPI_Finalize();
+							MPI_Finalise();
 							exit(HALOLIM);
 						}
 						hu[2+ndim*ih[1][2]]=ic;
@@ -188,7 +189,7 @@ int Addrc(){
 						if(ih[0][3]>= halo){
 							fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."\
 									"\nExiting...\n\n", HALOLIM, funcname, 0, 3, ih[0][3], halo);
-							MPI_Finalize();
+							MPI_Finalise();
 							exit(HALOLIM);
 						}
 						hd[3+ndim*ih[0][3]]=ic;
@@ -202,7 +203,7 @@ int Addrc(){
 						if(ih[1][3]>= halo){
 							fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."
 									"\nExiting...\n\n", HALOLIM, funcname, 1, 3, ih[1][3], halo);
-							MPI_Finalize();
+							MPI_Finalise();
 							exit(HALOLIM);
 						}
 						hu[3+ndim*ih[1][3]]=ic;
@@ -210,12 +211,33 @@ int Addrc(){
 					}
 					iu[3+ndim*ic]=iaddr;
 				}
+#ifdef DIAGNOSTIC
+#pragma omp parallel sections
+	{
+#pragma omp section
+		{
+			FILE *id_out = fopen("id_out", "w");
+			for(int i=0;i<kvol;i++)
+				fprintf(id_out,"%i %i %i %i\n",id[i*ndim],id[i*ndim+1],id[i*ndim+2],id[i*ndim+3]);
+			fclose(id_out);
+		}
+#pragma omp section
+		{
+			FILE *iu_out = fopen("iu_out", "w");
+			for(int i=0;i<kvol;i++)
+				fprintf(iu_out,"%i %i %i %i\n",iu[i*ndim],iu[i*ndim+1],iu[i*ndim+2],iu[i*ndim+3]);
+			fclose(iu_out);
+
+		}
+
+	}
+#endif
 	return 0;
 }
 inline int ia(int x, int y, int z, int t){
 	/*
 	 * Described as a 21st Century address calculator, it gets the memory
-	 * address of an array entry. Kinda like Coord2?index
+	 * address of an array entry.
 	 *
 	 * Parameters:
 	 * ==========
@@ -236,8 +258,8 @@ inline int ia(int x, int y, int z, int t){
 	while(t<0) t+=ksizet; while(t>=ksizet) t-= ksizet;
 
 	//And flattening.
-	return t+ksizet*(z+ksizez*(y+ksizey*x));
-	//  	return ((t*ksizez+z)*ksizey+y)*ksizex+x;
+	//return t+ksizet*(z+ksizez*(y+ksizey*x));
+	return ((t*ksizez+z)*ksizey+y)*ksizex+x;
 }
 int Check_addr(unsigned int *table, int lns, int lnt, int imin, int imax){
 	/* Checks that the addresses are within bounds before an update
@@ -259,14 +281,14 @@ int Check_addr(unsigned int *table, int lns, int lnt, int imin, int imax){
 	int ntable = lns*lns*lns*lnt;
 	int iaddr;
 	//Collapsing two for loops together
-	#pragma omp parallel for simd
+#pragma omp parallel for simd
 	for(int j=0; j<ntable*ndim; j++){
 		iaddr = table[j];
 		if((iaddr<imin) || (iaddr>= imax)){
 			fprintf(stderr, "Error %i in %s: %i is out of the bounds of (%i,%i)\n"\
 					"for a table of size %i^3 *%i.\nExiting...\n\n",\
 					BOUNDERROR,funcname,iaddr,imin,imax,lns,lnt);
-			MPI_Finalize();
+			MPI_Finalise();
 			exit(BOUNDERROR);
 		}
 	}
@@ -427,7 +449,7 @@ int Testlcoord(int cap){
 			fprintf(stderr, "Error %i in %s: Converted index %i does not match "
 					"original index %i.\nExiting...\n\n",\
 					INDTOCOORD, funcname, index2, index);
-			MPI_Finalize();
+			MPI_Finalise();
 			exit(INDTOCOORD);
 		}
 	}
@@ -454,10 +476,10 @@ int Testgcoord(int cap){
 	 */
 	char *funcname = "Testgcoord";
 	int coord[4], index, index2;
-	#pragma omp parallel for private(coord, index, index2)
+#pragma omp parallel for private(coord, index, index2)
 	for(index=0; index<cap; index++){
 		Index2gcoord(index, coord);
-		#pragma omp critical
+#pragma omp critical
 		printf("Coordinates for %i are (x,y,z,t):[%i,%i,%i,%i].\n", index,\
 				coord[0], coord[1], coord[2], coord[3]);
 		index2 = Coord2gindex(coord);
@@ -465,7 +487,7 @@ int Testgcoord(int cap){
 			fprintf(stderr, "Error %i in %s: Converted index %i does not match "\
 					"original index %i.\nExiting...\n\n",\
 					INDTOCOORD, funcname, index2, index);
-			MPI_Finalize();
+			MPI_Finalise();
 			exit(INDTOCOORD);
 		}
 	}

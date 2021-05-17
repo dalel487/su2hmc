@@ -6,7 +6,7 @@
       complex*16 u11,u12
       common/gauge/ u11(kvol,4),u12(kvol,4),seed
 
-      real*8 seed
+      integer seed
 
       complex tmp11(kvolsmall,4),tmp12(kvolsmall,4)
 

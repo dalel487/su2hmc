@@ -94,7 +94,7 @@ int main(int argc, char *argv[]){
 	//The default values here are straight from the FORTRAN
 	//=====================================================
 	int iread = 0;
-	int istart = 2;
+	int istart = 1;
 	ibound = -1;
 	int iwrite = 1;
 	int iprint = 1; //For the measures
@@ -703,8 +703,8 @@ int Init(int istart){
 //#pragma omp parallel for
 		for(int i=0; i<kvol*ndim;i++){
 #ifdef USE_RAN2
-			u11t[i]=ran2(&seed)+I*ran2(&seed);
-			u12t[i]=ran2(&seed)+I*ran2(&seed);
+			u11t[i]=2*(ran2(&seed)-0.5+I*(ran2(&seed)-0.5));
+			u12t[i]=2*(ran2(&seed)-0.5+I*(ran2(&seed)-0.5));
 #else
 			u11t[i]=sfmt_genrand_real1(&sfmt)+sfmt_genrand_real1(&sfmt)*I;
 			u12t[i]=sfmt_genrand_real1(&sfmt)+sfmt_genrand_real1(&sfmt)*I;
@@ -939,13 +939,13 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 	cudaMallocManaged(&x1, kferm2Halo*sizeof(complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&x2, kferm2Halo*sizeof(complex),cudaMemAttachGlobal);
 #elif defined USE_MKL
-	complex *p  = mkl_malloc(kferm2Halo*sizeof(complex),AVX);
-	complex *r  = mkl_malloc(kferm2*sizeof(complex),AVX);
+	complex *p  = mkl_calloc(kferm2Halo,sizeof(complex),AVX);
+	complex *r  = mkl_calloc(kferm2,sizeof(complex),AVX);
 	complex *x1=mkl_calloc(kferm2Halo, sizeof(complex), AVX);
 	complex *x2=mkl_calloc(kferm2Halo, sizeof(complex), AVX);
 #else
-	complex *p  = malloc(kferm2Halo*sizeof(complex));
-	complex *r  = malloc(kferm2*sizeof(complex));
+	complex *p  = calloc(kferm2Halo,sizeof(complex));
+	complex *r  = calloc(kferm2,sizeof(complex));
 	complex *x1=calloc(kferm2Halo,sizeof(complex));
 	complex *x2=calloc(kferm2Halo,sizeof(complex));
 #endif
@@ -957,7 +957,7 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
 	//if statements quicker to type
 	complex betan;
-	for(int niterx=1; niterx<=niterc; niterx++){
+	for(int niterx=0; niterx<niterc; niterx++){
 		(*itercg)++;
 		//x2 =  (M^†M)p 
 		Hdslash(x1,p); Hdslashd(x2, x1);
@@ -992,6 +992,7 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 		}			
 		// r_n+1 = r_n-α(M^† M)p_n and β_n=r*.r
 #if (defined USE_MKL || defined USE_BLAS)
+		betan=cblas_dznrm2(kferm2, r,1);
 		alpha *= -1;
 		cblas_zaxpy(kferm2, &alpha, x2, 1, r, 1);
 		//Undo the negation for the BLAS routine
@@ -1025,7 +1026,7 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 		//If we get a small enough β_n before hitting the iteration cap we break
 		if(creal(betan)<resid){ 
 #ifdef _DEBUG
-			if(!rank) printf("Iter (CG) = %i resid = %e toler = %e\n", niterx, creal(betan), resid);
+			if(!rank) printf("Iter (CG) = %i resid = %e toler = %e\n", niterx+1, creal(betan), resid);
 #endif
 			break;
 		}
@@ -1110,7 +1111,7 @@ int Congradp(int na, double res, int *itercg){
 	//if statements quicker to type
 	complex betan;
 	Trial_Exchange();
-	for(int niterx=1; niterx<=niterc; niterx++){
+	for(int niterx=0; niterx<=niterc; niterx++){
 		(*itercg)++;
 		Dslash(x1,p);
 		//We can't evaluate α on the first niterx because we need to get β_n.

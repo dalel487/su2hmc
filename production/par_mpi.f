@@ -849,7 +849,8 @@ c      flush(6)
       include "precision.h"
       include "sizes.h"
 
-      double precision seed, rseed
+c      double precision seed, rseed
+      integer seed, rseed
 
 c     create new seeds in range seed to 9*seed
 c     having a range of 0*seed gave an unfortunate pattern

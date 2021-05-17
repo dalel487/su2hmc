@@ -21,11 +21,11 @@ VSLStreamStatePtr stream;
 
 //Declaring external variables
 #ifdef	USE_RAN2
-long seed = 9678165;
+long seed = 967580165;
 #elif defined(USE_MKL)
-unsigned int seed = 9678165;
+unsigned int seed = 967580165;
 #else
-int seed = 9678165;
+int seed = 967580165;
 #endif
 sfmt_t sfmt;
 

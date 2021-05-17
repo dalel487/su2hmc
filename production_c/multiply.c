@@ -283,7 +283,7 @@ int Hdslash(complex *phi, complex *r){
 #pragma omp parallel for
 		for(int i=0;i<kvol;i++){
 #ifndef NO_SPACE
-#pragma ivdep
+//#pragma ivdep
 			for(int mu = 0; mu <3; mu++){
 				int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
 #pragma omp simd aligned(phi:AVX,r:AVX,u11t:AVX,u12t:AVX)
@@ -328,7 +328,7 @@ int Hdslash(complex *phi, complex *r){
 					-dk4p[i]*(u11t[i*ndim+3]*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
 							+u12t[i*ndim+3]*(r[(uid*ndirac+idirac)*nc+1]-r[(uid*ndirac+igork1)*nc+1]))
 					-dk4m[did]*(conj(u11t[did*ndim+3])*(r[(did*ndirac+idirac)*nc]+r[(did*ndirac+igork1)*nc])
-							-u12t[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]-r[(did*ndirac+igork1)*nc+1]));
+							-u12t[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]+r[(did*ndirac+igork1)*nc+1]));
 				phi[(i*ndirac+idirac)*nc+1]+=
 					-dk4p[i]*(-conj(u12t[i*ndim+3])*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
 							+conj(u11t[i*ndim+3])*(r[(uid*ndirac+idirac)*nc+1]-r[(uid*ndirac+igork1)*nc+1]))
@@ -432,7 +432,7 @@ int Hdslashd(complex *phi, complex *r){
 					-dk4m[i]*(u11t[i*ndim+3]*(r[(uid*ndirac+idirac)*nc]+r[(uid*ndirac+igork1)*nc])
 							+u12t[i*ndim+3]*(r[(uid*ndirac+idirac)*nc+1]+r[(uid*ndirac+igork1)*nc+1]))
 					-dk4p[did]*(conj(u11t[did*ndim+3])*(r[(did*ndirac+idirac)*nc]-r[(did*ndirac+igork1)*nc])
-							-u12t[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]+r[(did*ndirac+igork1)*nc+1]));
+							-u12t[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]-r[(did*ndirac+igork1)*nc+1]));
 
 				phi[(i*ndirac+idirac)*nc+1]+=
 					-dk4m[i]*(-conj(u12t[i*ndim+3])*(r[(uid*ndirac+idirac)*nc]+r[(uid*ndirac+igork1)*nc])
@@ -544,7 +544,7 @@ int Force(double *dSdpi, int iflag, double res1){
 					//a bit neater (although harder to follow as a consequence).
 
 					//Up indices
-					uid = iu[mu*kvol+i];
+					uid = iu[mu+ndim*i];
 					igork1 = gamin[mu][idirac];	
 					dSdpi[(i*nadj)*ndim+mu]+=akappa*creal(I*
 							(conj(X1[(i*ndirac+idirac)*nc])*
@@ -559,7 +559,7 @@ int Force(double *dSdpi, int iflag, double res1){
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
 							 (-u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
 							  -conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])))
-						+creal(I*gamval[idirac][mu]*
+						+creal(I*gamval[mu][idirac]*
 								(conj(X1[(i*ndirac+idirac)*nc])*
 								 (-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
 								  +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1])
@@ -585,20 +585,20 @@ int Force(double *dSdpi, int iflag, double res1){
 							  -u12t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
 							 (u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
-							  -conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])))
-						+creal(gamval[idirac][mu]*
-								(conj(X1[(i*ndirac+idirac)*nc])*
-								 (-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
-								  +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1])
-								 +conj(X1[(uid*ndirac+idirac)*nc])*
-								 (u12t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
-								  +conj(u11t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1])
-								 +conj(X1[(i*ndirac+idirac)*nc+1])*
-								 (-u11t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
-								  -u12t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1])
-								 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-								 (-u11t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
-								  +conj(u12t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1])));
+							  -conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])));
+					dSdpi[(i*nadj+1)*ndim+mu]+=creal(gamval[mu][idirac]*
+							(conj(X1[(i*ndirac+idirac)*nc])*
+							 (-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
+							  +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1])
+							 +conj(X1[(uid*ndirac+idirac)*nc])*
+							 (u12t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
+							  +conj(u11t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1])
+							 +conj(X1[(i*ndirac+idirac)*nc+1])*
+							 (-u11t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
+							  -u12t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1])
+							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
+							 (-u11t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
+							  +conj(u12t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1])));
 
 					dSdpi[(i*nadj+2)*ndim+mu]+=akappa*creal(I*
 							(conj(X1[(i*ndirac+idirac)*nc])*
@@ -613,7 +613,7 @@ int Force(double *dSdpi, int iflag, double res1){
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
 							 (-conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc]
 							  +u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc+1])))
-						+creal(I*gamval[idirac][mu]*
+						+creal(I*gamval[mu][idirac]*
 								(conj(X1[(i*ndirac+idirac)*nc])*
 								 (u11t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
 								  +u12t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1])
@@ -757,7 +757,7 @@ int Diagnostics(int istart){
 
 	//Trial fields don't get modified so I'll set them up outside
 	switch(istart){
-		case(1):
+		case(2):
 #pragma omp parallel for simd aligned(u11t:AVX,u12t:AVX)
 			for(int i =0; i<ndim*kvol; i+=8){
 				u11t[i+0]=1+I; u12t[i]=1+I;
@@ -770,13 +770,7 @@ int Diagnostics(int istart){
 				u11t[i+7]=-1-I; u12t[i+7]=-1-I;
 			}
 			break;
-		case(2):
-#pragma omp parallel for simd aligned(u11t:AVX,u12t:AVX) collapse(2)
-			for(int i =0; i<kvol; i++)
-				for(int mu = 0; mu <ndim;mu++){
-					u11t[i*ndim+mu]=i+1+(mu+1)*I;
-					u12t[i*ndim+mu]=-i-1-(mu+1)*I;
-				}
+		case(1):
 			Trial_Exchange();
 #pragma omp parallel sections num_threads(2)
 			{
@@ -784,9 +778,9 @@ int Diagnostics(int istart){
 				{
 					FILE *trial_out = fopen("u11t", "w");
 					for(int i=0;i<ndim*(kvol+halo);i+=4)
-						fprintf(trial_out,"%.0f+I%.0f\t%.0f+I%.0f\t%.0f+I%.0f\t%.0f+I%.0f\n",
-						creal(u11t[i]),cimag(u11t[i]),creal(u11t[i+1]),cimag(u11t[i+1]),
-						creal(u11t[2+i]),cimag(u11t[2+i]),creal(u11t[i+3]),cimag(u11t[i+3]));
+						fprintf(trial_out,"%f+%fI\t%f+%fI\t%f+%fI\t%f+%fI\n",
+								creal(u11t[i]),cimag(u11t[i]),creal(u11t[i+1]),cimag(u11t[i+1]),
+								creal(u11t[2+i]),cimag(u11t[2+i]),creal(u11t[i+3]),cimag(u11t[i+3]));
 
 					fclose(trial_out);
 				}
@@ -794,9 +788,9 @@ int Diagnostics(int istart){
 				{
 					FILE *trial_out = fopen("u12t", "w");
 					for(int i=0;i<ndim*(kvol+halo);i+=4)
-						fprintf(trial_out,"%.0f+I%.0f\t%.0f+I%.0f\t%.0f+I%.0f\t%.0f+I%.0f\n",
-						creal(u12t[i]),cimag(u12t[i]),creal(u12t[i+1]),cimag(u12t[i+1]),
-						creal(u12t[2+i]),cimag(u12t[2+i]),creal(u12t[i+3]),cimag(u12t[i+3]));
+						fprintf(trial_out,"%f+%fI\t%f+%fI\t%f+%fI\t%f+%fI\n",
+								creal(u12t[i]),cimag(u12t[i]),creal(u12t[i+1]),cimag(u12t[i+1]),
+								creal(u12t[2+i]),cimag(u12t[2+i]),creal(u12t[i+3]),cimag(u12t[i+3]));
 					fclose(trial_out);
 				}
 			}
@@ -818,10 +812,10 @@ int Diagnostics(int istart){
 	}
 
 	Trial_Exchange();
-	//Reset between tests
 	for(int test = 0; test<=5; test++){
+		//Reset between tests
 #pragma omp parallel for simd
-		for(int i=0; i<kfermHalo; i++){
+		for(int i=0; i<kferm; i++){
 			R1[i]=0.5; Phi[i]=0.5;
 		}
 #pragma omp parallel for simd
