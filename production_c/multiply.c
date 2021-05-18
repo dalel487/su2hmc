@@ -485,7 +485,7 @@ int Force(double *dSdpi, int iflag, double res1){
 	for(int na = 0; na<nf; na++){
 		memcpy(X1, X0+na*kferm2Halo, nc*ndirac*kvol*sizeof(complex));
 		//FORTRAN's logic is backwards due to the implied goto method
-		//If iflag is zero we do some initalisation stuff? 
+		//If iflag is zero we do some initalisation stuff 
 		if(!iflag){
 			Congradq(na, res1,smallPhi, &itercg );
 			ancg+=itercg;

@@ -120,7 +120,7 @@ double Par_granf(){
 	char *funcname = "Par_granf";
 	double ran_val;
 	if(!rank)
-#ifdef	USE_RAN2
+#ifdef USE_RAN2
 		ran_val = ran2(&seed);
 #elif defined(USE_MKL)
 	vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 1, &ran_val, 0,1);
@@ -165,13 +165,13 @@ int Gauss_z(complex *ps, unsigned int n, const double mu, const double sigma){
 		   r=sqrt(-2.0*log(r)/r)*sigma;
 		   ps[i] = mu+u*r + I*(mu+v*r);
 		 */
-		#ifdef USE_RAN2
+#ifdef USE_RAN2
 		r=2.0*M_PI*ran2(&seed);
 		ps[i]=sigma*sqrt(-2*log(ran2(&seed)))*(cos(r)+mu+(sin(r)+mu)*I);
-		#else
+#else
 		r=2.0*M_PI*sfmt_genrand_real1(&sfmt);
 		ps[i]=sigma*sqrt(-2*log(sfmt_genrand_real1(&sfmt)))*(cos(r)+mu+(sin(r)+mu)*I);
-		#endif
+#endif
 	}     
 	return 0;
 }
@@ -204,13 +204,13 @@ int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma){
 	//If n is odd we calculate the last index seperately and the rest in pairs
 	if(n%2==1){
 		n--;
-		#ifdef USE_RAN2
+#ifdef USE_RAN2
 		r=2.0*M_PI*ran2(&seed);
 		ps[n]=sqrt(-2*log(ran2(&seed)))*cos(r);
-		#else
+#else
 		r=2.0*M_PI*sfmt_genrand_real1(&sfmt);
 		ps[n]=sqrt(-2*log(sfmt_genrand_real1(&sfmt)))*cos(r);
-		#endif
+#endif
 	}
 	for(i=0;i<n;i+=2){
 		/* Marsaglia Method for fun
@@ -224,17 +224,17 @@ int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma){
 		   ps[i] = mu+u*r; 
 		   ps[i+1]=mu+v*r;
 		 */
-		#ifdef USE_RAN2
+#ifdef USE_RAN2
 		r=2.0*M_PI*ran2(&seed);
 		u=sqrt(-2*log(ran2(&seed)))*sigma;
 		ps[i]=u*cos(r)+mu;
 		ps[i+1]=u*sin(r)+mu;
-		#else
+#else
 		r=2.0*M_PI*sfmt_genrand_real1(&sfmt);
 		u=sqrt(-2*log(sfmt_genrand_real1(&sfmt)))*sigma;
 		ps[i]=u*cos(r)+mu;
 		ps[i+1]=u*sin(r)+mu;
-		#endif
+#endif
 	}     
 	return 0;
 }

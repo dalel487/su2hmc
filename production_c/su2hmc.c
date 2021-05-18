@@ -358,7 +358,8 @@ int main(int argc, char *argv[]){
 			//Need to check Par_granf again 
 			//The same for loop is given in both the if and else
 			//statement but only the value of d changes. This is due to the break in the if part
-			if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
+			//if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
+			if(step==stepl){
 #if (defined USE_MKL || defined USE_BLAS)
 				cblas_daxpy(ndim*nadj*kvol, -d, dSdpi, 1, pp, 1);
 #else
@@ -398,7 +399,7 @@ int main(int argc, char *argv[]){
 		//The Monte-Carlo
 		//x is unassigned in the FORTRAN at declaration, so hopefully that won't be an issue here...
 		//Only update x if dH is negative
-		if(dH<0 && Par_granf()<=y){
+		if(dH>0 || Par_granf()<=y){
 			// We only test x if it is updated (inside the previous if block)
 			//But that required a goto in FORTRAN to get around doing the acceptance operations
 			//in the case where dH>=0 or x<=y. We'll nest the if statements in C to 
@@ -489,10 +490,10 @@ int main(int argc, char *argv[]){
 							case(2):
 								//The origninal code implicitly created these files with the name
 								//fort.XX where XX is the file label
-								//from FORTRAN. We'll stick with that for now.
+								//from FORTRAN. This was fort.12
 								{
 									FILE *fortout;
-									char *fortname = "fort12"; 
+									char *fortname = "Plaquette"; 
 									char *fortop= (itraj==1) ? "w" : "a";
 									if(!(fortout=fopen(fortname, fortop) )){
 										fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\

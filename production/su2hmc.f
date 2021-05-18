@@ -393,10 +393,11 @@ c
 c
 c test for end of random trajectory
 c 
-      ytest=par_granf()
+c      ytest=par_granf()
 c      call ranfdump(ytest)
-      if((ytest.lt.proby.or.iter.ge.(iterl/5)*6)
-     &       .and.iter.ge.(iterl/5)*4)then
+c      if((ytest.lt.proby.or.iter.ge.(iterl/5)*6)
+c     &       .and.iter.ge.(iterl/5)*4)then
+      if(iter.eq.iterl) then
       d=dt*0.5
       do 2005 i=1,kvol
       do 2005 iadj=1,nadj
@@ -434,6 +435,7 @@ c**********************************************************************
       yyav=yyav+y*y 
       if(dH.lt.0.0)then
       x=par_granf()
+	write(*,*) "x=", x
 c      call ranfdump(x)
       if(x.gt.y)goto 600
       endif
