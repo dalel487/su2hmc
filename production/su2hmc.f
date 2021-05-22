@@ -68,7 +68,7 @@ c     include common block definitions - header file for each label
       real(kind=realkind) athq,h0,s0,action,d,aaa,ccc,sss
       real(kind=realkind) ytest,ranf,par_granf,h1,s1,dh,ds,y,x,vel2,pbp
       real(kind=realkind) endenf,denf,hg,avplaqs,avplaqt,poly,atraj
-      real(kind=realkind) av_for
+      real(kind=realkind) av_for,elapsed,start_time
 
       complex(kind=cmplxkind) usum
       real(kind=realkind) norm
@@ -244,6 +244,9 @@ c*******************************************************************
 c*******************************************************************
 c     start of classical evolution
 c*******************************************************************
+#ifdef SA3AT
+      START_TIME=MPI_WTIME()
+#endif
       do 601 isweep=1,iter2
       if (ismaster) then
         write(*,*) 'Starting isweep = ', isweep
@@ -525,6 +528,15 @@ c
 c*******************************************************************
 c     end of main loop
 c*******************************************************************
+#ifdef SA3AT
+      IF(ISMASTER) THEN
+      ELAPSED=MPI_WTIME()
+      OPEN(653,FILE=,'./Bench_times.csv',ACCESS='APPEND')
+      WRITE(653,*) NX,',',NT,',',KVOL,',',NTHREADS,',',ELAPSED,',',
+     &ELAPSED/NTRAJ
+      CLOSE(653)
+      ENDIF
+#endif
       actiona=actiona/iter2 
       vel2a=vel2a/iter2 
       pbpa=pbpa/ipbp
@@ -1837,11 +1849,11 @@ c      write(*,*) 'ihu4 = ', ihu4, ', check = ', h2u(4) - h1u(4) + 1
 !	$OMP PARALLEL SECTIONS
 !	$OMP PARALLEL SECTION
       DO 2132 IC = 1,KVOL
-      WRITE(7001,7003) ID(IC,1), ID(IC,2), ID(IC,3), ID(IC,4)
+      WRITE(7101,7003) ID(IC,1), ID(IC,2), ID(IC,3), ID(IC,4)
 2132  CONTINUE
 !	$OMP PARALLEL SECTION
       DO 2133 IC = 1,KVOL
-      WRITE(7002,7003) IU(IC,1), IU(IC,2), IU(IC,3), IU(IC,4)
+      WRITE(7102,7003) IU(IC,1), IU(IC,2), IU(IC,3), IU(IC,4)
 2133  CONTINUE
 !	$OMP END SECTIONS
 7003  FORMAT(I,1X,I,1X,I,1X,I)
