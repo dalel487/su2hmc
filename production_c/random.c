@@ -151,10 +151,8 @@ int Gauss_z(complex *ps, unsigned int n, const double mu, const double sigma){
 				ARRAYLEN, funcname, n);
 		exit(ARRAYLEN);
 	}
-	int i;
-	double r, u, v;
 #pragma unroll
-	for(i=0;i<n;i++){
+	for(int i=0;i<n;i++){
 		/* Marsaglia Method for fun
 		   do{
 		   u=sfmt_genrand_real1(sfmt);
@@ -166,8 +164,9 @@ int Gauss_z(complex *ps, unsigned int n, const double mu, const double sigma){
 		   ps[i] = mu+u*r + I*(mu+v*r);
 		 */
 #ifdef USE_RAN2
-		r=2.0*M_PI*ran2(&seed);
-		ps[i]=sigma*sqrt(-2*log(ran2(&seed)))*(cos(r)+mu+(sin(r)+mu)*I);
+		double	r =sigma*sqrt(-2*log(ran2(&seed))) 
+		double	theta=2.0*M_PI*ran2(&seed);
+		ps[i]=r*(cos(theta)+mu+(sin(theta)+mu)*I);
 #else
 		r=2.0*M_PI*sfmt_genrand_real1(&sfmt);
 		ps[i]=sigma*sqrt(-2*log(sfmt_genrand_real1(&sfmt)))*(cos(r)+mu+(sin(r)+mu)*I);
@@ -225,13 +224,13 @@ int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma){
 		   ps[i+1]=mu+v*r;
 		 */
 #ifdef USE_RAN2
-		r=2.0*M_PI*ran2(&seed);
 		u=sqrt(-2*log(ran2(&seed)))*sigma;
+		r=2.0*M_PI*ran2(&seed);
 		ps[i]=u*cos(r)+mu;
 		ps[i+1]=u*sin(r)+mu;
 #else
-		r=2.0*M_PI*sfmt_genrand_real1(&sfmt);
 		u=sqrt(-2*log(sfmt_genrand_real1(&sfmt)))*sigma;
+		r=2.0*M_PI*sfmt_genrand_real1(&sfmt);
 		ps[i]=u*cos(r)+mu;
 		ps[i+1]=u*sin(r)+mu;
 #endif
