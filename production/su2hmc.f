@@ -1996,8 +1996,7 @@ c1000  r = ran2(seed)
 c      do 1001 il=1,kvol
 c      theta=tpi*ranf()
 c      call random_number(theta)
-      theta = ran2(seed)
-      theta=ran2(seed)*tpi
+      theta = tpi*ran2(seed)
       ps(1,il)=ps(2,il)*sin(theta)
       ps(2,il)=ps(2,il)*cos(theta)
 c 1001  continue 

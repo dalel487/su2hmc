@@ -817,17 +817,20 @@ int Diagnostics(int istart){
 		//Reset between tests
 #pragma omp parallel for simd
 		for(int i=0; i<kferm; i++){
-			R1[i]=0.5; Phi[i]=0.5;
+			R1[i]=0.5; Phi[i]=0.5;xi[i]=0.5;
 		}
 #pragma omp parallel for simd
-		for(int i=0; i<kferm2Halo; i++)
+		for(int i=0; i<kferm2; i++){
 			X0[i]=0.5;
+			X1[i]=0.5;
+			}
 #pragma omp parallel for simd
 		for(int i=0; i<kmomHalo; i++)
 			dSdpi[i] = 0;
 		FILE *output_old, *output;
+		//Changed test order to avoid hiccups
 		switch(test){
-			case(0):
+			case(6):
 				output_old = fopen("dslash_old", "w");
 				for(int i = 0; i< kferm; i+=8)
 					fprintf(output_old, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
@@ -926,15 +929,14 @@ int Diagnostics(int istart){
 					fprintf(output, "%f\t%f\t%f\t%f\n", dSdpi[i], dSdpi[i+1], dSdpi[i+2], dSdpi[i+3]);
 				fclose(output);
 				break;
-			case(6):
-//				double pbp, endenf, denf; complex qq, qbqb; int itercg;
-//				Measure(*pbp, *endenf, *denf, *qq, *qbqb, respbp, *itercg);
-//				output = fopen("Measure", "w");
-//				fprintf(output,"pbp=%f\tendenf=%f\tdenf=%f\nqq=%f+(%f)i\tqbqb=%f+(%f)i\titercg=%i\n\n",
-//							pbp,endenf,denf,creal(qq),cimag(qq),creal(qbqb),cimag(qbqb),itercg);
-				int itercg = 0;
-				Congradp(0,respbp,&itercg);
-				output = fopen("Congradp", "w");
+			case(0):
+				output = fopen("Measure", "w");
+				int itercg=0;
+				double pbp, endenf, denf; complex qq, qbqb;
+				Measure(&pbp, &endenf, &denf, &qq, &qbqb, respbp, &itercg);
+				fprintf(output,"pbp=%f\tendenf=%f\tdenf=%f\nqq=%f+(%f)i\tqbqb=%f+(%f)i\titercg=%i\n\n",
+							pbp,endenf,denf,creal(qq),cimag(qq),creal(qbqb),cimag(qbqb),itercg);
+//				Congradp(0,respbp,&itercg);
 				for(int i = 0; i< kferm; i+=8)
 					fprintf(output, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
 							creal(xi[i]),cimag(xi[i]),creal(xi[i+1]),cimag(xi[i+1]),

@@ -164,7 +164,7 @@ int Gauss_z(complex *ps, unsigned int n, const double mu, const double sigma){
 		   ps[i] = mu+u*r + I*(mu+v*r);
 		 */
 #ifdef USE_RAN2
-		double	r =sigma*sqrt(-2*log(ran2(&seed))) 
+		double	r =sigma*sqrt(-2*log(ran2(&seed)));
 		double	theta=2.0*M_PI*ran2(&seed);
 		ps[i]=r*(cos(theta)+mu+(sin(theta)+mu)*I);
 #else

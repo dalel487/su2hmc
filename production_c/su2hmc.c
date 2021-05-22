@@ -121,7 +121,7 @@ int main(int argc, char *argv[]){
 					, OPENERROR, funcname, filename, fileop);
 			exit(OPENERROR);
 		}
-		fscanf(midout, "%lf %lf %lf %lf %lf %lf %lf %d %d", &dt, &beta, &akappa, &ajq, &athq, &fmu, &delb, &stepl, &ntraj);
+		fscanf(midout, "%lf %lf %lf %lf %lf %lf %lf %d %d %d", &dt, &beta, &akappa, &ajq, &athq, &fmu, &delb, &stepl, &ntraj, &istart);
 		fclose(midout);
 	}
 	if(iread){
@@ -132,7 +132,7 @@ int main(int argc, char *argv[]){
 	}
 	//Send inputs to other ranks
 	Par_dcopy(&dt); Par_dcopy(&beta); Par_dcopy(&akappa); Par_dcopy(&ajq);
-	Par_dcopy(&athq); Par_dcopy(&fmu); //Par_dcopy(&delb); Not used?
+	Par_dcopy(&athq); Par_dcopy(&fmu); Par_dcopy(&delb); //Not used?
 	Par_icopy(&stepl); Par_icopy(&ntraj); 
 	jqq=ajq*cexp(athq*I);
 	Par_ranset(&seed);
@@ -231,7 +231,7 @@ int main(int argc, char *argv[]){
 	pp = malloc(kmomHalo*sizeof(double));
 #endif
 	//Arabic for hour/watch so probably not defined elsewhere like TIME potentially is
-#if (defined SA3AT && defined _OPENMP)
+#if (defined SA3AT)
 	double start_time=0;
 	if(!rank)
 		start_time = omp_get_wtime();
@@ -558,7 +558,7 @@ int main(int argc, char *argv[]){
 	free(u11); free(u12); free(id); free(iu); free(hd); free(hu);
 	free(pcoord);
 #endif
-#if (defined SA3AT && defined _OPENMP)
+#if (defined SA3AT)
 	if(!rank){
 		FILE *sa3at = fopen("Bench_times.csv", "a");
 		fprintf(sa3at, "%lu,%lu,%lu,%lu,%f,%f\n",nx,nt,kvol,nthreads,elapsed,elapsed/ntraj);
@@ -701,7 +701,6 @@ int Init(int istart){
 		vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*kvol, u12t, -1, 1);
 #else
 		//Depending if we have the RANLUX or SFMT19977 generator.	
-//#pragma omp parallel for
 		for(int i=0; i<kvol*ndim;i++){
 #ifdef USE_RAN2
 			u11t[i]=2*(ran2(&seed)-0.5+I*(ran2(&seed)-0.5));
@@ -1285,9 +1284,11 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 		*qbqb *= gamval[4][idirac];
 		*qq *= gamval[4][idirac];
 #else
-#pragma unroll
+#pragma unroll(2)
 		for(int i=0; i<kvol; i++){
 			//What is the optimal order to evaluate these in?
+	for(int idirac = 0; idirac<ndirac; idirac++){
+		int igork=idirac+4;
 			*qbqb+=gamval[4][idirac]*conj(x[(i*ngorkov+idirac)*nc])*xi[(i*ngorkov+igork)*nc];
 			*qq-=gamval[4][idirac]*conj(x[(i*ngorkov+igork)*nc])*xi[(i*ngorkov+idirac)*nc];
 			*qbqb+=gamval[4][idirac]*conj(x[(i*ngorkov+idirac)*nc+1])*xi[(i*ngorkov+igork)*nc+1];
@@ -1296,7 +1297,7 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 #endif
 	}
 	//In the FORTRAN Code dsum was used instead despite qq and qbqb being complex
-	Par_zsum(qq); Par_zsum(qbqb);
+	Par_dsum(qq); Par_dsum(qbqb);
 	*qq=(*qq+*qbqb)/(2*gvol);
 	double xu, xd, xuu, xdd;
 	xu=0;xd=0;xuu=0;xdd=0;
