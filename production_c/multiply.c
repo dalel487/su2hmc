@@ -727,6 +727,7 @@ int Force(double *dSdpi, int iflag, double res1){
 #endif
 	return 0;
 }
+#ifdef DIAGNOSTIC
 int Diagnostics(int istart){
 	/*
 	 * Routine to check if the multiplication routines are working or not
@@ -812,7 +813,7 @@ int Diagnostics(int istart){
 	}
 
 	Trial_Exchange();
-	for(int test = 0; test<=5; test++){
+	for(int test = 0; test<=6; test++){
 		//Reset between tests
 #pragma omp parallel for simd
 		for(int i=0; i<kferm; i++){
@@ -925,7 +926,23 @@ int Diagnostics(int istart){
 					fprintf(output, "%f\t%f\t%f\t%f\n", dSdpi[i], dSdpi[i+1], dSdpi[i+2], dSdpi[i+3]);
 				fclose(output);
 				break;
-
+			case(6):
+//				double pbp, endenf, denf; complex qq, qbqb; int itercg;
+//				Measure(*pbp, *endenf, *denf, *qq, *qbqb, respbp, *itercg);
+//				output = fopen("Measure", "w");
+//				fprintf(output,"pbp=%f\tendenf=%f\tdenf=%f\nqq=%f+(%f)i\tqbqb=%f+(%f)i\titercg=%i\n\n",
+//							pbp,endenf,denf,creal(qq),cimag(qq),creal(qbqb),cimag(qbqb),itercg);
+				int itercg = 0;
+				Congradp(0,respbp,&itercg);
+				output = fopen("Congradp", "w");
+				for(int i = 0; i< kferm; i+=8)
+					fprintf(output, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+							creal(xi[i]),cimag(xi[i]),creal(xi[i+1]),cimag(xi[i+1]),
+							creal(xi[i+2]),cimag(xi[i+2]),creal(xi[i+3]),cimag(xi[i+3]),
+							creal(xi[i+4]),cimag(xi[i+4]),creal(xi[i+5]),cimag(xi[i+5]),
+							creal(xi[i+6]),cimag(xi[i+6]),creal(xi[i+7]),cimag(xi[i+7])	);
+				fclose(output);
+				break;
 		}
 	}
 
@@ -939,3 +956,4 @@ int Diagnostics(int istart){
 	MPI_Finalise();
 	exit(0);
 }
+#endif

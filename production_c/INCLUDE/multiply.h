@@ -33,6 +33,9 @@ int Dslash(complex *phi, complex *r);
 int Dslashd(complex *phi, complex *r);
 int Hdslash(complex *phi, complex *r);
 int Hdslashd(complex *phi, complex *r);
+
+#ifdef DIAGNOSTIC
 int Diagnostics(int istart);
+#endif
 #endif
 #endif

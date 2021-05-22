@@ -425,7 +425,7 @@ int main(int argc, char *argv[]){
 #else
 #pragma unroll
 		for(int i=0; i<kmom; i++)
-			vel2+=pp[i]*pp[(i)];
+			vel2+=pp[i]*pp[i];
 #endif
 		Par_dsum(&vel2);
 		vel2a+=vel2/(ndim*nadj*gvol);
@@ -1062,6 +1062,7 @@ int Congradp(int na, double res, int *itercg){
 	 * 		variable in different functions. It is the order they appear on the list that matters. xi here
 	 * 		was called xi in the FORTRAN Measure subroutine and x in the congradp subroutine. We'll use
 	 * 		xi for both as it does not appear elsewhere
+	 * 		xi stores the result
 	 *
 	 * Parameters:
 	 * ==========
@@ -1111,7 +1112,6 @@ int Congradp(int na, double res, int *itercg){
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
 	//if statements quicker to type
 	complex betan;
-	Trial_Exchange();
 	for(int niterx=0; niterx<=niterc; niterx++){
 		(*itercg)++;
 		Dslash(x1,p);
@@ -1143,6 +1143,7 @@ int Congradp(int na, double res, int *itercg){
 #if (defined USE_MKL || defined USE_BLAS)
 		alpha*=-1;
 		cblas_zaxpy(kferm, &alpha, x2, 1, r, 1);
+		alpha*=-1;
 		//r*.r
 		betan = cblas_dznrm2(kferm, r,1);
 		//Gotta square it to "undo" the norm
@@ -1159,7 +1160,7 @@ int Congradp(int na, double res, int *itercg){
 		//This is basically just congradq at the end. Check there for comments
 		Par_zsum(&betan);
 		complex beta = (niterx) ? betan/betad : 0;
-		betad=betan; alphan=betan;
+		betad=creal(betan); alphan=betan;
 		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multipyling y by 
 		//β instead of x.
 		//There is cblas_zaxpby in the MKL though, set a = 1 and b = β.
@@ -1173,7 +1174,7 @@ int Congradp(int na, double res, int *itercg){
 		//If we get a small enough β_n before hitting the iteration cap we break
 		if(creal(betan)<resid){
 #ifdef _DEBUG
-			if(!rank) printf("Iter (CG) = %i resid = %e toler = %e\n", niterx, creal(betan), resid);
+			if(!rank) printf("Iter (CG) = %i resid = %e toler = %e\n", niterx+1, creal(betan), resid);
 #endif
 			break;
 		}
@@ -1232,8 +1233,6 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 	complex *x = malloc(kfermHalo*sizeof(complex));
 #endif
 	//Setting up noise. I don't see any reason to loop
-	//over colour indices as it is a two-colour code.
-	//where I do have an issue is the loop ordering.
 
 	//The root two term comes from the fact we called gauss0 in the fortran code instead of gaussp
 #if (defined(USE_RAN2)||!defined(USE_MKL))
@@ -1244,6 +1243,8 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 	memcpy(x, xi, kferm*sizeof(complex));
 
 	//R_1= M^† Ξ 
+	//R1 is local in fortran but since its going to be reset anyway I'm going to recycle the
+	//global
 	Dslashd(R1, xi);
 	//Copying R1 to the first (zeroth) flavour index of Phi
 	//This should be safe with memcpy since the pointer name
@@ -1298,6 +1299,7 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 	Par_zsum(qq); Par_zsum(qbqb);
 	*qq=(*qq+*qbqb)/(2*gvol);
 	double xu, xd, xuu, xdd;
+	xu=0;xd=0;xuu=0;xdd=0;
 
 	//Halos
 	ZHalo_swap_dir(x,16,3,DOWN);		ZHalo_swap_dir(x,16,3,UP);
