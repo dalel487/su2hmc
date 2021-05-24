@@ -168,7 +168,7 @@ int Gauss_z(complex *ps, unsigned int n, const double mu, const double sigma){
 		double	theta=2.0*M_PI*ran2(&seed);
 		ps[i]=r*(cos(theta)+mu+(sin(theta)+mu)*I);
 #else
-		r=2.0*M_PI*sfmt_genrand_real1(&sfmt);
+		double r=2.0*M_PI*sfmt_genrand_real1(&sfmt);
 		ps[i]=sigma*sqrt(-2*log(sfmt_genrand_real1(&sfmt)))*(cos(r)+mu+(sin(r)+mu)*I);
 #endif
 	}     

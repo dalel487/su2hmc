@@ -122,7 +122,7 @@ c*******************************************************************
         open(unit=7,file='output',status='unknown')
         open(unit=25,file='midout',status='unknown')
 c        open(unit=98,file='control',status='unknown')
-        read(25,*) dt,beta,akappa,ajq,athq,fmu,delb,iterl,iter2
+        read(25,*) dt,beta,akappa,ajq,athq,fmu,delb,iterl,iter2,istart
         close(25)
       end if
 
