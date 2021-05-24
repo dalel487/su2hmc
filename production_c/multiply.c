@@ -283,7 +283,7 @@ int Hdslash(complex *phi, complex *r){
 #pragma omp parallel for
 		for(int i=0;i<kvol;i++){
 #ifndef NO_SPACE
-//#pragma ivdep
+			//#pragma ivdep
 			for(int mu = 0; mu <3; mu++){
 				int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
 #pragma omp simd aligned(phi:AVX,r:AVX,u11t:AVX,u12t:AVX)
@@ -530,11 +530,10 @@ int Force(double *dSdpi, int iflag, double res1){
 		//
 #pragma omp parallel for
 		for(int i=0;i<kvol;i++)
-#pragma omp simd aligned(dSdpi:AVX,X1:AVX,X2:AVX,u11t:AVX,u12t:AVX)
 			for(int idirac=0;idirac<ndirac;idirac++){
 				int mu, uid, igork1;
 #ifndef NO_SPACE
-#pragma unroll
+#pragma omp simd aligned(dSdpi:AVX,X1:AVX,X2:AVX,u11t:AVX,u12t:AVX)
 				for(mu=0; mu<3; mu++){
 					//Long term ambition. I used the diff command on the different
 					//spacial components of dSdpi and saw a lot of the values required
@@ -558,8 +557,8 @@ int Force(double *dSdpi, int iflag, double res1){
 							  +u12t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
 							 (-u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
-							  -conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])))
-						+creal(I*gamval[mu][idirac]*
+							  -conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])));
+						dSdpi[(i*nadj)*ndim+mu]+=creal(I*gamval[mu][idirac]*
 								(conj(X1[(i*ndirac+idirac)*nc])*
 								 (-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
 								  +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1])
@@ -612,20 +611,20 @@ int Force(double *dSdpi, int iflag, double res1){
 							  -conj(u11t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
 							 (-conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc]
-							  +u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc+1])))
-						+creal(I*gamval[mu][idirac]*
-								(conj(X1[(i*ndirac+idirac)*nc])*
-								 (u11t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
-								  +u12t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1])
-								 +conj(X1[(uid*ndirac+idirac)*nc])*
-								 (conj(u11t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc]
-								  +u12t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc+1])
-								 +conj(X1[(i*ndirac+idirac)*nc+1])*
-								 (conj(u12t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
-								  -conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1])
-								 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-								 (conj(u12t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc]
-								  -u11t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc+1])));
+							  +u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc+1])));
+					dSdpi[(i*nadj+2)*ndim+mu]+=creal(I*gamval[mu][idirac]*
+							(conj(X1[(i*ndirac+idirac)*nc])*
+							 (u11t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
+							  +u12t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1])
+							 +conj(X1[(uid*ndirac+idirac)*nc])*
+							 (conj(u11t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc]
+							  +u12t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc+1])
+							 +conj(X1[(i*ndirac+idirac)*nc+1])*
+							 (conj(u12t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
+							  -conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1])
+							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
+							 (conj(u12t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc]
+							  -u11t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc+1])));
 
 				}
 #endif
@@ -823,14 +822,13 @@ int Diagnostics(int istart){
 		for(int i=0; i<kferm2; i++){
 			X0[i]=0.5;
 			X1[i]=0.5;
-			}
+		}
 #pragma omp parallel for simd
 		for(int i=0; i<kmomHalo; i++)
 			dSdpi[i] = 0;
 		FILE *output_old, *output;
-		//Changed test order to avoid hiccups
 		switch(test){
-			case(6):
+			case(0):
 				output_old = fopen("dslash_old", "w");
 				for(int i = 0; i< kferm; i+=8)
 					fprintf(output_old, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
@@ -929,14 +927,14 @@ int Diagnostics(int istart){
 					fprintf(output, "%f\t%f\t%f\t%f\n", dSdpi[i], dSdpi[i+1], dSdpi[i+2], dSdpi[i+3]);
 				fclose(output);
 				break;
-			case(0):
+			case(6):
 				output = fopen("Measure", "w");
 				int itercg=0;
 				double pbp, endenf, denf; complex qq, qbqb;
 				Measure(&pbp, &endenf, &denf, &qq, &qbqb, respbp, &itercg);
 				fprintf(output,"pbp=%f\tendenf=%f\tdenf=%f\nqq=%f+(%f)i\tqbqb=%f+(%f)i\titercg=%i\n\n",
-							pbp,endenf,denf,creal(qq),cimag(qq),creal(qbqb),cimag(qbqb),itercg);
-//				Congradp(0,respbp,&itercg);
+						pbp,endenf,denf,creal(qq),cimag(qq),creal(qbqb),cimag(qbqb),itercg);
+				//				Congradp(0,respbp,&itercg);
 				for(int i = 0; i< kferm; i+=8)
 					fprintf(output, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
 							creal(xi[i]),cimag(xi[i]),creal(xi[i+1]),cimag(xi[i+1]),

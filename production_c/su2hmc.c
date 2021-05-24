@@ -320,7 +320,7 @@ int main(int argc, char *argv[]){
 		for(int step = 1; step<=stepmax; step++){
 #ifdef _DEBUG
 			if(!rank)
-				printf("step: %i\n", step);
+				printf("Traj: %i\tStep: %i\n", itraj, step);
 #endif
 			//The FORTRAN redefines d=dt here, which makes sense if you have a limited line length.
 			//I'll stick to using dt though.
