@@ -105,7 +105,7 @@ c*******************************************************************
       ibound=-1
 
 c cj   istart.lt.0 : start from tape
-      istart=2
+      istart=1
 c      istart=-1
 c cj
 c     iread=1
