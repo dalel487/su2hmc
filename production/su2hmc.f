@@ -486,7 +486,11 @@ c
          write(*,*) 'starting measurements'
          call flush(6)
       endif
+#ifdef SA3AT
+      if (ismaster) write(*,*) 'Not taking measurements'
+#else
       call measure(pbp,endenf,denf,qq,qbqb,respbp,itercg)
+#endif
       if (ismaster) then
          write(*,*) 'finished measurements'
          call flush(6)

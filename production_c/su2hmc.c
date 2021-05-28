@@ -445,7 +445,12 @@ int main(int argc, char *argv[]){
 			int itercg;
 			double endenf, denf;
 			complex qbqb;
+#ifdef SA3AT
+			if(!rank)
+				fprintf(stderr,"Warning in %s: Not taking measurements\n",funcname);
+#else
 			Measure(&pbp,&endenf,&denf,&qq,&qbqb,respbp,&itercg);
+#endif
 #ifdef _DEBUG
 			if(!rank)
 				printf("Finished measurements\n");
