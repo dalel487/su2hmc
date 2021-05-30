@@ -62,7 +62,7 @@ c     include common block definitions - header file for each label
 
       integer istart,iread,iwrite,iprint,icheck,iterl,iter2
       integer naccp,ipbp,itot,isweep,na,igorkov,ic,i,idirac
-      integer iadj,mu,iter,itercg
+      integer iadj,mu,iter,itercg,ntraj
       real(kind=realkind) dt,ajq,delb,traj,proby,actiona
       real(kind=realkind) vel2a,pbpa,endenfa,denfa,yav,yyav
       real(kind=realkind) athq,h0,s0,action,d,aaa,ccc,sss
@@ -535,7 +535,7 @@ c*******************************************************************
 #ifdef SA3AT
       IF(ISMASTER) THEN
       ELAPSED=MPI_WTIME()
-      OPEN(653,FILE=,'./Bench_times.csv',ACCESS='APPEND')
+      OPEN(653,FILE='./Bench_times.csv',ACCESS='APPEND')
       WRITE(653,*) NX,',',NT,',',KVOL,',',NTHREADS,',',ELAPSED,',',
      &ELAPSED/NTRAJ
       CLOSE(653)
