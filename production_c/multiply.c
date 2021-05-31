@@ -726,6 +726,35 @@ int Force(double *dSdpi, int iflag, double res1){
 #endif
 	return 0;
 }
+int New_trial(double dt){
+#pragma omp parallel for simd collapse(2) aligned(pp:AVX, u11t:AVX, u12t:AVX)
+			for(int i=0;i<kvol;i++){
+				for(int mu = 0; mu<ndim; mu++){
+					//Sticking to what was in the FORTRAN for variable names.
+					//CCC for cosine SSS for sine AAA for...
+					//Re-exponentiating the force field. Can be done analytically in SU(2)
+					//using sine and cosine which is nice
+#ifdef _DEBUG
+					printf("Rank: %d\ti: %d\tmu: %d\n", rank, i, mu);
+#endif
+
+					double AAA = dt*sqrt(pp[i*nadj*ndim+mu]*pp[i*nadj*ndim+mu]\
+							+pp[(i*nadj+1)*ndim+mu]*pp[(i*nadj+1)*ndim+mu]\
+							+pp[(i*nadj+2)*ndim+mu]*pp[(i*nadj+2)*ndim+mu]);
+					double CCC = cos(AAA);
+					double SSS = dt*sin(AAA)/AAA;
+					complex a11 = CCC+I*SSS*pp[(i*nadj+2)*ndim+mu];
+					complex a12 = pp[(i*nadj+1)*ndim+mu]*SSS + I*SSS*pp[i*nadj*ndim+mu];
+					//b11 and b12 are u11t and u12t terms, so we'll use u12t directly
+					//but use b11 for u11t to prevent RAW dependency
+					complex b11 = u11t[i*ndim+mu];
+					u11t[i*ndim+mu] = a11*b11-a12*conj(u12t[i*ndim+mu]);
+					u12t[i*ndim+mu] = a11*u12t[i*ndim+mu]+a12*conj(b11);
+				}
+			}
+			Trial_Exchange();
+			return 0;
+}
 #ifdef DIAGNOSTIC
 int Diagnostics(int istart){
 	/*

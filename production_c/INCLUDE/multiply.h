@@ -26,6 +26,8 @@ __global__ void cuHdslash(cuDoubleComplex *phi, cuDoubleComplex *r);
 __global__ void cuHdslashd(cuDoubleComplex *phi, cuDoubleComplex *r);
 __global__ void cuForce(double *dSdpi, cuDoubleComplex *X2);
 
+//New Trial Fields
+__global__ void New_trial(double dt);
 #else
 //D Slash Functions
 //=================
@@ -33,6 +35,9 @@ int Dslash(complex *phi, complex *r);
 int Dslashd(complex *phi, complex *r);
 int Hdslash(complex *phi, complex *r);
 int Hdslashd(complex *phi, complex *r);
+
+//New Trial Fields
+int New_trial();
 
 #ifdef DIAGNOSTIC
 int Diagnostics(int istart);
