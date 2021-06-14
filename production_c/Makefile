@@ -55,12 +55,12 @@ TMP=	$(MOD) $(EDT) core
 
 all:	$(EXE)
 
-release:	CFLAGS +=  -O1  -inline-level=2\
+release:	CFLAGS +=  -O3  -inline-level=2\
 		-DMKL_ILP64  -I"${MKLROOT}/include"
 release:	$(EXE)
 
-debug:	CFLAGS += -g -O2 \
-		-D_DEBUG #-DDIAGNOSTIC -DNO_TIME -DNO_SPACE
+debug:	CFLAGS += -g -O0 \
+		-D_DEBUG -DUSE_RAN2 #-DDIAGNOSTIC -DNO_TIME -DNO_SPACE
 
 	
 debug:	$(EXE)

@@ -135,6 +135,9 @@ int main(int argc, char *argv[]){
 	Par_dcopy(&athq); Par_dcopy(&fmu); Par_dcopy(&delb); //Not used?
 	Par_icopy(&stepl); Par_icopy(&ntraj); 
 	jqq=ajq*cexp(athq*I);
+	#ifdef _DEBUG
+	printf("jqq=%f+(%f)I\n",creal(jqq),cimag(jqq));
+	#endif
 	Par_ranset(&seed);
 
 	//Initialisation
@@ -160,7 +163,7 @@ int main(int argc, char *argv[]){
 	//Print Heading
 	double traj=stepl*dt;
 	double proby = 2.5/stepl;
-	char *outname = "output"; char *outop="w";
+	char *outname = "Output"; char *outop="w";
 	FILE *output;
 	if(!rank){
 		if(!(output=fopen(outname, outop) )){
@@ -338,8 +341,7 @@ int main(int argc, char *argv[]){
 			//Need to check Par_granf again 
 			//The same for loop is given in both the if and else
 			//statement but only the value of d changes. This is due to the break in the if part
-			//if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
-			if(step==stepl){
+			if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
 #if (defined USE_MKL || defined USE_BLAS)
 				cblas_daxpy(ndim*nadj*kvol, -d, dSdpi, 1, pp, 1);
 #else
@@ -390,8 +392,8 @@ int main(int argc, char *argv[]){
 			//Original FORTRAN Comment:
 			//JIS 20100525: write config here to preempt troubles during measurement!
 			//JIS 20100525: remove when all is ok....
-			memcpy(u11,u11t,ndim*kvol*sizeof(complex));
-			memcpy(u12,u12t,ndim*kvol*sizeof(complex));
+			memcpy(u11,u11t,ndim*(kvol+halo)*sizeof(complex));
+			memcpy(u12,u12t,ndim*(kvol+halo)*sizeof(complex));
 			naccp++;
 			//Divide by gvol because of halos?
 			action=S1/gvol;
@@ -420,12 +422,7 @@ int main(int argc, char *argv[]){
 			int itercg;
 			double endenf, denf;
 			complex qbqb;
-#ifdef SA3AT
-			if(!rank)
-				fprintf(stderr,"Warning in %s: Not taking measurements\n",funcname);
-#else
 			Measure(&pbp,&endenf,&denf,&qq,&qbqb,respbp,&itercg);
-#endif
 #ifdef _DEBUG
 			if(!rank)
 				printf("Finished measurements\n");
@@ -440,274 +437,274 @@ int main(int argc, char *argv[]){
 #else
 				if(!rank)
 #pragma omp parallel for
-					for(int i=0; i<4; i++)
-						switch(i)
+				for(int i=0; i<4; i++)
+					switch(i)
 #endif
-						{
-							case(0):	
-								//Output code... Some files weren't opened in the main loop of the FORTRAN code 
-								//That will need to be looked into for the C version
-								//It would explain the weird names like fort.1X that looked like they were somehow
-								//FORTRAN related...
-								//Not yet implemented
-								fprintf(output, "Iter (CG) %i ancg %e ancgh %e\n", itercg, ancg, ancgh);
-								fflush(output);
+					{
+						case(0):	
+							//Output code... Some files weren't opened in the main loop of the FORTRAN code 
+							//That will need to be looked into for the C version
+							//It would explain the weird names like fort.1X that looked like they were somehow
+							//FORTRAN related...
+							//Not yet implemented
+							fprintf(output, "Iter (CG) %i ancg %e ancgh %e\n", itercg, ancg, ancgh);
+							fflush(output);
+							break;
+						case(1):
+							//The origninal code implicitly created these files with the name fort.XX where XX
+							//is the file label from FORTRAN. We'll stick with that for now.
+							{
+								FILE *fortout;
+								char *fortname = "PBP-Density";
+								char *fortop= (itraj==1) ? "w" : "a";
+								if(!(fortout=fopen(fortname, fortop) )){
+									fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
+											OPENERROR, funcname, fortname, fortop);
+									MPI_Finalise();
+									exit(OPENERROR);
+								}
+								if(itraj==1)
+									fprintf(fortout, "pbp\tendenf\tdenf\n");
+								fprintf(fortout, "%e\t%e\t%e\n", pbp, endenf, denf);
+								fclose(fortout);
 								break;
-							case(1):
-								//The origninal code implicitly created these files with the name fort.XX where XX
-								//is the file label from FORTRAN. We'll stick with that for now.
-								{
-									FILE *fortout;
-									char *fortname = "fort11";
-									char *fortop= (itraj==1) ? "w" : "a";
-									if(!(fortout=fopen(fortname, fortop) )){
-										fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
-												OPENERROR, funcname, fortname, fortop);
-										MPI_Finalise();
-										exit(OPENERROR);
-									}
-									if(itraj==1)
-										fprintf(fortout, "pbp\tendenf\tdenf\n");
-									fprintf(fortout, "%e\t%e\t%e\n", pbp, endenf, denf);
-									fclose(fortout);
-									break;
+							}
+						case(2):
+							//The origninal code implicitly created these files with the name
+							//fort.XX where XX is the file label
+							//from FORTRAN. This was fort.12
+							{
+								FILE *fortout;
+								char *fortname = "Plaquette"; 
+								char *fortop= (itraj==1) ? "w" : "a";
+								if(!(fortout=fopen(fortname, fortop) )){
+									fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
+											OPENERROR, funcname, fortname, fortop);
+									MPI_Finalise();
+									exit(OPENERROR);
 								}
-							case(2):
-								//The origninal code implicitly created these files with the name
-								//fort.XX where XX is the file label
-								//from FORTRAN. This was fort.12
-								{
-									FILE *fortout;
-									char *fortname = "Plaquette"; 
-									char *fortop= (itraj==1) ? "w" : "a";
-									if(!(fortout=fopen(fortname, fortop) )){
-										fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
-												OPENERROR, funcname, fortname, fortop);
-										MPI_Finalise();
-										exit(OPENERROR);
-									}
-									if(itraj==1)
-										fprintf(fortout, "avplaqs\tavplaqt\tpoly\n");
-									fprintf(fortout, "%e\t%e\t%e\n", avplaqs, avplaqt, poly);
-									fclose(fortout);
-									break;
-								}
+								if(itraj==1)
+									fprintf(fortout, "avplaqs\tavplaqt\tpoly\n");
+								fprintf(fortout, "%e\t%e\t%e\n", avplaqs, avplaqt, poly);
+								fclose(fortout);
+								break;
+							}
 
-							case(3):
-								{
-									FILE *fortout;
-									char *fortname = "fort13";
-									char *fortop= (itraj==1) ? "w" : "a";
-									if(!(fortout=fopen(fortname, fortop) )){
-										fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
-												OPENERROR, funcname, fortname, fortop);
-										MPI_Finalise();
-										exit(OPENERROR);
-									}
-									if(itraj==1)
-										fprintf(fortout, "Re(qq)\t\n");
-									fprintf(fortout, "%e\n", creal(qq));
-									fclose(fortout);
-									break;
+						case(3):
+							{
+								FILE *fortout;
+								char *fortname = "Diquark";
+								char *fortop= (itraj==1) ? "w" : "a";
+								if(!(fortout=fopen(fortname, fortop) )){
+									fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
+											OPENERROR, funcname, fortname, fortop);
+									MPI_Finalise();
+									exit(OPENERROR);
 								}
-							default: break;
-						}
-		}
-		if(itraj%icheck==0){
-			Par_swrite(itraj);
-		}
-		if(!rank)
-			fflush(output);
-		}
+								if(itraj==1)
+									fprintf(fortout, "Re(qq)\n");
+								fprintf(fortout, "%e\n", creal(qq));
+								fclose(fortout);
+								break;
+							}
+						default: break;
+					}
+	}
+	if(itraj%icheck==0){
+		Par_swrite(itraj);
+	}
+	if(!rank)
+		fflush(output);
+	}
 #if (defined SA3AT && defined _OPENMP)
-		double elapsed = 0;
-		if(!rank)
-			elapsed = omp_get_wtime()-start_time;
+	double elapsed = 0;
+	if(!rank)
+		elapsed = omp_get_wtime()-start_time;
 #endif
-		//End of main loop
-		//Free arrays
+	//End of main loop
+	//Free arrays
 #ifdef __NVCC__
-		cudaFree(dk4m); cudaFree(dk4p); cudaFree(R1); cudaFree(dSdpi); cudaFree(pp);
-		cudaFree(Phi); cudaFree(u11t); cudaFree(u12t); cudaFree(xi);
-		cudaFree(X0); cudaFree(X1); cudaFree(u11); cudaFree(u12);
-		cudaFree(id); cudaFree(iu); cudaFree(hd); cudaFree(hu);
+	cudaFree(dk4m); cudaFree(dk4p); cudaFree(R1); cudaFree(dSdpi); cudaFree(pp);
+	cudaFree(Phi); cudaFree(u11t); cudaFree(u12t); cudaFree(xi);
+	cudaFree(X0); cudaFree(X1); cudaFree(u11); cudaFree(u12);
+	cudaFree(id); cudaFree(iu); cudaFree(hd); cudaFree(hu);
 #elif defined USE_MKL
-		mkl_free(dk4m); mkl_free(dk4p); mkl_free(R1); mkl_free(dSdpi); mkl_free(pp);
-		mkl_free(Phi); mkl_free(u11t); mkl_free(u12t); mkl_free(xi);
-		mkl_free(X0); mkl_free(X1); mkl_free(u11); mkl_free(u12);
-		mkl_free(id); mkl_free(iu); mkl_free(hd); mkl_free(hu);
-		mkl_free(pcoord);
+	mkl_free(dk4m); mkl_free(dk4p); mkl_free(R1); mkl_free(dSdpi); mkl_free(pp);
+	mkl_free(Phi); mkl_free(u11t); mkl_free(u12t); mkl_free(xi);
+	mkl_free(X0); mkl_free(X1); mkl_free(u11); mkl_free(u12);
+	mkl_free(id); mkl_free(iu); mkl_free(hd); mkl_free(hu);
+	mkl_free(pcoord);
 #else
-		free(dk4m); free(dk4p); free(R1); free(dSdpi); free(pp); free(Phi);
-		free(u11t); free(u12t); free(xi); free(X0); free(X1);
-		free(u11); free(u12); free(id); free(iu); free(hd); free(hu);
-		free(pcoord);
+	free(dk4m); free(dk4p); free(R1); free(dSdpi); free(pp); free(Phi);
+	free(u11t); free(u12t); free(xi); free(X0); free(X1);
+	free(u11); free(u12); free(id); free(iu); free(hd); free(hu);
+	free(pcoord);
 #endif
 #if (defined SA3AT)
-		if(!rank){
-			FILE *sa3at = fopen("Bench_times.csv", "a");
-			fprintf(sa3at, "%lu,%lu,%lu,%lu,%f,%f\n",nx,nt,kvol,nthreads,elapsed,elapsed/ntraj);
-			fclose(sa3at);
-		}
-#endif
-		actiona/=ntraj; vel2a/=ntraj; pbpa/=ipbp; endenfa/=ipbp; denfa/=ipbp;
-		ancg/=nf*itot; ancgh/=2*nf*ntraj; yav/=ntraj; yyav=yyav/ntraj - yav*yav;
-		double atraj=dt*itot/ntraj;
-
-		if(!rank){
-			fprintf(output, "Averages for the last %i trajectories\n"\
-					"Number of acceptances: %i Average Trajectory Length = %e\n"\
-					"exp(dh) = %e +/- %e\n"\
-					"Average number of congrad iter guidance: %e acceptance %e\n"\
-					"psibarpsi = %e\n"\
-					"Mean Square Velocity = %e Action Per Site = %e\n"\
-					"Energy Density = %e Number Density %e\n",\
-					ntraj, naccp, atraj, yav, yyav, ancg, ancgh, pbpa, vel2a, actiona, endenfa, denfa);
-			fclose(output);
-		}
-		MPI_Finalise();
-		fflush(stdout);
-		return 0;
+	if(!rank){
+		FILE *sa3at = fopen("Bench_times.csv", "a");
+		fprintf(sa3at, "%lu,%lu,%lu,%lu,%f,%f\n",nx,nt,kvol,nthreads,elapsed,elapsed/ntraj);
+		fclose(sa3at);
 	}
-	int Init(int istart){
-		/*
-		 * Initialises the system
-		 *
-		 * Calls:
-		 * ======
-		 * Addrc. Rand_init
-		 *
-		 *
-		 * Globals:
-		 * ========
-		 * u11t, u12t, dk4m, dk4p
-		 *
-		 * Parameters:
-		 * ==========
-		 * int istart: Zero for cold, >1 for hot, <1 for none
-		 *
-		 * Returns:
-		 * =======
-		 * Zero on success, integer error code otherwise
-		 */
-		const char *funcname = "Init";
+#endif
+	actiona/=ntraj; vel2a/=ntraj; pbpa/=ipbp; endenfa/=ipbp; denfa/=ipbp;
+	ancg/=nf*itot; ancgh/=2*nf*ntraj; yav/=ntraj; yyav=sqrt((yyav/ntraj - yav*yav)/(ntraj-1));
+	double atraj=dt*itot/ntraj;
+
+	if(!rank){
+		fprintf(output, "Averages for the last %i trajectories\n"\
+				"Number of acceptances: %i Average Trajectory Length = %e\n"\
+				"<exp(dh)> = %e +/- %e\n"\
+				"Average number of congrad iter guidance: %f acceptance %f\n"\
+				"psibarpsi = %e\n"\
+				"Mean Square Velocity = %e Action Per Site = %e\n"\
+				"Energy Density = %e Number Density %e\n",\
+				ntraj, naccp, atraj, yav, yyav, ancg, ancgh, pbpa, vel2a, actiona, endenfa, denfa);
+		fclose(output);
+	}
+	MPI_Finalise();
+	fflush(stdout);
+	return 0;
+}
+int Init(int istart){
+	/*
+	 * Initialises the system
+	 *
+	 * Calls:
+	 * ======
+	 * Addrc. Rand_init
+	 *
+	 *
+	 * Globals:
+	 * ========
+	 * u11t, u12t, dk4m, dk4p
+	 *
+	 * Parameters:
+	 * ==========
+	 * int istart: Zero for cold, >1 for hot, <1 for none
+	 *
+	 * Returns:
+	 * =======
+	 * Zero on success, integer error code otherwise
+	 */
+	const char *funcname = "Init";
 
 #ifdef _OPENMP
-		omp_set_num_threads(nthreads);
-		//Comment out to keep the threads spinning even when there's no work to do
-		//Commenting out decrease runtime but increases total CPU time dramatically
-		//This can throw of some profilers
-		//kmp_set_defaults("KMP_BLOCKTIME=0");
+	omp_set_num_threads(nthreads);
+	//Comment out to keep the threads spinning even when there's no work to do
+	//Commenting out decrease runtime but increases total CPU time dramatically
+	//This can throw of some profilers
+	//kmp_set_defaults("KMP_BLOCKTIME=0");
 #ifdef USE_MKL
-		mkl_set_num_threads(nthreads);
+	mkl_set_num_threads(nthreads);
 #endif
 #endif
-		//First things first, calculate a few constants
-		Addrc();
-		//And confirm they're legit
-		Check_addr(iu, ksize, ksizet, 0, kvol+halo);
-		Check_addr(id, ksize, ksizet, 0, kvol+halo);
+	//First things first, calculate a few constants
+	Addrc();
+	//And confirm they're legit
+	Check_addr(iu, ksize, ksizet, 0, kvol+halo);
+	Check_addr(id, ksize, ksizet, 0, kvol+halo);
 #ifdef _DEBUG
-		printf("Checked addresses\n");
+	printf("Checked addresses\n");
 #endif
-		double chem1=exp(fmu); double chem2 = 1/chem1;
+	double chem1=exp(fmu); double chem2 = 1/chem1;
 #ifdef __NVCC__
-		cudaMallocManaged(&dk4m,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
-		cudaMallocManaged(&dk4p,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
+	cudaMallocManaged(&dk4m,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
+	cudaMallocManaged(&dk4p,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
 #elif defined USE_MKL
-		dk4m = mkl_malloc((kvol+halo)*sizeof(double), AVX);
-		dk4p = mkl_malloc((kvol+halo)*sizeof(double), AVX);
+	dk4m = mkl_malloc((kvol+halo)*sizeof(double), AVX);
+	dk4p = mkl_malloc((kvol+halo)*sizeof(double), AVX);
 #else
-		dk4m = malloc((kvol+halo)*sizeof(double));
-		dk4p = malloc((kvol+halo)*sizeof(double));
+	dk4m = malloc((kvol+halo)*sizeof(double));
+	dk4p = malloc((kvol+halo)*sizeof(double));
 #endif
 #pragma omp parallel for simd aligned(dk4m:AVX,dk4p:AVX)
-		for(int i = 0; i<kvol; i++){
-			dk4p[i]=akappa*chem1;
-			dk4m[i]=akappa*chem2;
-		}
-		//Antiperiodic Boundary Conditions. Flip the terms at the edge of the time
-		//direction
-		if(ibound == -1 && pcoord[3+ndim*rank]==npt -1){
+	for(int i = 0; i<kvol; i++){
+		dk4p[i]=akappa*chem1;
+		dk4m[i]=akappa*chem2;
+	}
+	//Antiperiodic Boundary Conditions. Flip the terms at the edge of the time
+	//direction
+	if(ibound == -1 && pcoord[3+ndim*rank]==npt -1){
 #ifdef _DEBUG
-			printf("Implimenting antiperiodic boundary conditions on rank %i\n", rank);
+		printf("Implimenting antiperiodic boundary conditions on rank %i\n", rank);
 #endif
 #pragma omp parallel for simd aligned(dk4m:AVX,dk4p:AVX)
-			for(int i= 0; i<kvol3; i++){
-				int k = kvol - kvol3 + i;
-				dk4p[k]*=-1;
-				dk4m[k]*=-1;
-			}
+		for(int i= 0; i<kvol3; i++){
+			int k = kvol - kvol3 + i;
+			dk4p[k]*=-1;
+			dk4m[k]*=-1;
 		}
-		//These are constant so swap the halos when initialising and be done with it
-		for(int mu = 0; mu <ndim; mu++){
-			DHalo_swap_dir(dk4p, 1, 3, UP);
-			DHalo_swap_dir(dk4m, 1, 3, UP);
-		}
-		//Each gamma matrix is rescaled by akappa by flattening the gamval array
+	}
+	//These are constant so swap the halos when initialising and be done with it
+	for(int mu = 0; mu <ndim; mu++){
+		DHalo_swap_dir(dk4p, 1, 3, UP);
+		DHalo_swap_dir(dk4m, 1, 3, UP);
+	}
+	//Each gamma matrix is rescaled by akappa by flattening the gamval array
 #if (defined USE_MKL || defined USE_BLAS)
-		cblas_zdscal(5*4, akappa, gamval, 1);
+	cblas_zdscal(5*4, akappa, gamval, 1);
 #else
-		for(int i=0;i<5;i++)
-			for(int j=0;j<4;j++)
-				gamval[i][j]*=akappa;
+	for(int i=0;i<5;i++)
+		for(int j=0;j<4;j++)
+			gamval[i][j]*=akappa;
 #endif
 #ifdef __NVCC__
-		cudaMallocManaged(&u11,ndim*(kvol+halo)*sizeof(complex),cudaMemAttachGlobal);
-		cudaMallocManaged(&u12,ndim*(kvol+halo)*sizeof(complex),cudaMemAttachGlobal);
-		cudaMallocManaged(&u11t,ndim*(kvol+halo)*sizeof(complex),cudaMemAttachGlobal);
-		cudaMallocManaged(&u12t,ndim*(kvol+halo)*sizeof(complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&u11,ndim*(kvol+halo)*sizeof(complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&u12,ndim*(kvol+halo)*sizeof(complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&u11t,ndim*(kvol+halo)*sizeof(complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&u12t,ndim*(kvol+halo)*sizeof(complex),cudaMemAttachGlobal);
 #elif defined USE_MKL
-		u11 = mkl_malloc(ndim*(kvol+halo)*sizeof(complex),AVX);
-		u12 = mkl_calloc(ndim*(kvol+halo),sizeof(complex),AVX);
-		u11t = mkl_calloc(ndim*(kvol+halo),sizeof(complex),AVX);
-		u12t = mkl_calloc(ndim*(kvol+halo),sizeof(complex),AVX);
+	u11 = mkl_malloc(ndim*(kvol+halo)*sizeof(complex),AVX);
+	u12 = mkl_calloc(ndim*(kvol+halo),sizeof(complex),AVX);
+	u11t = mkl_calloc(ndim*(kvol+halo),sizeof(complex),AVX);
+	u12t = mkl_calloc(ndim*(kvol+halo),sizeof(complex),AVX);
 #else
-		u11 = malloc(ndim*(kvol+halo)*sizeof(complex));
-		u12 = calloc(ndim*(kvol+halo),sizeof(complex));
-		u11t = calloc(ndim*(kvol+halo),sizeof(complex));
-		u12t = calloc(ndim*(kvol+halo),sizeof(complex));
+	u11 = malloc(ndim*(kvol+halo)*sizeof(complex));
+	u12 = calloc(ndim*(kvol+halo),sizeof(complex));
+	u11t = calloc(ndim*(kvol+halo),sizeof(complex));
+	u12t = calloc(ndim*(kvol+halo),sizeof(complex));
 #endif
-		if(istart==0){
-			//Initialise a cold start to zero
-			//memset is safe to use here because zero is zero 
+	if(istart==0){
+		//Initialise a cold start to zero
+		//memset is safe to use here because zero is zero 
 #pragma omp parallel for simd aligned(u11t:AVX) 
-			for(int i=0; i<kvol*ndim;i++)
-				u11[i]=1;
-		}
-		else if(istart>0){
-			//#ifdef __NVCC__
-			//		complex *cu_u1xt;
-			//		cudaMallocManaged(&cu_u1xt, ndim*kvol*sizeof(complex));
+		for(int i=0; i<kvol*ndim;i++)
+			u11[i]=1;
+	}
+	else if(istart>0){
+		//#ifdef __NVCC__
+		//		complex *cu_u1xt;
+		//		cudaMallocManaged(&cu_u1xt, ndim*kvol*sizeof(complex));
 
 #if (defined USE_MKL&&!defined USE_RAN2)
-			//Good news, casting works for using a double to create random complex numbers
-			vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*kvol, u11t, -1, 1);
-			vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*kvol, u12t, -1, 1);
+		//Good news, casting works for using a double to create random complex numbers
+		vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*kvol, u11t, -1, 1);
+		vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*kvol, u12t, -1, 1);
 #else
-			//Depending if we have the RANLUX or SFMT19977 generator.	
-			for(int i=0; i<kvol*ndim;i++){
+		//Depending if we have the RANLUX or SFMT19977 generator.	
+		for(int i=0; i<kvol*ndim;i++){
 #ifdef USE_RAN2
-				u11t[i]=2*(ran2(&seed)-0.5+I*(ran2(&seed)-0.5));
-				u12t[i]=2*(ran2(&seed)-0.5+I*(ran2(&seed)-0.5));
+			u11t[i]=2*(ran2(&seed)-0.5+I*(ran2(&seed)-0.5));
+			u12t[i]=2*(ran2(&seed)-0.5+I*(ran2(&seed)-0.5));
 #else
-				u11t[i]=sfmt_genrand_real1(&sfmt)+sfmt_genrand_real1(&sfmt)*I;
-				u12t[i]=sfmt_genrand_real1(&sfmt)+sfmt_genrand_real1(&sfmt)*I;
+			u11t[i]=sfmt_genrand_real1(&sfmt)+sfmt_genrand_real1(&sfmt)*I;
+			u12t[i]=sfmt_genrand_real1(&sfmt)+sfmt_genrand_real1(&sfmt)*I;
 #endif
-			}
-#endif
-			Reunitarise();
-			memcpy(u11, u11t, ndim*kvol*sizeof(complex));
-			memcpy(u12, u12t, ndim*kvol*sizeof(complex));
 		}
-		else{
-			fprintf(stderr,"Warning %i in %s: Gauge fields are not initialised.\n", NOINIT, funcname);
-		}
-#ifdef _DEBUG
-		printf("Initialisation Complete\n");
 #endif
-		return 0;
+		Reunitarise();
+		memcpy(u11, u11t, ndim*kvol*sizeof(complex));
+		memcpy(u12, u12t, ndim*kvol*sizeof(complex));
 	}
+	else{
+		fprintf(stderr,"Warning %i in %s: Gauge fields are not initialised.\n", NOINIT, funcname);
+	}
+#ifdef _DEBUG
+	printf("Initialisation Complete\n");
+#endif
+	return 0;
+}
 	int Gauge_force(double *dSdpi){
 		/*
 		 * Calculates dSdpi due to the Wilson Action at each intermediate time
@@ -1210,10 +1207,8 @@ int main(int argc, char *argv[]){
 		//This x is just a storage container
 
 #ifdef USE_MKL
-		complex *ps = mkl_calloc(kvol, sizeof(complex), AVX);
 		complex *x = mkl_malloc(kfermHalo*sizeof(complex), AVX);
 #else
-		complex *ps = calloc(kvol, sizeof(complex));
 		complex *x = malloc(kfermHalo*sizeof(complex));
 #endif
 		//Setting up noise. I don't see any reason to loop
@@ -1252,22 +1247,20 @@ int main(int argc, char *argv[]){
 		*pbp/=4*gvol;
 
 		*qbqb=0; *qq=0;
+#if (defined USE_MKL || defined USE_BLAS)
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork=idirac+4;
 			//Unrolling the colour indices, Then its just (γ_5*x)*Ξ or (γ_5*Ξ)*x 
-#if (defined USE_MKL || defined USE_BLAS)
 #pragma unroll
 			for(int ic = 0; ic<nc; ic++){
 				complex dot;
 				//Because we have kvol on the outer index and are summing over it, we set the
 				//step for BLAS to be ngorkov*nc=16. 
 				cblas_zdotc_sub(kvol, &x[idirac*nc+ic], ngorkov*nc, &xi[igork*nc+ic], ngorkov*nc, &dot);
-				*qbqb+=dot;
+				*qbqb+=gamval[4][idirac]*dot;
 				cblas_zdotc_sub(kvol, &x[igork*nc+ic], ngorkov*nc, &xi[idirac*nc+ic], ngorkov*nc, &dot);
-				*qq-=dot;
+				*qq-=gamval[4][idirac]*dot;
 			}
-			*qbqb *= gamval[4][idirac];
-			*qq *= gamval[4][idirac];
 #else
 #pragma unroll(2)
 			for(int i=0; i<kvol; i++){
@@ -1282,9 +1275,9 @@ int main(int argc, char *argv[]){
 #endif
 			}
 			//In the FORTRAN Code dsum was used instead despite qq and qbqb being complex
-			Par_dsum(qq); Par_dsum(qbqb);
+			Par_zsum(qq); Par_zsum(qbqb);
 			*qq=(*qq+*qbqb)/(2*gvol);
-			double xu, xd, xuu, xdd;
+			complex xu, xd, xuu, xdd;
 			xu=0;xd=0;xuu=0;xdd=0;
 
 			//Halos
@@ -1336,16 +1329,16 @@ int main(int argc, char *argv[]){
 								conj(u12t[i*ndim+3])*(xi[(i*ngorkov+igorkovPP)*nc]+xi[(i*ngorkov+igork1PP)*nc]) ) );
 				}
 			}
-			*endenf=xu-xd-xuu+xdd;
-			*denf=xu+xd+xuu+xdd;
+			*endenf=creal(xu-xd-xuu+xdd);
+			*denf=creal(xu+xd+xuu+xdd);
 
 			Par_dsum(endenf); Par_dsum(denf);
 			*endenf/=2*gvol; *denf/=2*gvol;
 			//Future task. Chiral susceptibility measurements
 #ifdef USE_MKL
-			mkl_free(ps); mkl_free(x);
+			mkl_free(x);
 #else
-			free(ps); free(x);
+			free(x);
 #endif
 			return 0;
 		}
@@ -1406,7 +1399,7 @@ int main(int argc, char *argv[]){
 					}
 
 			Par_dsum(&hgs); Par_dsum(&hgt);
-			*avplaqs=-hgs/(3*gvol); *avplaqt=-hgt/(gvol*3);
+			*avplaqs=-hgs/(3.0*gvol); *avplaqt=-hgt/(gvol*3.0);
 			*hg=(hgs+hgt)*beta;
 #ifdef _DEBUG
 			if(!rank)

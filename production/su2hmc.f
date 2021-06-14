@@ -143,6 +143,9 @@ c        open(unit=98,file='control',status='unknown')
       call par_icopy(iter2)
 
       jqq=cmplx(ajq,0.0)*exp(cmplx(0.0,athq))
+#ifdef _DEBUG
+      WRITE(*,*) "JQQ:", JQQ
+#endif
       call par_ranset(seed)
 c*******************************************************************
 c     initialisation
@@ -1267,8 +1270,8 @@ c
       qq=qq-gamval(5,idirac)*conjg(x(ic,igork,i))*xi(ic,idirac,i)
 304   continue
 
-      call par_csum(qq)
-      call par_csum(qbqb)
+      call par_zsum(qq)
+      call par_zsum(qbqb)
 
       qq=(qq+qbqb)/(2*gvol)
 c     qbqb=qbqb/kvol
@@ -1493,11 +1496,13 @@ c     Now check that they are OK
       dk4m(ic)=akappa*chem2
 1     continue
       if(ibound.eq.-1) then
+       if(ismaster)   write(*,*) 'Implementing antiperiodic bcs'
 c  Only do the multiplication by -1 if we are at the edge in time dir
-c       write(*,*) 'On procid ', procid, ', pcoord(4) = ',
-c     1             pcoord(4, procid+1)
+#ifdef _DEBUG
+       write(*,*) 'On procid ', procid, ', pcoord(4) = ',
+     1             pcoord(4, procid+1)
+#endif
         if (pcoord(4, procid+1) == npt-1) then
-c          write(*,*) 'Implementing antiperiodic bcs on proc ', procid
           ksize3=ksize*ksize*ksize
           do 320 k=1,ksize3
             ku=kvol-ksize3+k
@@ -2339,7 +2344,7 @@ C
       SUBROUTINE RANGET(SEED)
       implicit none
       DOUBLE PRECISION    SEED,     G900GT,   G900ST,   DUMMY
-      SEED  =  G900GT()
+C      SEED  =  G900GT()
       RETURN
       ENTRY RANSET(SEED)
       DUMMY  =  G900ST(SEED)

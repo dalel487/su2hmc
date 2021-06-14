@@ -734,9 +734,6 @@ int New_trial(double dt){
 					//CCC for cosine SSS for sine AAA for...
 					//Re-exponentiating the force field. Can be done analytically in SU(2)
 					//using sine and cosine which is nice
-#ifdef _DEBUG
-					printf("Rank: %d\ti: %d\tmu: %d\n", rank, i, mu);
-#endif
 
 					double AAA = dt*sqrt(pp[i*nadj*ndim+mu]*pp[i*nadj*ndim+mu]\
 							+pp[(i*nadj+1)*ndim+mu]*pp[(i*nadj+1)*ndim+mu]\
