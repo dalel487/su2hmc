@@ -345,13 +345,16 @@ c*******************************************************************
 c      half-step forward for p
 c*******************************************************************
       call force(dSdpi,1,rescgg)
+#ifdef _DEBUG
 	av_for=0
 	do 25 i = 1, kvol
 	do 25 iadj = 1, nadj
 	do 25 mu = 1, ndim
 		av_for=av_for+dSdpi(mu,iadj,i)
 25	continue
-c	write(*,*) "Average force after trial init:", av_for/kmom
+      if(ismaster)
+     &write(*,*) "Average force after trial init:", av_for/kmom
+#endif
       d=dt*0.5
       do 2004 i=1,kvol
       do 2004 iadj=1,nadj
@@ -394,16 +397,17 @@ c
       do 26 mu = 1, ndim
       av_for=av_for+dSdpi(mu,iadj,i)
 26    continue
-      write(*,*) "Average force after trial update:", av_for/kmom
+
+      if(ismaster)
+     &write(*,*) "Average force after trial update:", av_for/kmom
 #endif
 c
 c test for end of random trajectory
 c 
-c      ytest=par_granf()
+      ytest=par_granf()
 c      call ranfdump(ytest)
-c      if((ytest.lt.proby.or.iter.ge.(iterl/5)*6)
-c     &       .and.iter.ge.(iterl/5)*4)then
-      if(iter.eq.iterl) then
+      if((ytest.lt.proby.or.iter.ge.(iterl/5)*6)
+     &       .and.iter.ge.(iterl/5)*4)then
       d=dt*0.5
       do 2005 i=1,kvol
       do 2005 iadj=1,nadj
