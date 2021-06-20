@@ -128,7 +128,9 @@ c        open(unit=98,file='control',status='unknown')
 
       seed=967580165
       if(iread.eq.1) then
+#ifdef _DEBUG
         if (ismaster) write(*,*) 'Calling par_sread =  ', seed
+#endif
         call par_sread()
       endif
 
@@ -188,13 +190,14 @@ c     1                         hg, avplaqs, avplaqt, poly
 c      call flush(6)
 c
 c      call par_zsum(usum)
-
+#ifdef _DEBUG
       if (ismaster) then
 c        write(*,*) '<u> = ', usum
         write(*,*) 'hg, <Ps>, <Pt>, <Poly> = ',
      1              hg, avplaqs, avplaqt, poly
         call flush(6)
       end if
+#endif
 
 c*******************************************************************
 c     loop on beta
@@ -365,10 +368,12 @@ c*******************************************************************
 c     start of main loop for classical time evolution
 c*******************************************************************
       do 500 iter=1,itermax
+#ifdef _DEBUG
         if (ismaster) then
           write(*,*) 'iter = ', iter
           call flush(6)
         end if
+#endif        
 c
 c  step (i) st(t+dt)=st(t)+p(t+dt/2)*dt;
 c
@@ -445,7 +450,9 @@ c**********************************************************************
       yyav=yyav+y*y 
       if(dH.lt.0.0)then
       x=par_granf()
-	write(*,*) "x=", x
+#ifdef DEBUG
+      if(ismaster) write(*,*) "x=", x
+#endif
 c      call ranfdump(x)
       if(x.gt.y)goto 600
       endif
@@ -489,19 +496,19 @@ c
       u11t(i,mu)=u11(i,mu)
       u12t(i,mu)=u12(i,mu)
 2066  continue      
+#ifdef _DEBUG
       if (ismaster) then
          write(*,*) 'starting measurements'
          call flush(6)
       endif
-#ifdef SA3AT
-      if (ismaster) write(*,*) 'Not taking measurements'
-#else
-      call measure(pbp,endenf,denf,qq,qbqb,respbp,itercg)
 #endif
+      call measure(pbp,endenf,denf,qq,qbqb,respbp,itercg)
+#ifdef _DEBUG
       if (ismaster) then
          write(*,*) 'finished measurements'
          call flush(6)
       endif
+#endif
       pbpa=pbpa+pbp
       endenfa=endenfa+endenf
       denfa=denfa+denf
@@ -933,9 +940,11 @@ c     hg has already been summed within su2plaq
       call par_csum(hf)
 
       h=hg+hp+hf
+#ifdef _DEBUG
       if(ismaster) then 
       write(6,*) isweep,':  hg', hg,'   hf', hf,'   hp', hp,'   h',h
       endif
+#endif
       s=hg+hf
 c
       return
@@ -1061,12 +1070,14 @@ c
 7     continue
 
       if(betan.lt.resid) then
-	if(ismaster) then 
-	write(*,648)  niterx, betan, resid
+#ifdef _DEBUG
+      if(ismaster) then 
+      write(*,648)  niterx, betan, resid
 648      format('Iter (CG) = ',i, ' resid = ', f, ' toler = ',f)
          call flush(7)
-	endif
-	   goto 8
+      endif
+#endif
+      goto 8
       endif
 1     continue
 
@@ -1186,12 +1197,13 @@ c
 1000  format(' # iterations of congrad exceeds niterc')
 
 8     continue
-
+#ifdef _DEBUG
       if (ismaster) then
          write(*,*) 'Iter (CG)  = ', niterx, ', resid = ',
      %        betan, ', toler = ',resid
          call flush(7)
       endif
+#endif
       
       return
       end      
@@ -2133,9 +2145,11 @@ c
       avplaqs=-hgs/(gvol*3)
       avplaqt=-hgt/(gvol*3)
       hg=(hgs+hgt)*beta
+#ifdef _DEBUG
       if(ismaster) then
        write(*,*) "hgs=", hgs, "hgt=", hgt, "hg=", hg
       endif
+#endif
       return
       end
 c******************************************************************

@@ -25,7 +25,7 @@ c Comment out for testing purposes
 c     integer, parameter :: npx = 8
 c     integer, parameter :: npt = 4
 
-      integer, parameter :: npx = 1
+      integer, parameter :: npx = 2
       integer, parameter :: npt = 1 
       integer, parameter :: nthreads = 1 
 

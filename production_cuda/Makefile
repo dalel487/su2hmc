@@ -7,8 +7,8 @@ NVCC = nvcc
 #FFLAGS= -O3 -I /bgsys/drivers/toolchain/V1R1M2/gnu-linux/lib/gcc/powerpc64-bgq-linux/4.4.6/finclude/
 IFLAGS=     -I./INCLUDE -I./SFMT-src-1.5.1
 
-CFLAGS=      $(IFLAGS) -mkl -DUSE_MKL -std=gnu99 -DHAVE_SSE2 -ipo -qopt-zmm-usage=high \
-		 -xCOMMON-AVX512 -static-intel -static-libgcc -DMKL_DIRECT_CALL \
+CFLAGS=      $(IFLAGS) -mkl -DUSE_MKL -std=gnu99 -DHAVE_SSE2 -ipo -qopt-zmm-usage=high\
+		 -xCOMMON-AVX512 -static-intel -static-libgcc -DMKL_DIRECT_CALL\
 		 -qopenmp-simd -qopenmp -qopenmp-link=static -DSA3AT 
 
 LFLAGS=	 -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a \
