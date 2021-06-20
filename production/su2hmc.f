@@ -550,8 +550,8 @@ c*******************************************************************
       IF(ISMASTER) THEN
       ELAPSED=MPI_WTIME()
       OPEN(653,FILE='./Bench_times.csv',ACCESS='APPEND')
-      WRITE(653,*) NX,',',NT,',',KVOL,',',NTHREADS,',',ELAPSED,',',
-     &ELAPSED/ITER2
+      WRITE(653,*) NX,',',NT,',',KVOL,',',NTHREADS,',',
+     &ELAPSED-START_TIME,',',(ELAPSED-START_TIME)/ITER2
       CLOSE(653)
       ENDIF
 #endif
