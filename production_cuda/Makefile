@@ -5,7 +5,8 @@ CC= mpiicc
 NVCC = nvcc
 
 #FFLAGS= -O3 -I /bgsys/drivers/toolchain/V1R1M2/gnu-linux/lib/gcc/powerpc64-bgq-linux/4.4.6/finclude/
-IFLAGS=     -I./INCLUDE -I./SFMT-src-1.5.1
+IFLAGS=     -I./INCLUDE -I../production_c/SFMT-src-1.5.1
+
 
 CFLAGS=      $(IFLAGS) -mkl -DUSE_MKL -std=gnu99 -DHAVE_SSE2 -ipo -qopt-zmm-usage=high\
 		 -xCOMMON-AVX512 -static-intel -static-libgcc -DMKL_DIRECT_CALL\
@@ -15,17 +16,22 @@ LFLAGS=	 -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a \
 		${MKLROOT}/lib/intel64/libmkl_intel_thread.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group\
 		-liomp5 -lpthread -lm -ldl #-wd10237
 
-EXE=	su2hmc
+CUFLAGS=	${IFLAGS} -ccbin ${CC} -arch=compute_70 -code=compute_70,sm_70,sm_72,sm_75
+EXE=	cuda_su2hmc_CASCADE
 
-SRC= \
+CSRC= \
 	su2hmc.c \
 	par_mpi.c \
       coord.c \
       random.c \
-      multiply.c \
       SFMT.c\
 
-INC= \
+CUSRC= \
+	cuda_init.cu \
+	multiply.cu
+
+
+CINC= \
 	su2hmc.h \
 	sizes.h \
       par_mpi.h \
@@ -35,6 +41,8 @@ INC= \
       coord.h \
       errorcodes.h \
 
+CUINC= \
+
 
 #
 # No need to edit below this line
@@ -43,30 +51,37 @@ INC= \
 .SUFFIXES:
 .SUFFIXES: .c .o
 
-OBJ=	$(SRC:.c=.o)
+COBJ=	 $(CSRC:.c=.o)
+CUOBJ= $(CUSRC:.cu=.o)
+OBJ=	 $(COBJ) $(CUOBJ)
 
-#MOD=	$(SRC:.c=.mod)
+#MOD=	$(CSRC:.c=.mod)
 MOD=	
-EDT=	$(SRC:.c=.c~)
-TMP=	$(MOD) $(EDT) core
+CEDT=	$(CSRC:.c=.c~)
+CUEDT=$(CUSRC:.cu=.cu~)
+TMP=	$(MOD) $(CEDT) $(CUEDT) core
 
 .f.o:
 	$(FC) $(FFLAGS) -c $<
 
 all:	$(EXE)
 
-release:	CFLAGS +=  -O3  -inline-level=2\
-		-DMKL_ILP64  -I"${MKLROOT}/include"
+release:	CFLAGS +=  -inline-level=2\
+		-DMKL_ILP64  -I "${MKLROOT}/include"
+
+release:	CUFLAGS += -O3 -Xcompiler "${CFLAGS} ${LFLAGS}"
+
 release:	$(EXE)
 
-debug:	CFLAGS += -g -O0 \
+debug:	CFLAGS += -g \
 		-D_DEBUG -DUSE_RAN2 #-DDIAGNOSTIC -DNO_TIME -DNO_SPACE
 
-	
+debug:	CUFLAGS += -O0 -G -g -D_DEBUG -DUSE_RAN2 -Xcompiler "${CFLAGS} ${LFLAGS}"	
+
 debug:	$(EXE)
 
 $(EXE):	$(OBJ)
-	$(CC) $(CFLAGS) -o $@ $(OBJ) $(LFLAGS)
+	$(NVCC) $(CUFLAGS) -o $@ $(OBJ)
 
 $(OBJ):	$(MF) 
 #$(INC)
@@ -79,4 +94,4 @@ INP=	\
 	con
 
 tar:
-	tar cvf $(EXE).tar $(MF) $(SRC) $(INC) $(INP)
+	tar cvf $(EXE).tar $(MF) $(CSRC) $(CUSRC) $(CINC) $(CUINC) $(INP)

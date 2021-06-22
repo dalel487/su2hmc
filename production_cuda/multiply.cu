@@ -387,7 +387,11 @@ int Force(double *dSdpi, int iflag, double res1){
 #endif
 	//X1=(M†M)^{1} Phi
 	int itercg;
-#if defined USE_MKL
+#ifdef __NVCC_
+	complex *X2, *smallPhi;
+	cudaMallocManaged(&X2,kferm2Halo*sizeof(complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&smallPhi,kferm2Halo*sizeof(complex),cudaMemAttachGlobal);
+#elif defined USE_MKL
 	complex *X2= mkl_malloc(kferm2Halo*sizeof(complex), AVX);
 	complex *smallPhi =mkl_malloc(kferm2Halo*sizeof(complex), AVX); 
 #else

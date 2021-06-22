@@ -25,6 +25,13 @@ inline __device__ double cabs(complex z){
 	return sqrt(cnormsq(z));
 }
 
+inline __device__ void operator=(const complex &z, const complex &w){
+	z.re=w.re; z.im=w.im;
+}
+inline __device__ void operator=(complex &z, const complex &w){
+	z.re=w.re; z.im=w.im;
+}
+
 //Binary operators
 //###############
 //Equivalence
@@ -86,6 +93,19 @@ inline __device__ complex operator/(const complex &z, const double &x){
 	assert(x!=0);
 	return {z.re/(x),z.im/(x)};
 }
+//?= Operators
+inline __device__ void operator+=(const complex &z, const double &x){
+	z = z + x;
+}
+inline __device__ void operator-=(const complex &z, const double &x){
+	z=z-x;
+}
+inline __device__ void operator*=(const complex &z, const double &x){
+	z=z*x;
+}
+inline __device__ void operator/=(const complex &z, const double &x){
+	z = z/x;
+}
 
 //Double-Complex
 //==============
@@ -123,6 +143,20 @@ inline __device__ complex operator/(const complex &z, const int &n){
 	return {z.re/(n),z.im/(n)};
 }
 
+//?= Operators
+inline __device__ void operator+=(const complex &z, const int &n){
+	z = z + n;
+}
+inline __device__ void operator-=(const complex &z, const int &n){
+	z=z-n;
+}
+inline __device__ void operator*=(const complex &z, const int &n){
+	z=z*n;
+}
+inline __device__ void operator/=(const complex &z, const int &n){
+	z = z/n;
+}
+
 //Int-Complex
 //==============
 inline __device__ complex operator+(const int &n, const complex &z){
@@ -157,6 +191,20 @@ inline __device__ complex operator/(const complex &w, const complex &z){
 	assert(z!=0);
 	return (w*conj(z))/cnormsq(z);
 }
+//?= Operators
+inline __device__ void operator+=(const complex &z, const complex &w){
+	z = z + w;
+}
+inline __device__ void operator-=(const complex &z, const complex &w){
+	z=z-w;
+}
+inline __device__ void operator*=(const complex &z, const complex &w){
+	z=z*w;
+}
+inline __device__ void operator/=(const complex &z, const complex &w){
+	z = z/w;
+}
+
 //Less routine complex functions
 //#############################
 //inline __device__ complex cexp(complex z){

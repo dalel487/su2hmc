@@ -1,8 +1,9 @@
 #ifndef SU2HEAD
 #define SU2HEAD
-#include	<complex.h>
 #ifdef __NVCC__
-	#include <cuComplex.h>
+	#include <Complex.h>
+#else
+	#include <complex.h>
 #endif
 //MKL is powerful, but not guaranteed to be available (especially on AMD systems or future
 //ARM Based machines.) BLAS routines should work with other libraries, so we can set a compiler
@@ -25,11 +26,7 @@ extern const int gamin[4][4];
 extern complex gamval[5][4];
 
 //From common_pseud
-#ifdef __NVCC__
-cuDoubleComplex *Phi, *R1, *X0, *X1, *xi;
-#else
 complex *Phi, *R1, *X0, *X1, *xi;
-#endif
 //From common_mat
 //double dk4m[kvol+halo], dk4p[kvol+halo] __attribute__((aligned(AVX)));
 double *dk4m, *dk4p, *pp;
@@ -57,14 +54,9 @@ int Congradp(int na, double res, int *itercg);
 int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbqb, double res, int *itercg);
 int SU2plaq(double *hg, double *avplaqs, double *avplaqt);
 double Polyakov();
+
 inline int Reunitarise();
-#ifdef __NVCC__
-inline int Z_gather(cuDoubleComplex *x, cuDoubleComplex *y, int n, unsigned int *table);
-inline int Fill_Small_Phi(int na, cuDoubleComplex *smallPhi);
-double Norm_squared(cuDoubleComplex *z, int n);
-#else
 inline int Z_gather(complex *x, complex *y, int n, unsigned int *table, unsigned int mu);
 inline int Fill_Small_Phi(int na, complex *smallPhi);
 double Norm_squared(complex *z, int n);
-#endif
 #endif
