@@ -382,10 +382,34 @@ int Par_swrite(int itraj){
 			}
 
 		FILE *con;
+		static char gauge_title[FILELEN];
+		if(itraj==icheck){
+			gauge_title="config.";
+			int buffer, char buff2[4];
+			//Add script for extrating correct mu, j etc.
+			int buffer = (int)(100*beta);
+			if(buffer<10)
+				sprintf(buff2,"00%i",buffer);
+			else if(buffer<100)
+				sprintf(buff2,"0%i",buffer);
+			else
+				sprintf(buff2,"%i",buffer);
+			strcat(gauge_title,buff2);
+			//μ
+			int buffer = (int)(1000*fmu);
+			if(buffer<10)
+			sprintf(buff2,"000%i",buffer);
+			else if(buffer<100)
+			sprintf(buff2,"00%i",buffer);
+			else if(buffer<1000)
+			sprintf(buff2,"0%i",buffer);
+			else
+			sprintf(buff2,"%i",buffer);
+		}
+		char *fileop = "wb";
+		char gauge_file[FILELEN];
 		char c[4];
 		sprintf(c,"%i", itraj);
-		char gauge_file[FILELEN]="con_";
-		char *fileop = "wb";
 		strcat(gauge_file, c);
 		printf("Gauge file name is %s\n", gauge_file);
 		printf("Writing the gauge file on processor %i.\n", rank);
