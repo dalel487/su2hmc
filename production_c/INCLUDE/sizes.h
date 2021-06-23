@@ -46,7 +46,7 @@
 
 
 #define	npx	2 
-#define	npt	1 
+#define	npt	4 
 //Number of threads for OpenMP
 #define	nthreads	1	
 
