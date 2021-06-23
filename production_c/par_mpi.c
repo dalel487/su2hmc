@@ -94,7 +94,7 @@ int Par_begin(int argc, char *argv[]){
 }	
 int Par_sread(){
 	/*
-	 * Reads and assigns the parameters from file
+	 * Reads and assigns the gauges from file
 	 *
 	 * Parameters:
 	 * ----------
@@ -385,66 +385,96 @@ int Par_swrite(int itraj){
 		static char gauge_title[FILELEN];
 		if(itraj==icheck){
 			gauge_title="config.";
-			int buffer, char buff2[4];
+			int buffer, char buff2[7];
 			//Add script for extrating correct mu, j etc.
 			int buffer = (int)(100*beta);
 			if(buffer<10)
-				sprintf(buff2,"00%i",buffer);
+				sprintf(buff2,"b00%i",buffer);
 			else if(buffer<100)
-				sprintf(buff2,"0%i",buffer);
+				sprintf(buff2,"b0%i",buffer);
+			else
+				sprintf(buff2,"b%i",buffer);
+			strcat(gauge_title,buff2);
+			//κ
+			buffer = (int)(1000*fmu);
+			if(buffer<10)
+				sprintf(buff2,"k000%i",buffer);
+			else if(buffer<100)
+				sprintf(buff2,"k00%i",buffer);
+			else if(buffer<1000)
+				sprintf(buff2,"k0%i",buffer);
+			else
+				sprintf(buff2,"k%i",buffer);
+			strcat(gauge_title,buff2);
+			//μ
+			buffer = (int)(1000*fmu);
+			if(buffer<10)
+				sprintf(buff2,"mu000%i",buffer);
+			else if(buffer<100)
+				sprintf(buff2,"mu00%i",buffer);
+			else if(buffer<1000)
+				sprintf(buff2,"mu0%i",buffer);
 			else
 				sprintf(buff2,"%i",buffer);
 			strcat(gauge_title,buff2);
-			//μ
-			int buffer = (int)(1000*fmu);
+			buffer = (int)(100*ajq);
 			if(buffer<10)
-			sprintf(buff2,"000%i",buffer);
-			else if(buffer<100)
-			sprintf(buff2,"00%i",buffer);
-			else if(buffer<1000)
-			sprintf(buff2,"0%i",buffer);
+				sprintf(buff2,"j0%i",buffer);
 			else
-			sprintf(buff2,"%i",buffer);
+				sprintf(buff2,"j%i",buffer);
+			strcat(gauge_title,buff2);
+			if(nx<10)
+				sprintf(buff2,"s0%i",nx);
+			else
+				sprintf(buff2,"s%i",nx);
+			strcat(gauge_title,buff2);
+			if(nt<10)
+				sprintf(buff2,"t0%i",nt);
+			else
+				sprintf(buff2,"t%i",nt);
+			strcat(gauge_title,buff2);
 		}
-		char *fileop = "wb";
-		char gauge_file[FILELEN];
-		char c[4];
-		sprintf(c,"%i", itraj);
-		strcat(gauge_file, c);
-		printf("Gauge file name is %s\n", gauge_file);
-		printf("Writing the gauge file on processor %i.\n", rank);
-		if(!(con=fopen(gauge_file, fileop))){
-			fprintf(stderr, "Error %i in %s: Failed to open %s.\nExiting...\n\n", OPENERROR, funcname, gauge_file);
-			MPI_Finalise();
-			exit(OPENERROR);	
-		}
-		fwrite(u11Write, ndim*gvol*sizeof(complex), 1, con);
-		fwrite(u12Write, ndim*gvol*sizeof(complex), 1, con);
-		fwrite(&seed, sizeof(seed), 1, con);
-		fclose(con);
+	}
+	char *fileop = "wb";
+	char gauge_file[FILELEN];
+	strcpy(gauge_file,gauge_title);
+	char c[7];
+	sprintf(c,"%i", itraj);
+	strcat(gauge_file, c);
+	printf("Gauge file name is %s\n", gauge_file);
+	printf("Writing the gauge file on processor %i.\n", rank);
+	if(!(con=fopen(gauge_file, fileop))){
+		fprintf(stderr, "Error %i in %s: Failed to open %s.\nExiting...\n\n", OPENERROR, funcname, gauge_file);
+		MPI_Finalise();
+		exit(OPENERROR);	
+	}
+	fwrite(u11Write, ndim*gvol*sizeof(complex), 1, con);
+	fwrite(u12Write, ndim*gvol*sizeof(complex), 1, con);
+	fwrite(&seed, sizeof(seed), 1, con);
+	fclose(con);
 #ifdef USE_MKL
-		mkl_free(u11Write); mkl_free(u12Write); mkl_free(u1buff); mkl_free(u2buff);
+	mkl_free(u11Write); mkl_free(u12Write); mkl_free(u1buff); mkl_free(u2buff);
 #else
-		free(u11Write); free(u12Write); free(u1buff); free(u2buff);
+	free(u11Write); free(u12Write); free(u1buff); free(u2buff);
 #endif
-	}
-	else{
-		for(int idim = 0; idim<ndim; idim++){
-			if(MPI_Send(u11+(kvol+halo)*idim, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm)){
-				fprintf(stderr, "Error %i in %s: Falied to send u11 from process %i.\nExiting...\n\n",
-						CANTSEND, funcname, iproc);
-				MPI_Finalise();
-				exit(CANTSEND);
-			}
-			if(MPI_Send(u12+(kvol+halo)*idim, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm)){
-				fprintf(stderr, "Error %i in %s: Falied to send u12 from process %i.\nExiting...\n\n",
-						CANTSEND, funcname, iproc);
-				MPI_Finalise();
-				exit(CANTSEND);
-			}
+}
+else{
+	for(int idim = 0; idim<ndim; idim++){
+		if(MPI_Send(u11+(kvol+halo)*idim, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm)){
+			fprintf(stderr, "Error %i in %s: Falied to send u11 from process %i.\nExiting...\n\n",
+					CANTSEND, funcname, iproc);
+			MPI_Finalise();
+			exit(CANTSEND);
+		}
+		if(MPI_Send(u12+(kvol+halo)*idim, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm)){
+			fprintf(stderr, "Error %i in %s: Falied to send u12 from process %i.\nExiting...\n\n",
+					CANTSEND, funcname, iproc);
+			MPI_Finalise();
+			exit(CANTSEND);
 		}
 	}
-	return 0;
+}
+return 0;
 }
 //To be lazy, we've got modules to help us do reductions and broadcasts with a single argument
 //rather than type them all every single time
