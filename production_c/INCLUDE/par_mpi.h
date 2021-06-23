@@ -102,7 +102,7 @@ unsigned int halosize[4];
 int Par_begin(int argc, char *argv[]);
 int Par_sread();
 int Par_psread(char *filename, double *ps);
-int Par_swrite(int isweep);
+int Par_swrite(const int itraj, const int icheck);
 int Par_end();
 //Shortcuts for reductions and broadcasts
 int Par_isum(int *ival);
