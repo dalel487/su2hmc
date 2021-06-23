@@ -511,7 +511,7 @@ int main(int argc, char *argv[]){
 					}
 	}
 	if(itraj%icheck==0){
-		Par_swrite(itraj);
+		Par_swrite(itraj,icheck,beta,fmu,akappa,ajq);
 	}
 	if(!rank)
 		fflush(output);
