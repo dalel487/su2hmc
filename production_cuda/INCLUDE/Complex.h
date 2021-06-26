@@ -25,13 +25,6 @@ inline __device__ double cabs(complex z){
 	return sqrt(cnormsq(z));
 }
 
-inline __device__ void operator=(const complex &z, const complex &w){
-	z.re=w.re; z.im=w.im;
-}
-inline __device__ void operator=(complex &z, const complex &w){
-	z.re=w.re; z.im=w.im;
-}
-
 //Binary operators
 //###############
 //Equivalence
@@ -76,6 +69,8 @@ inline __device__ bool operator!=(const int &n, const complex &z){
 	if(n!=z.re || z.im != 0) return true;
 	else return false;
 }
+
+
 //Complex-Double
 //==============
 //I copied these from the double-complex case which is why the z and x appear backwards
