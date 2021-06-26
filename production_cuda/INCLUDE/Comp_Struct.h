@@ -3,23 +3,21 @@
 //This contains the common complex structure definition for both the C and CUDA
 //Codes
 
-typedef struct{
+typedef struct complex{
 	double re;
 	double im;
 	//Assignment
 	//=========
 	inline __device__ complex& operator=(const complex &z){
-		if(this != z){//Avoid self assignment
-			this.re = z.re; this.im = z.im;
-		}
+		this->re = z.re; this->im = z.im;
 		return *this;
 	}
 	inline __device__ complex& operator=(const double &x){
-		this.re = x; this.im = 0;
+		this->re = x; this->im = 0;
 		return *this;
 	}
 	inline __device__ complex& operator=(const int &n){
-		this.re = (double)n; this.im = 0;
+		this->re = (double)n; this->im = 0;
 		return *this;
 	}
 }complex;

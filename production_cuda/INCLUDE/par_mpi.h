@@ -1,7 +1,7 @@
 #ifndef PAR_MPI
 #define	PAR_MPI
 #ifdef __NVCC__
-#include	<Complex.h>
+#include	<cuda_complex.hpp>
 #else
 #include	<complex.h>
 #endif

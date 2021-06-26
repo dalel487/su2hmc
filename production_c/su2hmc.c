@@ -543,7 +543,7 @@ int main(int argc, char *argv[]){
 #if (defined SA3AT)
 	if(!rank){
 		FILE *sa3at = fopen("Bench_times.csv", "a");
-		fprintf(sa3at, "%lu,%lu,%lu,%lu,%f,%f\n",nx,nt,kvol,nthreads,elapsed,elapsed/ntraj);
+		fprintf(sa3at, "C,%lu,%lu,%lu,%lu,%lu,%lu,%f,%f\n",nx,nt,kvol,npx,npt,nthreads,elapsed,elapsed/ntraj);
 		fclose(sa3at);
 	}
 #endif

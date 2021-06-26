@@ -2,7 +2,7 @@
 #define MULTIPLY 
 #ifdef __NVCC__
 #include <cuda.h>
-#include <Complex.h>
+#include <cuda_complex.hpp>
 #include <curand.h>
 #endif
 #include <par_mpi.h>

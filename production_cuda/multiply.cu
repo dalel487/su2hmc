@@ -2,7 +2,7 @@
 #include <cuda.h>
 #include <multiply.h>
 #include <string.h>
-int Dslash(complex *phi, complex *r){
+int Dslash(complexd *phi, complexd *r){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -17,9 +17,9 @@ int Dslash(complex *phi, complex *r){
 	 * Parametrer:
 	 * ==========
 	 *
-	 * complex *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
+	 * complexd *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
 	 * 			for consistency with the fortran code I'll keep the name here
-	 * complex r:		The array being acted on by M
+	 * complexd r:		The array being acted on by M
 	 *
 	 * Returns:
 	 * Zero on success, integer error code otherwise
@@ -29,12 +29,12 @@ int Dslash(complex *phi, complex *r){
 	ZHalo_swap_all(r, 16);
 
 	//Mass term
-	memcpy(phi, r, kferm*sizeof(complex));
+	memcpy(phi, r, kferm*sizeof(complexd));
 	cuDlash<<<dimGrid,dimBlock>>>(Phi,r);
 	//Diquark Term (antihermitian)
 	return 0;
 }
-int Dslashd(complex *phi, complex *r){
+int Dslashd(complexd *phi, complexd *r){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -49,9 +49,9 @@ int Dslashd(complex *phi, complex *r){
 	 * Parameter:
 	 * ==========
 	 *
-	 * complex *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
+	 * complexd *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
 	 * 			for consistency with the fortran code I'll keep the name here
-	 * complex r:		The array being acted on by M
+	 * complexd r:		The array being acted on by M
 	 *
 	 * Returns:
 	 * Zero on success, integer error code otherwise
@@ -61,7 +61,7 @@ int Dslashd(complex *phi, complex *r){
 	ZHalo_swap_all(r, 16);
 
 	//Mass term
-	memcpy(phi, r, kferm*sizeof(complex));
+	memcpy(phi, r, kferm*sizeof(complexd));
 #pragma omp parallel for
 	for(int i=0;i<kvol;i++){
 #pragma omp simd aligned(phi:AVX,r:AVX)
@@ -69,7 +69,7 @@ int Dslashd(complex *phi, complex *r){
 		//Diquark Term (antihermitian) The signs of a_1 and a_2 below flip under dagger
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork = idirac+4;
-			complex a_1, a_2;
+			complexd a_1, a_2;
 			//We subtract a_1, hence the minus
 			a_1=-conj(jqq)*gamval[4][idirac];
 			a_2=jqq*gamval[4][idirac];
@@ -157,7 +157,7 @@ int Dslashd(complex *phi, complex *r){
 	}
 	return 0;
 }
-int Hdslash(complex *phi, complex *r){
+int Hdslash(complexd *phi, complexd *r){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -172,9 +172,9 @@ int Hdslash(complex *phi, complex *r){
 	 * Parametrer:
 	 * ==========
 	 *
-	 * complex *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
+	 * complexd *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
 	 * 			for consistency with the fortran code I'll keep the name here
-	 * complex r:		The array being acted on by M
+	 * complexd r:		The array being acted on by M
 	 *
 	 * Returns:
 	 * Zero on success, integer error code otherwise
@@ -184,7 +184,7 @@ int Hdslash(complex *phi, complex *r){
 	ZHalo_swap_all(r, 8);
 
 	//Mass term
-	memcpy(phi, r, kferm2*sizeof(complex));
+	memcpy(phi, r, kferm2*sizeof(complexd));
 	//Spacelike term
 	//#pragma offload target(mic)\
 	in(r: length(kferm2Halo))\
@@ -251,7 +251,7 @@ int Hdslash(complex *phi, complex *r){
 		}
 	return 0;
 }
-int Hdslashd(complex *phi, complex *r){
+int Hdslashd(complexd *phi, complexd *r){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -266,9 +266,9 @@ int Hdslashd(complex *phi, complex *r){
 	 * Parametrer:
 	 * ==========
 	 *
-	 * complex *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
+	 * complexd *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
 	 * 			for consistency with the fortran code I'll keep the name here
-	 * complex r:		The array being acted on by M
+	 * complexd r:		The array being acted on by M
 	 *
 	 * Returns:
 	 * Zero on success, integer error code otherwise
@@ -284,7 +284,7 @@ int Hdslashd(complex *phi, complex *r){
 	//anyways so memory access patterns mightn't be as big of an limiting factor here anyway
 
 	//Mass term
-	memcpy(phi, r, kferm2*sizeof(complex));
+	memcpy(phi, r, kferm2*sizeof(complexd));
 	//Spacelike term
 	//#pragma offload target(mic)\
 	in(r: length(kferm2Halo))\
@@ -388,18 +388,18 @@ int Force(double *dSdpi, int iflag, double res1){
 	//X1=(M†M)^{1} Phi
 	int itercg;
 #ifdef __NVCC_
-	complex *X2, *smallPhi;
-	cudaMallocManaged(&X2,kferm2Halo*sizeof(complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&smallPhi,kferm2Halo*sizeof(complex),cudaMemAttachGlobal);
+	complexd *X2, *smallPhi;
+	cudaMallocManaged(&X2,kferm2Halo*sizeof(complexd),cudaMemAttachGlobal);
+	cudaMallocManaged(&smallPhi,kferm2Halo*sizeof(complexd),cudaMemAttachGlobal);
 #elif defined USE_MKL
-	complex *X2= mkl_malloc(kferm2Halo*sizeof(complex), AVX);
-	complex *smallPhi =mkl_malloc(kferm2Halo*sizeof(complex), AVX); 
+	complexd *X2= mkl_malloc(kferm2Halo*sizeof(complexd), AVX);
+	complexd *smallPhi =mkl_malloc(kferm2Halo*sizeof(complexd), AVX); 
 #else
-	complex *X2= malloc(kferm2Halo*sizeof(complex));
-	complex *smallPhi = malloc(kferm2Halo*sizeof(complex)); 
+	complexd *X2= malloc(kferm2Halo*sizeof(complexd));
+	complexd *smallPhi = malloc(kferm2Halo*sizeof(complexd)); 
 #endif
 	for(int na = 0; na<nf; na++){
-		memcpy(X1, X0+na*kferm2Halo, nc*ndirac*kvol*sizeof(complex));
+		memcpy(X1, X0+na*kferm2Halo, nc*ndirac*kvol*sizeof(complexd));
 		//FORTRAN's logic is backwards due to the implied goto method
 		//If iflag is zero we do some initalisation stuff 
 		if(!iflag){
@@ -407,7 +407,7 @@ int Force(double *dSdpi, int iflag, double res1){
 			ancg+=itercg;
 			//This is not a general BLAS Routine, just an MKL one
 #ifdef USE_MKL
-			complex blasa=2.0; complex blasb=-1.0;
+			complexd blasa=2.0; complexd blasb=-1.0;
 			cblas_zaxpby(kvol*ndirac*nc, &blasa, X1, 1, &blasb, X0+na*kferm2Halo, 1); 
 #else
 			for(int i=0;i<kvol;i++){
@@ -656,11 +656,11 @@ __global__ void New_trial(double dt){
 					+pp[(i*nadj+2)*ndim+mu]*pp[(i*nadj+2)*ndim+mu]);
 			double CCC = cos(AAA);
 			double SSS = dt*sin(AAA)/AAA;
-			complex a11 = CCC+I*SSS*pp[(i*nadj+2)*ndim+mu];
-			complex a12 = pp[(i*nadj+1)*ndim+mu]*SSS + I*SSS*pp[i*nadj*ndim+mu];
+			complexd a11 = CCC+I*SSS*pp[(i*nadj+2)*ndim+mu];
+			complexd a12 = pp[(i*nadj+1)*ndim+mu]*SSS + I*SSS*pp[i*nadj*ndim+mu];
 			//b11 and b12 are u11t and u12t terms, so we'll use u12t directly
 			//but use b11 for u11t to prevent RAW dependency
-			complex b11 = u11t[i*ndim+mu];
+			complexd b11 = u11t[i*ndim+mu];
 			u11t[i*ndim+mu] = a11*b11-a12*conj(u12t[i*ndim+mu]);
 			u12t[i*ndim+mu] = a11*u12t[i*ndim+mu]+a12*conj(b11);
 		}
@@ -688,11 +688,11 @@ int Diagnostics(int istart){
 	//later
 	assert(nf==1);
 
-	R1= mkl_malloc(kfermHalo*sizeof(complex),AVX);
-	xi= mkl_malloc(kfermHalo*sizeof(complex),AVX);
-	Phi= mkl_malloc(nf*kfermHalo*sizeof(complex),AVX); 
-	X0= mkl_malloc(nf*kferm2Halo*sizeof(complex),AVX); 
-	X1= mkl_malloc(kferm2Halo*sizeof(complex),AVX); 
+	R1= mkl_malloc(kfermHalo*sizeof(complexd),AVX);
+	xi= mkl_malloc(kfermHalo*sizeof(complexd),AVX);
+	Phi= mkl_malloc(nf*kfermHalo*sizeof(complexd),AVX); 
+	X0= mkl_malloc(nf*kferm2Halo*sizeof(complexd),AVX); 
+	X1= mkl_malloc(kferm2Halo*sizeof(complexd),AVX); 
 	double *dSdpi = mkl_malloc(kmomHalo*sizeof(double), AVX);
 	//pp is the momentum field
 	pp = mkl_malloc(kmomHalo*sizeof(double), AVX);
@@ -739,8 +739,8 @@ int Diagnostics(int istart){
 			break;
 		default:
 			//Cold start as a default
-			memcpy(u11t,u11,kvol*ndim*sizeof(complex));
-			memcpy(u12t,u12,kvol*ndim*sizeof(complex));
+			memcpy(u11t,u11,kvol*ndim*sizeof(complexd));
+			memcpy(u12t,u12,kvol*ndim*sizeof(complexd));
 			break;
 	}
 #pragma omp parallel for simd aligned(u11t:AVX,u12t:AVX) 
@@ -872,7 +872,7 @@ int Diagnostics(int istart){
 			case(6):
 				output = fopen("Measure", "w");
 				int itercg=0;
-				double pbp, endenf, denf; complex qq, qbqb;
+				double pbp, endenf, denf; complexd qq, qbqb;
 				Measure(&pbp, &endenf, &denf, &qq, &qbqb, respbp, &itercg);
 				fprintf(output,"pbp=%f\tendenf=%f\tdenf=%f\nqq=%f+(%f)i\tqbqb=%f+(%f)i\titercg=%i\n\n",
 						pbp,endenf,denf,creal(qq),cimag(qq),creal(qbqb),cimag(qbqb),itercg);
@@ -899,7 +899,7 @@ int Diagnostics(int istart){
 	exit(0);
 }
 #endif
-__global__ cuDslash(complex *phi, complex *r){
+__global__ cuDslash(complexd *phi, complexd *r){
 	int gsize = gridDim.x*gridDim.y*gridDim.z;
 	int bsize = blockDim.x*blockDim.y*blockDim.z;
 	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -907,7 +907,7 @@ __global__ cuDslash(complex *phi, complex *r){
 	for(int i=threadId;i<kvol;i+=gsize){
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork = idirac+4;
-			complex a_1, a_2;
+			complexd a_1, a_2;
 			a_1=conj(jqq)*gamval[4][idirac];
 			//We subtract a_2, hence the minus
 			a_2=-jqq*gamval[4][idirac];

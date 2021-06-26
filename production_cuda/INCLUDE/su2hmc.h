@@ -1,7 +1,7 @@
 #ifndef SU2HEAD
 #define SU2HEAD
 #ifdef __NVCC__
-	#include <Complex.h>
+	#include <cuda_complex.hpp>
 #else
 	#include <complex.h>
 #endif
