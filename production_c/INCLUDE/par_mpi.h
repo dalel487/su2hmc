@@ -93,7 +93,7 @@ complex *u11t, *u12t;
 #endif
 //Halos indices
 //-------------
-static unsigned int *iu, *id;
+//static unsigned int *iu, *id;
 unsigned int h1u[4], h1d[4];
 unsigned int halosize[4];
 

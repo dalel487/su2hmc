@@ -712,7 +712,7 @@ int ZHalo_swap_dir(complex *z, int ncpt, int idir, int layer){
 			}
 #pragma omp parallel for if(halosize[idir]>2048)
 			for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
-#pragma omp simd aligned(z:AVX, sendbuf:AVX)
+#pragma omp simd aligned(z, sendbuf:AVX)
 				for(int icpt = 0; icpt <ncpt; icpt++)
 					sendbuf[ihalo*ncpt+icpt]=z[ncpt*hd[ndim*ihalo+idir]+icpt];
 			//For the zdnhaloswapdir we send off the down halo and receive into the up halo
@@ -739,7 +739,7 @@ int ZHalo_swap_dir(complex *z, int ncpt, int idir, int layer){
 			}
 #pragma omp parallel for if(halosize[idir]>2048)
 			for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
-#pragma omp simd aligned(z:AVX, sendbuf:AVX)
+#pragma omp simd aligned(z, sendbuf:AVX)
 				for(int icpt = 0; icpt <ncpt; icpt++)
 					sendbuf[ihalo*ncpt+icpt]=z[ncpt*hu[ndim*ihalo+idir]+icpt];
 			//For the zuphaloswapdir we send off the up halo and receive into the down halo

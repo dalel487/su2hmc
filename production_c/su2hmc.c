@@ -264,7 +264,7 @@ int main(int argc, char *argv[]){
 			Dslashd(R1, R);
 			memcpy(Phi+na*kfermHalo,R1, nc*ngorkov*kvol*sizeof(complex));
 			//Up/down partitioning (using only pseudofermions of flavour 1)
-#pragma omp parallel for simd aligned(X0:AVX,R1:AVX)
+#pragma omp parallel for simd aligned(X0,R1:AVX)
 			for(int i=0; i<kvol; i++)
 				for(int idirac = 0; idirac < ndirac; idirac++){
 					X0[((na*(kvol+halo)+i)*ndirac+idirac)*nc]=R1[(i*ngorkov+idirac)*nc];
@@ -618,7 +618,7 @@ int Init(int istart){
 	dk4m = malloc((kvol+halo)*sizeof(double));
 	dk4p = malloc((kvol+halo)*sizeof(double));
 #endif
-#pragma omp parallel for simd aligned(dk4m:AVX,dk4p:AVX)
+#pragma omp parallel for simd aligned(dk4m,dk4p:AVX)
 	for(int i = 0; i<kvol; i++){
 		dk4p[i]=akappa*chem1;
 		dk4m[i]=akappa*chem2;
@@ -629,7 +629,7 @@ int Init(int istart){
 #ifdef _DEBUG
 		printf("Implimenting antiperiodic boundary conditions on rank %i\n", rank);
 #endif
-#pragma omp parallel for simd aligned(dk4m:AVX,dk4p:AVX)
+#pragma omp parallel for simd aligned(dk4m,dk4p:AVX)
 		for(int i= 0; i<kvol3; i++){
 			int k = kvol - kvol3 + i;
 			dk4p[k]*=-1;
@@ -742,7 +742,7 @@ int Init(int istart){
 			for(int nu=0; nu<ndim; nu++){
 				if(nu!=mu){
 					//The +ν Staple
-#pragma omp parallel for simd aligned(u11t:AVX,u12t:AVX,Sigma11:AVX,Sigma12:AVX)
+#pragma omp parallel for simd aligned(u11t,u12t,Sigma11,Sigma12:AVX)
 					for(int i=0;i<kvol;i++){
 						int uidm = iu[mu+ndim*i];
 						int uidn = iu[nu+ndim*i];
@@ -758,7 +758,7 @@ int Init(int istart){
 					ZHalo_swap_dir(u11sh, 1, mu, DOWN);
 					ZHalo_swap_dir(u12sh, 1, mu, DOWN);
 					//Next up, the -ν staple
-#pragma omp parallel for simd aligned(u11t:AVX,u12t:AVX,u11sh:AVX,u12sh:AVX,Sigma11:AVX,Sigma12:AVX)
+#pragma omp parallel for simd aligned(u11t,u12t,u11sh,u12sh,Sigma11,Sigma12:AVX)
 					for(int i=0;i<kvol;i++){
 						int uidm = iu[mu+ndim*i];
 						int didn = id[nu+ndim*i];
@@ -772,7 +772,7 @@ int Init(int istart){
 					}
 				}
 			}
-#pragma omp parallel for simd aligned(u11t:AVX,u12t:AVX,Sigma11:AVX,Sigma12:AVX,dSdpi:AVX)
+#pragma omp parallel for simd aligned(u11t,u12t,Sigma11,Sigma12,dSdpi:AVX)
 			for(int i=0;i<kvol;i++){
 				complex a11 = u11t[i*ndim+mu]*Sigma12[i]+u12t[i*ndim+mu]*conj(Sigma11[i]);
 				complex a12 = u11t[i*ndim+mu]*Sigma11[i]+conj(u12t[i*ndim+mu])*Sigma12[i];
@@ -1292,8 +1292,7 @@ int Init(int istart){
 			for(int i = 0; i<kvol; i++){
 				int did=id[3+ndim*i];
 				int uid=iu[3+ndim*i];
-#pragma unroll
-#pragma omp simd aligned(u11t:AVX,u12t:AVX,xi:AVX,x:AVX,dk4m:AVX,dk4p:AVX) 
+#pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX) 
 				for(int igorkov=0; igorkov<4; igorkov++){
 					int igork1=gamin[3][igorkov];
 					//For the C Version I'll try and factorise where possible
@@ -1372,7 +1371,7 @@ int Init(int istart){
 				for(int nu=0;nu<mu;nu++)
 					//Don't merge into a single loop. Makes vectorisation easier?
 					//Or merge into a single loop and dispense with the a arrays?
-#pragma omp parallel for simd aligned(u11t:AVX,u12t:AVX) reduction(+:hgs,hgt)
+#pragma omp parallel for simd aligned(u11t,u12t:AVX) reduction(+:hgs,hgt)
 					for(int i=0;i<kvol;i++){
 						//Save us from typing iu[mu+ndim*i] everywhere
 						int uidm = iu[mu+ndim*i]; 
@@ -1469,7 +1468,7 @@ int Init(int istart){
 #pragma unroll
 			for(int it=1;it<ksizet;it++)
 				//will be faster for parallel code
-#pragma omp parallel for simd private(a11) aligned(u11t:AVX,u12t:AVX,Sigma11:AVX,Sigma12:AVX)
+#pragma omp parallel for simd private(a11) aligned(u11t,u12t,Sigma11,Sigma12:AVX)
 				for(int i=0;i<kvol3;i++){
 					//Seems a bit more efficient to increment indexu instead of reassigning
 					//it every single loop
@@ -1546,7 +1545,7 @@ int Init(int istart){
 			{
 				//FORTRAN had a second parameter m gving the size of y (kvol+halo) normally
 				//Pointers mean that's not an issue for us so I'm leaving it out
-#pragma omp parallel for simd aligned (x:AVX,y:AVX,table:AVX)
+#pragma omp parallel for simd aligned (x,y,table:AVX)
 				for(int i=0; i<n; i++)
 					x[i]=y[table[i*ndim+mu]*ndim+mu];
 				return 0;
@@ -1574,7 +1573,7 @@ int Init(int istart){
 				 */
 				const char *funcname = "Fill_Small_Phi";
 				//BIG and small phi index
-#pragma omp parallel for simd aligned(smallPhi:AVX,Phi:AVX)
+#pragma omp parallel for simd aligned(smallPhi,Phi:AVX)
 				for(int i = 0; i<kvol;i++)
 #pragma unroll
 					for(int idirac = 0; idirac<ndirac; idirac++)
