@@ -1,0 +1,83 @@
+MF=	Makefile
+
+#FC= mpif77 
+CC= mpicc
+NVCC = nvcc
+
+#FFLAGS= -O3 -I /bgsys/drivers/toolchain/V1R1M2/gnu-linux/lib/gcc/powerpc64-bgq-linux/4.4.6/finclude/
+IFLAGS=     -I./INCLUDE/ -I./SFMT-src-1.5.1/ -I/opt/AMD/aocl/aocl-linux-aocc-3.0-6/include/
+
+CFLAGS=      $(IFLAGS) -std=gnu99 -DHAVE_SSE2 -DUSE_BLAS -fcommon\
+		 -march=native -static-libgcc  -DUSE_RAN2\
+		 -fopenmp-simd -fopenmp  -DSA3AT -fveclib=AMDLIBM -flto
+
+LFLAGS=	 -Wl -latomic \
+		-L/opt/AMD/aocl/aocl-linux-aocc-3.0-6/lib/ \
+		-liomp5 -lpthread -lm -ldl -lalm \
+
+EXE=	su2hmc_AMD
+
+SRC= \
+	su2hmc.c \
+	par_mpi.c \
+      coord.c \
+      multiply.c \
+      random.c \
+
+
+INC= \
+	su2hmc.h \
+	sizes.h \
+      par_mpi.h \
+      slash.h \
+      random.h \
+      multiply.h \
+      coord.h \
+      errorcodes.h \
+	cblas.h
+
+
+#
+# No need to edit below this line
+#
+
+.SUFFIXES:
+.SUFFIXES: .c .o
+
+OBJ=	$(SRC:.c=.o)
+
+#MOD=	$(SRC:.c=.mod)
+MOD=	
+EDT=	$(SRC:.c=.c~)
+TMP=	$(MOD) $(EDT) core
+
+.f.o:
+	$(FC) $(FFLAGS) -c $<
+
+all:	$(EXE)
+
+release:	CFLAGS +=  -Ofast -finline-aggresive -finline-recursion=4
+
+release:	$(EXE)
+
+debug:	CFLAGS += -g -O0  -finline-aggresive\
+		-D_DEBUG -DUSE_RAN2 #-DDIAGNOSTIC -DNO_TIME -DNO_SPACE
+
+	
+debug:	$(EXE)
+
+$(EXE):	$(OBJ)
+	$(CC) $(CFLAGS) -o $@ $(OBJ) $(LFLAGS)
+
+$(OBJ):	$(MF) 
+#$(INC)
+
+clean:
+	rm -f $(OBJ) $(TMP)
+
+INP=	\
+	midout \
+	con
+
+tar:
+	tar cvf $(EXE).tar $(MF) $(SRC) $(INC) $(INP)

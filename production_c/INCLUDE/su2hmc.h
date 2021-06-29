@@ -9,6 +9,8 @@
 //flag to sort them out. But the PRNG routines etc. are MKL exclusive
 #ifdef	USE_MKL
 #include	<mkl.h>
+#else
+#include	<cblas.h>
 #endif
 #include	<sizes.h>
 
@@ -57,14 +59,14 @@ int Congradp(int na, double res, int *itercg);
 int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbqb, double res, int *itercg);
 int SU2plaq(double *hg, double *avplaqs, double *avplaqt);
 double Polyakov();
-inline int Reunitarise();
+extern inline int Reunitarise();
 #ifdef __NVCC__
-inline int Z_gather(cuDoubleComplex *x, cuDoubleComplex *y, int n, unsigned int *table);
-inline int Fill_Small_Phi(int na, cuDoubleComplex *smallPhi);
+extern inline int Z_gather(cuDoubleComplex *x, cuDoubleComplex *y, int n, unsigned int *table);
+extern inline int Fill_Small_Phi(int na, cuDoubleComplex *smallPhi);
 double Norm_squared(cuDoubleComplex *z, int n);
 #else
-inline int Z_gather(complex *x, complex *y, int n, unsigned int *table, unsigned int mu);
-inline int Fill_Small_Phi(int na, complex *smallPhi);
+extern inline int Z_gather(complex *x, complex *y, int n, unsigned int *table, unsigned int mu);
+extern inline int Fill_Small_Phi(int na, complex *smallPhi);
 double Norm_squared(complex *z, int n);
 #endif
 #endif

@@ -11,6 +11,8 @@
 //If using mkl and BLAS, it is good practice to use mkl_malloc to align the arrays better
 //for the AVX-512 FMA Units
 #include	<mkl.h>
+#else
+#include	<cblas.h>
 #endif
 #include	<mpi.h> 
 #ifdef _OPENMP

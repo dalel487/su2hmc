@@ -4,9 +4,12 @@
 #ifdef USE_MKL
       #include <mkl.h>
       #include <mkl_vsl.h>
+#else
+	#include	<cblas.h>
+	# define M_PI		3.14159265358979323846	/* pi */
 #endif
+#include <math.h>
 #include <par_mpi.h>
-#include <SFMT.h>
 //Configuration for existing generators if called
 //===============================================
 #ifdef	USE_RAN2
@@ -20,7 +23,6 @@ extern VSLStreamStatePtr stream;
 #else
 extern int seed;
 //Mersenne Twister
-extern sfmt_t sfmt;
 int ranset(int *seed);
 int Par_ranset(int *seed);
 #endif

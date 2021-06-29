@@ -13,7 +13,6 @@ VSLStreamStatePtr stream;
 #include <mpi.h>
 #include "par_mpi.h"
 #include "random.h"
-#include "SFMT.h"
 #include "sizes.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,7 +26,6 @@ unsigned int seed = 967580165;
 #else
 int seed = 967580165;
 #endif
-sfmt_t sfmt;
 
 
 #ifdef USE_MKL
@@ -38,8 +36,6 @@ inline int ranset(int *seed)
 {
 #ifdef USE_MKL
 	vslNewStream( &stream, VSL_BRNG_MT19937, *seed );
-#else
-	sfmt_init_gen_rand(&sfmt, *seed);
 #endif
 	return 0;
 }
