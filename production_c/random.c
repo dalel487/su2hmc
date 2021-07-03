@@ -163,9 +163,6 @@ int Gauss_z(complex *ps, unsigned int n, const double mu, const double sigma){
 		double	r =sigma*sqrt(-2*log(ran2(&seed)));
 		double	theta=2.0*M_PI*ran2(&seed);
 		ps[i]=r*(cos(theta)+mu+(sin(theta)+mu)*I);
-#else
-		double r=2.0*M_PI*sfmt_genrand_real1(&sfmt);
-		ps[i]=sigma*sqrt(-2*log(sfmt_genrand_real1(&sfmt)))*(cos(r)+mu+(sin(r)+mu)*I);
 #endif
 	}     
 	return 0;
@@ -203,8 +200,6 @@ int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma){
 		r=2.0*M_PI*ran2(&seed);
 		ps[n]=sqrt(-2*log(ran2(&seed)))*cos(r);
 #else
-		r=2.0*M_PI*sfmt_genrand_real1(&sfmt);
-		ps[n]=sqrt(-2*log(sfmt_genrand_real1(&sfmt)))*cos(r);
 #endif
 	}
 	for(i=0;i<n;i+=2){
@@ -222,14 +217,10 @@ int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma){
 #ifdef USE_RAN2
 		u=sqrt(-2*log(ran2(&seed)))*sigma;
 		r=2.0*M_PI*ran2(&seed);
-		ps[i]=u*cos(r)+mu;
-		ps[i+1]=u*sin(r)+mu;
 #else
-		u=sqrt(-2*log(sfmt_genrand_real1(&sfmt)))*sigma;
-		r=2.0*M_PI*sfmt_genrand_real1(&sfmt);
+#endif
 		ps[i]=u*cos(r)+mu;
 		ps[i+1]=u*sin(r)+mu;
-#endif
 	}     
 	return 0;
 }

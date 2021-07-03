@@ -998,7 +998,7 @@ int Init(int istart){
 			//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multipyling y by
 			//β instead of x.
 			//There is cblas_zaxpby in the MKL though, set a = 1 and b = β.
-#ifdef USE_MKL
+#if (defined USE_MKL || defined USE_BLAS)
 			complex a = 1;
 			cblas_zaxpby(kferm2, &a, r, 1, &beta,  p, 1);
 #else 
@@ -1145,7 +1145,7 @@ int Init(int istart){
 			//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multipyling y by 
 			//β instead of x.
 			//There is cblas_zaxpby in the MKL though, set a = 1 and b = β.
-#ifdef USE_MKL
+#if (defined USE_MKL || USE_BLAS)
 			complex a = 1;
 			cblas_zaxpby(kferm, &a, r, 1, &beta,  p, 1);
 #else
