@@ -1,8 +1,11 @@
 #ifndef SU2HEAD
 #define SU2HEAD
-#include	<complex.h>
 #ifdef __CUDACC__
 #include <cuda_complex.hpp>
+#define Complex	complex<double>
+#else
+#include	<complex.h>
+#define Complex	complex
 #endif
 //MKL is powerful, but not guaranteed to be available (especially on AMD systems or future
 //ARM Based machines.) BLAS routines should work with other libraries, so we can set a compiler
@@ -26,14 +29,10 @@ int ibound;
 //Seems a bit redundant looking
 extern const int gamin[4][4];
 //We have the four γ Matrices, and in the final index (labelled 4 in C) is γ_5)
-extern complex gamval[5][4];
+extern Complex gamval[5][4];
 
 //From common_pseud
-#ifdef __CUDACC__
-cuDoubleComplex *Phi, *R1, *X0, *X1, *xi;
-#else
-complex *Phi, *R1, *X0, *X1, *xi;
-#endif
+Complex *Phi, *R1, *X0, *X1, *xi;
 //From common_mat
 //double dk4m[kvol+halo], dk4p[kvol+halo] __attribute__((aligned(AVX)));
 double *dk4m, *dk4p, *pp;
@@ -44,7 +43,7 @@ double *dk4m, *dk4p, *pp;
 //Values:
 //------
 //The diquark
-extern complex jqq;
+extern Complex jqq;
 
 //Average # of congrad iter guidance and acceptance
 double ancg, ancgh;
@@ -56,9 +55,9 @@ int Force(double *dSdpi, int iflag, double res1);
 int Init(int istart);
 int Gauge_force(double *dSdpi);
 int Hamilton(double *h, double *s, double res2);
-int Congradq(int na, double res, complex *smallPhi, int *itercg);
+int Congradq(int na, double res, Complex *smallPhi, int *itercg);
 int Congradp(int na, double res, int *itercg);
-int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbqb, double res, int *itercg);
+int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbqb, double res, int *itercg);
 int SU2plaq(double *hg, double *avplaqs, double *avplaqt);
 double Polyakov();
 extern inline int Reunitarise();
@@ -67,8 +66,8 @@ extern inline int Z_gather(cuDoubleComplex *x, cuDoubleComplex *y, int n, unsign
 extern inline int Fill_Small_Phi(int na, cuDoubleComplex *smallPhi);
 double Norm_squared(cuDoubleComplex *z, int n);
 #else
-extern inline int Z_gather(complex *x, complex *y, int n, unsigned int *table, unsigned int mu);
-extern inline int Fill_Small_Phi(int na, complex *smallPhi);
-double Norm_squared(complex *z, int n);
+extern inline int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu);
+extern inline int Fill_Small_Phi(int na, Complex *smallPhi);
+double Norm_squared(Complex *z, int n);
 #endif
 #endif
