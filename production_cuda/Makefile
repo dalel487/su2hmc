@@ -5,12 +5,12 @@ CC= mpiicc
 NVCC = nvcc
 
 #FFLAGS= -O3 -I /bgsys/drivers/toolchain/V1R1M2/gnu-linux/lib/gcc/powerpc64-bgq-linux/4.4.6/finclude/
-IFLAGS=     -I./INCLUDE -I../production_c/SFMT-src-1.5.1
+IFLAGS=     -I./INCLUDE
 
 
 CFLAGS=      $(IFLAGS) -mkl -DUSE_MKL -std=gnu99 -DHAVE_SSE2 -ipo -qopt-zmm-usage=high\
 		 -xCOMMON-AVX512 -static-intel -static-libgcc -DMKL_DIRECT_CALL\
-		 -qopenmp-simd -qopenmp -qopenmp-link=static -DSA3AT 
+		 -qopenmp-simd -qopenmp -qopenmp-link=static -DSA3AT -DUSE_RAN2
 
 LFLAGS=	 -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a \
 		${MKLROOT}/lib/intel64/libmkl_intel_thread.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group\
@@ -24,7 +24,6 @@ CSRC= \
 	par_mpi.c \
       coord.c \
       random.c \
-      SFMT.c\
 
 CUSRC= \
 	cuda_init.cu \

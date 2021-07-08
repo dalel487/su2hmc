@@ -26,6 +26,9 @@
  ******************************************************************/
 #ifndef	SIZES
 #define	SIZES
+#ifdef	USE_MKL
+#include	<mkl.h>
+#endif
 // Define booleans for C because they don't exist natively
 // They do in C99...
 #define	TRUE	1
@@ -34,8 +37,8 @@
 #define	FILELEN	64
 // Common block definition for parallel variables
 
-#define	nx	8
-#define	nt	16	
+#define	nx	16
+#define	nt	16
 
 // Keep original restriction of single spatial extent
 
@@ -45,8 +48,8 @@
 #define	gvol3   (nx*ny*nz)
 
 
-#define	npx	2 
-#define	npt	1 
+#define	npx	2
+#define	npt	1
 //Number of threads for OpenMP
 #define	nthreads	1	
 

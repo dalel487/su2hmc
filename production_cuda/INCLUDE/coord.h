@@ -1,9 +1,5 @@
 #ifndef COORD
 #define	COORD
-#ifdef USE_MKL
-	#include <mkl.h>
-#endif
-#include <par_mpi.h>
 #include <sizes.h>
 //Global Variables
 //unsigned int id[ndim][kvol], iu[ndim][kvol] __attribute__((aligned(AVX)));

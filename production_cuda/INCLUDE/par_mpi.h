@@ -1,17 +1,21 @@
-#ifndef PAR_MPI
+#ifndef	PAR_MPI
 #define	PAR_MPI
-#ifdef __NVCC__
+#include	<coord.h>
+#ifdef __CUDACC__
 #include	<cuda_complex.hpp>
 #else
 #include	<complex.h>
 #endif
-#include	<coord.h>
 #include	<errorcodes.h>
 #include	<math.h>
 #ifdef	USE_MKL
 //If using mkl and BLAS, it is good practice to use mkl_malloc to align the arrays better
 //for the AVX-512 FMA Units
 #include	<mkl.h>
+#elif defined __CUDACC__
+#include	<cublas.h>
+#else
+#include	<cblas.h>
 #endif
 #include	<mpi.h> 
 #ifdef _OPENMP
@@ -70,13 +74,13 @@ int rank, size;
 //      logical ismaster
 int ismaster;
 
-      //The common keyword is largely redundant here as everything
-      //is already global scope.
-      
-      /*common /par/ pu, pd, procid, comm,
-     1             gsize, lsize, pcoord, pstart, pstop,
-     1             ismaster, masterproc
-*/	
+//The common keyword is largely redundant here as everything
+//is already global scope.
+
+/*common /par/ pu, pd, procid, comm,
+  1             gsize, lsize, pcoord, pstart, pstop,
+  1             ismaster, masterproc
+ */	
 
 //A couple of other components usually defined in common_*.h files in fortran. But since C has global scope
 //may as well put them in here instead.
@@ -86,13 +90,14 @@ complex *u11, *u12;
 complex *u11t, *u12t;
 //Halos indices
 //-------------
+//static unsigned int *iu, *id;
 
 //Function Declarations
 //=====================
 int Par_begin(int argc, char *argv[]);
 int Par_sread();
 int Par_psread(char *filename, double *ps);
-int Par_swrite(int isweep);
+int Par_swrite(const int itraj, const int icheck, const double beta, const double fmu, const double akappa, const double ajq);
 int Par_end();
 //Shortcuts for reductions and broadcasts
 int Par_isum(int *ival);

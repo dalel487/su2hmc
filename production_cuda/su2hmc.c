@@ -207,7 +207,7 @@ int main(int argc, char *argv[]){
 		memcpy(u11t,u11,(kvol+halo)*ndim*sizeof(complex));
 		Trial_Exchange();
 	}
-#ifdef __NVCC__
+#ifdef __CUDACC__
 //Moved these declarations to Cuda_init.cu
 #elif defined USE_MKL
 	R1= mkl_malloc(kfermHalo*sizeof(complex),AVX);
@@ -517,7 +517,7 @@ int main(int argc, char *argv[]){
 					}
 	}
 	if(itraj%icheck==0){
-		Par_swrite(itraj);
+		Par_swrite(itraj,icheck,beta,fmu,akappa,ajq);
 	}
 	if(!rank)
 		fflush(output);
@@ -529,7 +529,7 @@ int main(int argc, char *argv[]){
 #endif
 	//End of main loop
 	//Free arrays
-#ifdef __NVCC__
+#ifdef __CUDACC__
 //Make a routine that does this for us
 	cudaFree(dk4m); cudaFree(dk4p); cudaFree(R1); cudaFree(dSdpi); cudaFree(pp);
 	cudaFree(Phi); cudaFree(u11t); cudaFree(u12t); cudaFree(xi);
@@ -615,7 +615,7 @@ int Init(int istart){
 	printf("Checked addresses\n");
 #endif
 	double chem1=exp(fmu); double chem2 = 1/chem1;
-#ifdef __NVCC__
+#ifdef __CUDACC__
 //Can C call this?
 	cudaMallocManaged(&dk4m,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
 	cudaMallocManaged(&dk4p,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
@@ -663,7 +663,7 @@ int Init(int istart){
 		for(int j=0;j<4;j++)
 			gamval[i][j]*=akappa;
 #endif
-#ifdef __NVCC__
+#ifdef __CUDACC__
 //Do this in Cuda_init() instead
 	cudaMallocManaged(&u11,ndim*(kvol+halo)*sizeof(complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&u12,ndim*(kvol+halo)*sizeof(complex),cudaMemAttachGlobal);
@@ -689,7 +689,7 @@ int Init(int istart){
 			u11[i]=1;
 	}
 	else if(istart>0){
-		//#ifdef __NVCC__
+		//#ifdef __CUDACC__
 		//		complex *cu_u1xt;
 		//		cudaMallocManaged(&cu_u1xt, ndim*kvol*sizeof(complex));
 //Still thinking about how best to deal with PRNG
@@ -930,7 +930,7 @@ int Init(int istart){
 		//Give initial values Will be overwritten if niterx>0
 		double betad = 1.0; complex alphad=0; complex alpha = 1;
 		//Because we're dealing with flattened arrays here we can call cblas safely without the halo
-#ifdef __NVCC__
+#ifdef __CUDACC__
 		complex *p, *r, *x1, *x2;
 		cudaMallocManaged(&p, kferm2Halo*sizeof(complex),cudaMemAttachGlobal);
 		cudaMallocManaged(&r, kferm2Halo*sizeof(complex),cudaMemAttachGlobal);
@@ -1031,7 +1031,7 @@ int Init(int istart){
 			if(!rank && niterx==niterc-1)
 				fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i β_n=%e\n", ITERLIM, funcname, niterc, creal(betan));
 		}
-#ifdef __NVCC__
+#ifdef __CUDACC__
 		cudaFree(x1), cudaFree(x2), cudaFree(p), cudaFree(r);
 #elif defined USE_MKL
 		mkl_free(x1), mkl_free(x2), mkl_free(p), mkl_free(r);
@@ -1554,7 +1554,7 @@ int Init(int istart){
 			}
 			return 0;
 		}
-#ifdef __NVCC__
+#ifdef __CUDACC__
 		inline int Z_gather(cuDoubleComplex *x, cuDoubleComplex *y, int n, unsigned int *table)
 #else
 			inline int Z_gather(complex *x, complex *y, int n, unsigned int *table, unsigned int mu)
@@ -1567,7 +1567,7 @@ int Init(int istart){
 					x[i]=y[table[i*ndim+mu]*ndim+mu];
 				return 0;
 			}
-#ifdef __NVCC__
+#ifdef __CUDACC__
 		inline int Fill_Small_Phi(int na, cuDoubleComplex *smallPhi)
 #else
 			inline int Fill_Small_Phi(int na, complex *smallPhi)
@@ -1601,7 +1601,7 @@ int Init(int istart){
 						}
 				return 0;
 			}
-#ifdef __NVCC__
+#ifdef __CUDACC__
 		double Norm_squared(cuDoubleComplex *z, int n)
 #else
 			double Norm_squared(complex *z, int n)

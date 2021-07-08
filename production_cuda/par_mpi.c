@@ -1,3 +1,4 @@
+#include <coord.h>
 #include <par_mpi.h>
 
 //NOTE: In FORTRAN code everything was capitalised (despite being case insensitive)
@@ -301,7 +302,7 @@ int Par_psread(char *filename, double *ps){
 #endif
 	return 0;
 }
-int Par_swrite(int itraj){
+int Par_swrite(const int itraj, const int icheck, const double beta, const double fmu, const double akappa, const double ajq){
 	/*
 	 * Modified from an original version of swrite in FORTRAN
 	 *

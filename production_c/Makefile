@@ -55,7 +55,7 @@ TMP=	$(MOD) $(EDT) core
 all:	$(EXE)
 
 release:	CFLAGS +=  -O3  -inline-level=2\
-		-DMKL_ILP64  -I"${MKLROOT}/include" -DUSE_RAN2
+		-DMKL_ILP64  -I"${MKLROOT}/include"# -DUSE_RAN2
 release:	$(EXE)
 
 debug:	CFLAGS += -g -O0 \
