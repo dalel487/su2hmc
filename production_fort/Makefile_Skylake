@@ -14,7 +14,7 @@ FFLAGS= -ipo -fpp -mkl -O3  -xSKYLAKE -mkl -qopt-zmm-usage=high -static-intel \
 
 LFLAGS=
 
-EXE=	fort_su2hmc_SKYLAKE
+EXE=	su2hmc_skylake.exe
 
 SRC= \
 	su2hmc.f \

@@ -29,6 +29,9 @@
 #ifdef	USE_MKL
 #include	<mkl.h>
 #endif
+#ifdef	__CUDACC__
+#include	<cuda.h>
+#endif
 // Define booleans for C because they don't exist natively
 // They do in C99...
 #define	TRUE	1
@@ -110,4 +113,7 @@
 
 //New entry here, the size of the AVX buffer. 64 for AVX-512, 32 for AVX/AVX2 and 16 for good old SSE
 #define	AVX	64
+#ifdef	__CUDACC__
+dim3	dimBlock,dimGrid;
+#endif
 #endif

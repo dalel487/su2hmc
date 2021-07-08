@@ -1255,18 +1255,8 @@ tan(const complex<_Tp>& __x)
 }
 
 //The below are my own additions for compatability with C
-template<class _Tp>
-inline CUDA_CALLABLE_MEMBER
-_Tp
-creal(const complex<_Tp>& __x){
-	return __x.real();
-}
-template<class _Tp>
-inline CUDA_CALLABLE_MEMBER
-_Tp
-cimag(const complex<_Tp>& __x){
-	return __x.imag();
-}
+#define creal real
+#define cimag imag
 template<class _Tp, class _CharT, class _Traits>
 std::basic_istream<_CharT, _Traits>&
 operator>>(std::basic_istream<_CharT, _Traits>& __is, complex<_Tp>& __x)
@@ -1342,5 +1332,5 @@ operator<<(std::basic_ostream<_CharT, _Traits>& __os, const complex<_Tp>& __x)
 }
 
 //} // close namespace cuda_complex
-
+const complex<double> I = (0,1.0);
 #endif  // CUDA_COMPLEX_HPP

@@ -34,8 +34,8 @@
 #define	FILELEN	64
 // Common block definition for parallel variables
 
-#define	nx	16
-#define	nt	16
+#define	nx	12
+#define	nt	8
 
 // Keep original restriction of single spatial extent
 
@@ -45,7 +45,7 @@
 #define	gvol3   (nx*ny*nz)
 
 
-#define	npx	2
+#define	npx	3
 #define	npt	1
 //Number of threads for OpenMP
 #define	nthreads	1	
