@@ -616,15 +616,15 @@ int Init(int istart){
 #endif
 	double chem1=exp(fmu); double chem2 = 1/chem1;
 #ifdef __CUDACC__
-//Can C call this?
-	cudaMallocManaged(&dk4m,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
-	cudaMallocManaged(&dk4p,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
-#elif defined USE_MKL
+//If using CUDA just assign everything here 
+	cuda_init();
+#ifdef USE_MKL
 	dk4m = mkl_malloc((kvol+halo)*sizeof(double), AVX);
 	dk4p = mkl_malloc((kvol+halo)*sizeof(double), AVX);
 #else
 	dk4m = malloc((kvol+halo)*sizeof(double));
 	dk4p = malloc((kvol+halo)*sizeof(double));
+#endif
 #endif
 #pragma omp parallel for simd aligned(dk4m:AVX,dk4p:AVX)
 //CUDA this. Only limit will be the bus speed
@@ -663,12 +663,7 @@ int Init(int istart){
 		for(int j=0;j<4;j++)
 			gamval[i][j]*=akappa;
 #endif
-#ifdef __CUDACC__
-//Do this in Cuda_init() instead
-	cudaMallocManaged(&u11,ndim*(kvol+halo)*sizeof(complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&u12,ndim*(kvol+halo)*sizeof(complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&u11t,ndim*(kvol+halo)*sizeof(complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&u12t,ndim*(kvol+halo)*sizeof(complex),cudaMemAttachGlobal);
+#ifndef __CUDACC__
 #elif defined USE_MKL
 	u11 = mkl_malloc(ndim*(kvol+halo)*sizeof(complex),AVX);
 	u12 = mkl_calloc(ndim*(kvol+halo),sizeof(complex),AVX);
@@ -679,6 +674,7 @@ int Init(int istart){
 	u12 = calloc(ndim*(kvol+halo),sizeof(complex));
 	u11t = calloc(ndim*(kvol+halo),sizeof(complex));
 	u12t = calloc(ndim*(kvol+halo),sizeof(complex));
+#endif
 #endif
 	if(istart==0){
 		//Initialise a cold start to zero
