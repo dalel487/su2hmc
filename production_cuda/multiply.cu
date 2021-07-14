@@ -1,5 +1,4 @@
 #include <assert.h>
-#include <cuda.h>
 #include <multiply.h>
 #include <string.h>
 int Dslash(Complex *phi, Complex *r){
@@ -30,7 +29,8 @@ int Dslash(Complex *phi, Complex *r){
 
 	//Mass term
 	memcpy(phi, r, kferm*sizeof(Complex));
-	cuDslash<<<dimGrid,dimBlock>>>(Phi,r);
+//	cudaMemPrefetchAsync(u11t,kvol+halo,0
+	cuDslash<<<dimGrid,dimBlock>>>(phi,r);
 	//Diquark Term (antihermitian)
 	return 0;
 }
@@ -642,15 +642,37 @@ int Force(double *dSdpi, int iflag, double res1){
 #endif
 	return 0;
 }
+
+int Cuda_init(){
+//From Init()
+	cudaMallocManaged(&dk4m,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
+	cudaMallocManaged(&dk4p,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
+//Also from Init()	
+	cudaMallocManaged(&u11,ndim*(kvol+halo)*sizeof(complex<double>),cudaMemAttachGlobal);
+	cudaMallocManaged(&u12,ndim*(kvol+halo)*sizeof(complex<double>),cudaMemAttachGlobal);
+	cudaMallocManaged(&u11t,ndim*(kvol+halo)*sizeof(complex<double>),cudaMemAttachGlobal);
+	cudaMallocManaged(&u12t,ndim*(kvol+halo)*sizeof(complex<double>),cudaMemAttachGlobal);
+
+//From just before the main loop
+	cudaMallocManaged(&R1, kfermHalo*sizeof(complex<double>),cudaMemAttachGlobal);
+	cudaMallocManaged(&xi, kfermHalo*sizeof(complex<double>),cudaMemAttachGlobal);
+	cudaMallocManaged(&Phi, nf*kfermHalo*sizeof(complex<double>),cudaMemAttachGlobal);
+	cudaMallocManaged(&X0, nf*kfermHalo*sizeof(complex<double>),cudaMemAttachGlobal);
+	cudaMallocManaged(&X1, kferm2Halo*sizeof(complex<double>),cudaMemAttachGlobal);
+	cudaMallocManaged(&pp, kmomHalo*sizeof(complex<double>),cudaMemAttachGlobal);
+	return 0;
+}
 __global__ void New_trial(double dt){
-#pragma omp parallel for simd collapse(2) aligned(pp:AVX, u11t:AVX, u12t:AVX)
-	for(int i=0;i<kvol;i++){
+	int gsize = gridDim.x*gridDim.y*gridDim.z;
+	int bsize = blockDim.x*blockDim.y*blockDim.z;
+	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	for(int i=threadId;i<kvol;i+=gsize){
 		for(int mu = 0; mu<ndim; mu++){
 			//Sticking to what was in the FORTRAN for variable names.
 			//CCC for cosine SSS for sine AAA for...
 			//Re-exponentiating the force field. Can be done analytically in SU(2)
 			//using sine and cosine which is nice
-
 			double AAA = dt*sqrt(pp[i*nadj*ndim+mu]*pp[i*nadj*ndim+mu]\
 					+pp[(i*nadj+1)*ndim+mu]*pp[(i*nadj+1)*ndim+mu]\
 					+pp[(i*nadj+2)*ndim+mu]*pp[(i*nadj+2)*ndim+mu]);

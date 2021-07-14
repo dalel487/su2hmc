@@ -1332,5 +1332,5 @@ operator<<(std::basic_ostream<_CharT, _Traits>& __os, const complex<_Tp>& __x)
 }
 
 //} // close namespace cuda_complex
-const complex<double> I = (0,1.0);
+#define I complex<double>{0,1}
 #endif  // CUDA_COMPLEX_HPP

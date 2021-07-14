@@ -1,12 +1,17 @@
-#include <coord.h>
-#include <math.h>
-#include <par_mpi.h>
-#include <random.h>
-#include <multiply.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <su2hmc.h>
+#include	<coord.h>
+#ifdef	__NVCC__
+	#include <cuda.h>
+	//Fix this later
+	 #define cudaMemAttachGlobal 0x01
+#endif
+#include	<math.h>
+#include	<par_mpi.h>
+#include	<random.h>
+#include	<multiply.h>
+#include	<stdlib.h>
+#include	<stdio.h>
+#include	<string.h>
+#include	<su2hmc.h>
 
 //Extern definitions, especially default values for fmu, beta and akappa
 complex jqq = 0;
@@ -207,7 +212,7 @@ int main(int argc, char *argv[]){
 		memcpy(u11t,u11,(kvol+halo)*ndim*sizeof(complex));
 		Trial_Exchange();
 	}
-#ifdef __CUDACC__
+#ifndef __NVCC__
 //Moved these declarations to Cuda_init.cu
 #elif defined USE_MKL
 	R1= mkl_malloc(kfermHalo*sizeof(complex),AVX);
@@ -529,7 +534,7 @@ int main(int argc, char *argv[]){
 #endif
 	//End of main loop
 	//Free arrays
-#ifdef __CUDACC__
+#ifdef __NVCC__
 //Make a routine that does this for us
 	cudaFree(dk4m); cudaFree(dk4p); cudaFree(R1); cudaFree(dSdpi); cudaFree(pp);
 	cudaFree(Phi); cudaFree(u11t); cudaFree(u12t); cudaFree(xi);
@@ -615,16 +620,15 @@ int Init(int istart){
 	printf("Checked addresses\n");
 #endif
 	double chem1=exp(fmu); double chem2 = 1/chem1;
-#ifdef __CUDACC__
+#ifdef __NVCC__
 //If using CUDA just assign everything here 
 	cuda_init();
-#ifdef USE_MKL
+#elif defined USE_MKL
 	dk4m = mkl_malloc((kvol+halo)*sizeof(double), AVX);
 	dk4p = mkl_malloc((kvol+halo)*sizeof(double), AVX);
 #else
 	dk4m = malloc((kvol+halo)*sizeof(double));
 	dk4p = malloc((kvol+halo)*sizeof(double));
-#endif
 #endif
 #pragma omp parallel for simd aligned(dk4m:AVX,dk4p:AVX)
 //CUDA this. Only limit will be the bus speed
@@ -663,8 +667,8 @@ int Init(int istart){
 		for(int j=0;j<4;j++)
 			gamval[i][j]*=akappa;
 #endif
-#ifndef __CUDACC__
-#elif defined USE_MKL
+#ifndef __NVCC__
+#ifdef USE_MKL
 	u11 = mkl_malloc(ndim*(kvol+halo)*sizeof(complex),AVX);
 	u12 = mkl_calloc(ndim*(kvol+halo),sizeof(complex),AVX);
 	u11t = mkl_calloc(ndim*(kvol+halo),sizeof(complex),AVX);
@@ -685,7 +689,7 @@ int Init(int istart){
 			u11[i]=1;
 	}
 	else if(istart>0){
-		//#ifdef __CUDACC__
+		//#ifdef __NVCC__
 		//		complex *cu_u1xt;
 		//		cudaMallocManaged(&cu_u1xt, ndim*kvol*sizeof(complex));
 //Still thinking about how best to deal with PRNG
@@ -926,7 +930,7 @@ int Init(int istart){
 		//Give initial values Will be overwritten if niterx>0
 		double betad = 1.0; complex alphad=0; complex alpha = 1;
 		//Because we're dealing with flattened arrays here we can call cblas safely without the halo
-#ifdef __CUDACC__
+#ifdef __NVCC__
 		complex *p, *r, *x1, *x2;
 		cudaMallocManaged(&p, kferm2Halo*sizeof(complex),cudaMemAttachGlobal);
 		cudaMallocManaged(&r, kferm2Halo*sizeof(complex),cudaMemAttachGlobal);
@@ -1027,8 +1031,8 @@ int Init(int istart){
 			if(!rank && niterx==niterc-1)
 				fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i β_n=%e\n", ITERLIM, funcname, niterc, creal(betan));
 		}
-#ifdef __CUDACC__
-		cudaFree(x1), cudaFree(x2), cudaFree(p), cudaFree(r);
+#ifdef __NVCC__
+		cudaFree(x1); cudaFree(x2); cudaFree(p); cudaFree(r);
 #elif defined USE_MKL
 		mkl_free(x1), mkl_free(x2), mkl_free(p), mkl_free(r);
 #else

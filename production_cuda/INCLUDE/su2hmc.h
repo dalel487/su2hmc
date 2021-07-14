@@ -61,6 +61,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 int SU2plaq(double *hg, double *avplaqs, double *avplaqt);
 double Polyakov();
 extern inline int Reunitarise();
+void  cuda_init();
 #ifdef __CUDACC__
 extern inline int Z_gather(cuDoubleComplex *x, cuDoubleComplex *y, int n, unsigned int *table);
 extern inline int Fill_Small_Phi(int na, cuDoubleComplex *smallPhi);

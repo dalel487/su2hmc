@@ -1,7 +1,6 @@
 #include <cuda.h>
 #include <cuda_complex.hpp>
 #include <par_mpi.h>
-#include <sizes.h>
 #include <su2hmc.h>
 int Cuda_init(){
 //From Init()

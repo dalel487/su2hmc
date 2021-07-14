@@ -1,5 +1,6 @@
 #ifndef COORD
 #define	COORD
+#include	<par_mpi.h>
 #include <sizes.h>
 //Global Variables
 //unsigned int id[ndim][kvol], iu[ndim][kvol] __attribute__((aligned(AVX)));

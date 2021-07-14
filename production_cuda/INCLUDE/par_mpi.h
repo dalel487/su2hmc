@@ -1,6 +1,7 @@
 #ifndef	PAR_MPI
 #define	PAR_MPI
 #include	<coord.h>
+#include	<cuda.h>
 #ifdef __CUDACC__
 #include	<cuda_complex.hpp>
 #define	Complex complex<double>

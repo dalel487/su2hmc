@@ -310,7 +310,6 @@ int main(int argc, char *argv[]){
 #pragma omp parallel for simd reduction(+:av_force) aligned(dSdpi:AVX)
 		for(int i = 0; i<kmom; i++)
 			av_force+=dSdpi[i];
-		printf("av_force before we do anything= %e\n", av_force/kmom);
 #endif
 #if (defined USE_MKL || defined USE_BLAS)
 		cblas_daxpy(nadj*ndim*kvol, -d, dSdpi, 1, pp, 1);
@@ -336,7 +335,6 @@ int main(int argc, char *argv[]){
 #pragma omp parallel for simd reduction(+:av_force) aligned(dSdpi:AVX)
 			for(int i = 0; i<kmom; i++)
 				av_force+=dSdpi[i];
-			printf("av_force after trial field update = %e\n", av_force/kmom);
 #endif
 			//Need to check Par_granf again 
 			//The same for loop is given in both the if and else
