@@ -62,7 +62,7 @@ $(EXE):	$(OBJ)
 $(OBJ):	$(MF) $(INC)
 
 clean:
-	rm -f $(EXE) $(OBJ) $(TMP)
+	rm -f $(OBJ) $(TMP)
 
 INP=	\
 	midout \
