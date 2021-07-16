@@ -10,7 +10,6 @@
 #include <su2hmc.h>
 
 //Device code: Mainly the loops
-#ifdef __CUDACC__
 //Making things up as I go along here
 //Threads are grouped together to form warps of 32 threads
 //best to keep the block dimension (ksizex*ksizey) multiples of 32,
@@ -21,6 +20,8 @@ int Dslash(Complex *phi, Complex *r);
 int Dslashd(Complex *phi, Complex *r);
 int Hdslash(Complex *phi, Complex *r);
 int Hdslashd(Complex *phi, Complex *r);
+
+#ifdef __CUDACC__
 __global__ void cuDslash(Complex *phi, Complex *r);
 __global__ void cuDslashd(Complex *phi, Complex *r);
 __global__ void cuHdslash(Complex *phi, Complex *r);
@@ -30,16 +31,8 @@ __global__ void cuForce(double *dSdpi, Complex *X2);
 //New Trial Fields
 __global__ void New_trial(double dt);
 #else
-//D Slash Functions
-//=================
-int Dslash(Complex *phi, Complex *r);
-int Dslashd(Complex *phi, Complex *r);
-int Hdslash(Complex *phi, Complex *r);
-int Hdslashd(Complex *phi, Complex *r);
-
 //New Trial Fields
 int New_trial();
-
 #ifdef DIAGNOSTIC
 int Diagnostics(int istart);
 #endif

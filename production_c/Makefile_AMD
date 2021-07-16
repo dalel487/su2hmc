@@ -5,7 +5,7 @@ CC= mpicc
 NVCC = nvcc
 
 #FFLAGS= -O3 -I /bgsys/drivers/toolchain/V1R1M2/gnu-linux/lib/gcc/powerpc64-bgq-linux/4.4.6/finclude/
-IFLAGS=     -I./INCLUDE/ -I./SFMT-src-1.5.1/ -I/opt/AMD/aocl/aocl-linux-aocc-3.0-6/include/ \
+IFLAGS=     -I../INCLUDE/ -I/opt/AMD/aocl/aocl-linux-aocc-3.0-6/include/ \
 		-I/opt/AMD/aocl/aocl-linux-aocc-3.0-6/lib/ 
 
 CFLAGS=      $(IFLAGS) -std=gnu99 -DHAVE_SSE2 -DUSE_BLAS -fcommon\

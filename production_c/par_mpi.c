@@ -167,9 +167,7 @@ int Par_sread(){
 				//Likewise, C indexes from zero so should just use iproc
 				if(!iproc){
 					u11[i*ndim+idim]=u1buff[i];
-					u11t[i*ndim+idim]=u1buff[i];
 					u12[i*ndim+idim]=u2buff[i];
-					u12t[i*ndim+idim]=u2buff[i];
 				}		
 				else{
 					//The master thread did all the hard work, the minions just need to receive their

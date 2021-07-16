@@ -1,6 +1,13 @@
 #ifndef COORD
 #define	COORD
-#include	<par_mpi.h>
+#ifdef __CUDACC__
+	#include <cublas.h>
+#elif defined USE_MKL
+	#include <mkl.h>
+#else
+	#include <cblas.h>
+#endif
+#include <par_mpi.h>
 #include <sizes.h>
 //Global Variables
 //unsigned int id[ndim][kvol], iu[ndim][kvol] __attribute__((aligned(AVX)));

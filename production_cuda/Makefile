@@ -5,7 +5,7 @@ CC= mpiicc
 NVCC = nvcc
 
 #FFLAGS= -O3 -I /bgsys/drivers/toolchain/V1R1M2/gnu-linux/lib/gcc/powerpc64-bgq-linux/4.4.6/finclude/
-IFLAGS=     -I./INCLUDE -I"${MKLROOT}/include"
+IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include"
 
 
 CFLAGS=      $(IFLAGS) -std=gnu99 -DHAVE_SSE2 -ipo -qopt-zmm-usage=high\
@@ -74,7 +74,7 @@ $(EXE): $(OBJ)
 	$(NVCC) $(CUFLAGS) -o $@ $^ $(LFLAGS)
 
 $(COBJ): %.o: %.c
-	$(NVCC) $(CUFLAGS) -x c -Xcompiler "$(CFLAGS) $(MKLFLAGS)" -c $< 
+	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" -c $< 
 
 $(CUOBJ): %.o: %.cu
 	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS)" -dc $< 
