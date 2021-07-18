@@ -1,5 +1,6 @@
 #ifndef SU2HEAD
 #define SU2HEAD
+#include <cuda.h>
 #ifdef __CUDACC__
 #include <cuda_complex.hpp>
 #define Complex	complex<double>
@@ -12,7 +13,7 @@
 //flag to sort them out. But the PRNG routines etc. are MKL exclusive
 #ifdef	USE_MKL
 #include	<mkl.h>
-#elif defined __CUDACC__
+#elif defined __NVCC__
 #include	<cublas.h>
 #else
 #include	<cblas.h>
@@ -27,14 +28,26 @@ int ibound;
 //Arrays:
 //------
 //Seems a bit redundant looking
-extern const int gamin[4][4];
+#ifdef __CUDACC__ 
+__managed__ extern 
+#endif 
+int gamin[4][4];
 //We have the four γ Matrices, and in the final index (labelled 4 in C) is γ_5)
+#ifdef __CUDACC__ 
+__managed__ 
+#endif 
 extern Complex gamval[5][4];
 
 //From common_pseud
+#ifdef __CUDACC__ 
+__managed__ extern 
+#endif 
 Complex *Phi, *R1, *X0, *X1, *xi;
 //From common_mat
 //double dk4m[kvol+halo], dk4p[kvol+halo] __attribute__((aligned(AVX)));
+#ifdef __CUDACC__ 
+__managed__ extern 
+#endif 
 double *dk4m, *dk4p, *pp;
 //From common_trial_u11u12
 //complex *u11, *u12;
@@ -43,10 +56,16 @@ double *dk4m, *dk4p, *pp;
 //Values:
 //------
 //The diquark
+#ifdef __CUDACC__ 
+__managed__
+#endif 
 extern Complex jqq;
 
 //Average # of congrad iter guidance and acceptance
 double ancg, ancgh;
+#ifdef __CUDACC__ 
+__managed__
+#endif 
 extern double fmu, beta, akappa;
 
 //Function Declarations:

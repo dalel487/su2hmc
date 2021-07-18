@@ -2,7 +2,7 @@
 #include <cuda_complex.hpp>
 #include <par_mpi.h>
 #include <su2hmc.h>
-int Cuda_init(){
+__host__ int Cuda_init(){
 //From Init()
 	cudaMallocManaged(&dk4m,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
 	cudaMallocManaged(&dk4p,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);

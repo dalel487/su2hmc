@@ -1,19 +1,16 @@
 MF=	Makefile
 
-#FC= mpif77 
 CC= mpiicc
 NVCC = nvcc
 
-#FFLAGS= -O3 -I /bgsys/drivers/toolchain/V1R1M2/gnu-linux/lib/gcc/powerpc64-bgq-linux/4.4.6/finclude/
 IFLAGS=     -I../INCLUDE 
 
 CFLAGS=      $(IFLAGS) -mkl -DUSE_MKL -std=gnu99 -DHAVE_SSE2 -ipo -qopt-zmm-usage=high \
 		 -xCOMMON-AVX512 -static-intel -static-libgcc -DMKL_DIRECT_CALL \
 		 -qopenmp-simd -qopenmp -qopenmp-link=static -DSA3AT 
 
-LFLAGS=	 -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a \
-		${MKLROOT}/lib/intel64/libmkl_intel_thread.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group\
-		-liomp5 -lpthread -lm -ldl #-wd10237
+LFLAGS=	-L${MKLROOT}/lib/intel64 -lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_core -lmkl_blacs_intelmpi_ilp64 -liomp5 -lpthread -lm -ldl \
+		-liomp5 -lpthread -lm -ldl 
 
 EXE=	su2hmc
 
@@ -39,8 +36,8 @@ INC= \
 # No need to edit below this line
 #
 
-.SUFFIXES:
 .SUFFIXES: .c .o
+.PHONY: clean debug release advisor tar
 
 OBJ=	$(SRC:.c=.o)
 
@@ -49,10 +46,11 @@ MOD=
 EDT=	$(SRC:.c=.c~)
 TMP=	$(MOD) $(EDT) core
 
-.f.o:
-	$(FC) $(FFLAGS) -c $<
-
 all:	$(EXE)
+
+advisor:	CFLAGS += -g
+
+advisor:	release
 
 release:	CFLAGS +=  -O3  -inline-level=2\
 		-DMKL_ILP64  -I"${MKLROOT}/include"# -DUSE_RAN2
@@ -60,7 +58,6 @@ release:	$(EXE)
 
 debug:	CFLAGS += -g -O0 \
 		-D_DEBUG -DUSE_RAN2 #-DDIAGNOSTIC -DNO_TIME -DNO_SPACE
-
 	
 debug:	$(EXE)
 
@@ -68,7 +65,6 @@ $(EXE):	$(OBJ)
 	$(CC) $(CFLAGS) -o $@ $(OBJ) $(LFLAGS)
 
 $(OBJ):	$(MF) 
-#$(INC)
 
 clean:
 	rm -f $(OBJ) $(TMP)
@@ -78,4 +74,4 @@ INP=	\
 	con
 
 tar:
-	tar cvf $(EXE).tar $(MF) $(SRC) $(INC) $(INP)
+	tar cvfz $(EXE).tar $(MF) $(SRC) $(INC) $(INP) $(EXE)

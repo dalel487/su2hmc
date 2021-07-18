@@ -4,17 +4,14 @@ MF=	Makefile
 CC= mpiicc
 NVCC = nvcc
 
-#FFLAGS= -O3 -I /bgsys/drivers/toolchain/V1R1M2/gnu-linux/lib/gcc/powerpc64-bgq-linux/4.4.6/finclude/
 IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include"
 
 
 CFLAGS=      $(IFLAGS) -std=gnu99 -DHAVE_SSE2 -ipo -qopt-zmm-usage=high\
-		 -xCOMMON-AVX512 -static-intel -static-libgcc -D__NVCC__\
+		 -xCOMMON-AVX512 -static-intel -static-libgcc \
 		 -qopenmp-simd -qopenmp -qopenmp-link=static -DSA3AT -DUSE_RAN2\
 
-
-LFLAGS=	 -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_ilp64.a \
-		${MKLROOT}/lib/intel64/libmkl_intel_thread.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group\
+LFLAGS=	 -L${MKLROOT}/lib/intel64 -lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_core -lmkl_blacs_intelmpi_ilp64 -liomp5 -lpthread -lm -ldl\
 		-liomp5 -lpthread -lm -ldl #-wd10237
 
 MKLFLAGS=	-mkl -DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64 
@@ -28,6 +25,7 @@ CSRC= \
 	par_mpi.c \
 
 CUSRC= \
+	cuda_init.cu\
 	multiply.cu
 
 
@@ -71,7 +69,7 @@ debug:	CUFLAGS += -O0 -G -g -D_DEBUG
 debug:	$(EXE)
 
 $(EXE): $(OBJ)
-	$(NVCC) $(CUFLAGS) -o $@ $^ $(LFLAGS)
+	$(NVCC) $(CUFLAGS) -o $@ $^ 
 
 $(COBJ): %.o: %.c
 	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" -c $< 

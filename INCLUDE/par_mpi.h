@@ -87,10 +87,11 @@ int ismaster;
 
 //A couple of other components usually defined in common_*.h files in fortran. But since C has global scope
 //may as well put them in here instead.
-//Gauges
-Complex *u11, *u12;
-// Trial matrices
-Complex *u11t, *u12t;
+//Gauges and trial matrices
+#ifdef __CUDACC__ 
+__managed__ extern 
+#endif 
+Complex *u11, *u12, *u11t, *u12t;
 //Halos indices
 //-------------
 //static unsigned int *iu, *id;

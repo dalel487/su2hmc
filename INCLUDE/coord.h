@@ -12,8 +12,10 @@
 //Global Variables
 //unsigned int id[ndim][kvol], iu[ndim][kvol] __attribute__((aligned(AVX)));
 //unsigned int hu[4][halo], hd[4][halo] __attribute__((aligned(AVX)));
-unsigned int *id, *iu, *hu, *hd;
-unsigned int h1u[4], h1d[4], h2u[4], h2d[4], halosize[4];
+#ifdef __CUDACC__
+__managed__ extern 
+#endif
+unsigned int *id, *iu, *hu, *hd, h1u[4], h1d[4], h2u[4], h2d[4], halosize[4];
 
 //Functions
 //========

@@ -13,7 +13,7 @@ complex jqq = 0;
 double fmu = 0.0;
 double beta = 1.7;
 double akappa = 0.1780;
-const int gamin[4][4] =	{{3,2,1,0},
+int gamin[4][4] =	{{3,2,1,0},
 	{3,2,1,0},
 	{2,3,0,1},
 	{2,3,0,1}};
