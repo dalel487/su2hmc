@@ -68,6 +68,9 @@ __managed__
 #endif 
 extern double fmu, beta, akappa;
 
+cublasHandle_t cublas_handle;
+cublasHandle_t cublas_status;
+
 //Function Declarations:
 //#####################
 int Force(double *dSdpi, int iflag, double res1);

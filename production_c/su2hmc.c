@@ -972,7 +972,6 @@ int Init(int istart){
 			}			
 			// r_n+1 = r_n-α(M^† M)p_n and β_n=r*.r
 #if (defined USE_MKL || defined USE_BLAS)
-			betan=cblas_dznrm2(kferm2, r,1);
 			alpha *= -1;
 			cblas_zaxpy(kferm2, &alpha, x2, 1, r, 1);
 			//Undo the negation for the BLAS routine
