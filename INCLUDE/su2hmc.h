@@ -1,6 +1,11 @@
 #ifndef SU2HEAD
 #define SU2HEAD
+#ifdef __NVCC__
 #include <cuda.h>
+#include	<cublas_v2.h>
+cublasHandle_t cublas_handle;
+cublasHandle_t cublas_status;
+#endif 
 #ifdef __CUDACC__
 #include <cuda_complex.hpp>
 #define Complex	complex<double>
@@ -68,8 +73,6 @@ __managed__
 #endif 
 extern double fmu, beta, akappa;
 
-cublasHandle_t cublas_handle;
-cublasHandle_t cublas_status;
 
 //Function Declarations:
 //#####################

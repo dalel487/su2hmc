@@ -15,7 +15,7 @@ LFLAGS=	 -L${MKLROOT}/lib/intel64 -lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_cor
 		-liomp5 -lpthread -lm -ldl #-wd10237
 
 MKLFLAGS=	-mkl -DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64 
-CUFLAGS=	${IFLAGS} -ccbin ${CC} -arch=compute_70 -code=compute_70,sm_70,sm_72,sm_75 --allow-unsupported-compiler
+CUFLAGS=	${IFLAGS} -ccbin ${CC} --allow-unsupported-compiler -arch=compute_70 -code=compute_70,sm_70,sm_72,sm_75,sm_80,sm_86
 EXE=	cuda_su2hmc_CASCADE
 
 CSRC= \
@@ -25,8 +25,8 @@ CSRC= \
 	par_mpi.c \
 
 CUSRC= \
-	cuda_init.cu\
-	multiply.cu
+	multiply.cu\
+#	cuda_init.cu\
 
 
 CINC= \
@@ -69,8 +69,7 @@ debug:	CUFLAGS += -O0 -G -g -D_DEBUG
 debug:	$(EXE)
 
 $(EXE): $(OBJ)
-	$(NVCC) $(CUFLAGS) -o $@ $^ 
-
+	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" -o $@ $^ $(LFLAGS) 
 $(COBJ): %.o: %.c
 	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" -c $< 
 
