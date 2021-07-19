@@ -199,8 +199,8 @@ int main(int argc, char *argv[]){
 
 	ancg = 0; ancgh = 0;
 	//This was originally in the half-step of the fortran code, but it makes more sense to declare
-	//it outside the loop
-	const	double d = dt*0.5;
+	//it outside the loop. Since it's always being subtracted we'll define it as negative
+	const	double d = -dt*0.5;
 	//Start of classical evolution
 	//===========================
 	double pbp;
@@ -325,12 +325,13 @@ int main(int argc, char *argv[]){
 		printf("av_force before we do anything= %e\n", av_force/kmom);
 #endif
 #ifdef __NVCC__
-		cublasDaxpy(cublas_handle,nadj*ndim*kvol, -d, dSdpi, 1, pp, 1);
+		cublasDaxpy(cublas_handle,nadj*ndim*kvol, &d, dSdpi, 1, pp, 1);
 #elif (defined USE_MKL || defined USE_BLAS)
-		cblas_daxpy(nadj*ndim*kvol, -d, dSdpi, 1, pp, 1);
+		cblas_daxpy(nadj*ndim*kvol, d, dSdpi, 1, pp, 1);
 #else
 		for(int i=0;i<kmom;i++)
-			pp[i]-=d*dSdpi[i];
+			//d negated above
+			pp[i]+=d*dSdpi[i];
 #endif
 		//Main loop for classical time evolution
 		//======================================
@@ -361,20 +362,24 @@ int main(int argc, char *argv[]){
 			//statement but only the value of d changes. This is due to the break in the if part
 			if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
 #ifdef __NVCC__
-				cublasDaxpy(cublas_handle,ndim*nadj*kvol, -d, dSdpi, 1, pp, 1);
+				cublasDaxpy(cublas_handle,ndim*nadj*kvol, &d, dSdpi, 1, pp, 1);
 #elif (defined USE_MKL || defined USE_BLAS)
 				//cuBLAS calls from CPU allowed?
-				cblas_daxpy(ndim*nadj*kvol, -d, dSdpi, 1, pp, 1);
+				cblas_daxpy(ndim*nadj*kvol, d, dSdpi, 1, pp, 1);
 #else
 				for(int i = 0; i<kmom; i++)
-					pp[i]-=d*dSdpi[i];
+					//d negated above
+					pp[i]+=d*dSdpi[i];
 #endif
 				itot+=step;
 				break;
 			}
 			else{
 #ifdef __NVCC__
-				cublasDaxpy(cublas_handle,ndim*nadj*kvol, -dt, dSdpi, 1, pp, 1);
+				//dt is needed for the trial fields so has to be negated every time.
+				dt*=-1;
+				cublasDaxpy(cublas_handle,ndim*nadj*kvol, &dt, dSdpi, 1, pp, 1);
+				dt*=-1;
 #elif (defined USE_MKL || defined USE_BLAS)
 				cblas_daxpy(ndim*nadj*kvol, -dt, dSdpi, 1, pp, 1);
 #else
@@ -1180,10 +1185,10 @@ int Congradp(int na, double res, int *itercg){
 		//r-α(M^†)Mp and β_n=r*.r
 #ifdef __NVCC__
 		alpha*=-1;
-		cublasZaxpy(kferm, &alpha, x2, 1, r, 1);
+		cublasZaxpy(cublas_handle,kferm, &alpha, x2, 1, r, 1);
 		alpha*=-1;
 		//r*.r
-		 cublasDznrm2(kferm, r,1,&betan);
+		cublasDznrm2(cublas_handle,kferm, r,1,&betan);
 		//Gotta square it to "undo" the norm
 		betan *= betan;
 #elif (defined USE_MKL || defined USE_BLAS)

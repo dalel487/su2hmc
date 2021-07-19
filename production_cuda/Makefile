@@ -18,6 +18,8 @@ MKLFLAGS=	-mkl -DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
 CUFLAGS=	${IFLAGS} -ccbin ${CC} --allow-unsupported-compiler -arch=compute_70 -code=compute_70,sm_70,sm_72,sm_75,sm_80,sm_86
 EXE=	cuda_su2hmc_CASCADE
 
+CSRC_DIR=../production_c
+
 CSRC= \
       coord.c \
 	su2hmc.c \
@@ -70,7 +72,7 @@ debug:	$(EXE)
 
 $(EXE): $(OBJ)
 	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" -o $@ $^ $(LFLAGS) 
-$(COBJ): %.o: %.c
+$(COBJ): %.o: $(CSRC_DIR)/%.c
 	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" -c $< 
 
 $(CUOBJ): %.o: %.cu
