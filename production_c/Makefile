@@ -16,10 +16,13 @@ EXE=	su2hmc
 
 SRC= \
 	su2hmc.c \
+	force.c\
+	bosonic.c\
+	fermionic.c\
 	par_mpi.c \
       coord.c \
       random.c \
-      multiply.c \
+      matrices.c \
 
 INC= \
 	su2hmc.h \
@@ -27,7 +30,7 @@ INC= \
       par_mpi.h \
       slash.h \
       random.h \
-      multiply.h \
+      matrices.h \
       coord.h \
       errorcodes.h \
 

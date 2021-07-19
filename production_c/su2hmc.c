@@ -1,14 +1,14 @@
 #include	<coord.h>
 #ifdef	__NVCC__
-#include <cuda.h>
-#include <cuda_runtime.h>
+#include	<cuda.h>
+#include	<cuda_runtime.h>
 //Fix this later
 //#define cudaMemAttachGlobal 0x01
 #endif
 #include	<math.h>
 #include	<par_mpi.h>
 #include	<random.h>
-#include	<multiply.h>
+#include	<matrices.h>
 #include	<stdlib.h>
 #include	<stdio.h>
 #include	<string.h>
@@ -746,91 +746,6 @@ int Init(int istart){
 #endif
 	return 0;
 }
-int Gauge_force(double *dSdpi){
-	/*
-	 * Calculates dSdpi due to the Wilson Action at each intermediate time
-	 *
-	 * Globals:
-	 * =======
-	 * u11t, u12t, u11, u12, iu, id, beta
-	 * Calls:
-	 * =====
-	 * Z_Halo_swap_all, Z_gather, Z_Halo_swap_dir
-	 */
-	const char *funcname = "Gauge_force";
-
-	//We define zero halos for debugging
-	//	#ifdef _DEBUG
-	//		memset(u11t[kvol], 0, ndim*halo*sizeof(complex));	
-	//		memset(u12t[kvol], 0, ndim*halo*sizeof(complex));	
-	//	#endif
-	//Was a trial field halo exchange here at one point.
-#ifdef USE_MKL
-	complex *Sigma11 = mkl_malloc(kvol*sizeof(complex),AVX); 
-	complex *Sigma12= mkl_malloc(kvol*sizeof(complex),AVX); 
-	complex *u11sh = mkl_malloc((kvol+halo)*sizeof(complex),AVX); 
-	complex *u12sh = mkl_malloc((kvol+halo)*sizeof(complex),AVX); 
-#else
-	complex *Sigma11 = malloc(kvol*sizeof(complex)); 
-	complex *Sigma12= malloc(kvol*sizeof(complex)); 
-	complex *u11sh = malloc((kvol+halo)*sizeof(complex)); 
-	complex *u12sh = malloc((kvol+halo)*sizeof(complex)); 
-#endif
-	//Holders for directions
-	for(int mu=0; mu<ndim; mu++){
-		memset(Sigma11,0, kvol*sizeof(complex));
-		memset(Sigma12,0, kvol*sizeof(complex));
-		for(int nu=0; nu<ndim; nu++){
-			if(nu!=mu){
-				//The +ν Staple
-#pragma omp parallel for simd aligned(u11t:AVX,u12t:AVX,Sigma11:AVX,Sigma12:AVX)
-				for(int i=0;i<kvol;i++){
-					int uidm = iu[mu+ndim*i];
-					int uidn = iu[nu+ndim*i];
-					complex	a11=u11t[uidm*ndim+nu]*conj(u11t[uidn*ndim+mu])+\
-							    u12t[uidm*ndim+nu]*conj(u12t[uidn*ndim+mu]);
-					complex	a12=-u11t[uidm*ndim+nu]*u12t[uidn*ndim+mu]+\
-							    u12t[uidm*ndim+nu]*u11t[uidn*ndim+mu];
-					Sigma11[i]+=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
-					Sigma12[i]+=-a11*u12t[i*ndim+nu]+a12*u11t[i*ndim+nu];
-				}
-				Z_gather(u11sh, u11t, kvol, id, nu);
-				Z_gather(u12sh, u12t, kvol, id, nu);
-				ZHalo_swap_dir(u11sh, 1, mu, DOWN);
-				ZHalo_swap_dir(u12sh, 1, mu, DOWN);
-				//Next up, the -ν staple
-#pragma omp parallel for simd aligned(u11t:AVX,u12t:AVX,u11sh:AVX,u12sh:AVX,Sigma11:AVX,Sigma12:AVX)
-				for(int i=0;i<kvol;i++){
-					int uidm = iu[mu+ndim*i];
-					int didn = id[nu+ndim*i];
-					//uidm is correct here
-					complex a11=conj(u11sh[uidm])*conj(u11t[didn*ndim+mu])-\
-							u12sh[uidm]*conj(u12t[didn*ndim+mu]);
-					complex a12=-conj(u11sh[uidm])*u12t[didn*ndim+mu]-\
-							u12sh[uidm]*u11t[didn*ndim+mu];
-					Sigma11[i]+=a11*u11t[didn*ndim+nu]-a12*conj(u12t[didn*ndim+nu]);
-					Sigma12[i]+=a11*u12t[didn*ndim+nu]+a12*conj(u11t[didn*ndim+nu]);
-				}
-			}
-		}
-#pragma omp parallel for simd aligned(u11t:AVX,u12t:AVX,Sigma11:AVX,Sigma12:AVX,dSdpi:AVX)
-		for(int i=0;i<kvol;i++){
-			complex a11 = u11t[i*ndim+mu]*Sigma12[i]+u12t[i*ndim+mu]*conj(Sigma11[i]);
-			complex a12 = u11t[i*ndim+mu]*Sigma11[i]+conj(u12t[i*ndim+mu])*Sigma12[i];
-
-			dSdpi[(i*nadj)*ndim+mu]=beta*cimag(a11);
-			dSdpi[(i*nadj+1)*ndim+mu]=beta*creal(a11);
-			dSdpi[(i*nadj+2)*ndim+mu]=beta*cimag(a12);
-		}
-	}
-	//MPI was acting funny here for more than one process on Boltzmann
-#ifdef USE_MKL
-	mkl_free(u11sh); mkl_free(u12sh); mkl_free(Sigma11); mkl_free(Sigma12);
-#else
-	free(u11sh); free(u12sh); free(Sigma11); free(Sigma12);
-#endif
-	return 0;
-}
 int Hamilton(double *h, double *s, double res2){
 	/* Evaluates the Hamiltonian function
 	 * 
@@ -1239,466 +1154,114 @@ int Congradp(int na, double res, int *itercg){
 #endif
 	return 0;
 }
-int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbqb, double res, int *itercg){
+inline int Reunitarise(){
 	/*
-	 * Calculate fermion expectation values via a noisy estimator
-	 * -matrix inversion via conjugate gradient algorithm
-	 * solves Mx=x1
-	 * (Numerical Recipes section 2.10 pp.70-73)   
-	 * uses NEW lookup tables **
-	 * Implimented in CongradX
+	 * Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1
 	 *
-	 * Calls:
-	 * =====
-	 * Gauss_z
-	 * Par_dsum
-	 * ZHalo_swap_dir
-	 * DHalo_swap_dir
+	 * If you're looking at the FORTRAN code be careful. There are two header files
+	 * for the /trial/ header. One with u11 u12 (which was included here originally)
+	 * and the other with u11t and u12t.
 	 *
 	 * Globals:
 	 * =======
-	 * Phi, X0, xi, R1, u11t, u12t 
+	 * u11t, u12t
 	 *
+	 * Returns:
+	 * ========
+	 * Zero on success, integer error code otherwise
+	 */
+	const char *funcname = "Reunitarise";
+#pragma ivdep
+	for(int i=0; i<kvol*ndim; i++){
+		//Declaring anorm inside the loop will hopefully let the compiler know it
+		//is safe to vectorise aggessively
+		double anorm=sqrt(conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]);
+		//		Exception handling code. May be faster to leave out as the exit prevents vectorisation.
+		//		if(anorm==0){
+		//			fprintf(stderr, "Error %i in %s on rank %i: anorm = 0 for μ=%i and i=%i.\nExiting...\n\n",
+		//					DIVZERO, funcname, rank, mu, i);
+		//			MPI_Finalise();
+		//			exit(DIVZERO);
+		//		}
+		u11t[i]/=anorm;
+		u12t[i]/=anorm;
+	}
+	return 0;
+}
+#ifdef __CUDACC__
+inline int Z_gather(Complex *x, Complex *y, int n, unsigned int *table)
+#else
+inline int Z_gather(complex *x, complex *y, int n, unsigned int *table, unsigned int mu)
+#endif
+{
+	//FORTRAN had a second parameter m gving the size of y (kvol+halo) normally
+	//Pointers mean that's not an issue for us so I'm leaving it out
+#pragma omp parallel for simd aligned (x:AVX,y:AVX,table:AVX)
+	for(int i=0; i<n; i++)
+		x[i]=y[table[i*ndim+mu]*ndim+mu];
+	return 0;
+}
+#ifdef __CUDACC__
+inline int Fill_Small_Phi(int na, Complex *smallPhi)
+#else
+inline int Fill_Small_Phi(int na, complex *smallPhi)
+#endif
+{
+	/*Copies necessary (2*4*kvol) elements of Phi into a vector variable
+	 *
+	 * Globals:
+	 * =======
+	 * Phi:	  The source array
+	 * 
 	 * Parameters:
 	 * ==========
-	 * double *pbp:		Pointer to ψ-bar ψ
-	 * double endenf:
-	 * double denf:
-	 * complex qq:
-	 * complex qbqb:
-	 * double res:
-	 * int itercg:
+	 * int na: flavour index
+	 * complex *smallPhi:	  The target array
 	 *
 	 * Returns:
 	 * =======
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "Measure";
-	//This x is just a storage container
-
-#ifdef __NVCC__
-	Complex *x;
-	cudaMallocManaged(&x,kfermHalo*sizeof(complex), cudaMemAttachGlobal);
-#elif defined USE_MKL
-	complex *x = mkl_malloc(kfermHalo*sizeof(complex), AVX);
-#else
-	complex *x = malloc(kfermHalo*sizeof(complex));
-#endif
-	//Setting up noise. I don't see any reason to loop
-
-	//The root two term comes from the fact we called gauss0 in the fortran code instead of gaussp
-#if (defined(USE_RAN2)||!defined(USE_MKL))
-	Gauss_z(xi, kferm, 0, 1/sqrt(2));
-#else
-	vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, xi, 0, 1/sqrt(2));
-#endif
-	memcpy(x, xi, kferm*sizeof(complex));
-
-	//R_1= M^† Ξ 
-	//R1 is local in fortran but since its going to be reset anyway I'm going to recycle the
-	//global
-	Dslashd(R1, xi);
-	//Copying R1 to the first (zeroth) flavour index of Phi
-	//This should be safe with memcpy since the pointer name
-	//references the first block of memory for that pointer
-	memcpy(Phi, R1, nc*ngorkov*kvol*sizeof(complex));
-	memcpy(xi, R1, nc*ngorkov*kvol*sizeof(complex));
-
-	//Evaluate xi = (M^† M)^-1 R_1 
-	Congradp(0, res, itercg);
-#ifdef __NVCC__
-	Complex buff;
-	cublasZdotc(cublas_handle,kferm, x, 1, xi,  1, &buff);
-	*pbp=creal(buff);
-#elif (defined USE_MKL || defined USE_BLAS)
-	complex buff;
-	cblas_zdotc_sub(kferm, x, 1, xi,  1, &buff);
-	*pbp=creal(buff);
-#else
-	*pbp = 0;
-#pragma unroll
-	for(int i=0;i<kferm;i++)
-		*pbp+=creal(conj(x[i])*xi[i]);
-#endif
-	Par_dsum(pbp);
-	*pbp/=4*gvol;
-
-	*qbqb=0; *qq=0;
-#if (defined USE_MKL || defined USE_BLAS)
-	for(int idirac = 0; idirac<ndirac; idirac++){
-		int igork=idirac+4;
-		//Unrolling the colour indices, Then its just (γ_5*x)*Ξ or (γ_5*Ξ)*x 
-#pragma unroll
-		for(int ic = 0; ic<nc; ic++){
-			complex dot;
-			//Because we have kvol on the outer index and are summing over it, we set the
-			//step for BLAS to be ngorkov*nc=16. 
-			//Does this make sense to do on the GPU?
-			cblas_zdotc_sub(kvol, &x[idirac*nc+ic], ngorkov*nc, &xi[igork*nc+ic], ngorkov*nc, &dot);
-			*qbqb+=gamval[4][idirac]*dot;
-			cblas_zdotc_sub(kvol, &x[igork*nc+ic], ngorkov*nc, &xi[idirac*nc+ic], ngorkov*nc, &dot);
-			*qq-=gamval[4][idirac]*dot;
-		}
-#else
-#pragma unroll(2)
-		for(int i=0; i<kvol; i++){
-			//What is the optimal order to evaluate these in?
-			for(int idirac = 0; idirac<ndirac; idirac++){
-				int igork=idirac+4;
-				*qbqb+=gamval[4][idirac]*conj(x[(i*ngorkov+idirac)*nc])*xi[(i*ngorkov+igork)*nc];
-				*qq-=gamval[4][idirac]*conj(x[(i*ngorkov+igork)*nc])*xi[(i*ngorkov+idirac)*nc];
-				*qbqb+=gamval[4][idirac]*conj(x[(i*ngorkov+idirac)*nc+1])*xi[(i*ngorkov+igork)*nc+1];
-				*qq-=gamval[4][idirac]*conj(x[(i*ngorkov+igork)*nc+1])*xi[(i*ngorkov+idirac)*nc+1];
-			}
-#endif
-		}
-		//In the FORTRAN Code dsum was used instead despite qq and qbqb being complex
-		Par_zsum(qq); Par_zsum(qbqb);
-		*qq=(*qq+*qbqb)/(2*gvol);
-		complex xu, xd, xuu, xdd;
-		xu=0;xd=0;xuu=0;xdd=0;
-
-		//Halos
-		ZHalo_swap_dir(x,16,3,DOWN);		ZHalo_swap_dir(x,16,3,UP);
-		//Pesky halo exchange indices again
-		//The halo exchange for the trial fields was done already at the end of the trajectory
-		//No point doing it again
-
-		//Instead of typing id[i*ndim+3] a lot, we'll just assign them to variables.
-		//Idea. One loop instead of two loops but for xuu and xdd just use ngorkov-(igorkov+1) instead
-#pragma omp parallel for reduction(+:xd,xu,xdd,xuu) 
-		for(int i = 0; i<kvol; i++){
-			int did=id[3+ndim*i];
-			int uid=iu[3+ndim*i];
-#pragma unroll
-#pragma omp simd aligned(u11t:AVX,u12t:AVX,xi:AVX,x:AVX,dk4m:AVX,dk4p:AVX) 
-			for(int igorkov=0; igorkov<4; igorkov++){
-				int igork1=gamin[3][igorkov];
-				//For the C Version I'll try and factorise where possible
-
-				xu+=dk4p[did]*(conj(x[(did*ngorkov+igorkov)*nc])*(\
-							u11t[did*ndim+3]*(xi[(i*ngorkov+igork1)*nc]-xi[(i*ngorkov+igorkov)*nc])+\
-							u12t[did*ndim+3]*(xi[(i*ngorkov+igork1)*nc+1]-xi[(i*ngorkov+igorkov)*nc+1]) )+\
-						conj(x[(did*ngorkov+igorkov)*nc+1])*(\
-							conj(u11t[did*ndim+3])*(xi[(i*ngorkov+igork1)*nc+1]-xi[(i*ngorkov+igorkov)*nc+1])+\
-							conj(u12t[did*ndim+3])*(xi[(i*ngorkov+igorkov)*nc]-xi[(i*ngorkov+igork1)*nc])));
-
-				xd+=dk4m[i]*(conj(x[(uid*ngorkov+igorkov)*nc])*(\
-							conj(u11t[i*ndim+3])*(xi[(i*ngorkov+igork1)*nc]+xi[(i*ngorkov+igorkov)*nc])-\
-							u12t[i*ndim+3]*(xi[(i*ngorkov+igork1)*nc+1]+xi[(i*ngorkov+igorkov)*nc+1]) )+\
-						conj(x[(uid*ngorkov+igorkov)*nc+1])*(\
-							u11t[i*ndim+3]*(xi[(i*ngorkov+igork1)*nc+1]+xi[(i*ngorkov+igorkov)*nc+1])+\
-							conj(u12t[i*ndim+3])*(xi[(i*ngorkov+igorkov)*nc]+xi[(i*ngorkov+igork1)*nc]) ) );
-
-				int igorkovPP=igorkov+4;
-				int igork1PP=igork1+4;
-				xuu-=dk4m[did]*(conj(x[(did*ngorkov+igorkovPP)*nc])*(\
-							u11t[did*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc]-xi[(i*ngorkov+igorkovPP)*nc])+\
-							u12t[did*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc+1]-xi[(i*ngorkov+igorkovPP)*nc+1]) )+\
-						conj(x[(did*ngorkov+igorkovPP)*nc+1])*(\
-							conj(u11t[did*ndim+3])*(xi[(i*ngorkov+igork1PP)*nc+1]-xi[(i*ngorkov+igorkovPP)*nc+1])+\
-							conj(u12t[did*ndim+3])*(xi[(i*ngorkov+igorkovPP)*nc]-xi[(i*ngorkov+igork1PP)*nc]) ) );
-
-				xdd-=dk4p[i]*(conj(x[(uid*ngorkov+igorkovPP)*nc])*(\
-							conj(u11t[i*ndim+3])*(xi[(i*ngorkov+igork1PP)*nc]+xi[(i*ngorkov+igorkovPP)*nc])-\
-							u12t[i*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc+1]+xi[(i*ngorkov+igorkovPP)*nc+1]) )+\
-						conj(x[(uid*ngorkov+igorkovPP)*nc+1])*(\
-							u11t[i*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc+1]+xi[(i*ngorkov+igorkovPP)*nc+1])+\
-							conj(u12t[i*ndim+3])*(xi[(i*ngorkov+igorkovPP)*nc]+xi[(i*ngorkov+igork1PP)*nc]) ) );
-			}
-		}
-		*endenf=creal(xu-xd-xuu+xdd);
-		*denf=creal(xu+xd+xuu+xdd);
-
-		Par_dsum(endenf); Par_dsum(denf);
-		*endenf/=2*gvol; *denf/=2*gvol;
-		//Future task. Chiral susceptibility measurements
-#ifdef __NVCC__
-		cudaFree(x);
-#elif defined USE_MKL
-		mkl_free(x);
-#else
-		free(x);
-#endif
-		return 0;
-	}
-	int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
-		/* 
-		 * Calculates the gauge action using new (how new?) lookup table
-		 * Follows a routine called qedplaq in some QED3 code
-		 *
-		 * Globals:
-		 * =======
-		 * 
-		 *
-		 * Parameters:
-		 * ===========
-		 * double hg
-		 * double avplaqs
-		 * double avplaqt
-		 *
-		 * Returns:
-		 * =======
-		 * Zero on success, integer error code otherwise
-		 */
-		const char *funcname = "SU2plaq";
-		//Was a halo exchange here but moved it outside
-		//	The fortran code used several consecutive loops to get the plaquette
-		//	Instead we'll just make the arrays variables and do everything in one loop
-		//	Should work since in the fortran Sigma11[i] only depends on i components  for example
-		double hgs = 0; double hgt = 0;
-		//Since the ν loop doesn't get called for μ=0 we'll start at μ=1
-		for(int mu=1;mu<ndim;mu++)
-			for(int nu=0;nu<mu;nu++)
-				//Don't merge into a single loop. Makes vectorisation easier?
-				//Or merge into a single loop and dispense with the a arrays?
-#pragma omp parallel for simd aligned(u11t:AVX,u12t:AVX) reduction(+:hgs,hgt)
-				for(int i=0;i<kvol;i++){
-					//Save us from typing iu[mu+ndim*i] everywhere
-					int uidm = iu[mu+ndim*i]; 
-
-					complex Sigma11=u11t[i*ndim+mu]*u11t[uidm*ndim+nu]-u12t[i*ndim+mu]*conj(u12t[uidm*ndim+nu]);
-					complex Sigma12=u11t[i*ndim+mu]*u12t[uidm*ndim+nu]+u12t[i*ndim+mu]*conj(u11t[uidm*ndim+nu]);
-
-					int uidn = iu[nu+ndim*i]; 
-					complex a11=Sigma11*conj(u11t[uidn*ndim+mu])+Sigma12*conj(u12t[uidn*ndim+mu]);
-					complex a12=-Sigma11*u12t[uidn*ndim+mu]+Sigma12*u11t[uidn*ndim+mu];
-
-					Sigma11=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
-					//				Sigma12[i]=-a11[i]*u12t[i*ndim+nu]+a12*u11t[i*ndim+mu];
-					//				Not needed in final result as it traces out
-
-					switch(mu){
-						//Time component
-						case(ndim-1):	hgt -= creal(Sigma11);
-									break;
-									//Space component
-						default:	hgs -= creal(Sigma11);
-								break;
-					}
-				}
-
-		Par_dsum(&hgs); Par_dsum(&hgt);
-		*avplaqs=-hgs/(3.0*gvol); *avplaqt=-hgt/(gvol*3.0);
-		*hg=(hgs+hgt)*beta;
-#ifdef _DEBUG
-		if(!rank)
-			printf("hgs=%e  hgt=%e  hg=%e\n", hgs, hgt, *hg);
-#endif
-		return 0;
-	}
-	double Polyakov(){
-		/*
-		 * Calculate the Polyakov loop (no prizes for guessing that one...)
-		 *
-		 * Globals:
-		 * =======
-		 * u11t, u12t, u11t, u12t
-		 *
-		 * Calls:
-		 * ======
-		 * Par_tmul, Par_dsum
-		 * 
-		 * Parameters:
-		 * ==========
-		 * double *poly The Polyakov Loop value
-		 * 
-		 * Returns:
-		 * =======
-		 * Double corresponding to the polyakov loop
-		 */
-		const char *funcname = "Polyakov";
-		double poly = 0;
-		//Originally at the very end before Par_dsum
-		//Now all cores have the value for the complete Polyakov line at all spacial sites
-		//We need to globally sum over spacial processores but not across time as these
-		//are duplicates. So we zero the value for all but t=0
-		//This is (according to the FORTRAN code) a bit of a hack
-		//I will expand on this hack and completely avoid any work
-		//for this case rather than calculating everything just to set it to zero
-#ifdef __NVCC__
-		Complex *Sigma11,*Sigma12;
-		cudaMallocManaged(&Sigma11,kvol3*sizeof(Complex),cudaMemAttachGlobal);
-		cudaMallocManaged(&Sigma12,kvol3*sizeof(Complex),cudaMemAttachGlobal);
-#elif defined USE_MKL
-		complex *Sigma11 = mkl_malloc(kvol3*sizeof(complex),AVX);
-		complex *Sigma12 = mkl_malloc(kvol3*sizeof(complex),AVX);
-#else
-		complex *Sigma11 = malloc(kvol3*sizeof(complex));
-		complex *Sigma12 = malloc(kvol3*sizeof(complex));
-#endif
-#ifdef __NVCC__
-		cublasZcopy(cublas_handle,kvol3, &u11t[3], ndim, Sigma11, 1);
-		cublasZcopy(cublas_handle,kvol3, &u12t[3], ndim, Sigma12, 1);
-#elif (defined USE_MKL || defined USE_BLAS)
-		cblas_zcopy(kvol3, &u11t[3], ndim, Sigma11, 1);
-		cblas_zcopy(kvol3, &u12t[3], ndim, Sigma12, 1);
-#else
-		for(int i=0; i<kvol3; i++){
-			Sigma11[i]=u11t[i*ndim+3];
-			Sigma12[i]=u12t[i*ndim+3];
-		}
-#endif
-		//	Some Fortran commentary
-		//	Changed this routine.
-		//	u11t and u12t now defined as normal ie (kvol+halo,4).
-		//	Copy of Sigma11 and Sigma12 is changed so that it copies
-		//	in blocks of ksizet.
-		//	Variable indexu also used to select correct element of u11t and u12t 
-		//	in loop 10 below.
-		//
-		//	Change the order of multiplication so that it can
-		//	be done in parallel. Start at t=1 and go up to t=T:
-		//	previously started at t+T and looped back to 1, 2, ... T-1
-		//Buffers
-		complex a11=0;
-		//There is a dependency. Can only parallelise the inner loop
-#pragma unroll
-		for(int it=1;it<ksizet;it++)
-			//will be faster for parallel code
-#pragma omp parallel for simd private(a11) aligned(u11t:AVX,u12t:AVX,Sigma11:AVX,Sigma12:AVX)
-			for(int i=0;i<kvol3;i++){
-				//Seems a bit more efficient to increment indexu instead of reassigning
-				//it every single loop
-				int indexu=it*kvol3+i;
-				a11=Sigma11[i]*u11t[indexu*ndim+3]-Sigma12[i]*conj(u12t[indexu*ndim+3]);
-				//Instead of having to store a second buffer just assign it directly
-				Sigma12[i]=Sigma11[i]*u12t[indexu*ndim+3]+Sigma12[i]*conj(u11t[indexu*ndim+3]);
-				Sigma11[i]=a11;
-			}
-
-		//Multiply this partial loop with the contributions of the other cores in the
-		//timelike dimension
-#if (npt>1)
-#ifdef _DEBUG
-		printf("Multiplying with MPI\n");
-#endif
-		//Par_tmul does nothing if there is only a single processor in the time direction. So we only compile
-		//its call if it is required
-		Par_tmul(Sigma11, Sigma12);
-#endif
-#pragma omp parallel for simd reduction(+:poly) aligned(Sigma11:AVX)
-		for(int i=0;i<kvol3;i++)
-			poly+=creal(Sigma11[i]);
-#ifdef USE_MKL
-		mkl_free(Sigma11); mkl_free(Sigma12);
-#else
-		free(Sigma11); free(Sigma12);
-#endif
-
-		if(pcoord[3+rank*ndim]) poly = 0;
-		Par_dsum(&poly);
-		poly/=gvol3;
-		return poly;	
-	}
-	inline int Reunitarise(){
-		/*
-		 * Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1
-		 *
-		 * If you're looking at the FORTRAN code be careful. There are two header files
-		 * for the /trial/ header. One with u11 u12 (which was included here originally)
-		 * and the other with u11t and u12t.
-		 *
-		 * Globals:
-		 * =======
-		 * u11t, u12t
-		 *
-		 * Returns:
-		 * ========
-		 * Zero on success, integer error code otherwise
-		 */
-		const char *funcname = "Reunitarise";
-#pragma ivdep
-		for(int i=0; i<kvol*ndim; i++){
-			//Declaring anorm inside the loop will hopefully let the compiler know it
-			//is safe to vectorise aggessively
-			double anorm=sqrt(conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]);
-			//		Exception handling code. May be faster to leave out as the exit prevents vectorisation.
-			//		if(anorm==0){
-			//			fprintf(stderr, "Error %i in %s on rank %i: anorm = 0 for μ=%i and i=%i.\nExiting...\n\n",
-			//					DIVZERO, funcname, rank, mu, i);
-			//			MPI_Finalise();
-			//			exit(DIVZERO);
-			//		}
-			u11t[i]/=anorm;
-			u12t[i]/=anorm;
-		}
-		return 0;
-	}
-#ifdef __CUDACC__
-	inline int Z_gather(cuDoubleComplex *x, cuDoubleComplex *y, int n, unsigned int *table)
-#else
-		inline int Z_gather(complex *x, complex *y, int n, unsigned int *table, unsigned int mu)
-#endif
-		{
-			//FORTRAN had a second parameter m gving the size of y (kvol+halo) normally
-			//Pointers mean that's not an issue for us so I'm leaving it out
-#pragma omp parallel for simd aligned (x:AVX,y:AVX,table:AVX)
-			for(int i=0; i<n; i++)
-				x[i]=y[table[i*ndim+mu]*ndim+mu];
-			return 0;
-		}
-#ifdef __CUDACC__
-	inline int Fill_Small_Phi(int na, cuDoubleComplex *smallPhi)
-#else
-		inline int Fill_Small_Phi(int na, complex *smallPhi)
-#endif
-		{
-			/*Copies necessary (2*4*kvol) elements of Phi into a vector variable
-			 *
-			 * Globals:
-			 * =======
-			 * Phi:	  The source array
-			 * 
-			 * Parameters:
-			 * ==========
-			 * int na: flavour index
-			 * complex *smallPhi:	  The target array
-			 *
-			 * Returns:
-			 * =======
-			 * Zero on success, integer error code otherwise
-			 */
-			const char *funcname = "Fill_Small_Phi";
-			//BIG and small phi index
+	const char *funcname = "Fill_Small_Phi";
+	//BIG and small phi index
 #pragma omp parallel for simd aligned(smallPhi:AVX,Phi:AVX)
-			for(int i = 0; i<kvol;i++)
+	for(int i = 0; i<kvol;i++)
 #pragma unroll
-				for(int idirac = 0; idirac<ndirac; idirac++)
+		for(int idirac = 0; idirac<ndirac; idirac++)
 #pragma unroll
-					for(int ic= 0; ic<nc; ic++){
-						//	  PHI_index=i*16+j*2+k;
-						smallPhi[(i*ndirac+idirac)*nc+ic]=Phi[((na*kvol+i)*ngorkov+idirac)*nc+ic];
-					}
-			return 0;
-		}
+			for(int ic= 0; ic<nc; ic++){
+				//	  PHI_index=i*16+j*2+k;
+				smallPhi[(i*ndirac+idirac)*nc+ic]=Phi[((na*kvol+i)*ngorkov+idirac)*nc+ic];
+			}
+	return 0;
+}
 #ifdef __CUDACC__
-	double Norm_squared(cuDoubleComplex *z, int n)
+double Norm_squared(Complex *z, int n)
 #else
-		double Norm_squared(complex *z, int n)
+double Norm_squared(complex *z, int n)
 #endif
-		{
-			/* Called znorm2 in the original FORTRAN.
-			 * Takes a complex number vector of length n and finds the square of its 
-			 * norm using the formula
-			 * 
-			 *	    |z(i)|^2 = z(i)Xz*(i)
-			 *
-			 * Parameters:
-			 * ==========
-			 *  complex z:	The Number being normalised
-			 *  int n:	The length of the vector
-			 * 
-			 * Returns:
-			 * =======
-			 *  double: The norm of the complex number
-			 * 
-			 */
-			//BLAS? Use cblas_zdotc instead for vectorisation
-			const char *funcname = "Norm_squared";
-			double norm = 0;
+{
+	/* Called znorm2 in the original FORTRAN.
+	 * Takes a complex number vector of length n and finds the square of its 
+	 * norm using the formula
+	 * 
+	 *	    |z(i)|^2 = z(i)Xz*(i)
+	 *
+	 * Parameters:
+	 * ==========
+	 *  complex z:	The Number being normalised
+	 *  int n:	The length of the vector
+	 * 
+	 * Returns:
+	 * =======
+	 *  double: The norm of the complex number
+	 * 
+	 */
+	//BLAS? Use cblas_zdotc instead for vectorisation
+	const char *funcname = "Norm_squared";
+	double norm = 0;
 #pragma omp parallel for simd reduction(+:norm)
-			for(int i=0; i<n; i++)
-				norm+=z[i]*conj(z[i]);
-			return norm;
-		}
+	for(int i=0; i<n; i++)
+		norm+=z[i]*conj(z[i]);
+	return norm;
+}
