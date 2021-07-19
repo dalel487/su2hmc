@@ -27,8 +27,10 @@ CSRC= \
 	par_mpi.c \
 
 CUSRC= \
-	multiply.cu\
-#	cuda_init.cu\
+	matrices.cu\
+	force.cu\
+	fermionic.cu\
+	bosonic.cu
 
 
 CINC= \
