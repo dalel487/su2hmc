@@ -4,10 +4,10 @@
 #include <string.h>
 __global__ void cuDslash(Complex *phi, Complex *r){
 	char *funcname = "cuDslash";
-	int gsize = gridDim.x*gridDim.y*gridDim.z;
-	int bsize = blockDim.x*blockDim.y*blockDim.z;
-	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	for(int i=threadId;i<kvol;i+=gsize){
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork = idirac+4;
@@ -92,10 +92,10 @@ __global__ void cuDslash(Complex *phi, Complex *r){
 }
 __global__ void cuDslashd(Complex *phi, Complex *r){
 	char *funcname = "cuDslashd";
-	int gsize = gridDim.x*gridDim.y*gridDim.z;
-	int bsize = blockDim.x*blockDim.y*blockDim.z;
-	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	for(int i=threadId;i<kvol;i+=gsize){
 		//Diquark Term (antihermitian) The signs of a_1 and a_2 below flip under dagger
 		for(int idirac = 0; idirac<ndirac; idirac++){
@@ -185,10 +185,10 @@ __global__ void cuDslashd(Complex *phi, Complex *r){
 }
 __global__ void cuHdslash(Complex *phi, Complex *r){
 	char *funcname = "cuHdslash";
-	int gsize = gridDim.x*gridDim.y*gridDim.z;
-	int bsize = blockDim.x*blockDim.y*blockDim.z;
-	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	for(int i=threadId;i<kvol;i+=gsize){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
@@ -243,10 +243,10 @@ __global__ void cuHdslash(Complex *phi, Complex *r){
 }
 __global__ void cuHdslashd(Complex *phi, Complex *r){
 	char *funcname = "cuHdslashd";
-	int gsize = gridDim.x*gridDim.y*gridDim.z;
-	int bsize = blockDim.x*blockDim.y*blockDim.z;
-	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	for(int i=threadId;i<kvol;i+=gsize){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <ndim-1; mu++){
@@ -306,10 +306,10 @@ __global__ void cuHdslashd(Complex *phi, Complex *r){
 }
 __global__ void New_trial(double dt){
 	char *funcname = "New_trial";
-	int gsize = gridDim.x*gridDim.y*gridDim.z;
-	int bsize = blockDim.x*blockDim.y*blockDim.z;
-	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	for(int i=threadId;i<kvol;i+=gsize){
 		for(int mu = 0; mu<ndim; mu++){
 			//Sticking to what was in the FORTRAN for variable names.

@@ -4,7 +4,7 @@
  */
 #include	<par_mpi.h>
 #include	<su2hmc.h>
-int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
+__host__ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 	/* 
 	 * Calculates the gauge action using new (how new?) lookup table
 	 * Follows a routine called qedplaq in some QED3 code
@@ -44,7 +44,7 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 #endif
 	return 0;
 }
-double Polyakov(){
+__host__ double Polyakov(){
 	/*
 	 * Calculate the Polyakov loop (no prizes for guessing that one...)
 	 *
@@ -74,9 +74,14 @@ double Polyakov(){
 	//I will expand on this hack and completely avoid any work
 	//for this case rather than calculating everything just to set it to zero
 #ifdef __NVCC__
-	Complex *Sigma11,*Sigma12;
+	__device__ Complex *Sigma11,*Sigma12;
 	cudaMallocManaged(&Sigma11,kvol3*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&Sigma12,kvol3*sizeof(Complex),cudaMemAttachGlobal);
+	//Sigma12 only used on device unless npt>1. So worth considering device-only memory
+	#if(npt>1)
+	cudaMallocManaged(&Sigma11,kvol3*sizeof(Complex),cudaMemAttachGlobal);
+	#else
+	cudaMalloc(&Sigma12,kvol3*sizeof(Complex));
+	#endif
 #elif defined USE_MKL
 	complex *Sigma11 = mkl_malloc(kvol3*sizeof(complex),AVX);
 	complex *Sigma12 = mkl_malloc(kvol3*sizeof(complex),AVX);
@@ -108,22 +113,7 @@ double Polyakov(){
 	//	be done in parallel. Start at t=1 and go up to t=T:
 	//	previously started at t+T and looped back to 1, 2, ... T-1
 	//Buffers
-	complex a11=0;
-	//There is a dependency. Can only parallelise the inner loop
-#pragma unroll
-	for(int it=1;it<ksizet;it++)
-		//will be faster for parallel code
-#pragma omp parallel for simd private(a11) aligned(u11t:AVX,u12t:AVX,Sigma11:AVX,Sigma12:AVX)
-		for(int i=0;i<kvol3;i++){
-			//Seems a bit more efficient to increment indexu instead of reassigning
-			//it every single loop
-			int indexu=it*kvol3+i;
-			a11=Sigma11[i]*u11t[indexu*ndim+3]-Sigma12[i]*conj(u12t[indexu*ndim+3]);
-			//Instead of having to store a second buffer just assign it directly
-			Sigma12[i]=Sigma11[i]*u12t[indexu*ndim+3]+Sigma12[i]*conj(u11t[indexu*ndim+3]);
-			Sigma11[i]=a11;
-		}
-
+	cuPolyakov<<<dimGrid,dimBlock>>>(Sigma11,Sigma12);
 	//Multiply this partial loop with the contributions of the other cores in the
 	//timelike dimension
 #if (npt>1)
@@ -137,7 +127,9 @@ double Polyakov(){
 #pragma omp parallel for simd reduction(+:poly) aligned(Sigma11:AVX)
 	for(int i=0;i<kvol3;i++)
 		poly+=creal(Sigma11[i]);
-#ifdef USE_MKL
+#ifdef __NVCC__
+	cudaFree(Sigma11); cudaFree(Sigma12);
+#elif defined USE_MKL
 	mkl_free(Sigma11); mkl_free(Sigma12);
 #else
 	free(Sigma11); free(Sigma12);
@@ -151,7 +143,11 @@ double Polyakov(){
 //CUDA Kernels
 __global__ void cuSU2plaq(int mu, int nu, double *hgs, double *hgt, Complex *Sigma11, Complex *Sigma12){
 	char *funcname = "cuSU2plaq";
-	for(int i=0;i<kvol;i++){
+	const int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	for(int i=threadId;i<kvol;i+=gsize){
 		//Save us from typing iu[mu+ndim*i] everywhere
 		int uidm = iu[mu+ndim*i]; 
 
@@ -175,4 +171,23 @@ __global__ void cuSU2plaq(int mu, int nu, double *hgs, double *hgt, Complex *Sig
 					break;
 		}
 	}
+}
+__global__ void cuPolyakov(Complex *Sigma11, Complex * Sigma12){
+	char * funcname = "cuPolyakov";
+	Complex a11=0;
+	const int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	#pragma unroll
+	for(int it=1;it<ksizet;it++)
+		for(int i=threadId;i<kvol3;i+=gsize){
+			//Seems a bit more efficient to increment indexu instead of reassigning
+			//it every single loop
+			int indexu=it*kvol3+i;
+			a11=Sigma11[i]*u11t[indexu*ndim+3]-Sigma12[i]*conj(u12t[indexu*ndim+3]);
+			//Instead of having to store a second buffer just assign it directly
+			Sigma12[i]=Sigma11[i]*u12t[indexu*ndim+3]+Sigma12[i]*conj(u11t[indexu*ndim+3]);
+			Sigma11[i]=a11;
+		}
 }

@@ -159,6 +159,11 @@ double Polyakov(){
 	//its call if it is required
 	Par_tmul(Sigma11, Sigma12);
 #endif
+#ifdef __USE_MKL
+
+#else
+
+#endif
 #pragma omp parallel for simd reduction(+:poly) aligned(Sigma11:AVX)
 	for(int i=0;i<kvol3;i++)
 		poly+=creal(Sigma11[i]);

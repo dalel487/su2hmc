@@ -180,10 +180,10 @@ int Force(double *dSdpi, int iflag, double res1){
 //CUDA Kernels
 __global__ void cuForce(double *dSdpi, Complex *X2){
 	char *funcname = "cuForce";
-	int gsize = gridDim.x*gridDim.y*gridDim.z;
-	int bsize = blockDim.x*blockDim.y*blockDim.z;
-	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	for(int i=threadId;i<kvol;i+=gsize)
 		for(int idirac=0;idirac<ndirac;idirac++){
 			int mu, uid, igork1;
@@ -375,10 +375,10 @@ __global__ void cuForce(double *dSdpi, Complex *X2){
 }
 __global__ void Plus_staple(int mu, int nu, Complex *Sigma11, Complex *Sigma12){
 	char *funcname = "Plus_staple";
-	int gsize = gridDim.x*gridDim.y*gridDim.z;
-	int bsize = blockDim.x*blockDim.y*blockDim.z;
-	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	for(int i=threadId;i<kvol;i+=gsize){
 		int uidm = iu[mu+ndim*i];
 		int uidn = iu[nu+ndim*i];
@@ -392,10 +392,10 @@ __global__ void Plus_staple(int mu, int nu, Complex *Sigma11, Complex *Sigma12){
 }
 __global__ void Minus_staple(int mu, int nu, Complex *Sigma11, Complex *Sigma12){
 	char *funcname = "Minus_staple";
-	int gsize = gridDim.x*gridDim.y*gridDim.z;
-	int bsize = blockDim.x*blockDim.y*blockDim.z;
-	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	for(int i=threadId;i<kvol;i+=gsize){
 		int uidm = iu[mu+ndim*i];
 		int didn = id[nu+ndim*i];
@@ -410,10 +410,10 @@ __global__ void Minus_staple(int mu, int nu, Complex *Sigma11, Complex *Sigma12)
 }
 __global__ void cuGaugeForce(int mu, Complex *Sigma11, Complex *Sigma12){
 	char *funcname = "cuGaugeForce";
-	int gsize = gridDim.x*gridDim.y*gridDim.z;
-	int bsize = blockDim.x*blockDim.y*blockDim.z;
-	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	for(int i=0;i<kvol;i++){
 		Complex a11 = u11t[i*ndim+mu]*Sigma12[i]+u12t[i*ndim+mu]*conj(Sigma11[i]);
 		Complex a12 = u11t[i*ndim+mu]*Sigma11[i]+conj(u12t[i*ndim+mu])*Sigma12[i];
