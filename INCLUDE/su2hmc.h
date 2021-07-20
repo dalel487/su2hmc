@@ -84,7 +84,6 @@ int Congradp(int na, double res, int *itercg);
 int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbqb, double res, int *itercg);
 int SU2plaq(double *hg, double *avplaqs, double *avplaqt);
 double Polyakov();
-extern inline int Reunitarise();
 //CUDA Declarations:
 //#################
 #ifdef __CUDACC__
