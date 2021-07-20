@@ -58,7 +58,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #if (defined(USE_RAN2)||!defined(USE_MKL))
 	Gauss_z(xi, kferm, 0, 1/sqrt(2));
 #else
-	vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, xi, 0, 1/sqrt(2));
+	vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, (double*)xi, 0, 1/sqrt(2));
 #endif
 	cudaMemPrefetchAsync(xi, kferm*sizeof(Complex),device,NULL);
 	memcpy(x, xi, kferm*sizeof(Complex));

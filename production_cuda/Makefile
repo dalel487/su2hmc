@@ -4,18 +4,18 @@ MF=	Makefile
 CC= mpiicc
 NVCC = nvcc
 
-IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include"
+IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include" -I./
 
 
 CFLAGS=      $(IFLAGS) -std=gnu99 -DHAVE_SSE2 -ipo -qopt-zmm-usage=high\
 		 -xCOMMON-AVX512 -static-intel -static-libgcc \
-		 -qopenmp-simd -qopenmp -qopenmp-link=static -DSA3AT -DUSE_RAN2\
+		 -qopenmp-simd -qopenmp -qopenmp-link=static -DSA3AT \
 
 LFLAGS=	 -L${MKLROOT}/lib/intel64 -lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_core -lmkl_blacs_intelmpi_ilp64 -liomp5 -lpthread -lm -ldl\
 		-liomp5 -lpthread -lm -ldl #-wd10237
 
 MKLFLAGS=	-mkl -DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64 
-CUFLAGS=	${IFLAGS} -ccbin ${CC} --allow-unsupported-compiler -arch=compute_70 -code=compute_70,sm_70,sm_72,sm_75,sm_80,sm_86
+CUFLAGS=	${IFLAGS} -ccbin ${CC} --allow-unsupported-compiler -rdc=true -w -arch=compute_70 -code=sm_70,sm_72,sm_75,sm_80,sm_86
 EXE=	cuda_su2hmc_CASCADE
 
 CSRC_DIR=../production_c
@@ -26,11 +26,11 @@ CSRC= \
       random.c \
 	par_mpi.c \
 
-CUSRC= \
-	matrices.cu\
-	force.cu\
-	fermionic.cu\
-	bosonic.cu
+CUSRC= CUDA_Compile.cu\
+#	matrices.cu\
+#	force.cu\
+#	fermionic.cu\
+#	bosonic.cu
 
 
 CINC= \
@@ -74,11 +74,11 @@ debug:	CUFLAGS += -O0 -G -g -D_DEBUG
 debug:	$(EXE)
 
 $(EXE): $(OBJ)
-	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" -o $@ $^ $(LFLAGS) 
+	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS) -fPIC"  $^ $(LFLAGS) -o $@
 $(COBJ): %.o: $(CSRC_DIR)/%.c
 	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" -c $< 
 $(CUOBJ): %.o: %.cu
-	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" -dc $< 
+	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS) -fPIC" -x cu -dc $< 
 
 .PHONY: clean 
 clean:
