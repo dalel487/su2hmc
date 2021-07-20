@@ -1188,11 +1188,7 @@ inline int Reunitarise(){
 	}
 	return 0;
 }
-#ifdef __CUDACC__
-inline int Z_gather(Complex *x, Complex *y, int n, unsigned int *table)
-#else
-inline int Z_gather(complex *x, complex *y, int n, unsigned int *table, unsigned int mu)
-#endif
+inline int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu)
 {
 	//FORTRAN had a second parameter m gving the size of y (kvol+halo) normally
 	//Pointers mean that's not an issue for us so I'm leaving it out
@@ -1201,11 +1197,7 @@ inline int Z_gather(complex *x, complex *y, int n, unsigned int *table, unsigned
 		x[i]=y[table[i*ndim+mu]*ndim+mu];
 	return 0;
 }
-#ifdef __CUDACC__
 inline int Fill_Small_Phi(int na, Complex *smallPhi)
-#else
-inline int Fill_Small_Phi(int na, complex *smallPhi)
-#endif
 {
 	/*Copies necessary (2*4*kvol) elements of Phi into a vector variable
 	 *
@@ -1235,11 +1227,7 @@ inline int Fill_Small_Phi(int na, complex *smallPhi)
 			}
 	return 0;
 }
-#ifdef __CUDACC__
 double Norm_squared(Complex *z, int n)
-#else
-double Norm_squared(complex *z, int n)
-#endif
 {
 	/* Called znorm2 in the original FORTRAN.
 	 * Takes a complex number vector of length n and finds the square of its 

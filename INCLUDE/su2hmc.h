@@ -86,14 +86,18 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 int SU2plaq(double *hg, double *avplaqs, double *avplaqt);
 double Polyakov();
 extern inline int Reunitarise();
-void  cuda_init();
+//CUDA Declarations:
+//#################
 #ifdef __CUDACC__
-extern inline int Z_gather(cuDoubleComplex *x, cuDoubleComplex *y, int n, unsigned int *table);
-extern inline int Fill_Small_Phi(int na, cuDoubleComplex *smallPhi);
-double Norm_squared(cuDoubleComplex *z, int n);
-#else
-extern inline int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu);
+__global__ void cuForce(double *dSdpi, Complex *X2);
+__global__ void Plus_staple(int mu, int nu, Complex *Sigma11, Complex *Sigma12);
+__global__ void Minus_staple(int mu, int nu, Complex *Sigma11, Complex *Sigma12, Complex *u11sh, Complex *u12sh);
+__global__ void cuGaugeForce(int mu, Complex *Sigma11, Complex *Sigma12, double * dSdpi);
+__global__ void cuSU2plaq(int mu, int nu, double *hgs, double *hgt);
+__global__ void cuPolyakov(Complex *Sigma11, Complex * Sigma12);
+#endif
+//Inline Stuff
+extern inline int Z_gather(Complex*x, Complex *y, int n, unsigned int *table, unsigned int mu);
 extern inline int Fill_Small_Phi(int na, Complex *smallPhi);
 double Norm_squared(Complex *z, int n);
-#endif
 #endif

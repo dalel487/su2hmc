@@ -74,7 +74,7 @@ __host__ double Polyakov(){
 	//I will expand on this hack and completely avoid any work
 	//for this case rather than calculating everything just to set it to zero
 #ifdef __NVCC__
-	__device__ Complex *Sigma11,*Sigma12;
+	Complex *Sigma11,*Sigma12;
 	cudaMallocManaged(&Sigma11,kvol3*sizeof(Complex),cudaMemAttachGlobal);
 	//Sigma12 only used on device unless npt>1. So worth considering device-only memory
 	#if(npt>1)
@@ -90,8 +90,8 @@ __host__ double Polyakov(){
 	complex *Sigma12 = malloc(kvol3*sizeof(complex));
 #endif
 #ifdef __NVCC__
-	cublasZcopy(cublas_handle,kvol3, &u11t[3], ndim, Sigma11, 1);
-	cublasZcopy(cublas_handle,kvol3, &u12t[3], ndim, Sigma12, 1);
+	cublasZcopy(cublas_handle,kvol3, (cuDoubleComplex *)&u11t[3], ndim, (cuDoubleComplex *)Sigma11, 1);
+	cublasZcopy(cublas_handle,kvol3, (cuDoubleComplex *)&u12t[3], ndim, (cuDoubleComplex *)Sigma12, 1);
 #elif (defined USE_MKL || defined USE_BLAS)
 	cblas_zcopy(kvol3, &u11t[3], ndim, Sigma11, 1);
 	cblas_zcopy(kvol3, &u12t[3], ndim, Sigma12, 1);
@@ -141,7 +141,7 @@ __host__ double Polyakov(){
 	return poly;	
 }
 //CUDA Kernels
-__global__ void cuSU2plaq(int mu, int nu, double *hgs, double *hgt, Complex *Sigma11, Complex *Sigma12){
+__global__ void cuSU2plaq(int mu, int nu, double *hgs, double *hgt){
 	char *funcname = "cuSU2plaq";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -164,10 +164,10 @@ __global__ void cuSU2plaq(int mu, int nu, double *hgs, double *hgt, Complex *Sig
 
 		switch(mu){
 			//Time component
-			case(ndim-1):	atomicAdd(hgt, -creal(Sigma11))
+			case(ndim-1):	atomicAdd(hgt, -creal(Sigma11));
 						break;
 						//Space component
-			default:	atomicAdd(hgs, -creal(Sigma11))
+			default:	atomicAdd(hgs, -creal(Sigma11));
 					break;
 		}
 	}

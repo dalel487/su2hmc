@@ -44,13 +44,14 @@ CINC= \
       errorcodes.h \
 
 CUINC= \
+	cuda_complex.hpp\
 
 
 #
 # No need to edit below this line
 #
 
-.SUFFIXES: .c .cu .h .o
+.SUFFIXES: .c .cu .h .hpp .o
 
 COBJ=	 $(CSRC:.c=.o)
 CUOBJ= $(CUSRC:.cu=.o)
@@ -76,9 +77,8 @@ $(EXE): $(OBJ)
 	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" -o $@ $^ $(LFLAGS) 
 $(COBJ): %.o: $(CSRC_DIR)/%.c
 	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" -c $< 
-
 $(CUOBJ): %.o: %.cu
-	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS)" -dc $< 
+	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" -dc $< 
 
 .PHONY: clean 
 clean:

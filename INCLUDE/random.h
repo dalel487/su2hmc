@@ -1,13 +1,24 @@
 #ifndef	RANDOM
 #define	RANDOM
-#include <complex.h>
+//Need two cases here. MKL/CUDA or not for BLAS and CUDA or not for complex
 #ifdef USE_MKL
-      #include <mkl.h>
-      #include <mkl_vsl.h>
+#include <mkl.h>
+#include <mkl_vsl.h>
+#define M_PI		3.14159265358979323846	/* pi */
+#elif (defined __NVCC__ || defined __CUDACC__)
+#include <cublas.h>
 #else
-	#include	<cblas.h>
-	# define M_PI		3.14159265358979323846	/* pi */
+#include	<cblas.h>
 #endif
+
+#ifdef __CUDACC__
+#include <cuda_complex.hpp>
+#define Complex complex<double>
+#else
+#include <complex.h>
+#define Complex complex
+#endif
+
 #include <math.h>
 #include <par_mpi.h>
 //Configuration for existing generators if called
@@ -36,7 +47,7 @@ double ranget(double *seed);
 //Distributions
 //=============
 //Use Box-Müller to generate an array of complex numbers
-int Gauss_z(complex *ps, unsigned int n, const double mu, const double sigma);
+int Gauss_z(Complex *ps, unsigned int n, const double mu, const double sigma);
 int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma);
 
 //MPI

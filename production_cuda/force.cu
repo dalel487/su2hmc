@@ -2,6 +2,8 @@
  * Code for force calculations.
  * Requires multiply.cu to work
  */
+#include	<cuda_complex.hpp>
+#define	Complex complex<double>
 #include	<matrices.h>
 #include	<par_mpi.h>
 #include	<su2hmc.h>
@@ -24,7 +26,9 @@ int Gauge_force(double *dSdpi){
 	//		memset(u12t[kvol], 0, ndim*halo*sizeof(complex));	
 	//	#endif
 	//Was a trial field halo exchange here at one point.
-#ifdef __NVCC__
+#ifdef __CUDACC__
+	int device=-1;
+	cudaGetDevice(&device);
 	Complex *Sigma11, *Sigma12, *u11sh, *u12sh;
 	cudaMallocManaged(&Sigma11,kvol*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&Sigma12,kvol*sizeof(Complex),cudaMemAttachGlobal);
@@ -43,8 +47,8 @@ int Gauge_force(double *dSdpi){
 #endif
 	//Holders for directions
 	for(int mu=0; mu<ndim; mu++){
-		memset(Sigma11,0, kvol*sizeof(complex));
-		memset(Sigma12,0, kvol*sizeof(complex));
+		memset(Sigma11,0, kvol*sizeof(Complex));
+		memset(Sigma12,0, kvol*sizeof(Complex));
 		for(int nu=0; nu<ndim; nu++){
 			if(nu!=mu){
 				//The +ν Staple
@@ -52,12 +56,14 @@ int Gauge_force(double *dSdpi){
 				Z_gather(u11sh, u11t, kvol, id, nu);
 				Z_gather(u12sh, u12t, kvol, id, nu);
 				ZHalo_swap_dir(u11sh, 1, mu, DOWN);
+				cudaMemPrefetchAsync(u11sh, (kvol+halo)*sizeof(Complex),device,NULL);
 				ZHalo_swap_dir(u12sh, 1, mu, DOWN);
+				cudaMemPrefetchAsync(u12sh, (kvol+halo)*sizeof(Complex),device,NULL);
 				//Next up, the -ν staple
-				Minus_staple<<<dimGrid,dimBlock>>>(mu, nu, Sigma11, Sigma12);
+				Minus_staple<<<dimGrid,dimBlock>>>(mu, nu, Sigma11, Sigma12, u11sh, u12sh);
 			}
 		}
-		cuGaugeForce<<<dimGrid,dimBlock>>>(mu,Sigma11,Sigma12);
+		cuGaugeForce<<<dimGrid,dimBlock>>>(mu,Sigma11,Sigma12,dSdpi);
 	}
 #ifdef __NVCC__
 	cudaFree(Sigma11); cudaFree(Sigma12); cudaFree(u11sh); cudaFree(u12sh);
@@ -390,7 +396,7 @@ __global__ void Plus_staple(int mu, int nu, Complex *Sigma11, Complex *Sigma12){
 		Sigma12[i]+=-a11*u12t[i*ndim+nu]+a12*u11t[i*ndim+nu];
 	}
 }
-__global__ void Minus_staple(int mu, int nu, Complex *Sigma11, Complex *Sigma12){
+__global__ void Minus_staple(int mu, int nu, Complex *Sigma11, Complex *Sigma12, Complex *u11sh, Complex *u12sh){
 	char *funcname = "Minus_staple";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -408,7 +414,7 @@ __global__ void Minus_staple(int mu, int nu, Complex *Sigma11, Complex *Sigma12)
 		Sigma12[i]+=a11*u12t[didn*ndim+nu]+a12*conj(u11t[didn*ndim+nu]);
 	}
 }
-__global__ void cuGaugeForce(int mu, Complex *Sigma11, Complex *Sigma12){
+__global__ void cuGaugeForce(int mu, Complex *Sigma11, Complex *Sigma12,double*dSdpi){
 	char *funcname = "cuGaugeForce";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;

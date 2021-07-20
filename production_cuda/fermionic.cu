@@ -5,7 +5,7 @@
 #include	<matrices.h>
 #include	<random.h>
 #include	<su2hmc.h>
-int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbqb, double res, int *itercg){
+int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbqb, double res, int *itercg){
 	/*
 	 * Calculate fermion expectation values via a noisy estimator
 	 * -matrix inversion via conjugate gradient algorithm
@@ -43,8 +43,10 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 	//This x is just a storage container
 
 #ifdef __NVCC__
+	int device=-1;
+	cudaGetDevice(&device);
 	Complex *x;
-	cudaMallocManaged(&x,kfermHalo*sizeof(complex), cudaMemAttachGlobal);
+	cudaMallocManaged(&x,kfermHalo*sizeof(Complex), cudaMemAttachGlobal);
 #elif defined USE_MKL
 	complex *x = mkl_malloc(kfermHalo*sizeof(complex), AVX);
 #else
@@ -58,7 +60,8 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 #else
 	vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, xi, 0, 1/sqrt(2));
 #endif
-	memcpy(x, xi, kferm*sizeof(complex));
+	cudaMemPrefetchAsync(xi, kferm*sizeof(Complex),device,NULL);
+	memcpy(x, xi, kferm*sizeof(Complex));
 
 	//R_1= M^† Ξ 
 	//R1 is local in fortran but since its going to be reset anyway I'm going to recycle the
@@ -67,14 +70,15 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 	//Copying R1 to the first (zeroth) flavour index of Phi
 	//This should be safe with memcpy since the pointer name
 	//references the first block of memory for that pointer
-	memcpy(Phi, R1, nc*ngorkov*kvol*sizeof(complex));
-	memcpy(xi, R1, nc*ngorkov*kvol*sizeof(complex));
+	memcpy(Phi, R1, nc*ngorkov*kvol*sizeof(Complex));
+	memcpy(xi, R1, nc*ngorkov*kvol*sizeof(Complex));
 
 	//Evaluate xi = (M^† M)^-1 R_1 
+	cudaMemPrefetchAsync(x, kferm*sizeof(Complex),device,NULL);
 	Congradp(0, res, itercg);
 #ifdef __NVCC__
 	Complex buff;
-	cublasZdotc(cublas_handle,kferm, x, 1, xi,  1, &buff);
+	cublasZdotc(cublas_handle,kferm, (cuDoubleComplex *)x, 1, (cuDoubleComplex *)xi,  1, (cuDoubleComplex *)&buff);
 	*pbp=creal(buff);
 #elif (defined USE_MKL || defined USE_BLAS)
 	complex buff;
@@ -91,37 +95,49 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 
 	*qbqb=0; *qq=0;
 #if (defined USE_MKL || defined USE_BLAS)
+#pragma unroll
 	for(int idirac = 0; idirac<ndirac; idirac++){
 		int igork=idirac+4;
 		//Unrolling the colour indices, Then its just (γ_5*x)*Ξ or (γ_5*Ξ)*x 
 #pragma unroll
 		for(int ic = 0; ic<nc; ic++){
-			complex dot;
+			Complex dot;
 			//Because we have kvol on the outer index and are summing over it, we set the
 			//step for BLAS to be ngorkov*nc=16. 
 			//Does this make sense to do on the GPU?
+#ifdef __NVCC__
+			cublasZdotc(cublas_handle,kferm, (cuDoubleComplex *)&x[idirac*nc+ic], ngorkov*nc,\
+			(cuDoubleComplex *)&xi[igork*nc+ic],  ngorkov*nc, (cuDoubleComplex *)&dot);
+#elif (defined USE_MKL || defined USE_BLAS)
 			cblas_zdotc_sub(kvol, &x[idirac*nc+ic], ngorkov*nc, &xi[igork*nc+ic], ngorkov*nc, &dot);
 			*qbqb+=gamval[4][idirac]*dot;
+			#endif
+#ifdef __NVCC__
+			cublasZdotc(cublas_handle,kferm, (cuDoubleComplex *)&x[igork*nc+ic], ngorkov*nc,\
+			(cuDoubleComplex *)&xi[idirac*nc+ic],  ngorkov*nc, (cuDoubleComplex *)&dot);
+#elif (defined USE_MKL || defined USE_BLAS)
 			cblas_zdotc_sub(kvol, &x[igork*nc+ic], ngorkov*nc, &xi[idirac*nc+ic], ngorkov*nc, &dot);
 			*qq-=gamval[4][idirac]*dot;
+			#endif
 		}
+	}
 #else
 #pragma unroll(2)
-		for(int i=0; i<kvol; i++)
-			//What is the optimal order to evaluate these in?
-			for(int idirac = 0; idirac<ndirac; idirac++){
-				int igork=idirac+4;
-				*qbqb+=gamval[4][idirac]*conj(x[(i*ngorkov+idirac)*nc])*xi[(i*ngorkov+igork)*nc];
-				*qq-=gamval[4][idirac]*conj(x[(i*ngorkov+igork)*nc])*xi[(i*ngorkov+idirac)*nc];
-				*qbqb+=gamval[4][idirac]*conj(x[(i*ngorkov+idirac)*nc+1])*xi[(i*ngorkov+igork)*nc+1];
-				*qq-=gamval[4][idirac]*conj(x[(i*ngorkov+igork)*nc+1])*xi[(i*ngorkov+idirac)*nc+1];
-			}
+	for(int i=0; i<kvol; i++)
+		//What is the optimal order to evaluate these in?
+		for(int idirac = 0; idirac<ndirac; idirac++){
+			int igork=idirac+4;
+			*qbqb+=gamval[4][idirac]*conj(x[(i*ngorkov+idirac)*nc])*xi[(i*ngorkov+igork)*nc];
+			*qq-=gamval[4][idirac]*conj(x[(i*ngorkov+igork)*nc])*xi[(i*ngorkov+idirac)*nc];
+			*qbqb+=gamval[4][idirac]*conj(x[(i*ngorkov+idirac)*nc+1])*xi[(i*ngorkov+igork)*nc+1];
+			*qq-=gamval[4][idirac]*conj(x[(i*ngorkov+igork)*nc+1])*xi[(i*ngorkov+idirac)*nc+1];
+		}
 #endif
-	}
+
 	//In the FORTRAN Code dsum was used instead despite qq and qbqb being complex
 	Par_zsum(qq); Par_zsum(qbqb);
-	*qq=(*qq+*qbqb)/(2*gvol);
-	complex xu, xd, xuu, xdd;
+	*qq=(*qq+*qbqb)/(2.0*gvol);
+	Complex xu, xd, xuu, xdd;
 	xu=0;xd=0;xuu=0;xdd=0;
 
 	//Halos
@@ -132,7 +148,7 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 
 	//Instead of typing id[i*ndim+3] a lot, we'll just assign them to variables.
 	//Idea. One loop instead of two loops but for xuu and xdd just use ngorkov-(igorkov+1) instead
-#pragma omp parallel for reduction(+:xd,xu,xdd,xuu) 
+#pragma omp parallel for //reduction(+:xd,xu,xdd,xuu) 
 	for(int i = 0; i<kvol; i++){
 		int did=id[3+ndim*i];
 		int uid=iu[3+ndim*i];
