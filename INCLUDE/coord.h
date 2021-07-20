@@ -1,6 +1,7 @@
 #ifndef COORD
 #define	COORD
-#ifdef __CUDACC__
+#ifdef __NVCC__
+	#include <cuda.h>
 	#include <cublas.h>
 #elif defined USE_MKL
 	#include <mkl.h>
@@ -12,8 +13,8 @@
 //Global Variables
 //unsigned int id[ndim][kvol], iu[ndim][kvol] __attribute__((aligned(AVX)));
 //unsigned int hu[4][halo], hd[4][halo] __attribute__((aligned(AVX)));
-#ifdef __CUDACC__
-__managed__ extern 
+#ifdef __NVCC__
+__managed__ extern
 #endif
 unsigned int *id, *iu, *hu, *hd, h1u[4], h1d[4], h2u[4], h2d[4], halosize[4];
 

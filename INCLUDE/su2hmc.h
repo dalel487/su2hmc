@@ -34,9 +34,9 @@ int ibound;
 //------
 //Seems a bit redundant looking
 #ifdef __NVCC__
-__managed__ extern 
+__managed__ 
 #endif 
-int gamin[4][4];
+extern int gamin[4][4];
 //We have the four γ Matrices, and in the final index (labelled 4 in C) is γ_5)
 #ifdef __NVCC__
 __managed__ 
@@ -49,7 +49,6 @@ __managed__
 #endif 
 Complex *Phi, *R1, *X0, *X1, *xi;
 //From common_mat
-//double dk4m[kvol+halo], dk4p[kvol+halo] __attribute__((aligned(AVX)));
 #ifdef __NVCC__
 __managed__ 
 #endif 
