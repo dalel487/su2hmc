@@ -25,16 +25,22 @@ int Addrc(){
 	//Rather than having 8 ih variables I'm going to use a 2x4 array
 	//down is 0, up is 1
 	int ih[2][4] = {{-1,-1,-1,-1},{-1,-1,-1,-1}};
-#ifdef USE_MKL
+#ifdef __NVCC__
+	cudaMallocManaged(&iu,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
+	cudaMallocManaged(&id,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
+#elif defined USE_MKL
 	id = mkl_malloc(ndim*kvol*sizeof(int),AVX);
 	iu = mkl_malloc(ndim*kvol*sizeof(int),AVX);
+#else
+	id = aligned_alloc(AVX,ndim*kvol*sizeof(int));
+	iu = aligned_alloc(AVX,ndim*kvol*sizeof(int));
+#endif
+#ifdef USE_MKL
 	hd = mkl_malloc(ndim*halo*sizeof(int),AVX);
 	hu = mkl_malloc(ndim*halo*sizeof(int),AVX);
 #else
-	id = malloc(ndim*kvol*sizeof(int));
-	iu = malloc(ndim*kvol*sizeof(int));
-	hd = malloc(ndim*halo*sizeof(int));
-	hu = malloc(ndim*halo*sizeof(int));
+	hd = aligned_alloc(AVX,ndim*halo*sizeof(int));
+	hu = aligned_alloc(AVX,ndim*halo*sizeof(int));
 #endif
 
 	//Do the lookups appropriate for overindexing into halos
@@ -85,7 +91,7 @@ int Addrc(){
 	 */	
 	int iaddr, ic;
 	//if using ic++ inside the loop instead
-//	ic=-1;
+	//	ic=-1;
 #ifdef _DEBUG
 	printf("ksizex = %i, ksizet=%i\n", ksizex, ksizet);
 #endif

@@ -20,6 +20,7 @@ int Dslash(Complex *phi, Complex *r);
 int Dslashd(Complex *phi, Complex *r);
 int Hdslash(Complex *phi, Complex *r);
 int Hdslashd(Complex *phi, Complex *r);
+extern inline int Reunitarise();
 
 #ifdef __CUDACC__
 __global__ void cuDslash(Complex *phi, Complex *r);
@@ -27,6 +28,7 @@ __global__ void cuDslashd(Complex *phi, Complex *r);
 __global__ void cuHdslash(Complex *phi, Complex *r);
 __global__ void cuHdslashd(Complex *phi, Complex *r);
 __global__ void cuForce(double *dSdpi, Complex *X2);
+__global__ inline void cuReunitarise();
 
 //New Trial Fields
 __global__ void New_trial(double dt);

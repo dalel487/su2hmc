@@ -470,6 +470,40 @@ int New_trial(double dt){
 	Trial_Exchange();
 	return 0;
 }
+inline int Reunitarise(){
+	/*
+	 * Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1
+	 *
+	 * If you're looking at the FORTRAN code be careful. There are two header files
+	 * for the /trial/ header. One with u11 u12 (which was included here originally)
+	 * and the other with u11t and u12t.
+	 *
+	 * Globals:
+	 * =======
+	 * u11t, u12t
+	 *
+	 * Returns:
+	 * ========
+	 * Zero on success, integer error code otherwise
+	 */
+	const char *funcname = "Reunitarise";
+#pragma ivdep
+	for(int i=0; i<kvol*ndim; i++){
+		//Declaring anorm inside the loop will hopefully let the compiler know it
+		//is safe to vectorise aggessively
+		double anorm=sqrt(conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]);
+		//		Exception handling code. May be faster to leave out as the exit prevents vectorisation.
+		//		if(anorm==0){
+		//			fprintf(stderr, "Error %i in %s on rank %i: anorm = 0 for μ=%i and i=%i.\nExiting...\n\n",
+		//					DIVZERO, funcname, rank, mu, i);
+		//			MPI_Finalise();
+		//			exit(DIVZERO);
+		//		}
+		u11t[i]/=anorm;
+		u12t[i]/=anorm;
+	}
+	return 0;
+}
 #ifdef DIAGNOSTIC
 int Diagnostics(int istart){
 	/*

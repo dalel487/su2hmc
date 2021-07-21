@@ -12,7 +12,7 @@ CFLAGS=      $(IFLAGS) -std=gnu99 -DHAVE_SSE2 -ipo -qopt-zmm-usage=high\
 		 -qopenmp-simd -qopenmp -qopenmp-link=static -DSA3AT \
 
 LFLAGS=	 -L${MKLROOT}/lib/intel64 -lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_core -lmkl_blacs_intelmpi_ilp64 -liomp5 -lpthread -lm -ldl\
-		-liomp5 -lpthread -lm -ldl #-wd10237
+		-liomp5 -lpthread -lm -ldl -lcudart #-wd10237
 
 MKLFLAGS=	-mkl -DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64 
 CUFLAGS=	${IFLAGS} -ccbin ${CC} --allow-unsupported-compiler -rdc=true -w -arch=compute_70 -code=sm_70,sm_72,sm_75,sm_80,sm_86
@@ -55,7 +55,7 @@ CUINC= \
 
 COBJ=	 $(CSRC:.c=.o)
 CUOBJ= $(CUSRC:.cu=.o)
-OBJ=	 $(COBJ) $(CUOBJ)  
+OBJ=	 $(CUOBJ) $(COBJ)  
 
 #MOD=	$(CSRC:.c=.mod)
 MOD=	
@@ -74,11 +74,11 @@ debug:	CUFLAGS += -O0 -G -g -D_DEBUG
 debug:	$(EXE)
 
 $(EXE): $(OBJ)
-	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS) -fPIC"  $^ $(LFLAGS) -o $@
-$(COBJ): %.o: $(CSRC_DIR)/%.c
-	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" -c $< 
+	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS) -fPIC" $(LFLAGS) $^ -o $@
 $(CUOBJ): %.o: %.cu
 	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS) -fPIC" -x cu -dc $< 
+$(COBJ): %.o: $(CSRC_DIR)/%.c
+	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" -c $< 
 
 .PHONY: clean 
 clean:

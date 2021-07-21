@@ -1,0 +1,2 @@
+
+(evince:86783): Gtk-WARNING **: 18:07:22.409: Calling org.xfce.Session.Manager.Inhibit failed: GDBus.Error:org.freedesktop.DBus.Error.UnknownMethod: No such method “Inhibit”

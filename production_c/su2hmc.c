@@ -214,6 +214,8 @@ int main(int argc, char *argv[]){
 		Trial_Exchange();
 	}
 #ifdef __NVCC__
+	int device=-1;
+	cudaGetDevice(&device);
 	cudaMallocManaged(&R1, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&xi, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&Phi, nf*kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
@@ -348,6 +350,11 @@ int main(int argc, char *argv[]){
 			//Include Trial Exchange/Reunitarise in CUDA script instead? Maybe even
 			//change the order of execution
 			Trial_Exchange();
+
+#ifdef __NVCC__
+			cudaMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),device,NULL);
+			cudaMemPrefetchAsync(u12t, ndim*kvol*sizeof(Complex),device,NULL);
+#endif
 			Reunitarise();
 			//p(t+3dt/2)=p(t+dt/2)-dSds(t+dt)*dt
 			Force(dSdpi, 0, rescgg);
@@ -393,6 +400,11 @@ int main(int argc, char *argv[]){
 		}
 		//Monte Carlo step: Accept new fields with the probability of min(1,exp(H0-X0))
 		//Kernel Call needed here?
+
+#ifdef __NVCC__
+		cudaMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),device,NULL);
+		cudaMemPrefetchAsync(u12t, ndim*kvol*sizeof(Complex),device,NULL);
+#endif
 		Reunitarise();
 		double H1, S1;
 		Hamilton(&H1, &S1, rescga);
@@ -713,7 +725,7 @@ int Init(int istart){
 	if(istart==0){
 		//Initialise a cold start to zero
 		//memset is safe to use here because zero is zero 
-#pragma omp parallel for simd aligned(u11t:AVX) 
+#pragma omp parallel for simd aligned(u11:AVX) 
 		//Leave it to the GPU
 		for(int i=0; i<kvol*ndim;i++)
 			u11[i]=1;
@@ -738,6 +750,12 @@ int Init(int istart){
 			u12t[i]=sfmt_genrand_real1(&sfmt)+sfmt_genrand_real1(&sfmt)*I;
 #endif
 		}
+#endif
+#ifdef __NVCC__
+		int device=-1;
+		cudaGetDevice(&device);
+		cudaMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),device,NULL);
+		cudaMemPrefetchAsync(u12t, ndim*kvol*sizeof(Complex),device,NULL);
 #endif
 		Reunitarise();
 		memcpy(u11, u11t, ndim*kvol*sizeof(complex));
@@ -1157,40 +1175,6 @@ int Congradp(int na, double res, int *itercg){
 #else
 	free(p); free(r); free(x1); free(x2);
 #endif
-	return 0;
-}
-inline int Reunitarise(){
-	/*
-	 * Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1
-	 *
-	 * If you're looking at the FORTRAN code be careful. There are two header files
-	 * for the /trial/ header. One with u11 u12 (which was included here originally)
-	 * and the other with u11t and u12t.
-	 *
-	 * Globals:
-	 * =======
-	 * u11t, u12t
-	 *
-	 * Returns:
-	 * ========
-	 * Zero on success, integer error code otherwise
-	 */
-	const char *funcname = "Reunitarise";
-#pragma ivdep
-	for(int i=0; i<kvol*ndim; i++){
-		//Declaring anorm inside the loop will hopefully let the compiler know it
-		//is safe to vectorise aggessively
-		double anorm=sqrt(conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]);
-		//		Exception handling code. May be faster to leave out as the exit prevents vectorisation.
-		//		if(anorm==0){
-		//			fprintf(stderr, "Error %i in %s on rank %i: anorm = 0 for μ=%i and i=%i.\nExiting...\n\n",
-		//					DIVZERO, funcname, rank, mu, i);
-		//			MPI_Finalise();
-		//			exit(DIVZERO);
-		//		}
-		u11t[i]/=anorm;
-		u12t[i]/=anorm;
-	}
 	return 0;
 }
 inline int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu)

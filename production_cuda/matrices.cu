@@ -331,6 +331,42 @@ __global__ void New_trial(double dt){
 		}
 	}
 }
+__global__ inline void cuReunitarise(){
+	/*
+	 * Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1
+	 *
+	 * If you're looking at the FORTRAN code be careful. There are two header files
+	 * for the /trial/ header. One with u11 u12 (which was included here originally)
+	 * and the other with u11t and u12t.
+	 *
+	 * Globals:
+	 * =======
+	 * u11t, u12t
+	 *
+	 * Returns:
+	 * ========
+	 * Zero on success, integer error code otherwise
+	 */
+	const char *funcname = "Reunitarise";
+	const int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	for(int i=threadId; i<kvol*ndim; i+=gsize){
+		//Declaring anorm inside the loop will hopefully let the compiler know it
+		//is safe to vectorise aggessively
+		double anorm=sqrt(creal(conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]));
+		//		Exception handling code. May be faster to leave out as the exit prevents vectorisation.
+		//		if(anorm==0){
+		//			fprintf(stderr, "Error %i in %s on rank %i: anorm = 0 for μ=%i and i=%i.\nExiting...\n\n",
+		//					DIVZERO, funcname, rank, mu, i);
+		//			MPI_Finalise();
+		//			exit(DIVZERO);
+		//		}
+		u11t[i]/=anorm;
+		u12t[i]/=anorm;
+	}
+}
 
 __host__ int Dslash(Complex *phi, Complex *r){
 	/*
@@ -478,6 +514,10 @@ __host__ int Hdslashd(Complex *phi, Complex *r){
 		inout(phi: length(kferm2Halo))
 		//	cudaMemPrefetchAsync(u11t,kvol+halo,0
 		cuHdslashd<<<dimGrid,dimBlock>>>(phi,r);
+	return 0;
+}
+__host__ inline int Reunitarise(){
+	cuReunitarise<<<dimGrid,dimBlock>>>();
 	return 0;
 }
 
