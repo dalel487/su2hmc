@@ -1101,11 +1101,11 @@ int Congradp(int na, double res, int *itercg){
 	cudaMallocManaged(&x2, kferm2Halo*sizeof(complex),cudaMemAttachGlobal);
 	cudaMemAdvise(x2,kferm2Halo*sizeof(complex),cudaMemAdviseSetPreferredLocation,device);
 #elif defined USE_MKL
-	complex *x1=mkl_malloc(kfermHalo, sizeof(complex), AVX);
-	complex *x2=mkl_malloc(kfermHalo, sizeof(complex), AVX);
+	complex *x1=mkl_malloc(kfermHalo*sizeof(complex), AVX);
+	complex *x2=mkl_malloc(kfermHalo*sizeof(complex), AVX);
 #else
-	complex *x1=aligned_alloc(AVX,kfermHalo,sizeof(complex));
-	complex *x2=aligned_alloc(AVX,kfermHalo,sizeof(complex));
+	complex *x1=aligned_alloc(AVX,kfermHalo*sizeof(complex));
+	complex *x2=aligned_alloc(AVX,kfermHalo*sizeof(complex));
 #endif
 
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
