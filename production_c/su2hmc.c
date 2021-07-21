@@ -895,10 +895,18 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 	//Because we're dealing with flattened arrays here we can call cblas safely without the halo
 #ifdef __NVCC__
 	complex *p, *r, *x1, *x2;
+	int device; cudaGetDevice(&device);
 	cudaMallocManaged(&p, kferm2Halo*sizeof(complex),cudaMemAttachGlobal);
+	cudaMemAdvise(p,kferm2Halo*sizeof(complex),cudaMemAdviseSetPreferredLocation,device);
+
 	cudaMallocManaged(&r, kferm2Halo*sizeof(complex),cudaMemAttachGlobal);
+	cudaMemAdvise(r,kferm2Halo*sizeof(complex),cudaMemAdviseSetPreferredLocation,device);
+	
 	cudaMallocManaged(&x1, kferm2Halo*sizeof(complex),cudaMemAttachGlobal);
+	cudaMemAdvise(x1,kferm2Halo*sizeof(complex),cudaMemAdviseSetPreferredLocation,device);
+	
 	cudaMallocManaged(&x2, kferm2Halo*sizeof(complex),cudaMemAttachGlobal);
+	cudaMemAdvise(x2,kferm2Halo*sizeof(complex),cudaMemAdviseSetPreferredLocation,device);
 #elif defined USE_MKL
 	complex *p  = mkl_calloc(kferm2Halo,sizeof(complex),AVX);
 	complex *r  = mkl_calloc(kferm2,sizeof(complex),AVX);
@@ -1057,7 +1065,15 @@ int Congradp(int na, double res, int *itercg){
 	complex alphan;
 	//Give initial values Will be overwritten if niterx>0
 	double betad = 1.0; double alphad=0; complex alpha = 1;
-#ifdef USE_MKL
+#ifdef __NVCC__
+	complex *p, *r;
+	int device; cudaGetDevice(&device);
+	cudaMallocManaged(&p, kfermHalo*sizeof(complex),cudaMemAttachGlobal);
+	cudaMemAdvise(p,kfermHalo*sizeof(complex),cudaMemAdviseSetPreferredLocation,device);
+
+	cudaMallocManaged(&r, kfermHalo*sizeof(complex),cudaMemAttachGlobal);
+	cudaMemAdvise(r,kfermHalo*sizeof(complex),cudaMemAdviseSetPreferredLocation,device);
+#elif defined USE_MKL
 	complex *p  = mkl_malloc(kfermHalo*sizeof(complex),AVX);
 	complex *r  = mkl_malloc(kferm*sizeof(complex),AVX);
 #else
@@ -1071,13 +1087,20 @@ int Congradp(int na, double res, int *itercg){
 	// Declaring placeholder arrays 
 	// This x1 is NOT related to the /common/vectorp/X1 in the FORTRAN code and should not
 	// be confused with X1 the global variable
+#ifdef __NVCC__
 	complex *x1, *x2;
-#ifdef USE_MKL
-	x1=mkl_calloc(kfermHalo, sizeof(complex), AVX);
-	x2=mkl_calloc(kfermHalo, sizeof(complex), AVX);
+	cudaMemPrefetchAsync(p,kfermHalo*sizeof(complex),device,NULL);
+	cudaMallocManaged(&x1, kferm2Halo*sizeof(complex),cudaMemAttachGlobal);
+	cudaMemAdvise(x1,kferm2Halo*sizeof(complex),cudaMemAdviseSetPreferredLocation,device);
+	
+	cudaMallocManaged(&x2, kferm2Halo*sizeof(complex),cudaMemAttachGlobal);
+	cudaMemAdvise(x2,kferm2Halo*sizeof(complex),cudaMemAdviseSetPreferredLocation,device);
+#elif defined USE_MKL
+	complex *x1=mkl_malloc(kfermHalo, sizeof(complex), AVX);
+	complex *x2=mkl_malloc(kfermHalo, sizeof(complex), AVX);
 #else
-	x1=calloc(kfermHalo,sizeof(complex));
-	x2=calloc(kfermHalo,sizeof(complex));
+	complex *x1=aligned_alloc(AVX,kfermHalo,sizeof(complex));
+	complex *x2=aligned_alloc(AVX,kfermHalo,sizeof(complex));
 #endif
 
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
