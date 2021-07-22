@@ -659,7 +659,14 @@ int Init(int istart){
 #endif
 	double chem1=exp(fmu); double chem2 = 1/chem1;
 #ifdef __NVCC__
-	//If using CUDA just assign everything here 
+	//Set iu and id to mainly read in CUDA and prefetch them to the GPU
+	int device=-1;
+	cudaGetDevice(&device);
+	cudaMemAdvise(iu,ndim*kvol*sizeof(int),..SetReadMostly,device);
+	cudaMemAdvise(id,ndim*kvol*sizeof(int),..SetReadMostly,device);
+	cudaMemPrefetchAsync(iu,ndim*kvol*sizeof(int),device,NULL);
+	cudaMemPrefetchAsync(id,ndim*kvol*sizeof(int),device,NULL);
+
 	cudaMallocManaged(&dk4m,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
 	cudaMallocManaged(&dk4p,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
 #elif defined USE_MKL
@@ -707,6 +714,14 @@ int Init(int istart){
 			gamval[i][j]*=akappa;
 #endif
 #ifdef __NVCC__
+//More prefetching and marking as read-only (mostly)
+	cudaMemAdvise(dk4p,(kvol+halo)*sizeof(double),..SetReadMostly,device);
+	cudaMemAdvise(dk4m,(kvol+halo)*sizeof(double),..SetReadMostly,device);
+	cudaMemAdvise(gamval,20*sizeof(Complex),..SetReadMostly,device);
+	cudaMemPrefetchAsync(dk4p,(kvol+halo)*sizeof(double),device,NULL);
+	cudaMemPrefetchAsync(dk4m,(kvol+halo)*sizeof(double),device,NULL);
+	cudaMemPrefetchAsync(gamval,20*sizeof(Complex),device,NULL);
+
 	cudaMallocManaged(&u11,ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&u12,ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&u11t,ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
@@ -726,14 +741,11 @@ int Init(int istart){
 		//Initialise a cold start to zero
 		//memset is safe to use here because zero is zero 
 #pragma omp parallel for simd aligned(u11:AVX) 
-		//Leave it to the GPU
+		//Leave it to the GPU?
 		for(int i=0; i<kvol*ndim;i++)
 			u11[i]=1;
 	}
 	else if(istart>0){
-		//#ifdef __NVCC__
-		//		complex *cu_u1xt;
-		//		cudaMallocManaged(&cu_u1xt, ndim*kvol*sizeof(complex));
 		//Still thinking about how best to deal with PRNG
 #if (defined USE_MKL&&!defined USE_RAN2)
 		//Good news, casting works for using a double to create random complex numbers
@@ -761,9 +773,8 @@ int Init(int istart){
 		memcpy(u11, u11t, ndim*kvol*sizeof(complex));
 		memcpy(u12, u12t, ndim*kvol*sizeof(complex));
 	}
-	else{
+	else
 		fprintf(stderr,"Warning %i in %s: Gauge fields are not initialised.\n", NOINIT, funcname);
-	}
 #ifdef _DEBUG
 	printf("Initialisation Complete\n");
 #endif
@@ -814,10 +825,13 @@ int Hamilton(double *h, double *s, double res2){
 	SU2plaq(&hg,&avplaqs,&avplaqt);
 
 	double hf = 0; int itercg = 0;
-#ifdef USE_MKL
+#ifdef __NVCC__
+	Complex *smallPhi;
+	cudaMallocManaged(&smallPhi,kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
+#elif defined USE_MKL
 	complex *smallPhi = mkl_malloc(kferm2Halo*sizeof(complex),AVX);
 #else
-	complex *smallPhi = malloc(kferm2Halo*sizeof(complex));
+	complex *smallPhi = aligned_alloc(AVX,kferm2Halo*sizeof(complex));
 #endif
 	//Iterating over flavours
 	for(int na=0;na<nf;na++){
@@ -900,7 +914,7 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 	//Because we're dealing with flattened arrays here we can call cblas safely without the halo
 #ifdef __NVCC__
 	complex *p, *r, *x1, *x2;
-	int device; cudaGetDevice(&device);
+	int device=-1; cudaGetDevice(&device);
 	cudaMallocManaged(&p, kferm2Halo*sizeof(complex),cudaMemAttachGlobal);
 	cudaMemAdvise(p,kferm2Halo*sizeof(complex),cudaMemAdviseSetPreferredLocation,device);
 

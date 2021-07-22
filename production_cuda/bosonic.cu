@@ -74,14 +74,14 @@ __host__ double Polyakov(){
 	//I will expand on this hack and completely avoid any work
 	//for this case rather than calculating everything just to set it to zero
 #ifdef __NVCC__
+	int device=-1;
+	cudaGetDevice(&device);
 	Complex *Sigma11,*Sigma12;
 	cudaMallocManaged(&Sigma11,kvol3*sizeof(Complex),cudaMemAttachGlobal);
+	//cudaMemAdvise(Sigma11,kvol3*sizeof(Complex),cudaMemAdviseSetPreferredLocation,device);
 	//Sigma12 only used on device unless npt>1. So worth considering device-only memory
-	#if(npt>1)
-	cudaMallocManaged(&Sigma11,kvol3*sizeof(Complex),cudaMemAttachGlobal);
-	#else
-	cudaMalloc(&Sigma12,kvol3*sizeof(Complex));
-	#endif
+	cudaMallocManaged(&Sigma12,kvol3*sizeof(Complex),cudaMemAttachGlobal);
+	//cudaMemAdvise(Sigma12,kvol3*sizeof(Complex),cudaMemAdviseSetPreferredLocation,device);
 #elif defined USE_MKL
 	complex *Sigma11 = mkl_malloc(kvol3*sizeof(complex),AVX);
 	complex *Sigma12 = mkl_malloc(kvol3*sizeof(complex),AVX);
@@ -113,18 +113,23 @@ __host__ double Polyakov(){
 	//	be done in parallel. Start at t=1 and go up to t=T:
 	//	previously started at t+T and looped back to 1, 2, ... T-1
 	//Buffers
+	cudaMemPrefetchAsync(Sigma11,kvol3*sizeof(Complex),device,NULL);
+	cudaMemPrefetchAsync(Sigma12,kvol3*sizeof(Complex),device,NULL);
 	cuPolyakov<<<dimGrid,dimBlock>>>(Sigma11,Sigma12);
 	//Multiply this partial loop with the contributions of the other cores in the
 	//timelike dimension
+	//Par_tmul does nothing if there is only a single processor in the time direction. So we only compile
+	//its call if it is required
 #if (npt>1)
+	cudaMemPrefetchAsync(Sigma11,kvol3*sizeof(Complex),cudaCpuDeviceId,NULL);
+	cudaMemPrefetchAsync(Sigma12,kvol3*sizeof(Complex),cudaCpuDeviceId,NULL);
 #ifdef _DEBUG
 	printf("Multiplying with MPI\n");
 #endif
-	//Par_tmul does nothing if there is only a single processor in the time direction. So we only compile
-	//its call if it is required
 	Par_tmul(Sigma11, Sigma12);
 #endif
 #pragma omp parallel for simd reduction(+:poly) aligned(Sigma11:AVX)
+//TODO:	CUDA Reduction
 	for(int i=0;i<kvol3;i++)
 		poly+=creal(Sigma11[i]);
 #ifdef __NVCC__
@@ -174,7 +179,6 @@ __global__ void cuSU2plaq(int mu, int nu, double *hgs, double *hgt){
 }
 __global__ void cuPolyakov(Complex *Sigma11, Complex * Sigma12){
 	char * funcname = "cuPolyakov";
-	Complex a11=0;
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -185,7 +189,7 @@ __global__ void cuPolyakov(Complex *Sigma11, Complex * Sigma12){
 			//Seems a bit more efficient to increment indexu instead of reassigning
 			//it every single loop
 			int indexu=it*kvol3+i;
-			a11=Sigma11[i]*u11t[indexu*ndim+3]-Sigma12[i]*conj(u12t[indexu*ndim+3]);
+			Complex a11=Sigma11[i]*u11t[indexu*ndim+3]-Sigma12[i]*conj(u12t[indexu*ndim+3]);
 			//Instead of having to store a second buffer just assign it directly
 			Sigma12[i]=Sigma11[i]*u12t[indexu*ndim+3]+Sigma12[i]*conj(u11t[indexu*ndim+3]);
 			Sigma11[i]=a11;
