@@ -88,8 +88,8 @@ int ismaster;
 //A couple of other components usually defined in common_*.h files in fortran. But since C has global scope
 //may as well put them in here instead.
 //Gauges and trial matrices
-#ifdef __CUDACC__ 
-__managed__ extern 
+#ifdef __CUDACC__
+__managed__ 
 #endif 
 Complex *u11, *u12, *u11t, *u12t;
 //Halos indices

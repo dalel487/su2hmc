@@ -35,8 +35,10 @@ int ibound;
 //Seems a bit redundant looking
 #ifdef __NVCC__
 __managed__ 
+#else
+extern
 #endif 
-extern int gamin[4][4];
+int gamin[4][4];
 //We have the four γ Matrices, and in the final index (labelled 4 in C) is γ_5)
 #ifdef __NVCC__
 __managed__ 
@@ -70,7 +72,10 @@ double ancg, ancgh;
 #ifdef __NVCC__
 __managed__
 #endif 
-extern double fmu, beta, akappa;
+#ifndef __CUDACC__
+extern
+#endif 
+double fmu, beta, akappa;
 
 
 //Function Declarations:
