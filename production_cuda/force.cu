@@ -48,7 +48,9 @@ int Gauge_force(double *dSdpi){
 	//Holders for directions
 	for(int mu=0; mu<ndim; mu++){
 		memset(Sigma11,0, kvol*sizeof(Complex));
+		cudaMemPrefetchAsync(Sigma11,kvol*sizeof(Complex),device,NULL);
 		memset(Sigma12,0, kvol*sizeof(Complex));
+		cudaMemPrefetchAsync(Sigma12,kvol*sizeof(Complex),device,NULL);
 		for(int nu=0; nu<ndim; nu++){
 			if(nu!=mu){
 				//The +ν Staple
