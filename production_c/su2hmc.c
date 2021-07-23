@@ -275,7 +275,9 @@ int main(int argc, char *argv[]){
 #else
 			vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, R, 0, 1/sqrt(2));
 #endif
+#ifdef __NVCC__
 			cudaMemPrefetchAsync(R,kfermHalo*sizeof(Complex),device,NULL);
+#endif
 			Dslashd(R1, R);
 			memcpy(Phi+na*kfermHalo,R1, nc*ngorkov*kvol*sizeof(complex));
 			//Up/down partitioning (using only pseudofermions of flavour 1)
