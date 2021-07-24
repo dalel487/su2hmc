@@ -15,7 +15,8 @@ LFLAGS=	 -L${MKLROOT}/lib/intel64 -lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_cor
 		-liomp5 -lpthread -lm -ldl -lcudart #-wd10237
 
 MKLFLAGS=	-mkl -DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64 
-CUFLAGS=	${IFLAGS} -ccbin ${CC} --allow-unsupported-compiler -rdc=true -w -arch=compute_70 -code=sm_70,sm_72,sm_75,sm_80,sm_86
+CUFLAGS=	${IFLAGS} -ccbin ${CC} --allow-unsupported-compiler -rdc=true -w -arch=compute_70 -code=sm_70,sm_72,sm_75,sm_80,sm_86\
+
 EXE=	cuda_su2hmc_CASCADE
 
 CSRC_DIR=../production_c
@@ -55,7 +56,7 @@ CUINC= \
 
 COBJ=	 $(CSRC:.c=.o)
 CUOBJ= $(CUSRC:.cu=.o)
-OBJ=	 $(CUOBJ) $(COBJ)  
+OBJ=	 $(COBJ) $(CUOBJ)  
 
 #MOD=	$(CSRC:.c=.mod)
 MOD=	
