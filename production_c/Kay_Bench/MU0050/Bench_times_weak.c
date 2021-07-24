@@ -1,6 +1,7 @@
-void Bench_times(){
+void Bench_times_weak(){
 	TCanvas *c1 = new TCanvas("Weak Scaling");
-//	c1->SetLogx(); c1->SetLogy();
+//	c1->SetLogx();
+	c1->SetLogy();
 
 //Only the unstarred columns get extracted
 	TGraph *c_weak_256= new TGraph("C_Weak_256.csv", "%*lg %*lg %*lg %*lg %*lg %*lg %lg %*lg %*lg %*lg %lg","\t ,");
@@ -33,7 +34,7 @@ void Bench_times(){
 	Fort_weak_256->GetYaxis()->SetTitle("Time per Trajectory (Seconds)");
 	legend1->AddEntry(Fort_weak_256);
 
-	Fort_weak_256->Draw();
-	c_weak_256->Draw("same");
+	c_weak_256->Draw();
+	Fort_weak_256->Draw("same");
 	legend1->Draw("same");
 }

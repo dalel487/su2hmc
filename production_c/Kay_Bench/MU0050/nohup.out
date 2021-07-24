@@ -5,3 +5,8 @@ If it is already installed then try removing ~/.config/libreoffice/4/user/config
 Warning: failed to read path from javaldx
 
 (soffice:8675): Gtk-CRITICAL **: 14:52:43.934: gtk_widget_queue_draw_area: assertion 'height >= 0' failed
+javaldx: Could not find a Java Runtime Environment!
+Please ensure that a JVM and the package libreoffice-java-common
+is installed.
+If it is already installed then try removing ~/.config/libreoffice/4/user/config/javasettings_Linux_*.xml
+Warning: failed to read path from javaldx
