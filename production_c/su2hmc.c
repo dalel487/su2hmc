@@ -28,6 +28,11 @@ Complex gamval[5][4] =	{{-I,-I,I,I},
 	{-I,I,I,-I},
 	{1,1,1,1},
 	{1,1,-1,-1}};
+Complex_f gamval_f[5][4] =	{{-I,-I,I,I},
+	{-1,1,1,-1},
+	{-I,I,I,-I},
+	{1,1,1,1},
+	{1,1,-1,-1}};
 
 /*
  * For the early phases of this translation, I'm going to try and
@@ -686,6 +691,8 @@ int Init(int istart){
 #elif defined USE_MKL
 	dk4m = mkl_malloc((kvol+halo)*sizeof(double), AVX);
 	dk4p = mkl_malloc((kvol+halo)*sizeof(double), AVX);
+	dk4m_f = mkl_malloc((kvol+halo)*sizeof(float), AVX);
+	dk4p_f = mkl_malloc((kvol+halo)*sizeof(float), AVX);
 #else
 	dk4m = aligned_alloc(AVX,(kvol+halo)*sizeof(double));
 	dk4p = aligned_alloc(AVX,(kvol+halo)*sizeof(double));
@@ -717,6 +724,11 @@ int Init(int istart){
 		DHalo_swap_dir(dk4p, 1, 3, UP);
 		DHalo_swap_dir(dk4m, 1, 3, UP);
 	}
+	#pragma omp parallel for simd
+	for(int i=0;i<kvol+halo;i++){
+		dk4p_f[i]=(float)dk4p[i];
+		dk4m_f[i]=(float)dk4m[i];
+	}
 	//Each gamma matrix is rescaled by akappa by flattening the gamval array
 #if (defined USE_MKL || defined USE_BLAS)
 	//Don't cuBLAS this. It is small and won't saturate the GPU. Let the CPU handle
@@ -727,6 +739,10 @@ int Init(int istart){
 		for(int j=0;j<4;j++)
 			gamval[i][j]*=akappa;
 #endif
+	#pragma omp parallel for simd collapse(2)
+	for(int i=0;i<5;i++)
+		for(int j=0;j<4;j++)
+		gamval_f[i][j]=(Complex_f)gamval[i][j];
 #ifdef __NVCC__
 //More prefetching and marking as read-only (mostly)
 	cudaMemAdvise(dk4p,(kvol+halo)*sizeof(double),..SetReadMostly,device);
@@ -924,7 +940,7 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 	//The κ^2 factor is needed to normalise the fields correctly
 	//jqq is the diquark codensate and is global scope.
 	complex fac = conj(jqq)*jqq*akappa*akappa;
-	Complex_f fac_f = (float)fac;
+	Complex_f fac_f = (Complex_f)fac;
 	//These were evaluated only in the first loop of niterx so we'll just do it ouside of the loop.
 	//These alpha and beta terms should be double, but that causes issues with BLAS. Instead we declare
 	//them complex and work with the real part (especially for α_d)
@@ -1057,7 +1073,7 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 		//Here we evaluate β=(r_{k+1}.r_{k+1})/(r_k.r_k) and then shuffle our indices down the line.
 		//On the first iteration we define beta to be zero.
 		complex beta = (niterx) ?  creal(betan)/betad : 0;
-		Complex_f beta_f = (float)beta;
+		Complex_f beta_f = (Complex_f)beta;
 		betad=betan; alphan=betan;
 		//If we get a small enough β_n before hitting the iteration cap we break
 		//moved this to before the update of p_f so we can break and keep p_f if needed

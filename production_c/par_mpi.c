@@ -1027,8 +1027,8 @@ int Trial_Exchange(){
 #endif
 #pragma omp parallel for simd
 	for(int i=0;i<ndim*(kvol+halo);i++){
-		u11t_f[i]=(float)u11t[i];
-		u12t_f[i]=(float)u12t[i];
+		u11t_f[i]=(Complex_f)u11t[i];
+		u12t_f[i]=(Complex_f)u12t[i];
 	}
 	return 0;
 }

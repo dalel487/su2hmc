@@ -497,22 +497,22 @@ int Hdslash_f(Complex_f *phi, Complex_f *r){
 					//to read when split into different loops, but should be faster this way
 					phi[(i*ndirac+idirac)*nc]+=-akappa_f*(u11t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]+\
 							u12t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]+\
-							conj(u11t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]-\
-							u12t_f[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1])+\
+							conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]-\
+							u12t_f[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1]);\
 									   //Dirac term
-									   (float)gamval[mu][idirac]*(u11t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]+\
+					phi[(i*ndirac+idirac)*nc]+=gamval_f[mu][idirac]*(u11t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]+\
 											   u12t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]-\
-											   conj(u11t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]+\
+											   conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]+\
 											   u12t_f[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
 
-					phi[(i*ndirac+idirac)*nc+1]+=-akappa_f*(-conj(u12t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]+\
-							conj(u11t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]+\
-							conj(u12t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]+\
+					phi[(i*ndirac+idirac)*nc+1]+=-akappa_f*(-conjf(u12t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]+\
+							conjf(u11t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]+\
+							conjf(u12t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]+\
 							u11t_f[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1])+\
 									     //Dirac term
-									     (float)gamval[mu][idirac]*(-conj(u12t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]+\
-											     conj(u11t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]-\
-											     conj(u12t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]-\
+									     gamval_f[mu][idirac]*(-conjf(u12t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]+\
+											     conjf(u11t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]-\
+											     conjf(u12t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]-\
 											     u11t_f[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
 				}
 			}
@@ -527,14 +527,14 @@ int Hdslash_f(Complex_f *phi, Complex_f *r){
 				int igork1 = gamin[3][idirac];
 				//Factorising for performance, we get dk4?*(float)u1?*(+/-r_wilson -/+ r_dirac)
 				phi[(i*ndirac+idirac)*nc]+=
-					-(float)dk4p[i]*(u11t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
+					-dk4p_f[i]*(u11t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
 							+u12t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc+1]-r[(uid*ndirac+igork1)*nc+1]))
-					-(float)dk4m[did]*(conj(u11t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]+r[(did*ndirac+igork1)*nc])
+					-dk4m_f[did]*(conjf(u11t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]+r[(did*ndirac+igork1)*nc])
 							-u12t_f[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]+r[(did*ndirac+igork1)*nc+1]));
 				phi[(i*ndirac+idirac)*nc+1]+=
-					-(float)dk4p[i]*(-conj(u12t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
-							+conj(u11t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc+1]-r[(uid*ndirac+igork1)*nc+1]))
-					-(float)dk4m[did]*(conj(u12t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]+r[(did*ndirac+igork1)*nc])
+					-dk4p_f[i]*(-conjf(u12t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
+							+conjf(u11t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc+1]-r[(uid*ndirac+igork1)*nc+1]))
+					-dk4m_f[did]*(conjf(u12t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]+r[(did*ndirac+igork1)*nc])
 							+u11t_f[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]+r[(did*ndirac+igork1)*nc+1]));
 			}
 #endif
@@ -601,23 +601,23 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r){
 					phi[(i*ndirac+idirac)*nc]+=
 						-akappa_f*(u11t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]
 								+u12t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]
-								+conj(u11t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
+								+conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
 								-u12t_f[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
-						-(float)gamval[mu][idirac]*
+						-gamval_f[mu][idirac]*
 						(          u11t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]
 							     +u12t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]
-							     -conj(u11t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
+							     -conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
 							     +u12t_f[did*ndim+mu] *r[(did*ndirac+igork1)*nc+1]);
 
 					phi[(i*ndirac+idirac)*nc+1]+=
-						-(float)akappa_f*(-conj(u12t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]
-								+conj(u11t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]
-								+conj(u12t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
+						-akappa_f*(-conjf(u12t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]
+								+conjf(u11t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]
+								+conjf(u12t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
 								+u11t_f[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
-						-(float)gamval[mu][idirac]*
-						(-conj(u12t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]
-						 +conj(u11t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]
-						 -conj(u12t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
+						-gamval_f[mu][idirac]*
+						(-conjf(u12t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]
+						 +conjf(u11t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]
+						 -conjf(u12t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
 						 -u11t_f[did*ndim+mu] *r[(did*ndirac+igork1)*nc+1]);
 				}
 			}
@@ -630,17 +630,17 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r){
 			for(int idirac=0; idirac<ndirac; idirac++){
 				int igork1 = gamin[3][idirac];
 				//Factorising for performance, we get (float)dk4?*(float)u1?*(+/-r_wilson -/+ r_dirac)
-				//(float)dk4m and (float)dk4p swap under dagger
+				//(float)dk4m and dk4p_f swap under dagger
 				phi[(i*ndirac+idirac)*nc]+=
-					-(float)dk4m[i]*(u11t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc]+r[(uid*ndirac+igork1)*nc])
+					-dk4m_f[i]*(u11t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc]+r[(uid*ndirac+igork1)*nc])
 							+u12t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc+1]+r[(uid*ndirac+igork1)*nc+1]))
-					-(float)dk4p[did]*(conj(u11t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]-r[(did*ndirac+igork1)*nc])
+					-dk4p_f[did]*(conjf(u11t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]-r[(did*ndirac+igork1)*nc])
 							-u12t_f[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]-r[(did*ndirac+igork1)*nc+1]));
 
 				phi[(i*ndirac+idirac)*nc+1]+=
-					-(float)dk4m[i]*(-conj(u12t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc]+r[(uid*ndirac+igork1)*nc])
-							+conj(u11t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc+1]+r[(uid*ndirac+igork1)*nc+1]))
-					-(float)dk4p[did]*(conj(u12t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]-r[(did*ndirac+igork1)*nc])
+					-dk4m_f[i]*(-conjf(u12t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc]+r[(uid*ndirac+igork1)*nc])
+							+conjf(u11t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc+1]+r[(uid*ndirac+igork1)*nc+1]))
+					-dk4p_f[did]*(conjf(u12t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]-r[(did*ndirac+igork1)*nc])
 							+u11t_f[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]-r[(did*ndirac+igork1)*nc+1]));
 			}
 #endif
@@ -732,6 +732,8 @@ int Diagnostics(int istart){
 	Phi= mkl_malloc(nf*kfermHalo*sizeof(complex),AVX); 
 	X0= mkl_malloc(nf*kferm2Halo*sizeof(complex),AVX); 
 	X1= mkl_malloc(kferm2Halo*sizeof(complex),AVX); 
+	Complex_f *X0_f= mkl_malloc(nf*kferm2Halo*sizeof(Complex_f),AVX); 
+	Complex_f *X1_f= mkl_malloc(kferm2Halo*sizeof(Complex_f),AVX); 
 	double *dSdpi = mkl_malloc(kmomHalo*sizeof(double), AVX);
 	//pp is the momentum field
 	pp = mkl_malloc(kmomHalo*sizeof(double), AVX);
@@ -808,6 +810,7 @@ int Diagnostics(int istart){
 		for(int i=0; i<kmomHalo; i++)
 			dSdpi[i] = 0;
 		FILE *output_old, *output;
+		FILE *output_f_old, *output_f;
 		switch(test){
 			case(0):
 				output_old = fopen("dslash_old", "w");
@@ -856,7 +859,21 @@ int Diagnostics(int istart){
 							creal(X1[i+4]),cimag(X1[i+4]),creal(X1[i+5]),cimag(X1[i+5]),
 							creal(X1[i+6]),cimag(X1[i+6]),creal(X1[i+7]),cimag(X1[i+7]));
 				fclose(output_old);
-				Hdslash(X1, X0);
+				#pragma omp parallel for simd
+				for(int i = 0; i< kferm2; i++){
+					X0_f[i]=(float)X0[i];
+					X1_f[i]=(float)X1[i];
+					}
+				output_f_old = fopen("hdslash_f_old", "w");
+				for(int i = 0; i< kferm2; i+=8)
+					fprintf(output_f_old, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+							creal(X1_f[i]),cimag(X1_f[i]),creal(X1_f[i+1]),cimag(X1_f[i+1]),
+							creal(X1_f[i+2]),cimag(X1_f[i+2]),creal(X1_f[i+3]),cimag(X1_f[i+3]),
+							creal(X1_f[i+4]),cimag(X1_f[i+4]),creal(X1_f[i+5]),cimag(X1_f[i+5]),
+							creal(X1_f[i+6]),cimag(X1_f[i+6]),creal(X1_f[i+7]),cimag(X1_f[i+7]));
+				fclose(output_f_old);
+				Hdslash_f(X1, X0);
+				Hdslash_f(X1_f, X0_f);
 				output = fopen("hdslash", "w");
 				for(int i = 0; i< kferm2; i+=8)
 					fprintf(output, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
@@ -865,6 +882,14 @@ int Diagnostics(int istart){
 							creal(X1[i+4]),cimag(X1[i+4]),creal(X1[i+5]),cimag(X1[i+5]),
 							creal(X1[i+6]),cimag(X1[i+6]),creal(X1[i+7]),cimag(X1[i+7]));
 				fclose(output);
+				output_f = fopen("hdslash_f", "w");
+				for(int i = 0; i< kferm2; i+=8)
+					fprintf(output_f, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+							creal(X1_f[i]),cimag(X1_f[i]),creal(X1_f[i+1]),cimag(X1_f[i+1]),
+							creal(X1_f[i+2]),cimag(X1_f[i+2]),creal(X1_f[i+3]),cimag(X1_f[i+3]),
+							creal(X1_f[i+4]),cimag(X1_f[i+4]),creal(X1_f[i+5]),cimag(X1_f[i+5]),
+							creal(X1_f[i+6]),cimag(X1_f[i+6]),creal(X1_f[i+7]),cimag(X1_f[i+7]));
+				fclose(output_f);
 				break;
 			case(3):	
 				output_old = fopen("hdslashd_old", "w");
