@@ -495,25 +495,25 @@ int Hdslash_f(Complex_f *phi, Complex_f *r){
 					//Can manually vectorise with a pragma?
 					//Wilson + Dirac term in that order. Definitely easier
 					//to read when split into different loops, but should be faster this way
-					phi[(i*ndirac+idirac)*nc]+=-akappa_f*((float)u11t[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]+\
-							(float)u12t[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]+\
-							conj((float)u11t[did*ndim+mu])*r[(did*ndirac+idirac)*nc]-\
-							(float)u12t[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1])+\
+					phi[(i*ndirac+idirac)*nc]+=-akappa_f*(u11t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]+\
+							u12t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]+\
+							conj(u11t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]-\
+							u12t_f[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1])+\
 									   //Dirac term
-									   (float)gamval[mu][idirac]*((float)u11t[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]+\
-											   (float)u12t[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]-\
-											   conj((float)u11t[did*ndim+mu])*r[(did*ndirac+igork1)*nc]+\
-											   (float)u12t[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
+									   (float)gamval[mu][idirac]*(u11t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]+\
+											   u12t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]-\
+											   conj(u11t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]+\
+											   u12t_f[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
 
-					phi[(i*ndirac+idirac)*nc+1]+=-akappa_f*(-conj((float)u12t[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]+\
-							conj((float)u11t[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]+\
-							conj((float)u12t[did*ndim+mu])*r[(did*ndirac+idirac)*nc]+\
-							(float)u11t[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1])+\
+					phi[(i*ndirac+idirac)*nc+1]+=-akappa_f*(-conj(u12t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]+\
+							conj(u11t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]+\
+							conj(u12t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]+\
+							u11t_f[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1])+\
 									     //Dirac term
-									     (float)gamval[mu][idirac]*(-conj((float)u12t[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]+\
-											     conj((float)u11t[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]-\
-											     conj((float)u12t[did*ndim+mu])*r[(did*ndirac+igork1)*nc]-\
-											     (float)u11t[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
+									     (float)gamval[mu][idirac]*(-conj(u12t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]+\
+											     conj(u11t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]-\
+											     conj(u12t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]-\
+											     u11t_f[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
 				}
 			}
 #endif
@@ -527,15 +527,15 @@ int Hdslash_f(Complex_f *phi, Complex_f *r){
 				int igork1 = gamin[3][idirac];
 				//Factorising for performance, we get dk4?*(float)u1?*(+/-r_wilson -/+ r_dirac)
 				phi[(i*ndirac+idirac)*nc]+=
-					-(float)dk4p[i]*((float)u11t[i*ndim+3]*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
-							+(float)u12t[i*ndim+3]*(r[(uid*ndirac+idirac)*nc+1]-r[(uid*ndirac+igork1)*nc+1]))
-					-(float)dk4m[did]*(conj((float)u11t[did*ndim+3])*(r[(did*ndirac+idirac)*nc]+r[(did*ndirac+igork1)*nc])
-							-(float)u12t[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]+r[(did*ndirac+igork1)*nc+1]));
+					-(float)dk4p[i]*(u11t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
+							+u12t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc+1]-r[(uid*ndirac+igork1)*nc+1]))
+					-(float)dk4m[did]*(conj(u11t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]+r[(did*ndirac+igork1)*nc])
+							-u12t_f[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]+r[(did*ndirac+igork1)*nc+1]));
 				phi[(i*ndirac+idirac)*nc+1]+=
-					-(float)dk4p[i]*(-conj((float)u12t[i*ndim+3])*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
-							+conj((float)u11t[i*ndim+3])*(r[(uid*ndirac+idirac)*nc+1]-r[(uid*ndirac+igork1)*nc+1]))
-					-(float)dk4m[did]*(conj((float)u12t[did*ndim+3])*(r[(did*ndirac+idirac)*nc]+r[(did*ndirac+igork1)*nc])
-							+(float)u11t[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]+r[(did*ndirac+igork1)*nc+1]));
+					-(float)dk4p[i]*(-conj(u12t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
+							+conj(u11t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc+1]-r[(uid*ndirac+igork1)*nc+1]))
+					-(float)dk4m[did]*(conj(u12t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]+r[(did*ndirac+igork1)*nc])
+							+u11t_f[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]+r[(did*ndirac+igork1)*nc+1]));
 			}
 #endif
 		}
@@ -599,26 +599,26 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r){
 					//to read when split into different loops, but should be faster this way
 
 					phi[(i*ndirac+idirac)*nc]+=
-						-akappa_f*((float)u11t[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]
-								+(float)u12t[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]
-								+conj((float)u11t[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
-								-(float)u12t[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
+						-akappa_f*(u11t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]
+								+u12t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]
+								+conj(u11t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
+								-u12t_f[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
 						-(float)gamval[mu][idirac]*
-						(          (float)u11t[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]
-							     +(float)u12t[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]
-							     -conj((float)u11t[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
-							     +(float)u12t[did*ndim+mu] *r[(did*ndirac+igork1)*nc+1]);
+						(          u11t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]
+							     +u12t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]
+							     -conj(u11t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
+							     +u12t_f[did*ndim+mu] *r[(did*ndirac+igork1)*nc+1]);
 
 					phi[(i*ndirac+idirac)*nc+1]+=
-						-(float)akappa_f*(-conj((float)u12t[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]
-								+conj((float)u11t[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]
-								+conj((float)u12t[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
-								+(float)u11t[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
+						-(float)akappa_f*(-conj(u12t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]
+								+conj(u11t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]
+								+conj(u12t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
+								+u11t_f[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
 						-(float)gamval[mu][idirac]*
-						(-conj((float)u12t[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]
-						 +conj((float)u11t[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]
-						 -conj((float)u12t[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
-						 -(float)u11t[did*ndim+mu] *r[(did*ndirac+igork1)*nc+1]);
+						(-conj(u12t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]
+						 +conj(u11t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]
+						 -conj(u12t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
+						 -u11t_f[did*ndim+mu] *r[(did*ndirac+igork1)*nc+1]);
 				}
 			}
 #endif
@@ -632,16 +632,16 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r){
 				//Factorising for performance, we get (float)dk4?*(float)u1?*(+/-r_wilson -/+ r_dirac)
 				//(float)dk4m and (float)dk4p swap under dagger
 				phi[(i*ndirac+idirac)*nc]+=
-					-(float)dk4m[i]*((float)u11t[i*ndim+3]*(r[(uid*ndirac+idirac)*nc]+r[(uid*ndirac+igork1)*nc])
-							+(float)u12t[i*ndim+3]*(r[(uid*ndirac+idirac)*nc+1]+r[(uid*ndirac+igork1)*nc+1]))
-					-(float)dk4p[did]*(conj((float)u11t[did*ndim+3])*(r[(did*ndirac+idirac)*nc]-r[(did*ndirac+igork1)*nc])
-							-(float)u12t[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]-r[(did*ndirac+igork1)*nc+1]));
+					-(float)dk4m[i]*(u11t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc]+r[(uid*ndirac+igork1)*nc])
+							+u12t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc+1]+r[(uid*ndirac+igork1)*nc+1]))
+					-(float)dk4p[did]*(conj(u11t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]-r[(did*ndirac+igork1)*nc])
+							-u12t_f[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]-r[(did*ndirac+igork1)*nc+1]));
 
 				phi[(i*ndirac+idirac)*nc+1]+=
-					-(float)dk4m[i]*(-conj((float)u12t[i*ndim+3])*(r[(uid*ndirac+idirac)*nc]+r[(uid*ndirac+igork1)*nc])
-							+conj((float)u11t[i*ndim+3])*(r[(uid*ndirac+idirac)*nc+1]+r[(uid*ndirac+igork1)*nc+1]))
-					-(float)dk4p[did]*(conj((float)u12t[did*ndim+3])*(r[(did*ndirac+idirac)*nc]-r[(did*ndirac+igork1)*nc])
-							+(float)u11t[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]-r[(did*ndirac+igork1)*nc+1]));
+					-(float)dk4m[i]*(-conj(u12t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc]+r[(uid*ndirac+igork1)*nc])
+							+conj(u11t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc+1]+r[(uid*ndirac+igork1)*nc+1]))
+					-(float)dk4p[did]*(conj(u12t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]-r[(did*ndirac+igork1)*nc])
+							+u11t_f[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]-r[(did*ndirac+igork1)*nc+1]));
 			}
 #endif
 		}

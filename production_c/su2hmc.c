@@ -978,8 +978,11 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 	//if statements quicker to type
 	Complex_f *X1_f = mkl_malloc(kferm2*sizeof(Complex_f),AVX);
 	#pragma omp parallel for simd
-	for(int i=0;i<kferm2;i++)
+	for(int i=0;i<kferm2;i++){
 		X1_f[i]=(Complex_f)X1[i];
+		r_f[i]=(Complex_f)r[i];
+		}
+	memcpy(p_f, X1_f, kferm2*sizeof(Complex_f));
 	complex betan;
 	Complex_f betan_f;
 	for(int niterx=0; niterx<niterc; niterx++){
@@ -1056,16 +1059,17 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 		complex beta = (niterx) ?  creal(betan)/betad : 0;
 		Complex_f beta_f = (float)beta;
 		betad=betan; alphan=betan;
+		//If we get a small enough β_n before hitting the iteration cap we break
+		//moved this to before the update of p_f so we can break and keep p_f if needed
+		if(creal(betan)<resid){ 
+#ifdef _DEBUG
+			if(!rank) printf("Iter (CG) = %i resid = %e toler = %e\n", niterx+1, creal(betan), resid);
+#endif
+			break;
+		}
 		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multipyling y by
 		//β instead of x.
 		//There is cblas_zaxpby in the MKL and AMD though, set a = 1 and b = β.
-#if (defined USE_MKL||defined USE_BLAS)
-		Complex_f a = 1;
-		cblas_caxpby(kferm2, &a, r_f, 1, &beta_f,  p_f, 1);
-#else 
-		for(int i=0; i<kferm2; i++)
-			p[i]=r[i]+beta*p[i];
-#endif
 		//If we get a small enough β_n before hitting the iteration cap we break
 		if(creal(betan)<resid){ 
 #ifdef _DEBUG
@@ -1073,9 +1077,19 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 #endif
 			break;
 		}
+#if (defined USE_MKL||defined USE_BLAS)
+		Complex_f a = 1;
+		cblas_caxpby(kferm2, &a, r_f, 1, &beta_f,  p_f, 1);
+#else 
+		for(int i=0; i<kferm2; i++)
+			p[i]=r[i]+beta*p[i];
+#endif
 		if(!rank && niterx==niterc-1)
 			fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i β_n=%e\n", ITERLIM, funcname, niterc, creal(betan));
 	}
+	#pragma omp parallel for simd
+	for(int i=0; i<kferm2; i++)
+		X1[i]=(double)X1_f[i];
 #ifdef __NVCC__
 	cudaFree(x1); cudaFree(x2); cudaFree(p); cudaFree(r);
 #elif defined USE_MKL
