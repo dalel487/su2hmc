@@ -1,7 +1,7 @@
 void Bench_times(){
 	TCanvas *c1 = new TCanvas("Weak Scaling");
 //	c1->SetLogx();
-	c1->SetLogy();
+//	c1->SetLogy();
 
 //Only the unstarred columns get extracted
 	TGraph *c_strong_s16_t32= new TGraph("Bench_times.csv", "%*lg %*lg %*lg %*lg %*lg %*lg %lg %*lg %*lg %*lg %lg","\t ,");

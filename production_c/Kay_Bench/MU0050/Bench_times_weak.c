@@ -1,13 +1,13 @@
 void Bench_times_weak(){
 	TCanvas *c1 = new TCanvas("Weak Scaling");
 //	c1->SetLogx();
-	c1->SetLogy();
+//	c1->SetLogy();
 
 //Only the unstarred columns get extracted
 	TGraph *c_weak_256= new TGraph("C_Weak_256.csv", "%*lg %*lg %*lg %*lg %*lg %*lg %lg %*lg %*lg %*lg %lg","\t ,");
 	TGraph *Fort_weak_256= new TGraph("Fort_Weak_256.csv", "%*lg %*lg %*lg %*lg %*lg %*lg %lg %*lg %*lg %*lg %lg","\t ,");
 
-	c_weak_256->SetTitle("C Weak Scaling, 256 point sub lattice, 75-85\% Acceptance");
+	c_weak_256->SetTitle("C Weak Scaling, 256 point sub lattice, #mu=0.50, j=0.04");
 	c_weak_256->SetLineColor(kOrange+3);
 	c_weak_256->SetLineStyle(2);
 	c_weak_256->SetLineWidth(2);
@@ -21,7 +21,7 @@ void Bench_times_weak(){
 	TLegend *legend1 = new TLegend();
 	legend1->AddEntry(c_weak_256);
 
-	Fort_weak_256->SetTitle("Fortran Weak Scaling, 256 point sub lattice, 75-85\% Acceptance");
+	Fort_weak_256->SetTitle("Fortran Weak Scaling, 256 point sub lattice, #mu=0.50, j=0.04");
 	Fort_weak_256->SetLineColor(kAzure+7);
 	Fort_weak_256->SetLineStyle(4);
 	Fort_weak_256->SetLineWidth(2);
