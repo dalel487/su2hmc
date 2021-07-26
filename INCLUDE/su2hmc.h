@@ -9,9 +9,11 @@ cublasHandle_t cublas_status;
 #ifdef __CUDACC__
 #include <cuda_complex.hpp>
 #define Complex	complex<double>
+#define Complex_f	complex<float>
 #else
 #include	<complex.h>
 #define Complex	complex
+#define Complex_f	float	complex
 #endif
 //MKL is powerful, but not guaranteed to be available (especially on AMD systems or future
 //ARM Based machines.) BLAS routines should work with other libraries, so we can set a compiler

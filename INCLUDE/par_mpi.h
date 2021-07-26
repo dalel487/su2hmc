@@ -5,9 +5,11 @@
 #include	<cuda.h>
 #include	<cuda_complex.hpp>
 #define	Complex complex<double>
+#define	Complex_f complex<float>
 #else
 #include	<complex.h>
-#define	Complex complex
+#define	Complex	complex
+#define	Complex_f	float	complex
 #endif
 #include	<errorcodes.h>
 #include	<math.h>
@@ -92,7 +94,8 @@ int ismaster;
 __managed__ 
 #endif 
 Complex *u11, *u12, *u11t, *u12t;
-//Halos indices
+Complex_f *u11t_f, *u12t_f;
+//halos indices
 //-------------
 //static unsigned int *iu, *id;
 
@@ -113,6 +116,8 @@ int Par_zcopy(Complex *zval);
 //Halo Manipulation
 int ZHalo_swap_all(Complex *z, int ncpt);
 int ZHalo_swap_dir(Complex *z, int ncpt, int idir, int layer);
+int CHalo_swap_all(Complex_f *c, int ncpt);
+int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer);
 int DHalo_swap_dir(double *d, int ncpt, int idir, int layer);
 int Trial_Exchange();
 

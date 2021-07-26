@@ -141,6 +141,8 @@ int main(int argc, char *argv[]){
 	Par_dcopy(&athq); Par_dcopy(&fmu); Par_dcopy(&delb); //Not used?
 	Par_icopy(&stepl); Par_icopy(&ntraj); 
 	jqq=ajq*cexp(athq*I);
+	float akappa_f=(float)akappa;
+	float jqq_f=(float)jqq;
 #ifdef _DEBUG
 	printf("jqq=%f+(%f)I\n",creal(jqq),cimag(jqq));
 #endif
@@ -310,6 +312,7 @@ int main(int argc, char *argv[]){
 		//Does CUDA like memcpy in this way?
 		memcpy(u11t, u11, ndim*kvol*sizeof(complex));
 		memcpy(u12t, u12, ndim*kvol*sizeof(complex));
+
 		Trial_Exchange();
 #ifdef __NVCC__
 			cudaMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),device,NULL);
@@ -742,6 +745,8 @@ int Init(int istart){
 	u12 = mkl_calloc(ndim*(kvol+halo),sizeof(complex),AVX);
 	u11t = mkl_calloc(ndim*(kvol+halo),sizeof(complex),AVX);
 	u12t = mkl_calloc(ndim*(kvol+halo),sizeof(complex),AVX);
+	u11t_f = mkl_calloc(ndim*(kvol+halo),sizeof(Complex_f),AVX);
+	u12t_f = mkl_calloc(ndim*(kvol+halo),sizeof(Complex_f),AVX);
 #else
 	u11 = aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(complex));
 	u12 = aligned_alloc(AVX,ndim*(kvol+halo)*,sizeof(complex));
@@ -919,12 +924,15 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 	//The κ^2 factor is needed to normalise the fields correctly
 	//jqq is the diquark codensate and is global scope.
 	complex fac = conj(jqq)*jqq*akappa*akappa;
+	Complex_f fac_f = (float)fac;
 	//These were evaluated only in the first loop of niterx so we'll just do it ouside of the loop.
 	//These alpha and beta terms should be double, but that causes issues with BLAS. Instead we declare
 	//them complex and work with the real part (especially for α_d)
 	complex alphan;
 	//Give initial values Will be overwritten if niterx>0
 	double betad = 1.0; complex alphad=0; complex alpha = 1;
+	//Float versions of the same
+	float betad_f = 1.0; Complex_f alphad_f=0; Complex_f alpha_f = 1;
 	//Because we're dealing with flattened arrays here we can call cblas safely without the halo
 #ifdef __NVCC__
 	complex *p, *r, *x1, *x2;
@@ -947,6 +955,11 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 	complex *r  = mkl_calloc(kferm2,sizeof(complex),AVX);
 	complex *x1=mkl_calloc(kferm2Halo, sizeof(complex), AVX);
 	complex *x2=mkl_calloc(kferm2Halo, sizeof(complex), AVX);
+	
+	Complex_f *p_f  = mkl_calloc(kferm2Halo,sizeof(Complex_f),AVX);
+	Complex_f *r_f  = mkl_calloc(kferm2,sizeof(Complex_f),AVX);
+	Complex_f *x1_f=mkl_calloc(kferm2Halo, sizeof(Complex_f), AVX);
+	Complex_f *x2_f=mkl_calloc(kferm2Halo, sizeof(Complex_f), AVX);
 #else
 	complex *p  = calloc(kferm2Halo,sizeof(complex));
 	complex *r  = calloc(kferm2,sizeof(complex));
@@ -963,21 +976,26 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
 	//if statements quicker to type
+	Complex_f *X1_f = mkl_malloc(kferm2*sizeof(Complex_f),AVX);
+	#pragma omp parallel for simd
+	for(int i=0;i<kferm2;i++)
+		X1_f[i]=(Complex_f)X1[i];
 	complex betan;
+	Complex_f betan_f;
 	for(int niterx=0; niterx<niterc; niterx++){
 		(*itercg)++;
 		//x2 =  (M^†M)p 
 		//Will need a single precision version of these for mixed
 		//precision calculations
-		Hdslash(x1,p); Hdslashd(x2, x1);
+		Hdslash_f(x1_f,p_f); Hdslashd_f(x2_f, x1_f);
 		//x2 =  (M^†M+J^2)p 
 #ifdef	__NVCC__
 		cublasZaxpy(cublas_handle,kferm2,&fac,p,1,x2,1);
 #elif (defined USE_MKL || defined USE_BLAS)
-		cblas_zaxpy(kferm2, &fac, p, 1, x2, 1);
+		cblas_caxpy(kferm2, &fac_f, p_f, 1, x2_f, 1);
 #else
 		for(int i=0; i<kferm2; i++)
-			x2[i]+=fac*p[i];
+			x2_f[i]+=fac*p_f[i];
 #endif
 		//We can't evaluate α on the first niterx because we need to get β_n.
 		if(niterx){
@@ -985,21 +1003,24 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 #ifdef __NVCC__
 			cublasZdotc(cublas_handle,kferm2,p,1,x2,1,&alphad);
 #elif (defined USE_MKL || defined USE_BLAS)
-			cblas_zdotc_sub(kferm2, p, 1, x2, 1, &alphad);
+			cblas_cdotc_sub(kferm2, p_f, 1, x2_f, 1, &alphad_f);
 #else
 			alphad=0;
 			for(int i=0; i<kferm2; i++)
 				alphad+=conj(p[i])*x2[i];
 #endif
+			//TODO: Implement Par_csum. For now I'll cast it into a double for the reduction.
+			alphad=(complex)alphad_f;
 			//And reduce. α_d does have a complex component but we only care about the real part
 			Par_zsum(&alphad);
 			//α=α_n/α_d = (r.r)/p(M^†M)p 
 			alpha=creal(alphan)/creal(alphad);
+			alpha_f=(Complex_f)alpha;
 			//x-αp, 
 #ifdef __NVCC__
 			cublasZaxpy(cublas_handle,kferm2,&alpha,p,1,X1,1);
 #elif (defined USE_MKL || defined USE_BLAS)
-			cblas_zaxpy(kferm2, &alpha, p, 1, X1, 1);
+			cblas_caxpy(kferm2, &alpha_f, p_f, 1, X1_f, 1);
 #else
 			for(int i=0; i<kferm2; i++)
 				X1[i]+=alpha*p[i];
@@ -1011,15 +1032,15 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 		cublasZaxpy(cublas_handle, kferm2,&alpha,x2,1,r,1);
 		alpha*=-1;
 		cublasDznrm2(cublas_handle,kferm2,r,1,&betan);
-		betan *= betan;
+		betan_f *= betan_f;
 #elif (defined USE_MKL || defined USE_BLAS)
-		alpha *= -1;
-		cblas_zaxpy(kferm2, &alpha, x2, 1, r, 1);
+		alpha_f *= -1;
+		cblas_caxpy(kferm2, &alpha_f, x2_f, 1, r_f, 1);
 		//Undo the negation for the BLAS routine
-		alpha*=-1;
-		betan = cblas_dznrm2(kferm2, r,1);
+		alpha_f*=-1;
+		betan_f = cblas_scnrm2(kferm2, r_f,1);
 		//Gotta square it to "undo" the norm
-		betan *= betan;
+		betan_f *= betan_f;
 #else
 		betan=0;
 		for(int i=0; i<kferm2; i++){
@@ -1027,18 +1048,20 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 			betan += conj(r[i])*r[i];
 		}
 #endif
+		betan=(Complex)betan_f;
 		//And... reduce.
 		Par_zsum(&betan);
 		//Here we evaluate β=(r_{k+1}.r_{k+1})/(r_k.r_k) and then shuffle our indices down the line.
 		//On the first iteration we define beta to be zero.
 		complex beta = (niterx) ?  creal(betan)/betad : 0;
+		Complex_f beta_f = (float)beta;
 		betad=betan; alphan=betan;
 		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multipyling y by
 		//β instead of x.
 		//There is cblas_zaxpby in the MKL and AMD though, set a = 1 and b = β.
 #if (defined USE_MKL||defined USE_BLAS)
-		complex a = 1;
-		cblas_zaxpby(kferm2, &a, r, 1, &beta,  p, 1);
+		Complex_f a = 1;
+		cblas_caxpby(kferm2, &a, r_f, 1, &beta_f,  p_f, 1);
 #else 
 		for(int i=0; i<kferm2; i++)
 			p[i]=r[i]+beta*p[i];
@@ -1057,6 +1080,7 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 	cudaFree(x1); cudaFree(x2); cudaFree(p); cudaFree(r);
 #elif defined USE_MKL
 	mkl_free(x1), mkl_free(x2), mkl_free(p), mkl_free(r);
+	mkl_free(x1_f), mkl_free(x2_f), mkl_free(p_f), mkl_free(r_f);
 #else
 	free(x1), free(x2), free(p), free(r);
 #endif

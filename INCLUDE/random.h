@@ -11,14 +11,6 @@
 #include	<cblas.h>
 #endif
 
-#ifdef __CUDACC__
-#include <cuda_complex.hpp>
-#define Complex complex<double>
-#else
-#include <complex.h>
-#define Complex complex
-#endif
-
 #include <math.h>
 #include <par_mpi.h>
 //Configuration for existing generators if called
