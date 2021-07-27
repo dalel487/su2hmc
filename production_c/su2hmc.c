@@ -252,7 +252,7 @@ int main(int argc, char *argv[]){
 #if (defined SA3AT)
 	double start_time=0;
 	if(!rank)
-		start_time = omp_get_wtime();
+		start_time = MPI_Wtime();
 #endif
 	for(int itraj = 1; itraj <= ntraj; itraj++){
 #ifdef _DEBUG
@@ -579,10 +579,10 @@ int main(int argc, char *argv[]){
 		if(!rank)
 			fflush(output);
 	}
-#if (defined SA3AT && defined _OPENMP)
+#if (defined SA3AT)
 	double elapsed = 0;
 	if(!rank)
-		elapsed = omp_get_wtime()-start_time;
+		elapsed = MPI_Wtime()-start_time;
 #endif
 	//End of main loop
 	//Free arrays
