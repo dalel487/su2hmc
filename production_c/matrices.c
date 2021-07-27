@@ -255,9 +255,9 @@ int Hdslash(complex *phi, complex *r){
 	 *
 	 * Calls:
 	 * ======
-	 * zhaloswapdir, chaloswapdir, zhaloswapall (Non-mpi version could do without these)
+	 * zhaloswapdir, dhaloswapdir, zhaloswapall (Non-mpi version could do without these)
 	 *
-	 * Parametrer:
+	 * Parameter:
 	 * ==========
 	 *
 	 * complex *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
@@ -383,7 +383,6 @@ int Hdslashd(complex *phi, complex *r){
 #pragma omp parallel for
 		for(int i=0;i<kvol;i++){
 #ifndef NO_SPACE
-#pragma ivdep
 			for(int mu = 0; mu <ndim-1; mu++){
 				int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
 #pragma omp simd aligned(phi,r,u11t,u12t:AVX)
@@ -439,6 +438,208 @@ int Hdslashd(complex *phi, complex *r){
 							+conj(u11t[i*ndim+3])*(r[(uid*ndirac+idirac)*nc+1]+r[(uid*ndirac+igork1)*nc+1]))
 					-dk4p[did]*(conj(u12t[did*ndim+3])*(r[(did*ndirac+idirac)*nc]-r[(did*ndirac+igork1)*nc])
 							+u11t[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]-r[(did*ndirac+igork1)*nc+1]));
+			}
+#endif
+		}
+	return 0;
+}
+//Float Versions
+int Hdslash_f(Complex_f *phi, Complex_f *r){
+	/*
+	 * Evaluates phi= M*r
+	 *
+	 * Globals
+	 * =======
+	 * u11t, u12t, dk4p, dk4m, akappa_f, jqq 
+	 *
+	 * Calls:
+	 * ======
+	 * zhaloswapdir, chaloswapdir, zhaloswapall (Non-mpi version could do without these)
+	 *
+	 * Parametrer:
+	 * ==========
+	 *
+	 * complex *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
+	 * 			for consistency with the fortran code I'll keep the name here
+	 * complex r:		The array being acted on by M
+	 *
+	 * Returns:
+	 * Zero on success, integer error code otherwise
+	 */
+	char *funcname = "Hdslash";
+	//Get the halos in order
+	CHalo_swap_all(r, 8);
+	//TODO: Get u11t_f and u12t_f sorted
+	//Mass term
+	float akappa_f=(float)akappa;
+	memcpy(phi, r, kferm2*sizeof(Complex_f));
+	//Spacelike term
+	//#pragma offload target(mic)\
+	in(r: length(kferm2Halo))\
+		in(dk4m, dk4p: length(kvol+halo))\
+		in(id, iu: length(ndim*kvol))\
+		in(u11t, u12t: length(ndim*(kvol+halo)))\
+		inout(phi: length(kferm2Halo))
+#pragma omp parallel for
+		for(int i=0;i<kvol;i++){
+#ifndef NO_SPACE
+			//#pragma ivdep
+			for(int mu = 0; mu <3; mu++){
+				int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
+#pragma omp simd aligned(phi,r,u11t_f,u12t_f:AVX)
+#pragma vector vecremainder
+				for(int idirac=0; idirac<ndirac; idirac++){
+					//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
+					int igork1 = gamin[mu][idirac];
+					//Can manually vectorise with a pragma?
+					//Wilson + Dirac term in that order. Definitely easier
+					//to read when split into different loops, but should be faster this way
+					phi[(i*ndirac+idirac)*nc]+=-akappa_f*(u11t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]+\
+							u12t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]+\
+							conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]-\
+							u12t_f[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1]);\
+									   //Dirac term
+									   phi[(i*ndirac+idirac)*nc]+=gamval_f[mu][idirac]*(u11t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]+\
+											   u12t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]-\
+											   conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]+\
+											   u12t_f[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
+
+					phi[(i*ndirac+idirac)*nc+1]+=-akappa_f*(-conjf(u12t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]+\
+							conjf(u11t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]+\
+							conjf(u12t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]+\
+							u11t_f[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1])+\
+									     //Dirac term
+									     gamval_f[mu][idirac]*(-conjf(u12t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]+\
+											     conjf(u11t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]-\
+											     conjf(u12t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]-\
+											     u11t_f[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
+				}
+			}
+#endif
+			//Timelike terms
+			int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
+#ifndef NO_TIME
+			//TODO: Get dk4?_f sorted
+#pragma omp simd aligned(phi,r,u11t_f,u12t_f:AVX)
+#pragma vector vecremainder
+			for(int idirac=0; idirac<ndirac; idirac++){
+				int igork1 = gamin[3][idirac];
+				//Factorising for performance, we get dk4?*(float)u1?*(+/-r_wilson -/+ r_dirac)
+				phi[(i*ndirac+idirac)*nc]+=
+					-dk4p_f[i]*(u11t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
+							+u12t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc+1]-r[(uid*ndirac+igork1)*nc+1]))
+					-dk4m_f[did]*(conjf(u11t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]+r[(did*ndirac+igork1)*nc])
+							-u12t_f[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]+r[(did*ndirac+igork1)*nc+1]));
+				phi[(i*ndirac+idirac)*nc+1]+=
+					-dk4p_f[i]*(-conjf(u12t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
+							+conjf(u11t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc+1]-r[(uid*ndirac+igork1)*nc+1]))
+					-dk4m_f[did]*(conjf(u12t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]+r[(did*ndirac+igork1)*nc])
+							+u11t_f[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]+r[(did*ndirac+igork1)*nc+1]));
+			}
+#endif
+		}
+	return 0;
+}
+int Hdslashd_f(Complex_f *phi, Complex_f *r){
+	/*
+	 * Evaluates phi= M*r
+	 *
+	 * Globals
+	 * =======
+	 * u11t, u12t, dk4p, dk4m, akappa_f, jqq 
+	 *
+	 * Calls:
+	 * ======
+	 * zhaloswapdir, chaloswapdir, zhaloswapall (Non-mpi version could do without these)
+	 *
+	 * Parametrer:
+	 * ==========
+	 *
+	 * complex *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
+	 * 			for consistency with the fortran code I'll keep the name here
+	 * complex r:		The array being acted on by M
+	 *
+	 * Returns:
+	 * Zero on success, integer error code otherwise
+	 */
+	char *funcname = "Hdslashd";
+	//Get the halos in order. Because C is row major, we need to extract the correct
+	//terms for each halo first. Changing the indices was considered but that caused
+	//issues with the BLAS routines.
+	CHalo_swap_all(r, 8);
+
+	//Looks like flipping the array ordering for C has meant a lot
+	//of for loops. Sense we're jumping around quite a bit the cache is probably getting refreshed
+	//anyways so memory access patterns mightn't be as big of an limiting factor here anyway
+
+	//Mass term
+	float akappa_f=(float)akappa;
+	memcpy(phi, r, kferm2*sizeof(Complex_f));
+	//Spacelike term
+	//#pragma offload target(mic)\
+	in(r: length(kferm2Halo))\
+		in(dk4m, dk4p: length(kvol+halo))\
+		in(id, iu: length(ndim*kvol))\
+		in(u11t, u12t: length(ndim*(kvol+halo)))\
+		inout(phi: length(kferm2Halo))
+#pragma omp parallel for
+		for(int i=0;i<kvol;i++){
+#ifndef NO_SPACE
+			for(int mu = 0; mu <ndim-1; mu++){
+				int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
+#pragma omp simd aligned(phi,r,u11t_f,u12t_f:AVX)
+#pragma vector vecremainder
+				for(int idirac=0; idirac<ndirac; idirac++){
+					//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
+					int igork1 = gamin[mu][idirac];
+					//Can manually vectorise with a pragma?
+					//Wilson + Dirac term in that order. Definitely easier
+					//to read when split into different loops, but should be faster this way
+
+					phi[(i*ndirac+idirac)*nc]+=
+						-akappa_f*(u11t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]
+								+u12t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]
+								+conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
+								-u12t_f[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
+						-gamval_f[mu][idirac]*
+						(          u11t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]
+							     +u12t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]
+							     -conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
+							     +u12t_f[did*ndim+mu] *r[(did*ndirac+igork1)*nc+1]);
+
+					phi[(i*ndirac+idirac)*nc+1]+=
+						-akappa_f*(-conjf(u12t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]
+								+conjf(u11t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]
+								+conjf(u12t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
+								+u11t_f[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
+						-gamval_f[mu][idirac]*
+						(-conjf(u12t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]
+						 +conjf(u11t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]
+						 -conjf(u12t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
+						 -u11t_f[did*ndim+mu] *r[(did*ndirac+igork1)*nc+1]);
+				}
+			}
+#endif
+			//Timelike terms
+			int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
+#ifndef NO_TIME
+#pragma omp simd aligned(phi,r,u11t_f,u12t_f:AVX)
+#pragma vector vecremainder
+			for(int idirac=0; idirac<ndirac; idirac++){
+				int igork1 = gamin[3][idirac];
+				//Factorising for performance, we get (float)dk4?*(float)u1?*(+/-r_wilson -/+ r_dirac)
+				//(float)dk4m and dk4p_f swap under dagger
+				phi[(i*ndirac+idirac)*nc]+=
+					-dk4m_f[i]*(u11t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc]+r[(uid*ndirac+igork1)*nc])
+							+u12t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc+1]+r[(uid*ndirac+igork1)*nc+1]))
+					-dk4p_f[did]*(conjf(u11t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]-r[(did*ndirac+igork1)*nc])
+							-u12t_f[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]-r[(did*ndirac+igork1)*nc+1]));
+
+				phi[(i*ndirac+idirac)*nc+1]+=
+					-dk4m_f[i]*(-conjf(u12t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc]+r[(uid*ndirac+igork1)*nc])
+							+conjf(u11t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc+1]+r[(uid*ndirac+igork1)*nc+1]))
+					-dk4p_f[did]*(conjf(u12t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]-r[(did*ndirac+igork1)*nc])
+							+u11t_f[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]-r[(did*ndirac+igork1)*nc+1]));
 			}
 #endif
 		}
@@ -523,12 +724,16 @@ int Diagnostics(int istart){
 	//used here will also assert the number of flavours for now to avoid issues
 	//later
 	assert(nf==1);
+#include<float.h>
+	printf("FLT_EVAL_METHOD is %i. Check online for what this means\n", FLT_EVAL_METHOD);
 
 	R1= mkl_malloc(kfermHalo*sizeof(complex),AVX);
 	xi= mkl_malloc(kfermHalo*sizeof(complex),AVX);
 	Phi= mkl_malloc(nf*kfermHalo*sizeof(complex),AVX); 
 	X0= mkl_malloc(nf*kferm2Halo*sizeof(complex),AVX); 
 	X1= mkl_malloc(kferm2Halo*sizeof(complex),AVX); 
+	Complex_f *X0_f= mkl_malloc(nf*kferm2Halo*sizeof(Complex_f),AVX); 
+	Complex_f *X1_f= mkl_malloc(kferm2Halo*sizeof(Complex_f),AVX); 
 	double *dSdpi = mkl_malloc(kmomHalo*sizeof(double), AVX);
 	//pp is the momentum field
 	pp = mkl_malloc(kmomHalo*sizeof(double), AVX);
@@ -550,7 +755,7 @@ int Diagnostics(int istart){
 			break;
 		case(1):
 			Trial_Exchange();
-#pragma omp parallel sections num_threads(2)
+#pragma omp parallel sections num_threads(4)
 			{
 #pragma omp section
 				{
@@ -559,7 +764,6 @@ int Diagnostics(int istart){
 						fprintf(trial_out,"%f+%fI\t%f+%fI\t%f+%fI\t%f+%fI\n",
 								creal(u11t[i]),cimag(u11t[i]),creal(u11t[i+1]),cimag(u11t[i+1]),
 								creal(u11t[2+i]),cimag(u11t[2+i]),creal(u11t[i+3]),cimag(u11t[i+3]));
-
 					fclose(trial_out);
 				}
 #pragma omp section
@@ -569,6 +773,24 @@ int Diagnostics(int istart){
 						fprintf(trial_out,"%f+%fI\t%f+%fI\t%f+%fI\t%f+%fI\n",
 								creal(u12t[i]),cimag(u12t[i]),creal(u12t[i+1]),cimag(u12t[i+1]),
 								creal(u12t[2+i]),cimag(u12t[2+i]),creal(u12t[i+3]),cimag(u12t[i+3]));
+					fclose(trial_out);
+				}
+#pragma omp section
+				{
+					FILE *trial_out = fopen("u11t_f", "w");
+					for(int i=0;i<ndim*(kvol+halo);i+=4)
+						fprintf(trial_out,"%f+%fI\t%f+%fI\t%f+%fI\t%f+%fI\n",
+								creal(u11t_f[i]),cimag(u11t_f[i]),creal(u11t_f[i+1]),cimag(u11t_f[i+1]),
+								creal(u11t_f[2+i]),cimag(u11t_f[2+i]),creal(u11t_f[i+3]),cimag(u11t_f[i+3]));
+					fclose(trial_out);
+				}
+#pragma omp section
+				{
+					FILE *trial_out = fopen("u12t_f", "w");
+					for(int i=0;i<ndim*(kvol+halo);i+=4)
+						fprintf(trial_out,"%f+%fI\t%f+%fI\t%f+%fI\t%f+%fI\n",
+								creal(u12t_f[i]),cimag(u12t_f[i]),creal(u12t_f[i+1]),cimag(u12t_f[i+1]),
+								creal(u12t_f[2+i]),cimag(u12t_f[2+i]),creal(u12t_f[i+3]),cimag(u12t_f[i+3]));
 					fclose(trial_out);
 				}
 			}
@@ -605,6 +827,7 @@ int Diagnostics(int istart){
 		for(int i=0; i<kmomHalo; i++)
 			dSdpi[i] = 0;
 		FILE *output_old, *output;
+		FILE *output_f_old, *output_f;
 		switch(test){
 			case(0):
 				output_old = fopen("dslash_old", "w");
@@ -653,7 +876,29 @@ int Diagnostics(int istart){
 							creal(X1[i+4]),cimag(X1[i+4]),creal(X1[i+5]),cimag(X1[i+5]),
 							creal(X1[i+6]),cimag(X1[i+6]),creal(X1[i+7]),cimag(X1[i+7]));
 				fclose(output_old);
+#pragma omp parallel for simd
+				for(int i = 0; i< kferm2; i++){
+					X0_f[i]=(float)X0[i];
+					X1_f[i]=(float)X1[i];
+				}
+				output_f_old = fopen("hdslash_f_old", "w");
+				for(int i = 0; i< kferm2; i+=8){
+					fprintf(output_f_old, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+							creal(X1_f[i]),cimag(X1_f[i]),creal(X1_f[i+1]),cimag(X1_f[i+1]),
+							creal(X1_f[i+2]),cimag(X1_f[i+2]),creal(X1_f[i+3]),cimag(X1_f[i+3]),
+							creal(X1_f[i+4]),cimag(X1_f[i+4]),creal(X1_f[i+5]),cimag(X1_f[i+5]),
+							creal(X1_f[i+6]),cimag(X1_f[i+6]),creal(X1_f[i+7]),cimag(X1_f[i+7]));
+					printf("Difference in double and float X0[%d] to X0[%d+7]:\n",i,i);
+					printf("%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+							creal(X0[i]-X0_f[i]),cimag(X0[i]-X0_f[i]),creal(X0[i+1]-X0_f[i+1]),cimag(X0[i+1]-X0_f[i+1]),
+							creal(X0[i+2]-X0_f[i+2]),cimag(X0[i+2]-X0_f[i+2]),creal(X0[i+3]-X0_f[i+3]),cimag(X0[i+3]-X0_f[i+3]),
+							creal(X0[i+4]-X0_f[i+4]),cimag(X0[i+4]-X0_f[i+4]),creal(X0[i+5]-X0_f[i+5]),cimag(X0[i+5]-X0_f[i+5]),
+							creal(X0[i+6]-X0_f[i+6]),cimag(X0[i+6]-X0_f[i+6]),creal(X0[i+7]-X0_f[i+7]),cimag(X0[i+7]-X0_f[i+7]));
+
+				}
+				fclose(output_f_old);
 				Hdslash(X1, X0);
+				Hdslash_f(X1_f, X0_f);
 				output = fopen("hdslash", "w");
 				for(int i = 0; i< kferm2; i+=8)
 					fprintf(output, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
@@ -662,6 +907,22 @@ int Diagnostics(int istart){
 							creal(X1[i+4]),cimag(X1[i+4]),creal(X1[i+5]),cimag(X1[i+5]),
 							creal(X1[i+6]),cimag(X1[i+6]),creal(X1[i+7]),cimag(X1[i+7]));
 				fclose(output);
+				output_f = fopen("hdslash_f", "w");
+				for(int i = 0; i< kferm2; i+=8)
+					fprintf(output_f, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+							creal(X1_f[i]),cimag(X1_f[i]),creal(X1_f[i+1]),cimag(X1_f[i+1]),
+							creal(X1_f[i+2]),cimag(X1_f[i+2]),creal(X1_f[i+3]),cimag(X1_f[i+3]),
+							creal(X1_f[i+4]),cimag(X1_f[i+4]),creal(X1_f[i+5]),cimag(X1_f[i+5]),
+							creal(X1_f[i+6]),cimag(X1_f[i+6]),creal(X1_f[i+7]),cimag(X1_f[i+7]));
+				fclose(output_f);
+				for(int i=0; i<kferm2Halo; i+=8){
+					printf("Difference in double and float X0[%d] to X0[%d+7] after halo exchange:\n",i,i);
+					printf("%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+							creal(X0[i]-X0_f[i]),cimag(X0[i]-X0_f[i]),creal(X0[i+1]-X0_f[i+1]),cimag(X0[i+1]-X0_f[i+1]),
+							creal(X0[i+2]-X0_f[i+2]),cimag(X0[i+2]-X0_f[i+2]),creal(X0[i+3]-X0_f[i+3]),cimag(X0[i+3]-X0_f[i+3]),
+							creal(X0[i+4]-X0_f[i+4]),cimag(X0[i+4]-X0_f[i+4]),creal(X0[i+5]-X0_f[i+5]),cimag(X0[i+5]-X0_f[i+5]),
+							creal(X0[i+6]-X0_f[i+6]),cimag(X0[i+6]-X0_f[i+6]),creal(X0[i+7]-X0_f[i+7]),cimag(X0[i+7]-X0_f[i+7]));
+							}
 				break;
 			case(3):	
 				output_old = fopen("hdslashd_old", "w");
@@ -728,6 +989,7 @@ int Diagnostics(int istart){
 	mkl_free(dk4m); mkl_free(dk4p); mkl_free(R1); mkl_free(dSdpi); mkl_free(pp);
 	mkl_free(Phi); mkl_free(u11t); mkl_free(u12t); mkl_free(xi);
 	mkl_free(X0); mkl_free(X1); mkl_free(u11); mkl_free(u12);
+	mkl_free(X0_f); mkl_free(X1_f); mkl_free(u11t_f); mkl_free(u12t_f);
 	mkl_free(id); mkl_free(iu); mkl_free(hd); mkl_free(hu);
 	mkl_free(pcoord);
 
