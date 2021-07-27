@@ -383,7 +383,6 @@ int Hdslashd(complex *phi, complex *r){
 #pragma omp parallel for
 		for(int i=0;i<kvol;i++){
 #ifndef NO_SPACE
-#pragma ivdep
 			for(int mu = 0; mu <ndim-1; mu++){
 				int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
 #pragma omp simd aligned(phi,r,u11t,u12t:AVX)
@@ -586,8 +585,6 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r){
 #pragma omp parallel for
 		for(int i=0;i<kvol;i++){
 #ifndef NO_SPACE
-#pragma omp simd aligned(phi,r,u11t_f,u12t_f:AVX)
-#pragma vector vecremainder
 			for(int mu = 0; mu <ndim-1; mu++){
 				int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
 #pragma omp simd aligned(phi,r,u11t_f,u12t_f:AVX)
