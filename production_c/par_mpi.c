@@ -540,6 +540,61 @@ int Par_dsum(double *dval){
 	*dval = dtmp;
 	return 0;
 }
+int Par_fsum(float *fval){
+	/*
+	 * Performs a reduction on a double dval to get a sum which is
+	 * then distributed to all ranks.
+	 *
+	 * Parameters:
+	 * -----------
+	 * double *dval: The pointer to the element being summed, and
+	 * 		the container for said sum.
+	 *
+	 * Returns:
+	 * --------
+	 * Zero on success. Integer error code otherwise.
+	 *
+	 */
+	char *funcname = "far_dsum";
+	//Container to receive data.
+	float ftmp;
+
+	if(MPI_Allreduce(fval, &ftmp, 1, MPI_FLOAT, MPI_SUM, comm)){
+		fprintf(stderr,"Error %i in %s: Couldn't complete reduction for %f.\nExiting...\n\n", REDUCERR, funcname, *fval);
+		MPI_Finalise();
+		exit(REDUCERR);	
+	}
+	*fval = ftmp;
+	return 0;
+}
+int Par_csum(Complex_f *cval){
+	/*
+	 * Performs a reduction on a complex zval to get a sum which is
+	 * then distributed to all ranks.
+	 *
+	 * Parameters:
+	 * -----------
+	 * Complex_f *cval: The pointer to the element being summed, and
+	 * 		the container for said sum.
+	 *
+	 * Returns:
+	 * --------
+	 * Zero on success. Integer error code otherwise.
+	 *
+	 */
+	char *funcname = "Par_csum";
+	//Container to receive data.
+	Complex_f ctmp;
+
+	if(MPI_Allreduce(cval, &ctmp, 1, MPI_C_FLOAT_COMPLEX, MPI_SUM, comm)){
+		fprintf(stderr, "Error %i in %s: Couldn't complete reduction for %f+%f i.\nExiting...\n\n",
+				REDUCERR, funcname, creal(*cval), cimag(*cval));
+		MPI_Finalise();
+		exit(REDUCERR);	
+	}
+	*cval = ctmp;
+	return 0;
+}
 int Par_zsum(complex *zval){
 	/*
 	 * Performs a reduction on a complex zval to get a sum which is

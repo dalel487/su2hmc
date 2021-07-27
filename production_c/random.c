@@ -116,10 +116,10 @@ double Par_granf(){
 	char *funcname = "Par_granf";
 	double ran_val;
 	if(!rank)
-#if defined(USE_MKL)
-		vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 1, &ran_val, 0,1);
-#else
+#if defined(USE_RAN2)||!defined(USE_MKL)
 	ran_val = ran2(&seed);
+#else
+	vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 1, &ran_val, 0,1);
 #endif
 	Par_dcopy(&ran_val);
 	return ran_val;
