@@ -766,7 +766,7 @@ int Init(int istart){
 	cudaMallocManaged(&u11t_f,ndim*(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged(&u12t_f,ndim*(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
 #elif defined USE_MKL
-	u11 = mkl_calloc(ndim*(kvol+halo)*sizeof(complex),AVX);
+	u11 = mkl_calloc(ndim*(kvol+halo),sizeof(complex),AVX);
 	u12 = mkl_calloc(ndim*(kvol+halo),sizeof(complex),AVX);
 	u11t = mkl_calloc(ndim*(kvol+halo),sizeof(complex),AVX);
 	u12t = mkl_calloc(ndim*(kvol+halo),sizeof(complex),AVX);
