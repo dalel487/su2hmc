@@ -972,11 +972,11 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 #elif defined USE_MKL
 	complex *p  = mkl_calloc(kferm2Halo,sizeof(complex),AVX);
 	complex *r  = mkl_calloc(kferm2,sizeof(complex),AVX);
-	complex *x1=mkl_calloc(kferm2Halo, sizeof(complex), AVX);
 	complex *x2=mkl_calloc(kferm2Halo, sizeof(complex), AVX);
 
 	Complex_f *p_f  = mkl_calloc(kferm2Halo,sizeof(Complex_f),AVX);
 	Complex_f *x2_f=mkl_calloc(kferm2Halo, sizeof(Complex_f), AVX);
+	Complex_f *x1_f=mkl_calloc(kferm2Halo, sizeof(Complex_f), AVX);
 #else
 	complex *p  = calloc(kferm2Halo,sizeof(complex));
 	complex *r  = calloc(kferm2,sizeof(complex));
@@ -996,27 +996,24 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 	complex betan;
 	for(int niterx=0; niterx<niterc; niterx++){
 		(*itercg)++;
-#ifdef	__NVCC__
 #pragma omp parallel for simd
 		for(int i=0;i<kferm2;i++)
 			p_f[i]=(Complex_f)p[i];
+#ifdef	__NVCC__
 		cudaMemPrefetchAsync(p_f,kferm2Halo*sizeof(Complex_f).device,NULL);
+#endif
 		//x2 =  (M^†M)p 
-		//CUDA is using single precision at the moment. Remove the _f for
-		//and the for loop below for the double precision variants.
 		Hdslash_f(x1_f,p_f); Hdslashd_f(x2_f, x1_f);
 #pragma omp parallel for simd
 		for(int i=0;i<kferm2;i++)
 			x2[i]=(Complex)x2_f[i];
+#ifdef	__NVCC__
 		//x2 =  (M^†M+J^2)p 
 		cublasZaxpy(cublas_handle,kferm2,&fac,p,1,x2,1);
 #elif (defined USE_MKL || defined USE_BLAS)
-		//x2 =  (M^†M)p 
-		Hdslash(x1,p); Hdslashd(x2, x1);
 		//x2 =  (M^†M+J^2)p 
 		cblas_zaxpy(kferm2, &fac, p, 1, x2, 1);
 #else
-		Hdslash(x1,p); Hdslashd(x2, x1);
 		#pragma omp parallel for simd
 		for(int i=0; i<kferm2; i++)
 			x2[i]+=fac*p[i];
@@ -1097,10 +1094,10 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 			fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i β_n=%e\n", ITERLIM, funcname, niterc, creal(betan));
 	}
 #ifdef __NVCC__
-	cudaFree(x1); cudaFree(x2); cudaFree(p); cudaFree(r);
+	cudaFree(x2); cudaFree(p); cudaFree(r);
 	cudaFree(x1_f);cudaFree(x2_f); cudaFree(p_f);
 #elif defined USE_MKL
-	mkl_free(x1); mkl_free(x2); mkl_free(p); mkl_free(r);
+	mkl_free(x1_f); mkl_free(x2); mkl_free(p); mkl_free(r);
 #else
 	free(x1), free(x2), free(p), free(r);
 #endif
