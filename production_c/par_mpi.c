@@ -814,9 +814,9 @@ int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer){
 		exit(LAYERROR);
 	}
 #ifdef USE_MKL
-	complex *sendbuf = mkl_malloc(halo*ncpt*sizeof(Complex_f), AVX);
+	Complex_f *sendbuf = mkl_malloc(halo*ncpt*sizeof(Complex_f), AVX);
 #else
-	complex *sendbuf = malloc(halo*ncpt*sizeof(complex));
+	Complex_f *sendbuf = aligned_alloc(AVX,halo*ncpt*sizeof(complex));
 #endif
 	//How big is the data being sent and received
 	int msg_size=ncpt*halosize[idir];
