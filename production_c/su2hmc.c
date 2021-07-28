@@ -685,8 +685,8 @@ int Init(int istart){
 	//Set iu and id to mainly read in CUDA and prefetch them to the GPU
 	int device=-1;
 	cudaGetDevice(&device);
-	cudaMemAdvise(iu,ndim*kvol*sizeof(int),..SetReadMostly,device);
-	cudaMemAdvise(id,ndim*kvol*sizeof(int),..SetReadMostly,device);
+	cudaMemAdvise(iu,ndim*kvol*sizeof(int),cudaMemAdviseSetReadMostly,device);
+	cudaMemAdvise(id,ndim*kvol*sizeof(int),cudaMemAdviseSetReadMostly,device);
 	cudaMemPrefetchAsync(iu,ndim*kvol*sizeof(int),device,NULL);
 	cudaMemPrefetchAsync(id,ndim*kvol*sizeof(int),device,NULL);
 
@@ -753,9 +753,9 @@ int Init(int istart){
 			gamval_f[i][j]=(Complex_f)gamval[i][j];
 #ifdef __NVCC__
 	//More prefetching and marking as read-only (mostly)
-	cudaMemAdvise(dk4p,(kvol+halo)*sizeof(double),..SetReadMostly,device);
-	cudaMemAdvise(dk4m,(kvol+halo)*sizeof(double),..SetReadMostly,device);
-	cudaMemAdvise(gamval,20*sizeof(Complex),..SetReadMostly,device);
+	cudaMemAdvise(dk4p,(kvol+halo)*sizeof(double),cudaMemAdviseSetReadMostly,device);
+	cudaMemAdvise(dk4m,(kvol+halo)*sizeof(double),cudaMemAdviseSetReadMostly,device);
+	cudaMemAdvise(gamval,20*sizeof(Complex),cudaMemAdviseSetReadMostly,device);
 	cudaMemPrefetchAsync(dk4p,(kvol+halo)*sizeof(double),device,NULL);
 	cudaMemPrefetchAsync(dk4m,(kvol+halo)*sizeof(double),device,NULL);
 	cudaMemPrefetchAsync(gamval,20*sizeof(Complex),device,NULL);
@@ -975,7 +975,7 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 
 	cudaMallocManaged(&x2, kferm2Halo*sizeof(complex),cudaMemAttachGlobal);
 	cudaMemAdvise(x2,kferm2Halo*sizeof(complex),cudaMemAdviseSetPreferredLocation,device);
-	cudaMemPrefetchAsync(x2,kferm2Halo*sizeof(Complex).device,NULL);
+	cudaMemPrefetchAsync(x2,kferm2Halo*sizeof(Complex),device,NULL);
 #elif defined USE_MKL
 	complex *p  = mkl_calloc(kferm2Halo,sizeof(complex),AVX);
 	complex *r  = mkl_calloc(kferm2,sizeof(complex),AVX);
@@ -994,7 +994,7 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 	//Instead of copying elementwise in a loop, use memcpy.
 	memcpy(p, X1, kferm2*sizeof(complex));
 #ifdef __NVCC__
-	cudaMemPrefetchAsync(p,kferm2Halo*sizeof(Complex).device,NULL);
+	cudaMemPrefetchAsync(p,kferm2Halo*sizeof(Complex),device,NULL);
 #endif
 	memcpy(r, smallPhi, kferm2*sizeof(complex));
 
@@ -1007,7 +1007,7 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 		for(int i=0;i<kferm2;i++)
 			p_f[i]=(Complex_f)p[i];
 #ifdef	__NVCC__
-		cudaMemPrefetchAsync(p_f,kferm2Halo*sizeof(Complex_f).device,NULL);
+		cudaMemPrefetchAsync(p_f,kferm2Halo*sizeof(Complex_f),device,NULL);
 #endif
 		//x2 =  (M^†M)p 
 		Hdslash_f(x1_f,p_f); Hdslashd_f(x2_f, x1_f);
