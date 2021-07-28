@@ -46,6 +46,9 @@ int gamin[4][4];
 __managed__ 
 #endif 
 extern Complex gamval[5][4];
+#ifdef __NVCC__
+__managed__ 
+#endif 
 extern Complex_f gamval_f[5][4];
 
 //From common_pseud
@@ -58,6 +61,9 @@ Complex *Phi, *R1, *X0, *X1, *xi;
 __managed__ 
 #endif 
 double *dk4m, *dk4p, *pp;
+#ifdef __NVCC__
+__managed__ 
+#endif 
 float	*dk4m_f, *dk4p_f;
 //From common_trial_u11u12
 //complex *u11, *u12;
@@ -80,7 +86,13 @@ __managed__
 extern
 #endif 
 double fmu, beta, akappa;
-
+#ifdef __NVCC__
+__managed__
+#endif 
+#ifndef __CUDACC__
+extern
+#endif 
+float akappa_f;
 
 //Function Declarations:
 //#####################
