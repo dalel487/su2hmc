@@ -731,7 +731,7 @@ int Init(int istart){
 		DHalo_swap_dir(dk4p, 1, 3, UP);
 		DHalo_swap_dir(dk4m, 1, 3, UP);
 	}
-#pragma omp parallel for simd
+#pragma omp parallel for simd aligned(dk4m:AVX,dk4p:AVX,dk4m_f:AVX,dk4p_f:AVX)
 	for(int i=0;i<kvol+halo;i++){
 		dk4p_f[i]=(float)dk4p[i];
 		dk4m_f[i]=(float)dk4m[i];
@@ -746,7 +746,7 @@ int Init(int istart){
 		for(int j=0;j<4;j++)
 			gamval[i][j]*=akappa;
 #endif
-#pragma omp parallel for simd collapse(2)
+#pragma omp parallel for simd collapse(2) aligned(gamval:AVX,gamval_f:AVX)
 	for(int i=0;i<5;i++)
 		for(int j=0;j<4;j++)
 			gamval_f[i][j]=(Complex_f)gamval[i][j];
@@ -1106,6 +1106,7 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 	cudaFree(x1_f);cudaFree(x2_f); cudaFree(p_f);
 #elif defined USE_MKL
 	mkl_free(x1_f); mkl_free(x2); mkl_free(p); mkl_free(r);
+	mkl_free(p_f); mkl_free(x2_f);
 #else
 	free(x1), free(x2), free(p), free(r);
 #endif
