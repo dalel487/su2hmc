@@ -19,6 +19,7 @@ Complex jqq = 0;
 double fmu = 0.0;
 double beta = 1.7;
 double akappa = 0.1780;
+float akappa_f = 0.1780f;
 int gamin[4][4] =	{{3,2,1,0},
 	{3,2,1,0},
 	{2,3,0,1},
@@ -146,8 +147,7 @@ int main(int argc, char *argv[]){
 	Par_dcopy(&athq); Par_dcopy(&fmu); Par_dcopy(&delb); //Not used?
 	Par_icopy(&stepl); Par_icopy(&ntraj); 
 	jqq=ajq*cexp(athq*I);
-	float akappa_f=(float)akappa;
-	float jqq_f=(float)jqq;
+	akappa_f=(float)akappa;
 #ifdef _DEBUG
 	printf("jqq=%f+(%f)I\n",creal(jqq),cimag(jqq));
 #endif

@@ -29,7 +29,8 @@ __global__ void cuDslash(Complex *phi, Complex *r);
 __global__ void cuDslashd(Complex *phi, Complex *r);
 __global__ void cuHdslash(Complex *phi, Complex *r);
 __global__ void cuHdslashd(Complex *phi, Complex *r);
-__global__ void cuForce(double *dSdpi, Complex *X2);
+__global__ void cuHdslash_f(Complex_f *phi, Complex_f *r);
+__global__ void cuHdslashd_f(Complex_f *phi, Complex_f *r);
 __global__ inline void cuReunitarise();
 
 //New Trial Fields
