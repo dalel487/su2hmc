@@ -471,7 +471,6 @@ int Hdslash_f(Complex_f *phi, Complex_f *r){
 	CHalo_swap_all(r, 8);
 	//TODO: Get u11t_f and u12t_f sorted
 	//Mass term
-	float akappa_f=(float)akappa;
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
 	//Spacelike term
 	//#pragma offload target(mic)\
@@ -573,7 +572,6 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r){
 	//anyways so memory access patterns mightn't be as big of an limiting factor here anyway
 
 	//Mass term
-	float akappa_f=(float)akappa;
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
 	//Spacelike term
 	//#pragma offload target(mic)\
