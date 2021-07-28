@@ -1,10 +1,8 @@
 MF=	Makefile
 
-#FC= mpif77 
 CC= mpiicc
 NVCC = nvcc
 
-#FFLAGS= -O3 -I /bgsys/drivers/toolchain/V1R1M2/gnu-linux/lib/gcc/powerpc64-bgq-linux/4.4.6/finclude/
 IFLAGS=     -I../INCLUDE 
 
 CFLAGS=      $(IFLAGS) -mkl -DUSE_MKL -std=gnu99 -DHAVE_SSE2 -ipo -qopt-zmm-usage=high\
@@ -36,13 +34,12 @@ INC= \
       coord.h \
       errorcodes.h \
 
-
 #
 # No need to edit below this line
 #
 
-.SUFFIXES:
 .SUFFIXES: .c .o
+.PHONY: clean debug release advisor tar
 
 OBJ=	$(SRC:.c=.o)
 
@@ -51,10 +48,11 @@ MOD=
 EDT=	$(SRC:.c=.c~)
 TMP=	$(MOD) $(EDT) core
 
-.f.o:
-	$(FC) $(FFLAGS) -c $<
-
 all:	$(EXE)
+
+advisor:	CFLAGS += -g
+
+advisor:	release
 
 release:	CFLAGS +=  -O3 -inline-level=2\
 		-DMKL_ILP64  -I"${MKLROOT}/include"
@@ -63,14 +61,12 @@ release:	$(EXE)
 debug:	CFLAGS += -g -O3 \
 		-D_DEBUG -DUSE_RAN2 #-DDIAGNOSTIC -DNO_TIME -DNO_SPACE
 
-	
 debug:	$(EXE)
 
 $(EXE):	$(OBJ)
 	$(CC) $(CFLAGS) -o $@ $(OBJ) $(LFLAGS)
 
 $(OBJ):	$(MF) 
-#$(INC)
 
 clean:
 	rm -f $(OBJ) $(TMP)
@@ -80,4 +76,4 @@ INP=	\
 	con
 
 tar:
-	tar cvf $(EXE).tar $(MF) $(SRC) $(INC) $(INP)
+	tar cvfz $(EXE).tar $(MF) $(SRC) $(INC) $(INP) $(EXE)

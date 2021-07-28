@@ -3,7 +3,6 @@
 #ifdef __CUDACC__
 #include <cuda.h>
 #include <cuda_complex.hpp>
-#define Complex complex<double>
 #include <curand.h>
 #endif
 #include <par_mpi.h>
@@ -20,6 +19,9 @@ int Dslash(Complex *phi, Complex *r);
 int Dslashd(Complex *phi, Complex *r);
 int Hdslash(Complex *phi, Complex *r);
 int Hdslashd(Complex *phi, Complex *r);
+//Float version
+int Hdslash_f(Complex_f *phi, Complex_f *r);
+int Hdslashd_f(Complex_f *phi, Complex_f *r);
 extern inline int Reunitarise();
 
 #ifdef __CUDACC__
@@ -27,7 +29,8 @@ __global__ void cuDslash(Complex *phi, Complex *r);
 __global__ void cuDslashd(Complex *phi, Complex *r);
 __global__ void cuHdslash(Complex *phi, Complex *r);
 __global__ void cuHdslashd(Complex *phi, Complex *r);
-__global__ void cuForce(double *dSdpi, Complex *X2);
+__global__ void cuHdslash_f(Complex_f *phi, Complex_f *r);
+__global__ void cuHdslashd_f(Complex_f *phi, Complex_f *r);
 __global__ inline void cuReunitarise();
 
 //New Trial Fields
