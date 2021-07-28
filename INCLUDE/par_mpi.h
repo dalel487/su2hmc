@@ -94,6 +94,9 @@ int ismaster;
 __managed__ 
 #endif 
 Complex *u11, *u12, *u11t, *u12t;
+#ifdef __CUDACC__
+__managed__ 
+#endif 
 Complex_f *u11t_f, *u12t_f;
 //halos indices
 //-------------

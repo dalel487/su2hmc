@@ -46,6 +46,9 @@ int gamin[4][4];
 __managed__ 
 #endif 
 extern Complex gamval[5][4];
+#ifdef __NVCC__
+__managed__ 
+#endif 
 extern Complex_f gamval_f[5][4];
 
 //From common_pseud
