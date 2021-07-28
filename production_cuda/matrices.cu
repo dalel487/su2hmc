@@ -306,6 +306,130 @@ __global__ void cuHdslashd(Complex *phi, Complex *r){
 #endif
 	}
 }
+
+//Float editions
+__global__ void cuHdslash(Complex_f *phi, Complex_f *r){
+	char *funcname = "cuHdslash";
+	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	for(int i=threadId;i<kvol;i+=gsize){
+#ifndef NO_SPACE
+		for(int mu = 0; mu <3; mu++){
+			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
+			for(int idirac=0; idirac<ndirac; idirac++){
+				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
+				int igork1 = gamin[mu][idirac];
+				//Can manually vectorise with a pragma?
+				//Wilson + Dirac term in that order. Definitely easier
+				//to read when split into different loops, but should be faster this way
+				phi[(i*ndirac+idirac)*nc]+=-akappa_f*(u11t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]+\
+						u12t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]+\
+						conj(u11t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]-\
+						u12t_f[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1])+\
+								   //Dirac term
+								   gamval_f[mu][idirac]*(u11t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]+\
+										   u12t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]-\
+										   conj(u11t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]+\
+										   u12t_f[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
+
+				phi[(i*ndirac+idirac)*nc+1]+=-akappa_f*(-conj(u12t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]+\
+						conj(u11t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]+\
+						conj(u12t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]+\
+						u11t_f[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1])+\
+								     //Dirac term
+								     gamval_f[mu][idirac]*(-conj(u12t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]+\
+										     conj(u11t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]-\
+										     conj(u12t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]-\
+										     u11t_f[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
+			}
+		}
+#endif
+		//Timelike terms
+		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
+#ifndef NO_TIME
+		for(int idirac=0; idirac<ndirac; idirac++){
+			int igork1 = gamin[3][idirac];
+			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
+			phi[(i*ndirac+idirac)*nc]+=
+				-dk4p_f[i]*(u11t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
+						+u12t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc+1]-r[(uid*ndirac+igork1)*nc+1]))
+				-dk4m_f[did]*(conj(u11t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]+r[(did*ndirac+igork1)*nc])
+						-u12t_f[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]+r[(did*ndirac+igork1)*nc+1]));
+			phi[(i*ndirac+idirac)*nc+1]+=
+				-dk4p_f[i]*(-conj(u12t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
+						+conj(u11t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc+1]-r[(uid*ndirac+igork1)*nc+1]))
+				-dk4m_f[did]*(conj(u12t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]+r[(did*ndirac+igork1)*nc])
+						+u11t_f[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]+r[(did*ndirac+igork1)*nc+1]));
+		}
+#endif
+	}
+}
+__global__ void cuHdslashd(Complex_f *phi, Complex_f *r){
+	char *funcname = "cuHdslashd";
+	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	for(int i=threadId;i<kvol;i+=gsize){
+#ifndef NO_SPACE
+		for(int mu = 0; mu <ndim-1; mu++){
+			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
+			for(int idirac=0; idirac<ndirac; idirac++){
+				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
+				int igork1 = gamin[mu][idirac];
+				//Can manually vectorise with a pragma?
+				//Wilson + Dirac term in that order. Definitely easier
+				//to read when split into different loops, but should be faster this way
+
+				phi[(i*ndirac+idirac)*nc]+=
+					-akappa_f*(u11t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]
+							+u12t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]
+							+conj(u11t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
+							-u12t_f[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
+					-gamval_f[mu][idirac]*
+					(          u11t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]
+						     +u12t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]
+						     -conj(u11t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
+						     +u12t_f[did*ndim+mu] *r[(did*ndirac+igork1)*nc+1]);
+
+				phi[(i*ndirac+idirac)*nc+1]+=
+					-akappa_f*(-conj(u12t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]
+							+conj(u11t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]
+							+conj(u12t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
+							+u11t_f[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
+					-gamval_f[mu][idirac]*
+					(-conj(u12t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]
+					 +conj(u11t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]
+					 -conj(u12t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
+					 -u11t_f[did*ndim+mu] *r[(did*ndirac+igork1)*nc+1]);
+			}
+		}
+#endif
+		//Timelike terms
+		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
+#ifndef NO_TIME
+		for(int idirac=0; idirac<ndirac; idirac++){
+			int igork1 = gamin[3][idirac];
+			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
+			//dk4m_f and dk4p_f swap under dagger
+			phi[(i*ndirac+idirac)*nc]+=
+				-dk4m_f[i]*(u11t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc]+r[(uid*ndirac+igork1)*nc])
+						+u12t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc+1]+r[(uid*ndirac+igork1)*nc+1]))
+				-dk4p_f[did]*(conj(u11t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]-r[(did*ndirac+igork1)*nc])
+						-u12t_f[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]-r[(did*ndirac+igork1)*nc+1]));
+
+			phi[(i*ndirac+idirac)*nc+1]+=
+				-dk4m_f[i]*(-conj(u12t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc]+r[(uid*ndirac+igork1)*nc])
+						+conj(u11t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc+1]+r[(uid*ndirac+igork1)*nc+1]))
+				-dk4p_f[did]*(conj(u12t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]-r[(did*ndirac+igork1)*nc])
+						+u11t_f[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]-r[(did*ndirac+igork1)*nc+1]));
+		}
+#endif
+	}
+}
+
 __global__ void New_trial(double dt){
 	char *funcname = "New_trial";
 	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
@@ -518,6 +642,93 @@ __host__ int Hdslashd(Complex *phi, Complex *r){
 		cuHdslashd<<<dimGrid,dimBlock>>>(phi,r);
 	return 0;
 }
+
+//Float editions
+__host__ int Hdslash_f(Complex_f *phi, Complex_f *r){
+	/*
+	 * Evaluates phi= M*r
+	 *
+	 * Globals
+	 * =======
+	 * u11t, u12t, dk4p, dk4m, akappa, jqq 
+	 *
+	 * Calls:
+	 * ======
+	 * zhaloswapdir, chaloswapdir, zhaloswapall (Non-mpi version could do without these)
+	 *
+	 * Parametrer:
+	 * ==========
+	 *
+	 * Complex_f *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
+	 * 			for consistency with the fortran code I'll keep the name here
+	 * Complex_f r:		The array being acted on by M
+	 *
+	 * Returns:
+	 * Zero on success, integer error code otherwise
+	 */
+	char *funcname = "Hdslash";
+	//Get the halos in order
+	CHalo_swap_all(r, 8);
+
+	//Mass term
+	memcpy(phi, r, kferm2*sizeof(Complex_f));
+	//Spacelike term
+	//#pragma offload target(mic)\
+	in(r: length(kferm2Halo))\
+		in(dk4m, dk4p: length(kvol+halo))\
+		in(id, iu: length(ndim*kvol))\
+		in(u11t, u12t: length(ndim*(kvol+halo)))\
+		inout(phi: length(kferm2Halo))
+		//	cudaMemPrefetchAsync(u11t,kvol+halo,0
+		cuHdslash_f<<<dimGrid,dimBlock>>>(phi,r);
+	return 0;
+}
+__host__ int Hdslashd_f(Complex_f *phi, Complex_f *r){
+	/*
+	 * Evaluates phi= M*r
+	 *
+	 * Globals
+	 * =======
+	 * u11t, u12t, dk4p, dk4m, akappa, jqq 
+	 *
+	 * Calls:
+	 * ======
+	 * zhaloswapdir, chaloswapdir, zhaloswapall (Non-mpi version could do without these)
+	 *
+	 * Parametrer:
+	 * ==========
+	 *
+	 * Complex_f *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
+	 * 			for consistency with the fortran code I'll keep the name here
+	 * Complex_f r:		The array being acted on by M
+	 *
+	 * Returns:
+	 * Zero on success, integer error code otherwise
+	 */
+	char *funcname = "Hdslashd";
+	//Get the halos in order. Because C is row major, we need to extract the correct
+	//terms for each halo first. Changing the indices was considered but that caused
+	//issues with the BLAS routines.
+	CHalo_swap_all(r, 8);
+
+	//Looks like flipping the array ordering for C has meant a lot
+	//of for loops. Sense we're jumping around quite a bit the cache is probably getting refreshed
+	//anyways so memory access patterns mightn't be as big of an limiting factor here anyway
+
+	//Mass term
+	memcpy(phi, r, kferm2*sizeof(Complex_f));
+	//Spacelike term
+	//#pragma offload target(mic)\
+	in(r: length(kferm2Halo))\
+		in(dk4m, dk4p: length(kvol+halo))\
+		in(id, iu: length(ndim*kvol))\
+		in(u11t, u12t: length(ndim*(kvol+halo)))\
+		inout(phi: length(kferm2Halo))
+		//	cudaMemPrefetchAsync(u11t,kvol+halo,0
+		cuHdslashd_f<<<dimGrid,dimBlock>>>(phi,r);
+	return 0;
+}
+
 __host__ inline int Reunitarise(){
 	cuReunitarise<<<dimGrid,dimBlock>>>();
 	return 0;

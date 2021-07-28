@@ -368,6 +368,7 @@ int main(int argc, char *argv[]){
 			//step (i) st(t+dt)=st(t)+p(t+dt/2)*dt;
 			//Replace with a Kernel call and move trial exchange onto CPU for now
 			New_trial(dt);
+			Reunitarise();
 			Trial_Exchange();
 
 #ifdef __NVCC__
@@ -375,7 +376,6 @@ int main(int argc, char *argv[]){
 			cudaMemPrefetchAsync(u11t, ndim*(kvol+halo)*sizeof(Complex),device,NULL);
 			cudaMemPrefetchAsync(u12t, ndim*(kvol+halo)*sizeof(Complex),device,NULL);
 #endif
-			Reunitarise();
 			//p(t+3dt/2)=p(t+dt/2)-dSds(t+dt)*dt
 			Force(dSdpi, 0, rescgg);
 #ifdef _DEBUG
