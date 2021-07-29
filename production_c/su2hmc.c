@@ -1003,7 +1003,7 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 	complex betan;
 	for(int niterx=0; niterx<niterc; niterx++){
 		(*itercg)++;
-#pragma omp parallel for simd
+#pragma omp parallel for simd aligned(p_f:AVX,p:AVX)
 		for(int i=0;i<kferm2;i++)
 			p_f[i]=(Complex_f)p[i];
 #ifdef	__NVCC__
@@ -1011,7 +1011,7 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 #endif
 		//x2 =  (M^†M)p 
 		Hdslash_f(x1_f,p_f); Hdslashd_f(x2_f, x1_f);
-#pragma omp parallel for simd
+#pragma omp parallel for simd aligned(x2:AVX,x2_f:AVX)
 		for(int i=0;i<kferm2;i++)
 			x2[i]=(Complex)x2_f[i];
 #ifdef	__NVCC__
@@ -1318,11 +1318,9 @@ inline int Fill_Small_Phi(int na, Complex *smallPhi)
 	 */
 	const char *funcname = "Fill_Small_Phi";
 	//BIG and small phi index
-#pragma omp parallel for simd aligned(smallPhi:AVX,Phi:AVX)
+#pragma omp parallel for simd aligned(smallPhi:AVX,Phi:AVX) collapse(3)
 	for(int i = 0; i<kvol;i++)
-#pragma unroll
 		for(int idirac = 0; idirac<ndirac; idirac++)
-#pragma unroll
 			for(int ic= 0; ic<nc; ic++){
 				//	  PHI_index=i*16+j*2+k;
 				smallPhi[(i*ndirac+idirac)*nc+ic]=Phi[((na*kvol+i)*ngorkov+idirac)*nc+ic];
