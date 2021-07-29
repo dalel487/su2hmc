@@ -289,7 +289,7 @@ int main(int argc, char *argv[]){
 			memcpy(Phi+na*kfermHalo,R1, nc*ngorkov*kvol*sizeof(complex));
 			//Up/down partitioning (using only pseudofermions of flavour 1)
 			//CUDAFY THIS?
-#pragma omp parallel for simd aligned(X0:AVX,R1:AVX)
+#pragma omp parallel for simd aligned(X0,R1:AVX)
 			for(int i=0; i<kvol; i++)
 				for(int idirac = 0; idirac < ndirac; idirac++){
 					X0[((na*(kvol+halo)+i)*ndirac+idirac)*nc]=R1[(i*ngorkov+idirac)*nc];
@@ -705,7 +705,7 @@ int Init(int istart){
 	dk4m_f = aligned_alloc(AVX,(kvol+halo)*sizeof(float));
 	dk4p_f = aligned_alloc(AVX,(kvol+halo)*sizeof(float));
 #endif
-#pragma omp parallel for simd aligned(dk4m:AVX,dk4p:AVX)
+#pragma omp parallel for simd aligned(dk4m,dk4p:AVX)
 	//CUDA this. Only limit will be the bus speed
 	for(int i = 0; i<kvol; i++){
 		dk4p[i]=akappa*chem1;
@@ -717,7 +717,7 @@ int Init(int istart){
 #ifdef _DEBUG
 		printf("Implimenting antiperiodic boundary conditions on rank %i\n", rank);
 #endif
-#pragma omp parallel for simd aligned(dk4m:AVX,dk4p:AVX)
+#pragma omp parallel for simd aligned(dk4m,dk4p:AVX)
 		//Also CUDA this. By the looks of it it should saturate the GPU
 		//as is
 		for(int i= 0; i<kvol3; i++){
@@ -732,7 +732,7 @@ int Init(int istart){
 		DHalo_swap_dir(dk4p, 1, 3, UP);
 		DHalo_swap_dir(dk4m, 1, 3, UP);
 	}
-#pragma omp parallel for simd aligned(dk4m:AVX,dk4p:AVX,dk4m_f:AVX,dk4p_f:AVX)
+#pragma omp parallel for simd aligned(dk4m,dk4p,dk4m_f,dk4p_f:AVX)
 	for(int i=0;i<kvol+halo;i++){
 		dk4p_f[i]=(float)dk4p[i];
 		dk4m_f[i]=(float)dk4m[i];
@@ -747,7 +747,7 @@ int Init(int istart){
 		for(int j=0;j<4;j++)
 			gamval[i][j]*=akappa;
 #endif
-#pragma omp parallel for simd collapse(2) aligned(gamval:AVX,gamval_f:AVX)
+#pragma omp parallel for simd collapse(2) aligned(gamval,gamval_f:AVX)
 	for(int i=0;i<5;i++)
 		for(int j=0;j<4;j++)
 			gamval_f[i][j]=(Complex_f)gamval[i][j];
@@ -1003,7 +1003,7 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 	complex betan;
 	for(int niterx=0; niterx<niterc; niterx++){
 		(*itercg)++;
-#pragma omp parallel for simd aligned(p_f:AVX,p:AVX)
+#pragma omp parallel for simd aligned(p_f,p:AVX)
 		for(int i=0;i<kferm2;i++)
 			p_f[i]=(Complex_f)p[i];
 #ifdef	__NVCC__
@@ -1011,7 +1011,7 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 #endif
 		//x2 =  (M^†M)p 
 		Hdslash_f(x1_f,p_f); Hdslashd_f(x2_f, x1_f);
-#pragma omp parallel for simd aligned(x2:AVX,x2_f:AVX)
+#pragma omp parallel for simd aligned(x2,x2_f:AVX)
 		for(int i=0;i<kferm2;i++)
 			x2[i]=(Complex)x2_f[i];
 #ifdef	__NVCC__
@@ -1294,7 +1294,7 @@ inline int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned
 {
 	//FORTRAN had a second parameter m gving the size of y (kvol+halo) normally
 	//Pointers mean that's not an issue for us so I'm leaving it out
-#pragma omp parallel for simd aligned (x:AVX,y:AVX,table:AVX)
+#pragma omp parallel for simd aligned (x,y,table:AVX)
 	for(int i=0; i<n; i++)
 		x[i]=y[table[i*ndim+mu]*ndim+mu];
 	return 0;
@@ -1318,7 +1318,7 @@ inline int Fill_Small_Phi(int na, Complex *smallPhi)
 	 */
 	const char *funcname = "Fill_Small_Phi";
 	//BIG and small phi index
-#pragma omp parallel for simd aligned(smallPhi:AVX,Phi:AVX) collapse(3)
+#pragma omp parallel for simd aligned(smallPhi,Phi:AVX) collapse(3)
 	for(int i = 0; i<kvol;i++)
 		for(int idirac = 0; idirac<ndirac; idirac++)
 			for(int ic= 0; ic<nc; ic++){

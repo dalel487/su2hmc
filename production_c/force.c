@@ -42,7 +42,7 @@ int Gauge_force(double *dSdpi){
 		for(int nu=0; nu<ndim; nu++){
 			if(nu!=mu){
 				//The +ν Staple
-#pragma omp parallel for simd aligned(u11t:AVX,u12t:AVX,Sigma11:AVX,Sigma12:AVX,iu:AVX)
+#pragma omp parallel for simd aligned(u11t,u12t,Sigma11,Sigma12,iu:AVX)
 				for(int i=0;i<kvol;i++){
 					int uidm = iu[mu+ndim*i];
 					int uidn = iu[nu+ndim*i];
@@ -58,7 +58,7 @@ int Gauge_force(double *dSdpi){
 				ZHalo_swap_dir(u11sh, 1, mu, DOWN);
 				ZHalo_swap_dir(u12sh, 1, mu, DOWN);
 				//Next up, the -ν staple
-#pragma omp parallel for simd aligned(u11t:AVX,u12t:AVX,u11sh:AVX,u12sh:AVX,Sigma11:AVX,Sigma12:AVX,iu:AVX,id:AVX)
+#pragma omp parallel for simd aligned(u11t,u12t,u11sh,u12sh,Sigma11,Sigma12,iu,id:AVX)
 				for(int i=0;i<kvol;i++){
 					int uidm = iu[mu+ndim*i];
 					int didn = id[nu+ndim*i];
@@ -72,7 +72,7 @@ int Gauge_force(double *dSdpi){
 				}
 			}
 		}
-#pragma omp parallel for simd aligned(u11t:AVX,u12t:AVX,Sigma11:AVX,Sigma12:AVX,dSdpi:AVX)
+#pragma omp parallel for simd aligned(u11t,u12t,Sigma11,Sigma12,dSdpi:AVX)
 		for(int i=0;i<kvol;i++){
 			complex a11 = u11t[i*ndim+mu]*Sigma12[i]+u12t[i*ndim+mu]*conj(Sigma11[i]);
 			complex a12 = u11t[i*ndim+mu]*Sigma11[i]+conj(u12t[i*ndim+mu])*Sigma12[i];
@@ -179,7 +179,7 @@ int Force(double *dSdpi, int iflag, double res1){
 			for(int idirac=0;idirac<ndirac;idirac++){
 				int mu, uid, igork1;
 #ifndef NO_SPACE
-#pragma omp simd aligned(dSdpi:AVX,X1:AVX,X2:AVX,u11t:AVX,u12t:AVX,iu:AVX)
+#pragma omp simd aligned(dSdpi,X1,X2,u11t,u12t,iu:AVX)
 				for(mu=0; mu<3; mu++){
 					//Long term ambition. I used the diff command on the different
 					//spacial components of dSdpi and saw a lot of the values required

@@ -136,8 +136,7 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 	for(int i = 0; i<kvol; i++){
 		int did=id[3+ndim*i];
 		int uid=iu[3+ndim*i];
-#pragma unroll
-#pragma omp simd aligned(u11t:AVX,u12t:AVX,xi:AVX,x:AVX,dk4m:AVX,dk4p:AVX) 
+#pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX) 
 		for(int igorkov=0; igorkov<4; igorkov++){
 			int igork1=gamin[3][igorkov];
 			//For the C Version I'll try and factorise where possible

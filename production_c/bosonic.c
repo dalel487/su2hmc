@@ -34,7 +34,7 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 		for(int nu=0;nu<mu;nu++)
 			//Don't merge into a single loop. Makes vectorisation easier?
 			//Or merge into a single loop and dispense with the a arrays?
-#pragma omp parallel for simd aligned(u11t:AVX,u12t:AVX) reduction(+:hgs,hgt)
+#pragma omp parallel for simd aligned(u11t,u12t:AVX) reduction(+:hgs,hgt)
 			for(int i=0;i<kvol;i++){
 				//Save us from typing iu[mu+ndim*i] everywhere
 				int uidm = iu[mu+ndim*i]; 
@@ -138,7 +138,7 @@ double Polyakov(){
 #pragma unroll
 	for(int it=1;it<ksizet;it++)
 		//will be faster for parallel code
-#pragma omp parallel for simd private(a11) aligned(u11t:AVX,u12t:AVX,Sigma11:AVX,Sigma12:AVX)
+#pragma omp parallel for simd private(a11) aligned(u11t,u12t,Sigma11,Sigma12:AVX)
 		for(int i=0;i<kvol3;i++){
 			//Seems a bit more efficient to increment indexu instead of reassigning
 			//it every single loop
