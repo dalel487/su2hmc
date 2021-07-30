@@ -2,7 +2,7 @@
 #define	COORD
 #ifdef __NVCC__
 	#include <cuda.h>
-	#include <cublas.h>
+	#include <cublas_v2.h>
 #elif defined USE_MKL
 	#include <mkl.h>
 #else

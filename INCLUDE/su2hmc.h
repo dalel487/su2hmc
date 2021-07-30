@@ -8,8 +8,9 @@ cublasHandle_t cublas_status;
 #endif 
 #ifdef __CUDACC__
 #include <cuda_complex.hpp>
-#define Complex	complex<double>
-#define Complex_f	complex<float>
+#undef	complex
+#define	Complex_f	 complex<float>
+#define	Complex	 complex<double>
 #else
 #include	<complex.h>
 #define Complex	complex
@@ -42,14 +43,20 @@ extern
 #endif 
 int gamin[4][4];
 //We have the four γ Matrices, and in the final index (labelled 4 in C) is γ_5)
+#ifdef __cplusplus
+extern "C"{
+#endif
 #ifdef __NVCC__
-__managed__ 
+	__managed__ 
 #endif 
-extern Complex gamval[5][4];
+		extern Complex gamval[5][4];
 #ifdef __NVCC__
-__managed__ 
+	__managed__ 
 #endif 
-extern Complex_f gamval_f[5][4];
+		extern Complex_f gamval_f[5][4];
+#ifdef __cplusplus
+}
+#endif 
 
 //From common_pseud
 #ifdef __NVCC__

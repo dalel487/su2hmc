@@ -1,8 +1,6 @@
-extern "C"{
 #include <assert.h>
 #include <matrices.h>
 #include <string.h>
-}
 #include <cuComplex.h>
 __global__ void cuDslash(Complex *phi, Complex *r){
 	char *funcname = "cuDslash";

@@ -1,11 +1,9 @@
 /*
  *Code for fermionic observables
  */
-extern "C"{
 #include	<matrices.h>
 #include	<random.h>
 #include	<su2hmc.h>
-}
 int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbqb, double res, int *itercg){
 	/*
 	 * Calculate fermion expectation values via a noisy estimator
