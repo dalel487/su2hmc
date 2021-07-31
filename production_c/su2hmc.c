@@ -775,7 +775,7 @@ int Init(int istart){
 	u12t_f = mkl_calloc(ndim*(kvol+halo),sizeof(Complex_f),AVX);
 #else
 	u11 = aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(complex));
-	u12 = aligned_alloc(AVX,ndim*(kvol+halo)*,sizeof(complex));
+	u12 = aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(complex));
 	u11t = aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(complex));
 	u12t = aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(complex));
 	u11t_f = aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex_f));
@@ -985,10 +985,13 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 	Complex_f *x2_f=mkl_calloc(kferm2Halo, sizeof(Complex_f), AVX);
 	Complex_f *x1_f=mkl_calloc(kferm2Halo, sizeof(Complex_f), AVX);
 #else
-	complex *p  = calloc(kferm2Halo,sizeof(complex));
-	complex *r  = calloc(kferm2,sizeof(complex));
-	complex *x1=calloc(kferm2Halo,sizeof(complex));
-	complex *x2=calloc(kferm2Halo,sizeof(complex));
+	complex *p  = aligned_alloc(AVX,kferm2Halo*sizeof(complex));
+	complex *r  = aligned_alloc(AVX<kferm2*sizeof(complex));
+	complex *x2=aligned_alloc(AVX,kferm2Halo*sizeof(complex));
+
+	Complex_f *p_f=aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
+	Complex_f *x1_f=aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
+	Complex_f *x2_f=aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
 #endif
 	Fill_Small_Phi(na, smallPhi);
 	//Instead of copying elementwise in a loop, use memcpy.
@@ -1109,7 +1112,8 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 	mkl_free(x1_f); mkl_free(x2); mkl_free(p); mkl_free(r);
 	mkl_free(p_f); mkl_free(x2_f);
 #else
-	free(x1), free(x2), free(p), free(r);
+	free(x1_f); free(x2); free(p); free(r);
+	free(p_f); free(x2_f);
 #endif
 	return 0;
 }

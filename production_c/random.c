@@ -26,7 +26,9 @@ unsigned int seed = 967580161;
 #else
 int seed = 967580161;
 #endif
-
+#ifndef M_PI
+#define M_PI           3.14159265358979323846
+#endif
 
 #ifdef USE_MKL
 inline int ranset(unsigned int *seed)
