@@ -1,17 +1,15 @@
 MF=	Makefile
 
-#FC= mpif77 
 CC= mpicc
 NVCC = nvcc
 
 IFLAGS=     -I../INCLUDE/ -I/opt/AMD/aocl/aocl-linux-aocc-3.0-6/include/ \
 
-CFLAGS=      $(IFLAGS) -std=gnu99 -DHAVE_SSE2 -DUSE_BLAS -fcommon\
+CFLAGS=      $(IFLAGS) -std=gnu99 -DUSE_BLAS -fcommon\
 		 -march=native  -DUSE_RAN2 \
 		 -fopenmp-simd -fopenmp  -DSA3AT -fveclib=AMDLIBM -flto
 
-LFLAGS=	-L/opt/AMD/aocl/aocl-linux-aocc-3.0-6/lib/ \
-		 -Wl -latomic \
+LFLAGS=	-L/opt/AMD/aocl/aocl-linux-aocc-3.0-6/lib/  -Wl -latomic \
 		-liomp5 -lpthread -lm -ldl -lalm -lblis\
 
 EXE=	su2hmc_AMD
@@ -68,7 +66,6 @@ $(EXE):	$(OBJ)
 	$(CC) $(CFLAGS) -o $@ $(OBJ) $(LFLAGS)
 
 $(OBJ):	$(MF) 
-#$(INC)
 
 clean:
 	rm -f $(OBJ) $(TMP)

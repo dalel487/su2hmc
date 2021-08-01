@@ -12,7 +12,7 @@ CFLAGS=      $(IFLAGS) -cc=icx -mkl -DUSE_MKL -std=gnu99 -qopt-zmm-usage=high \
 LFLAGS=	-L${MKLROOT}/lib/intel64 -lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_core -lmkl_blacs_intelmpi_ilp64 -liomp5 -lpthread -lm -ldl \
 		-liomp5 -lpthread -lm -ldl 
 
-EXE=	su2hmc
+EXE=	su2hmc_Clang
 
 SRC= \
 	su2hmc.c \
