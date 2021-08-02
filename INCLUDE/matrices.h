@@ -8,13 +8,6 @@
 #include <par_mpi.h>
 #include <su2hmc.h>
 
-//Device code: Mainly the loops
-//Making things up as I go along here
-//Threads are grouped together to form warps of 32 threads
-//best to keep the block dimension (ksizex*ksizey) multiples of 32,
-//usually between 128 and 256
-//Note that from Volta/Turing  each SM (group of processors)
-//is smaller than on previous generations of GPUs
 int Dslash(Complex *phi, Complex *r);
 int Dslashd(Complex *phi, Complex *r);
 int Hdslash(Complex *phi, Complex *r);

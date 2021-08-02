@@ -111,9 +111,16 @@
 #define	rescga	1E-9 
 
 
-//New entry here, the size of the AVX buffer. 64 for AVX-512, 32 for AVX/AVX2 and 16 for good old SSE
+//Alignment of arrays. 64 for AVX-512, 32 for AVX/AVX2. 16 for SSE. Since AVX is standard
+//on modern x86 machines I've called it that
 #define	AVX	64
 #ifdef	__CUDACC__
+//Device code: Mainly the loops
+//Threads are grouped together to form warps of 32 threads
+//best to keep the block dimension (ksizex*ksizey) multiples of 32,
+//usually between 128 and 256
+//Note that from Volta/Turing  each SM (group of processors)
+//is smaller than on previous generations of GPUs
 dim3	dimBlock,dimGrid;
 #endif
 #endif
