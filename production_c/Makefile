@@ -5,11 +5,11 @@ NVCC = nvcc
 
 IFLAGS=     -I../INCLUDE 
 
-CFLAGS=      $(IFLAGS) -mkl -DUSE_MKL -std=gnu99 -DHAVE_SSE2 -ipo9 -qopt-zmm-usage=high \
+CFLAGS=      $(IFLAGS) -mkl -DUSE_MKL -std=gnu11 -ipo -qopt-zmm-usage=high \
 		 -xCOMMON-AVX512 -static-intel -static-libgcc -DMKL_DIRECT_CALL \
-		 -qopenmp-simd -qopenmp -qopenmp-link=static -DSA3AT 
+		 -qopenmp-simd -qopenmp -qopenmp-link=static -DSA3AT
 
-LFLAGS=	-L${MKLROOT}/lib/intel64 -lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_core -lmkl_blacs_intelmpi_ilp64 -liomp5 -lpthread -lm -ldl \
+LFLAGS=	-L${MKLROOT}/lib/intel64 -lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_core -lmkl_blacs_intelmpi_ilp64\
 		-liomp5 -lpthread -lm -ldl 
 
 EXE=	su2hmc
@@ -42,9 +42,6 @@ INC= \
 .PHONY: clean debug release advisor tar
 
 OBJ=	$(SRC:.c=.o)
-
-#MOD=	$(SRC:.c=.mod)
-MOD=	
 EDT=	$(SRC:.c=.c~)
 TMP=	$(MOD) $(EDT) core
 
