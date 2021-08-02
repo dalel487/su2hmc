@@ -3,13 +3,13 @@ MF=	Makefile
 CC= mpicc
 NVCC = nvcc
 
-IFLAGS=     -I../INCLUDE/ -I/opt/AMD/aocl/aocl-linux-aocc-3.0-6/include/ \
+IFLAGS=     -I../INCLUDE/ -I /home/dalel487/amd/aocl/3.0-6/include/ \
 
 CFLAGS=      $(IFLAGS) -std=gnu99 -DUSE_BLAS -fcommon\
 		 -march=native  -DUSE_RAN2 \
 		 -fopenmp-simd -fopenmp  -DSA3AT -fveclib=AMDLIBM -flto
 
-LFLAGS=	-L/opt/AMD/aocl/aocl-linux-aocc-3.0-6/lib/  -Wl -latomic \
+LFLAGS=	-L/home/dalel487/amd/aocl/3.0-6/lib/  -Wl -latomic \
 		-liomp5 -lpthread -lm -ldl -lalm -lblis\
 
 EXE=	su2hmc_AMD
@@ -53,11 +53,11 @@ TMP=	$(MOD) $(EDT) core
 
 all:	$(EXE)
 
-release:	CFLAGS +=  -Ofast -finline-aggresive -finline-recursion=4\
+release:	CFLAGS +=  -Ofast -finline-aggressive -finline-recursion=4\
 				-funroll-loops
 release:	$(EXE)
 
-debug:	CFLAGS += -g -O0  -finline-aggresive\
+debug:	CFLAGS += -g -O0  -finline-aggressive\
 		-D_DEBUG -DUSE_RAN2 #-DDIAGNOSTIC -DNO_TIME -DNO_SPACE
 
 debug:	$(EXE)
