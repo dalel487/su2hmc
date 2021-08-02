@@ -16,24 +16,21 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 	 *
 	 * Calls:
 	 * =====
-	 * Gauss_z
-	 * Par_dsum
-	 * ZHalo_swap_dir
-	 * DHalo_swap_dir
+	 * Gauss_z, Par_dsum, ZHalo_swap_dir, DHalo_swap_dir, Congradp, Dslashd
 	 *
 	 * Globals:
 	 * =======
-	 * Phi, X0, xi, R1, u11t, u12t 
+	 * Phi, X0, xi, R1, u11t, u12t, ganval, iu, id 
 	 *
 	 * Parameters:
 	 * ==========
 	 * double *pbp:		Pointer to ψ-bar ψ
-	 * double endenf:
+	 * double endenf:		Energy density
 	 * double denf:
-	 * complex qq:
-	 * complex qbqb:
-	 * double res:
-	 * int itercg:
+	 * complex qq:		Diquark
+	 * complex qbqb:		Antidiquark
+	 * double res:		Conjugate Gradient Residue
+	 * int itercg:		Iterations of Conjugate Gradient
 	 *
 	 * Returns:
 	 * =======
@@ -50,7 +47,7 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 #else
 	complex *x = malloc(kfermHalo*sizeof(complex));
 #endif
-	//Setting up noise. I don't see any reason to loop
+	//Setting up noise.
 
 	//The root two term comes from the fact we called gauss0 in the fortran code instead of gaussp
 #if (defined(USE_RAN2)||!defined(USE_MKL))
@@ -71,6 +68,7 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 	memcpy(xi, R1, nc*ngorkov*kvol*sizeof(complex));
 
 	//Evaluate xi = (M^† M)^-1 R_1 
+	//This is still double precision for now
 	Congradp(0, res, itercg);
 #ifdef __NVCC__
 	Complex buff;
@@ -119,7 +117,8 @@ int Measure(double *pbp, double *endenf, double *denf, complex *qq, complex *qbq
 #endif
 	}
 	//In the FORTRAN Code dsum was used instead despite qq and qbqb being complex
-	Par_zsum(qq); Par_zsum(qbqb);
+	//Since we only care about the real part this shouldn't cause (m)any serious issues
+	Par_dsum(qq); Par_dsum(qbqb);
 	*qq=(*qq+*qbqb)/(2*gvol);
 	complex xu, xd, xuu, xdd;
 	xu=0;xd=0;xuu=0;xdd=0;

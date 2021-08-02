@@ -11,13 +11,17 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 	 *
 	 * Globals:
 	 * =======
-	 * 
+	 * u11t,u12t,rank,beta
 	 *
 	 * Parameters:
 	 * ===========
 	 * double hg
 	 * double avplaqs
 	 * double avplaqt
+	 *
+	 * Calls:
+	 * =====
+	 * Par_dsum
 	 *
 	 * Returns:
 	 * =======
@@ -106,8 +110,8 @@ double Polyakov(){
 	complex *Sigma11 = mkl_malloc(kvol3*sizeof(complex),AVX);
 	complex *Sigma12 = mkl_malloc(kvol3*sizeof(complex),AVX);
 #else
-	complex *Sigma11 = malloc(kvol3*sizeof(complex));
-	complex *Sigma12 = malloc(kvol3*sizeof(complex));
+	complex *Sigma11 = aligned_alloc(AVX,kvol3*sizeof(complex));
+	complex *Sigma12 = aligned_alloc(AVX,kvol3*sizeof(complex));
 #endif
 #ifdef __NVCC__
 	cublasZcopy(cublas_handle,kvol3, &u11t[3], ndim, Sigma11, 1);
@@ -167,7 +171,9 @@ double Polyakov(){
 #pragma omp parallel for simd reduction(+:poly) aligned(Sigma11:AVX)
 	for(int i=0;i<kvol3;i++)
 		poly+=creal(Sigma11[i]);
-#ifdef USE_MKL
+#ifdef __NVCC__
+	cudaFree(Sigma11); cudaFree(sigma12);
+#elif defined USE_MKL
 	mkl_free(Sigma11); mkl_free(Sigma12);
 #else
 	free(Sigma11); free(Sigma12);

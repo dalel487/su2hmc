@@ -125,5 +125,4 @@ __global__ void cuPolyakov(Complex *Sigma11, Complex * Sigma12);
 //Inline Stuff
 extern inline int Z_gather(Complex*x, Complex *y, int n, unsigned int *table, unsigned int mu);
 extern inline int Fill_Small_Phi(int na, Complex *smallPhi);
-double Norm_squared(Complex *z, int n);
 #endif

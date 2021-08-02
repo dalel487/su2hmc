@@ -9,15 +9,14 @@ int Dslash(complex *phi, complex *r){
 	 *
 	 * Globals
 	 * =======
-	 * u11t, u12t, dk4p, dk4m, akappa, jqq 
+	 * u11t, u12t, dk4p, dk4m, akappa, jqq, id, iu 
 	 *
 	 * Calls:
 	 * ======
-	 * zhaloswapdir, chaloswapdir, zhaloswapall (Non-mpi version could do without these)
+	 * ZHalo_swap_all (Non-mpi version could do without these)
 	 *
-	 * Parametrer:
+	 * Parameter:
 	 * ==========
-	 *
 	 * complex *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
 	 * 			for consistency with the fortran code I'll keep the name here
 	 * complex r:		The array being acted on by M
@@ -128,15 +127,14 @@ int Dslashd(complex *phi, complex *r){
 	 *
 	 * Globals
 	 * =======
-	 * u11t, u12t, dk4p, dk4m, akappa, jqq 
+	 * u11t, u12t, dk4p, dk4m, akappa, jqq, id, iu 
 	 *
 	 * Calls:
 	 * ======
-	 * zhaloswapdir, chaloswapdir, zhaloswapall (Non-mpi version could do without these)
+	 * ZHalo_swap_all (Non-mpi version could do without these)
 	 *
 	 * Parameter:
 	 * ==========
-	 *
 	 * complex *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
 	 * 			for consistency with the fortran code I'll keep the name here
 	 * complex r:		The array being acted on by M
@@ -251,11 +249,11 @@ int Hdslash(complex *phi, complex *r){
 	 *
 	 * Globals
 	 * =======
-	 * u11t, u12t, dk4p, dk4m, akappa, jqq 
+	 * u11t, u12t, dk4p, dk4m, akappa, jqq, id, iu
 	 *
 	 * Calls:
 	 * ======
-	 * zhaloswapdir, dhaloswapdir, zhaloswapall (Non-mpi version could do without these)
+	 * ZHalo_swap_all (Non-mpi version could do without these)
 	 *
 	 * Parameter:
 	 * ==========
@@ -345,13 +343,13 @@ int Hdslashd(complex *phi, complex *r){
 	 *
 	 * Globals
 	 * =======
-	 * u11t, u12t, dk4p, dk4m, akappa, jqq 
+	 * u11t, u12t, dk4p, dk4m, akappa, jqq , id, iu
 	 *
 	 * Calls:
 	 * ======
-	 * zhaloswapdir, chaloswapdir, zhaloswapall (Non-mpi version could do without these)
+	 * ZHalo_swap_all (Non-mpi version could do without these)
 	 *
-	 * Parametrer:
+	 * Parameter:
 	 * ==========
 	 *
 	 * complex *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
@@ -450,18 +448,18 @@ int Hdslash_f(Complex_f *phi, Complex_f *r){
 	 *
 	 * Globals
 	 * =======
-	 * u11t, u12t, dk4p, dk4m, akappa_f, jqq 
+	 * u11t_f, u12t_f, dk4p_f, dk4m_f, akappa_f, jqq_f , id, iu
 	 *
 	 * Calls:
 	 * ======
-	 * zhaloswapdir, chaloswapdir, zhaloswapall (Non-mpi version could do without these)
+	 * CHalo_swap_all (Non-mpi version could do without these)
 	 *
-	 * Parametrer:
+	 * Parameter:
 	 * ==========
 	 *
-	 * complex *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
+	 * Complex_f *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
 	 * 			for consistency with the fortran code I'll keep the name here
-	 * complex r:		The array being acted on by M
+	 * Complex_f r:		The array being acted on by M
 	 *
 	 * Returns:
 	 * Zero on success, integer error code otherwise
@@ -545,18 +543,18 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r){
 	 *
 	 * Globals
 	 * =======
-	 * u11t, u12t, dk4p, dk4m, akappa_f, jqq 
+	 * u11t_f, u12t_f, dk4p_f, dk4m_f, akappa_f, jqq_f, id, iu
 	 *
 	 * Calls:
 	 * ======
-	 * zhaloswapdir, chaloswapdir, zhaloswapall (Non-mpi version could do without these)
+	 * Chalo_swap_all
 	 *
-	 * Parametrer:
+	 * Parameters:
 	 * ==========
 	 *
-	 * complex *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
+	 * Complex_f *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
 	 * 			for consistency with the fortran code I'll keep the name here
-	 * complex r:		The array being acted on by M
+	 * Complex_f r:		The array being acted on by M
 	 *
 	 * Returns:
 	 * Zero on success, integer error code otherwise
@@ -644,6 +642,25 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r){
 	return 0;
 }
 int New_trial(double dt){
+	/*
+	 * Generates new trial fields
+	 *
+	 * Globals:
+	 * =======
+	 * complex u11t, u12t, pp
+	 *
+	 * Calls:
+	 * =====
+	 * Trial_Exchange
+	 *
+	 * Parameters:
+	 * =========
+	 * double dt: Half lattice spacing
+	 *
+	 * Returns:
+	 * Zero on success, integer error code otherwise
+	 */
+	char *funcname = "New_trial";
 #pragma omp parallel for simd collapse(2) aligned(pp, u11t, u12t:AVX)
 	for(int i=0;i<kvol;i++){
 		for(int mu = 0; mu<ndim; mu++){
@@ -920,7 +937,7 @@ int Diagnostics(int istart){
 							creal(X0[i+2]-X0_f[i+2]),cimag(X0[i+2]-X0_f[i+2]),creal(X0[i+3]-X0_f[i+3]),cimag(X0[i+3]-X0_f[i+3]),
 							creal(X0[i+4]-X0_f[i+4]),cimag(X0[i+4]-X0_f[i+4]),creal(X0[i+5]-X0_f[i+5]),cimag(X0[i+5]-X0_f[i+5]),
 							creal(X0[i+6]-X0_f[i+6]),cimag(X0[i+6]-X0_f[i+6]),creal(X0[i+7]-X0_f[i+7]),cimag(X0[i+7]-X0_f[i+7]));
-							}
+				}
 				break;
 			case(3):	
 				output_old = fopen("hdslashd_old", "w");

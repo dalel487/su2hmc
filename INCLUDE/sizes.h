@@ -40,7 +40,7 @@
 #define	FILELEN	64
 // Common block definition for parallel variables
 
-#define	nx	16	
+#define	nx	8	
 #define	nt	16
 
 // Keep original restriction of single spatial extent

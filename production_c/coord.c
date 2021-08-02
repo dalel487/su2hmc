@@ -1,11 +1,11 @@
-#include "coord.h"
+#include <coord.h>
 #include <complex.h>
-#include "errorcodes.h"
+#include <errorcodes.h>
 #include <math.h>
 #ifdef  __OPENMP
 #include <omp.h>
 #endif
-#include "sizes.h"
+#include <sizes.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -217,6 +217,7 @@ int Addrc(){
 					}
 					iu[3+ndim*ic]=iaddr;
 				}
+//Print iu and id for diagnostics
 #ifdef DIAGNOSTIC
 #pragma omp parallel sections
 	{
@@ -240,6 +241,7 @@ int Addrc(){
 #endif
 	return 0;
 }
+//No point making this parallel because Addrc is serial and the only thing that calls ia
 inline int ia(int x, int y, int z, int t){
 	/*
 	 * Described as a 21st Century address calculator, it gets the memory
@@ -287,7 +289,7 @@ int Check_addr(unsigned int *table, int lns, int lnt, int imin, int imax){
 	int ntable = lns*lns*lns*lnt;
 	int iaddr;
 	//Collapsing two for loops together
-#pragma omp parallel for simd
+#pragma omp parallel for simd aligned(table:AVX)
 	for(int j=0; j<ntable*ndim; j++){
 		iaddr = table[j];
 		if((iaddr<imin) || (iaddr>= imax)){
@@ -300,7 +302,7 @@ int Check_addr(unsigned int *table, int lns, int lnt, int imin, int imax){
 	}
 	return 0;
 }
-int Index2lcoord(int index, int *coord){
+inline int Index2lcoord(int index, int *coord){
 	/* Converts the index of a point in memory to the equivalent point
 	 * in the 4 dimensional array, where the time index is the last
 	 * coordinate in the array
@@ -337,7 +339,7 @@ int Index2lcoord(int index, int *coord){
 
 	return 0;
 }
-int Index2gcoord(int index, int *coord){
+inline int Index2gcoord(int index, int *coord){
 	/* Converts the index of a point in memory to the equivalent point
 	 * in the 4 dimensional array, where the time index is the last
 	 * coordinate in the array
@@ -374,7 +376,7 @@ int Index2gcoord(int index, int *coord){
 
 	return 0;
 }
-int Coord2lindex(int *coord){
+inline int Coord2lindex(int *coord){
 	/* Converts the coordinates of a point to its relative index in the 
 	 * computer memory to the first point in the memory
 	 *
@@ -400,7 +402,7 @@ int Coord2lindex(int *coord){
 	int index = coord[3]+ksizet*(coord[2]+ksizez*(coord[1]+ksizey*coord[0]));
 	return index;
 }
-int Coord2gindex(int *coord){
+inline int Coord2gindex(int *coord){
 	/* Converts the coordinates of a point to its relative index in the 
 	 * computer memory to the first point in the memory
 	 *
@@ -439,6 +441,10 @@ int Testlcoord(int cap){
 	 * ===========
 	 * int cap: The max value the index can take on. Should be the size of the array
 	 *
+	 * Calls:
+	 * =====
+	 * Index2lcoord, Coord2lindex
+	 *
 	 * Returns:
 	 * ========
 	 * Zero on success, integer error code otherwise.
@@ -475,6 +481,10 @@ int Testgcoord(int cap){
 	 * Parameters:
 	 * ===========
 	 * int cap: The max value the index can take on. Should be the size of our array
+	 *
+	 * Calls:
+	 * ======
+	 * Index2gcoord, Coord2gindex
 	 *
 	 * Returns:
 	 * ========

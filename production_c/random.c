@@ -19,12 +19,10 @@ VSLStreamStatePtr stream;
 #include <string.h>
 
 //Declaring external variables
-#ifdef	USE_RAN2
-long seed = 967580161;
-#elif defined(USE_MKL)
+#ifdef	USE_MKL
 unsigned int seed = 967580161;
 #else
-int seed = 967580161;
+long seed = 967580161;
 #endif
 #ifndef M_PI
 #define M_PI           3.14159265358979323846
@@ -73,7 +71,7 @@ int Par_ranset(long *seed)
 #elif defined(USE_MKL)
 int Par_ranset(unsigned int *seed)
 #else
-int Par_ranset(unsigned int *seed)
+int Par_ranset(long *seed)
 #endif
 {
 	/* Uses the rank to get a new seed.
@@ -85,7 +83,11 @@ int Par_ranset(unsigned int *seed)
 	 *
 	 * Parameters:
 	 * ===========
-	 * double *seed:  The seed from the rank in question.
+	 * unsigned int/long *seed:  The seed from the rank in question.
+	 *
+	 * Calls:
+	 * =====
+	 * ranset (used to initialise the stream for MKL at the moment. Legacy from Fortran)
 	 *
 	 * Returns:
 	 * ========
@@ -97,7 +99,7 @@ int Par_ranset(unsigned int *seed)
 		*seed *= 1.0+8.0*(float)rank/(float)(size-1);
 	//Next we set the seed using ranset
 	//This is one of the really weird FORTRANN 66 esque functions with ENTRY points, so good luck!
-#ifndef USE_RAN2
+#ifdef USE_MKL
 	return ranset(seed);
 #else
 	return 0;
@@ -109,6 +111,9 @@ double Par_granf(){
 	 * Parameters:
 	 * ===========
 	 * None!
+	 *
+	 * Calls:
+	 * ran2, par_dcopy
 	 *
 	 * Returns:
 	 * ========
@@ -136,6 +141,14 @@ int Gauss_z(complex *ps, unsigned int n, const double mu, const double sigma){
 	 * unsigned int n: The array length
 	 * double mu:     mean
 	 * double sigma:  variance
+	 *
+	 * Globals:
+	 * =======
+	 * seed
+	 *
+	 * Calls:
+	 * =====
+	 * ran2
 	 * 
 	 * Returns:
 	 * =======
@@ -177,6 +190,14 @@ int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma){
 	 * unsigned int n: The array length
 	 * double mu:     mean
 	 * double sigma:  variance
+	 *
+	 * Globals:
+	 * ======
+	 * seed
+	 *
+	 * Calls:
+	 * =====
+	 * ran2
 	 * 
 	 * Returns:
 	 * =======
@@ -225,6 +246,18 @@ int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma){
 	return 0;
 }
 double ran2(long *idum) {
+/*
+ * Generates uniformly distributed random double betweeen zero and one as 
+ * described in numerical recipes. It's also threadsafe for different seeds.
+ *
+ * Parameters:
+ * ==========
+ * long *idum: Pointer to the seed
+ *
+ * Returns:
+ * double: The random number between zero and one
+ *
+ */
 	long k;
 	int j;
 	static long idum2=123456789; 

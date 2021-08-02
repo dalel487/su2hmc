@@ -372,7 +372,7 @@ int main(int argc, char *argv[]){
 			Trial_Exchange();
 
 #ifdef __NVCC__
-//Mark trial fields as primarily read only here? Can renable writing at the end of each trajectory
+			//Mark trial fields as primarily read only here? Can renable writing at the end of each trajectory
 			cudaMemPrefetchAsync(u11t, ndim*(kvol+halo)*sizeof(Complex),device,NULL);
 			cudaMemPrefetchAsync(u12t, ndim*(kvol+halo)*sizeof(Complex),device,NULL);
 #endif
@@ -515,8 +515,6 @@ int main(int argc, char *argv[]){
 								fflush(output);
 								break;
 							case(1):
-								//The origninal code implicitly created these files with the name fort.XX where XX
-								//is the file label from FORTRAN. We'll stick with that for now.
 								{
 									FILE *fortout;
 									char *fortname = "PBP-Density";
@@ -539,7 +537,7 @@ int main(int argc, char *argv[]){
 								//from FORTRAN. This was fort.12
 								{
 									FILE *fortout;
-									char *fortname = "Plaquette"; 
+									char *fortname = "Bosonic_Observables"; 
 									char *fortop= (itraj==1) ? "w" : "a";
 									if(!(fortout=fopen(fortname, fortop) )){
 										fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
@@ -553,7 +551,6 @@ int main(int argc, char *argv[]){
 									fclose(fortout);
 									break;
 								}
-
 							case(3):
 								{
 									FILE *fortout;
@@ -645,12 +642,13 @@ int Init(int istart){
 	 *
 	 * Calls:
 	 * ======
-	 * Addrc. Rand_init
-	 *
+	 * Addrc, ran2 (depends on compiler flags), DHalo_swap_dir,
+	 * Reunitarise
 	 *
 	 * Globals:
 	 * ========
-	 * u11t, u12t, dk4m, dk4p
+	 * u11, u12, u11t, u12t, u11_f, u12_f, dk4m, dk4p, dk4m_4, dk4p_f
+	 * iu, id
 	 *
 	 * Parameters:
 	 * ==========
@@ -824,20 +822,17 @@ int Hamilton(double *h, double *s, double res2){
 	 * 
 	 * Calls:
 	 * =====
-	 * SU2plaq
-	 * Par_dsum
-	 * Congradq
-	 * Fill_Small_Phi
+	 * SU2plaq, Par_dsum, Congradq, Fill_Small_Phi
 	 *
 	 * Globals:
 	 * =======
-	 * pp, kmom, rank, ancgh, X0, Phi
+	 * pp, rank, ancgh, X0, X1, Phi
 	 *
 	 * Parameters:
 	 * ===========
-	 * double *h:
-	 * double *s:
-	 * double res2:
+	 * double *h: Hamiltonian
+	 * double *s: Action
+	 * double res2: Limit for conjugate gradient
 	 *
 	 * Returns:
 	 * =======
@@ -914,15 +909,14 @@ int Hamilton(double *h, double *s, double res2){
 }
 int Congradq(int na, double res, complex *smallPhi, int *itercg){
 	/*
-	 * Matrix Inversion via Conjugate Gradient
+	 * Matrix Inversion via Mixed Precision Conjugate Gradient
 	 * Solves (M^†)Mx=Phi
 	 * Impliments up/down partitioning
+	 * The matrix multiplication step is done at single precision, while the update is done at double
 	 * 
 	 * Calls:
 	 * =====
-	 * Fill_Small_Phi
-	 * Hdslash
-	 * Hdslashd
+	 * Fill_Small_Phi, Hdslash_f, Hdslashd_f
 	 *
 	 * Globals:
 	 * =======
@@ -934,8 +928,12 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 	 * Parameters:
 	 * ==========
 	 * int na: Flavour index
-	 * double res: Resolution
-	 * int itercg: Counts the iterations of the conjugate gradiant?
+	 * double res: Limit for conjugate gradient
+	 * complex *smallPhi: Partition of Phi being used. This is actually going to be overwritten
+	 * 				pretty much straight away but it seems more efficent to pass the
+	 * 				memory from Hamiltonian that's no longer being used than to assign
+	 * 				a second identical array
+	 * int itercg: Counts the iterations of the conjugate gradient
 	 *
 	 * Returns:
 	 * =======
@@ -951,9 +949,9 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 #endif
 		complex fac = conj(jqq)*jqq*akappa*akappa;
 	//These were evaluated only in the first loop of niterx so we'll just do it ouside of the loop.
-	//These alpha and beta terms should be double, but that causes issues with BLAS. Instead we declare
+	double alphan;
+	//The alpha and beta terms should be double, but that causes issues with BLAS pointers. Instead we declare
 	//them complex and work with the real part (especially for α_d)
-	complex alphan;
 	//Give initial values Will be overwritten if niterx>0
 	double betad = 1.0; complex alphad=0; complex alpha = 1;
 	//Because we're dealing with flattened arrays here we can call cblas safely without the halo
@@ -1040,8 +1038,8 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 			for(int i=0; i<kferm2; i++)
 				alphad+=conj(p[i])*x2[i];
 #endif
-			//TODO: Implement Par_csum. For now I'll cast it into a double for the reduction.
-			//And reduce. α_d does have a complex component but we only care about the real part
+			//For now I'll cast it into a double for the reduction. Each rank only sends and writes
+			//to the real part so this is fine
 			Par_dsum(&alphad);
 			//α=α_n/α_d = (r.r)/p(M^†M)p 
 			alpha=creal(alphan)/creal(alphad);
@@ -1078,7 +1076,7 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 		}
 #endif
 		//And... reduce.
-		Par_zsum(&betan);
+		Par_dsum(&betan);
 		if(creal(betan)<resid){ 
 #ifdef _DEBUG
 			if(!rank) printf("Iter (CG) = %i resid = %e toler = %e\n", niterx+1, creal(betan), resid);
@@ -1091,8 +1089,9 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 		}
 		//Here we evaluate β=(r_{k+1}.r_{k+1})/(r_k.r_k) and then shuffle our indices down the line.
 		//On the first iteration we define beta to be zero.
-		complex beta = (niterx) ?  creal(betan)/betad : 0;
-		betad=betan; alphan=betan;
+		//Note that beta below is not the global beta and scoping is used to avoid conflict between them
+		complex beta = (niterx) ?  creal(betan)/creal(betad) : 0;
+		betad=betan; alphan=creal(betan);
 		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multipyling y by
 		//β instead of x.
 #if (defined USE_MKL||defined USE_BLAS)
@@ -1271,6 +1270,7 @@ int Congradp(int na, double res, int *itercg){
 			if(!rank) fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i β_n=%e\n", ITERLIM, funcname, niterc, creal(betan));
 			break;
 		}
+		//Note that beta below is not the global beta and scoping is used to avoid conflict between them
 		complex beta = (niterx) ? betan/betad : 0;
 		betad=creal(betan); alphan=betan;
 		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multipyling y by 
@@ -1330,30 +1330,4 @@ inline int Fill_Small_Phi(int na, Complex *smallPhi)
 				smallPhi[(i*ndirac+idirac)*nc+ic]=Phi[((na*kvol+i)*ngorkov+idirac)*nc+ic];
 			}
 	return 0;
-}
-double Norm_squared(Complex *z, int n)
-{
-	/* Called znorm2 in the original FORTRAN.
-	 * Takes a complex number vector of length n and finds the square of its 
-	 * norm using the formula
-	 * 
-	 *	    |z(i)|^2 = z(i)Xz*(i)
-	 *
-	 * Parameters:
-	 * ==========
-	 *  complex z:	The Number being normalised
-	 *  int n:	The length of the vector
-	 * 
-	 * Returns:
-	 * =======
-	 *  double: The norm of the complex number
-	 * 
-	 */
-	//BLAS? Use cblas_zdotc instead for vectorisation
-	const char *funcname = "Norm_squared";
-	double norm = 0;
-#pragma omp parallel for simd reduction(+:norm)
-	for(int i=0; i<n; i++)
-		norm+=z[i]*conj(z[i]);
-	return norm;
 }
