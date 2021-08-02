@@ -5,12 +5,13 @@ NVCC = nvcc
 
 IFLAGS=     -I../INCLUDE/ -I /home/dalel487/amd/aocl/3.0-6/include/ \
 
-CFLAGS=      $(IFLAGS) -std=gnu99 -DUSE_BLAS -fcommon\
+CFLAGS=      $(IFLAGS) -std=gnu11 -DUSE_BLAS -fcommon\
 		 -march=native  -DUSE_RAN2 \
 		 -fopenmp-simd -fopenmp  -DSA3AT -fveclib=AMDLIBM -flto
 
 LFLAGS=	-L/home/dalel487/amd/aocl/3.0-6/lib/  -Wl -latomic \
-		-liomp5 -lpthread -lm -ldl -lalm -lblis\
+		-liomp5 -lpthread -lm -ldl -lalm\
+		 -lblis\
 
 EXE=	su2hmc_AMD
 

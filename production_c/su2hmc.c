@@ -984,7 +984,7 @@ int Congradq(int na, double res, complex *smallPhi, int *itercg){
 	Complex_f *x1_f=mkl_calloc(kferm2Halo, sizeof(Complex_f), AVX);
 #else
 	complex *p  = aligned_alloc(AVX,kferm2Halo*sizeof(complex));
-	complex *r  = aligned_alloc(AVX<kferm2*sizeof(complex));
+	complex *r  = aligned_alloc(AVX,kferm2*sizeof(complex));
 	complex *x2=aligned_alloc(AVX,kferm2Halo*sizeof(complex));
 
 	Complex_f *p_f=aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
