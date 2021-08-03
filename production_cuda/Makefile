@@ -15,7 +15,7 @@ CFLAGS=      $(IFLAGS) -std=gnu99 -qopt-zmm-usage=high\
 LFLAGS=	 -L${MKLROOT}/lib/intel64 -liomp5 -lpthread -lm -ldl -lcudart -lcublas #-wd10237
 
 MKLFLAGS=	-mkl -DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64 
-CUFLAGS=	${IFLAGS} -ccbin ${CC} -arch=compute_70 -code=sm_70,sm_72,sm_75,sm_80,sm_86 -err-no\
+CUFLAGS=	${IFLAGS} -ccbin ${CC} -arch=compute_70 -code=sm_70,sm_72,sm_75,sm_80,sm_86 -err-no -w\
 
 EXE=	cuda_su2hmc_CASCADE
 
