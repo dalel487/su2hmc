@@ -44,11 +44,11 @@ extern
 int gamin[4][4];
 //We have the four γ Matrices, and in the final index (labelled 4 in C) is γ_5)
 #ifdef __NVCC__
-__managed__ 
+__device__ Complex *gamval_d;
 #endif 
 extern Complex gamval[5][4];
 #ifdef __NVCC__
-__managed__ 
+__device__ Complex_f *gamval_f_d;
 #endif 
 extern Complex_f gamval_f[5][4];
 
@@ -73,11 +73,8 @@ float	*dk4m_f, *dk4p_f;
 //Values:
 //------
 //The diquark
-#ifdef __CUDACC__
-extern "C"
-#endif 
 #ifdef __NVCC__
-__managed__
+__device__ Complex *jqq_d;
 #endif 
 extern Complex jqq;
 

@@ -12,9 +12,9 @@ __global__ void cuDslash(Complex *phi, Complex *r){
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork = idirac+4;
 			Complex a_1, a_2;
-			a_1=conj(jqq)*gamval[4][idirac];
+			a_1=conj(*jqq_d)*gamval_d[4*ndirac+idirac];
 			//We subtract a_2, hence the minus
-			a_2=-jqq*gamval[4][idirac];
+			a_2=-*jqq_d*gamval_d[4*ndirac+idirac];
 			phi[(i*ngorkov+idirac)*nc]+=a_1*r[(i*ngorkov+igork)*nc+0];
 			phi[(i*ngorkov+idirac)*nc+1]+=a_1*r[(i*ngorkov+igork)*nc+1];
 			phi[(i*ngorkov+igork)*nc+0]+=a_2*r[(i*ngorkov+idirac)*nc];
@@ -37,7 +37,7 @@ __global__ void cuDslash(Complex *phi, Complex *r){
 						conj(u11t[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]-\
 						u12t[did*ndim+mu]*r[(did*ngorkov+igorkov)*nc+1])+\
 								     //Dirac term
-								     gamval[mu][idirac]*(u11t[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc]+\
+								     gamval_d[mu*ndirac+idirac]*(u11t[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc]+\
 										     u12t[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc+1]-\
 										     conj(u11t[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]+\
 										     u12t[did*ndim+mu]*r[(did*ngorkov+igork1)*nc+1]);
@@ -47,7 +47,7 @@ __global__ void cuDslash(Complex *phi, Complex *r){
 						conj(u12t[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]+\
 						u11t[did*ndim+mu]*r[(did*ngorkov+igorkov)*nc+1])+\
 									 //Dirac term
-									 gamval[mu][idirac]*(-conj(u12t[i*ndim+mu])*r[(uid*ngorkov+igork1)*nc]+\
+									 gamval_d[mu*ndirac+idirac]*(-conj(u12t[i*ndim+mu])*r[(uid*ngorkov+igork1)*nc]+\
 											 conj(u11t[i*ndim+mu])*r[(uid*ngorkov+igork1)*nc+1]-\
 											 conj(u12t[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]-\
 											 u11t[did*ndim+mu]*r[(did*ngorkov+igork1)*nc+1]);
@@ -102,8 +102,8 @@ __global__ void cuDslashd(Complex *phi, Complex *r){
 			int igork = idirac+4;
 			Complex a_1, a_2;
 			//We subtract a_1, hence the minus
-			a_1=-conj(jqq)*gamval[4][idirac];
-			a_2=jqq*gamval[4][idirac];
+			a_1=-conj(*jqq_d)*gamval_d[4*ndirac+idirac];
+			a_2=*jqq_d*gamval_d[4*ndirac+idirac];
 			phi[(i*ngorkov+idirac)*nc]+=a_1*r[(i*ngorkov+igork)*nc];
 			phi[(i*ngorkov+idirac)*nc+1]+=a_1*r[(i*ngorkov+igork)*nc+1];
 			phi[(i*ngorkov+igork)*nc]+=a_2*r[(i*ngorkov+idirac)*nc];
@@ -125,7 +125,7 @@ __global__ void cuDslashd(Complex *phi, Complex *r){
 							+u12t[i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc+1]
 							+conj(u11t[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]
 							-u12t[did*ndim+mu] *r[(did*ngorkov+igorkov)*nc+1])
-					-gamval[mu][idirac]*
+					-gamval_d[mu*ndirac+idirac]*
 					(          u11t[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc]
 						     +u12t[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc+1]
 						     -conj(u11t[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]
@@ -136,7 +136,7 @@ __global__ void cuDslashd(Complex *phi, Complex *r){
 							+conj(u11t[i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc+1]
 							+conj(u12t[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]
 							+u11t[did*ndim+mu] *r[(did*ngorkov+igorkov)*nc+1])
-					-gamval[mu][idirac]*
+					-gamval_d[mu*ndirac+idirac]*
 					(-conj(u12t[i*ndim+mu])*r[(uid*ngorkov+igork1)*nc]
 					 +conj(u11t[i*ndim+mu])*r[(uid*ngorkov+igork1)*nc+1]
 					 -conj(u12t[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]
@@ -204,7 +204,7 @@ __global__ void cuHdslash(Complex *phi, Complex *r){
 						conj(u11t[did*ndim+mu])*r[(did*ndirac+idirac)*nc]-\
 						u12t[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1])+\
 								   //Dirac term
-								   gamval[mu][idirac]*(u11t[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]+\
+								   gamval_d[mu*ndirac+idirac]*(u11t[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]+\
 										   u12t[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]-\
 										   conj(u11t[did*ndim+mu])*r[(did*ndirac+igork1)*nc]+\
 										   u12t[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
@@ -214,7 +214,7 @@ __global__ void cuHdslash(Complex *phi, Complex *r){
 						conj(u12t[did*ndim+mu])*r[(did*ndirac+idirac)*nc]+\
 						u11t[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1])+\
 								     //Dirac term
-								     gamval[mu][idirac]*(-conj(u12t[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]+\
+								     gamval_d[mu*ndirac+idirac]*(-conj(u12t[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]+\
 										     conj(u11t[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]-\
 										     conj(u12t[did*ndim+mu])*r[(did*ndirac+igork1)*nc]-\
 										     u11t[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
@@ -263,7 +263,7 @@ __global__ void cuHdslashd(Complex *phi, Complex *r){
 							+u12t[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]
 							+conj(u11t[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
 							-u12t[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
-					-gamval[mu][idirac]*
+					-gamval_d[mu*ndirac+idirac]*
 					(          u11t[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]
 						     +u12t[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]
 						     -conj(u11t[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
@@ -274,7 +274,7 @@ __global__ void cuHdslashd(Complex *phi, Complex *r){
 							+conj(u11t[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]
 							+conj(u12t[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
 							+u11t[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
-					-gamval[mu][idirac]*
+					-gamval_d[mu*ndirac+idirac]*
 					(-conj(u12t[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]
 					 +conj(u11t[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]
 					 -conj(u12t[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
@@ -327,7 +327,7 @@ __global__ void cuHdslash(Complex_f *phi, Complex_f *r){
 						conj(u11t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]-\
 						u12t_f[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1])+\
 								   //Dirac term
-								   gamval_f[mu][idirac]*(u11t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]+\
+								   gamval_f_d[mu*ndirac+idirac]*(u11t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]+\
 										   u12t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]-\
 										   conj(u11t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]+\
 										   u12t_f[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
@@ -337,7 +337,7 @@ __global__ void cuHdslash(Complex_f *phi, Complex_f *r){
 						conj(u12t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]+\
 						u11t_f[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1])+\
 								     //Dirac term
-								     gamval_f[mu][idirac]*(-conj(u12t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]+\
+								     gamval_f_d[mu*ndirac+idirac]*(-conj(u12t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]+\
 										     conj(u11t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]-\
 										     conj(u12t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]-\
 										     u11t_f[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
@@ -386,7 +386,7 @@ __global__ void cuHdslashd(Complex_f *phi, Complex_f *r){
 							+u12t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]
 							+conj(u11t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
 							-u12t_f[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
-					-gamval_f[mu][idirac]*
+					-gamval_f_d[mu*ndirac+idirac]*
 					(          u11t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]
 						     +u12t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]
 						     -conj(u11t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
@@ -397,7 +397,7 @@ __global__ void cuHdslashd(Complex_f *phi, Complex_f *r){
 							+conj(u11t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]
 							+conj(u12t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
 							+u11t_f[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
-					-gamval_f[mu][idirac]*
+					-gamval_f_d[mu*ndirac+idirac]*
 					(-conj(u12t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]
 					 +conj(u11t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]
 					 -conj(u12t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
@@ -498,7 +498,7 @@ __host__ int Dslash(Complex *phi, Complex *r){
 	 *
 	 * Globals
 	 * =======
-	 * u11t, u12t, dk4p, dk4m, akappa, jqq 
+	 * u11t, u12t, dk4p, dk4m, akappa, jqq_d 
 	 *
 	 * Calls:
 	 * ======
@@ -530,7 +530,7 @@ __host__ int Dslashd(Complex *phi, Complex *r){
 	 *
 	 * Globals
 	 * =======
-	 * u11t, u12t, dk4p, dk4m, akappa, jqq 
+	 * u11t, u12t, dk4p, dk4m, akappa, jqq_d 
 	 *
 	 * Calls:
 	 * ======
@@ -562,7 +562,7 @@ __host__ int Hdslash(Complex *phi, Complex *r){
 	 *
 	 * Globals
 	 * =======
-	 * u11t, u12t, dk4p, dk4m, akappa, jqq 
+	 * u11t, u12t, dk4p, dk4m, akappa, jqq_d 
 	 *
 	 * Calls:
 	 * ======
@@ -601,7 +601,7 @@ __host__ int Hdslashd(Complex *phi, Complex *r){
 	 *
 	 * Globals
 	 * =======
-	 * u11t, u12t, dk4p, dk4m, akappa, jqq 
+	 * u11t, u12t, dk4p, dk4m, akappa, jqq_d 
 	 *
 	 * Calls:
 	 * ======
@@ -648,7 +648,7 @@ __host__ int Hdslash_f(Complex_f *phi, Complex_f *r){
 	 *
 	 * Globals
 	 * =======
-	 * u11t, u12t, dk4p, dk4m, akappa, jqq 
+	 * u11t, u12t, dk4p, dk4m, akappa, jqq_d 
 	 *
 	 * Calls:
 	 * ======
@@ -687,7 +687,7 @@ __host__ int Hdslashd_f(Complex_f *phi, Complex_f *r){
 	 *
 	 * Globals
 	 * =======
-	 * u11t, u12t, dk4p, dk4m, akappa, jqq 
+	 * u11t, u12t, dk4p, dk4m, akappa, jqq_d 
 	 *
 	 * Calls:
 	 * ======

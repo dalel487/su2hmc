@@ -220,7 +220,7 @@ __global__ void cuForce(double *dSdpi, Complex *X2){
 						 +conj(X1[(uid*ndirac+idirac)*nc+1])*
 						 (-u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
 						  -conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])));
-				dSdpi[(i*nadj)*ndim+mu]+=creal(I*gamval[mu][idirac]*
+				dSdpi[(i*nadj)*ndim+mu]+=creal(I*gamval_d[mu*ndirac+idirac]*
 						(conj(X1[(i*ndirac+idirac)*nc])*
 						 (-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
 						  +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1])
@@ -247,7 +247,7 @@ __global__ void cuForce(double *dSdpi, Complex *X2){
 						 +conj(X1[(uid*ndirac+idirac)*nc+1])*
 						 (u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
 						  -conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])));
-				dSdpi[(i*nadj+1)*ndim+mu]+=creal(gamval[mu][idirac]*
+				dSdpi[(i*nadj+1)*ndim+mu]+=creal(gamval_d[mu*ndirac+idirac]*
 						(conj(X1[(i*ndirac+idirac)*nc])*
 						 (-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
 						  +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1])
@@ -274,7 +274,7 @@ __global__ void cuForce(double *dSdpi, Complex *X2){
 						 +conj(X1[(uid*ndirac+idirac)*nc+1])*
 						 (-conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc]
 						  +u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc+1])));
-				dSdpi[(i*nadj+2)*ndim+mu]+=creal(I*gamval[mu][idirac]*
+				dSdpi[(i*nadj+2)*ndim+mu]+=creal(I*gamval_d[mu*ndirac+idirac]*
 						(conj(X1[(i*ndirac+idirac)*nc])*
 						 (u11t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
 						  +u12t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1])
@@ -294,8 +294,8 @@ __global__ void cuForce(double *dSdpi, Complex *X2){
 			//For consistency we'll leave mu in instead of hard coding.
 			mu=3;
 			uid = iu[mu+ndim*i];
-			//We are mutiplying terms by dk4?[i] Also there is no akappa or gamval factor in the time direction	
-			//for the "gamval" terms the sign of d4kp flips
+			//We are mutiplying terms by dk4?[i] Also there is no akappa or gamval_d factor in the time direction	
+			//for the "gamval_d" terms the sign of d4kp flips
 #ifndef NO_TIME
 			dSdpi[(i*nadj)*ndim+mu]+=creal(I*
 					(conj(X1[(i*ndirac+idirac)*nc])*
