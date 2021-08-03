@@ -13,8 +13,8 @@ cublasHandle_t cublas_status;
 #define	Complex	 complex<double>
 #else
 #include	<complex.h>
-#define Complex	complex
 #define Complex_f	float	complex
+#define Complex	complex
 #endif
 //MKL is powerful, but not guaranteed to be available (especially on AMD systems or future
 //ARM Based machines.) BLAS routines should work with other libraries, so we can set a compiler
@@ -43,20 +43,14 @@ extern
 #endif 
 int gamin[4][4];
 //We have the four γ Matrices, and in the final index (labelled 4 in C) is γ_5)
-#ifdef __cplusplus
-extern "C"{
-#endif
 #ifdef __NVCC__
-	__managed__ 
+__managed__ 
 #endif 
-		extern Complex gamval[5][4];
+extern Complex gamval[5][4];
 #ifdef __NVCC__
-	__managed__ 
+__managed__ 
 #endif 
-		extern Complex_f gamval_f[5][4];
-#ifdef __cplusplus
-}
-#endif 
+extern Complex_f gamval_f[5][4];
 
 //From common_pseud
 #ifdef __NVCC__
@@ -79,6 +73,9 @@ float	*dk4m_f, *dk4p_f;
 //Values:
 //------
 //The diquark
+#ifdef __CUDACC__
+extern "C"
+#endif 
 #ifdef __NVCC__
 __managed__
 #endif 

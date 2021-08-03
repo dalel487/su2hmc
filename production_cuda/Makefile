@@ -2,16 +2,17 @@ MF=	Makefile
 
 #FC= mpif77 
 CC= mpiicc
+CXX= mpiicpc
 NVCC = nvcc
 
 IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include" -I./
 
 
-CFLAGS=      $(IFLAGS) -std=gnu99 -ipo -qopt-zmm-usage=high\
+CFLAGS=      $(IFLAGS) -std=gnu99 -qopt-zmm-usage=high\
 		 -xCOMMON-AVX512 -static-intel -static-libgcc -masm=att\
 		 -qopenmp-simd -qopenmp -qopenmp-link=static -DSA3AT \
 
-LFLAGS=	 -L${MKLROOT}/lib/intel64 -liomp5 -lpthread -lm -ldl -lcudart #-wd10237
+LFLAGS=	 -L${MKLROOT}/lib/intel64 -liomp5 -lpthread -lm -ldl -lcudart -lcublas #-wd10237
 
 MKLFLAGS=	-mkl -DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64 
 CUFLAGS=	${IFLAGS} -ccbin ${CC} -arch=compute_70 -code=sm_70,sm_72,sm_75,sm_80,sm_86 -err-no\
@@ -74,9 +75,9 @@ debug:	CUFLAGS += -O0 -G -g -D_DEBUG
 debug:	$(EXE)
 
 $(EXE): $(OBJ)
-	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS) -fPIC" $(LFLAGS) $^ -o $@
+	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $(LFLAGS) $^ -o $@
 $(CUOBJ): %.o: %.cu
-	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS) -fPIC" -x cu -dc $< 
+	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" -dc $< 
 $(COBJ): %.o: $(CSRC_DIR)/%.c
 	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" -c $< 
 

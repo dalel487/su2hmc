@@ -4,12 +4,12 @@
 #ifdef __CUDACC__
 #include	<cuda.h>
 #include	<cuda_complex.hpp>
-#define	Complex complex<double>
 #define	Complex_f complex<float>
+#define	Complex complex<double>
 #else
 #include	<complex.h>
-#define	Complex	complex
 #define	Complex_f	float	complex
+#define	Complex	complex
 #endif
 #include	<errorcodes.h>
 #include	<math.h>
