@@ -306,7 +306,7 @@ __global__ void cuHdslashd(Complex *phi, Complex *r){
 }
 
 //Float editions
-__global__ void cuHdslash(Complex_f *phi, Complex_f *r){
+__global__ void cuHdslash_f(Complex_f *phi, Complex_f *r){
 	char *funcname = "cuHdslash";
 	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -364,7 +364,7 @@ __global__ void cuHdslash(Complex_f *phi, Complex_f *r){
 #endif
 	}
 }
-__global__ void cuHdslashd(Complex_f *phi, Complex_f *r){
+__global__ void cuHdslashd_f(Complex_f *phi, Complex_f *r){
 	char *funcname = "cuHdslashd";
 	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -428,7 +428,7 @@ __global__ void cuHdslashd(Complex_f *phi, Complex_f *r){
 	}
 }
 
-__global__ void New_trial(double dt){
+__global__ void cuNew_trial(double dt){
 	char *funcname = "New_trial";
 	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -641,6 +641,14 @@ __host__ int Hdslashd(Complex *phi, Complex *r){
 	return 0;
 }
 
+int Reunitarise(){
+	cuReunitarise<<<dimGrid,dimBlock>>>();
+	return 0;
+}
+int New_trial(double dt){
+	cuNew_trial<<<dimGrid,dimBlock>>>(dt);
+	return 0;
+}
 //Float editions
 __host__ int Hdslash_f(Complex_f *phi, Complex_f *r){
 	/*
@@ -724,11 +732,6 @@ __host__ int Hdslashd_f(Complex_f *phi, Complex_f *r){
 		inout(phi: length(kferm2Halo))
 		//	cudaMemPrefetchAsync(u11t,kvol+halo,0
 		cuHdslashd_f<<<dimGrid,dimBlock>>>(phi,r);
-	return 0;
-}
-
-__host__ inline int Reunitarise(){
-	cuReunitarise<<<dimGrid,dimBlock>>>();
 	return 0;
 }
 

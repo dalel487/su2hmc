@@ -32,6 +32,10 @@ cublasHandle_t cublas_status;
 //###########
 //Variables:
 //#########
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 int ibound; 
 //Arrays:
 //------
@@ -90,9 +94,6 @@ double fmu, beta, akappa;
 #ifdef __NVCC__
 __managed__
 #endif 
-#ifndef __CUDACC__
-extern
-#endif 
 float akappa_f;
 
 //Function Declarations:
@@ -106,9 +107,14 @@ int Congradp(int na, double res, int *itercg);
 int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbqb, double res, int *itercg);
 int SU2plaq(double *hg, double *avplaqs, double *avplaqt);
 double Polyakov();
+//Inline Stuff
+extern int Z_gather(Complex*x, Complex *y, int n, unsigned int *table, unsigned int mu);
+extern int Fill_Small_Phi(int na, Complex *smallPhi);
+
 //CUDA Declarations:
 //#################
 #ifdef __CUDACC__
+}
 __global__ void cuForce(double *dSdpi, Complex *X2);
 __global__ void Plus_staple(int mu, int nu, Complex *Sigma11, Complex *Sigma12);
 __global__ void Minus_staple(int mu, int nu, Complex *Sigma11, Complex *Sigma12, Complex *u11sh, Complex *u12sh);
@@ -116,7 +122,4 @@ __global__ void cuGaugeForce(int mu, Complex *Sigma11, Complex *Sigma12, double 
 __global__ void cuSU2plaq(int mu, int nu, double *hgs, double *hgt);
 __global__ void cuPolyakov(Complex *Sigma11, Complex * Sigma12);
 #endif
-//Inline Stuff
-extern inline int Z_gather(Complex*x, Complex *y, int n, unsigned int *table, unsigned int mu);
-extern inline int Fill_Small_Phi(int na, Complex *smallPhi);
 #endif

@@ -113,7 +113,7 @@
 //Alignment of arrays. 64 for AVX-512, 32 for AVX/AVX2. 16 for SSE. Since AVX is standard
 //on modern x86 machines I've called it that
 #define	AVX	64
-#ifdef	__CUDACC__
+#ifdef	__NVCC__
 //Device code: Mainly the loops
 //Threads are grouped together to form warps of 32 threads
 //best to keep the block dimension (ksizex*ksizey) multiples of 32,

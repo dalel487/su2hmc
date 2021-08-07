@@ -104,6 +104,10 @@ Complex_f *u11t_f, *u12t_f;
 
 //Function Declarations
 //=====================
+#ifdef __CUDACC__
+extern "C"
+{
+#endif
 int Par_begin(int argc, char *argv[]);
 int Par_sread();
 int Par_psread(char *filename, double *ps);
@@ -125,4 +129,7 @@ int DHalo_swap_dir(double *d, int ncpt, int idir, int layer);
 int Trial_Exchange();
 
 int Par_tmul(Complex *z11, Complex *z12);
+#ifdef __CUDACC__
+}
+#endif
 #endif
