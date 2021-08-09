@@ -770,13 +770,11 @@ int Init(int istart){
 	//More prefetching and marking as read-only (mostly)
 	cudaMemAdvise(dk4p,(kvol+halo)*sizeof(double),cudaMemAdviseSetReadMostly,device);
 	cudaMemAdvise(dk4m,(kvol+halo)*sizeof(double),cudaMemAdviseSetReadMostly,device);
-	cudaMemAdvise(gamval,20*sizeof(Complex),cudaMemAdviseSetReadMostly,device);
 	cudaMemAdvise(gamin_d,16*sizeof(int),cudaMemAdviseSetReadMostly,device);
 
 	cudaMemPrefetchAsync(dk4p,(kvol+halo)*sizeof(double),device,NULL);
 	cudaMemPrefetchAsync(dk4m,(kvol+halo)*sizeof(double),device,NULL);
-	cudaMemPrefetchAsync(gamval,20*sizeof(Complex),device,NULL);
-	cudaMemPrefetchAsync(gamin,16*sizeof(int),device,NULL);
+	cudaMemPrefetchAsync(gamin_d,16*sizeof(int),device,NULL);
 
 	cudaMallocManaged(&u11,ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&u12,ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);

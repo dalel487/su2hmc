@@ -5,6 +5,8 @@
 #include	<cublas_v2.h>
 cublasHandle_t cublas_handle;
 cublasHandle_t cublas_status;
+//Get rid of that dirty yankee English
+#define cudaDeviceSynchronise() cudaDeviceSynchronize()
 #endif 
 #ifdef __CUDACC__
 #include <cuda_complex.hpp>

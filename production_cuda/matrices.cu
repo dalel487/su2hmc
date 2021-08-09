@@ -642,6 +642,7 @@ __host__ int Hdslashd(Complex *phi, Complex *r){
 }
 
 int Reunitarise(){
+	cudaDeviceSynchronise();
 	cuReunitarise<<<dimGrid,dimBlock>>>();
 	return 0;
 }
