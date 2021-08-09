@@ -28,11 +28,11 @@ __global__ void cuDslash(Complex *phi, Complex *r){
 			for(int igorkov=0; igorkov<ngorkov; igorkov++){
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing in the dirac term.
 				int idirac=igorkov%4;		
-				int igork1 = (igorkov<4) ? gamin[mu][idirac] : gamin[mu][idirac]+4;
+				int igork1 = (igorkov<4) ? gamin_d[mu*ndirac+idirac] : gamin_d[mu*ndirac+idirac]+4;
 				//Can manually vectorise with a pragma?
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
-				phi[(i*ngorkov+igorkov)*nc]+=-akappa*(u11t[i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc]+\
+				phi[(i*ngorkov+igorkov)*nc]+=-(*akappa_d)*(u11t[i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc]+\
 						u12t[i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc+1]+\
 						conj(u11t[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]-\
 						u12t[did*ndim+mu]*r[(did*ngorkov+igorkov)*nc+1])+\
@@ -42,7 +42,7 @@ __global__ void cuDslash(Complex *phi, Complex *r){
 										     conj(u11t[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]+\
 										     u12t[did*ndim+mu]*r[(did*ngorkov+igork1)*nc+1]);
 
-				phi[(i*ngorkov+igorkov)*nc+1]+=-akappa*(-conj(u12t[i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc]+\
+				phi[(i*ngorkov+igorkov)*nc+1]+=-(*akappa_d)*(-conj(u12t[i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc]+\
 						conj(u11t[i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc+1]+\
 						conj(u12t[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]+\
 						u11t[did*ndim+mu]*r[(did*ngorkov+igorkov)*nc+1])+\
@@ -62,7 +62,7 @@ __global__ void cuDslash(Complex *phi, Complex *r){
 		for(int igorkov=0; igorkov<4; igorkov++){
 			int igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
 			//the FORTRAN code did it.
-			int igork1 = gamin[3][igorkov];	int igork1PP = igork1+4;
+			int igork1 = gamin_d[3*ndirac+igorkov];	int igork1PP = igork1+4;
 
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			phi[(i*ngorkov+igorkov)*nc]+=
@@ -117,11 +117,11 @@ __global__ void cuDslashd(Complex *phi, Complex *r){
 			for(int igorkov=0; igorkov<ngorkov; igorkov++){
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing.
 				int idirac=igorkov%4;		
-				int igork1 = (igorkov<4) ? gamin[mu][idirac] : gamin[mu][idirac]+4;
+				int igork1 = (igorkov<4) ? gamin_d[mu*ndirac+idirac] : gamin_d[mu*ndirac+idirac]+4;
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
 				phi[(i*ngorkov+igorkov)*nc]+=
-					-akappa*(      u11t[i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc]
+					-(*akappa_d)*(      u11t[i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc]
 							+u12t[i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc+1]
 							+conj(u11t[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]
 							-u12t[did*ndim+mu] *r[(did*ngorkov+igorkov)*nc+1])
@@ -132,7 +132,7 @@ __global__ void cuDslashd(Complex *phi, Complex *r){
 						     +u12t[did*ndim+mu] *r[(did*ngorkov+igork1)*nc+1]);
 
 				phi[(i*ngorkov+igorkov)*nc+1]+=
-					-akappa*(-conj(u12t[i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc]
+					-(*akappa_d)*(-conj(u12t[i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc]
 							+conj(u11t[i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc+1]
 							+conj(u12t[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]
 							+u11t[did*ndim+mu] *r[(did*ngorkov+igorkov)*nc+1])
@@ -152,7 +152,7 @@ __global__ void cuDslashd(Complex *phi, Complex *r){
 #ifndef NO_TIME
 		for(int igorkov=0; igorkov<4; igorkov++){
 			//the FORTRAN code did it.
-			int igork1 = gamin[3][igorkov];	
+			int igork1 = gamin_d[3*ndirac+igorkov];	
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			phi[(i*ngorkov+igorkov)*nc]+=
 				-dk4m[i]*(u11t[i*ndim+3]*(r[(uid*ngorkov+igorkov)*nc]+r[(uid*ngorkov+igork1)*nc])
@@ -195,11 +195,11 @@ __global__ void cuHdslash(Complex *phi, Complex *r){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
 			for(int idirac=0; idirac<ndirac; idirac++){
 				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
-				int igork1 = gamin[mu][idirac];
+				int igork1 = gamin_d[mu*ndirac+idirac];
 				//Can manually vectorise with a pragma?
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
-				phi[(i*ndirac+idirac)*nc]+=-akappa*(u11t[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]+\
+				phi[(i*ndirac+idirac)*nc]+=-(*akappa_d)*(u11t[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]+\
 						u12t[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]+\
 						conj(u11t[did*ndim+mu])*r[(did*ndirac+idirac)*nc]-\
 						u12t[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1])+\
@@ -209,7 +209,7 @@ __global__ void cuHdslash(Complex *phi, Complex *r){
 										   conj(u11t[did*ndim+mu])*r[(did*ndirac+igork1)*nc]+\
 										   u12t[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
 
-				phi[(i*ndirac+idirac)*nc+1]+=-akappa*(-conj(u12t[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]+\
+				phi[(i*ndirac+idirac)*nc+1]+=-(*akappa_d)*(-conj(u12t[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]+\
 						conj(u11t[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]+\
 						conj(u12t[did*ndim+mu])*r[(did*ndirac+idirac)*nc]+\
 						u11t[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1])+\
@@ -225,7 +225,7 @@ __global__ void cuHdslash(Complex *phi, Complex *r){
 		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
 #ifndef NO_TIME
 		for(int idirac=0; idirac<ndirac; idirac++){
-			int igork1 = gamin[3][idirac];
+			int igork1 = gamin_d[3*ndirac+idirac];
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			phi[(i*ndirac+idirac)*nc]+=
 				-dk4p[i]*(u11t[i*ndim+3]*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
@@ -253,13 +253,13 @@ __global__ void cuHdslashd(Complex *phi, Complex *r){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
 			for(int idirac=0; idirac<ndirac; idirac++){
 				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
-				int igork1 = gamin[mu][idirac];
+				int igork1 = gamin_d[mu*ndirac+idirac];
 				//Can manually vectorise with a pragma?
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
 
 				phi[(i*ndirac+idirac)*nc]+=
-					-akappa*(u11t[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]
+					-(*akappa_d)*(u11t[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]
 							+u12t[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]
 							+conj(u11t[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
 							-u12t[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
@@ -270,7 +270,7 @@ __global__ void cuHdslashd(Complex *phi, Complex *r){
 						     +u12t[did*ndim+mu] *r[(did*ndirac+igork1)*nc+1]);
 
 				phi[(i*ndirac+idirac)*nc+1]+=
-					-akappa*(-conj(u12t[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]
+					-(*akappa_d)*(-conj(u12t[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]
 							+conj(u11t[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]
 							+conj(u12t[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
 							+u11t[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
@@ -286,7 +286,7 @@ __global__ void cuHdslashd(Complex *phi, Complex *r){
 		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
 #ifndef NO_TIME
 		for(int idirac=0; idirac<ndirac; idirac++){
-			int igork1 = gamin[3][idirac];
+			int igork1 = gamin_d[3*ndirac+idirac];
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			//dk4m and dk4p swap under dagger
 			phi[(i*ndirac+idirac)*nc]+=
@@ -318,11 +318,11 @@ __global__ void cuHdslash_f(Complex_f *phi, Complex_f *r){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
 			for(int idirac=0; idirac<ndirac; idirac++){
 				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
-				int igork1 = gamin[mu][idirac];
+				int igork1 = gamin_d[mu*ndirac+idirac];
 				//Can manually vectorise with a pragma?
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
-				phi[(i*ndirac+idirac)*nc]+=-akappa_f*(u11t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]+\
+				phi[(i*ndirac+idirac)*nc]+=-(*akappa_f_d)*(u11t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]+\
 						u12t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]+\
 						conj(u11t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]-\
 						u12t_f[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1])+\
@@ -332,7 +332,7 @@ __global__ void cuHdslash_f(Complex_f *phi, Complex_f *r){
 										   conj(u11t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]+\
 										   u12t_f[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
 
-				phi[(i*ndirac+idirac)*nc+1]+=-akappa_f*(-conj(u12t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]+\
+				phi[(i*ndirac+idirac)*nc+1]+=-(*akappa_f_d)*(-conj(u12t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]+\
 						conj(u11t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]+\
 						conj(u12t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]+\
 						u11t_f[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1])+\
@@ -348,7 +348,7 @@ __global__ void cuHdslash_f(Complex_f *phi, Complex_f *r){
 		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
 #ifndef NO_TIME
 		for(int idirac=0; idirac<ndirac; idirac++){
-			int igork1 = gamin[3][idirac];
+			int igork1 = gamin_d[3*ndirac+idirac];
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			phi[(i*ndirac+idirac)*nc]+=
 				-dk4p_f[i]*(u11t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
@@ -376,13 +376,13 @@ __global__ void cuHdslashd_f(Complex_f *phi, Complex_f *r){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
 			for(int idirac=0; idirac<ndirac; idirac++){
 				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
-				int igork1 = gamin[mu][idirac];
+				int igork1 = gamin_d[mu*ndirac+idirac];
 				//Can manually vectorise with a pragma?
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
 
 				phi[(i*ndirac+idirac)*nc]+=
-					-akappa_f*(u11t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]
+					-(*akappa_f_d)*(u11t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]
 							+u12t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]
 							+conj(u11t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
 							-u12t_f[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
@@ -393,7 +393,7 @@ __global__ void cuHdslashd_f(Complex_f *phi, Complex_f *r){
 						     +u12t_f[did*ndim+mu] *r[(did*ndirac+igork1)*nc+1]);
 
 				phi[(i*ndirac+idirac)*nc+1]+=
-					-akappa_f*(-conj(u12t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]
+					-(*akappa_f_d)*(-conj(u12t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]
 							+conj(u11t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]
 							+conj(u12t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
 							+u11t_f[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
@@ -409,7 +409,7 @@ __global__ void cuHdslashd_f(Complex_f *phi, Complex_f *r){
 		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
 #ifndef NO_TIME
 		for(int idirac=0; idirac<ndirac; idirac++){
-			int igork1 = gamin[3][idirac];
+			int igork1 = gamin_d[3*ndirac+idirac];
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			//dk4m_f and dk4p_f swap under dagger
 			phi[(i*ndirac+idirac)*nc]+=
@@ -498,7 +498,7 @@ __host__ int Dslash(Complex *phi, Complex *r){
 	 *
 	 * Globals
 	 * =======
-	 * u11t, u12t, dk4p, dk4m, akappa, jqq_d 
+	 * u11t, u12t, dk4p, dk4m, (*akappa_d), jqq_d 
 	 *
 	 * Calls:
 	 * ======
@@ -530,7 +530,7 @@ __host__ int Dslashd(Complex *phi, Complex *r){
 	 *
 	 * Globals
 	 * =======
-	 * u11t, u12t, dk4p, dk4m, akappa, jqq_d 
+	 * u11t, u12t, dk4p, dk4m, (*akappa_d), jqq_d 
 	 *
 	 * Calls:
 	 * ======
@@ -562,7 +562,7 @@ __host__ int Hdslash(Complex *phi, Complex *r){
 	 *
 	 * Globals
 	 * =======
-	 * u11t, u12t, dk4p, dk4m, akappa, jqq_d 
+	 * u11t, u12t, dk4p, dk4m, (*akappa_d), jqq_d 
 	 *
 	 * Calls:
 	 * ======
@@ -601,7 +601,7 @@ __host__ int Hdslashd(Complex *phi, Complex *r){
 	 *
 	 * Globals
 	 * =======
-	 * u11t, u12t, dk4p, dk4m, akappa, jqq_d 
+	 * u11t, u12t, dk4p, dk4m, (*akappa_d), jqq_d 
 	 *
 	 * Calls:
 	 * ======
@@ -656,7 +656,7 @@ __host__ int Hdslash_f(Complex_f *phi, Complex_f *r){
 	 *
 	 * Globals
 	 * =======
-	 * u11t, u12t, dk4p, dk4m, akappa, jqq_d 
+	 * u11t, u12t, dk4p, dk4m, (*akappa_d), jqq_d 
 	 *
 	 * Calls:
 	 * ======
@@ -695,7 +695,7 @@ __host__ int Hdslashd_f(Complex_f *phi, Complex_f *r){
 	 *
 	 * Globals
 	 * =======
-	 * u11t, u12t, dk4p, dk4m, akappa, jqq_d 
+	 * u11t, u12t, dk4p, dk4m, (*akappa_d), jqq_d 
 	 *
 	 * Calls:
 	 * ======

@@ -16,7 +16,11 @@
 #ifdef __NVCC__
 __managed__
 #endif
-unsigned int *id, *iu, *hu, *hd, h1u[4], h1d[4], h2u[4], h2d[4], halosize[4];
+unsigned int *id, *iu, *hu, *hd;
+#ifdef __NVCC__
+__managed__
+#endif
+unsigned int *h1u, *h1d, *halosize;
 
 //Functions
 //========

@@ -29,7 +29,7 @@
 #ifdef	USE_MKL
 #include	<mkl.h>
 #endif
-#ifdef	__CUDACC__
+#ifdef	__NVCC__
 #include	<cuda.h>
 #endif
 // Define booleans for C because they don't exist natively
@@ -50,7 +50,7 @@
 #define	gvol    (nx*ny*nz*nt)
 #define	gvol3   (nx*ny*nz)
 
-#define	npx	2
+#define	npx	1
 #define	npt	1
 //Number of threads for OpenMP
 #define	nthreads	1	
@@ -113,13 +113,14 @@
 //Alignment of arrays. 64 for AVX-512, 32 for AVX/AVX2. 16 for SSE. Since AVX is standard
 //on modern x86 machines I've called it that
 #define	AVX	64
-#ifdef	__NVCC__
+#ifdef	__CUDACC__
 //Device code: Mainly the loops
 //Threads are grouped together to form warps of 32 threads
 //best to keep the block dimension (ksizex*ksizey) multiples of 32,
 //usually between 128 and 256
 //Note that from Volta/Turing  each SM (group of processors)
 //is smaller than on previous generations of GPUs
-dim3	dimBlock,dimGrid;
+dim3	dimBlock(ksizex,ksizey,1);
+dim3	dimGrid(ksizez,ksizet,1);
 #endif
 #endif

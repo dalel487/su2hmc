@@ -206,8 +206,8 @@ __global__ void cuForce(double *dSdpi, Complex *X2){
 
 				//Up indices
 				uid = iu[mu+ndim*i];
-				igork1 = gamin[mu][idirac];	
-				dSdpi[(i*nadj)*ndim+mu]+=akappa*creal(I*
+				igork1 = gamin_d[mu*ndirac+idirac];	
+				dSdpi[(i*nadj)*ndim+mu]+=(*akappa_d)*creal(I*
 						(conj(X1[(i*ndirac+idirac)*nc])*
 						 (-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
 						  +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1])
@@ -234,7 +234,7 @@ __global__ void cuForce(double *dSdpi, Complex *X2){
 						 (u11t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
 						  +conj(u12t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1])));
 
-				dSdpi[(i*nadj+1)*ndim+mu]+=akappa*creal(
+				dSdpi[(i*nadj+1)*ndim+mu]+=(*akappa_d)*creal(
 						(conj(X1[(i*ndirac+idirac)*nc])*
 						 (-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
 						  +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1])
@@ -261,7 +261,7 @@ __global__ void cuForce(double *dSdpi, Complex *X2){
 						 (-u11t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
 						  +conj(u12t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1])));
 
-				dSdpi[(i*nadj+2)*ndim+mu]+=akappa*creal(I*
+				dSdpi[(i*nadj+2)*ndim+mu]+=(*akappa_d)*creal(I*
 						(conj(X1[(i*ndirac+idirac)*nc])*
 						 (u11t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
 						  +u12t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1])
@@ -294,7 +294,7 @@ __global__ void cuForce(double *dSdpi, Complex *X2){
 			//For consistency we'll leave mu in instead of hard coding.
 			mu=3;
 			uid = iu[mu+ndim*i];
-			//We are mutiplying terms by dk4?[i] Also there is no akappa or gamval_d factor in the time direction	
+			//We are mutiplying terms by dk4?[i] Also there is no (*akappa_d) or gamval_d factor in the time direction	
 			//for the "gamval_d" terms the sign of d4kp flips
 #ifndef NO_TIME
 			dSdpi[(i*nadj)*ndim+mu]+=creal(I*
@@ -426,8 +426,8 @@ __global__ void cuGaugeForce(int mu, Complex *Sigma11, Complex *Sigma12,double*d
 		Complex a11 = u11t[i*ndim+mu]*Sigma12[i]+u12t[i*ndim+mu]*conj(Sigma11[i]);
 		Complex a12 = u11t[i*ndim+mu]*Sigma11[i]+conj(u12t[i*ndim+mu])*Sigma12[i];
 
-		dSdpi[(i*nadj)*ndim+mu]=beta*cimag(a11);
-		dSdpi[(i*nadj+1)*ndim+mu]=beta*creal(a11);
-		dSdpi[(i*nadj+2)*ndim+mu]=beta*cimag(a12);
+		dSdpi[(i*nadj)*ndim+mu]=(*beta_d)*cimag(a11);
+		dSdpi[(i*nadj+1)*ndim+mu]=(*beta_d)*creal(a11);
+		dSdpi[(i*nadj+2)*ndim+mu]=(*beta_d)*cimag(a12);
 	}
 }

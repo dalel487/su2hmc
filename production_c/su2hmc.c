@@ -133,7 +133,8 @@ int main(int argc, char *argv[]){
 					, OPENERROR, funcname, filename, fileop);
 			exit(OPENERROR);
 		}
-		fscanf(midout, "%lf %lf %lf %lf %lf %lf %lf %d %d %d", &dt, &beta, &akappa, &ajq, &athq, &fmu, &delb, &stepl, &ntraj, &istart);
+		fscanf(midout, "%lf %lf %lf %lf %lf %lf %lf %d %d %d", &dt, &beta, &akappa,\
+					&ajq, &athq, &fmu, &delb, &stepl, &ntraj, &istart);
 		fclose(midout);
 	}
 	if(iread){
@@ -147,10 +148,18 @@ int main(int argc, char *argv[]){
 	Par_dcopy(&athq); Par_dcopy(&fmu); Par_dcopy(&delb); //Not used?
 	Par_icopy(&stepl); Par_icopy(&ntraj); 
 	jqq=ajq*cexp(athq*I);
-	#ifdef __NVCC__
-	cudaMemcpy(jqq_d,&jqq,sizeof(Complex),cudaMemcpyHostToDevice);
-	#endif
 	akappa_f=(float)akappa;
+	#ifdef __NVCC__
+	cudaMalloc(&jqq_d,sizeof(Complex));
+	cudaMalloc(&beta_d,sizeof(Complex));
+	cudaMalloc(&akappa_d,sizeof(Complex));
+	cudaMalloc(&akappa_f_d,sizeof(Complex_f));
+
+	cudaMemcpy(jqq_d,&jqq,sizeof(Complex),cudaMemcpyHostToDevice);
+	cudaMemcpy(beta_d,&beta,sizeof(Complex),cudaMemcpyHostToDevice);
+	cudaMemcpy(akappa_d,&akappa,sizeof(Complex),cudaMemcpyHostToDevice);
+	cudaMemcpy(akappa_f_d,&akappa_f,sizeof(Complex_f),cudaMemcpyHostToDevice);
+	#endif
 #ifdef _DEBUG
 	printf("jqq=%f+(%f)I\n",creal(jqq),cimag(jqq));
 #endif
@@ -601,12 +610,12 @@ int main(int argc, char *argv[]){
 	mkl_free(X0); mkl_free(X1); mkl_free(u11); mkl_free(u12);
 	mkl_free(id); mkl_free(iu); mkl_free(hd); mkl_free(hu);
 	mkl_free(dk4m_f); mkl_free(dk4p_f); mkl_free(u11t_f); mkl_free(u12t_f);
-	mkl_free(pcoord);
+	mkl_free(pcoord); mkl_free(h1u); mkl_free(h1d); mkl_free(halosize);
 #else
 	free(dk4m); free(dk4p); free(R1); free(dSdpi); free(pp); free(Phi);
 	free(u11t); free(u12t); free(xi); free(X0); free(X1);
 	free(u11); free(u12); free(id); free(iu); free(hd); free(hu);
-	free(pcoord);
+	free(pcoord); free(h1u); free(h1d); free(halosize);
 #endif
 #if (defined SA3AT)
 	if(!rank){
@@ -729,10 +738,8 @@ int Init(int istart){
 	}
 	//These are constant so swap the halos when initialising and be done with it
 	//May need to add a synchronisation statement here first
-	for(int mu = 0; mu <ndim; mu++){
 		DHalo_swap_dir(dk4p, 1, 3, UP);
 		DHalo_swap_dir(dk4m, 1, 3, UP);
-	}
 #pragma omp parallel for simd aligned(dk4m,dk4p,dk4m_f,dk4p_f:AVX)
 	for(int i=0;i<kvol+halo;i++){
 		dk4p_f[i]=(float)dk4p[i];
@@ -753,6 +760,9 @@ int Init(int istart){
 		for(int j=0;j<4;j++)
 			gamval_f[i][j]=(Complex_f)gamval[i][j];
 #ifdef __NVCC__
+//Gamma matrices and indices on the GPU
+	cudaMallocManaged(&gamin_d,4*4*sizeof(int),cudaMemAttachGlobal);
+	memcpy(gamin_d,gamin,4*4*sizeof(int));
 	cudaMalloc(&gamval_d,5*4*sizeof(Complex));
 	cudaMemcpy(gamval_d,gamval,5*4*sizeof(Complex),cudaMemcpyHostToDevice);
 	cudaMalloc(&gamval_f_d,5*4*sizeof(Complex_f));
@@ -761,9 +771,12 @@ int Init(int istart){
 	cudaMemAdvise(dk4p,(kvol+halo)*sizeof(double),cudaMemAdviseSetReadMostly,device);
 	cudaMemAdvise(dk4m,(kvol+halo)*sizeof(double),cudaMemAdviseSetReadMostly,device);
 	cudaMemAdvise(gamval,20*sizeof(Complex),cudaMemAdviseSetReadMostly,device);
+	cudaMemAdvise(gamin_d,16*sizeof(int),cudaMemAdviseSetReadMostly,device);
+
 	cudaMemPrefetchAsync(dk4p,(kvol+halo)*sizeof(double),device,NULL);
 	cudaMemPrefetchAsync(dk4m,(kvol+halo)*sizeof(double),device,NULL);
 	cudaMemPrefetchAsync(gamval,20*sizeof(Complex),device,NULL);
+	cudaMemPrefetchAsync(gamin,16*sizeof(int),device,NULL);
 
 	cudaMallocManaged(&u11,ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&u12,ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);

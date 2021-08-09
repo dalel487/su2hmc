@@ -41,11 +41,10 @@ int ibound;
 //------
 //Seems a bit redundant looking
 #ifdef __NVCC__
+__managed__ int *gamin_d;
 __managed__ 
-#else
-extern
 #endif 
-int gamin[4][4];
+extern int gamin[4][4];
 //We have the four γ Matrices, and in the final index (labelled 4 in C) is γ_5)
 #ifdef __NVCC__
 __device__ Complex *gamval_d;
@@ -85,16 +84,13 @@ extern Complex jqq;
 //Average # of congrad iter guidance and acceptance
 double ancg, ancgh;
 #ifdef __NVCC__
-__managed__
+__device__ double *beta_d, *akappa_d;
 #endif 
-#ifndef __CUDACC__
-extern
-#endif 
-double fmu, beta, akappa;
+extern double fmu, beta, akappa;
 #ifdef __NVCC__
-__managed__
+__device__ float *akappa_f_d;
 #endif 
-float akappa_f;
+extern float akappa_f;
 
 //Function Declarations:
 //#####################

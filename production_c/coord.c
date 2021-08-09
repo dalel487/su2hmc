@@ -38,9 +38,15 @@ int Addrc(){
 #ifdef USE_MKL
 	hd = mkl_malloc(ndim*halo*sizeof(int),AVX);
 	hu = mkl_malloc(ndim*halo*sizeof(int),AVX);
+	h1u = mkl_malloc(ndim*sizeof(int),AVX);
+	h1d = mkl_malloc(ndim*sizeof(int),AVX);
+	halosize= mkl_malloc(ndim*sizeof(int),AVX);
 #else
 	hd = aligned_alloc(AVX,ndim*halo*sizeof(int));
 	hu = aligned_alloc(AVX,ndim*halo*sizeof(int));
+	h1d = aligned_alloc(AVX,ndim*sizeof(int));
+	h1d = aligned_alloc(AVX,ndim*sizeof(int));
+	halosize= aligned_alloc(AVX,ndim*sizeof(int));
 #endif
 
 	//Do the lookups appropriate for overindexing into halos
