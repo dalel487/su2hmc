@@ -70,7 +70,7 @@ release:	CUFLAGS += -O3
 release:	$(EXE)
 
 .PHONY: debug 
-debug:	CFLAGS += -O0 -g -D_DEBUG #-DDIAGNOSTIC -DNO_TIME -DNO_SPACE
+debug:	CFLAGS += -O0 -g -D_DEBUG -DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 debug:	CUFLAGS += -O0 -G -g -D_DEBUG 	
 debug:	$(EXE)
 

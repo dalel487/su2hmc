@@ -455,7 +455,7 @@ __global__ void cuNew_trial(double dt){
 		}
 	}
 }
-__global__ inline void cuReunitarise(){
+__global__ void cuReunitarise(){
 	/*
 	 * Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1
 	 *
@@ -641,11 +641,11 @@ __host__ int Hdslashd(Complex *phi, Complex *r){
 	return 0;
 }
 
-inline int Reunitarise(){
+int Reunitarise(){
 	cuReunitarise<<<dimGrid,dimBlock>>>();
 	return 0;
 }
-inline int New_trial(double dt){
+int New_trial(double dt){
 	cuNew_trial<<<dimGrid,dimBlock>>>(dt);
 	return 0;
 }
@@ -755,28 +755,48 @@ int Diagnostics(int istart){
 	//later
 	assert(nf==1);
 
-	R1= mkl_malloc(kfermHalo*sizeof(Complex),AVX);
-	xi= mkl_malloc(kfermHalo*sizeof(Complex),AVX);
-	Phi= mkl_malloc(nf*kfermHalo*sizeof(Complex),AVX); 
-	X0= mkl_malloc(nf*kferm2Halo*sizeof(Complex),AVX); 
-	X1= mkl_malloc(kferm2Halo*sizeof(Complex),AVX); 
+#ifdef __NVCC__
+	int device=-1;
+	cudaGetDevice(&device);
+	cudaMallocManaged(&R1, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&xi, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&Phi, nf*kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&X0, nf*kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&X1, kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&pp, kmomHalo*sizeof(double),cudaMemAttachGlobal);
+	double *dSdpi;
+	cudaMallocManaged(&dSdpi, kmomHalo*sizeof(double),cudaMemAttachGlobal);
+#elif defined USE_MKL
+	R1= mkl_malloc(kfermHalo*sizeof(complex),AVX);
+	xi= mkl_malloc(kfermHalo*sizeof(complex),AVX);
+	Phi= mkl_malloc(nf*kfermHalo*sizeof(complex),AVX); 
+	X0= mkl_malloc(nf*kferm2Halo*sizeof(complex),AVX); 
+	X1= mkl_malloc(kferm2Halo*sizeof(complex),AVX); 
 	double *dSdpi = mkl_malloc(kmomHalo*sizeof(double), AVX);
+	#else
+	R1= aligned_alloc(AVX,kfermHalo*sizeof(Complex));
+	xi= aligned_alloc(AVX,kfermHalo*sizeof(Complex));
+	Phi= aligned_alloc(AVX,nf*kfermHalo*sizeof(Complex)); 
+	X0= aligned_alloc(AVX,nf*kferm2Halo*sizeof(Complex)); 
+	X1= aligned_alloc(AVX,kferm2Halo*sizeof(Complex)); 
+	pp = aligned_alloc(AVX,kmomHalo*sizeof(double));
+	double *dSdpi = aligned_alloc(AVX,kmomHalo*sizeof(double));
+	#endif
 	//pp is the momentum field
-	pp = mkl_malloc(kmomHalo*sizeof(double), AVX);
 
 	//Trial fields don't get modified so I'll set them up outside
 	switch(istart){
 		case(2):
 #pragma omp parallel for simd aligned(u11t:AVX,u12t:AVX)
 			for(int i =0; i<ndim*kvol; i+=8){
-				u11t[i+0]=1+I; u12t[i]=1+I;
-				u11t[i+1]=1-I; u12t[i+1]=1+I;
-				u11t[i+2]=1+I; u12t[i+2]=1-I;
-				u11t[i+3]=1-I; u12t[i+3]=1-I;
-				u11t[i+4]=-1+I; u12t[i+4]=1+I;
-				u11t[i+5]=1+I; u12t[i+5]=-1+I;
-				u11t[i+6]=-1+I; u12t[i+6]=-1+I;
-				u11t[i+7]=-1-I; u12t[i+7]=-1-I;
+				u11t[i+0]=1.0+I; u12t[i]=1.0+I;
+				u11t[i+1]=1.0-I; u12t[i+1]=1.0+I;
+				u11t[i+2]=1.0+I; u12t[i+2]=1.0-I;
+				u11t[i+3]=1.0-I; u12t[i+3]=1.0-I;
+				u11t[i+4]=-1.0+I; u12t[i+4]=1.0+I;
+				u11t[i+5]=1.0+I; u12t[i+5]=-1.0+I;
+				u11t[i+6]=-1.0+I; u12t[i+6]=-1.0+I;
+				u11t[i+7]=-1.0-I; u12t[i+7]=-1.0-I;
 			}
 			break;
 		case(1):
@@ -806,15 +826,16 @@ int Diagnostics(int istart){
 			break;
 		default:
 			//Cold start as a default
-			memcpy(u11t,u11,kvol*ndim*sizeof(Complex));
-			memcpy(u12t,u12,kvol*ndim*sizeof(Complex));
+			memcpy(u11,u11t,kvol*ndim*sizeof(Complex));
+			memcpy(u12t,u12t,kvol*ndim*sizeof(Complex));
 			break;
 	}
 #pragma omp parallel for simd aligned(u11t:AVX,u12t:AVX) 
 	for(int i=0; i<kvol*ndim; i++){
 		//Declaring anorm inside the loop will hopefully let the compiler know it
 		//is safe to vectorise aggessively
-		double anorm=sqrt(conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]);
+		double anorm;
+		anorm=creal(sqrt(conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]));
 		assert(anorm!=0);
 		u11t[i]/=anorm;
 		u12t[i]/=anorm;
@@ -956,11 +977,25 @@ int Diagnostics(int istart){
 	}
 
 	//George Michael's favourite bit of the code
+	#ifdef __NVCC__
+	cudaFree(dk4m); cudaFree(dk4p); cudaFree(R1); cudaFree(dSdpi); cudaFree(pp);
+	cudaFree(Phi); cudaFree(u11t); cudaFree(u12t); cudaFree(xi);
+	cudaFree(X0); cudaFree(X1); cudaFree(u11); cudaFree(u12);
+	cudaFree(id); cudaFree(iu); cudaFree(hd); cudaFree(hu);
+	cudaFree(pcoord);
+	#elif defined USE_MKL
 	mkl_free(dk4m); mkl_free(dk4p); mkl_free(R1); mkl_free(dSdpi); mkl_free(pp);
 	mkl_free(Phi); mkl_free(u11t); mkl_free(u12t); mkl_free(xi);
 	mkl_free(X0); mkl_free(X1); mkl_free(u11); mkl_free(u12);
 	mkl_free(id); mkl_free(iu); mkl_free(hd); mkl_free(hu);
 	mkl_free(pcoord);
+	#else
+	free(dk4m); free(dk4p); free(R1); free(dSdpi); free(pp);
+	free(Phi); free(u11t); free(u12t); free(xi);
+	free(X0); free(X1); free(u11); free(u12);
+	free(id); free(iu); free(hd); free(hu);
+	free(pcoord);
+	#endif
 
 	MPI_Finalise();
 	exit(0);
