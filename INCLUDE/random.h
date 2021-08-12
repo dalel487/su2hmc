@@ -15,7 +15,7 @@
 #include <par_mpi.h>
 //Configuration for existing generators if called
 //===============================================
-#ifdef	USE_RAN2
+#if (defined USE_RAN2||!defined USE_MKL)
 extern long seed;
 int Par_ranset(long *seed);
 #elif defined(USE_MKL)

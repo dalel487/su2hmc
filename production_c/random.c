@@ -19,10 +19,11 @@ VSLStreamStatePtr stream;
 #include <string.h>
 
 //Declaring external variables
-#ifdef	USE_MKL
+#if (defined USE_RAN2||!defined USE_MKL)
+long seed = 967580161;
+#elif defined USE_MKL
 unsigned int seed = 967580161;
 #else
-long seed = 967580161;
 #endif
 #ifndef M_PI
 #define M_PI           3.14159265358979323846
@@ -31,7 +32,7 @@ long seed = 967580161;
 #ifdef USE_MKL
 inline int ranset(unsigned int *seed)
 #else
-inline int ranset(int *seed)
+inline int ranset(long *seed)
 #endif
 {
 #ifdef USE_MKL
