@@ -44,7 +44,7 @@ int Addrc(){
 #else
 	hd = aligned_alloc(AVX,ndim*halo*sizeof(int));
 	hu = aligned_alloc(AVX,ndim*halo*sizeof(int));
-	h1d = aligned_alloc(AVX,ndim*sizeof(int));
+	h1u = aligned_alloc(AVX,ndim*sizeof(int));
 	h1d = aligned_alloc(AVX,ndim*sizeof(int));
 	halosize= aligned_alloc(AVX,ndim*sizeof(int));
 #endif
