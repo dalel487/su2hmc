@@ -29,10 +29,10 @@ unsigned int seed = 967580161;
 #define M_PI           3.14159265358979323846
 #endif
 
-#ifdef USE_MKL
-inline int ranset(unsigned int *seed)
-#else
+#if (defined USE_RAN2||!defined USE_MKL)
 inline int ranset(long *seed)
+#else
+inline int ranset(unsigned int *seed)
 #endif
 {
 #ifdef USE_MKL

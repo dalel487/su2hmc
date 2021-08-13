@@ -819,8 +819,6 @@ int Init(int istart){
 		}
 #endif
 #ifdef __NVCC__
-		int device=-1;
-		cudaGetDevice(&device);
 		cudaMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),device,NULL);
 		cudaMemPrefetchAsync(u12t, ndim*kvol*sizeof(Complex),device,NULL);
 #endif

@@ -18,6 +18,7 @@
 #if (defined USE_RAN2||!defined USE_MKL)
 extern long seed;
 int Par_ranset(long *seed);
+int ranset(long *seed);
 #elif defined(USE_MKL)
 extern unsigned int seed;
 int ranset(unsigned int *seed);
@@ -39,7 +40,13 @@ double ranget(double *seed);
 //Distributions
 //=============
 //Use Box-Müller to generate an array of complex numbers
+#ifdef __CUDACC__
+extern "C"{
+#endif
 int Gauss_z(Complex *ps, unsigned int n, const double mu, const double sigma);
+#ifdef __CUDACC__
+}
+#endif
 int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma);
 
 //MPI

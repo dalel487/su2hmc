@@ -8,7 +8,7 @@ NVCC = nvcc
 IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include" -I./
 
 
-CFLAGS=      $(IFLAGS) -std=gnu99 -qopt-zmm-usage=high\
+CFLAGS=      $(IFLAGS) -std=gnu99 -qopt-zmm-usage=high -DUSE_RAN2\
 		 -xCOMMON-AVX512 -static-intel -static-libgcc -masm=att\
 		 -qopenmp-simd -qopenmp -qopenmp-link=static -DSA3AT \
 
@@ -70,7 +70,7 @@ release:	CUFLAGS += -O3
 release:	$(EXE)
 
 .PHONY: debug 
-debug:	CFLAGS += -O0 -g -D_DEBUG -DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
+debug:	CFLAGS += -O0 -g -D_DEBUG# -DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 debug:	CUFLAGS += -O0 -G -g -D_DEBUG 	
 debug:	$(EXE)
 
