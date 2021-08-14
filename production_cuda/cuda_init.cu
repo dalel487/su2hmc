@@ -1,5 +1,5 @@
 #include <cuda.h>
-#include <cuda_complex.hpp>
+#include <complex>
 #include <par_mpi.h>
 #include <su2hmc.h>
 __host__ int Cuda_init(){

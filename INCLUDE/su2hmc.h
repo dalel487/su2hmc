@@ -9,7 +9,7 @@ cublasHandle_t cublas_status;
 #define cudaDeviceSynchronise() cudaDeviceSynchronize()
 #endif 
 #ifdef __CUDACC__
-#include <cuda_complex.hpp>
+#include <complex>
 #undef	complex
 #define	Complex_f	 complex<float>
 #define	Complex	 complex<double>

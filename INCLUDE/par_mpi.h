@@ -3,7 +3,7 @@
 #include	<coord.h>
 #ifdef __CUDACC__
 #include	<cuda.h>
-#include	<cuda_complex.hpp>
+#include	<complex>
 #define	Complex_f complex<float>
 #define	Complex complex<double>
 #else

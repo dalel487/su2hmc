@@ -2,7 +2,7 @@
  * Code for force calculations.
  * Requires multiply.cu to work
  */
-#include	<cuda_complex.hpp>
+#include	<complex>
 #define	Complex complex<double>
 #include	<matrices.h>
 #include	<par_mpi.h>
