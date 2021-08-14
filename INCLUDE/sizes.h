@@ -50,10 +50,10 @@
 #define	gvol    (nx*ny*nz*nt)
 #define	gvol3   (nx*ny*nz)
 
-#define	npx	2
-#define	npt	2
+#define	npx	1
+#define	npt	1
 //Number of threads for OpenMP
-#define	nthreads	1	
+#define	nthreads	4	
 
 // Initially restrict to npz = npy = npx
 // This allows us to have a single ksize variable
