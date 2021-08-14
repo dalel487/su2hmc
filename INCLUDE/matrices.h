@@ -2,7 +2,6 @@
 #define MULTIPLY 
 #ifdef __CUDACC__
 #include <cuda.h>
-#include <complex>
 #include <curand.h>
 extern "C"
 {
