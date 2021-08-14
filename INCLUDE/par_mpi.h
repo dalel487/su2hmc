@@ -4,8 +4,8 @@
 #ifdef __CUDACC__
 #include	<cuda.h>
 #include	<complex>
-#define	Complex_f complex<float>
-#define	Complex complex<double>
+#define	Complex_f	std::complex<float>
+#define	Complex	std::complex<double>
 #else
 #include	<complex.h>
 #define	Complex_f	float	complex

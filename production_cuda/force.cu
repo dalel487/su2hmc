@@ -2,8 +2,6 @@
  * Code for force calculations.
  * Requires multiply.cu to work
  */
-#include	<complex>
-#define	Complex complex<double>
 #include	<matrices.h>
 #include	<par_mpi.h>
 #include	<su2hmc.h>
