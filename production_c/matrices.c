@@ -742,16 +742,28 @@ int Diagnostics(int istart){
 #include<float.h>
 	printf("FLT_EVAL_METHOD is %i. Check online for what this means\n", FLT_EVAL_METHOD);
 
+#if defined USE_MKL
 	R1= mkl_malloc(kfermHalo*sizeof(complex),AVX);
 	xi= mkl_malloc(kfermHalo*sizeof(complex),AVX);
 	Phi= mkl_malloc(nf*kfermHalo*sizeof(complex),AVX); 
 	X0= mkl_malloc(nf*kferm2Halo*sizeof(complex),AVX); 
 	X1= mkl_malloc(kferm2Halo*sizeof(complex),AVX); 
+	pp = mkl_malloc(kmomHalo*sizeof(double), AVX);
 	Complex_f *X0_f= mkl_malloc(nf*kferm2Halo*sizeof(Complex_f),AVX); 
 	Complex_f *X1_f= mkl_malloc(kferm2Halo*sizeof(Complex_f),AVX); 
 	double *dSdpi = mkl_malloc(kmomHalo*sizeof(double), AVX);
+	#else
+	R1= aligned_alloc(AVX,kfermHalo*sizeof(Complex));
+	xi= aligned_alloc(AVX,kfermHalo*sizeof(Complex));
+	Phi= aligned_alloc(AVX,nf*kfermHalo*sizeof(Complex)); 
+	X0= aligned_alloc(AVX,nf*kferm2Halo*sizeof(Complex)); 
+	X1= aligned_alloc(AVX,kferm2Halo*sizeof(Complex)); 
+	pp = aligned_alloc(AVX,kmomHalo*sizeof(double));
+	Complex_f *X0_f= aligned_alloc(AVX,nf*kferm2Halo*sizeof(Complex_f)); 
+	Complex_f *X1_f= aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f)); 
+	double *dSdpi = aligned_alloc(AVX,kmomHalo*sizeof(double));
+	#endif
 	//pp is the momentum field
-	pp = mkl_malloc(kmomHalo*sizeof(double), AVX);
 
 	//Trial fields don't get modified so I'll set them up outside
 	switch(istart){
@@ -1001,12 +1013,20 @@ int Diagnostics(int istart){
 	}
 
 	//George Michael's favourite bit of the code
+#if defined USE_MKL
 	mkl_free(dk4m); mkl_free(dk4p); mkl_free(R1); mkl_free(dSdpi); mkl_free(pp);
 	mkl_free(Phi); mkl_free(u11t); mkl_free(u12t); mkl_free(xi);
 	mkl_free(X0); mkl_free(X1); mkl_free(u11); mkl_free(u12);
 	mkl_free(X0_f); mkl_free(X1_f); mkl_free(u11t_f); mkl_free(u12t_f);
 	mkl_free(id); mkl_free(iu); mkl_free(hd); mkl_free(hu);
 	mkl_free(pcoord);
+	#else
+	free(dk4m); free(dk4p); free(R1); free(dSdpi); free(pp);
+	free(Phi); free(u11t); free(u12t); free(xi);
+	free(X0); free(X1); free(u11); free(u12);
+	free(id); free(iu); free(hd); free(hu);
+	free(pcoord);
+	#endif
 
 	MPI_Finalise();
 	exit(0);
