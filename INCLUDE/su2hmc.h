@@ -9,10 +9,16 @@ cublasHandle_t cublas_status;
 #define cudaDeviceSynchronise() cudaDeviceSynchronize()
 #endif 
 #ifdef __CUDACC__
-#include <cuda_complex.hpp>
+#include <thrust/complex.h>
+using namespace thrust;
 #undef	complex
 #define	Complex_f	 complex<float>
 #define	Complex	 complex<double>
+//Adding the macros for extracting the real, imaginary parts here since it's
+//included by all files that also include par_mpi.h
+#define	creal(z)	real(z)
+#define	cimag(z)	imag(z)
+#define	I	Complex(0.0,1.0)	
 #else
 #include	<complex.h>
 #define Complex_f	float	complex

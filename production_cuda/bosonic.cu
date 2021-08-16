@@ -131,7 +131,7 @@ __host__ double Polyakov(){
 #pragma omp parallel for simd reduction(+:poly) aligned(Sigma11:AVX)
 //TODO:	CUDA Reduction
 	for(int i=0;i<kvol3;i++)
-		poly+=creal(Sigma11[i]);
+		poly+=Sigma11[i].real();
 #ifdef __NVCC__
 	cudaFree(Sigma11); cudaFree(Sigma12);
 #elif defined USE_MKL
@@ -169,10 +169,10 @@ __global__ void cuSU2plaq(int mu, int nu, double *hgs, double *hgt){
 
 		switch(mu){
 			//Time component
-			case(ndim-1):	atomicAdd(hgt, -creal(Sigma11));
+			case(ndim-1):	atomicAdd(hgt, -Sigma11.real());
 						break;
 						//Space component
-			default:	atomicAdd(hgs, -creal(Sigma11));
+			default:	atomicAdd(hgs, -Sigma11.real());
 					break;
 		}
 	}
