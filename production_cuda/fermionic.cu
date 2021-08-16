@@ -78,7 +78,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #ifdef __NVCC__
 	Complex buff;
 	cublasZdotc(cublas_handle,kferm, (cuDoubleComplex *)x, 1, (cuDoubleComplex *)xi,  1, (cuDoubleComplex *)&buff);
-	*pbp=creal(buff);
+	*pbp=buff.real();
 #elif (defined USE_MKL || defined USE_BLAS)
 	complex buff;
 	cblas_zdotc_sub(kferm, x, 1, xi,  1, &buff);
@@ -188,8 +188,8 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 						conj(u12t[i*ndim+3])*(xi[(i*ngorkov+igorkovPP)*nc]+xi[(i*ngorkov+igork1PP)*nc]) ) );
 		}
 	}
-	*endenf=creal(xu-xd-xuu+xdd);
-	*denf=creal(xu+xd+xuu+xdd);
+	*endenf=(xu-xd-xuu+xdd).real();
+	*denf=(xu+xd+xuu+xdd).real();
 
 	Par_dsum(endenf); Par_dsum(denf);
 	*endenf/=2*gvol; *denf/=2*gvol;
