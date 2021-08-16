@@ -3,9 +3,9 @@
 #include	<coord.h>
 #ifdef __CUDACC__
 #include	<cuda.h>
-#include	<cuda_complex.hpp>
-#define	Complex_f	complex<float>
-#define	Complex	complex<double>
+#include	<thrust/complex.h>
+#define	Complex_f	thrust::complex<float>
+#define	Complex	thrust::complex<double>
 #else
 #include	<complex.h>
 #define	Complex_f	float	complex

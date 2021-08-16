@@ -479,7 +479,7 @@ __global__ void cuReunitarise(){
 	for(int i=threadId; i<kvol*ndim; i+=gsize){
 		//Declaring anorm inside the loop will hopefully let the compiler know it
 		//is safe to vectorise aggessively
-		double anorm=sqrt(creal(conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]));
+		double anorm=sqrt(conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]).real();
 		//		Exception handling code. May be faster to leave out as the exit prevents vectorisation.
 		//		if(anorm==0){
 		//			fprintf(stderr, "Error %i in %s on rank %i: anorm = 0 for μ=%i and i=%i.\nExiting...\n\n",
