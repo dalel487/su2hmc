@@ -763,8 +763,9 @@ int ZHalo_swap_dir(complex *z, int ncpt, int idir, int layer){
 				MPI_Finalise();
 				exit(BOUNDERROR);
 			}
-#pragma omp parallel for simd aligned(z, sendbuf:AVX) collapse(2)
+#pragma omp parallel for if(halosize[idir]>2048)
 			for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
+#pragma omp simd aligned(z, sendbuf:AVX)
 				for(int icpt = 0; icpt <ncpt; icpt++)
 					sendbuf[ihalo*ncpt+icpt]=z[ncpt*hd[ndim*ihalo+idir]+icpt];
 			//For the zdnhaloswapdir we send off the down halo and receive into the up halo
@@ -789,8 +790,9 @@ int ZHalo_swap_dir(complex *z, int ncpt, int idir, int layer){
 				MPI_Finalise();
 				exit(BOUNDERROR);
 			}
-#pragma omp parallel for simd aligned(z, sendbuf:AVX) collapse(2)
+#pragma omp parallel for if(halosize[idir]>2048)
 			for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
+#pragma omp simd aligned(z, sendbuf:AVX)
 				for(int icpt = 0; icpt <ncpt; icpt++)
 					sendbuf[ihalo*ncpt+icpt]=z[ncpt*hu[ndim*ihalo+idir]+icpt];
 			//For the zuphaloswapdir we send off the up halo and receive into the down halo
@@ -883,8 +885,9 @@ int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer){
 				MPI_Finalise();
 				exit(BOUNDERROR);
 			}
-#pragma omp parallel for simd aligned(c, sendbuf:AVX) collapse(2)
+#pragma omp parallel for if(halosize[idir]>2048)
 			for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
+#pragma omp simd aligned(c, sendbuf:AVX)
 				for(int icpt = 0; icpt <ncpt; icpt++)
 					sendbuf[ihalo*ncpt+icpt]=c[ncpt*hd[ndim*ihalo+idir]+icpt];
 			//For the zdnhaloswapdir we send off the down halo and receive into the up halo
@@ -909,8 +912,9 @@ int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer){
 				MPI_Finalise();
 				exit(BOUNDERROR);
 			}
-#pragma omp parallel for simd aligned(c, sendbuf:AVX) collapse(2)
+#pragma omp parallel for if(halosize[idir]>2048)
 			for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
+#pragma omp simd aligned(c, sendbuf:AVX)
 				for(int icpt = 0; icpt <ncpt; icpt++)
 					sendbuf[ihalo*ncpt+icpt]=c[ncpt*hu[ndim*ihalo+idir]+icpt];
 			//For the zuphaloswapdir we send off the up halo and receive into the down halo
@@ -976,8 +980,9 @@ int DHalo_swap_dir(double *d, int ncpt, int idir, int layer){
 				MPI_Finalise();
 				exit(BOUNDERROR);
 			}
-#pragma omp parallel for simd aligned(d, sendbuf:AVX) collapse(2)
+#pragma omp parallel for if(halosize[idir]>2048)
 			for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
+#pragma omp simd aligned(d,sendbuf:AVX)
 				for(int icpt = 0; icpt <ncpt; icpt++)
 					sendbuf[ihalo*ncpt+icpt]=d[ncpt*hd[ndim*ihalo+idir]+icpt];
 			//For the cdnhaloswapdir we send off the down halo and receive into the up halo
@@ -1001,8 +1006,9 @@ int DHalo_swap_dir(double *d, int ncpt, int idir, int layer){
 				MPI_Finalise();
 				exit(BOUNDERROR);
 			}
-#pragma omp parallel for simd aligned(d, sendbuf:AVX) collapse(2)
+#pragma omp parallel for if(halosize[idir]>2048)
 			for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
+#pragma omp simd aligned(d,sendbuf:AVX)
 				for(int icpt = 0; icpt <ncpt; icpt++)
 					sendbuf[ihalo*ncpt+icpt]=d[ncpt*hu[ndim*ihalo+idir]+icpt];
 			//For the cuphaloswapdir we send off the up halo and receive into the down halo
