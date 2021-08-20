@@ -1,6 +1,7 @@
-#include <cuda_complex.hpp>
 #include <cuda.h>
+#include <thrust/complex.h>
 #include <stdio.h>
+using namespace thrust;
 #define complexd complex<double>
 #define complexf complex<float>
 __global__ void test_run(){
@@ -15,8 +16,8 @@ __global__ void test_run(){
 	bool eq = (z3==z4);
 	bool neq = (z3!=z4);
 	
-	double x1 = creal(z1);
-	double x2 = cimag(z2);
+	double x1 = z1.real();
+	double x2 = z2.real();
 	complexd z9 = x1+z1;
 	complexd z10 = z1+x1;
 	complexd z11 =x2-z2;
@@ -31,7 +32,7 @@ __global__ void test_run(){
 	bool dneq2 = (z2!=x2);
 	
 	printf("For z1=%f+%fi and z2=%f+%fi, z13=creal(z1)*z2=%f+%fi\n",
-	creal(z1),cimag(z1),creal(z2),cimag(z2),creal(z13),cimag(z13));
+	z1.real(),z1.imag(),z2.real(),z2.imag(),z13.real(),z13.imag());
 }
 int main(int argc, char *argv[]){
 	dim3 dimGrid(1024,1024,1024);
