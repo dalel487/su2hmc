@@ -8,7 +8,7 @@ cublasHandle_t cublas_status;
 //Get rid of that dirty yankee English
 #define cudaDeviceSynchronise() cudaDeviceSynchronize()
 #endif 
-#ifdef __CUDACC__
+#ifdef __NVCC__
 #include <thrust/complex.h>
 using namespace thrust;
 #undef	complex

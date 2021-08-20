@@ -1,5 +1,4 @@
 #include "coord.h"
-#include <complex.h>
 #ifdef	__NVCC__
 #include <curand.h>
 #endif
@@ -132,13 +131,13 @@ double Par_granf(){
 	Par_dcopy(&ran_val);
 	return ran_val;
 }
-int Gauss_z(complex *ps, unsigned int n, const double mu, const double sigma){
+int Gauss_z(Complex *ps, unsigned int n, const double mu, const double sigma){
 	/* Generates a vector of normally distributed random complex numbers
 	 * using the Box-Muller Method
 	 * 
 	 * Parameters:
 	 * ==========
-	 * complex *ps:   The array
+	 * Complex *ps:   The array
 	 * unsigned int n: The array length
 	 * double mu:     mean
 	 * double sigma:  variance
@@ -187,7 +186,7 @@ int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma){
 	 * 
 	 * Parameters:
 	 * ==========
-	 * complex *ps:   The array
+	 * double *ps:   The array
 	 * unsigned int n: The array length
 	 * double mu:     mean
 	 * double sigma:  variance

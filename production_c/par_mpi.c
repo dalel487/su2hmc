@@ -107,15 +107,15 @@ int Par_sread(){
 	char *funcname = "Par_sread";
 	//Containers for input
 #ifdef USE_MKL
-	complex *u11Read = mkl_malloc(ndim*gvol*sizeof(complex),AVX);
-	complex *u12Read = mkl_malloc(ndim*gvol*sizeof(complex),AVX);
-	complex *u1buff = mkl_malloc(kvol*sizeof(complex),AVX);
-	complex *u2buff = mkl_malloc(kvol*sizeof(complex),AVX);
+	Complex *u11Read = mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
+	Complex *u12Read = mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
+	Complex *u1buff = mkl_malloc(kvol*sizeof(Complex),AVX);
+	Complex *u2buff = mkl_malloc(kvol*sizeof(Complex),AVX);
 #else
-	complex *u11Read = malloc(ndim*gvol*sizeof(complex));
-	complex *u12Read = malloc(ndim*gvol*sizeof(complex));
-	complex *u1buff = malloc(kvol*sizeof(complex));
-	complex *u2buff = malloc(kvol*sizeof(complex));
+	Complex *u11Read = malloc(ndim*gvol*sizeof(Complex));
+	Complex *u12Read = malloc(ndim*gvol*sizeof(Complex));
+	Complex *u1buff = malloc(kvol*sizeof(Complex));
+	Complex *u2buff = malloc(kvol*sizeof(Complex));
 #endif
 	//	complex ubuff[kvol];
 	int icoord[ndim];
@@ -209,8 +209,8 @@ int Par_sread(){
 #else
 	free(u11Read); free(u12Read); free(u1buff); free(u2buff);
 #endif
-	memcpy(u11t, u11, ndim*gvol*sizeof(complex));
-	memcpy(u12t, u12, ndim*gvol*sizeof(complex));
+	memcpy(u11t, u11, ndim*gvol*sizeof(Complex));
+	memcpy(u12t, u12, ndim*gvol*sizeof(Complex));
 	Par_dcopy(&seed);
 	return 0;
 }
@@ -318,15 +318,15 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 	int icoord[4], iproc, seed;
 	if(!rank){
 #ifdef USE_MKL
-		complex *u11Write = mkl_malloc(ndim*gvol*sizeof(complex),AVX);
-		complex *u12Write = mkl_malloc(ndim*gvol*sizeof(complex),AVX);
-		complex *u1buff = mkl_malloc(kvol*sizeof(complex),AVX);
-		complex *u2buff = mkl_malloc(kvol*sizeof(complex),AVX);
+		Complex *u11Write = mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
+		Complex *u12Write = mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
+		Complex *u1buff = mkl_malloc(kvol*sizeof(Complex),AVX);
+		Complex *u2buff = mkl_malloc(kvol*sizeof(Complex),AVX);
 #else
-		complex *u11Write = malloc(ndim*gvol*sizeof(complex));
-		complex *u12Write = malloc(ndim*gvol*sizeof(complex));
-		complex *u1buff = malloc(kvol*sizeof(complex));
-		complex *u2buff = malloc(kvol*sizeof(complex));
+		Complex *u11Write = malloc(ndim*gvol*sizeof(Complex));
+		Complex *u12Write = malloc(ndim*gvol*sizeof(Complex));
+		Complex *u1buff = malloc(kvol*sizeof(Complex));
+		Complex *u2buff = malloc(kvol*sizeof(Complex));
 #endif
 		//Get correct parts of u11read etc from remote processors
 		for(iproc=0;iproc<nproc;iproc++)
@@ -348,8 +348,8 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 				else{
 					//No need to do MPI Send/Receive on the master rank
 					//Array looping is slow so we use memcpy instead
-					memcpy(u1buff, u11+idim*(kvol+halo), kvol*sizeof(complex));
-					memcpy(u2buff, u12+idim*(kvol+halo), kvol*sizeof(complex));
+					memcpy(u1buff, u11+idim*(kvol+halo), kvol*sizeof(Complex));
+					memcpy(u2buff, u12+idim*(kvol+halo), kvol*sizeof(Complex));
 				}
 				int i=0;
 				//could move the ic check to here, but it will make the code look rather unsightly
@@ -456,8 +456,8 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 			MPI_Finalise();
 			exit(OPENERROR);	
 		}
-		fwrite(u11Write, ndim*gvol*sizeof(complex), 1, con);
-		fwrite(u12Write, ndim*gvol*sizeof(complex), 1, con);
+		fwrite(u11Write, ndim*gvol*sizeof(Complex), 1, con);
+		fwrite(u12Write, ndim*gvol*sizeof(Complex), 1, con);
 		fwrite(&seed, sizeof(seed), 1, con);
 		fclose(con);
 #ifdef USE_MKL
@@ -569,7 +569,7 @@ int Par_fsum(float *fval){
 }
 int Par_csum(Complex_f *cval){
 	/*
-	 * Performs a reduction on a complex zval to get a sum which is
+	 * Performs a reduction on a Complex zval to get a sum which is
 	 * then distributed to all ranks.
 	 *
 	 * Parameters:
@@ -595,14 +595,14 @@ int Par_csum(Complex_f *cval){
 	*cval = ctmp;
 	return 0;
 }
-int Par_zsum(complex *zval){
+int Par_zsum(Complex *zval){
 	/*
-	 * Performs a reduction on a complex zval to get a sum which is
+	 * Performs a reduction on a Complex zval to get a sum which is
 	 * then distributed to all ranks.
 	 *
 	 * Parameters:
 	 * -----------
-	 * complex *zval: The pointer to the element being summed, and
+	 * Complex *zval: The pointer to the element being summed, and
 	 * 		the container for said sum.
 	 *
 	 * Returns:
@@ -612,7 +612,7 @@ int Par_zsum(complex *zval){
 	 */
 	char *funcname = "Par_zsum";
 	//Container to receive data.
-	complex ztmp;
+	Complex ztmp;
 
 	if(MPI_Allreduce(zval, &ztmp, 1, MPI_C_DOUBLE_COMPLEX, MPI_SUM, comm)){
 		fprintf(stderr, "Error %i in %s: Couldn't complete reduction for %f+%f i.\nExiting...\n\n",
@@ -665,13 +665,13 @@ int Par_dcopy(double *dval){
 	}
 	return 0;
 }
-int Par_zcopy(complex *zval){
+int Par_zcopy(Complex *zval){
 	/*
-	 * Broadcasts a complex value to the other processes
+	 * Broadcasts a Complex value to the other processes
 	 *
 	 * Parameters:
 	 * ----------
-	 * complex *zval
+	 * Complex *zval
 	 *
 	 * Returns:
 	 * -------
@@ -696,13 +696,13 @@ int Par_zcopy(complex *zval){
  *	function or DOWN FORTRAN function
  */
 
-int ZHalo_swap_all(complex *z, int ncpt){
+int ZHalo_swap_all(Complex *z, int ncpt){
 	/*
 	 * Calls the functions to send data to both the up and down halos
 	 *
 	 * Parameters:
 	 * -----------
-	 * complex z:	The data being sent
+	 * Complex z:	The data being sent
 	 * int	ncpt:	Good Question
 	 *
 	 * Returns:
@@ -723,14 +723,14 @@ int ZHalo_swap_all(complex *z, int ncpt){
 	}
 	return 0;
 }
-int ZHalo_swap_dir(complex *z, int ncpt, int idir, int layer){
+int ZHalo_swap_dir(Complex *z, int ncpt, int idir, int layer){
 	/*
 	 * Swaps the halos along the axis given by idir in the direction
 	 * given by layer
 	 *
 	 * Parameters:
 	 * -----------
-	 *  complex	*z:	The data being moved about. It should be an array of dimension [kvol+halo][something else]
+	 *  Complex	*z:	The data being moved about. It should be an array of dimension [kvol+halo][something else]
 	 *  int		ncpt: The size of something else above. 	
 	 *  int		idir:	The axis being moved along in C Indexing
 	 *  int		layer:	Either DOWN (0) or UP (1)
@@ -747,9 +747,9 @@ int ZHalo_swap_dir(complex *z, int ncpt, int idir, int layer){
 		exit(LAYERROR);
 	}
 #ifdef USE_MKL
-	complex *sendbuf = mkl_malloc(halo*ncpt*sizeof(complex), AVX);
+	Complex *sendbuf = mkl_malloc(halo*ncpt*sizeof(Complex), AVX);
 #else
-	complex *sendbuf = malloc(halo*ncpt*sizeof(complex));
+	Complex *sendbuf = malloc(halo*ncpt*sizeof(Complex));
 #endif
 	//How big is the data being sent and received
 	int msg_size=ncpt*halosize[idir];
@@ -824,7 +824,7 @@ int CHalo_swap_all(Complex_f *c, int ncpt){
 	 *
 	 * Parameters:
 	 * -----------
-	 * complex z:	The data being sent
+	 * Complex z:	The data being sent
 	 * int	ncpt:	Good Question
 	 *
 	 * Returns:
@@ -852,7 +852,7 @@ int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer){
 	 *
 	 * Parameters:
 	 * -----------
-	 *  complex	*z:	The data being moved about. It should be an array of dimension [kvol+halo][something else]
+	 *  Complex	*z:	The data being moved about. It should be an array of dimension [kvol+halo][something else]
 	 *  int		ncpt: The size of something else above. 	
 	 *  int		idir:	The axis being moved along in C Indexing
 	 *  int		layer:	Either DOWN (0) or UP (1)
@@ -871,7 +871,7 @@ int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer){
 #ifdef USE_MKL
 	Complex_f *sendbuf = mkl_malloc(halo*ncpt*sizeof(Complex_f), AVX);
 #else
-	Complex_f *sendbuf = aligned_alloc(AVX,halo*ncpt*sizeof(complex));
+	Complex_f *sendbuf = aligned_alloc(AVX,halo*ncpt*sizeof(Complex));
 #endif
 	//How big is the data being sent and received
 	int msg_size=ncpt*halosize[idir];
@@ -1042,9 +1042,9 @@ int Trial_Exchange(){
 	 */
 	char *funchame = "Trial_Exchange";
 #ifdef USE_MKL
-	complex *z = mkl_malloc((kvol+halo)*sizeof(complex),AVX);
+	Complex *z = mkl_malloc((kvol+halo)*sizeof(Complex),AVX);
 #else
-	complex *z = malloc((kvol+halo)*sizeof(complex));
+	Complex *z = malloc((kvol+halo)*sizeof(Complex));
 #endif
 	for(int mu=0;mu<ndim;mu++){
 		//Copy the column from u11t
@@ -1087,37 +1087,37 @@ int Trial_Exchange(){
 	}
 	return 0;
 }
-int Par_tmul(complex *z11, complex *z12){
+int Par_tmul(Complex *z11, Complex *z12){
 	/*
 	 * Parameters:
 	 * ===========
-	 * complex *z11
-	 * complex *z12
+	 * Complex *z11
+	 * Complex *z12
 	 *
 	 * Returns:
 	 * =======
 	 * Zero on success, integer error code otherwise.
 	 */
 	char *funcname = "Par_tmul";
-	complex *a11, *a12, *t11, *t12;
+	Complex *a11, *a12, *t11, *t12;
 	int i, itime;
 	//If we're using mkl, the mkl_malloc helps ensure arrays align with 64-bit
 	//byte boundaries to improve performance and enable AVX-512 instructions.
 	//Otherwise, malloc is pretty useful
 #ifdef USE_MKL
-	a11=(complex *)mkl_malloc(kvol3*sizeof(complex), AVX);
-	a12=(complex *)mkl_malloc(kvol3*sizeof(complex), AVX);
-	t11=(complex *)mkl_malloc(kvol3*sizeof(complex), AVX);
-	t12=(complex *)mkl_malloc(kvol3*sizeof(complex), AVX);
+	a11=(Complex *)mkl_malloc(kvol3*sizeof(Complex), AVX);
+	a12=(Complex *)mkl_malloc(kvol3*sizeof(Complex), AVX);
+	t11=(Complex *)mkl_malloc(kvol3*sizeof(Complex), AVX);
+	t12=(Complex *)mkl_malloc(kvol3*sizeof(Complex), AVX);
 #else
-	a11=malloc(kvol3*sizeof(complex));
-	a12=malloc(kvol3*sizeof(complex));
-	t11=malloc(kvol3*sizeof(complex));
-	t12=malloc(kvol3*sizeof(complex));
+	a11=malloc(kvol3*sizeof(Complex));
+	a12=malloc(kvol3*sizeof(Complex));
+	t11=malloc(kvol3*sizeof(Complex));
+	t12=malloc(kvol3*sizeof(Complex));
 #endif
 	//Intitialise for the first loop
-	memcpy(a11, z11, kvol3*sizeof(complex));
-	memcpy(a12, z12, kvol3*sizeof(complex));
+	memcpy(a11, z11, kvol3*sizeof(Complex));
+	memcpy(a12, z12, kvol3*sizeof(Complex));
 
 	//Since the index of the outer loop isn't used as an array index anywher
 	//I'm going format it exactly like the original FORTRAN
@@ -1126,8 +1126,8 @@ int Par_tmul(complex *z11, complex *z12){
 			rank, pu[3], pd[3]);
 #endif
 	for(itime=1;itime<npt; itime++){
-		memcpy(t11, a11, kvol3*sizeof(complex));	
-		memcpy(t12, a12, kvol3*sizeof(complex));	
+		memcpy(t11, a11, kvol3*sizeof(Complex));	
+		memcpy(t12, a12, kvol3*sizeof(Complex));	
 #ifdef _DEBUG
 		if(!rank) printf("t11 and t12 assigned. Getting ready to send to other processes.\n");
 #endif
@@ -1178,8 +1178,8 @@ int Par_tmul(complex *z11, complex *z12){
 			t11[i]=z11[i]*a11[i]-z12[i]*conj(a12[i]);
 			t12[i]=z11[i]*a12[i]+z12[i]*conj(a11[i]);
 		}
-		memcpy(z11, t11, kvol3*sizeof(complex));
-		memcpy(z12, t12, kvol3*sizeof(complex));
+		memcpy(z11, t11, kvol3*sizeof(Complex));
+		memcpy(z12, t12, kvol3*sizeof(Complex));
 	}
 #ifdef USE_MKL
 	mkl_free(a11); mkl_free(a12);

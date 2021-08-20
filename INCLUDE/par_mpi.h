@@ -1,7 +1,7 @@
 #ifndef	PAR_MPI
 #define	PAR_MPI
 #include	<coord.h>
-#ifdef __CUDACC__
+#ifdef __NVCC__
 #include	<cuda.h>
 #include	<thrust/complex.h>
 #define	Complex_f	thrust::complex<float>
