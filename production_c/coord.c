@@ -1,5 +1,4 @@
 #include <coord.h>
-#include <complex.h>
 #include <errorcodes.h>
 #include <math.h>
 #ifdef  __OPENMP
@@ -37,7 +36,7 @@ int Addrc(){
 #endif
 #ifdef USE_MKL
 	hd = (unsigned int*)mkl_malloc(ndim*halo*sizeof(int),AVX);
-	hu = (unsigned int *)mkl_malloc(ndim*halo*sizeof(int),AVX);
+	hu = (unsigned int*)mkl_malloc(ndim*halo*sizeof(int),AVX);
 	h1u = (unsigned int*)mkl_malloc(ndim*sizeof(int),AVX);
 	h1d = (unsigned int*)mkl_malloc(ndim*sizeof(int),AVX);
 	halosize= (unsigned int*)mkl_malloc(ndim*sizeof(int),AVX);

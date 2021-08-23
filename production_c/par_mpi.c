@@ -3,7 +3,6 @@
 //NOTE: In FORTRAN code everything was capitalised (despite being case insensitive)
 //C is case sensitive, so the equivalent C command has the case format MPI_Xyz_abc
 //Non-commands (like MPI_COMM_WORLD) don't always change
-int rank, size;
 
 MPI_Comm comm = MPI_COMM_WORLD;
 
@@ -70,9 +69,9 @@ int Par_begin(int argc, char *argv[]){
 		MPI_Cart_shift(commcart, i, 1, &pd[i], &pu[i]);
 	//Get coordinates of processors in the grid
 #ifdef USE_MKL
-	pcoord = mkl_malloc(ndim*nproc*sizeof(int),AVX);
+	pcoord = (int*)mkl_malloc(ndim*nproc*sizeof(int),AVX);
 #else
-	pcoord = malloc(ndim*nproc*sizeof(int));
+	pcoord = (int*)aligned_alloc(AVX,ndim*nproc*sizeof(int));
 #endif
 	for(int iproc = 0; iproc<nproc; iproc++){
 		MPI_Cart_coords(commcart, iproc, ndim, pcoord+iproc*ndim);
@@ -107,15 +106,15 @@ int Par_sread(){
 	char *funcname = "Par_sread";
 	//Containers for input
 #ifdef USE_MKL
-	Complex *u11Read = mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
-	Complex *u12Read = mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
-	Complex *u1buff = mkl_malloc(kvol*sizeof(Complex),AVX);
-	Complex *u2buff = mkl_malloc(kvol*sizeof(Complex),AVX);
+	Complex *u11Read = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
+	Complex *u12Read = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
+	Complex *u1buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
+	Complex *u2buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
 #else
-	Complex *u11Read = malloc(ndim*gvol*sizeof(Complex));
-	Complex *u12Read = malloc(ndim*gvol*sizeof(Complex));
-	Complex *u1buff = malloc(kvol*sizeof(Complex));
-	Complex *u2buff = malloc(kvol*sizeof(Complex));
+	Complex *u11Read = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
+	Complex *u12Read = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
+	Complex *u1buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
+	Complex *u2buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
 #endif
 	//	complex ubuff[kvol];
 	int icoord[ndim];
@@ -131,7 +130,7 @@ int Par_sread(){
 
 		//Run over processors, dimensions and colours
 		//Could be sped up with omp but parallel MPI_Sends is risky. 
-		//#pragma omp parallel for collapse(2)
+		#pragma omp parallel for simd collapse(2) aligned(u1buff,u2buff,u11Read,u12Read:AVX)
 		for(int iproc = 0; iproc < nproc; iproc++)
 			for(int idim = 0; idim < ndim; idim++){
 				int i = 0;
@@ -230,11 +229,11 @@ int Par_psread(char *filename, double *ps){
 	 */
 	char *funcname = "Par_psread";
 #ifdef USE_MKL
-	double *psbuff = mkl_malloc(nc*kvol*sizeof(double),AVX);
-	double *gps= mkl_malloc(nc*gvol*sizeof(double),AVX);
+	double *psbuff = (double*)mkl_malloc(nc*kvol*sizeof(double),AVX);
+	double *gps= (double*)mkl_malloc(nc*gvol*sizeof(double),AVX);
 #else
-	double *psbuff = malloc(nc*kvol*sizeof(double));
-	double *gps= malloc(nc*gvol*sizeof(double));
+	double *psbuff = (double*)aligned_alloc(AVX,nc*kvol*sizeof(double));
+	double *gps= (double*)aligned_alloc(AVX,nc*gvol*sizeof(double));
 #endif
 	int icoord[ndim];
 	FILE *dest;
@@ -256,7 +255,7 @@ int Par_psread(char *filename, double *ps){
 					icoord[1]=iy;
 					for(int iz=pstart[2][iproc]; iz<pstop[2][iproc]; iz++){
 						icoord[2]=iz;
-#pragma ivdep
+#pragma omp simd aligned(psbuff,gps:AVX)
 						for(int it=pstart[3][iproc]; it<pstop[3][iproc]; it++){
 							icoord[3]=it;
 							i++;
@@ -318,15 +317,15 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 	int icoord[4], iproc, seed;
 	if(!rank){
 #ifdef USE_MKL
-		Complex *u11Write = mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
-		Complex *u12Write = mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
-		Complex *u1buff = mkl_malloc(kvol*sizeof(Complex),AVX);
-		Complex *u2buff = mkl_malloc(kvol*sizeof(Complex),AVX);
+		Complex *u11Write = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
+		Complex *u12Write = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
+		Complex *u1buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
+		Complex *u2buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
 #else
-		Complex *u11Write = malloc(ndim*gvol*sizeof(Complex));
-		Complex *u12Write = malloc(ndim*gvol*sizeof(Complex));
-		Complex *u1buff = malloc(kvol*sizeof(Complex));
-		Complex *u2buff = malloc(kvol*sizeof(Complex));
+		Complex *u11Write = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
+		Complex *u12Write = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
+		Complex *u1buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
+		Complex *u2buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
 #endif
 		//Get correct parts of u11read etc from remote processors
 		for(iproc=0;iproc<nproc;iproc++)
@@ -747,9 +746,9 @@ int ZHalo_swap_dir(Complex *z, int ncpt, int idir, int layer){
 		exit(LAYERROR);
 	}
 #ifdef USE_MKL
-	Complex *sendbuf = mkl_malloc(halo*ncpt*sizeof(Complex), AVX);
+	Complex *sendbuf = (Complex *)mkl_malloc(halo*ncpt*sizeof(Complex), AVX);
 #else
-	Complex *sendbuf = malloc(halo*ncpt*sizeof(Complex));
+	Complex *sendbuf = (Complex *)aligned_alloc(AVX,halo*ncpt*sizeof(Complex));
 #endif
 	//How big is the data being sent and received
 	int msg_size=ncpt*halosize[idir];
@@ -869,9 +868,9 @@ int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer){
 		exit(LAYERROR);
 	}
 #ifdef USE_MKL
-	Complex_f *sendbuf = mkl_malloc(halo*ncpt*sizeof(Complex_f), AVX);
+	Complex_f *sendbuf = (Complex_f *)mkl_malloc(halo*ncpt*sizeof(Complex_f), AVX);
 #else
-	Complex_f *sendbuf = aligned_alloc(AVX,halo*ncpt*sizeof(Complex));
+	Complex_f *sendbuf = (Complex_f *)aligned_alloc(AVX,halo*ncpt*sizeof(Complex));
 #endif
 	//How big is the data being sent and received
 	int msg_size=ncpt*halosize[idir];
@@ -958,9 +957,9 @@ int DHalo_swap_dir(double *d, int ncpt, int idir, int layer){
 	 */
 	char *funcname = "ZHalo_swap_dir";
 #ifdef USE_MKL
-	double *sendbuf = mkl_malloc(halo*ncpt*sizeof(double), AVX);
+	double *sendbuf =(double *) mkl_malloc(halo*ncpt*sizeof(double), AVX);
 #else
-	double *sendbuf = malloc(halo*ncpt*sizeof(double));
+	double *sendbuf = (double *)aligned_alloc(AVX,halo*ncpt*sizeof(double));
 #endif
 	if(layer!=DOWN && layer!=UP){
 		fprintf(stderr, "Error %i in %s: Cannot swap in the direction given by %i.\nExiting...\n\n",
@@ -1042,9 +1041,9 @@ int Trial_Exchange(){
 	 */
 	char *funchame = "Trial_Exchange";
 #ifdef USE_MKL
-	Complex *z = mkl_malloc((kvol+halo)*sizeof(Complex),AVX);
+	Complex *z = (Complex *)mkl_malloc((kvol+halo)*sizeof(Complex),AVX);
 #else
-	Complex *z = malloc((kvol+halo)*sizeof(Complex));
+	Complex *z = (Complex *)aligned_alloc(AVX,(kvol+halo)*sizeof(Complex));
 #endif
 	for(int mu=0;mu<ndim;mu++){
 		//Copy the column from u11t

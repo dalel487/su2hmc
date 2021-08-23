@@ -1,13 +1,13 @@
-#ifndef MULTIPLY
-#define MULTIPLY 
-#ifdef __CUDACC__
+#ifndef MATRICES
+#define MATRICES
+#include <par_mpi.h>
+#include <su2hmc.h>
+#ifdef __NVCC__
 #include <cuda.h>
 #include <curand.h>
 extern "C"
 {
 #endif
-#include <par_mpi.h>
-#include <su2hmc.h>
 
 	int Dslash(Complex *phi, Complex *r);
 	int Dslashd(Complex *phi, Complex *r);
@@ -16,7 +16,7 @@ extern "C"
 	//Float version
 	int Hdslash_f(Complex_f *phi, Complex_f *r);
 	int Hdslashd_f(Complex_f *phi, Complex_f *r);
-#ifdef __CUDACC__
+#ifdef __NVCC__
 }
 __global__ void cuDslash(Complex *phi, Complex *r);
 __global__ void cuDslashd(Complex *phi, Complex *r);
@@ -36,7 +36,7 @@ extern "C"
 #ifdef DIAGNOSTIC
 	int Diagnostics(int istart);
 #endif
-#ifdef __CUDACC__
+#ifdef __NVCC__
 }
 #endif
 #endif

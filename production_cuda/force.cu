@@ -27,10 +27,10 @@ int Gauge_force(double *dSdpi){
 	int device=-1;
 	cudaGetDevice(&device);
 	Complex *Sigma11, *Sigma12, *u11sh, *u12sh;
-	cudaMallocManaged((complex**)&Sigma11,kvol*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged((complex**)&Sigma12,kvol*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged((complex**)&u11sh,(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged((complex**)&u12sh,(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((Complex**)&Sigma11,kvol*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((Complex**)&Sigma12,kvol*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((Complex**)&u11sh,(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((Complex**)&u12sh,(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
 	//Holders for directions
 	for(int mu=0; mu<ndim; mu++){
 		memset(Sigma11,0, kvol*sizeof(Complex));

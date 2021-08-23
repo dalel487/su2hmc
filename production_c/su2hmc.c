@@ -3,7 +3,6 @@
 #include	<cuda.h>
 #include	<cuda_runtime.h>
 //Fix this later
-//#define cudaMemAttachGlobal 0x01
 #endif
 #include	<math.h>
 #include	<par_mpi.h>
@@ -134,7 +133,7 @@ int main(int argc, char *argv[]){
 			exit(OPENERROR);
 		}
 		fscanf(midout, "%lf %lf %lf %lf %lf %lf %lf %d %d %d", &dt, &beta, &akappa,\
-					&ajq, &athq, &fmu, &delb, &stepl, &ntraj, &istart);
+				&ajq, &athq, &fmu, &delb, &stepl, &ntraj, &istart);
 		fclose(midout);
 	}
 	if(iread){
@@ -149,7 +148,7 @@ int main(int argc, char *argv[]){
 	Par_icopy(&stepl); Par_icopy(&ntraj); 
 	jqq=ajq*cexp(athq*I);
 	akappa_f=(float)akappa;
-	#ifdef __NVCC__
+#ifdef __NVCC__
 	cudaMalloc(&jqq_d,sizeof(Complex));
 	cudaMalloc(&beta_d,sizeof(Complex));
 	cudaMalloc(&akappa_d,sizeof(Complex));
@@ -159,7 +158,7 @@ int main(int argc, char *argv[]){
 	cudaMemcpy(beta_d,&beta,sizeof(Complex),cudaMemcpyHostToDevice);
 	cudaMemcpy(akappa_d,&akappa,sizeof(Complex),cudaMemcpyHostToDevice);
 	cudaMemcpy(akappa_f_d,&akappa_f,sizeof(Complex_f),cudaMemcpyHostToDevice);
-	#endif
+#endif
 #ifdef _DEBUG
 	printf("jqq=%f+(%f)I\n",creal(jqq),cimag(jqq));
 #endif
@@ -530,7 +529,7 @@ int main(int argc, char *argv[]){
 								{
 									FILE *fortout;
 									char *fortname = "PBP-Density";
-									char *fortop= (itraj==1) ? "w" : "a";
+									const char *fortop= (itraj==1) ? "w" : "a";
 									if(!(fortout=fopen(fortname, fortop) )){
 										fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
 												OPENERROR, funcname, fortname, fortop);
@@ -550,7 +549,7 @@ int main(int argc, char *argv[]){
 								{
 									FILE *fortout;
 									char *fortname = "Bosonic_Observables"; 
-									char *fortop= (itraj==1) ? "w" : "a";
+									const char *fortop= (itraj==1) ? "w" : "a";
 									if(!(fortout=fopen(fortname, fortop) )){
 										fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
 												OPENERROR, funcname, fortname, fortop);
@@ -567,7 +566,7 @@ int main(int argc, char *argv[]){
 								{
 									FILE *fortout;
 									char *fortname = "Diquark";
-									char *fortop= (itraj==1) ? "w" : "a";
+									const char *fortop= (itraj==1) ? "w" : "a";
 									if(!(fortout=fopen(fortname, fortop) )){
 										fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
 												OPENERROR, funcname, fortname, fortop);
@@ -715,8 +714,8 @@ int Init(int istart){
 	dk4m_f = aligned_alloc(AVX,(kvol+halo)*sizeof(float));
 	dk4p_f = aligned_alloc(AVX,(kvol+halo)*sizeof(float));
 #endif
-#pragma omp parallel for simd aligned(dk4m,dk4p:AVX)
 	//CUDA this. Only limit will be the bus speed
+#pragma omp parallel for simd aligned(dk4m,dk4p:AVX)
 	for(int i = 0; i<kvol; i++){
 		dk4p[i]=akappa*chem1;
 		dk4m[i]=akappa*chem2;
@@ -727,9 +726,9 @@ int Init(int istart){
 #ifdef _DEBUG
 		printf("Implimenting antiperiodic boundary conditions on rank %i\n", rank);
 #endif
-#pragma omp parallel for simd aligned(dk4m,dk4p:AVX)
 		//Also CUDA this. By the looks of it it should saturate the GPU
 		//as is
+#pragma omp parallel for simd aligned(dk4m,dk4p:AVX)
 		for(int i= 0; i<kvol3; i++){
 			int k = kvol - kvol3 + i;
 			dk4p[k]*=-1;
@@ -738,8 +737,8 @@ int Init(int istart){
 	}
 	//These are constant so swap the halos when initialising and be done with it
 	//May need to add a synchronisation statement here first
-		DHalo_swap_dir(dk4p, 1, 3, UP);
-		DHalo_swap_dir(dk4m, 1, 3, UP);
+	DHalo_swap_dir(dk4p, 1, 3, UP);
+	DHalo_swap_dir(dk4m, 1, 3, UP);
 #pragma omp parallel for simd aligned(dk4m,dk4p,dk4m_f,dk4p_f:AVX)
 	for(int i=0;i<kvol+halo;i++){
 		dk4p_f[i]=(float)dk4p[i];
@@ -760,7 +759,7 @@ int Init(int istart){
 		for(int j=0;j<4;j++)
 			gamval_f[i][j]=(Complex_f)gamval[i][j];
 #ifdef __NVCC__
-//Gamma matrices and indices on the GPU
+	//Gamma matrices and indices on the GPU
 	cudaMallocManaged(&gamin_d,4*4*sizeof(int),cudaMemAttachGlobal);
 	memcpy(gamin_d,gamin,4*4*sizeof(int));
 	cudaMalloc(&gamval_d,5*4*sizeof(Complex));
@@ -895,7 +894,7 @@ int Hamilton(double *h, double *s, double res2){
 		memcpy(X0+na*kferm2Halo,X1,kferm2*sizeof(Complex));
 #ifdef __NVCC__
 		Complex dot;
-		cublasZdotc(cublas_handle,kferm2, smallPhi, 1, X1, 1, &dot);
+		cublasZdotc(cublas_handle,kferm2, (cuDoubleComplex *)smallPhi, 1,(cuDoubleComplex *) X1, 1,(cuDoubleComplex *) &dot);
 		hf+=creal(dot);
 #elif (defined USE_MKL || defined USE_BLAS)
 		Complex dot;
@@ -1033,7 +1032,7 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 			x2[i]=(Complex)x2_f[i];
 #ifdef	__NVCC__
 		//x2 =  (M^†M+J^2)p 
-		cublasZaxpy(cublas_handle,kferm2,&fac,p,1,x2,1);
+		cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&fac,(cuDoubleComplex *)p,1,(cuDoubleComplex *)x2,1);
 #elif (defined USE_MKL || defined USE_BLAS)
 		//x2 =  (M^†M+J^2)p 
 		cblas_zaxpy(kferm2, &fac, p, 1, x2, 1);
@@ -1046,7 +1045,7 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 		if(niterx){
 			//α_d= p* (M^†M+J^2)p
 #ifdef __NVCC__
-			cublasZdotc(cublas_handle,kferm2,p,1,x2,1,&alphad);
+			cublasZdotc(cublas_handle,kferm2,(cuDoubleComplex *)p,1,(cuDoubleComplex *)x2,1,(cuDoubleComplex *)&alphad);
 #elif (defined USE_MKL || defined USE_BLAS)
 			cblas_zdotc_sub(kferm2, p, 1, x2, 1, &alphad);
 #else
@@ -1061,7 +1060,7 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 			alpha=alphan/creal(alphad);
 			//x-αp, 
 #ifdef __NVCC__
-			cublasZaxpy(cublas_handle,kferm2,&alpha,p,1,X1,1);
+			cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&alpha,(cuDoubleComplex *)p,1,(cuDoubleComplex *)X1,1);
 #elif (defined USE_MKL || defined USE_BLAS)
 			cblas_zaxpy(kferm2, &alpha, p, 1, X1, 1);
 #else
@@ -1072,9 +1071,9 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 		// r_n+1 = r_n-α(M^† M)p_n and β_n=r*.r
 #ifdef	__NVCC__
 		alpha*=-1;
-		cublasZaxpy(cublas_handle, kferm2,&alpha,x2,1,r,1);
+		cublasZaxpy(cublas_handle, kferm2,(cuDoubleComplex *)&alpha,(cuDoubleComplex *)x2,1,(cuDoubleComplex *)r,1);
 		alpha*=-1;
-		cublasDznrm2(cublas_handle,kferm2,r,1,&betan);
+		cublasDznrm2(cublas_handle,kferm2,(cuDoubleComplex *)r,1,&betan);
 		betan *= betan;
 #elif (defined USE_MKL || defined USE_BLAS)
 		alpha *= -1;
@@ -1222,7 +1221,7 @@ int Congradp(int na, double res, int *itercg){
 		if(niterx){
 			//x*.x
 #ifdef __NVCC__
-			cublasDznrm2(cublas_handle,kferm, x1, 1,&alphad);
+			cublasDznrm2(cublas_handle,kferm,(cuDoubleComplex *) x1, 1,&alphad);
 			alphad *= alphad;
 #elif (defined USE_MKL || defined USE_BLAS)
 			alphad = cblas_dznrm2(kferm, x1, 1);
@@ -1237,7 +1236,7 @@ int Congradp(int na, double res, int *itercg){
 			alpha=alphan/alphad;
 			//x+αp
 #ifdef __NVCC__
-			cublasZaxpy(cublas_handle,kferm, &alpha, p, 1, xi, 1);
+			cublasZaxpy(cublas_handle,kferm,(cuDoubleComplex *) &alpha,(cuDoubleComplex *) p, 1,(cuDoubleComplex *) xi, 1);
 #elif (defined USE_MKL || defined USE_BLAS)
 			cblas_zaxpy(kferm, &alpha, p, 1, xi, 1);
 #else
@@ -1250,10 +1249,10 @@ int Congradp(int na, double res, int *itercg){
 		//r-α(M^†)Mp and β_n=r*.r
 #ifdef __NVCC__
 		alpha*=-1;
-		cublasZaxpy(cublas_handle,kferm, &alpha, x2, 1, r, 1);
+		cublasZaxpy(cublas_handle,kferm, (cuDoubleComplex *)&alpha,(cuDoubleComplex *) x2, 1,(cuDoubleComplex *) r, 1);
 		alpha*=-1;
 		//r*.r
-		cublasDznrm2(cublas_handle,kferm, r,1,&betan);
+		cublasDznrm2(cublas_handle,kferm,(cuDoubleComplex *) r,1,&betan);
 		//Gotta square it to "undo" the norm
 		betan *= betan;
 #elif (defined USE_MKL || defined USE_BLAS)
