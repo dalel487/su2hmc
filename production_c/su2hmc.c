@@ -1017,7 +1017,7 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
 	//if statements quicker to type
-	Complex betan;
+	double betan;
 	for(int niterx=0; niterx<niterc; niterx++){
 		(*itercg)++;
 #pragma omp parallel for simd aligned(p_f,p:AVX)
@@ -1056,9 +1056,9 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 #endif
 			//For now I'll cast it into a double for the reduction. Each rank only sends and writes
 			//to the real part so this is fine
-			Par_dsum(&alphad);
+			Par_dsum((double *)&alphad);
 			//α=α_n/α_d = (r.r)/p(M^†M)p 
-			alpha=creal(alphan)/creal(alphad);
+			alpha=alphan/creal(alphad);
 			//x-αp, 
 #ifdef __NVCC__
 			cublasZaxpy(cublas_handle,kferm2,&alpha,p,1,X1,1);
@@ -1093,21 +1093,21 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 #endif
 		//And... reduce.
 		Par_dsum(&betan);
-		if(creal(betan)<resid){ 
+		if(betan<resid){ 
 #ifdef _DEBUG
-			if(!rank) printf("Iter (CG) = %i resid = %e toler = %e\n", niterx+1, creal(betan), resid);
+			if(!rank) printf("Iter (CG) = %i resid = %e toler = %e\n", niterx+1, betan, resid);
 #endif
 			break;
 		}
 		else if(niterx==niterc-1){
-			if(!rank) fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i β_n=%e\n", ITERLIM, funcname, niterc, creal(betan));
+			if(!rank) fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i β_n=%e\n", ITERLIM, funcname, niterc, betan);
 			break;
 		}
 		//Here we evaluate β=(r_{k+1}.r_{k+1})/(r_k.r_k) and then shuffle our indices down the line.
 		//On the first iteration we define beta to be zero.
 		//Note that beta below is not the global beta and scoping is used to avoid conflict between them
-		Complex beta = (niterx) ?  creal(betan)/creal(betad) : 0;
-		betad=betan; alphan=creal(betan);
+		Complex beta = (niterx) ?  betan/betad : 0;
+		betad=betan; alphan=betan;
 		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multipyling y by
 		//β instead of x.
 #if (defined USE_MKL||defined USE_BLAS)
@@ -1172,7 +1172,7 @@ int Congradp(int na, double res, int *itercg){
 	//These were evaluated only in the first loop of niterx so we'll just do it ouside of the loop.
 	//These alpha and beta terms should be double, but that causes issues with BLAS. Instead we declare
 	//them Complex and work with the real part (especially for α_d)
-	Complex alphan;
+	double alphan;
 	//Give initial values Will be overwritten if niterx>0
 	double betad = 1.0; double alphad=0; Complex alpha = 1;
 #ifdef __NVCC__
@@ -1214,7 +1214,7 @@ int Congradp(int na, double res, int *itercg){
 
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
 	//if statements quicker to type
-	Complex betan;
+	double betan;
 	for(int niterx=0; niterx<=niterc; niterx++){
 		(*itercg)++;
 		Dslash(x1,p);
@@ -1234,7 +1234,7 @@ int Congradp(int na, double res, int *itercg){
 #endif
 			Par_dsum(&alphad);
 			//α=(r.r)/p(M^†)Mp
-			alpha=creal(alphan)/alphad;
+			alpha=alphan/alphad;
 			//x+αp
 #ifdef __NVCC__
 			cublasZaxpy(cublas_handle,kferm, &alpha, p, 1, xi, 1);
@@ -1275,20 +1275,20 @@ int Congradp(int na, double res, int *itercg){
 		}
 #endif
 		//This is basically just congradq at the end. Check there for comments
-		Par_zsum(&betan);
-		if(creal(betan)<resid){
+		Par_dsum(&betan);
+		if(betan<resid){
 #ifdef _DEBUG
-			if(!rank) printf("Iter (CG) = %i resid = %e toler = %e\n", niterx+1, creal(betan), resid);
+			if(!rank) printf("Iter (CG) = %i resid = %e toler = %e\n", niterx+1, betan, resid);
 #endif
 			break;
 		}
 		else if(niterx==niterc-1){
-			if(!rank) fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i β_n=%e\n", ITERLIM, funcname, niterc, creal(betan));
+			if(!rank) fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i β_n=%e\n", ITERLIM, funcname, niterc, betan);
 			break;
 		}
 		//Note that beta below is not the global beta and scoping is used to avoid conflict between them
 		Complex beta = (niterx) ? betan/betad : 0;
-		betad=creal(betan); alphan=betan;
+		betad=betan; alphan=betan;
 		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multipyling y by 
 		//β instead of x.
 		//There is cblas_zaxpby in the MKL though, set a = 1 and b = β.

@@ -16,8 +16,9 @@ using namespace thrust;
 #define	Complex	 complex<double>
 //Adding the macros for extracting the real, imaginary parts here since it's
 //included by all files that also include par_mpi.h
-#define	creal(z)	real(z)
-#define	cimag(z)	imag(z)
+#define	cexp(z)	exp(z)
+#define	cimag(z)	z.imag()
+#define	creal(z)	z.real()
 #define	I	Complex(0.0,1.0)	
 #else
 #include	<complex.h>

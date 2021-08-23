@@ -24,25 +24,13 @@ int Gauge_force(double *dSdpi){
 	//		memset(u12t[kvol], 0, ndim*halo*sizeof(complex));	
 	//	#endif
 	//Was a trial field halo exchange here at one point.
-#ifdef __CUDACC__
 	int device=-1;
 	cudaGetDevice(&device);
 	Complex *Sigma11, *Sigma12, *u11sh, *u12sh;
-	cudaMallocManaged(&Sigma11,kvol*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&Sigma12,kvol*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&u11sh,(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&u12sh,(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
-#elif defined USE_MKL
-	complex *Sigma11 = mkl_malloc(kvol*sizeof(complex),AVX); 
-	complex *Sigma12= mkl_malloc(kvol*sizeof(complex),AVX); 
-	complex *u11sh = mkl_malloc((kvol+halo)*sizeof(complex),AVX); 
-	complex *u12sh = mkl_malloc((kvol+halo)*sizeof(complex),AVX); 
-#else
-	complex *Sigma11 = malloc(kvol*sizeof(complex)); 
-	complex *Sigma12= malloc(kvol*sizeof(complex)); 
-	complex *u11sh = malloc((kvol+halo)*sizeof(complex)); 
-	complex *u12sh = malloc((kvol+halo)*sizeof(complex)); 
-#endif
+	cudaMallocManaged((complex**)&Sigma11,kvol*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((complex**)&Sigma12,kvol*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((complex**)&u11sh,(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((complex**)&u12sh,(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
 	//Holders for directions
 	for(int mu=0; mu<ndim; mu++){
 		memset(Sigma11,0, kvol*sizeof(Complex));
