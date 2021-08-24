@@ -8,7 +8,7 @@ NVCC = nvcc
 IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include" -I./
 
 
-CFLAGS=      $(IFLAGS) -std=gnu99 -qopt-zmm-usage=high -DUSE_RAN2 \
+CFLAGS=      $(IFLAGS) -std=g++11 -qopt-zmm-usage=high -DUSE_RAN2 \
 		 -xCOMMON-AVX512 -static-intel -static-libgcc -masm=att\
 		 -qopenmp-simd -qopenmp -qopenmp-link=static -DSA3AT -x c++ \
 

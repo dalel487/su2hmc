@@ -1,14 +1,11 @@
 #ifndef MATRICES
 #define MATRICES
-#include <par_mpi.h>
-#include <su2hmc.h>
 #ifdef __NVCC__
 #include <cuda.h>
 #include <curand.h>
-extern "C"
-{
 #endif
-
+#include <par_mpi.h>
+#include <su2hmc.h>
 	int Dslash(Complex *phi, Complex *r);
 	int Dslashd(Complex *phi, Complex *r);
 	int Hdslash(Complex *phi, Complex *r);
@@ -17,7 +14,6 @@ extern "C"
 	int Hdslash_f(Complex_f *phi, Complex_f *r);
 	int Hdslashd_f(Complex_f *phi, Complex_f *r);
 #ifdef __NVCC__
-}
 __global__ void cuDslash(Complex *phi, Complex *r);
 __global__ void cuDslashd(Complex *phi, Complex *r);
 __global__ void cuHdslash(Complex *phi, Complex *r);
@@ -28,15 +24,10 @@ __global__ void cuNew_trial(double dt);
 __global__ inline void cuReunitarise();
 
 //New Trial Fields
-extern "C"
-{
 #endif
 	int Reunitarise();
 	int New_trial(double dt);
 #ifdef DIAGNOSTIC
 	int Diagnostics(int istart);
-#endif
-#ifdef __NVCC__
-}
 #endif
 #endif

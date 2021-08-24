@@ -130,7 +130,7 @@ int Par_sread(){
 
 		//Run over processors, dimensions and colours
 		//Could be sped up with omp but parallel MPI_Sends is risky. 
-		#pragma omp parallel for simd collapse(2) aligned(u1buff,u2buff,u11Read,u12Read:AVX)
+#pragma omp parallel for simd collapse(2) aligned(u1buff,u2buff,u11Read,u12Read:AVX)
 		for(int iproc = 0; iproc < nproc; iproc++)
 			for(int idim = 0; idim < ndim; idim++){
 				int i = 0;
@@ -586,8 +586,10 @@ int Par_csum(Complex_f *cval){
 	Complex_f ctmp;
 
 	if(MPI_Allreduce(cval, &ctmp, 1, MPI_C_FLOAT_COMPLEX, MPI_SUM, comm)){
+#ifndef __NVCC__
 		fprintf(stderr, "Error %i in %s: Couldn't complete reduction for %f+%f i.\nExiting...\n\n",
 				REDUCERR, funcname, creal(*cval), cimag(*cval));
+#endif
 		MPI_Finalise();
 		exit(REDUCERR);	
 	}
@@ -614,8 +616,10 @@ int Par_zsum(Complex *zval){
 	Complex ztmp;
 
 	if(MPI_Allreduce(zval, &ztmp, 1, MPI_C_DOUBLE_COMPLEX, MPI_SUM, comm)){
+#ifndef __NVCC__
 		fprintf(stderr, "Error %i in %s: Couldn't complete reduction for %f+%f i.\nExiting...\n\n",
 				REDUCERR, funcname, creal(*zval), cimag(*zval));
+#endif
 		MPI_Finalise();
 		exit(REDUCERR);	
 	}
@@ -678,8 +682,10 @@ int Par_zcopy(Complex *zval){
 	 */
 	char *funcname = "Par_zcopy";
 	if(MPI_Bcast(zval,1,MPI_C_DOUBLE_COMPLEX,masterproc,comm)){
+#ifndef __NVCC__
 		fprintf(stderr, "Error %i in %s: Failed to broadcast %f+i%f from %i.\nExiting...\n\n",
 				BROADERR, funcname, creal(*zval), cimag(*zval), rank);
+#endif
 		MPI_Finalise();
 		exit(BROADERR);
 	}
