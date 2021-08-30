@@ -8,15 +8,15 @@ NVCC = nvcc
 IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include" -I./
 
 
-CFLAGS=      $(IFLAGS) -std=gnu99 -qopt-zmm-usage=high -DUSE_RAN2\
+CFLAGS=      $(IFLAGS) -std=g++11 -qopt-zmm-usage=high -DUSE_RAN2 \
 		 -xCOMMON-AVX512 -static-intel -static-libgcc -masm=att\
-		 -qopenmp-simd -qopenmp -qopenmp-link=static -DSA3AT \
+		 -qopenmp-simd -qopenmp -qopenmp-link=static -DSA3AT -x c++ \
 
 LFLAGS=	 -L${MKLROOT}/lib/intel64 -liomp5 -lpthread -lm -ldl -lcudart -lcublas #-wd10237
 
 MKLFLAGS=	-mkl -DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64 
-CUFLAGS=	${IFLAGS} -ccbin ${CC} -arch=compute_70 -code=sm_70,sm_72,sm_75,sm_80,sm_86 -err-no -w\
-		-expt-relaxed-constexpr -std=c++11
+CUFLAGS=	${IFLAGS} -ccbin ${CXX} -arch=compute_70 -code=sm_70,sm_72,sm_75,sm_80,sm_86 -err-no -w\
+		-expt-relaxed-constexpr 
 		#Last flag is an experimental one used to call host functions in device code. Not sure
 		#if it does what we want because the error message suggesting it came up when declaring
 		#a11 and a12 in the Dslash routine
@@ -74,8 +74,8 @@ release:	CUFLAGS += -O3
 release:	$(EXE)
 
 .PHONY: debug 
-debug:	CFLAGS += -O0 -g -D_DEBUG# -DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
-debug:	CUFLAGS += -O0 -G -g -D_DEBUG 	
+debug:	CFLAGS += -O0 -g -D_DEBUG -rdynamic # -DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
+debug:	CUFLAGS += -O0 -G -g -D_DEBUG 
 debug:	$(EXE)
 
 $(EXE): $(OBJ)

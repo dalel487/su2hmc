@@ -40,13 +40,7 @@ double ranget(double *seed);
 //Distributions
 //=============
 //Use Box-Müller to generate an array of complex numbers
-#ifdef __CUDACC__
-extern "C"{
-#endif
 int Gauss_z(Complex *ps, unsigned int n, const double mu, const double sigma);
-#ifdef __CUDACC__
-}
-#endif
 int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma);
 
 //MPI

@@ -8,17 +8,8 @@ cublasHandle_t cublas_status;
 //Get rid of that dirty yankee English
 #define cudaDeviceSynchronise() cudaDeviceSynchronize()
 #endif 
-#ifdef __CUDACC__
-#include <thrust/complex.h>
-using namespace thrust;
-#undef	complex
-#define	Complex_f	 complex<float>
-#define	Complex	 complex<double>
-//Adding the macros for extracting the real, imaginary parts here since it's
-//included by all files that also include par_mpi.h
-#define	creal(z)	real(z)
-#define	cimag(z)	imag(z)
-#define	I	Complex(0.0,1.0)	
+#ifdef __NVCC__
+#include <thrust_complex.h>
 #else
 #include	<complex.h>
 #define Complex_f	float	complex
@@ -29,8 +20,6 @@ using namespace thrust;
 //flag to sort them out. But the PRNG routines etc. are MKL exclusive
 #ifdef	USE_MKL
 #include	<mkl.h>
-#elif defined __NVCC__
-#include	<cublas.h>
 #elif defined USE_BLAS
 #include	<cblas.h>
 #endif
@@ -40,10 +29,6 @@ using namespace thrust;
 //###########
 //Variables:
 //#########
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 int ibound; 
 //Arrays:
 //------
@@ -117,8 +102,7 @@ extern int Fill_Small_Phi(int na, Complex *smallPhi);
 
 //CUDA Declarations:
 //#################
-#ifdef __CUDACC__
-}
+#ifdef __NVCC__
 __global__ void cuForce(double *dSdpi, Complex *X2);
 __global__ void Plus_staple(int mu, int nu, Complex *Sigma11, Complex *Sigma12);
 __global__ void Minus_staple(int mu, int nu, Complex *Sigma11, Complex *Sigma12, Complex *u11sh, Complex *u12sh);

@@ -1,11 +1,9 @@
 #ifndef	PAR_MPI
 #define	PAR_MPI
 #include	<coord.h>
-#ifdef __CUDACC__
+#ifdef __NVCC__
 #include	<cuda.h>
-#include	<thrust/complex.h>
-#define	Complex_f	thrust::complex<float>
-#define	Complex	thrust::complex<double>
+#include	<thrust_complex.h>
 #else
 #include	<complex.h>
 #define	Complex_f	float	complex
@@ -17,7 +15,7 @@
 //If using mkl and BLAS, it is good practice to use mkl_malloc to align the arrays better
 //for the AVX-512 FMA Units
 #include	<mkl.h>
-#elif defined __CUDACC__
+#elif defined __NVCC__
 #include	<cublas.h>
 #else
 #include	<cblas.h>
@@ -90,11 +88,11 @@ int ismaster;
 //A couple of other components usually defined in common_*.h files in fortran. But since C has global scope
 //may as well put them in here instead.
 //Gauges and trial matrices
-#ifdef __CUDACC__
+#ifdef __NVCC__
 __managed__ 
 #endif 
 Complex *u11, *u12, *u11t, *u12t;
-#ifdef __CUDACC__
+#ifdef __NVCC__
 __managed__ 
 #endif 
 Complex_f *u11t_f, *u12t_f;
@@ -104,10 +102,6 @@ Complex_f *u11t_f, *u12t_f;
 
 //Function Declarations
 //=====================
-#ifdef __CUDACC__
-extern "C"
-{
-#endif
 int Par_begin(int argc, char *argv[]);
 int Par_sread();
 int Par_psread(char *filename, double *ps);
@@ -129,7 +123,4 @@ int DHalo_swap_dir(double *d, int ncpt, int idir, int layer);
 int Trial_Exchange();
 
 int Par_tmul(Complex *z11, Complex *z12);
-#ifdef __CUDACC__
-}
-#endif
 #endif
