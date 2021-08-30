@@ -307,7 +307,20 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 	 *
 	 * Parameters:
 	 * ----------
-	 * int	isweep
+	 * int	itraj:	Current trajectory
+	 * int	icheck:	Measure on this trajectory
+	 * double	beta
+	 * double	fmu:		Fermion chemical potential
+	 * double	akappa:
+	 * double	ajq:
+	 *
+	 * Globals:
+	 * -------
+	 * Complex	*u11, u12:	Gauge fields
+	 * int	seed
+	 *
+	 * Calls:
+	 * ------
 	 *
 	 * Returns:
 	 * -------
