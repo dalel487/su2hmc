@@ -172,6 +172,7 @@ int Force(double *dSdpi, int iflag, double res1){
 }
 
 //CUDA Kernels
+//TODO: Split cuForce into seperateable streams
 __global__ void cuForce(double *dSdpi, Complex *X2){
 	char *funcname = "cuForce";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
