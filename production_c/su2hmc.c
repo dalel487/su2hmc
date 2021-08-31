@@ -126,7 +126,7 @@ int main(int argc, char *argv[]){
 		FILE *midout;
 		//Instead of hardcoding so the error messages are easier to impliment
 		char *filename = "midout";
-		char *fileop = "rb";
+		char *fileop = "r";
 		if( !(midout = fopen(filename, fileop) ) ){
 			fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n"\
 					, OPENERROR, funcname, filename, fileop);

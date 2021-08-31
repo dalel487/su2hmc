@@ -308,7 +308,7 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 	 * Parameters:
 	 * ----------
 	 * int	itraj:	Current trajectory
-	 * int	icheck:	Measure on this trajectory
+	 * int	icheck:	How often to write gauge fields. Used to generate name of configuration
 	 * double	beta
 	 * double	fmu:		Fermion chemical potential
 	 * double	akappa:
@@ -478,7 +478,7 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 		free(u11Write); free(u12Write); free(u1buff); free(u2buff);
 #endif
 	}
-	else{
+	else
 		for(int idim = 0; idim<ndim; idim++){
 			if(MPI_Send(u11+(kvol+halo)*idim, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm)){
 				fprintf(stderr, "Error %i in %s: Falied to send u11 from process %i.\nExiting...\n\n",
@@ -493,7 +493,7 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 				exit(CANTSEND);
 			}
 		}
-	}
+
 	return 0;
 }
 //To be lazy, we've got modules to help us do reductions and broadcasts with a single argument
