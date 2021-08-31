@@ -382,8 +382,8 @@ inline int Index2gcoord(int index, int *coord){
 	return 0;
 }
 inline int Coord2lindex(int *coord){
-	/* Converts the coordinates of a point to its relative index in the 
-	 * computer memory to the first point in the memory
+	/* Converts the coordinates of a local lattice point to its index in the 
+	 * computer memory
 	 *
 	 * This is a rather nuanced function, as C and Fortran are rather
 	 * different in how they store arrays. C starts with index 0 and
@@ -404,13 +404,14 @@ inline int Coord2lindex(int *coord){
 	//I've factorised this function compared to its original 
 	//implimentation to reduce the number of multiplications
 	//and hopefully improve performance
-	int index = coord[3]+ksizet*(coord[2]+ksizez*(coord[1]+ksizey*coord[0]));
+//	int index = coord[3]+ksizet*(coord[2]+ksizez*(coord[1]+ksizey*coord[0]));
+	int index = coord[0]+ksizex*(coord[1]+ksizey*(coord[2]+ksizex*coord[3]));
 	return index;
 }
 inline int Coord2gindex(int *coord){
-	/* Converts the coordinates of a point to its relative index in the 
-	 * computer memory to the first point in the memory
-	 *
+	/* Converts the coordinates of a point in the global gauge field 
+	 * to its flattened index in the computer memory
+	 * 
 	 * This is a rather nuanced function, as C and Fortran are rather
 	 * different in how they store arrays. C starts with index 0 and
 	 * Fortran (by default) starts with index 1
@@ -430,7 +431,8 @@ inline int Coord2gindex(int *coord){
 	//I've factorised this function compared to its original 
 	//implimentation to reduce the number of multiplications
 	//and hopefully improve performance
-	int index = coord[3]+nt*(coord[2]+nz*(coord[1]+ny*coord[0]));
+//	int index = coord[3]+nt*(coord[2]+nz*(coord[1]+ny*coord[0]));
+	int index = coord[0]+nx*(coord[1]+ny*(coord[2]+nx*coord[3]));
 	return index;
 }
 int Testlcoord(int cap){
