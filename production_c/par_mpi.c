@@ -104,33 +104,36 @@ int Par_sread(){
 	 *  Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Par_sread";
-	//Containers for input
-#ifdef USE_MKL
-	Complex *u11Read = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
-	Complex *u12Read = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
-	Complex *u1buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
-	Complex *u2buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
-#else
-	Complex *u11Read = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
-	Complex *u12Read = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
-	Complex *u1buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
-	Complex *u2buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
-#endif
 	//	complex ubuff[kvol];
-	int icoord[ndim];
 	double seed;
 	//We shall allow the almighty master thread to open the file
 	if(!rank){
+		//Containers for input. Only needed by the master rank
+#ifdef USE_MKL
+		Complex *u11Read = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
+		Complex *u12Read = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
+		Complex *u1buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
+		Complex *u2buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
+#else
+		Complex *u11Read = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
+		Complex *u12Read = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
+		Complex *u1buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
+		Complex *u2buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
+#endif
 		printf("Opening gauge file on processor: %i",rank); 
 		FILE *con = fopen("con", "rb");
-		fread(&u11Read, sizeof(u11Read), 1, con);
-		fread(&u12Read, sizeof(u12Read), 1, con);
+		int con_size;
+		fread(&con_size, sizeof(int), 1, con);
+		fread(&u11Read, ndim*gvol*sizeof(Complex), 1, con);
+		fread(&u12Read, ndim*gvol*sizeof(Complex), 1, con);
 		fread(&seed, sizeof(seed), 1, con);
 		fclose(con);
 
 		//Run over processors, dimensions and colours
 		//Could be sped up with omp but parallel MPI_Sends is risky. 
-#pragma omp parallel for simd collapse(2) aligned(u1buff,u2buff,u11Read,u12Read:AVX)
+#pragma omp parallel for collapse(2)\
+		private(u1buff,u2buff)\
+		shared(u11read,u12read)
 		for(int iproc = 0; iproc < nproc; iproc++)
 			for(int idim = 0; idim < ndim; idim++){
 				int i = 0;
@@ -139,6 +142,7 @@ int Par_sread(){
 				//number of assignments.
 				//We're weaving our way through the memory here, converting
 				//between lattice and memory coordinates
+				int icoord[ndim];
 				for(int ix=pstart[0][iproc]; ix<pstop[0][iproc]; ix++){
 					icoord[0]=ix;
 					for(int iy=pstart[1][iproc]; iy<pstop[1][iproc]; iy++){
@@ -185,8 +189,14 @@ int Par_sread(){
 					}
 				}
 			}
+#ifdef USE_MKL
+	mkl_free(u11Read); mkl_free(u12Read); mkl_free(u1buff); mkl_free(u2buff);
+#else
+	free(u11Read); free(u12Read); free(u1buff); free(u2buff);
+#endif
 	}
 	else{
+	#pragma omp parallel for shared(u11,u12)
 		for(int idim = 0; idim<ndim; idim++){
 			//Receiving the data from the master threads.
 			if(MPI_Recv(u11+(kvol+halo)*idim, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm, &status)){
@@ -203,13 +213,8 @@ int Par_sread(){
 			}
 		}
 	}
-#ifdef USE_MKL
-	mkl_free(u11Read); mkl_free(u12Read); mkl_free(u1buff); mkl_free(u2buff);
-#else
-	free(u11Read); free(u12Read); free(u1buff); free(u2buff);
-#endif
-	memcpy(u11t, u11, ndim*gvol*sizeof(Complex));
-	memcpy(u12t, u12, ndim*gvol*sizeof(Complex));
+	memcpy(u11t, u11, ndim*kvol*sizeof(Complex));
+	memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
 	Par_dcopy(&seed);
 	return 0;
 }
@@ -391,7 +396,6 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 				}
 			}
 
-		FILE *con;
 		static char gauge_title[FILELEN]="config.";
 		if(itraj==icheck){
 			int buffer; char buff2[7];
@@ -444,7 +448,6 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 			strcat(gauge_title,buff2);
 		}
 
-		char *fileop = "wb";
 		char gauge_file[FILELEN];
 		strcpy(gauge_file,gauge_title);
 		char c[8];
@@ -463,11 +466,15 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 		strcat(gauge_file, c);
 		printf("Gauge file name is %s\n", gauge_file);
 		printf("Writing the gauge file on processor %i.\n", rank);
+		FILE *con;
+		char *fileop = "wb";
 		if(!(con=fopen(gauge_file, fileop))){
 			fprintf(stderr, "Error %i in %s: Failed to open %s.\nExiting...\n\n", OPENERROR, funcname, gauge_file);
 			MPI_Finalise();
 			exit(OPENERROR);	
 		}
+		static int con_size=2*ndim*gvol*sizeof(Complex)+sizeof(seed)+sizeof(int);
+		fwrite(&con_size,sizeof(int),1,con);
 		fwrite(u11Write, ndim*gvol*sizeof(Complex), 1, con);
 		fwrite(u12Write, ndim*gvol*sizeof(Complex), 1, con);
 		fwrite(&seed, sizeof(seed), 1, con);
