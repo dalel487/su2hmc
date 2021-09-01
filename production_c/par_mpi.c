@@ -122,8 +122,11 @@ int Par_sread(){
 #endif
 		printf("Opening gauge file on processor: %i",rank); 
 		FILE *con = fopen("con", "rb");
+#ifdef FORT_CONFIG
+#warning Compiling with FORTRAN binary layout in par_sread
 		int con_size;
 		fread(&con_size, sizeof(int), 1, con);
+#endif
 		fread(&u11Read, ndim*gvol*sizeof(Complex), 1, con);
 		fread(&u12Read, ndim*gvol*sizeof(Complex), 1, con);
 		fread(&seed, sizeof(seed), 1, con);
@@ -161,7 +164,7 @@ int Par_sread(){
 						}
 					}
 				}
-				if(i+1!=kvol){
+				if(i!=kvol-1){
 					fprintf(stderr, "Error %i in %s: Number of elements %i is not equal to\
 							kvol %i.\nExiting...\n\n", NUMELEM, funcname, i, kvol);
 					MPI_Finalise();
@@ -190,13 +193,13 @@ int Par_sread(){
 				}
 			}
 #ifdef USE_MKL
-	mkl_free(u11Read); mkl_free(u12Read); mkl_free(u1buff); mkl_free(u2buff);
+		mkl_free(u11Read); mkl_free(u12Read); mkl_free(u1buff); mkl_free(u2buff);
 #else
-	free(u11Read); free(u12Read); free(u1buff); free(u2buff);
+		free(u11Read); free(u12Read); free(u1buff); free(u2buff);
 #endif
 	}
 	else{
-	#pragma omp parallel for shared(u11,u12)
+#pragma omp parallel for shared(u11,u12)
 		for(int idim = 0; idim<ndim; idim++){
 			//Receiving the data from the master threads.
 			if(MPI_Recv(u11+(kvol+halo)*idim, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm, &status)){
@@ -270,8 +273,8 @@ int Par_psread(char *filename, double *ps){
 							psbuff[i*nc]=gps[j*nc];
 							psbuff[i*nc+1]=gps[j*nc+1];
 						}}}}
-			//Think its i+1 in C as C indexes from 0 not 1
-			if(i+1!=kvol){
+			//Think its kvol-1 in C as C indexes from 0 not 1
+			if(i!=kvol-1){
 				fprintf(stderr, "Error %i in %s: Number of elements %i is not equal to\
 						kvol %i.\nExiting...\n\n", NUMELEM, funcname, i, kvol);
 				MPI_Finalise();
@@ -332,18 +335,20 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "par_swrite";
-	int icoord[4], iproc, seed;
+	int iproc, seed;
 	if(!rank){
 #ifdef USE_MKL
 		Complex *u11Write = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
 		Complex *u12Write = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
 		Complex *u1buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
 		Complex *u2buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
+		int *icoord = (int *)mkl_malloc(4*sizeof(int),AVX);
 #else
 		Complex *u11Write = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
 		Complex *u12Write = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
 		Complex *u1buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
 		Complex *u2buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
+		int *icoord = (int *)aligned_alloc(AVX,4*sizeof(int));
 #endif
 		//Get correct parts of u11read etc from remote processors
 		for(iproc=0;iproc<nproc;iproc++)
@@ -395,6 +400,11 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 					exit(NUMELEM);
 				}
 			}
+#ifdef USE_MKL
+		mkl_free(u1buff); mkl_free(u2buff); mkl_free(icoord);
+#else
+		free(u1buff); free(u2buff); free(icoord);
+#endif
 
 		static char gauge_title[FILELEN]="config.";
 		if(itraj==icheck){
@@ -473,19 +483,23 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 			MPI_Finalise();
 			exit(OPENERROR);	
 		}
+#ifdef FORT_CONFIG
+#warning Compiling with FORTRAN binary layout in par_swrite
 		static int con_size=2*ndim*gvol*sizeof(Complex)+sizeof(seed)+sizeof(int);
 		fwrite(&con_size,sizeof(int),1,con);
+#endif
 		fwrite(u11Write, ndim*gvol*sizeof(Complex), 1, con);
 		fwrite(u12Write, ndim*gvol*sizeof(Complex), 1, con);
 		fwrite(&seed, sizeof(seed), 1, con);
 		fclose(con);
 #ifdef USE_MKL
-		mkl_free(u11Write); mkl_free(u12Write); mkl_free(u1buff); mkl_free(u2buff);
+		mkl_free(u11Write); mkl_free(u12Write);
 #else
-		free(u11Write); free(u12Write); free(u1buff); free(u2buff);
+		free(u11Write); free(u12Write);
 #endif
 	}
 	else
+#pragma omp parallel for shared(u11,u12)
 		for(int idim = 0; idim<ndim; idim++){
 			if(MPI_Send(u11+(kvol+halo)*idim, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm)){
 				fprintf(stderr, "Error %i in %s: Falied to send u11 from process %i.\nExiting...\n\n",
