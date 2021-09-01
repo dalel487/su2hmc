@@ -136,7 +136,7 @@ int Par_sread(){
 		//Could be sped up with omp but parallel MPI_Sends is risky. 
 #pragma omp parallel for collapse(2)\
 		private(u1buff,u2buff)\
-		shared(u11read,u12read)
+		shared(u11Read,u12Read)
 		for(int iproc = 0; iproc < nproc; iproc++)
 			for(int idim = 0; idim < ndim; idim++){
 				int i = 0;
