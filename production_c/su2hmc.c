@@ -215,7 +215,6 @@ int main(int argc, char *argv[]){
 
 	int naccp = 0; int ipbp = 0; int itot = 0;
 
-	ancg = 0; ancgh = 0;
 	//This was originally in the half-step of the fortran code, but it makes more sense to declare
 	//it outside the loop. Since it's always being subtracted we'll define it as negative
 	const	double d = -dt*0.5;
@@ -266,6 +265,8 @@ int main(int argc, char *argv[]){
 		start_time = MPI_Wtime();
 #endif
 	for(int itraj = 1; itraj <= ntraj; itraj++){
+	//Reset conjugate gradient averages
+	ancg = 0; ancgh = 0;
 #ifdef _DEBUG
 		if(!rank)
 			printf("Starting itraj %i\n", itraj);
