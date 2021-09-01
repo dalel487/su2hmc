@@ -52,7 +52,7 @@ release:	CFLAGS +=  -Ofast -finline-aggressive -finline-recursion=4\
 release:	$(EXE)
 
 debug:	CFLAGS += -g -O0  -finline-aggressive\
-		-D_DEBUG -DUSE_RAN2 #-DDIAGNOSTIC -DNO_TIME -DNO_SPACE
+		-D_DEBUG -DUSE_RAN2 -DNO_TIME #-DDIAGNOSTIC -DNO_TIME -DNO_SPACE
 
 debug:	$(EXE)
 
