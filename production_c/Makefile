@@ -5,7 +5,7 @@ NVCC = nvcc
 
 IFLAGS=     -I../INCLUDE 
 
-CFLAGS=      $(IFLAGS) -mkl -DUSE_MKL -std=gnu11 -ipo -qopt-zmm-usage=high \
+CFLAGS=      $(IFLAGS) -mkl  -DUSE_MKL -std=gnu11 -ipo -qopt-zmm-usage=high \
 		 -xCOMMON-AVX512 -static-intel -static-libgcc -DMKL_DIRECT_CALL \
 		 -qopenmp -qopenmp-simd -qopenmp-link=static -DSA3AT -DUSE_RAN2
 
