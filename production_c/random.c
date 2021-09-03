@@ -19,9 +19,9 @@ VSLStreamStatePtr stream;
 
 //Declaring external variables
 #if (defined USE_RAN2||!defined USE_MKL)
-long seed = 967580161;
+long seed = 967580162;
 #elif defined USE_MKL
-unsigned int seed = 967580161;
+unsigned int seed = 967580162;
 #else
 #endif
 #ifndef M_PI
