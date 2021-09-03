@@ -16,12 +16,13 @@ VSLStreamStatePtr stream;
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 //Declaring external variables
 #if (defined USE_RAN2||!defined USE_MKL)
-long seed = 967580162;
+long seed;
 #elif defined USE_MKL
-unsigned int seed = 967580162;
+unsigned int seed;
 #else
 #endif
 #ifndef M_PI
