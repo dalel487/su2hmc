@@ -336,18 +336,21 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 	 */
 	char *funcname = "par_swrite";
 	int iproc, seed;
+#ifdef USE_MKL
+	Complex *u1buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
+	Complex *u2buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
+#else
+	Complex *u1buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
+	Complex *u2buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
+#endif
 	if(!rank){
 #ifdef USE_MKL
 		Complex *u11Write = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
 		Complex *u12Write = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
-		Complex *u1buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
-		Complex *u2buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
 		int *icoord = (int *)mkl_malloc(4*sizeof(int),AVX);
 #else
 		Complex *u11Write = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
 		Complex *u12Write = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
-		Complex *u1buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
-		Complex *u2buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
 		int *icoord = (int *)aligned_alloc(AVX,4*sizeof(int));
 #endif
 		//Get correct parts of u11read etc from remote processors
@@ -370,11 +373,18 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 				else{
 					//No need to do MPI Send/Receive on the master rank
 					//Array looping is slow so we use memcpy instead
-					memcpy(u1buff, u11+idim*(kvol+halo), kvol*sizeof(Complex));
-					memcpy(u2buff, u12+idim*(kvol+halo), kvol*sizeof(Complex));
+#if (defined USE_MKL||defined USE_BLAS)
+					cblas_zcopy(kvol,u11+idim,ndim,u1buff,1);
+					cblas_zcopy(kvol,u12+idim,ndim,u2buff,1);
+#else
+#pragma omp parallel for simd aligned(u11,u12,u1buff,u2buff:AVX)
+					for(int i=0;i<kvol;i++){
+						u1buff[i]=u11[i*ndim+idim];
+						u2buff[i]=u12[i*ndim+idim];
+					}
+#endif
 				}
 				int i=0;
-				//could move the ic check to here, but it will make the code look rather unsightly
 				for(int ix=pstart[0][iproc]; ix<pstop[0][iproc]; ix++){
 					icoord[0]=ix;
 					for(int iy=pstart[1][iproc]; iy<pstop[1][iproc]; iy++){
@@ -386,10 +396,6 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 								i++;
 								//j is the relative memory index of icoord
 								int j = Coord2gindex(icoord);
-								//Since the for loop puts limits on ic we can skip the safety
-								//check in the FORTRAN code 
-								//	ubuff[i]  = (ic == 0) ? u11read[j][idim] : u12read[j][idim];
-								//	Instead of looping through ic
 								u11Write[idim*gvol+j] = u1buff[i];	
 								u12Write[idim*gvol+j] = u2buff[i];	
 							}}}}
@@ -498,23 +504,37 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 		free(u11Write); free(u12Write);
 #endif
 	}
-	else
-#pragma omp parallel for shared(u11,u12)
+	else{
+#pragma omp parallel for shared(u11,u12)\
+		private(u1buff,u2buff)
 		for(int idim = 0; idim<ndim; idim++){
-			if(MPI_Send(u11+(kvol+halo)*idim, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm)){
+#if (defined USE_MKL||defined USE_BLAS)
+			cblas_zcopy(kvol,u11+idim,ndim,u1buff,1);
+			cblas_zcopy(kvol,u12+idim,ndim,u2buff,1);
+#else
+			u1buff[i]=u11[i*ndim+idim];
+			u2buff[i]=u12[i*ndim+idim];
+
+#endif
+			if(MPI_Isend(u1buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm,&request)){
 				fprintf(stderr, "Error %i in %s: Falied to send u11 from process %i.\nExiting...\n\n",
 						CANTSEND, funcname, iproc);
 				MPI_Finalise();
 				exit(CANTSEND);
 			}
-			if(MPI_Send(u12+(kvol+halo)*idim, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm)){
+			if(MPI_Isend(u2buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm,&request)){
 				fprintf(stderr, "Error %i in %s: Falied to send u12 from process %i.\nExiting...\n\n",
 						CANTSEND, funcname, iproc);
 				MPI_Finalise();
 				exit(CANTSEND);
 			}
 		}
-
+#ifdef USE_MKL
+		mkl_free(u1buff); mkl_free(u2buff); 
+#else
+		free(u1buff); free(u2buff);
+#endif
+	}
 	return 0;
 }
 //To be lazy, we've got modules to help us do reductions and broadcasts with a single argument
