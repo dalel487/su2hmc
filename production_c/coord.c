@@ -222,7 +222,7 @@ int Addrc(){
 					}
 					iu[3+ndim*ic]=iaddr;
 				}
-//Print iu and id for diagnostics
+	//Print iu and id for diagnostics
 #ifdef DIAGNOSTIC
 #pragma omp parallel sections
 	{
@@ -340,7 +340,7 @@ inline int Index2lcoord(int index, int *coord){
 	coord[3] = index%ksizet; index/=ksizet;
 	coord[2] = index%ksizez; index/=ksizez;
 	coord[1] = index%ksizey; index/=ksizey;
-	coord[0] = index; //No need to divide by nx since were done.
+	coord[0] = index; //No need to divide by nt since were done.
 
 	return 0;
 }
@@ -377,7 +377,7 @@ inline int Index2gcoord(int index, int *coord){
 	coord[3] = index%nt; index/=nt;
 	coord[2] = index%nz; index/=nz;
 	coord[1] = index%ny; index/=ny;
-	coord[0] = index; //No need to divide by nx since were done.
+	coord[0] = index; //No need to divide by nt since were done.
 
 	return 0;
 }
@@ -404,8 +404,8 @@ inline int Coord2lindex(int *coord){
 	//I've factorised this function compared to its original 
 	//implimentation to reduce the number of multiplications
 	//and hopefully improve performance
-//	int index = coord[3]+ksizet*(coord[2]+ksizez*(coord[1]+ksizey*coord[0]));
-	int index = coord[0]+ksizex*(coord[1]+ksizey*(coord[2]+ksizex*coord[3]));
+	int index = coord[3]+ksizez*(coord[2]+ksizey*(coord[1]+ksizex*coord[0]));
+	//	int index = coord[0]+ksizex*(coord[1]+ksizey*(coord[2]+ksizez*coord[3]));
 	return index;
 }
 inline int Coord2gindex(int *coord){
@@ -431,8 +431,8 @@ inline int Coord2gindex(int *coord){
 	//I've factorised this function compared to its original 
 	//implimentation to reduce the number of multiplications
 	//and hopefully improve performance
-//	int index = coord[3]+nt*(coord[2]+nz*(coord[1]+ny*coord[0]));
-	int index = coord[0]+nx*(coord[1]+ny*(coord[2]+nx*coord[3]));
+	int index = coord[3]+nz*(coord[2]+ny*(coord[1]+nx*coord[0]));
+	//	int index = coord[0]+nx*(coord[1]+ny*(coord[2]+nz*coord[3]));
 	return index;
 }
 int Testlcoord(int cap){
