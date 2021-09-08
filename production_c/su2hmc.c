@@ -1,3 +1,4 @@
+#include	<assert.h>
 #include	<coord.h>
 #ifdef	__NVCC__
 #include	<cuda.h>
@@ -132,8 +133,8 @@ int main(int argc, char *argv[]){
 					, OPENERROR, funcname, filename, fileop);
 			exit(OPENERROR);
 		}
-		fscanf(midout, "%lf %lf %lf %lf %lf %lf %lf %d %d %d", &dt, &beta, &akappa,\
-				&ajq, &athq, &fmu, &delb, &stepl, &ntraj, &istart);
+		fscanf(midout, "%lf %lf %lf %lf %lf %lf %lf %d %d %d %d %d", &dt, &beta, &akappa,\
+				&ajq, &athq, &fmu, &delb, &stepl, &ntraj, &istart, &icheck, &iread);
 		fclose(midout);
 	}
 	if(iread){
@@ -145,7 +146,9 @@ int main(int argc, char *argv[]){
 	//Send inputs to other ranks
 	Par_dcopy(&dt); Par_dcopy(&beta); Par_dcopy(&akappa); Par_dcopy(&ajq);
 	Par_dcopy(&athq); Par_dcopy(&fmu); Par_dcopy(&delb); //Not used?
-	Par_icopy(&stepl); Par_icopy(&ntraj); 
+	Par_icopy(&stepl); assert(stepl>0);	
+	Par_icopy(&ntraj); assert(ntraj>0);	 
+	Par_icopy(&icheck); assert(icheck>0); 
 	jqq=ajq*cexp(athq*I);
 	akappa_f=(float)akappa;
 #ifdef __NVCC__
