@@ -532,8 +532,6 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 #endif
 	}
 	else{
-#pragma omp parallel for shared(u11,u12)\
-		private(u1buff,u2buff)
 		for(int idim = 0; idim<ndim; idim++){
 #if (defined USE_MKL||defined USE_BLAS)
 			cblas_zcopy(kvol,u11+idim,ndim,u1buff,1);

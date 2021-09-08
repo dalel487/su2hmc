@@ -166,9 +166,9 @@ int main(int argc, char *argv[]){
 	printf("jqq=%f+(%f)I\n",creal(jqq),cimag(jqq));
 #endif
 #ifdef DEBUG
-seed = 967580161;
+	seed = 967580161;
 #else
-seed = time(NULL);
+	seed = time(NULL);
 #endif
 	Par_ranset(&seed);
 
@@ -273,8 +273,8 @@ seed = time(NULL);
 		start_time = MPI_Wtime();
 #endif
 	for(int itraj = 1; itraj <= ntraj; itraj++){
-	//Reset conjugate gradient averages
-	ancg = 0; ancgh = 0;
+		//Reset conjugate gradient averages
+		ancg = 0; ancgh = 0;
 #ifdef _DEBUG
 		if(!rank)
 			printf("Starting itraj %i\n", itraj);
