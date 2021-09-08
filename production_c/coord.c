@@ -404,8 +404,8 @@ inline int Coord2lindex(int *coord){
 	//I've factorised this function compared to its original 
 	//implimentation to reduce the number of multiplications
 	//and hopefully improve performance
-	int index = coord[3]+ksizez*(coord[2]+ksizey*(coord[1]+ksizex*coord[0]));
-	//	int index = coord[0]+ksizex*(coord[1]+ksizey*(coord[2]+ksizez*coord[3]));
+	//int index = coord[3]+ksizez*(coord[2]+ksizey*(coord[1]+ksizex*coord[0]));
+	int index = coord[0]+ksizex*(coord[1]+ksizey*(coord[2]+ksizez*coord[3]));
 	return index;
 }
 inline int Coord2gindex(int *coord){
@@ -432,7 +432,7 @@ inline int Coord2gindex(int *coord){
 	//implimentation to reduce the number of multiplications
 	//and hopefully improve performance
 	int index = coord[3]+nz*(coord[2]+ny*(coord[1]+nx*coord[0]));
-	//	int index = coord[0]+nx*(coord[1]+ny*(coord[2]+nz*coord[3]));
+//	int index = coord[0]+nx*(coord[1]+ny*(coord[2]+nz*coord[3]));
 	return index;
 }
 int Testlcoord(int cap){
