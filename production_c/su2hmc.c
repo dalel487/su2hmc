@@ -1,3 +1,4 @@
+#include	<assert.h>
 #include	<coord.h>
 #ifdef	__NVCC__
 #include	<cuda.h>
@@ -126,14 +127,14 @@ int main(int argc, char *argv[]){
 		FILE *midout;
 		//Instead of hardcoding so the error messages are easier to impliment
 		char *filename = "midout";
-		char *fileop = "rb";
+		char *fileop = "r";
 		if( !(midout = fopen(filename, fileop) ) ){
 			fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n"\
 					, OPENERROR, funcname, filename, fileop);
 			exit(OPENERROR);
 		}
-		fscanf(midout, "%lf %lf %lf %lf %lf %lf %lf %d %d %d", &dt, &beta, &akappa,\
-				&ajq, &athq, &fmu, &delb, &stepl, &ntraj, &istart);
+		fscanf(midout, "%lf %lf %lf %lf %lf %lf %lf %d %d %d %d %d", &dt, &beta, &akappa,\
+				&ajq, &athq, &fmu, &delb, &stepl, &ntraj, &istart, &icheck, &iread);
 		fclose(midout);
 	}
 	if(iread){
@@ -145,7 +146,9 @@ int main(int argc, char *argv[]){
 	//Send inputs to other ranks
 	Par_dcopy(&dt); Par_dcopy(&beta); Par_dcopy(&akappa); Par_dcopy(&ajq);
 	Par_dcopy(&athq); Par_dcopy(&fmu); Par_dcopy(&delb); //Not used?
-	Par_icopy(&stepl); Par_icopy(&ntraj); 
+	Par_icopy(&stepl); assert(stepl>0);	
+	Par_icopy(&ntraj); assert(ntraj>0);	 
+	Par_icopy(&icheck); assert(icheck>0); 
 	jqq=ajq*cexp(athq*I);
 	akappa_f=(float)akappa;
 #ifdef __NVCC__
@@ -161,6 +164,11 @@ int main(int argc, char *argv[]){
 #endif
 #ifdef _DEBUG
 	printf("jqq=%f+(%f)I\n",creal(jqq),cimag(jqq));
+#endif
+#ifdef DEBUG
+	seed = 967580161;
+#else
+	seed = time(NULL);
 #endif
 	Par_ranset(&seed);
 
@@ -215,7 +223,6 @@ int main(int argc, char *argv[]){
 
 	int naccp = 0; int ipbp = 0; int itot = 0;
 
-	ancg = 0; ancgh = 0;
 	//This was originally in the half-step of the fortran code, but it makes more sense to declare
 	//it outside the loop. Since it's always being subtracted we'll define it as negative
 	const	double d = -dt*0.5;
@@ -266,6 +273,8 @@ int main(int argc, char *argv[]){
 		start_time = MPI_Wtime();
 #endif
 	for(int itraj = 1; itraj <= ntraj; itraj++){
+		//Reset conjugate gradient averages
+		ancg = 0; ancgh = 0;
 #ifdef _DEBUG
 		if(!rank)
 			printf("Starting itraj %i\n", itraj);
@@ -470,6 +479,9 @@ int main(int argc, char *argv[]){
 			//Divide by gvol because of halos?
 			action=S1/gvol;
 		}
+		else
+			if(!rank)
+				printf("New configuration rejected on trajectory %i.\n", itraj);
 		actiona+=action; 
 		double vel2=0.0;
 #ifdef __NVCC__

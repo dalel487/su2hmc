@@ -5,7 +5,7 @@
 #include <cublas_v2.h>
 #elif defined USE_MKL
 #include <mkl.h>
-#else
+#elif defined USE_BLAS
 #include <cblas.h>
 #endif
 #include <par_mpi.h>

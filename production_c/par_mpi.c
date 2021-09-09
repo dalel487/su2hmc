@@ -104,33 +104,43 @@ int Par_sread(){
 	 *  Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Par_sread";
-	//Containers for input
+	double seed;
+	//We shall allow the almighty master thread to open the file
 #ifdef USE_MKL
-	Complex *u11Read = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
-	Complex *u12Read = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
 	Complex *u1buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
 	Complex *u2buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
 #else
-	Complex *u11Read = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
-	Complex *u12Read = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
 	Complex *u1buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
 	Complex *u2buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
 #endif
-	//	complex ubuff[kvol];
-	int icoord[ndim];
-	double seed;
-	//We shall allow the almighty master thread to open the file
 	if(!rank){
+		//Containers for input. Only needed by the master rank
+#ifdef USE_MKL
+		Complex *u11Read = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
+		Complex *u12Read = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
+		int *icoord = (int *)mkl_malloc(4*sizeof(int),AVX);
+#else
+		Complex *u11Read = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
+		Complex *u12Read = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
+		int *icoord = (int *)aligned_alloc(AVX,4*sizeof(int));
+#endif
 		printf("Opening gauge file on processor: %i",rank); 
 		FILE *con = fopen("con", "rb");
-		fread(&u11Read, sizeof(u11Read), 1, con);
-		fread(&u12Read, sizeof(u12Read), 1, con);
+#ifdef FORT_CONFIG
+#warning Compiling with FORTRAN binary layout in par_sread
+		int con_size;
+		fread(&con_size, sizeof(int), 1, con);
+#endif
+		fread(&u11Read, ndim*gvol*sizeof(Complex), 1, con);
+		fread(&u12Read, ndim*gvol*sizeof(Complex), 1, con);
 		fread(&seed, sizeof(seed), 1, con);
 		fclose(con);
 
 		//Run over processors, dimensions and colours
 		//Could be sped up with omp but parallel MPI_Sends is risky. 
-#pragma omp parallel for simd collapse(2) aligned(u1buff,u2buff,u11Read,u12Read:AVX)
+#pragma omp parallel for collapse(2)\
+		private(u1buff,u2buff)\
+		shared(u11Read,u12Read)
 		for(int iproc = 0; iproc < nproc; iproc++)
 			for(int idim = 0; idim < ndim; idim++){
 				int i = 0;
@@ -139,6 +149,7 @@ int Par_sread(){
 				//number of assignments.
 				//We're weaving our way through the memory here, converting
 				//between lattice and memory coordinates
+				int icoord[ndim];
 				for(int ix=pstart[0][iproc]; ix<pstop[0][iproc]; ix++){
 					icoord[0]=ix;
 					for(int iy=pstart[1][iproc]; iy<pstop[1][iproc]; iy++){
@@ -147,26 +158,34 @@ int Par_sread(){
 							icoord[2]=iz;
 							for(int it=pstart[3][iproc]; it<pstop[3][iproc]; it++){
 								icoord[3]=it;
-								i++;
 								//j is the relative memory index of icoord
 								int j = Coord2gindex(icoord);
 								//ubuff[i]  = (ic == 0) ? u11read[j][idim] : u12read[j][idim];
 								u1buff[i]=u11Read[idim*gvol+j];
 								u2buff[i]=u12Read[idim*gvol+j];
+								//C starts counting from zero, not 1 so increment afterwards or start at int i=-1
+								i++;
 							}
 						}
 					}
 				}
-				if(i+1!=kvol){
+				if(i!=kvol-1){
 					fprintf(stderr, "Error %i in %s: Number of elements %i is not equal to\
 							kvol %i.\nExiting...\n\n", NUMELEM, funcname, i, kvol);
 					MPI_Finalise();
 					exit(NUMELEM);
 				}
-				//Likewise, C indexes from zero so should just use iproc
 				if(!iproc){
-					u11[i*ndim+idim]=u1buff[i];
-					u12[i*ndim+idim]=u2buff[i];
+#if (defined USE_MKL||defined USE_BLAS)
+					cblas_zcopy(kvol,u1buff,1,u11+idim,ndim);
+					cblas_zcopy(kvol,u2buff,1,u12+idim,ndim);
+#else
+#pragma omp parallel for simd aligned(u11,u12,u1buff,u2buff:AVX)
+					for(i=0;i<kvol;i++){
+						u11[i*ndim+idim]=u1buff[i];
+						u12[i*ndim+idim]=u2buff[i];
+					}
+#endif
 				}		
 				else{
 					//The master thread did all the hard work, the minions just need to receive their
@@ -185,31 +204,48 @@ int Par_sread(){
 					}
 				}
 			}
+#ifdef USE_MKL
+		mkl_free(u11Read); mkl_free(u12Read); mkl_free(icoord);
+#else
+		free(u11Read); free(u12Read); free(icoord);
+#endif
 	}
 	else{
+#pragma omp parallel for shared(u11,u12)\
+		private(u1buff,u2buff)
 		for(int idim = 0; idim<ndim; idim++){
 			//Receiving the data from the master threads.
-			if(MPI_Recv(u11+(kvol+halo)*idim, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm, &status)){
+			if(MPI_Recv(u1buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm, &status)){
 				fprintf(stderr, "Error %i in %s: Falied to receive u11 from process %i.\nExiting...\n\n",
 						CANTRECV, funcname, masterproc);
 				MPI_Finalise();
 				exit(CANTRECV);
 			}
-			if(MPI_Recv(u12+(kvol+halo)*idim, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm, &status)){
+			if(MPI_Recv(u2buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm, &status)){
 				fprintf(stderr, "Error %i in %s: Falied to receive u12 from process %i.\nExiting...\n\n",
 						CANTRECV, funcname, masterproc);
 				MPI_Finalise();
 				exit(CANTRECV);
 			}
+#if (defined USE_MKL||defined USE_BLAS)
+			cblas_zcopy(kvol,u1buff,1,u11+idim,ndim);
+			cblas_zcopy(kvol,u2buff,1,u12+idim,ndim);
+#else
+#pragma omp parallel for simd aligned(u11,u12,u1buff,u2buff:AVX)
+			for(int i=0;i<kvol;i++){
+				u11[i*ndim+idim]=u1buff[i];
+				u12[i*ndim+idim]=u2buff[i];
+			}
+#endif
 		}
 	}
 #ifdef USE_MKL
-	mkl_free(u11Read); mkl_free(u12Read); mkl_free(u1buff); mkl_free(u2buff);
+	mkl_free(u1buff); mkl_free(u2buff);
 #else
-	free(u11Read); free(u12Read); free(u1buff); free(u2buff);
+	free(u1buff); free(u2buff);
 #endif
-	memcpy(u11t, u11, ndim*gvol*sizeof(Complex));
-	memcpy(u12t, u12, ndim*gvol*sizeof(Complex));
+	memcpy(u11t, u11, ndim*kvol*sizeof(Complex));
+	memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
 	Par_dcopy(&seed);
 	return 0;
 }
@@ -265,8 +301,8 @@ int Par_psread(char *filename, double *ps){
 							psbuff[i*nc]=gps[j*nc];
 							psbuff[i*nc+1]=gps[j*nc+1];
 						}}}}
-			//Think its i+1 in C as C indexes from 0 not 1
-			if(i+1!=kvol){
+			//Think its kvol-1 in C as C indexes from 0 not 1
+			if(i!=kvol-1){
 				fprintf(stderr, "Error %i in %s: Number of elements %i is not equal to\
 						kvol %i.\nExiting...\n\n", NUMELEM, funcname, i, kvol);
 				MPI_Finalise();
@@ -307,25 +343,43 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 	 *
 	 * Parameters:
 	 * ----------
-	 * int	isweep
+	 * int	itraj:	Current trajectory
+	 * int	icheck:	How often to write gauge fields. Used to generate name of configuration
+	 * double	beta
+	 * double	fmu:		Fermion chemical potential
+	 * double	akappa:
+	 * double	ajq:
+	 *
+	 * Globals:
+	 * -------
+	 * Complex	*u11, u12:	Gauge fields
+	 * int	seed
+	 *
+	 * Calls:
+	 * ------
 	 *
 	 * Returns:
 	 * -------
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "par_swrite";
-	int icoord[4], iproc, seed;
+	int iproc, seed;
+#ifdef USE_MKL
+	Complex *u1buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
+	Complex *u2buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
+#else
+	Complex *u1buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
+	Complex *u2buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
+#endif
 	if(!rank){
 #ifdef USE_MKL
 		Complex *u11Write = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
 		Complex *u12Write = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
-		Complex *u1buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
-		Complex *u2buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
+		int *icoord = (int *)mkl_malloc(4*sizeof(int),AVX);
 #else
 		Complex *u11Write = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
 		Complex *u12Write = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
-		Complex *u1buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
-		Complex *u2buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
+		int *icoord = (int *)aligned_alloc(AVX,4*sizeof(int));
 #endif
 		//Get correct parts of u11read etc from remote processors
 		for(iproc=0;iproc<nproc;iproc++)
@@ -347,11 +401,18 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 				else{
 					//No need to do MPI Send/Receive on the master rank
 					//Array looping is slow so we use memcpy instead
-					memcpy(u1buff, u11+idim*(kvol+halo), kvol*sizeof(Complex));
-					memcpy(u2buff, u12+idim*(kvol+halo), kvol*sizeof(Complex));
+#if (defined USE_MKL||defined USE_BLAS)
+					cblas_zcopy(kvol,u11+idim,ndim,u1buff,1);
+					cblas_zcopy(kvol,u12+idim,ndim,u2buff,1);
+#else
+#pragma omp parallel for simd aligned(u11,u12,u1buff,u2buff:AVX)
+					for(int i=0;i<kvol;i++){
+						u1buff[i]=u11[i*ndim+idim];
+						u2buff[i]=u12[i*ndim+idim];
+					}
+#endif
 				}
 				int i=0;
-				//could move the ic check to here, but it will make the code look rather unsightly
 				for(int ix=pstart[0][iproc]; ix<pstop[0][iproc]; ix++){
 					icoord[0]=ix;
 					for(int iy=pstart[1][iproc]; iy<pstop[1][iproc]; iy++){
@@ -360,15 +421,12 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 							icoord[2]=iz;
 							for(int it=pstart[3][iproc]; it<pstop[3][iproc]; it++){
 								icoord[3]=it;
-								i++;
 								//j is the relative memory index of icoord
 								int j = Coord2gindex(icoord);
-								//Since the for loop puts limits on ic we can skip the safety
-								//check in the FORTRAN code 
-								//	ubuff[i]  = (ic == 0) ? u11read[j][idim] : u12read[j][idim];
-								//	Instead of looping through ic
 								u11Write[idim*gvol+j] = u1buff[i];	
 								u12Write[idim*gvol+j] = u2buff[i];	
+								//C starts counting from zero, not 1 so increment afterwards or start at int i=-1
+								i++;
 							}}}}
 				if(i!=kvol){
 					fprintf(stderr, "Error %i in %s: Number of elements %i is not equal to\
@@ -377,8 +435,12 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 					exit(NUMELEM);
 				}
 			}
+#ifdef USE_MKL
+		mkl_free(u1buff); mkl_free(u2buff); mkl_free(icoord);
+#else
+		free(u1buff); free(u2buff); free(icoord);
+#endif
 
-		FILE *con;
 		static char gauge_title[FILELEN]="config.";
 		if(itraj==icheck){
 			int buffer; char buff2[7];
@@ -431,7 +493,6 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 			strcat(gauge_title,buff2);
 		}
 
-		char *fileop = "wb";
 		char gauge_file[FILELEN];
 		strcpy(gauge_file,gauge_title);
 		char c[8];
@@ -450,36 +511,58 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 		strcat(gauge_file, c);
 		printf("Gauge file name is %s\n", gauge_file);
 		printf("Writing the gauge file on processor %i.\n", rank);
+		FILE *con;
+		char *fileop = "wb";
 		if(!(con=fopen(gauge_file, fileop))){
 			fprintf(stderr, "Error %i in %s: Failed to open %s.\nExiting...\n\n", OPENERROR, funcname, gauge_file);
 			MPI_Finalise();
 			exit(OPENERROR);	
 		}
+#ifdef FORT_CONFIG
+#warning Compiling with FORTRAN binary layout in par_swrite
+		static int con_size=2*ndim*gvol*sizeof(Complex)+sizeof(seed)+sizeof(int);
+		fwrite(&con_size,sizeof(int),1,con);
+#endif
 		fwrite(u11Write, ndim*gvol*sizeof(Complex), 1, con);
 		fwrite(u12Write, ndim*gvol*sizeof(Complex), 1, con);
 		fwrite(&seed, sizeof(seed), 1, con);
 		fclose(con);
 #ifdef USE_MKL
-		mkl_free(u11Write); mkl_free(u12Write); mkl_free(u1buff); mkl_free(u2buff);
+		mkl_free(u11Write); mkl_free(u12Write);
 #else
-		free(u11Write); free(u12Write); free(u1buff); free(u2buff);
+		free(u11Write); free(u12Write);
 #endif
 	}
 	else{
 		for(int idim = 0; idim<ndim; idim++){
-			if(MPI_Send(u11+(kvol+halo)*idim, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm)){
+#if (defined USE_MKL||defined USE_BLAS)
+			cblas_zcopy(kvol,u11+idim,ndim,u1buff,1);
+			cblas_zcopy(kvol,u12+idim,ndim,u2buff,1);
+#else
+#pragma omp parallel for simd aligned(u11,u12,u1buff,u2buff:AVX)
+			for(int i=0;i<kvol;i++){
+				u1buff[i]=u11[i*ndim+idim];
+				u2buff[i]=u12[i*ndim+idim];
+			}
+#endif
+			if(MPI_Isend(u1buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm,&request)){
 				fprintf(stderr, "Error %i in %s: Falied to send u11 from process %i.\nExiting...\n\n",
 						CANTSEND, funcname, iproc);
 				MPI_Finalise();
 				exit(CANTSEND);
 			}
-			if(MPI_Send(u12+(kvol+halo)*idim, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm)){
+			if(MPI_Isend(u2buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm,&request)){
 				fprintf(stderr, "Error %i in %s: Falied to send u12 from process %i.\nExiting...\n\n",
 						CANTSEND, funcname, iproc);
 				MPI_Finalise();
 				exit(CANTSEND);
 			}
 		}
+#ifdef USE_MKL
+		mkl_free(u1buff); mkl_free(u2buff); 
+#else
+		free(u1buff); free(u2buff);
+#endif
 	}
 	return 0;
 }
@@ -1115,10 +1198,10 @@ int Par_tmul(Complex *z11, Complex *z12){
 	t11=(Complex *)mkl_malloc(kvol3*sizeof(Complex), AVX);
 	t12=(Complex *)mkl_malloc(kvol3*sizeof(Complex), AVX);
 #else
-	a11=malloc(kvol3*sizeof(Complex));
-	a12=malloc(kvol3*sizeof(Complex));
-	t11=malloc(kvol3*sizeof(Complex));
-	t12=malloc(kvol3*sizeof(Complex));
+	a11=aligned_alloc(AVX,kvol3*sizeof(Complex));
+	a12=aligned_alloc(AVX,kvol3*sizeof(Complex));
+	t11=aligned_alloc(AVX,kvol3*sizeof(Complex));
+	t12=aligned_alloc(AVX,kvol3*sizeof(Complex));
 #endif
 	//Intitialise for the first loop
 	memcpy(a11, z11, kvol3*sizeof(Complex));

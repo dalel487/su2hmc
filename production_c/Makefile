@@ -5,9 +5,9 @@ NVCC = nvcc
 
 IFLAGS=     -I../INCLUDE 
 
-CFLAGS=      $(IFLAGS) -mkl -DUSE_MKL -std=gnu11 -ipo -qopt-zmm-usage=high \
+CFLAGS=      $(IFLAGS) -mkl  -DUSE_MKL -std=gnu11 -ipo -qopt-zmm-usage=high \
 		 -xCOMMON-AVX512 -static-intel -static-libgcc -DMKL_DIRECT_CALL \
-		 -qopenmp-simd -qopenmp -qopenmp-link=static -DSA3AT -DUSE_RAN2
+		 -qopenmp -qopenmp-simd -qopenmp-link=static -DSA3AT -DFORT_CONFIG
 
 LFLAGS=	-L${MKLROOT}/lib/intel64 -lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_core -lmkl_blacs_intelmpi_ilp64\
 		-liomp5 -lpthread -lm -ldl 
@@ -56,7 +56,7 @@ release:	CFLAGS +=  -O3  -inline-level=2\
 release:	$(EXE)
 
 debug:	CFLAGS += -g -O0 \
-		-D_DEBUG -DUSE_RAN2 -DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
+		-D_DEBUG -DUSE_RAN2 #-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 	
 debug:	$(EXE)
 

@@ -11,13 +11,14 @@
 #endif
 #include	<errorcodes.h>
 #include	<math.h>
+#ifdef __NVCC__
+#include	<cublas.h>
+#endif
 #ifdef	USE_MKL
 //If using mkl and BLAS, it is good practice to use mkl_malloc to align the arrays better
 //for the AVX-512 FMA Units
 #include	<mkl.h>
-#elif defined __NVCC__
-#include	<cublas.h>
-#else
+#elif defined USE_BLAS
 #include	<cblas.h>
 #endif
 #include	<mpi.h> 
