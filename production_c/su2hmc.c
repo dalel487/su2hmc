@@ -479,6 +479,9 @@ int main(int argc, char *argv[]){
 			//Divide by gvol because of halos?
 			action=S1/gvol;
 		}
+		else
+			if(!rank)
+				printf("New configuration rejected on trajectory %i.\n", itraj);
 		actiona+=action; 
 		double vel2=0.0;
 #ifdef __NVCC__
