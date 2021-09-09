@@ -158,12 +158,13 @@ int Par_sread(){
 							icoord[2]=iz;
 							for(int it=pstart[3][iproc]; it<pstop[3][iproc]; it++){
 								icoord[3]=it;
-								i++;
 								//j is the relative memory index of icoord
 								int j = Coord2gindex(icoord);
 								//ubuff[i]  = (ic == 0) ? u11read[j][idim] : u12read[j][idim];
 								u1buff[i]=u11Read[idim*gvol+j];
 								u2buff[i]=u12Read[idim*gvol+j];
+								//C starts counting from zero, not 1 so increment afterwards or start at int i=-1
+								i++;
 							}
 						}
 					}
@@ -420,11 +421,12 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 							icoord[2]=iz;
 							for(int it=pstart[3][iproc]; it<pstop[3][iproc]; it++){
 								icoord[3]=it;
-								i++;
 								//j is the relative memory index of icoord
 								int j = Coord2gindex(icoord);
 								u11Write[idim*gvol+j] = u1buff[i];	
 								u12Write[idim*gvol+j] = u2buff[i];	
+								//C starts counting from zero, not 1 so increment afterwards or start at int i=-1
+								i++;
 							}}}}
 				if(i!=kvol){
 					fprintf(stderr, "Error %i in %s: Number of elements %i is not equal to\
