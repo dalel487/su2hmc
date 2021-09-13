@@ -1,9 +1,10 @@
- ksize=  8 ksizet=  2 Nf=  1
- time step: dt=0.0080 trajectory length= 1.000000
- # trajectories=   100 beta= 1.700000
+ ksize=  4 ksizet=  4 Nf=  1
+ time step: dt=0.0125 trajectory length= 1.000000
+ # trajectories=    50 beta= 1.700000
  kappa = 0.178000 chemical potential= 0.000000
  diquark source = 0.000000 diquark phase angle = 0.000000
 
 
  Stopping residuals: guidance: .10E-05 acceptance: .10E-08 estimator: .10E-05
- seed =   967580160.000000     
+ seed =   252754989
+  0.203238355476060        544.752078782646     

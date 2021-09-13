@@ -431,8 +431,8 @@ inline int Coord2gindex(int *coord){
 	//I've factorised this function compared to its original 
 	//implimentation to reduce the number of multiplications
 	//and hopefully improve performance
-//	int index = coord[3]+nz*(coord[2]+ny*(coord[1]+nx*coord[0]));
 	int index = coord[0]+nx*(coord[1]+ny*(coord[2]+nz*coord[3]));
+	//	int index = coord[3]+nt*(coord[0]+nx*(coord[1]+ny*coord[2]));
 	return index;
 }
 int Testlcoord(int cap){

@@ -112,7 +112,7 @@ c     iread=1
       iread=0
       iwrite=1
       iprint=1  !measures
-      icheck=5  !save conf
+      icheck=1  !save conf
       zi=(0.0,1.0)
       tpi=2.0*acos(-1.0)
 c*******************************************************************
@@ -126,7 +126,7 @@ c        open(unit=98,file='control',status='unknown')
         close(25)
       end if
 
-      seed=967580165
+      seed=	967580161
       if(iread.eq.1) then
 #ifdef _DEBUG
         if (ismaster) write(*,*) 'Calling par_sread =  ', seed
