@@ -45,12 +45,12 @@ int Index2gcoord(int index, int *coord);
  * coordinate in the array
  * Depends on nothing else.
  */
-int Coord2lindex(int *coord);
+int Coord2lindex(int ix, int iy, int iz, int it);
 /* Converts the coordinates of a point to its relative index in the 
  * computer memory to the first point in the memory
  * Depends on nothing else.
  */
-int Coord2gindex(int *coord);
+int Coord2gindex(int ix, int iy, int iz, int it);
 /* Converts the coordinates of a point to its relative index in the 
  * computer memory to the first point in the memory
  * Depends on nothing else.

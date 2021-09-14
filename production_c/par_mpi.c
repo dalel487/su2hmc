@@ -118,11 +118,9 @@ int Par_sread(){
 #ifdef USE_MKL
 		Complex *u11Read = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
 		Complex *u12Read = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
-		int *icoord = (int *)mkl_malloc(4*sizeof(int),AVX);
 #else
 		Complex *u11Read = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
 		Complex *u12Read = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
-		int *icoord = (int *)aligned_alloc(AVX,4*sizeof(int));
 #endif
 		printf("Opening gauge file on processor: %i",rank); 
 		FILE *con = fopen("con", "rb");
@@ -149,26 +147,18 @@ int Par_sread(){
 				//number of assignments.
 				//We're weaving our way through the memory here, converting
 				//between lattice and memory coordinates
-				int icoord[ndim];
-				for(int ix=pstart[0][iproc]; ix<pstop[0][iproc]; ix++){
-					icoord[0]=ix;
-					for(int iy=pstart[1][iproc]; iy<pstop[1][iproc]; iy++){
-						icoord[1]=iy;
-						for(int iz=pstart[2][iproc]; iz<pstop[2][iproc]; iz++){
-							icoord[2]=iz;
+				for(int ix=pstart[0][iproc]; ix<pstop[0][iproc]; ix++)
+					for(int iy=pstart[1][iproc]; iy<pstop[1][iproc]; iy++)
+						for(int iz=pstart[2][iproc]; iz<pstop[2][iproc]; iz++)
 							for(int it=pstart[3][iproc]; it<pstop[3][iproc]; it++){
-								icoord[3]=it;
 								//j is the relative memory index of icoord
-								int j = Coord2gindex(icoord);
+								int j = Coord2gindex(ix,iy,iz,it);
 								//ubuff[i]  = (ic == 0) ? u11read[j][idim] : u12read[j][idim];
 								u1buff[i]=u11Read[idim*gvol+j];
 								u2buff[i]=u12Read[idim*gvol+j];
 								//C starts counting from zero, not 1 so increment afterwards or start at int i=-1
 								i++;
 							}
-						}
-					}
-				}
 				if(i!=kvol-1){
 					fprintf(stderr, "Error %i in %s: Number of elements %i is not equal to\
 							kvol %i.\nExiting...\n\n", NUMELEM, funcname, i, kvol);
@@ -205,9 +195,9 @@ int Par_sread(){
 				}
 			}
 #ifdef USE_MKL
-		mkl_free(u11Read); mkl_free(u12Read); mkl_free(icoord);
+		mkl_free(u11Read); mkl_free(u12Read);
 #else
-		free(u11Read); free(u12Read); free(icoord);
+		free(u11Read); free(u12Read);
 #endif
 	}
 	else{
@@ -271,7 +261,6 @@ int Par_psread(char *filename, double *ps){
 	double *psbuff = (double*)aligned_alloc(AVX,nc*kvol*sizeof(double));
 	double *gps= (double*)aligned_alloc(AVX,nc*gvol*sizeof(double));
 #endif
-	int icoord[ndim];
 	FILE *dest;
 	if(!rank){
 		if(!(dest = fopen(filename, "rb"))){
@@ -285,22 +274,17 @@ int Par_psread(char *filename, double *ps){
 		int i;
 		for(int iproc=0;iproc<nproc;iproc++){
 			i = 0;
-			for(int ix=pstart[0][iproc]; ix<pstop[0][iproc]; ix++){
-				icoord[0]=ix;
-				for(int iy=pstart[1][iproc]; iy<pstop[1][iproc]; iy++){
-					icoord[1]=iy;
-					for(int iz=pstart[2][iproc]; iz<pstop[2][iproc]; iz++){
-						icoord[2]=iz;
-#pragma omp simd aligned(psbuff,gps:AVX)
+			for(int ix=pstart[0][iproc]; ix<pstop[0][iproc]; ix++)
+				for(int iy=pstart[1][iproc]; iy<pstop[1][iproc]; iy++)
+					for(int iz=pstart[2][iproc]; iz<pstop[2][iproc]; iz++)
 						for(int it=pstart[3][iproc]; it<pstop[3][iproc]; it++){
-							icoord[3]=it;
 							i++;
 							//j is the relative memory index of icoord
-							int j = Coord2gindex(icoord);
+							int j = Coord2gindex(ix,iy,iz,it);
 							//ubuff[i]  = (ic == 0) ? u11read[j][idim] : u12read[j][idim];
 							psbuff[i*nc]=gps[j*nc];
 							psbuff[i*nc+1]=gps[j*nc+1];
-						}}}}
+						}
 			//Think its kvol-1 in C as C indexes from 0 not 1
 			if(i!=kvol-1){
 				fprintf(stderr, "Error %i in %s: Number of elements %i is not equal to\
@@ -375,11 +359,9 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 #ifdef USE_MKL
 		Complex *u11Write = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
 		Complex *u12Write = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
-		int *icoord = (int *)mkl_malloc(4*sizeof(int),AVX);
 #else
 		Complex *u11Write = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
 		Complex *u12Write = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
-		int *icoord = (int *)aligned_alloc(AVX,4*sizeof(int));
 #endif
 		//Get correct parts of u11read etc from remote processors
 		for(iproc=0;iproc<nproc;iproc++)
@@ -413,21 +395,17 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 #endif
 				}
 				int i=0;
-				for(int ix=pstart[0][iproc]; ix<pstop[0][iproc]; ix++){
-					icoord[0]=ix;
-					for(int iy=pstart[1][iproc]; iy<pstop[1][iproc]; iy++){
-						icoord[1]=iy;
-						for(int iz=pstart[2][iproc]; iz<pstop[2][iproc]; iz++){
-							icoord[2]=iz;
+				for(int ix=pstart[0][iproc]; ix<pstop[0][iproc]; ix++)
+					for(int iy=pstart[1][iproc]; iy<pstop[1][iproc]; iy++)
+						for(int iz=pstart[2][iproc]; iz<pstop[2][iproc]; iz++)
 							for(int it=pstart[3][iproc]; it<pstop[3][iproc]; it++){
-								icoord[3]=it;
 								//j is the relative memory index of icoord
-								int j = Coord2gindex(icoord);
+								int j = Coord2gindex(ix, iy, iz, it);
 								u11Write[idim*gvol+j] = u1buff[i];	
 								u12Write[idim*gvol+j] = u2buff[i];	
 								//C starts counting from zero, not 1 so increment afterwards or start at int i=-1
 								i++;
-							}}}}
+							}
 				if(i!=kvol){
 					fprintf(stderr, "Error %i in %s: Number of elements %i is not equal to\
 							kvol %i.\nExiting...\n\n", NUMELEM, funcname, i, kvol);
@@ -436,9 +414,9 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 				}
 			}
 #ifdef USE_MKL
-		mkl_free(u1buff); mkl_free(u2buff); mkl_free(icoord);
+		mkl_free(u1buff); mkl_free(u2buff);
 #else
-		free(u1buff); free(u2buff); free(icoord);
+		free(u1buff); free(u2buff);
 #endif
 
 		static char gauge_title[FILELEN]="config.";

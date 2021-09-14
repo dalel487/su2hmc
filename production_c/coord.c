@@ -381,7 +381,7 @@ inline int Index2gcoord(int index, int *coord){
 
 	return 0;
 }
-inline int Coord2lindex(int *coord){
+inline int Coord2lindex(int ix, int iy, int iz, int it){
 	/* Converts the coordinates of a local lattice point to its index in the 
 	 * computer memory
 	 *
@@ -393,7 +393,7 @@ inline int Coord2lindex(int *coord){
 	 * be careful when calling this function!
 	 * Parameters:
 	 * ==========
-	 * int *coord: The pointer to the 4-vector being considered
+	 * int i?: The coordinate being converted 
 	 *
 	 * Returns:
 	 * ========
@@ -405,10 +405,9 @@ inline int Coord2lindex(int *coord){
 	//implimentation to reduce the number of multiplications
 	//and hopefully improve performance
 	//int index = coord[3]+ksizez*(coord[2]+ksizey*(coord[1]+ksizex*coord[0]));
-	int index = coord[0]+ksizex*(coord[1]+ksizey*(coord[2]+ksizez*coord[3]));
-	return index;
+	return it+ksizet*(iz+ksizez*(iy+ksizey*ix));
 }
-inline int Coord2gindex(int *coord){
+inline int Coord2gindex(int ix, int iy, int iz, int it){
 	/* Converts the coordinates of a point in the global gauge field 
 	 * to its flattened index in the computer memory
 	 * 
@@ -431,9 +430,7 @@ inline int Coord2gindex(int *coord){
 	//I've factorised this function compared to its original 
 	//implimentation to reduce the number of multiplications
 	//and hopefully improve performance
-	int index = coord[0]+nx*(coord[1]+ny*(coord[2]+nz*coord[3]));
-	//	int index = coord[3]+nt*(coord[0]+nx*(coord[1]+ny*coord[2]));
-	return index;
+	return it+nt*(iz+nz*(iy+ny*ix));
 }
 int Testlcoord(int cap){
 	/* Tests if the coordinate transformation functions are working
@@ -463,7 +460,7 @@ int Testlcoord(int cap){
 		Index2lcoord(index, coord);
 		printf("Coordinates for %i are (x,y,z,t):[%i,%i,%i,%i].\n", index,\
 				coord[0], coord[1], coord[2], coord[3]);
-		index2 = Coord2lindex(coord);
+		//index2 = Coord2lindex(coord);
 		if(!(index==index2)){
 			fprintf(stderr, "Error %i in %s: Converted index %i does not match "
 					"original index %i.\nExiting...\n\n",\
@@ -505,7 +502,7 @@ int Testgcoord(int cap){
 #pragma omp critical
 		printf("Coordinates for %i are (x,y,z,t):[%i,%i,%i,%i].\n", index,\
 				coord[0], coord[1], coord[2], coord[3]);
-		index2 = Coord2gindex(coord);
+		//index2 = Coord2gindex(coord);
 		if(!(index==index2)){
 			fprintf(stderr, "Error %i in %s: Converted index %i does not match "\
 					"original index %i.\nExiting...\n\n",\
