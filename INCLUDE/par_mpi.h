@@ -25,6 +25,7 @@
 #ifdef _OPENMP
 #include	<omp.h>
 #endif
+#include	<random.h>
 #include	<sizes.h>
 #include	<stdio.h>
 #include	<stdlib.h>

@@ -347,7 +347,6 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "par_swrite";
-	int iproc, seed;
 #ifdef USE_MKL
 	Complex *u1buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
 	Complex *u2buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
@@ -364,7 +363,7 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 		Complex *u12Write = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
 #endif
 		//Get correct parts of u11read etc from remote processors
-		for(iproc=0;iproc<nproc;iproc++)
+		for(int iproc=0;iproc<nproc;iproc++)
 			for(int idim=0;idim<ndim;idim++){
 				if(iproc){
 					if(MPI_Recv(u1buff, kvol, MPI_C_DOUBLE_COMPLEX, iproc, tag, comm, &status)){
@@ -525,13 +524,13 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 #endif
 			if(MPI_Isend(u1buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm,&request)){
 				fprintf(stderr, "Error %i in %s: Falied to send u11 from process %i.\nExiting...\n\n",
-						CANTSEND, funcname, iproc);
+						CANTSEND, funcname, rank);
 				MPI_Finalise();
 				exit(CANTSEND);
 			}
 			if(MPI_Isend(u2buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm,&request)){
 				fprintf(stderr, "Error %i in %s: Falied to send u12 from process %i.\nExiting...\n\n",
-						CANTSEND, funcname, iproc);
+						CANTSEND, funcname, rank);
 				MPI_Finalise();
 				exit(CANTSEND);
 			}
