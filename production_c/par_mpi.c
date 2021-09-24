@@ -366,13 +366,13 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 		for(int iproc=0;iproc<nproc;iproc++)
 			for(int idim=0;idim<ndim;idim++){
 				if(iproc){
-					if(MPI_Recv(u1buff, kvol, MPI_C_DOUBLE_COMPLEX, iproc, idim, comm, &status)){
+					if(MPI_Recv(u1buff, kvol, MPI_C_DOUBLE_COMPLEX, iproc, 2*idim, comm, &status)){
 						fprintf(stderr, "Error %i in %s: Falied to receive u11 from process %i.\nExiting...\n\n",
 								CANTRECV, funcname, iproc);
 						MPI_Finalise();
 						exit(CANTRECV);
 					}
-					if(MPI_Recv(u2buff, kvol, MPI_C_DOUBLE_COMPLEX, iproc, idim, comm, &status)){
+					if(MPI_Recv(u2buff, kvol, MPI_C_DOUBLE_COMPLEX, iproc, 2*idim+1, comm, &status)){
 						fprintf(stderr, "Error %i in %s: Falied to receive u12 from process %i.\nExiting...\n\n",
 								CANTRECV, funcname, iproc);
 						MPI_Finalise();
@@ -522,13 +522,13 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 				u2buff[i]=u12[i*ndim+idim];
 			}
 #endif
-			if(MPI_Isend(u1buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, idim, comm,&request)){
+			if(MPI_Isend(u1buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, 2*idim, comm,&request)){
 				fprintf(stderr, "Error %i in %s: Falied to send u11 from process %i.\nExiting...\n\n",
 						CANTSEND, funcname, rank);
 				MPI_Finalise();
 				exit(CANTSEND);
 			}
-			if(MPI_Isend(u2buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, idim, comm,&request)){
+			if(MPI_Isend(u2buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, 2*idim+1, comm,&request)){
 				fprintf(stderr, "Error %i in %s: Falied to send u12 from process %i.\nExiting...\n\n",
 						CANTSEND, funcname, rank);
 				MPI_Finalise();
