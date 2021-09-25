@@ -165,7 +165,7 @@ int main(int argc, char *argv[]){
 #ifdef _DEBUG
 	printf("jqq=%f+(%f)I\n",creal(jqq),cimag(jqq));
 #endif
-#ifdef DEBUG
+#ifdef _DEBUG
 	seed = 967580161;
 #else
 	seed = time(NULL);
