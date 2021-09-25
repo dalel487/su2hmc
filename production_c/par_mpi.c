@@ -423,68 +423,32 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 			int buffer; char buff2[7];
 			//Add script for extrating correct mu, j etc.
 			buffer = (int)(100*beta);
-			if(buffer<10)
-				sprintf(buff2,"b00%i",buffer);
-			else if(buffer<100)
-				sprintf(buff2,"b0%i",buffer);
-			else
-				sprintf(buff2,"b%i",buffer);
+			sprintf(buff2,"b%03d",buffer);
 			strcat(gauge_title,buff2);
 			//κ
 			buffer = (int)(10000*akappa);
-			if(buffer<10)
-				sprintf(buff2,"k000%i",buffer);
-			else if(buffer<100)
-				sprintf(buff2,"k00%i",buffer);
-			else if(buffer<1000)
-				sprintf(buff2,"k0%i",buffer);
-			else
-				sprintf(buff2,"k%i",buffer);
+			sprintf(buff2,"k%04d",buffer);
 			strcat(gauge_title,buff2);
 			//μ
 			buffer = (int)(1000*fmu);
-			if(buffer<10)
-				sprintf(buff2,"mu000%i",buffer);
-			else if(buffer<100)
-				sprintf(buff2,"mu00%i",buffer);
-			else if(buffer<1000)
-				sprintf(buff2,"mu0%i",buffer);
-			else
-				sprintf(buff2,"%i",buffer);
+			sprintf(buff2,"mu%04d",buffer);
 			strcat(gauge_title,buff2);
+			//J
 			buffer = (int)(100*ajq);
-			if(buffer<10)
-				sprintf(buff2,"j0%i",buffer);
-			else
-				sprintf(buff2,"j%i",buffer);
+			sprintf(buff2,"j%02d",buffer);
 			strcat(gauge_title,buff2);
-			if(nx<10)
-				sprintf(buff2,"s0%i",nx);
-			else
-				sprintf(buff2,"s%i",nx);
+			//nx
+			sprintf(buff2,"s%02d",nx);
 			strcat(gauge_title,buff2);
-			if(nt<10)
-				sprintf(buff2,"t0%i",nt);
-			else
-				sprintf(buff2,"t%i",nt);
+			//nt
+			sprintf(buff2,"t%02d",nt);
 			strcat(gauge_title,buff2);
 		}
 
 		char gauge_file[FILELEN];
 		strcpy(gauge_file,gauge_title);
 		char c[8];
-		if(itraj<10)
-			sprintf(c,".00000%i", itraj);
-		else	if(itraj<100)
-			sprintf(c,".0000%i", itraj);
-		else	if(itraj<1000)
-			sprintf(c,".000%i", itraj);
-		else	if(itraj<10000)
-			sprintf(c,".00%i", itraj);
-		else	if(itraj<10000)
-			sprintf(c,".0%i", itraj);
-		else
-			sprintf(c,".%i", itraj);
+		sprintf(c,".%06d", itraj);
 		strcat(gauge_file, c);
 		printf("Gauge file name is %s\n", gauge_file);
 		printf("Writing the gauge file on processor %i.\n", rank);
@@ -522,13 +486,13 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 				u2buff[i]=u12[i*ndim+idim];
 			}
 #endif
-			if(MPI_Isend(u1buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, 2*idim, comm,&request)){
+			if(MPI_Send(u1buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, 2*idim, comm)){
 				fprintf(stderr, "Error %i in %s: Falied to send u11 from process %i.\nExiting...\n\n",
 						CANTSEND, funcname, rank);
 				MPI_Finalise();
 				exit(CANTSEND);
 			}
-			if(MPI_Isend(u2buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, 2*idim+1, comm,&request)){
+			if(MPI_Send(u2buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, 2*idim+1, comm)){
 				fprintf(stderr, "Error %i in %s: Falied to send u12 from process %i.\nExiting...\n\n",
 						CANTSEND, funcname, rank);
 				MPI_Finalise();
