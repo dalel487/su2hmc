@@ -122,8 +122,45 @@ int Par_sread(){
 		Complex *u11Read = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
 		Complex *u12Read = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
 #endif
+		static char gauge_file[FILELEN]="config.";
+		int buffer; char buff2[7];
+		//Add script for extrating correct mu, j etc.
+		buffer = (int)(100*beta);
+		sprintf(buff2,"b%03d",buffer);
+		strcat(gauge_file,buff2);
+		//κ
+		buffer = (int)(10000*akappa);
+		sprintf(buff2,"k%04d",buffer);
+		strcat(gauge_file,buff2);
+		//μ
+		buffer = (int)(1000*fmu);
+		sprintf(buff2,"mu%04d",buffer);
+		strcat(gauge_file,buff2);
+		//J
+		buffer = (int)(100*ajq);
+		sprintf(buff2,"j%02d",buffer);
+		strcat(gauge_file,buff2);
+		//nx
+		sprintf(buff2,"s%02d",nx);
+		strcat(gauge_file,buff2);
+		//nt
+		sprintf(buff2,"t%02d",nt);
+		strcat(gauge_file,buff2);
+		//nconfig
+		char c[8];
+		sprintf(c,".%06d", itraj);
+		strcat(gauge_file, c);
+
+		char *fileop = "rb";
 		printf("Opening gauge file on processor: %i",rank); 
-		FILE *con = fopen("con", "rb");
+		FILE *con;
+		if(!(con = fopen(gauge_file, fileop))){
+			fprintf(stderr, "Error %i in %s: Failed to open %s for %s.
+					\nExiting...\n\n", OPENERROR, funcname, gauge_file, fileop);
+			MPI_Finalise();
+			exit(OPENERROR);	
+		}
+		//TODO: SAFETY CHECKS FOR EACH READ OPERATION
 #ifdef FORT_CONFIG
 #warning Compiling with FORTRAN binary layout in par_sread
 		int con_size;
@@ -159,7 +196,7 @@ int Par_sread(){
 								//C starts counting from zero, not 1 so increment afterwards or start at int i=-1
 								i++;
 							}
-				if(i!=kvol-1){
+				if(i!=kvol){
 					fprintf(stderr, "Error %i in %s: Number of elements %i is not equal to\
 							kvol %i.\nExiting...\n\n", NUMELEM, funcname, i, kvol);
 					MPI_Finalise();
@@ -180,13 +217,13 @@ int Par_sread(){
 				else{
 					//The master thread did all the hard work, the minions just need to receive their
 					//data and go.
-					if(MPI_Ssend(u1buff, kvol, MPI_C_DOUBLE_COMPLEX,iproc, tag, comm)){
+					if(MPI_Ssend(u1buff, kvol, MPI_C_DOUBLE_COMPLEX,iproc, 2*idim, comm)){
 						fprintf(stderr, "Error %i in %s: Failed to send ubuff to process %i.\nExiting...\n\n",
 								CANTSEND, funcname, iproc);
 						MPI_Finalise();
 						exit(CANTSEND);
 					}
-					if(MPI_Ssend(u2buff, kvol, MPI_C_DOUBLE_COMPLEX,iproc, tag, comm)){
+					if(MPI_Ssend(u2buff, kvol, MPI_C_DOUBLE_COMPLEX,iproc, 2*idim+1, comm)){
 						fprintf(stderr, "Error %i in %s: Failed to send ubuff to process %i.\nExiting...\n\n",
 								CANTSEND, funcname, iproc);
 						MPI_Finalise();
@@ -205,15 +242,15 @@ int Par_sread(){
 		private(u1buff,u2buff)
 		for(int idim = 0; idim<ndim; idim++){
 			//Receiving the data from the master threads.
-			if(MPI_Recv(u1buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm, &status)){
-				fprintf(stderr, "Error %i in %s: Falied to receive u11 from process %i.\nExiting...\n\n",
-						CANTRECV, funcname, masterproc);
+			if(MPI_Recv(u1buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, 2*idim, comm, &status)){
+				fprintf(stderr, "Error %i in %s: Falied to receive u11 on process %i.\nExiting...\n\n",
+						CANTRECV, funcname, rank);
 				MPI_Finalise();
 				exit(CANTRECV);
 			}
-			if(MPI_Recv(u2buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, tag, comm, &status)){
-				fprintf(stderr, "Error %i in %s: Falied to receive u12 from process %i.\nExiting...\n\n",
-						CANTRECV, funcname, masterproc);
+			if(MPI_Recv(u2buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, 2*idim+1, comm, &status)){
+				fprintf(stderr, "Error %i in %s: Falied to receive u12 on process %i.\nExiting...\n\n",
+						CANTRECV, funcname, rank);
 				MPI_Finalise();
 				exit(CANTRECV);
 			}
@@ -455,10 +492,12 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 		FILE *con;
 		char *fileop = "wb";
 		if(!(con=fopen(gauge_file, fileop))){
-			fprintf(stderr, "Error %i in %s: Failed to open %s.\nExiting...\n\n", OPENERROR, funcname, gauge_file);
+			fprintf(stderr, "Error %i in %s: Failed to open %s for %s.
+					\nExiting...\n\n", OPENERROR, funcname, gauge_file, fileop);
 			MPI_Finalise();
 			exit(OPENERROR);	
 		}
+		//TODO: SAFETY CHECKS FOR EACH WRITE OPERATION
 #ifdef FORT_CONFIG
 #warning Compiling with FORTRAN binary layout in par_swrite
 		static int con_size=2*ndim*gvol*sizeof(Complex)+sizeof(seed)+sizeof(int);
