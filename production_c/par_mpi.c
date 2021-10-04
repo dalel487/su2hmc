@@ -152,7 +152,7 @@ int Par_sread(const int iread, const double beta, const double fmu, const double
 		strcat(gauge_file, c);
 
 		char *fileop = "rb";
-		printf("Opening gauge file on processor: %i",rank); 
+		printf("Opening gauge file on processor: %i\n",rank); 
 		FILE *con;
 		if(!(con = fopen(gauge_file, fileop))){
 			fprintf(stderr, "Error %i in %s: Failed to open %s for %s.\
@@ -166,71 +166,71 @@ int Par_sread(const int iread, const double beta, const double fmu, const double
 		int con_size;
 		fread(&con_size, sizeof(int), 1, con);
 #endif
-		fread(&u11Read, ndim*gvol*sizeof(Complex), 1, con);
-		fread(&u12Read, ndim*gvol*sizeof(Complex), 1, con);
+		fread(u11Read, ndim*gvol*sizeof(Complex), 1, con);
+		fread(u12Read, ndim*gvol*sizeof(Complex), 1, con);
 		fread(&seed, sizeof(seed), 1, con);
 		fclose(con);
 
 		//Run over processors, dimensions and colours
 		//Could be sped up with omp but parallel MPI_Sends is risky. 
-#pragma omp parallel for collapse(2)\
+		//#pragma omp parallel for collapse(2)\
 		private(u1buff,u2buff)\
-		shared(u11Read,u12Read)
-		for(int iproc = 0; iproc < nproc; iproc++)
-			for(int idim = 0; idim < ndim; idim++){
-				int i = 0;
-				//Index order is reversed from FORTRAN for performance
-				//Going to split up assigning icoord[i] to reduce the
-				//number of assignments.
-				//We're weaving our way through the memory here, converting
-				//between lattice and memory coordinates
-				for(int ix=pstart[0][iproc]; ix<pstop[0][iproc]; ix++)
-					for(int iy=pstart[1][iproc]; iy<pstop[1][iproc]; iy++)
-						for(int iz=pstart[2][iproc]; iz<pstop[2][iproc]; iz++)
-							for(int it=pstart[3][iproc]; it<pstop[3][iproc]; it++){
-								//j is the relative memory index of icoord
-								int j = Coord2gindex(ix,iy,iz,it);
-								//ubuff[i]  = (ic == 0) ? u11read[j][idim] : u12read[j][idim];
-								u1buff[i]=u11Read[idim*gvol+j];
-								u2buff[i]=u12Read[idim*gvol+j];
-								//C starts counting from zero, not 1 so increment afterwards or start at int i=-1
-								i++;
-							}
-				if(i!=kvol){
-					fprintf(stderr, "Error %i in %s: Number of elements %i is not equal to\
-							kvol %i.\nExiting...\n\n", NUMELEM, funcname, i, kvol);
-					MPI_Finalise();
-					exit(NUMELEM);
-				}
-				if(!iproc){
+			shared(u11Read,u12Read)
+			for(int iproc = 0; iproc < nproc; iproc++)
+				for(int idim = 0; idim < ndim; idim++){
+					int i = 0;
+					//Index order is reversed from FORTRAN for performance
+					//Going to split up assigning icoord[i] to reduce the
+					//number of assignments.
+					//We're weaving our way through the memory here, converting
+					//between lattice and memory coordinates
+					for(int ix=pstart[0][iproc]; ix<pstop[0][iproc]; ix++)
+						for(int iy=pstart[1][iproc]; iy<pstop[1][iproc]; iy++)
+							for(int iz=pstart[2][iproc]; iz<pstop[2][iproc]; iz++)
+								for(int it=pstart[3][iproc]; it<pstop[3][iproc]; it++){
+									//j is the relative memory index of icoord
+									int j = Coord2gindex(ix,iy,iz,it);
+									//ubuff[i]  = (ic == 0) ? u11read[j][idim] : u12read[j][idim];
+									u1buff[i]=u11Read[idim*gvol+j];
+									u2buff[i]=u12Read[idim*gvol+j];
+									//C starts counting from zero, not 1 so increment afterwards or start at int i=-1
+									i++;
+								}
+					if(i!=kvol){
+						fprintf(stderr, "Error %i in %s: Number of elements %i is not equal to\
+								kvol %i.\nExiting...\n\n", NUMELEM, funcname, i, kvol);
+						MPI_Finalise();
+						exit(NUMELEM);
+					}
+					if(!iproc){
 #if (defined USE_MKL||defined USE_BLAS)
-					cblas_zcopy(kvol,u1buff,1,u11+idim,ndim);
-					cblas_zcopy(kvol,u2buff,1,u12+idim,ndim);
+						cblas_zcopy(kvol,u1buff,1,u11+idim,ndim);
+						cblas_zcopy(kvol,u2buff,1,u12+idim,ndim);
 #else
 #pragma omp parallel for simd aligned(u11,u12,u1buff,u2buff:AVX)
-					for(i=0;i<kvol;i++){
-						u11[i*ndim+idim]=u1buff[i];
-						u12[i*ndim+idim]=u2buff[i];
-					}
+						for(i=0;i<kvol;i++){
+							u11[i*ndim+idim]=u1buff[i];
+							u12[i*ndim+idim]=u2buff[i];
+						}
 #endif
-				}		
-				else{
-					//The master thread did all the hard work, the minions just need to receive their
-					//data and go.
-					if(MPI_Ssend(u1buff, kvol, MPI_C_DOUBLE_COMPLEX,iproc, 2*idim, comm)){
-						fprintf(stderr, "Error %i in %s: Failed to send ubuff to process %i.\nExiting...\n\n",
-								CANTSEND, funcname, iproc);
-						MPI_Finalise();
-						exit(CANTSEND);
-					}
-					if(MPI_Ssend(u2buff, kvol, MPI_C_DOUBLE_COMPLEX,iproc, 2*idim+1, comm)){
-						fprintf(stderr, "Error %i in %s: Failed to send ubuff to process %i.\nExiting...\n\n",
-								CANTSEND, funcname, iproc);
-						MPI_Finalise();
-						exit(CANTSEND);
+					}		
+					else{
+						//The master thread did all the hard work, the minions just need to receive their
+						//data and go.
+						if(MPI_Isend(u1buff, kvol, MPI_C_DOUBLE_COMPLEX,iproc, 2*idim, comm, &request)){
+							fprintf(stderr, "Error %i in %s: Failed to send ubuff to process %i.\nExiting...\n\n",
+									CANTSEND, funcname, iproc);
+							MPI_Finalise();
+							exit(CANTSEND);
+						}
+						if(MPI_Isend(u2buff, kvol, MPI_C_DOUBLE_COMPLEX,iproc, 2*idim+1, comm, &request)){
+							fprintf(stderr, "Error %i in %s: Failed to send ubuff to process %i.\nExiting...\n\n",
+									CANTSEND, funcname, iproc);
+							MPI_Finalise();
+							exit(CANTSEND);
+						}
 					}
 				}
-			}
 #ifdef USE_MKL
 		mkl_free(u11Read); mkl_free(u12Read);
 #else
@@ -238,7 +238,7 @@ int Par_sread(const int iread, const double beta, const double fmu, const double
 #endif
 	}
 	else{
-#pragma omp parallel for shared(u11,u12)\
+//#pragma omp parallel for shared(u11,u12)\
 		private(u1buff,u2buff)
 		for(int idim = 0; idim<ndim; idim++){
 			//Receiving the data from the master threads.
@@ -455,32 +455,30 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 		free(u1buff); free(u2buff);
 #endif
 
-		static char gauge_title[FILELEN]="config.";
-		if(itraj==icheck){
-			int buffer; char buff2[7];
-			//Add script for extrating correct mu, j etc.
-			buffer = (int)(100*beta);
-			sprintf(buff2,"b%03d",buffer);
-			strcat(gauge_title,buff2);
-			//κ
-			buffer = (int)(10000*akappa);
-			sprintf(buff2,"k%04d",buffer);
-			strcat(gauge_title,buff2);
-			//μ
-			buffer = (int)(1000*fmu);
-			sprintf(buff2,"mu%04d",buffer);
-			strcat(gauge_title,buff2);
-			//J
-			buffer = (int)(100*ajq);
-			sprintf(buff2,"j%02d",buffer);
-			strcat(gauge_title,buff2);
-			//nx
-			sprintf(buff2,"s%02d",nx);
-			strcat(gauge_title,buff2);
-			//nt
-			sprintf(buff2,"t%02d",nt);
-			strcat(gauge_title,buff2);
-		}
+		char gauge_title[FILELEN]="config.";
+		int buffer; char buff2[7];
+		//Add script for extrating correct mu, j etc.
+		buffer = (int)(100*beta);
+		sprintf(buff2,"b%03d",buffer);
+		strcat(gauge_title,buff2);
+		//κ
+		buffer = (int)(10000*akappa);
+		sprintf(buff2,"k%04d",buffer);
+		strcat(gauge_title,buff2);
+		//μ
+		buffer = (int)(1000*fmu);
+		sprintf(buff2,"mu%04d",buffer);
+		strcat(gauge_title,buff2);
+		//J
+		buffer = (int)(100*ajq);
+		sprintf(buff2,"j%02d",buffer);
+		strcat(gauge_title,buff2);
+		//nx
+		sprintf(buff2,"s%02d",nx);
+		strcat(gauge_title,buff2);
+		//nt
+		sprintf(buff2,"t%02d",nt);
+		strcat(gauge_title,buff2);
 
 		char gauge_file[FILELEN];
 		strcpy(gauge_file,gauge_title);

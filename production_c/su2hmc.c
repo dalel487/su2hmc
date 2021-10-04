@@ -148,10 +148,6 @@ int main(int argc, char *argv[]){
 	Par_icopy(&iread);
 	jqq=ajq*cexp(athq*I);
 	akappa_f=(float)akappa;
-	if(iread){
-		if(!rank) printf("Calling Par_sread() for configuration: %i\n", iread);
-		Par_sread(iread, beta, fmu, akappa, ajq);
-	}
 #ifdef __NVCC__
 	cudaMalloc(&jqq_d,sizeof(Complex));
 	cudaMalloc(&beta_d,sizeof(Complex));
@@ -179,6 +175,10 @@ int main(int argc, char *argv[]){
 	//			For some reason this leaves the trial fields as zero in the FORTRAN code?
 	//istart > 0: Random/Hot Start
 	Init(istart);
+	if(iread){
+		if(!rank) printf("Calling Par_sread() for configuration: %i\n", iread);
+		Par_sread(iread, beta, fmu, akappa, ajq);
+	}
 #ifdef DIAGNOSTIC
 	Diagnostics(istart);
 #endif
