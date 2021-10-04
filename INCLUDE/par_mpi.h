@@ -105,7 +105,7 @@ Complex_f *u11t_f, *u12t_f;
 //Function Declarations
 //=====================
 int Par_begin(int argc, char *argv[]);
-int Par_sread();
+int Par_sread(const int iread, const double beta, const double fmu, const double akappa, const double ajq);
 int Par_psread(char *filename, double *ps);
 int Par_swrite(const int itraj, const int icheck, const double beta, const double fmu, const double akappa, const double ajq);
 int Par_end();

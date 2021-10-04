@@ -15,6 +15,7 @@ CFLAGS=      $(IFLAGS) -std=g++11 -qopt-zmm-usage=high -DUSE_RAN2 \
 LFLAGS=	 -L${MKLROOT}/lib/intel64 -liomp5 -lpthread -lm -ldl -lcudart -lcublas #-wd10237
 
 MKLFLAGS=	-mkl -DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64 
+
 CUFLAGS=	${IFLAGS} -ccbin ${CXX} -arch=compute_70 -code=sm_70,sm_72,sm_75,sm_80,sm_86 -err-no -w\
 		-expt-relaxed-constexpr 
 		#Last flag is an experimental one used to call host functions in device code. Not sure

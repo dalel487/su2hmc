@@ -91,7 +91,7 @@ int Par_begin(int argc, char *argv[]){
 #endif
 	return 0;
 }	
-int Par_sread(){
+int Par_sread(const int iread, const double beta, const double fmu, const double akappa, const double ajq){
 	/*
 	 * Reads and assigns the gauges from file
 	 *
@@ -148,14 +148,14 @@ int Par_sread(){
 		strcat(gauge_file,buff2);
 		//nconfig
 		char c[8];
-		sprintf(c,".%06d", itraj);
+		sprintf(c,".%06d", iread);
 		strcat(gauge_file, c);
 
 		char *fileop = "rb";
 		printf("Opening gauge file on processor: %i",rank); 
 		FILE *con;
 		if(!(con = fopen(gauge_file, fileop))){
-			fprintf(stderr, "Error %i in %s: Failed to open %s for %s.
+			fprintf(stderr, "Error %i in %s: Failed to open %s for %s.\
 					\nExiting...\n\n", OPENERROR, funcname, gauge_file, fileop);
 			MPI_Finalise();
 			exit(OPENERROR);	
@@ -492,7 +492,7 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 		FILE *con;
 		char *fileop = "wb";
 		if(!(con=fopen(gauge_file, fileop))){
-			fprintf(stderr, "Error %i in %s: Failed to open %s for %s.
+			fprintf(stderr, "Error %i in %s: Failed to open %s for %s.\
 					\nExiting...\n\n", OPENERROR, funcname, gauge_file, fileop);
 			MPI_Finalise();
 			exit(OPENERROR);	

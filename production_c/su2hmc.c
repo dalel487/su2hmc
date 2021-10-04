@@ -136,21 +136,22 @@ int main(int argc, char *argv[]){
 		fscanf(midout, "%lf %lf %lf %lf %lf %lf %lf %d %d %d %d %d", &dt, &beta, &akappa,\
 				&ajq, &athq, &fmu, &delb, &stepl, &ntraj, &istart, &icheck, &iread);
 		fclose(midout);
-	}
-	if(iread){
-#ifdef _DEBUG
-		if(!rank) printf("Calling Par_sread() with seed: %i\n", seed);
-#endif
-		Par_sread();
+		assert(stepl>0);	assert(ntraj>0);	  assert(istart>0);  assert(icheck>0);  assert(iread>=0); 
 	}
 	//Send inputs to other ranks
 	Par_dcopy(&dt); Par_dcopy(&beta); Par_dcopy(&akappa); Par_dcopy(&ajq);
 	Par_dcopy(&athq); Par_dcopy(&fmu); Par_dcopy(&delb); //Not used?
-	Par_icopy(&stepl); assert(stepl>0);	
-	Par_icopy(&ntraj); assert(ntraj>0);	 
-	Par_icopy(&icheck); assert(icheck>0); 
+	Par_icopy(&stepl); 
+	Par_icopy(&ntraj); 
+	Par_icopy(&istart);
+	Par_icopy(&icheck);
+	Par_icopy(&iread);
 	jqq=ajq*cexp(athq*I);
 	akappa_f=(float)akappa;
+	if(iread){
+		if(!rank) printf("Calling Par_sread() for configuration: %i\n", iread);
+		Par_sread(iread, beta, fmu, akappa, ajq);
+	}
 #ifdef __NVCC__
 	cudaMalloc(&jqq_d,sizeof(Complex));
 	cudaMalloc(&beta_d,sizeof(Complex));
@@ -272,7 +273,7 @@ int main(int argc, char *argv[]){
 	if(!rank)
 		start_time = MPI_Wtime();
 #endif
-	for(int itraj = 1; itraj <= ntraj; itraj++){
+	for(int itraj = iread+1; itraj <= ntraj+iread; itraj++){
 		//Reset conjugate gradient averages
 		ancg = 0; ancgh = 0;
 #ifdef _DEBUG
