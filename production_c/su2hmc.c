@@ -1199,8 +1199,8 @@ int Congradp(int na, double res, int *itercg){
 	Complex *p  = mkl_malloc(kfermHalo*sizeof(Complex),AVX);
 	Complex *r  = mkl_malloc(kferm*sizeof(Complex),AVX);
 #else
-	Complex *p  = malloc(kfermHalo*sizeof(Complex));
-	Complex *r  = malloc(kferm*sizeof(Complex));
+	Complex *p  = aligned_alloc(AVX,kfermHalo*sizeof(Complex));
+	Complex *r  = aligned_alloc(AVX,kferm*sizeof(Complex));
 #endif
 	//Instead of copying elementwise in a loop, use memcpy.
 	memcpy(p, xi, kferm*sizeof(Complex));

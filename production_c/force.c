@@ -30,10 +30,10 @@ int Gauge_force(double *dSdpi){
 	complex *u11sh = mkl_malloc((kvol+halo)*sizeof(complex),AVX); 
 	complex *u12sh = mkl_malloc((kvol+halo)*sizeof(complex),AVX); 
 #else
-	complex *Sigma11 = malloc(kvol*sizeof(complex)); 
-	complex *Sigma12= malloc(kvol*sizeof(complex)); 
-	complex *u11sh = malloc((kvol+halo)*sizeof(complex)); 
-	complex *u12sh = malloc((kvol+halo)*sizeof(complex)); 
+	complex *Sigma11 = aligned_alloc(AVX,kvol*sizeof(complex)); 
+	complex *Sigma12= aligned_alloc(AVX,kvol*sizeof(complex)); 
+	complex *u11sh = aligned_alloc(AVX,(kvol+halo)*sizeof(complex)); 
+	complex *u12sh = aligned_alloc(AVX,(kvol+halo)*sizeof(complex)); 
 #endif
 	//Holders for directions
 	for(int mu=0; mu<ndim; mu++){
@@ -125,8 +125,8 @@ int Force(double *dSdpi, int iflag, double res1){
 	complex *X2= mkl_malloc(kferm2Halo*sizeof(complex), AVX);
 	complex *smallPhi =mkl_malloc(kferm2Halo*sizeof(complex), AVX); 
 #else
-	complex *X2= malloc(kferm2Halo*sizeof(complex));
-	complex *smallPhi = malloc(kferm2Halo*sizeof(complex)); 
+	complex *X2= aligned_alloc(AVX,kferm2Halo*sizeof(complex));
+	complex *smallPhi = aligned_alloc(AVX,kferm2Halo*sizeof(complex)); 
 #endif
 	for(int na = 0; na<nf; na++){
 		memcpy(X1, X0+na*kferm2Halo, nc*ndirac*kvol*sizeof(complex));
@@ -136,7 +136,7 @@ int Force(double *dSdpi, int iflag, double res1){
 			Congradq(na, res1,smallPhi, &itercg );
 			ancg+=itercg;
 			//This is not a general BLAS Routine, just an MKL one
-#ifdef USE_MKL
+#ifdef (USE_MKL||USE_BLAS)
 			complex blasa=2.0; complex blasb=-1.0;
 			cblas_zaxpby(kvol*ndirac*nc, &blasa, X1, 1, &blasb, X0+na*kferm2Halo, 1); 
 #else
