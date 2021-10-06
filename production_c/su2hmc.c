@@ -1,3 +1,4 @@
+#include	<assert.h>
 #include	<coord.h>
 #ifdef	__NVCC__
 #include	<cuda.h>
@@ -126,26 +127,25 @@ int main(int argc, char *argv[]){
 		FILE *midout;
 		//Instead of hardcoding so the error messages are easier to impliment
 		char *filename = "midout";
-		char *fileop = "rb";
+		char *fileop = "r";
 		if( !(midout = fopen(filename, fileop) ) ){
 			fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n"\
 					, OPENERROR, funcname, filename, fileop);
 			exit(OPENERROR);
 		}
-		fscanf(midout, "%lf %lf %lf %lf %lf %lf %lf %d %d %d", &dt, &beta, &akappa,\
-				&ajq, &athq, &fmu, &delb, &stepl, &ntraj, &istart);
+		fscanf(midout, "%lf %lf %lf %lf %lf %lf %lf %d %d %d %d %d", &dt, &beta, &akappa,\
+				&ajq, &athq, &fmu, &delb, &stepl, &ntraj, &istart, &icheck, &iread);
 		fclose(midout);
-	}
-	if(iread){
-#ifdef _DEBUG
-		if(!rank) printf("Calling Par_sread() with seed: %i\n", seed);
-#endif
-		Par_sread();
+		assert(stepl>0);	assert(ntraj>0);	  assert(istart>0);  assert(icheck>0);  assert(iread>=0); 
 	}
 	//Send inputs to other ranks
 	Par_dcopy(&dt); Par_dcopy(&beta); Par_dcopy(&akappa); Par_dcopy(&ajq);
 	Par_dcopy(&athq); Par_dcopy(&fmu); Par_dcopy(&delb); //Not used?
-	Par_icopy(&stepl); Par_icopy(&ntraj); 
+	Par_icopy(&stepl); 
+	Par_icopy(&ntraj); 
+	Par_icopy(&istart);
+	Par_icopy(&icheck);
+	Par_icopy(&iread);
 	jqq=ajq*cexp(athq*I);
 	akappa_f=(float)akappa;
 #ifdef __NVCC__
@@ -162,6 +162,11 @@ int main(int argc, char *argv[]){
 #ifdef _DEBUG
 	printf("jqq=%f+(%f)I\n",creal(jqq),cimag(jqq));
 #endif
+#ifdef _DEBUG
+	seed = 967580161;
+#else
+	seed = time(NULL);
+#endif
 	Par_ranset(&seed);
 
 	//Initialisation
@@ -170,6 +175,10 @@ int main(int argc, char *argv[]){
 	//			For some reason this leaves the trial fields as zero in the FORTRAN code?
 	//istart > 0: Random/Hot Start
 	Init(istart);
+	if(iread){
+		if(!rank) printf("Calling Par_sread() for configuration: %i\n", iread);
+		Par_sread(iread, beta, fmu, akappa, ajq);
+	}
 #ifdef DIAGNOSTIC
 	Diagnostics(istart);
 #endif
@@ -215,7 +224,6 @@ int main(int argc, char *argv[]){
 
 	int naccp = 0; int ipbp = 0; int itot = 0;
 
-	ancg = 0; ancgh = 0;
 	//This was originally in the half-step of the fortran code, but it makes more sense to declare
 	//it outside the loop. Since it's always being subtracted we'll define it as negative
 	const	double d = -dt*0.5;
@@ -265,7 +273,9 @@ int main(int argc, char *argv[]){
 	if(!rank)
 		start_time = MPI_Wtime();
 #endif
-	for(int itraj = 1; itraj <= ntraj; itraj++){
+	for(int itraj = iread+1; itraj <= ntraj+iread; itraj++){
+		//Reset conjugate gradient averages
+		ancg = 0; ancgh = 0;
 #ifdef _DEBUG
 		if(!rank)
 			printf("Starting itraj %i\n", itraj);
@@ -470,6 +480,9 @@ int main(int argc, char *argv[]){
 			//Divide by gvol because of halos?
 			action=S1/gvol;
 		}
+		else
+			if(!rank)
+				printf("New configuration rejected on trajectory %i.\n", itraj);
 		actiona+=action; 
 		double vel2=0.0;
 #ifdef __NVCC__

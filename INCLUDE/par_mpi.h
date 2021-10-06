@@ -11,19 +11,21 @@
 #endif
 #include	<errorcodes.h>
 #include	<math.h>
+#ifdef __NVCC__
+#include	<cublas.h>
+#endif
 #ifdef	USE_MKL
 //If using mkl and BLAS, it is good practice to use mkl_malloc to align the arrays better
 //for the AVX-512 FMA Units
 #include	<mkl.h>
-#elif defined __NVCC__
-#include	<cublas.h>
-#else
+#elif defined USE_BLAS
 #include	<cblas.h>
 #endif
 #include	<mpi.h> 
 #ifdef _OPENMP
 #include	<omp.h>
 #endif
+#include	<random.h>
 #include	<sizes.h>
 #include	<stdio.h>
 #include	<stdlib.h>
@@ -103,7 +105,7 @@ Complex_f *u11t_f, *u12t_f;
 //Function Declarations
 //=====================
 int Par_begin(int argc, char *argv[]);
-int Par_sread();
+int Par_sread(const int iread, const double beta, const double fmu, const double akappa, const double ajq);
 int Par_psread(char *filename, double *ps);
 int Par_swrite(const int itraj, const int icheck, const double beta, const double fmu, const double akappa, const double ajq);
 int Par_end();

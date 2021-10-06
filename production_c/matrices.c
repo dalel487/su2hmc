@@ -464,7 +464,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r){
 	 * Returns:
 	 * Zero on success, integer error code otherwise
 	 */
-	char *funcname = "Hdslash";
+	char *funcname = "Hdslash_f";
 	//Get the halos in order
 	CHalo_swap_all(r, 8);
 	//TODO: Get u11t_f and u12t_f sorted
@@ -477,7 +477,6 @@ int Hdslash_f(Complex_f *phi, Complex_f *r){
 		in(id, iu: length(ndim*kvol))\
 		in(u11t, u12t: length(ndim*(kvol+halo)))\
 		inout(phi: length(kferm2Halo))
-#pragma omp parallel for
 		for(int i=0;i<kvol;i++){
 #ifndef NO_SPACE
 			//#pragma ivdep
@@ -559,7 +558,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r){
 	 * Returns:
 	 * Zero on success, integer error code otherwise
 	 */
-	char *funcname = "Hdslashd";
+	char *funcname = "Hdslashd_f";
 	//Get the halos in order. Because C is row major, we need to extract the correct
 	//terms for each halo first. Changing the indices was considered but that caused
 	//issues with the BLAS routines.
@@ -578,7 +577,6 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r){
 		in(id, iu: length(ndim*kvol))\
 		in(u11t, u12t: length(ndim*(kvol+halo)))\
 		inout(phi: length(kferm2Halo))
-#pragma omp parallel for
 		for(int i=0;i<kvol;i++){
 #ifndef NO_SPACE
 			for(int mu = 0; mu <ndim-1; mu++){

@@ -222,7 +222,7 @@ int Addrc(){
 					}
 					iu[3+ndim*ic]=iaddr;
 				}
-//Print iu and id for diagnostics
+	//Print iu and id for diagnostics
 #ifdef DIAGNOSTIC
 #pragma omp parallel sections
 	{
@@ -340,7 +340,7 @@ inline int Index2lcoord(int index, int *coord){
 	coord[3] = index%ksizet; index/=ksizet;
 	coord[2] = index%ksizez; index/=ksizez;
 	coord[1] = index%ksizey; index/=ksizey;
-	coord[0] = index; //No need to divide by nx since were done.
+	coord[0] = index; //No need to divide by nt since were done.
 
 	return 0;
 }
@@ -377,13 +377,13 @@ inline int Index2gcoord(int index, int *coord){
 	coord[3] = index%nt; index/=nt;
 	coord[2] = index%nz; index/=nz;
 	coord[1] = index%ny; index/=ny;
-	coord[0] = index; //No need to divide by nx since were done.
+	coord[0] = index; //No need to divide by nt since were done.
 
 	return 0;
 }
-inline int Coord2lindex(int *coord){
-	/* Converts the coordinates of a point to its relative index in the 
-	 * computer memory to the first point in the memory
+inline int Coord2lindex(int ix, int iy, int iz, int it){
+	/* Converts the coordinates of a local lattice point to its index in the 
+	 * computer memory
 	 *
 	 * This is a rather nuanced function, as C and Fortran are rather
 	 * different in how they store arrays. C starts with index 0 and
@@ -393,7 +393,7 @@ inline int Coord2lindex(int *coord){
 	 * be careful when calling this function!
 	 * Parameters:
 	 * ==========
-	 * int *coord: The pointer to the 4-vector being considered
+	 * int i?: The coordinate being converted 
 	 *
 	 * Returns:
 	 * ========
@@ -404,13 +404,13 @@ inline int Coord2lindex(int *coord){
 	//I've factorised this function compared to its original 
 	//implimentation to reduce the number of multiplications
 	//and hopefully improve performance
-	int index = coord[3]+ksizet*(coord[2]+ksizez*(coord[1]+ksizey*coord[0]));
-	return index;
+	//int index = coord[3]+ksizez*(coord[2]+ksizey*(coord[1]+ksizex*coord[0]));
+	return it+ksizet*(iz+ksizez*(iy+ksizey*ix));
 }
-inline int Coord2gindex(int *coord){
-	/* Converts the coordinates of a point to its relative index in the 
-	 * computer memory to the first point in the memory
-	 *
+inline int Coord2gindex(int ix, int iy, int iz, int it){
+	/* Converts the coordinates of a point in the global gauge field 
+	 * to its flattened index in the computer memory
+	 * 
 	 * This is a rather nuanced function, as C and Fortran are rather
 	 * different in how they store arrays. C starts with index 0 and
 	 * Fortran (by default) starts with index 1
@@ -430,8 +430,7 @@ inline int Coord2gindex(int *coord){
 	//I've factorised this function compared to its original 
 	//implimentation to reduce the number of multiplications
 	//and hopefully improve performance
-	int index = coord[3]+nt*(coord[2]+nz*(coord[1]+ny*coord[0]));
-	return index;
+	return it+nt*(iz+nz*(iy+ny*ix));
 }
 int Testlcoord(int cap){
 	/* Tests if the coordinate transformation functions are working
@@ -461,7 +460,7 @@ int Testlcoord(int cap){
 		Index2lcoord(index, coord);
 		printf("Coordinates for %i are (x,y,z,t):[%i,%i,%i,%i].\n", index,\
 				coord[0], coord[1], coord[2], coord[3]);
-		index2 = Coord2lindex(coord);
+		//index2 = Coord2lindex(coord);
 		if(!(index==index2)){
 			fprintf(stderr, "Error %i in %s: Converted index %i does not match "
 					"original index %i.\nExiting...\n\n",\
@@ -503,7 +502,7 @@ int Testgcoord(int cap){
 #pragma omp critical
 		printf("Coordinates for %i are (x,y,z,t):[%i,%i,%i,%i].\n", index,\
 				coord[0], coord[1], coord[2], coord[3]);
-		index2 = Coord2gindex(coord);
+		//index2 = Coord2gindex(coord);
 		if(!(index==index2)){
 			fprintf(stderr, "Error %i in %s: Converted index %i does not match "\
 					"original index %i.\nExiting...\n\n",\
