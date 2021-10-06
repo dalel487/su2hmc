@@ -1,7 +1,6 @@
 MF=	Makefile
 
 CC= mpiicc
-NVCC = nvcc
 
 IFLAGS=     -I../INCLUDE 
 

@@ -1,7 +1,6 @@
 MF=	Makefile
 
 CC= mpicc
-NVCC = nvcc
 
 IFLAGS=     -I../INCLUDE/ -I /home/dalel487/amd/aocl/3.0-6/include/ \
 
@@ -51,8 +50,8 @@ release:	CFLAGS +=  -Ofast -finline-aggressive -finline-recursion=4\
 				-funroll-loops
 release:	$(EXE)
 
-debug:	CFLAGS += -g -O0  -finline-aggressive\
-		-D_DEBUG -DUSE_RAN2 #-DDIAGNOSTIC -DNO_TIME -DNO_SPACE
+debug:	CFLAGS += -g -O0  \
+		-D_DEBUG #-DDIAGNOSTIC -DNO_TIME -DNO_SPACE
 
 debug:	$(EXE)
 
