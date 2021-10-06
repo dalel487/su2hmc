@@ -136,7 +136,7 @@ int Force(double *dSdpi, int iflag, double res1){
 			Congradq(na, res1,smallPhi, &itercg );
 			ancg+=itercg;
 			//This is not a general BLAS Routine, just an MKL one
-#ifdef (USE_MKL||USE_BLAS)
+#if (defined USE_MKL || defined USE_BLAS)
 			complex blasa=2.0; complex blasb=-1.0;
 			cblas_zaxpby(kvol*ndirac*nc, &blasa, X1, 1, &blasb, X0+na*kferm2Halo, 1); 
 #else
