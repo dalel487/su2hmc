@@ -41,16 +41,10 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	const char *funcname = "Measure";
 	//This x is just a storage container
 
-#ifdef __NVCC__
 	int device=-1;
 	cudaGetDevice(&device);
 	Complex *x;
 	cudaMallocManaged(&x,kfermHalo*sizeof(Complex), cudaMemAttachGlobal);
-#elif defined USE_MKL
-	complex *x = mkl_malloc(kfermHalo*sizeof(complex), AVX);
-#else
-	complex *x = malloc(kfermHalo*sizeof(complex));
-#endif
 	//Setting up noise. I don't see any reason to loop
 
 	//The root two term comes from the fact we called gauss0 in the fortran code instead of gaussp
@@ -75,63 +69,34 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	//Evaluate xi = (M^† M)^-1 R_1 
 	cudaMemPrefetchAsync(x, kferm*sizeof(Complex),device,NULL);
 	Congradp(0, res, itercg);
-#ifdef __NVCC__
+
 	Complex buff;
 	cublasZdotc(cublas_handle,kferm, (cuDoubleComplex *)x, 1, (cuDoubleComplex *)xi,  1, (cuDoubleComplex *)&buff);
 	*pbp=buff.real();
-#elif (defined USE_MKL || defined USE_BLAS)
-	complex buff;
-	cblas_zdotc_sub(kferm, x, 1, xi,  1, &buff);
-	*pbp=creal(buff);
-#else
-	*pbp = 0;
-#pragma unroll
-	for(int i=0;i<kferm;i++)
-		*pbp+=creal(conj(x[i])*xi[i]);
-#endif
+
 	Par_dsum(pbp);
 	*pbp/=4*gvol;
 
 	*qbqb=0; *qq=0;
-#if (defined USE_MKL || defined USE_BLAS)
+
 #pragma unroll
 	for(int idirac = 0; idirac<ndirac; idirac++){
 		int igork=idirac+4;
 		//Unrolling the colour indices, Then its just (γ_5*x)*Ξ or (γ_5*Ξ)*x 
-#pragma unroll
 		for(int ic = 0; ic<nc; ic++){
 			Complex dot;
 			//Because we have kvol on the outer index and are summing over it, we set the
 			//step for BLAS to be ngorkov*nc=16. 
 			//Does this make sense to do on the GPU?
-#ifdef __NVCC__
 			cublasZdotc(cublas_handle,kferm, (cuDoubleComplex *)&x[idirac*nc+ic], ngorkov*nc,\
-			(cuDoubleComplex *)&xi[igork*nc+ic],  ngorkov*nc, (cuDoubleComplex *)&dot);
-#elif (defined USE_MKL || defined USE_BLAS)
-			cblas_zdotc_sub(kvol, &x[idirac*nc+ic], ngorkov*nc, &xi[igork*nc+ic], ngorkov*nc, &dot);
+					(cuDoubleComplex *)&xi[igork*nc+ic],  ngorkov*nc, (cuDoubleComplex *)&dot);
 			*qbqb+=gamval[4][idirac]*dot;
-			#endif
-#ifdef __NVCC__
+
 			cublasZdotc(cublas_handle,kferm, (cuDoubleComplex *)&x[igork*nc+ic], ngorkov*nc,\
-			(cuDoubleComplex *)&xi[idirac*nc+ic],  ngorkov*nc, (cuDoubleComplex *)&dot);
-#elif (defined USE_MKL || defined USE_BLAS)
-			cblas_zdotc_sub(kvol, &x[igork*nc+ic], ngorkov*nc, &xi[idirac*nc+ic], ngorkov*nc, &dot);
+					(cuDoubleComplex *)&xi[idirac*nc+ic],  ngorkov*nc, (cuDoubleComplex *)&dot);
 			*qq-=gamval[4][idirac]*dot;
-			#endif
 		}
 	}
-#else
-#pragma unroll(2)
-	for(int i=0; i<kvol; i++)
-		//What is the optimal order to evaluate these in?
-		for(int idirac = 0; idirac<ndirac; idirac++){
-			int igork=idirac+4;
-			*qbqb+=gamval[4][idirac]*conj(x[(i*ngorkov+idirac)*nc])*xi[(i*ngorkov+igork)*nc];
-			*qq-=gamval[4][idirac]*conj(x[(i*ngorkov+igork)*nc])*xi[(i*ngorkov+idirac)*nc];
-			*qbqb+=gamval[4][idirac]*conj(x[(i*ngorkov+idirac)*nc+1])*xi[(i*ngorkov+igork)*nc+1];
-			*qq-=gamval[4][idirac]*conj(x[(i*ngorkov+igork)*nc+1])*xi[(i*ngorkov+idirac)*nc+1];
-		}
-#endif
 
 	//In the FORTRAN Code dsum was used instead despite qq and qbqb being complex
 	Par_zsum(qq); Par_zsum(qbqb);
@@ -194,12 +159,6 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	Par_dsum(endenf); Par_dsum(denf);
 	*endenf/=2*gvol; *denf/=2*gvol;
 	//Future task. Chiral susceptibility measurements
-#ifdef __NVCC__
 	cudaFree(x);
-#elif defined USE_MKL
-	mkl_free(x);
-#else
-	free(x);
-#endif
 	return 0;
 }

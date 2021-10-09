@@ -73,22 +73,18 @@ __host__ double Polyakov(){
 	//This is (according to the FORTRAN code) a bit of a hack
 	//I will expand on this hack and completely avoid any work
 	//for this case rather than calculating everything just to set it to zero
-#ifdef __NVCC__
 	int device=-1;
 	cudaGetDevice(&device);
 	Complex *Sigma11,*Sigma12;
 	cudaMallocManaged(&Sigma11,kvol3*sizeof(Complex),cudaMemAttachGlobal);
 	//cudaMemAdvise(Sigma11,kvol3*sizeof(Complex),cudaMemAdviseSetPreferredLocation,device);
 	//Sigma12 only used on device unless npt>1. So worth considering device-only memory
+#if (npt>1)
 	cudaMallocManaged(&Sigma12,kvol3*sizeof(Complex),cudaMemAttachGlobal);
-	//cudaMemAdvise(Sigma12,kvol3*sizeof(Complex),cudaMemAdviseSetPreferredLocation,device);
-#elif defined USE_MKL
-	complex *Sigma11 = mkl_malloc(kvol3*sizeof(complex),AVX);
-	complex *Sigma12 = mkl_malloc(kvol3*sizeof(complex),AVX);
 #else
-	complex *Sigma11 = malloc(kvol3*sizeof(complex));
-	complex *Sigma12 = malloc(kvol3*sizeof(complex));
+	cudaMalloc(&Sigma12,kvol3*sizeof(Complex));
 #endif
+	//cudaMemAdvise(Sigma12,kvol3*sizeof(Complex),cudaMemAdviseSetPreferredLocation,device);
 #ifdef __NVCC__
 	cublasZcopy(cublas_handle,kvol3, (cuDoubleComplex *)&u11t[3], ndim, (cuDoubleComplex *)Sigma11, 1);
 	cublasZcopy(cublas_handle,kvol3, (cuDoubleComplex *)&u12t[3], ndim, (cuDoubleComplex *)Sigma12, 1);
@@ -129,16 +125,10 @@ __host__ double Polyakov(){
 	Par_tmul(Sigma11, Sigma12);
 #endif
 #pragma omp parallel for simd reduction(+:poly) aligned(Sigma11:AVX)
-//TODO:	CUDA Reduction
+	//TODO:	CUDA Reduction
 	for(int i=0;i<kvol3;i++)
 		poly+=Sigma11[i].real();
-#ifdef __NVCC__
 	cudaFree(Sigma11); cudaFree(Sigma12);
-#elif defined USE_MKL
-	mkl_free(Sigma11); mkl_free(Sigma12);
-#else
-	free(Sigma11); free(Sigma12);
-#endif
 
 	if(pcoord[3+rank*ndim]) poly = 0;
 	Par_dsum(&poly);
@@ -183,7 +173,7 @@ __global__ void cuPolyakov(Complex *Sigma11, Complex * Sigma12){
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	#pragma unroll
+#pragma unroll
 	for(int it=1;it<ksizet;it++)
 		for(int i=threadId;i<kvol3;i+=gsize){
 			//Seems a bit more efficient to increment indexu instead of reassigning

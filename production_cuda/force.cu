@@ -43,6 +43,7 @@ int Gauge_force(double *dSdpi){
 				Plus_staple<<<dimGrid,dimBlock>>>(mu, nu, Sigma11, Sigma12);
 				Z_gather(u11sh, u11t, kvol, id, nu);
 				Z_gather(u12sh, u12t, kvol, id, nu);
+				
 				ZHalo_swap_dir(u11sh, 1, mu, DOWN);
 				cudaMemPrefetchAsync(u11sh, (kvol+halo)*sizeof(Complex),device,NULL);
 				ZHalo_swap_dir(u12sh, 1, mu, DOWN);
@@ -53,13 +54,7 @@ int Gauge_force(double *dSdpi){
 		}
 		cuGaugeForce<<<dimGrid,dimBlock>>>(mu,Sigma11,Sigma12,dSdpi);
 	}
-#ifdef __NVCC__
 	cudaFree(Sigma11); cudaFree(Sigma12); cudaFree(u11sh); cudaFree(u12sh);
-#elif defined USE_MKL
-	mkl_free(u11sh); mkl_free(u12sh); mkl_free(Sigma11); mkl_free(Sigma12);
-#else
-	free(u11sh); free(u12sh); free(Sigma11); free(Sigma12);
-#endif
 	return 0;
 }
 int Force(double *dSdpi, int iflag, double res1){
@@ -99,17 +94,9 @@ int Force(double *dSdpi, int iflag, double res1){
 #endif
 	//X1=(M†M)^{1} Phi
 	int itercg;
-#ifdef __CUDACC__
 	Complex *X2, *smallPhi;
 	cudaMallocManaged(&X2,kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&smallPhi,kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
-#elif defined USE_MKL
-	Complex *X2= mkl_malloc(kferm2Halo*sizeof(Complex), AVX);
-	Complex *smallPhi =mkl_malloc(kferm2Halo*sizeof(Complex), AVX); 
-#else
-	Complex *X2= aligned_alloc(AVX,kferm2Halo*sizeof(Complex));
-	Complex *smallPhi = aligned_alloc(AVX,kferm2Halo*sizeof(Complex)); 
-#endif
 	for(int na = 0; na<nf; na++){
 		memcpy(X1, X0+na*kferm2Halo, nc*ndirac*kvol*sizeof(Complex));
 		//FORTRAN's logic is backwards due to the implied goto method
@@ -118,6 +105,7 @@ int Force(double *dSdpi, int iflag, double res1){
 			Congradq(na, res1,smallPhi, &itercg );
 			ancg+=itercg;
 			//This is not a general BLAS Routine, just an MKL/AMD one
+			//CUDA in particulare does not support it
 #if (defined USE_MKL||defined USE_BLAS)
 			Complex blasa=2.0; Complex blasb=-1.0;
 			cblas_zaxpby(kvol*ndirac*nc, &blasa, X1, 1, &blasb, X0+na*kferm2Halo, 1); 
@@ -134,17 +122,8 @@ int Force(double *dSdpi, int iflag, double res1){
 #endif
 		}
 		Hdslash(X2,X1);
-#ifdef __NVCC__
 		double blasd=2.0;
 		cublasZdscal(cublas_handle,kferm2, &blasd, (cuDoubleComplex *)X2, 1);
-#elif (defined USE_MKL || defined USE_BLAS)
-		double blasd=2.0;
-		cblas_zdscal(kferm2, blasd, X2, 1);
-#else
-#pragma unroll
-		for(int i=0;i<kferm2;i++)
-			X2[i]*=2;
-#endif
 #pragma unroll
 		for(int mu=0;mu<4;mu++){
 			ZHalo_swap_dir(X1,8,mu,DOWN);
@@ -161,13 +140,7 @@ int Force(double *dSdpi, int iflag, double res1){
 		//
 		cuForce<<<dimGrid,dimBlock>>>(dSdpi,X2);
 	}
-#ifdef __CUDACC__
 	cudaFree(X2); cudaFree(smallPhi);
-#elif defined USE_MKL
-	mkl_free(X2); mkl_free(smallPhi);
-#else
-	free(X2); free(smallPhi);
-#endif
 	return 0;
 }
 
