@@ -1,0 +1,70 @@
+MF=	Makefile
+
+CC=OMPI_CC=gcc mpicc 
+
+IFLAGS=     -I../INCLUDE/ -I /home/dalel487/amd/aocl/3.0-6/include/ \
+
+CFLAGS=      $(IFLAGS) -std=gnu11 -DUSE_BLAS -fcommon\
+		 -march=native  -DUSE_RAN2 \
+		 -fopenmp-simd -fopenmp  -DSA3AT -flto
+
+LFLAGS=	-L/home/dalel487/amd/aocl/3.0-6/lib/  -latomic \
+		-liomp5 -lpthread -lm -ldl -lalm -lblis\
+
+EXE=	su2hmc_GCC
+
+SRC= \
+	su2hmc.c \
+	force.c\
+	bosonic.c\
+	fermionic.c\
+	par_mpi.c \
+      coord.c \
+      random.c \
+      matrices.c \
+
+INC= \
+	su2hmc.h \
+	sizes.h \
+      par_mpi.h \
+      slash.h \
+      random.h \
+      matrices.h \
+      coord.h \
+      errorcodes.h \
+
+#
+# No need to edit below this line
+#
+
+.SUFFIXES: .c .o
+.PHONY: clean debug release advisor tar
+
+OBJ=	$(SRC:.c=.o)
+EDT=	$(SRC:.c=.c~)
+TMP=	$(MOD) $(EDT) core
+
+all:	$(EXE)
+
+release:	CFLAGS +=  -Ofast -funroll-all-loops
+release:	$(EXE)
+
+debug:	CFLAGS += -g -O0  \
+		-D_DEBUG #-DDIAGNOSTIC -DNO_TIME -DNO_SPACE
+
+debug:	$(EXE)
+
+$(EXE):	$(OBJ)
+	$(CC) $(CFLAGS) -o $@ $(OBJ) $(LFLAGS)
+
+$(OBJ):	$(MF) 
+
+clean:
+	rm -f $(OBJ) $(TMP)
+
+INP=	\
+	midout \
+	con
+
+tar:
+	tar cvfz $(EXE).tar $(MF) $(SRC) $(INC) $(INP) $(EXE)
