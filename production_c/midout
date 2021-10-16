@@ -1,2 +1,2 @@
-0.003		1.7	0.1780	0.02	0.000		0.5	0.0	333	50	1		5		0
-dt		beta	akappa	jqq	thetaq	fmu	aNf	stepl	ntraj	istart	icheck	iread
+0.0125	1.7		0.1780	0.00	0.000	0.0	0.0	80		250		1		5		0
+dt		beta	akappa	jqq		thetaq	fmu	aNf	stepl	ntraj	istart	icheck	iread

@@ -1,14 +1,15 @@
 MF=	Makefile
 
-CC=OMPI_CC=gcc mpicc 
+CC=mpigcc 
 
-IFLAGS=     -I../INCLUDE/ -I /home/dalel487/amd/aocl/3.0-6/include/ \
+IFLAGS=  -I../INCLUDE/ -I /opt/AMD/aocl/aocl-linux-gcc-3.0-6/include/
 
-CFLAGS=      $(IFLAGS) -std=gnu11 -DUSE_BLAS -fcommon\
-		 -march=native  -DUSE_RAN2 \
-		 -fopenmp-simd -fopenmp  -DSA3AT -flto
+CFLAGS=	$(IFLAGS) -cc=gcc-10 -std=gnu11 -DUSE_BLAS -fcommon\
+		-march=native  -DUSE_RAN2 -static\
+		-fopenmp-simd -fopenmp  -DSA3AT -flto\
+		-pg -fprofile-arcs\
 
-LFLAGS=	-L/home/dalel487/amd/aocl/3.0-6/lib/  -latomic \
+LFLAGS=	-L /opt/AMD/aocl/aocl-linux-gcc-3.0-6/lib/ -latomic \
 		-liomp5 -lpthread -lm -ldl -lalm -lblis\
 
 EXE=	su2hmc_GCC
@@ -19,19 +20,19 @@ SRC= \
 	bosonic.c\
 	fermionic.c\
 	par_mpi.c \
-      coord.c \
-      random.c \
-      matrices.c \
+    coord.c \
+    random.c \
+    matrices.c \
 
 INC= \
 	su2hmc.h \
 	sizes.h \
-      par_mpi.h \
-      slash.h \
-      random.h \
-      matrices.h \
-      coord.h \
-      errorcodes.h \
+    par_mpi.h \
+    slash.h \
+    random.h \
+    matrices.h \
+    coord.h \
+    errorcodes.h \
 
 #
 # No need to edit below this line
