@@ -13,6 +13,7 @@
 #include	<stdio.h>
 #include	<string.h>
 #include	<su2hmc.h>
+#include	<time.h>
 
 //Extern definitions, especially default values for fmu, beta and akappa
 Complex jqq = 0;

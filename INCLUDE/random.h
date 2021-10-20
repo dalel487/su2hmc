@@ -1,17 +1,12 @@
 #ifndef	RANDOM
 #define	RANDOM
 //Need two cases here. MKL/CUDA or not for BLAS and CUDA or not for complex
-#ifdef __NVCC__ 
-#include <cublas.h>
-#endif
+//Since MKL is needed for the RNG we include it here desplit having it in par_mpi.h
 #ifdef USE_MKL
 #include <mkl.h>
 #include <mkl_vsl.h>
 #define M_PI		3.14159265358979323846	/* pi */
-#elif defined USE_BLAS
-#include	<cblas.h>
 #endif
-
 #include <math.h>
 #include <par_mpi.h>
 //Configuration for existing generators if called

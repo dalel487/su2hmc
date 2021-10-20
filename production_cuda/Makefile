@@ -16,8 +16,8 @@ LFLAGS=	 -L${MKLROOT}/lib/intel64 -liomp5 -lpthread -lm -ldl -lcudart -lcublas #
 
 MKLFLAGS=	-mkl -DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64 
 
-CUFLAGS=	${IFLAGS} -ccbin ${CXX} -arch=compute_70 -code=sm_70,sm_72,sm_75,sm_80,sm_86 -err-no -w\
-		-expt-relaxed-constexpr 
+CUFLAGS=	${IFLAGS} -ccbin ${CC} -arch=compute_70 -code=sm_70,sm_72,sm_75,sm_80,sm_86 -err-no -w\
+		-expt-relaxed-constexpr  --allow-unsupported-compiler
 		#Last flag is an experimental one used to call host functions in device code. Not sure
 		#if it does what we want because the error message suggesting it came up when declaring
 		#a11 and a12 in the Dslash routine
