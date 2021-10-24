@@ -4,7 +4,7 @@
  */
 #include	<par_mpi.h>
 #include	<su2hmc.h>
-__host__ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
+extern "C"  int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 	/* 
 	 * Calculates the gauge action using new (how new?) lookup table
 	 * Follows a routine called qedplaq in some QED3 code
@@ -44,7 +44,7 @@ __host__ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 #endif
 	return 0;
 }
-__host__ double Polyakov(){
+extern "C"  double Polyakov(){
 	/*
 	 * Calculate the Polyakov loop (no prizes for guessing that one...)
 	 *

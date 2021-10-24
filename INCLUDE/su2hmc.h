@@ -87,15 +87,25 @@ extern float akappa_f;
 
 //Function Declarations:
 //#####################
+#ifndef __NVCC__
 int Force(double *dSdpi, int iflag, double res1);
-int Init(int istart);
 int Gauge_force(double *dSdpi);
+#else
+extern "C" int Force(double *dSdpi, int iflag, double res1);
+extern "C" int Gauge_force(double *dSdpi);
+#endif
+int Init(int istart);
 int Hamilton(double *h, double *s, double res2);
 int Congradq(int na, double res, Complex *smallPhi, int *itercg);
 int Congradp(int na, double res, int *itercg);
 int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbqb, double res, int *itercg);
+#ifndef __NVCC__
 int SU2plaq(double *hg, double *avplaqs, double *avplaqt);
 double Polyakov();
+#else
+extern "C" int SU2plaq(double *hg, double *avplaqs, double *avplaqt);
+extern "C" double Polyakov();
+#endif
 //Inline Stuff
 extern int Z_gather(Complex*x, Complex *y, int n, unsigned int *table, unsigned int mu);
 extern int Fill_Small_Phi(int na, Complex *smallPhi);

@@ -5,7 +5,7 @@
 #include	<matrices.h>
 #include	<par_mpi.h>
 #include	<su2hmc.h>
-int Gauge_force(double *dSdpi){
+extern "C" int Gauge_force(double *dSdpi){
 	/*
 	 * Calculates dSdpi due to the Wilson Action at each intermediate time
 	 *
@@ -57,7 +57,7 @@ int Gauge_force(double *dSdpi){
 	cudaFree(Sigma11); cudaFree(Sigma12); cudaFree(u11sh); cudaFree(u12sh);
 	return 0;
 }
-int Force(double *dSdpi, int iflag, double res1){
+extern "C" int Force(double *dSdpi, int iflag, double res1){
 	/*
 	 *	Calculates dSds at each intermediate time
 	 *	

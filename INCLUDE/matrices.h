@@ -6,14 +6,24 @@
 #endif
 #include <par_mpi.h>
 #include <su2hmc.h>
-	int Dslash(Complex *phi, Complex *r);
-	int Dslashd(Complex *phi, Complex *r);
-	int Hdslash(Complex *phi, Complex *r);
-	int Hdslashd(Complex *phi, Complex *r);
-	//Float version
-	int Hdslash_f(Complex_f *phi, Complex_f *r);
-	int Hdslashd_f(Complex_f *phi, Complex_f *r);
-#ifdef __NVCC__
+#ifndef __NVCC__
+int Dslash(Complex *phi, Complex *r);
+int Dslashd(Complex *phi, Complex *r);
+int Hdslash(Complex *phi, Complex *r);
+int Hdslashd(Complex *phi, Complex *r);
+//Float version
+int Hdslash_f(Complex_f *phi, Complex_f *r);
+int Hdslashd_f(Complex_f *phi, Complex_f *r);
+#else
+//Extern C flag required to keep CUDA happy
+extern "C" int Dslash(Complex *phi, Complex *r);
+extern "C" int Dslashd(Complex *phi, Complex *r);
+extern "C" int Hdslash(Complex *phi, Complex *r);
+extern "C" int Hdslashd(Complex *phi, Complex *r);
+//Float version
+extern "C" int Hdslash_f(Complex_f *phi, Complex_f *r);
+extern "C" int Hdslashd_f(Complex_f *phi, Complex_f *r);
+
 __global__ void cuDslash(Complex *phi, Complex *r);
 __global__ void cuDslashd(Complex *phi, Complex *r);
 __global__ void cuHdslash(Complex *phi, Complex *r);
@@ -25,9 +35,9 @@ __global__ inline void cuReunitarise();
 
 //New Trial Fields
 #endif
-	int Reunitarise();
-	int New_trial(double dt);
+int Reunitarise();
+int New_trial(double dt);
 #ifdef DIAGNOSTIC
-	int Diagnostics(int istart);
+int Diagnostics(int istart);
 #endif
 #endif
