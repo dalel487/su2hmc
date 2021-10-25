@@ -1,15 +1,17 @@
 MF=	Makefile
 
-CC=OMPI_CC=mpicc -cc=gcc-10
+CC=mpicc -cc=clang
 
-IFLAGS=     -I../INCLUDE/ -I /opt/AMD/aocl/aocl-linux-gcc-3.0-6/include/ 
+IFLAGS=     -I../INCLUDE/ -I /opt/AMD/aocl/aocl-linux-aocc-3.0-6/include/ 
 
 CFLAGS=    $(IFLAGS) -std=gnu11 -DUSE_BLAS -fcommon\
-		 -march=native  -DUSE_RAN2 \
-		 -fopenmp-simd -fopenmp  -DSA3AT -fveclib=AMDLIBM -flto
+		 -march=znver2 -DUSE_RAN2 -static-libgcc -static\
+		 -fopenmp-simd -fopenmp=libgomp -DSA3AT -fveclib=AMDLIBM\
+		 -fuse-ld=lld -flto=full -g
 
-LFLAGS=	-L /opt/AMD/aocl/aocl-linux-gcc-3.0-6/include/   -Wl -latomic \
-		-liomp5 -lpthread -lm -ldl -lalm -lblis\
+LFLAGS=	-L /opt/AMD/aocl/aocl-linux-aocc-3.0-6/lib/\
+		-L	/usr/lib/llvm-12/lib -Wl -latomic \
+		-lgomp -lpthread -lm -ldl -lalm -lblis\
 
 EXE=	su2hmc_AMD
 
