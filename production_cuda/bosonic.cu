@@ -4,7 +4,7 @@
  */
 #include	<par_mpi.h>
 #include	<su2hmc.h>
-__host__ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
+extern "C"  int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 	/* 
 	 * Calculates the gauge action using new (how new?) lookup table
 	 * Follows a routine called qedplaq in some QED3 code
@@ -29,7 +29,7 @@ __host__ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 	//	Instead we'll just make the arrays variables and do everything in one loop
 	//	Should work since in the fortran Sigma11[i] only depends on i components  for example
 	double hgs = 0; double hgt = 0;
-	//Since the ν loop doesn't get called for μ=0 we'll start at μ=1
+	//Since the nu loop doesn't get called for mu=-1 we'll start at mu=1
 	for(int mu=1;mu<ndim;mu++)
 		for(int nu=0;nu<mu;nu++)
 			//Don't merge into a single loop. Makes vectorisation easier?
@@ -44,7 +44,7 @@ __host__ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 #endif
 	return 0;
 }
-__host__ double Polyakov(){
+extern "C"  double Polyakov(){
 	/*
 	 * Calculate the Polyakov loop (no prizes for guessing that one...)
 	 *
@@ -160,10 +160,10 @@ __global__ void cuSU2plaq(int mu, int nu, double *hgs, double *hgt){
 		switch(mu){
 			//Time component
 			case(ndim-1):	atomicAdd(hgt, -Sigma11.real());
-						break;
-						//Space component
+							break;
+							//Space component
 			default:	atomicAdd(hgs, -Sigma11.real());
-					break;
+						break;
 		}
 	}
 }

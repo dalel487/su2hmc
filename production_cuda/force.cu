@@ -5,7 +5,7 @@
 #include	<matrices.h>
 #include	<par_mpi.h>
 #include	<su2hmc.h>
-int Gauge_force(double *dSdpi){
+extern "C" int Gauge_force(double *dSdpi){
 	/*
 	 * Calculates dSdpi due to the Wilson Action at each intermediate time
 	 *
@@ -39,7 +39,7 @@ int Gauge_force(double *dSdpi){
 		cudaMemPrefetchAsync(Sigma12,kvol*sizeof(Complex),device,NULL);
 		for(int nu=0; nu<ndim; nu++){
 			if(nu!=mu){
-				//The +ν Staple
+				//The +nu Staple
 				Plus_staple<<<dimGrid,dimBlock>>>(mu, nu, Sigma11, Sigma12);
 				Z_gather(u11sh, u11t, kvol, id, nu);
 				Z_gather(u12sh, u12t, kvol, id, nu);
@@ -48,7 +48,7 @@ int Gauge_force(double *dSdpi){
 				cudaMemPrefetchAsync(u11sh, (kvol+halo)*sizeof(Complex),device,NULL);
 				ZHalo_swap_dir(u12sh, 1, mu, DOWN);
 				cudaMemPrefetchAsync(u12sh, (kvol+halo)*sizeof(Complex),device,NULL);
-				//Next up, the -ν staple
+				//Next up, the -nu staple
 				Minus_staple<<<dimGrid,dimBlock>>>(mu, nu, Sigma11, Sigma12, u11sh, u12sh);
 			}
 		}
@@ -57,7 +57,7 @@ int Gauge_force(double *dSdpi){
 	cudaFree(Sigma11); cudaFree(Sigma12); cudaFree(u11sh); cudaFree(u12sh);
 	return 0;
 }
-int Force(double *dSdpi, int iflag, double res1){
+extern "C" int Force(double *dSdpi, int iflag, double res1){
 	/*
 	 *	Calculates dSds at each intermediate time
 	 *	

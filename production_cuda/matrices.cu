@@ -492,7 +492,7 @@ __global__ void cuReunitarise(){
 	}
 }
 
-__host__ int Dslash(Complex *phi, Complex *r){
+extern "C"  int Dslash(Complex *phi, Complex *r){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -524,7 +524,7 @@ __host__ int Dslash(Complex *phi, Complex *r){
 	cuDslash<<<dimGrid,dimBlock>>>(phi,r);
 	return 0;
 }
-__host__ int Dslashd(Complex *phi, Complex *r){
+extern "C"  int Dslashd(Complex *phi, Complex *r){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -556,7 +556,7 @@ __host__ int Dslashd(Complex *phi, Complex *r){
 	cuDslashd<<<dimGrid,dimBlock>>>(phi,r);
 	return 0;
 }
-__host__ int Hdslash(Complex *phi, Complex *r){
+extern "C"  int Hdslash(Complex *phi, Complex *r){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -595,7 +595,7 @@ __host__ int Hdslash(Complex *phi, Complex *r){
 		cuHdslash<<<dimGrid,dimBlock>>>(phi,r);
 	return 0;
 }
-__host__ int Hdslashd(Complex *phi, Complex *r){
+extern "C"  int Hdslashd(Complex *phi, Complex *r){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -650,7 +650,7 @@ int New_trial(double dt){
 	return 0;
 }
 //Float editions
-__host__ int Hdslash_f(Complex_f *phi, Complex_f *r){
+extern "C"  int Hdslash_f(Complex_f *phi, Complex_f *r){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -689,7 +689,7 @@ __host__ int Hdslash_f(Complex_f *phi, Complex_f *r){
 		cuHdslash_f<<<dimGrid,dimBlock>>>(phi,r);
 	return 0;
 }
-__host__ int Hdslashd_f(Complex_f *phi, Complex_f *r){
+extern "C"  int Hdslashd_f(Complex_f *phi, Complex_f *r){
 	/*
 	 * Evaluates phi= M*r
 	 *

@@ -27,7 +27,6 @@ INC= \
 	su2hmc.h \
 	sizes.h \
       par_mpi.h \
-      slash.h \
       random.h \
       matrices.h \
       coord.h \

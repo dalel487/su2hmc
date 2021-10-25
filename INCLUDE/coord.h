@@ -3,7 +3,8 @@
 #ifdef __NVCC__
 #include <cuda.h>
 #include <cublas_v2.h>
-#elif defined USE_MKL
+#endif
+#ifdef USE_MKL
 #include <mkl.h>
 #elif defined USE_BLAS
 #include <cblas.h>
