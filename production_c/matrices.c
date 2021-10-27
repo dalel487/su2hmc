@@ -474,63 +474,59 @@ int Hdslash_f(Complex_f *phi, Complex_f *r){
 #pragma omp target teams distribute parallel for\
 	map(to:u11t_f,u12t_f,iu,id,gamin,dk4m_f,dk4p_f,r)\
 	map(tofrom:phi)
-	{
-		for(int i=0;i<kvol;i++){
+	for(int i=0;i<kvol;i++){
 #ifndef NO_SPACE
-			for(int mu = 0; mu <3; mu++){
-				int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
+		for(int mu = 0; mu <3; mu++){
+			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
 #pragma omp simd aligned(phi,r,u11t_f,u12t_f,gamval_f:AVX)
-#pragma vector vecremainder
-				for(int idirac=0; idirac<ndirac; idirac++){
-					//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
-					int igork1 = gamin[mu][idirac];
-					//Can manually vectorise with a pragma?
-					//Wilson + Dirac term in that order. Definitely easier
-					//to read when split into different loops, but should be faster this way
-					phi[(i*ndirac+idirac)*nc]+=-akappa_f*(u11t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]+\
-							u12t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]+\
-							conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]-\
-							u12t_f[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1]);\
-											   //Dirac term
-											   phi[(i*ndirac+idirac)*nc]+=gamval_f[mu][idirac]*(u11t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]+\
-													   u12t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]-\
-													   conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]+\
-													   u12t_f[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
-
-					phi[(i*ndirac+idirac)*nc+1]+=-akappa_f*(-conjf(u12t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]+\
-							conjf(u11t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]+\
-							conjf(u12t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]+\
-							u11t_f[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1])+\
-												 //Dirac term
-												 gamval_f[mu][idirac]*(-conjf(u12t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]+\
-														 conjf(u11t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]-\
-														 conjf(u12t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]-\
-														 u11t_f[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
-				}
-			}
-#endif
-			//Timelike terms
-			int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
-#ifndef NO_TIME
-			//TODO: Get dk4?_f sorted
-#pragma omp simd aligned(phi,r,u11t_f,u12t_f,dk4m_f,dk4p_f:AVX)
-#pragma vector vecremainder
 			for(int idirac=0; idirac<ndirac; idirac++){
-				int igork1 = gamin[3][idirac];
-				//Factorising for performance, we get dk4?*(float)u1?*(+/-r_wilson -/+ r_dirac)
-				phi[(i*ndirac+idirac)*nc]+=
-					-dk4p_f[i]*(u11t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
-							+u12t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc+1]-r[(uid*ndirac+igork1)*nc+1]))
-					-dk4m_f[did]*(conjf(u11t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]+r[(did*ndirac+igork1)*nc])
-							-u12t_f[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]+r[(did*ndirac+igork1)*nc+1]));
-				phi[(i*ndirac+idirac)*nc+1]+=
-					-dk4p_f[i]*(-conjf(u12t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
-							+conjf(u11t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc+1]-r[(uid*ndirac+igork1)*nc+1]))
-					-dk4m_f[did]*(conjf(u12t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]+r[(did*ndirac+igork1)*nc])
-							+u11t_f[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]+r[(did*ndirac+igork1)*nc+1]));
+				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
+				int igork1 = gamin[mu][idirac];
+				//Can manually vectorise with a pragma?
+				//Wilson + Dirac term in that order. Definitely easier
+				//to read when split into different loops, but should be faster this way
+				phi[(i*ndirac+idirac)*nc]+=-akappa_f*(u11t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]+\
+						u12t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]+\
+						conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]-\
+						u12t_f[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1]);\
+										   //Dirac term
+										   phi[(i*ndirac+idirac)*nc]+=gamval_f[mu][idirac]*(u11t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]+\
+												   u12t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]-\
+												   conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]+\
+												   u12t_f[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
+
+				phi[(i*ndirac+idirac)*nc+1]+=-akappa_f*(-conjf(u12t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]+\
+						conjf(u11t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]+\
+						conjf(u12t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]+\
+						u11t_f[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1])+\
+											 //Dirac term
+											 gamval_f[mu][idirac]*(-conjf(u12t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]+\
+													 conjf(u11t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]-\
+													 conjf(u12t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]-\
+													 u11t_f[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
 			}
-#endif
 		}
+#endif
+		//Timelike terms
+		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
+#ifndef NO_TIME
+		//TODO: Get dk4?_f sorted
+#pragma omp simd aligned(phi,r,u11t_f,u12t_f,dk4m_f,dk4p_f:AVX)
+		for(int idirac=0; idirac<ndirac; idirac++){
+			int igork1 = gamin[3][idirac];
+			//Factorising for performance, we get dk4?*(float)u1?*(+/-r_wilson -/+ r_dirac)
+			phi[(i*ndirac+idirac)*nc]+=
+				-dk4p_f[i]*(u11t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
+						+u12t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc+1]-r[(uid*ndirac+igork1)*nc+1]))
+				-dk4m_f[did]*(conjf(u11t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]+r[(did*ndirac+igork1)*nc])
+						-u12t_f[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]+r[(did*ndirac+igork1)*nc+1]));
+			phi[(i*ndirac+idirac)*nc+1]+=
+				-dk4p_f[i]*(-conjf(u12t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
+						+conjf(u11t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc+1]-r[(uid*ndirac+igork1)*nc+1]))
+				-dk4m_f[did]*(conjf(u12t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]+r[(did*ndirac+igork1)*nc])
+						+u11t_f[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]+r[(did*ndirac+igork1)*nc+1]));
+		}
+#endif
 	}
 	return 0;
 }
@@ -572,67 +568,63 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r){
 #pragma omp target teams distribute parallel for\
 	map(to:u11t_f,u12t_f,iu,id,gamin,dk4m_f,dk4p_f,r)\
 	map(tofrom:phi)
-	{
-		for(int i=0;i<kvol;i++){
+	for(int i=0;i<kvol;i++){
 #ifndef NO_SPACE
-			for(int mu = 0; mu <ndim-1; mu++){
-				int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
+		for(int mu = 0; mu <ndim-1; mu++){
+			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
 #pragma omp simd aligned(phi,r,u11t_f,u12t_f,gamval_f:AVX)
-#pragma vector vecremainder
-				for(int idirac=0; idirac<ndirac; idirac++){
-					//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
-					int igork1 = gamin[mu][idirac];
-					//Can manually vectorise with a pragma?
-					//Wilson + Dirac term in that order. Definitely easier
-					//to read when split into different loops, but should be faster this way
-
-					phi[(i*ndirac+idirac)*nc]+=
-						-akappa_f*(u11t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]
-								+u12t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]
-								+conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
-								-u12t_f[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
-						-gamval_f[mu][idirac]*
-						(          u11t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]
-								   +u12t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]
-								   -conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
-								   +u12t_f[did*ndim+mu] *r[(did*ndirac+igork1)*nc+1]);
-
-					phi[(i*ndirac+idirac)*nc+1]+=
-						-akappa_f*(-conjf(u12t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]
-								+conjf(u11t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]
-								+conjf(u12t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
-								+u11t_f[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
-						-gamval_f[mu][idirac]*
-						(-conjf(u12t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]
-						 +conjf(u11t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]
-						 -conjf(u12t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
-						 -u11t_f[did*ndim+mu] *r[(did*ndirac+igork1)*nc+1]);
-				}
-			}
-#endif
-			//Timelike terms
-			int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
-#ifndef NO_TIME
-#pragma omp simd aligned(phi,r,u11t_f,u12t_f,gamval_f:AVX)
-#pragma vector vecremainder
 			for(int idirac=0; idirac<ndirac; idirac++){
-				int igork1 = gamin[3][idirac];
-				//Factorising for performance, we get (float)dk4?*(float)u1?*(+/-r_wilson -/+ r_dirac)
-				//(float)dk4m and dk4p_f swap under dagger
+				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
+				int igork1 = gamin[mu][idirac];
+				//Can manually vectorise with a pragma?
+				//Wilson + Dirac term in that order. Definitely easier
+				//to read when split into different loops, but should be faster this way
+
 				phi[(i*ndirac+idirac)*nc]+=
-					-dk4m_f[i]*(u11t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc]+r[(uid*ndirac+igork1)*nc])
-							+u12t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc+1]+r[(uid*ndirac+igork1)*nc+1]))
-					-dk4p_f[did]*(conjf(u11t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]-r[(did*ndirac+igork1)*nc])
-							-u12t_f[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]-r[(did*ndirac+igork1)*nc+1]));
+					-akappa_f*(u11t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]
+							+u12t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]
+							+conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
+							-u12t_f[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
+					-gamval_f[mu][idirac]*
+					(          u11t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]
+							   +u12t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]
+							   -conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
+							   +u12t_f[did*ndim+mu] *r[(did*ndirac+igork1)*nc+1]);
 
 				phi[(i*ndirac+idirac)*nc+1]+=
-					-dk4m_f[i]*(-conjf(u12t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc]+r[(uid*ndirac+igork1)*nc])
-							+conjf(u11t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc+1]+r[(uid*ndirac+igork1)*nc+1]))
-					-dk4p_f[did]*(conjf(u12t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]-r[(did*ndirac+igork1)*nc])
-							+u11t_f[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]-r[(did*ndirac+igork1)*nc+1]));
+					-akappa_f*(-conjf(u12t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]
+							+conjf(u11t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]
+							+conjf(u12t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
+							+u11t_f[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
+					-gamval_f[mu][idirac]*
+					(-conjf(u12t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]
+					 +conjf(u11t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]
+					 -conjf(u12t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
+					 -u11t_f[did*ndim+mu] *r[(did*ndirac+igork1)*nc+1]);
 			}
-#endif
 		}
+#endif
+		//Timelike terms
+		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
+#ifndef NO_TIME
+#pragma omp simd aligned(phi,r,u11t_f,u12t_f,gamval_f:AVX)
+		for(int idirac=0; idirac<ndirac; idirac++){
+			int igork1 = gamin[3][idirac];
+			//Factorising for performance, we get (float)dk4?*(float)u1?*(+/-r_wilson -/+ r_dirac)
+			//(float)dk4m and dk4p_f swap under dagger
+			phi[(i*ndirac+idirac)*nc]+=
+				-dk4m_f[i]*(u11t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc]+r[(uid*ndirac+igork1)*nc])
+						+u12t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc+1]+r[(uid*ndirac+igork1)*nc+1]))
+				-dk4p_f[did]*(conjf(u11t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]-r[(did*ndirac+igork1)*nc])
+						-u12t_f[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]-r[(did*ndirac+igork1)*nc+1]));
+
+			phi[(i*ndirac+idirac)*nc+1]+=
+				-dk4m_f[i]*(-conjf(u12t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc]+r[(uid*ndirac+igork1)*nc])
+						+conjf(u11t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc+1]+r[(uid*ndirac+igork1)*nc+1]))
+				-dk4p_f[did]*(conjf(u12t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]-r[(did*ndirac+igork1)*nc])
+						+u11t_f[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]-r[(did*ndirac+igork1)*nc+1]));
+		}
+#endif
 	}
 	return 0;
 }
@@ -656,27 +648,30 @@ int New_trial(double dt){
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "New_trial";
-#pragma omp target teams distribute parallel for simd aligned(pp, u11t, u12t:AVX)\
-	map(to:pp) map(tofrom:u11t) map(from:u12t) collapse(2)
-	for(int i=0;i<kvol;i++){
-		for(int mu = 0; mu<ndim; mu++){
-			//Sticking to what was in the FORTRAN for variable names.
-			//CCC for cosine SSS for sine AAA for...
-			//Re-exponentiating the force field. Can be done analytically in SU(2)
-			//using sine and cosine which is nice
+#pragma omp target teams\
+	map(to:pp) map(tofrom:u11t) map(from:u12t)
+	{
+#pragma omp distribute parallel for simd aligned(pp,u11t,u12t:AVX) collapse(2)
+		for(int i=0;i<kvol;i++){
+			for(int mu = 0; mu<ndim; mu++){
+				//Sticking to what was in the FORTRAN for variable names.
+				//CCC for cosine SSS for sine AAA for...
+				//Re-exponentiating the force field. Can be done analytically in SU(2)
+				//using sine and cosine which is nice
 
-			double AAA = dt*sqrt(pp[i*nadj*ndim+mu]*pp[i*nadj*ndim+mu]\
-					+pp[(i*nadj+1)*ndim+mu]*pp[(i*nadj+1)*ndim+mu]\
-					+pp[(i*nadj+2)*ndim+mu]*pp[(i*nadj+2)*ndim+mu]);
-			double CCC = cos(AAA);
-			double SSS = dt*sin(AAA)/AAA;
-			complex a11 = CCC+I*SSS*pp[(i*nadj+2)*ndim+mu];
-			complex a12 = pp[(i*nadj+1)*ndim+mu]*SSS + I*SSS*pp[i*nadj*ndim+mu];
-			//b11 and b12 are u11t and u12t terms, so we'll use u12t directly
-			//but use b11 for u11t to prevent RAW dependency
-			complex b11 = u11t[i*ndim+mu];
-			u11t[i*ndim+mu] = a11*b11-a12*conj(u12t[i*ndim+mu]);
-			u12t[i*ndim+mu] = a11*u12t[i*ndim+mu]+a12*conj(b11);
+				double AAA = dt*sqrt(pp[i*nadj*ndim+mu]*pp[i*nadj*ndim+mu]\
+						+pp[(i*nadj+1)*ndim+mu]*pp[(i*nadj+1)*ndim+mu]\
+						+pp[(i*nadj+2)*ndim+mu]*pp[(i*nadj+2)*ndim+mu]);
+				double CCC = cos(AAA);
+				double SSS = dt*sin(AAA)/AAA;
+				complex a11 = CCC+I*SSS*pp[(i*nadj+2)*ndim+mu];
+				complex a12 = pp[(i*nadj+1)*ndim+mu]*SSS + I*SSS*pp[i*nadj*ndim+mu];
+				//b11 and b12 are u11t and u12t terms, so we'll use u12t directly
+				//but use b11 for u11t to prevent RAW dependency
+				complex b11 = u11t[i*ndim+mu];
+				u11t[i*ndim+mu] = a11*b11-a12*conj(u12t[i*ndim+mu]);
+				u12t[i*ndim+mu] = a11*u12t[i*ndim+mu]+a12*conj(b11);
+			}
 		}
 	}
 	Trial_Exchange();
