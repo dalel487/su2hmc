@@ -1,15 +1,21 @@
 MF=	Makefile
 
-CC=OMPI_CC=mpicc -cc=gcc-10
+CC=mpicc -cc=clang
 
-IFLAGS=     -I../INCLUDE/ -I /opt/AMD/aocl/aocl-linux-gcc-3.0-6/include/ 
+IFLAGS=     -I../INCLUDE/ -I /opt/AMD/aocl/aocl-linux-aocc-3.0-6/include/ 
 
 CFLAGS=    $(IFLAGS) -std=gnu11 -DUSE_BLAS -fcommon\
-		 -march=native  -DUSE_RAN2 \
-		 -fopenmp-simd -fopenmp  -DSA3AT -fveclib=AMDLIBM -flto
+		 -march=native -DUSE_RAN2 -static-libgcc \
+		 -fopenmp-simd -fopenmp=libiomp5\
+		 -Xopenmp-target=amdgcn -march=gfx902\
+		 -mcpu=gfx902:xnack+\
+		 -DSA3AT -fveclib=AMDLIBM\
+		 -fuse-ld=lld\
+		 -fremap-arrays -fprofile-instr-use=./default.profraw
 
-LFLAGS=	-L /opt/AMD/aocl/aocl-linux-gcc-3.0-6/include/   -Wl -latomic \
-		-liomp5 -lpthread -lm -ldl -lalm -lblis\
+LFLAGS=	-L /opt/AMD/aocl/aocl-linux-aocc-3.0-6/lib/\
+		-L /usr/lib/llvm-12/lib/ -Wl -latomic \
+		-liomp5 -lpthread -lm -ldl -lalm -lblis
 
 EXE=	su2hmc_AMD
 
@@ -47,7 +53,8 @@ TMP=	$(MOD) $(EDT) core
 all:	$(EXE)
 
 release:	CFLAGS +=  -Ofast -finline-aggressive -finline-recursion=4\
-				-funroll-loops
+				-funroll-loops -g\
+				-flto=full 
 release:	$(EXE)
 
 debug:	CFLAGS += -g -O0  \

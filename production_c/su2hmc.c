@@ -686,6 +686,7 @@ int Init(int istart){
 
 #ifdef _OPENMP
 	omp_set_num_threads(nthreads);
+	omp_get_default_device();
 	//Comment out to keep the threads spinning even when there's no work to do
 	//Commenting out decrease runtime but increases total CPU time dramatically
 	//This can throw of some profilers
