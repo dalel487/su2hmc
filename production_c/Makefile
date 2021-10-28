@@ -4,9 +4,10 @@ CC= mpiicc
 
 IFLAGS=     -I../INCLUDE 
 
-CFLAGS=      $(IFLAGS) -mkl  -DUSE_MKL -std=gnu11 -ipo -qopt-zmm-usage=high \
-		 -xCOMMON-AVX512 -static-intel -static-libgcc -DMKL_DIRECT_CALL \
-		 -qopenmp -qopenmp-simd -qopenmp-link=static -DSA3AT -DFORT_CONFIG
+CFLAGS=      $(IFLAGS) -qmkl -DUSE_MKL -std=gnu11 -ipo -qopt-zmm-usage=high \
+			 -xCOMMON-AVX512 -static-intel -static-libgcc -DMKL_DIRECT_CALL \
+			 -qopenmp -qopenmp-simd -qopenmp-link=static -DSA3AT \
+			-qopenmp-offload
 
 LFLAGS=	-L${MKLROOT}/lib/intel64 -lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_core -lmkl_blacs_intelmpi_ilp64\
 		-liomp5 -lpthread -lm -ldl 
@@ -19,26 +20,25 @@ SRC= \
 	bosonic.c\
 	fermionic.c\
 	par_mpi.c \
-      coord.c \
-      random.c \
-      matrices.c \
+	coord.c \
+	random.c \
+	matrices.c \
 
 INC= \
 	su2hmc.h \
 	sizes.h \
-      par_mpi.h \
-      slash.h \
-      random.h \
-      matrices.h \
-      coord.h \
-      errorcodes.h \
+	par_mpi.h \
+	random.h \
+	matrices.h \
+	coord.h \
+	errorcodes.h \
 
 #
 # No need to edit below this line
 #
 
 .SUFFIXES: .c .o
-.PHONY: clean debug release advisor tar
+.PHONY: clean debug release profiler tar
 
 OBJ=	$(SRC:.c=.o)
 EDT=	$(SRC:.c=.c~)
@@ -46,12 +46,12 @@ TMP=	$(MOD) $(EDT) core
 
 all:	$(EXE)
 
-advisor:	CFLAGS += -g
+profiler:	CFLAGS += -g
 
-advisor:	release
+profiler:	release
 
 release:	CFLAGS +=  -O3  -inline-level=2\
-		-DMKL_ILP64  -I"${MKLROOT}/include"# -DUSE_RAN2
+						-DMKL_ILP64  -I"${MKLROOT}/include"# -DUSE_RAN2
 release:	$(EXE)
 
 debug:	CFLAGS += -g -O0 \
