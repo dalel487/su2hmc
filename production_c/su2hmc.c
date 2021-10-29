@@ -654,7 +654,7 @@ int main(int argc, char *argv[]){
 				"psibarpsi = %e\n"\
 				"Mean Square Velocity = %e Action Per Site = %e\n"\
 				"Energy Density = %e Number Density %e\n",\
-				ntraj, naccp, atraj, yav, yyav, ancg, ancgh, pbpa, vel2a, actiona, endenfa, denfa);
+				(ntraj-iread), naccp, atraj, yav, yyav, ancg, ancgh, pbpa, vel2a, actiona, endenfa, denfa);
 		fclose(output);
 	}
 	MPI_Finalise();
