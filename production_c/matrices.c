@@ -664,8 +664,8 @@ int New_trial(double dt){
 						+pp[(i*nadj+2)*ndim+mu]*pp[(i*nadj+2)*ndim+mu]);
 				double CCC = cos(AAA);
 				double SSS = dt*sin(AAA)/AAA;
-				complex a11 = CCC+I*SSS*pp[(i*nadj+2)*ndim+mu];
-				complex a12 = pp[(i*nadj+1)*ndim+mu]*SSS + I*SSS*pp[i*nadj*ndim+mu];
+				Complex a11 = CCC+I*SSS*pp[(i*nadj+2)*ndim+mu];
+				Complex a12 = pp[(i*nadj+1)*ndim+mu]*SSS + I*SSS*pp[i*nadj*ndim+mu];
 				//b11 and b12 are u11t and u12t terms, so we'll use u12t directly
 				//but use b11 for u11t to prevent RAW dependency
 				complex b11 = u11t[i*ndim+mu];
