@@ -38,7 +38,8 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 		for(int nu=0;nu<mu;nu++)
 			//Don't merge into a single loop. Makes vectorisation easier?
 			//Or merge into a single loop and dispense with the a arrays?
-#pragma omp parallel for simd aligned(u11t,u12t:AVX) reduction(+:hgs,hgt)
+#pragma omp target teams distribute parallel for simd aligned(u11t,u12t:AVX) reduction(+:hgs,hgt)\
+			map(to:iu,u11t,u12t) map(tofrom:hgt,hgs)
 			for(int i=0;i<kvol;i++){
 				//Save us from typing iu[mu+ndim*i] everywhere
 				int uidm = iu[mu+ndim*i]; 
@@ -57,10 +58,10 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 				switch(mu){
 					//Time component
 					case(ndim-1):	hgt -= creal(Sigma11);
-								break;
-								//Space component
+									break;
+									//Space component
 					default:	hgs -= creal(Sigma11);
-							break;
+								break;
 				}
 			}
 
@@ -142,7 +143,8 @@ double Polyakov(){
 #pragma unroll
 	for(int it=1;it<ksizet;it++)
 		//will be faster for parallel code
-#pragma omp parallel for simd private(a11) aligned(u11t,u12t,Sigma11,Sigma12:AVX)
+#pragma omp target teams distribute parallel for simd private(a11) aligned(u11t,u12t,Sigma11,Sigma12:AVX)\
+		map(to:u11t,u12t) map(tofrom:Sigma11,Sigma12)
 		for(int i=0;i<kvol3;i++){
 			//Seems a bit more efficient to increment indexu instead of reassigning
 			//it every single loop
