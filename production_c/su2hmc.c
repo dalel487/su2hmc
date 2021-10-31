@@ -13,7 +13,6 @@
 #include	<stdio.h>
 #include	<string.h>
 #include	<su2hmc.h>
-#include	<time.h>
 
 //Extern definitions, especially default values for fmu, beta and akappa
 Complex jqq = 0;
@@ -633,12 +632,7 @@ int main(int argc, char *argv[]){
 #if (defined SA3AT)
 	if(!rank){
 		FILE *sa3at = fopen("Bench_times.csv", "a");
-#ifdef __NVCC__
-		char *lang = "cuda";
-#else 
-		char *lang = "C";
-#endif
-		fprintf(sa3at, "%s,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%f,%f\n",lang,nx,nt,kvol,npx,npt,nthreads,npx*npy*npz*npt*nthreads,elapsed,elapsed/ntraj);
+		fprintf(sa3at, "%s,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%f,%f\n",__VERSION__,nx,nt,kvol,npx,npt,nthreads,npx*npt*nthreads,elapsed,elapsed/ntraj);
 		fclose(sa3at);
 	}
 #endif
@@ -654,7 +648,7 @@ int main(int argc, char *argv[]){
 				"psibarpsi = %e\n"\
 				"Mean Square Velocity = %e Action Per Site = %e\n"\
 				"Energy Density = %e Number Density %e\n",\
-				(ntraj-iread), naccp, atraj, yav, yyav, ancg, ancgh, pbpa, vel2a, actiona, endenfa, denfa);
+				ntraj, naccp, atraj, yav, yyav, ancg, ancgh, pbpa, vel2a, actiona, endenfa, denfa);
 		fclose(output);
 	}
 	MPI_Finalise();
@@ -687,6 +681,7 @@ int Init(int istart){
 
 #ifdef _OPENMP
 	omp_set_num_threads(nthreads);
+	omp_get_default_device();
 	//Comment out to keep the threads spinning even when there's no work to do
 	//Commenting out decrease runtime but increases total CPU time dramatically
 	//This can throw of some profilers
