@@ -4,7 +4,7 @@
 #ifdef __NVCC__ 
 #include <cublas.h>
 #endif
-#ifdef USE_MKL
+#ifdef __INTEL_MKL__
 #include <mkl.h>
 #include <mkl_vsl.h>
 #define M_PI		3.14159265358979323846	/* pi */
@@ -16,11 +16,11 @@
 #include <par_mpi.h>
 //Configuration for existing generators if called
 //===============================================
-#if (defined USE_RAN2||!defined USE_MKL)
+#if (defined USE_RAN2||!defined __INTEL_MKL__)
 extern long seed;
 int Par_ranset(long *seed);
 int ranset(long *seed);
-#elif defined(USE_MKL)
+#elif defined(__INTEL_MKL__)
 extern unsigned int seed;
 int ranset(unsigned int *seed);
 int Par_ranset(unsigned int *seed);

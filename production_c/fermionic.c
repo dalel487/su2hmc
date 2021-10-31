@@ -39,7 +39,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	const char *funcname = "Measure";
 	//This x is just a storage container
 
-#ifdef USE_MKL
+#ifdef __INTEL_MKL__
 	Complex *x = mkl_malloc(kfermHalo*sizeof(Complex), AVX);
 #else
 	Complex *x = aligned_alloc(AVX,kfermHalo*sizeof(Complex));
@@ -47,7 +47,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	//Setting up noise.
 
 	//The root two term comes from the fact we called gauss0 in the fortran code instead of gaussp
-#if (defined(USE_RAN2)||!defined(USE_MKL))
+#if (defined(USE_RAN2)||!defined(__INTEL_MKL__))
 	Gauss_z(xi, kferm, 0, 1/sqrt(2));
 #else
 	vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, xi, 0, 1/sqrt(2));
@@ -67,7 +67,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	//Evaluate xi = (M^† M)^-1 R_1 
 	//This is still double precision for now
 	Congradp(0, res, itercg);
-#if (defined USE_MKL || defined USE_BLAS)
+#if (defined __INTEL_MKL__ || defined USE_BLAS)
 	Complex buff;
 	cblas_zdotc_sub(kferm, x, 1, xi,  1, &buff);
 	*pbp=creal(buff);
@@ -81,7 +81,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	*pbp/=4*gvol;
 
 	*qbqb=0; *qq=0;
-#if (defined USE_MKL || defined USE_BLAS)
+#if (defined __INTEL_MKL__ || defined USE_BLAS)
 	for(int idirac = 0; idirac<ndirac; idirac++){
 		int igork=idirac+4;
 		//Unrolling the colour indices, Then its just (γ_5*x)*Ξ or (γ_5*Ξ)*x 
@@ -172,7 +172,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	//Future task. Chiral susceptibility measurements
 #ifdef __NVCC__
 	cudaFree(x);
-#elif defined USE_MKL
+#elif defined __INTEL_MKL__
 	mkl_free(x);
 #else
 	free(x);

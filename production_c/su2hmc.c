@@ -249,7 +249,7 @@ int main(int argc, char *argv[]){
 	cudaMallocManaged(&X1, kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&pp, kmomHalo*sizeof(double),cudaMemAttachGlobal);
 	cudaMallocManaged(&dSdpi, kmomHalo*sizeof(double),cudaMemAttachGlobal);
-#elif defined USE_MKL
+#elif defined __INTEL_MKL__
 	R1= mkl_malloc(kfermHalo*sizeof(Complex),AVX);
 	xi= mkl_malloc(kfermHalo*sizeof(Complex),AVX);
 	Phi= mkl_malloc(nf*kfermHalo*sizeof(Complex),AVX); 
@@ -289,7 +289,7 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 			Complex *R;
 			cudaMallocManaged(&R,kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
-#elif defined USE_MKL
+#elif defined __INTEL_MKL__
 			Complex *R=mkl_malloc(kfermHalo*sizeof(Complex),AVX);
 #else
 			Complex *R=aligned_alloc(AVX,kfermHalo*sizeof(Complex));
@@ -298,7 +298,7 @@ int main(int argc, char *argv[]){
 			//The FORTRAN code had two gaussian routines.
 			//gaussp was the normal box-muller and gauss0 didn't have 2 inside the square root
 			//Using σ=1/sqrt(2) in these routines has the same effect as gauss0
-#if (defined(USE_RAN2)||!defined(USE_MKL))
+#if (defined(USE_RAN2)||!defined(__INTEL_MKL__))
 			Gauss_z(R, kferm, 0, 1/sqrt(2));
 #else
 			vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, R, 0, 1/sqrt(2));
@@ -318,7 +318,7 @@ int main(int argc, char *argv[]){
 				}
 #ifdef __NVCC_
 			cudaFree(R);
-#elif defined USE_MKL
+#elif defined __INTEL_MKL__
 			mkl_free(R);
 #else
 			free(R);
@@ -328,7 +328,7 @@ int main(int argc, char *argv[]){
 		//========
 		//We're going to make the most of the new Gauss_d routine to send a flattened array
 		//and do this all in one step.
-#if (defined(USE_RAN2)||!defined(USE_MKL))
+#if (defined(USE_RAN2)||!defined(__INTEL_MKL__))
 		Gauss_d(pp, kmom, 0, 1);
 #else
 		vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, kmom, pp, 0, 1);
@@ -370,7 +370,7 @@ int main(int argc, char *argv[]){
 #endif
 #ifdef __NVCC__
 		cublasDaxpy(cublas_handle,nadj*ndim*kvol, &d, dSdpi, 1, pp, 1);
-#elif (defined USE_MKL || defined USE_BLAS)
+#elif (defined __INTEL_MKL__ || defined USE_BLAS)
 		cblas_daxpy(nadj*ndim*kvol, d, dSdpi, 1, pp, 1);
 #else
 		for(int i=0;i<kmom;i++)
@@ -411,7 +411,7 @@ int main(int argc, char *argv[]){
 			if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
 #ifdef __NVCC__
 				cublasDaxpy(cublas_handle,ndim*nadj*kvol, &d, dSdpi, 1, pp, 1);
-#elif (defined USE_MKL || defined USE_BLAS)
+#elif (defined __INTEL_MKL__ || defined USE_BLAS)
 				//cuBLAS calls from CPU allowed?
 				cblas_daxpy(ndim*nadj*kvol, d, dSdpi, 1, pp, 1);
 #else
@@ -428,7 +428,7 @@ int main(int argc, char *argv[]){
 				dt*=-1;
 				cublasDaxpy(cublas_handle,ndim*nadj*kvol, &dt, dSdpi, 1, pp, 1);
 				dt*=-1;
-#elif (defined USE_MKL || defined USE_BLAS)
+#elif (defined __INTEL_MKL__ || defined USE_BLAS)
 				cblas_daxpy(ndim*nadj*kvol, -dt, dSdpi, 1, pp, 1);
 #else
 				for(int i = 0; i<kvol; i++)
@@ -488,7 +488,7 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 		cublasDnrm2(cublas_handle,kmom, pp, 1,&vel2);
 		vel2*=vel2;
-#elif (defined USE_MKL || defined USE_BLAS)
+#elif (defined __INTEL_MKL__ || defined USE_BLAS)
 		vel2 = cblas_dnrm2(kmom, pp, 1);
 		vel2*=vel2;
 #else
@@ -615,7 +615,7 @@ int main(int argc, char *argv[]){
 	cudaFree(X0); cudaFree(X1); cudaFree(u11); cudaFree(u12);
 	cudaFree(id); cudaFree(iu); cudaFree(hd); cudaFree(hu);
 	cudaFree(dk4m_f); cudaFree(dk4p_f); cudaFree(u11t_f); cudaFree(u12t_f);
-#elif defined USE_MKL
+#elif defined __INTEL_MKL__
 	mkl_free_buffers();
 	mkl_free(dk4m); mkl_free(dk4p); mkl_free(R1); mkl_free(dSdpi); mkl_free(pp);
 	mkl_free(Phi); mkl_free(u11t); mkl_free(u12t); mkl_free(xi);
@@ -686,7 +686,7 @@ int Init(int istart){
 	//Commenting out decrease runtime but increases total CPU time dramatically
 	//This can throw of some profilers
 	//kmp_set_defaults("KMP_BLOCKTIME=0");
-#ifdef USE_MKL
+#ifdef __INTEL_MKL__
 	mkl_set_num_threads(nthreads);
 #endif
 #endif
@@ -712,7 +712,7 @@ int Init(int istart){
 	cudaMallocManaged(&dk4p,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
 	cudaMallocManaged(&dk4m_f,(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
 	cudaMallocManaged(&dk4p_f,(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
-#elif defined USE_MKL
+#elif defined __INTEL_MKL__
 	dk4m = mkl_malloc((kvol+halo)*sizeof(double), AVX);
 	dk4p = mkl_malloc((kvol+halo)*sizeof(double), AVX);
 	dk4m_f = mkl_malloc((kvol+halo)*sizeof(float), AVX);
@@ -754,7 +754,7 @@ int Init(int istart){
 		dk4m_f[i]=(float)dk4m[i];
 	}
 	//Each gamma matrix is rescaled by akappa by flattening the gamval array
-#if (defined USE_MKL || defined USE_BLAS)
+#if (defined __INTEL_MKL__ || defined USE_BLAS)
 	//Don't cuBLAS this. It is small and won't saturate the GPU. Let the CPU handle
 	//it and just copy it later
 	cblas_zdscal(5*4, akappa, gamval, 1);
@@ -790,7 +790,7 @@ int Init(int istart){
 	cudaMallocManaged(&u12t,ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&u11t_f,ndim*(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged(&u12t_f,ndim*(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
-#elif defined USE_MKL
+#elif defined __INTEL_MKL__
 	u11 = mkl_calloc(ndim*(kvol+halo),sizeof(Complex),AVX);
 	u12 = mkl_calloc(ndim*(kvol+halo),sizeof(Complex),AVX);
 	u11t = mkl_calloc(ndim*(kvol+halo),sizeof(Complex),AVX);
@@ -815,7 +815,7 @@ int Init(int istart){
 	}
 	else if(istart>0){
 		//Still thinking about how best to deal with PRNG
-#if (defined USE_MKL&&!defined USE_RAN2)
+#if (defined __INTEL_MKL__&&!defined USE_RAN2)
 		//Good news, casting works for using a double to create random complex numbers
 		vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*kvol, u11t, -1, 1);
 		vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*kvol, u12t, -1, 1);
@@ -871,7 +871,7 @@ int Hamilton(double *h, double *s, double res2){
 	cudaMemPrefetchAsync(pp,kmom*sizeof(double),device,NULL);
 	cublasDnrm2(cublas_handle, kmom, pp, 1,&hp);
 	hp*=hp;
-#elif (defined USE_MKL || defined USE_BLAS)
+#elif (defined __INTEL_MKL__ || defined USE_BLAS)
 	hp = cblas_dnrm2(kmom, pp, 1);
 	hp*=hp;
 #else
@@ -889,7 +889,7 @@ int Hamilton(double *h, double *s, double res2){
 #ifdef __NVCC__
 	Complex *smallPhi;
 	cudaMallocManaged(&smallPhi,kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
-#elif defined USE_MKL
+#elif defined __INTEL_MKL__
 	Complex *smallPhi = mkl_malloc(kferm2Halo*sizeof(Complex),AVX);
 #else
 	Complex *smallPhi = aligned_alloc(AVX,kferm2Halo*sizeof(Complex));
@@ -905,7 +905,7 @@ int Hamilton(double *h, double *s, double res2){
 		Complex dot;
 		cublasZdotc(cublas_handle,kferm2, (cuDoubleComplex *)smallPhi, 1,(cuDoubleComplex *) X1, 1,(cuDoubleComplex *) &dot);
 		hf+=creal(dot);
-#elif (defined USE_MKL || defined USE_BLAS)
+#elif (defined __INTEL_MKL__ || defined USE_BLAS)
 		Complex dot;
 		cblas_zdotc_sub(kferm2, smallPhi, 1, X1, 1, &dot);
 		hf+=creal(dot);
@@ -916,7 +916,7 @@ int Hamilton(double *h, double *s, double res2){
 			hf+= conj(smallPhi[j])*X1[j];
 #endif
 	}
-#ifdef USE_MKL
+#ifdef __INTEL_MKL__
 	mkl_free(smallPhi);
 #else
 	free(smallPhi);
@@ -998,7 +998,7 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 	cudaMallocManaged(&x2, kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMemAdvise(x2,kferm2Halo*sizeof(Complex),cudaMemAdviseSetPreferredLocation,device);
 	cudaMemPrefetchAsync(x2,kferm2Halo*sizeof(Complex),device,NULL);
-#elif defined USE_MKL
+#elif defined __INTEL_MKL__
 	Complex *p  = mkl_calloc(kferm2Halo,sizeof(Complex),AVX);
 	Complex *r  = mkl_calloc(kferm2,sizeof(Complex),AVX);
 	Complex *x2=mkl_calloc(kferm2Halo, sizeof(Complex), AVX);
@@ -1042,7 +1042,7 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 #ifdef	__NVCC__
 		//x2 =  (M^†M+J^2)p 
 		cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&fac,(cuDoubleComplex *)p,1,(cuDoubleComplex *)x2,1);
-#elif (defined USE_MKL || defined USE_BLAS)
+#elif (defined __INTEL_MKL__ || defined USE_BLAS)
 		//x2 =  (M^†M+J^2)p 
 		cblas_zaxpy(kferm2, &fac, p, 1, x2, 1);
 #else
@@ -1055,7 +1055,7 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 			//α_d= p* (M^†M+J^2)p
 #ifdef __NVCC__
 			cublasZdotc(cublas_handle,kferm2,(cuDoubleComplex *)p,1,(cuDoubleComplex *)x2,1,(cuDoubleComplex *)&alphad);
-#elif (defined USE_MKL || defined USE_BLAS)
+#elif (defined __INTEL_MKL__ || defined USE_BLAS)
 			cblas_zdotc_sub(kferm2, p, 1, x2, 1, &alphad);
 #else
 			alphad=0;
@@ -1070,7 +1070,7 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 			//x-αp, 
 #ifdef __NVCC__
 			cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&alpha,(cuDoubleComplex *)p,1,(cuDoubleComplex *)X1,1);
-#elif (defined USE_MKL || defined USE_BLAS)
+#elif (defined __INTEL_MKL__ || defined USE_BLAS)
 			cblas_zaxpy(kferm2, &alpha, p, 1, X1, 1);
 #else
 			for(int i=0; i<kferm2; i++)
@@ -1084,7 +1084,7 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 		alpha*=-1;
 		cublasDznrm2(cublas_handle,kferm2,(cuDoubleComplex *)r,1,&betan);
 		betan *= betan;
-#elif (defined USE_MKL || defined USE_BLAS)
+#elif (defined __INTEL_MKL__ || defined USE_BLAS)
 		alpha *= -1;
 		cblas_zaxpy(kferm2, &alpha, x2, 1, r, 1);
 		//Undo the negation for the BLAS routine
@@ -1118,7 +1118,7 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 		betad=betan; alphan=betan;
 		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multipyling y by
 		//β instead of x.
-#if (defined USE_MKL||defined USE_BLAS)
+#if (defined __INTEL_MKL__||defined USE_BLAS)
 		Complex a = 1.0;
 		//There is cblas_zaxpby in the MKL and AMD though, set a = 1 and b = β.
 		//If we get a small enough β_n before hitting the iteration cap we break
@@ -1131,7 +1131,7 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 #ifdef __NVCC__
 	cudaFree(x2); cudaFree(p); cudaFree(r);
 	cudaFree(x1_f);cudaFree(x2_f); cudaFree(p_f);
-#elif defined USE_MKL
+#elif defined __INTEL_MKL__
 	mkl_free(x1_f); mkl_free(x2); mkl_free(p); mkl_free(r);
 	mkl_free(p_f); mkl_free(x2_f);
 #else
@@ -1191,7 +1191,7 @@ int Congradp(int na, double res, int *itercg){
 
 	cudaMallocManaged(&r, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMemAdvise(r,kfermHalo*sizeof(Complex),cudaMemAdviseSetPreferredLocation,device);
-#elif defined USE_MKL
+#elif defined __INTEL_MKL__
 	Complex *p  = mkl_malloc(kfermHalo*sizeof(Complex),AVX);
 	Complex *r  = mkl_malloc(kferm*sizeof(Complex),AVX);
 #else
@@ -1212,7 +1212,7 @@ int Congradp(int na, double res, int *itercg){
 
 	cudaMallocManaged(&x2, kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMemAdvise(x2,kferm2Halo*sizeof(Complex),cudaMemAdviseSetPreferredLocation,device);
-#elif defined USE_MKL
+#elif defined __INTEL_MKL__
 	Complex *x1=mkl_malloc(kfermHalo*sizeof(Complex), AVX);
 	Complex *x2=mkl_malloc(kfermHalo*sizeof(Complex), AVX);
 #else
@@ -1232,7 +1232,7 @@ int Congradp(int na, double res, int *itercg){
 #ifdef __NVCC__
 			cublasDznrm2(cublas_handle,kferm,(cuDoubleComplex *) x1, 1,&alphad);
 			alphad *= alphad;
-#elif (defined USE_MKL || defined USE_BLAS)
+#elif (defined __INTEL_MKL__ || defined USE_BLAS)
 			alphad = cblas_dznrm2(kferm, x1, 1);
 			alphad *= alphad;
 #else
@@ -1246,7 +1246,7 @@ int Congradp(int na, double res, int *itercg){
 			//x+αp
 #ifdef __NVCC__
 			cublasZaxpy(cublas_handle,kferm,(cuDoubleComplex *) &alpha,(cuDoubleComplex *) p, 1,(cuDoubleComplex *) xi, 1);
-#elif (defined USE_MKL || defined USE_BLAS)
+#elif (defined __INTEL_MKL__ || defined USE_BLAS)
 			cblas_zaxpy(kferm, &alpha, p, 1, xi, 1);
 #else
 			for(int i = 0; i<kferm; i++)
@@ -1264,7 +1264,7 @@ int Congradp(int na, double res, int *itercg){
 		cublasDznrm2(cublas_handle,kferm,(cuDoubleComplex *) r,1,&betan);
 		//Gotta square it to "undo" the norm
 		betan *= betan;
-#elif (defined USE_MKL || defined USE_BLAS)
+#elif (defined __INTEL_MKL__ || defined USE_BLAS)
 		alpha*=-1;
 		cblas_zaxpy(kferm, &alpha, x2, 1, r, 1);
 		alpha*=-1;
@@ -1300,7 +1300,7 @@ int Congradp(int na, double res, int *itercg){
 		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multipyling y by 
 		//β instead of x.
 		//There is cblas_zaxpby in the MKL though, set a = 1 and b = β.
-#if (defined USE_MKL||defined USE_BLAS)
+#if (defined __INTEL_MKL__||defined USE_BLAS)
 		Complex a = 1;
 		cblas_zaxpby(kferm, &a, r, 1, &beta,  p, 1);
 #else
@@ -1311,7 +1311,7 @@ int Congradp(int na, double res, int *itercg){
 #ifdef	__NVCC__
 	cudaFree(x2); cudaFree(p); cudaFree(r);
 	cudaFree(x1);
-#elif defined USE_MKL
+#elif defined __INTEL_MKL__
 	mkl_free(p); mkl_free(r); mkl_free(x1); mkl_free(x2);
 #else
 	free(p); free(r); free(x1); free(x2);

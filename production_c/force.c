@@ -24,7 +24,7 @@ int Gauge_force(double *dSdpi){
 	//		memset(u12t[kvol], 0, ndim*halo*sizeof(complex));	
 	//	#endif
 	//Was a trial field halo exchange here at one point.
-#ifdef USE_MKL
+#ifdef __INTEL_MKL__
 	complex *Sigma11 = mkl_malloc(kvol*sizeof(complex),AVX); 
 	complex *Sigma12= mkl_malloc(kvol*sizeof(complex),AVX); 
 	complex *u11sh = mkl_malloc((kvol+halo)*sizeof(complex),AVX); 
@@ -83,7 +83,7 @@ int Gauge_force(double *dSdpi){
 		}
 	}
 	//MPI was acting funny here for more than one process on Boltzmann
-#ifdef USE_MKL
+#ifdef __INTEL_MKL__
 	mkl_free(u11sh); mkl_free(u12sh); mkl_free(Sigma11); mkl_free(Sigma12);
 #else
 	free(u11sh); free(u12sh); free(Sigma11); free(Sigma12);
@@ -121,7 +121,7 @@ int Force(double *dSdpi, int iflag, double res1){
 #endif
 	//X1=(M†M)^{1} Phi
 	int itercg;
-#if defined USE_MKL
+#if defined __INTEL_MKL__
 	complex *X2= mkl_malloc(kferm2Halo*sizeof(complex), AVX);
 	complex *smallPhi =mkl_malloc(kferm2Halo*sizeof(complex), AVX); 
 #else
@@ -136,7 +136,7 @@ int Force(double *dSdpi, int iflag, double res1){
 			Congradq(na, res1,smallPhi, &itercg );
 			ancg+=itercg;
 			//This is not a general BLAS Routine, just an MKL one
-#if (defined USE_MKL || defined USE_BLAS)
+#if (defined __INTEL_MKL__ || defined USE_BLAS)
 			complex blasa=2.0; complex blasb=-1.0;
 			cblas_zaxpby(kvol*ndirac*nc, &blasa, X1, 1, &blasb, X0+na*kferm2Halo, 1); 
 #else
@@ -152,7 +152,7 @@ int Force(double *dSdpi, int iflag, double res1){
 #endif
 		}
 		Hdslash(X2,X1);
-#if (defined USE_MKL || defined USE_BLAS)
+#if (defined __INTEL_MKL__ || defined USE_BLAS)
 		double blasd=2.0;
 		cblas_zdscal(kferm2, blasd, X2, 1);
 #else
@@ -365,7 +365,7 @@ int Force(double *dSdpi, int iflag, double res1){
 #endif
 			}
 	}
-#if defined USE_MKL
+#if defined __INTEL_MKL__
 	mkl_free(X2); mkl_free(smallPhi);
 #else
 	free(X2); free(smallPhi);

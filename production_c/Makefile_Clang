@@ -4,10 +4,10 @@ CC= mpiicc
 
 IFLAGS=     -I../INCLUDE 
 
-CFLAGS=		$(IFLAGS) -cc=icx -qmkl -DUSE_MKL -std=c11 -ipo -qopt-zmm-usage=high \
-			-xTIGERLAKE -static-intel -static-libgcc -DMKL_DIRECT_CALL \
-			-qopenmp-simd -fiopenmp  -qopenmp-link=static -DSA3AT -fcommon\
-			-fopenmp-targets=spir64 \
+CFLAGS=		$(IFLAGS) -cc=icx -qmkl -std=c11 -ipo -qopt-zmm-usage=high \
+			-xHOST -static-intel -static-libgcc -DMKL_DIRECT_CALL -D__INTEL_MKL__\
+			-qopenmp-simd -fopenmp  -qopenmp-link=static -DSA3AT -fcommon\
+			 #-fopenmp-targets=spir64 \
 
 LFLAGS=		-L${MKLROOT}/lib/intel64 -lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_core -lmkl_blacs_intelmpi_ilp64\
 			-liomp5 -lpthread -lm -ldl

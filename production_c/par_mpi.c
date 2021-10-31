@@ -68,7 +68,7 @@ int Par_begin(int argc, char *argv[]){
 	for(int i= 0; i<ndim; i++)
 		MPI_Cart_shift(commcart, i, 1, &pd[i], &pu[i]);
 	//Get coordinates of processors in the grid
-#ifdef USE_MKL
+#ifdef __INTEL_MKL__
 	pcoord = (int*)mkl_malloc(ndim*nproc*sizeof(int),AVX);
 #else
 	pcoord = (int*)aligned_alloc(AVX,ndim*nproc*sizeof(int));
@@ -106,7 +106,7 @@ int Par_sread(const int iread, const double beta, const double fmu, const double
 	char *funcname = "Par_sread";
 	double seed;
 	//We shall allow the almighty master thread to open the file
-#ifdef USE_MKL
+#ifdef __INTEL_MKL__
 	Complex *u1buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
 	Complex *u2buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
 #else
@@ -115,7 +115,7 @@ int Par_sread(const int iread, const double beta, const double fmu, const double
 #endif
 	if(!rank){
 		//Containers for input. Only needed by the master rank
-#ifdef USE_MKL
+#ifdef __INTEL_MKL__
 		Complex *u11Read = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
 		Complex *u12Read = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
 #else
@@ -203,7 +203,7 @@ int Par_sread(const int iread, const double beta, const double fmu, const double
 						exit(NUMELEM);
 					}
 					if(!iproc){
-#if (defined USE_MKL||defined USE_BLAS)
+#if (defined __INTEL_MKL__||defined USE_BLAS)
 						cblas_zcopy(kvol,u1buff,1,u11+idim,ndim);
 						cblas_zcopy(kvol,u2buff,1,u12+idim,ndim);
 #else
@@ -231,7 +231,7 @@ int Par_sread(const int iread, const double beta, const double fmu, const double
 						}
 					}
 				}
-#ifdef USE_MKL
+#ifdef __INTEL_MKL__
 		mkl_free(u11Read); mkl_free(u12Read);
 #else
 		free(u11Read); free(u12Read);
@@ -254,7 +254,7 @@ int Par_sread(const int iread, const double beta, const double fmu, const double
 				MPI_Finalise();
 				exit(CANTRECV);
 			}
-#if (defined USE_MKL||defined USE_BLAS)
+#if (defined __INTEL_MKL__||defined USE_BLAS)
 			cblas_zcopy(kvol,u1buff,1,u11+idim,ndim);
 			cblas_zcopy(kvol,u2buff,1,u12+idim,ndim);
 #else
@@ -266,7 +266,7 @@ int Par_sread(const int iread, const double beta, const double fmu, const double
 #endif
 		}
 	}
-#ifdef USE_MKL
+#ifdef __INTEL_MKL__
 	mkl_free(u1buff); mkl_free(u2buff);
 #else
 	free(u1buff); free(u2buff);
@@ -291,7 +291,7 @@ int Par_psread(char *filename, double *ps){
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Par_psread";
-#ifdef USE_MKL
+#ifdef __INTEL_MKL__
 	double *psbuff = (double*)mkl_malloc(nc*kvol*sizeof(double),AVX);
 	double *gps= (double*)mkl_malloc(nc*gvol*sizeof(double),AVX);
 #else
@@ -348,7 +348,7 @@ int Par_psread(char *filename, double *ps){
 			MPI_Finalise();
 			exit(CANTRECV);
 		}
-#ifdef USE_MKL
+#ifdef __INTEL_MKL__
 	mkl_free(psbuff); mkl_free(gps);
 #else
 	free(psbuff); free(gps);
@@ -384,7 +384,7 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "par_swrite";
-#ifdef USE_MKL
+#ifdef __INTEL_MKL__
 	Complex *u1buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
 	Complex *u2buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
 #else
@@ -392,7 +392,7 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 	Complex *u2buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
 #endif
 	if(!rank){
-#ifdef USE_MKL
+#ifdef __INTEL_MKL__
 		Complex *u11Write = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
 		Complex *u12Write = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
 #else
@@ -419,7 +419,7 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 				else{
 					//No need to do MPI Send/Receive on the master rank
 					//Array looping is slow so we use memcpy instead
-#if (defined USE_MKL||defined USE_BLAS)
+#if (defined __INTEL_MKL__||defined USE_BLAS)
 					cblas_zcopy(kvol,u11+idim,ndim,u1buff,1);
 					cblas_zcopy(kvol,u12+idim,ndim,u2buff,1);
 #else
@@ -449,7 +449,7 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 					exit(NUMELEM);
 				}
 			}
-#ifdef USE_MKL
+#ifdef __INTEL_MKL__
 		mkl_free(u1buff); mkl_free(u2buff);
 #else
 		free(u1buff); free(u2buff);
@@ -505,7 +505,7 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 		fwrite(u12Write, ndim*gvol*sizeof(Complex), 1, con);
 		fwrite(&seed, sizeof(seed), 1, con);
 		fclose(con);
-#ifdef USE_MKL
+#ifdef __INTEL_MKL__
 		mkl_free(u11Write); mkl_free(u12Write);
 #else
 		free(u11Write); free(u12Write);
@@ -513,7 +513,7 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 	}
 	else{
 		for(int idim = 0; idim<ndim; idim++){
-#if (defined USE_MKL||defined USE_BLAS)
+#if (defined __INTEL_MKL__||defined USE_BLAS)
 			cblas_zcopy(kvol,u11+idim,ndim,u1buff,1);
 			cblas_zcopy(kvol,u12+idim,ndim,u2buff,1);
 #else
@@ -536,7 +536,7 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 				exit(CANTSEND);
 			}
 		}
-#ifdef USE_MKL
+#ifdef __INTEL_MKL__
 		mkl_free(u1buff); mkl_free(u2buff); 
 #else
 		free(u1buff); free(u2buff);
@@ -812,7 +812,7 @@ int ZHalo_swap_dir(Complex *z, int ncpt, int idir, int layer){
 		MPI_Finalise();
 		exit(LAYERROR);
 	}
-#ifdef USE_MKL
+#ifdef __INTEL_MKL__
 	Complex *sendbuf = (Complex *)mkl_malloc(halo*ncpt*sizeof(Complex), AVX);
 #else
 	Complex *sendbuf = (Complex *)aligned_alloc(AVX,halo*ncpt*sizeof(Complex));
@@ -876,7 +876,7 @@ int ZHalo_swap_dir(Complex *z, int ncpt, int idir, int layer){
 			}
 			break;
 	}
-#ifdef USE_MKL
+#ifdef __INTEL_MKL__
 	mkl_free(sendbuf);
 #else
 	free(sendbuf);
@@ -934,7 +934,7 @@ int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer){
 		MPI_Finalise();
 		exit(LAYERROR);
 	}
-#ifdef USE_MKL
+#ifdef __INTEL_MKL__
 	Complex_f *sendbuf = (Complex_f *)mkl_malloc(halo*ncpt*sizeof(Complex_f), AVX);
 #else
 	Complex_f *sendbuf = (Complex_f *)aligned_alloc(AVX,halo*ncpt*sizeof(Complex));
@@ -998,7 +998,7 @@ int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer){
 			}
 			break;
 	}
-#ifdef USE_MKL
+#ifdef __INTEL_MKL__
 	mkl_free(sendbuf);
 #else
 	free(sendbuf);
@@ -1023,7 +1023,7 @@ int DHalo_swap_dir(double *d, int ncpt, int idir, int layer){
 	 *  Zero on success, Integer Error code otherwise
 	 */
 	char *funcname = "ZHalo_swap_dir";
-#ifdef USE_MKL
+#ifdef __INTEL_MKL__
 	double *sendbuf =(double *) mkl_malloc(halo*ncpt*sizeof(double), AVX);
 #else
 	double *sendbuf = (double *)aligned_alloc(AVX,halo*ncpt*sizeof(double));
@@ -1091,7 +1091,7 @@ int DHalo_swap_dir(double *d, int ncpt, int idir, int layer){
 				exit(CANTRECV);
 			}
 	}	
-#ifdef USE_MKL
+#ifdef __INTEL_MKL__
 	mkl_free(sendbuf);
 #else
 	free(sendbuf);
@@ -1107,14 +1107,14 @@ int Trial_Exchange(){
 	 *	the trial fields get updated.
 	 */
 	char *funchame = "Trial_Exchange";
-#ifdef USE_MKL
+#ifdef __INTEL_MKL__
 	Complex *z = (Complex *)mkl_malloc((kvol+halo)*sizeof(Complex),AVX);
 #else
 	Complex *z = (Complex *)aligned_alloc(AVX,(kvol+halo)*sizeof(Complex));
 #endif
 	for(int mu=0;mu<ndim;mu++){
 		//Copy the column from u11t
-#if (defined USE_MKL || USE_BLAS)
+#if (defined __INTEL_MKL__ || USE_BLAS)
 		cblas_zcopy(kvol, &u11t[mu], ndim, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
@@ -1123,7 +1123,7 @@ int Trial_Exchange(){
 		//Halo exchange on that column
 		ZHalo_swap_all(z, 1);
 		//And the swap back
-#if (defined USE_MKL || USE_BLAS)
+#if (defined __INTEL_MKL__ || USE_BLAS)
 		cblas_zcopy(kvol+halo, z, 1, &u11t[mu], ndim);
 		//Repat for u12t
 		cblas_zcopy(kvol, &u12t[mu], ndim, z, 1);
@@ -1134,14 +1134,14 @@ int Trial_Exchange(){
 		}
 #endif
 		ZHalo_swap_all(z, 1);
-#if (defined USE_MKL || USE_BLAS)
+#if (defined __INTEL_MKL__ || USE_BLAS)
 		cblas_zcopy(kvol+halo, z, 1, &u12t[mu], ndim);
 #else
 		for(int i=0; i<kvol+halo;i++)
 			u12t[i*ndim+mu]=z[i];
 #endif
 	}
-#ifdef USE_MKL
+#ifdef __INTEL_MKL__
 	mkl_free(z);
 #else
 	free(z);
@@ -1170,7 +1170,7 @@ int Par_tmul(Complex *z11, Complex *z12){
 	//If we're using mkl, the mkl_malloc helps ensure arrays align with 64-bit
 	//byte boundaries to improve performance and enable AVX-512 instructions.
 	//Otherwise, malloc is pretty useful
-#ifdef USE_MKL
+#ifdef __INTEL_MKL__
 	a11=(Complex *)mkl_malloc(kvol3*sizeof(Complex), AVX);
 	a12=(Complex *)mkl_malloc(kvol3*sizeof(Complex), AVX);
 	t11=(Complex *)mkl_malloc(kvol3*sizeof(Complex), AVX);
@@ -1247,7 +1247,7 @@ int Par_tmul(Complex *z11, Complex *z12){
 		memcpy(z11, t11, kvol3*sizeof(Complex));
 		memcpy(z12, t12, kvol3*sizeof(Complex));
 	}
-#ifdef USE_MKL
+#ifdef __INTEL_MKL__
 	mkl_free(a11); mkl_free(a12);
 	mkl_free(t11); mkl_free(t12);
 #else

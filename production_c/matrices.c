@@ -31,9 +31,11 @@ int Dslash(complex *phi, complex *r){
 	//Mass term
 	memcpy(phi, r, kferm*sizeof(complex));
 	//Diquark Term (antihermitian)
+#ifdef __clang__
 #pragma omp target teams distribute parallel for\
 	map(from:r,u11t,u12t,gamval,id,iu,gamin,dk4m,dk4p)\
 	map(tofrom:phi)
+#endif
 	for(int i=0;i<kvol;i++){
 #pragma omp simd aligned(phi,r,gamval:AVX)
 #pragma vector vecremainder
@@ -150,9 +152,11 @@ int Dslashd(complex *phi, complex *r){
 
 	//Mass term
 	memcpy(phi, r, kferm*sizeof(complex));
+#ifdef __clang__
 #pragma omp target teams distribute parallel for\
 	map(from:r,u11t,u12t,gamval,id,iu,gamin,dk4m,dk4p)\
 	map(tofrom:phi)
+#endif
 	for(int i=0;i<kvol;i++){
 #pragma omp simd aligned(phi,r,gamval:AVX)
 #pragma vector vecremainder
@@ -475,9 +479,11 @@ int Hdslash_f(Complex_f *phi, Complex_f *r){
 	//Mass term
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
 	//Spacelike term
+#ifdef __clang__
 #pragma omp target teams distribute parallel for\
 	map(to:u11t_f,u12t_f,iu,id,gamin,dk4m_f,dk4p_f,r)\
 	map(tofrom:phi)
+#endif
 	for(int i=0;i<kvol;i++){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
@@ -569,9 +575,11 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r){
 	//Mass term
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
 	//Spacelike term
+#ifdef __clang__
 #pragma omp target teams distribute parallel for\
 	map(to:u11t_f,u12t_f,iu,id,gamin,dk4m_f,dk4p_f,r)\
 	map(tofrom:phi)
+#endif
 	for(int i=0;i<kvol;i++){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <ndim-1; mu++){
@@ -651,9 +659,13 @@ int New_trial(double dt){
 	 * Returns:
 	 * Zero on success, integer error code otherwise
 	 */
-	char *funcname = "New_trial"; //aligned(pp,u11t,u12t:AVX) 
-#pragma omp target teams distribute parallel for simd collapse(2)\
-	 map(to:pp) map(tofrom:u11t) map(from:u12t)
+	char *funcname = "New_trial"; //
+#ifdef __clang__
+#pragma omp target teams distribute parallel for simd collapse(2) aligned(pp,u11t,u12t:AVX) \
+	map(to:pp) map(tofrom:u11t) map(from:u12t)
+#else
+#pragma omp parallel for simd collapse(2) aligned(pp,u11t,u12t:AVX) 
+#endif
 	for(int i=0;i<kvol;i++)
 		for(int mu = 0; mu<ndim; mu++){
 			//Sticking to what was in the FORTRAN for variable names.
@@ -733,7 +745,7 @@ int Diagnostics(int istart){
 #include<float.h>
 	printf("FLT_EVAL_METHOD is %i. Check online for what this means\n", FLT_EVAL_METHOD);
 
-#if defined USE_MKL
+#if defined __INTEL_MKL__
 	R1= mkl_malloc(kfermHalo*sizeof(complex),AVX);
 	xi= mkl_malloc(kfermHalo*sizeof(complex),AVX);
 	Phi= mkl_malloc(nf*kfermHalo*sizeof(complex),AVX); 
@@ -1004,7 +1016,7 @@ int Diagnostics(int istart){
 	}
 
 	//George Michael's favourite bit of the code
-#if defined USE_MKL
+#if defined __INTEL_MKL__
 	mkl_free(dk4m); mkl_free(dk4p); mkl_free(R1); mkl_free(dSdpi); mkl_free(pp);
 	mkl_free(Phi); mkl_free(u11t); mkl_free(u12t); mkl_free(xi);
 	mkl_free(X0); mkl_free(X1); mkl_free(u11); mkl_free(u12);

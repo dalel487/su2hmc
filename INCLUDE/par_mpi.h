@@ -14,7 +14,7 @@
 #ifdef __NVCC__
 #include	<cublas.h>
 #endif
-#ifdef	USE_MKL
+#ifdef	__INTEL_MKL__
 //If using mkl and BLAS, it is good practice to use mkl_malloc to align the arrays better
 //for the AVX-512 FMA Units
 #include	<mkl.h>
