@@ -9,7 +9,7 @@ CFLAGS=     $(IFLAGS) -qmkl -DUSE_MKL -std=gnu11 -ipo -qopt-zmm-usage=high \
 			-qopenmp -qno-openmp-offload -qopenmp-simd -qopenmp-link=static -DSA3AT \
 
 LFLAGS=	-L${MKLROOT}/lib/intel64 -lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_core -lmkl_blacs_intelmpi_ilp64\
-		-liomp5 -lpthread -lm -ldl 
+		-liomp5 -lpthread -ldl 
 
 EXE=	su2hmc
 

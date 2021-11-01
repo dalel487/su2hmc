@@ -49,7 +49,7 @@
 #define	gvol    (nx*ny*nz*nt)
 #define	gvol3   (nx*ny*nz)
 
-#define	npx	2
+#define	npx	1
 #define	npt	1
 //Number of threads for OpenMP
 #define	nthreads	1
