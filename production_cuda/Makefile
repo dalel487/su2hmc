@@ -5,12 +5,12 @@ CC=		mpiicc
 CXX=	mpiicpc
 NVCC=	nvcc
 
-IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include" -I./
+IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include"
 
 
-CFLAGS=      $(IFLAGS) -std=gnu++11  -DUSE_RAN2 \
-			 -xCOMMON-AVX512 -static-intel -static-libgcc -masm=att \
-			 -qopenmp-simd -qopenmp -qopenmp-link=static -DSA3AT -x c++\
+CFLAGS=      $(IFLAGS) -cc=icx -qmkl -std=gnu++11  -DUSE_RAN2 \
+			 -xHOST -static-intel -static-libgcc -masm=att -fcommon\
+			 -qopenmp-simd -fopenmp -qopenmp-link=static -DSA3AT -x c++\
 
 LFLAGS=		-liomp5 -lpthread -lm -ldl -lcudart -lcublas -L${NVSHMEM_HOME}/lib -lnvshmem -wd10237
 

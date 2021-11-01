@@ -13,6 +13,16 @@ LFLAGS=	-L${MKLROOT}/lib/intel64 -lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_core
 
 EXE=	su2hmc
 
+SRC= \
+	su2hmc.c \
+	force.c\
+	bosonic.c\
+	fermionic.c\
+	par_mpi.c \
+    coord.c \
+    random.c \
+    matrices.c \
+
 INC= \
 	su2hmc.h \
 	sizes.h \
