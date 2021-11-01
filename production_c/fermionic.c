@@ -124,7 +124,13 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 
 	//Instead of typing id[i*ndim+3] a lot, we'll just assign them to variables.
 	//Idea. One loop instead of two loops but for xuu and xdd just use ngorkov-(igorkov+1) instead
+#ifdef __clang__
+#pragma omp target teams distribute parallel for reduction(+:xd,xu,xdd,xuu)\
+map(to:iu,id,u11t,u12t,x,xi,dk4m,dk4p)\
+map(tofrom:xu,xd,xuu,xdd)
+#else
 #pragma omp parallel for reduction(+:xd,xu,xdd,xuu) 
+#endif
 	for(int i = 0; i<kvol; i++){
 		int did=id[3+ndim*i];
 		int uid=iu[3+ndim*i];
