@@ -3,7 +3,7 @@
 #include <curand.h>
 #endif
 #include "errorcodes.h"
-#ifdef	USE_MKL
+#ifdef	__INTEL_MKL__
 #include <mkl.h>
 #include <mkl_vsl.h>
 //Bad practice? Yes but it is convenient
@@ -19,9 +19,9 @@ VSLStreamStatePtr stream;
 #include <time.h>
 
 //Declaring external variables
-#if (defined USE_RAN2||!defined USE_MKL)
+#if (defined USE_RAN2||!defined __INTEL_MKL__)
 long seed;
-#elif defined USE_MKL
+#elif defined __INTEL_MKL__
 unsigned int seed;
 #else
 #endif
@@ -29,13 +29,13 @@ unsigned int seed;
 #define M_PI           3.14159265358979323846
 #endif
 
-#if (defined USE_RAN2||!defined USE_MKL)
+#if (defined USE_RAN2||!defined __INTEL_MKL__)
 inline int ranset(long *seed)
 #else
 inline int ranset(unsigned int *seed)
 #endif
 {
-#ifdef USE_MKL
+#ifdef __INTEL_MKL__
 	vslNewStream( &stream, VSL_BRNG_MT19937, *seed );
 #endif
 	return 0;
@@ -69,7 +69,7 @@ int Par_ranread(char *filename, double *ranval){
 }
 #ifdef USE_RAN2
 int Par_ranset(long *seed)
-#elif defined(USE_MKL)
+#elif defined(__INTEL_MKL__)
 int Par_ranset(unsigned int *seed)
 #else
 int Par_ranset(long *seed)
@@ -100,7 +100,7 @@ int Par_ranset(long *seed)
 		*seed *= 1.0+8.0*(float)rank/(float)(size-1);
 	//Next we set the seed using ranset
 	//This is one of the really weird FORTRANN 66 esque functions with ENTRY points, so good luck!
-#ifdef USE_MKL
+#ifdef __INTEL_MKL__
 	return ranset(seed);
 #else
 	return 0;
@@ -124,7 +124,7 @@ double Par_granf(){
 	char *funcname = "Par_granf";
 	double ran_val;
 	if(!rank)
-#if defined(USE_RAN2)||!defined(USE_MKL)
+#if defined(USE_RAN2)||!defined(__INTEL_MKL__)
 	ran_val = ran2(&seed);
 #else
 	vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 1, &ran_val, 0,1);

@@ -38,7 +38,13 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 		for(int nu=0;nu<mu;nu++)
 			//Don't merge into a single loop. Makes vectorisation easier?
 			//Or merge into a single loop and dispense with the a arrays?
+#ifdef __clang__
+#pragma omp target teams distribute parallel for simd\
+			aligned(u11t,u12t:AVX) reduction(+:hgs,hgt) map(to:u11t,u12t,iu,mu,nu)\
+			map(tofrom:hgs,hgt)
+#else
 #pragma omp parallel for simd aligned(u11t,u12t:AVX) reduction(+:hgs,hgt)
+#endif
 			for(int i=0;i<kvol;i++){
 				//Save us from typing iu[mu+ndim*i] everywhere
 				int uidm = iu[mu+ndim*i]; 
@@ -57,13 +63,12 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 				switch(mu){
 					//Time component
 					case(ndim-1):	hgt -= creal(Sigma11);
-								break;
-								//Space component
+									break;
+									//Space component
 					default:	hgs -= creal(Sigma11);
-							break;
+								break;
 				}
 			}
-
 	Par_dsum(&hgs); Par_dsum(&hgt);
 	*avplaqs=-hgs/(3.0*gvol); *avplaqt=-hgt/(gvol*3.0);
 	*hg=(hgs+hgt)*beta;
@@ -106,17 +111,17 @@ double Polyakov(){
 	Complex *Sigma11,*Sigma12;
 	cudaMallocManaged(&Sigma11,kvol3*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&Sigma12,kvol3*sizeof(Complex),cudaMemAttachGlobal);
-#elif defined USE_MKL
-	complex *Sigma11 = mkl_malloc(kvol3*sizeof(complex),AVX);
-	complex *Sigma12 = mkl_malloc(kvol3*sizeof(complex),AVX);
+#elif defined __INTEL_MKL__
+	Complex *Sigma11 = mkl_malloc(kvol3*sizeof(complex),AVX);
+	Complex *Sigma12 = mkl_malloc(kvol3*sizeof(complex),AVX);
 #else
-	complex *Sigma11 = aligned_alloc(AVX,kvol3*sizeof(complex));
-	complex *Sigma12 = aligned_alloc(AVX,kvol3*sizeof(complex));
+	Complex *Sigma11 = aligned_alloc(AVX,kvol3*sizeof(complex));
+	Complex *Sigma12 = aligned_alloc(AVX,kvol3*sizeof(complex));
 #endif
 #ifdef __NVCC__
 	cublasZcopy(cublas_handle,kvol3, &u11t[3], ndim, Sigma11, 1);
 	cublasZcopy(cublas_handle,kvol3, &u12t[3], ndim, Sigma12, 1);
-#elif (defined USE_MKL || defined USE_BLAS)
+#elif (defined __INTEL_MKL__ || defined USE_BLAS)
 	cblas_zcopy(kvol3, &u11t[3], ndim, Sigma11, 1);
 	cblas_zcopy(kvol3, &u12t[3], ndim, Sigma12, 1);
 #else
@@ -137,21 +142,32 @@ double Polyakov(){
 	//	be done in parallel. Start at t=1 and go up to t=T:
 	//	previously started at t+T and looped back to 1, 2, ... T-1
 	//Buffers
-	complex a11=0;
 	//There is a dependency. Can only parallelise the inner loop
+#ifdef __clang__
+#pragma omp target teams map(to:u11t,u12t)\
+	map(from:Sigma11,Sigma12)
+	{
+#endif
 #pragma unroll
-	for(int it=1;it<ksizet;it++)
-		//will be faster for parallel code
-#pragma omp parallel for simd private(a11) aligned(u11t,u12t,Sigma11,Sigma12:AVX)
-		for(int i=0;i<kvol3;i++){
-			//Seems a bit more efficient to increment indexu instead of reassigning
-			//it every single loop
-			int indexu=it*kvol3+i;
-			a11=Sigma11[i]*u11t[indexu*ndim+3]-Sigma12[i]*conj(u12t[indexu*ndim+3]);
-			//Instead of having to store a second buffer just assign it directly
-			Sigma12[i]=Sigma11[i]*u12t[indexu*ndim+3]+Sigma12[i]*conj(u11t[indexu*ndim+3]);
-			Sigma11[i]=a11;
-		}
+		for(int it=1;it<ksizet;it++)
+			//will be faster for parallel code
+#ifdef __clang__
+#pragma omp parallel for simd aligned(u11t,u12t,Sigma11,Sigma12:AVX)
+#else
+#pragma omp parallel for simd aligned(u11t,u12t,Sigma11,Sigma12:AVX)
+#endif
+			for(int i=0;i<kvol3;i++){
+				//Seems a bit more efficient to increment indexu instead of reassigning
+				//it every single loop
+				int indexu=it*kvol3+i;
+				Complex	a11=Sigma11[i]*u11t[indexu*ndim+3]-Sigma12[i]*conj(u12t[indexu*ndim+3]);
+				//Instead of having to store a second buffer just assign it directly
+				Sigma12[i]=Sigma11[i]*u12t[indexu*ndim+3]+Sigma12[i]*conj(u11t[indexu*ndim+3]);
+				Sigma11[i]=a11;
+			}
+#ifdef __clang__
+	}
+#endif
 
 	//Multiply this partial loop with the contributions of the other cores in the
 	//timelike dimension
@@ -163,17 +179,12 @@ double Polyakov(){
 	//its call if it is required
 	Par_tmul(Sigma11, Sigma12);
 #endif
-#ifdef __USE_MKL
-
-#else
-
-#endif
 #pragma omp parallel for simd reduction(+:poly) aligned(Sigma11:AVX)
 	for(int i=0;i<kvol3;i++)
 		poly+=creal(Sigma11[i]);
 #ifdef __NVCC__
 	cudaFree(Sigma11); cudaFree(sigma12);
-#elif defined USE_MKL
+#elif defined __INTEL_MKL__
 	mkl_free(Sigma11); mkl_free(Sigma12);
 #else
 	free(Sigma11); free(Sigma12);

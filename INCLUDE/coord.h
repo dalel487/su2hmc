@@ -4,7 +4,7 @@
 #include <cuda.h>
 #include <cublas_v2.h>
 #endif
-#ifdef USE_MKL
+#if defined __INTEL_MKL__
 #include <mkl.h>
 #elif defined USE_BLAS
 #include <cblas.h>

@@ -4,33 +4,23 @@ CC=	mpiicc
 
 IFLAGS=	-I../INCLUDE 
 
-CFLAGS=	$(IFLAGS) -mkl  -DUSE_MKL -std=gnu11 -ipo -qopt-zmm-usage=high \
-		-xCOMMON-AVX512 -static-intel -static-libgcc -DMKL_DIRECT_CALL \
-		-qopenmp -qopenmp-simd -qopenmp-link=static -DSA3AT
+CFLAGS=     $(IFLAGS) -qmkl -DUSE_MKL -std=gnu11 -ipo -qopt-zmm-usage=high \
+			-xHOST -static-intel -static-libgcc -DMKL_DIRECT_CALL -D__INTEL_MKL__\
+			-qopenmp -qno-openmp-offload -qopenmp-simd -qopenmp-link=static -DSA3AT \
 
 LFLAGS=	-L${MKLROOT}/lib/intel64 -lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_core -lmkl_blacs_intelmpi_ilp64\
-		-liomp5 -lpthread -lm -ldl 
+		-liomp5 -lpthread -ldl 
 
 EXE=	su2hmc
 
-SRC=	\
-		su2hmc.c \
-		force.c\
-		bosonic.c\
-		fermionic.c\
-		par_mpi.c \
-    	coord.c \
-	    random.c \
-    	matrices.c \
-
-INC=	\
-		su2hmc.h \
-		sizes.h \
-		par_mpi.h \
-		random.h \
-		matrices.h \
-		coord.h \
-		errorcodes.h \
+INC= \
+	su2hmc.h \
+	sizes.h \
+	par_mpi.h \
+	random.h \
+	matrices.h \
+	coord.h \
+	errorcodes.h \
 
 #
 # No need to edit below this line
@@ -50,7 +40,7 @@ profiler:	CFLAGS += -g
 profiler:	release
 
 release:	CFLAGS +=  -O3  -inline-level=2\
-			-DMKL_ILP64  -I"${MKLROOT}/include"# -DUSE_RAN2
+						-DMKL_ILP64  -I"${MKLROOT}/include"# -DUSE_RAN2
 release:	$(EXE)
 
 debug:	CFLAGS += -g -O0 \

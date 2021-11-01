@@ -18,7 +18,7 @@ cublasHandle_t cublas_status;
 //MKL is powerful, but not guaranteed to be available (especially on AMD systems or future
 //ARM Based machines.) BLAS routines should work with other libraries, so we can set a compiler
 //flag to sort them out. But the PRNG routines etc. are MKL exclusive
-#ifdef	USE_MKL
+#ifdef	__INTEL_MKL__
 #include	<mkl.h>
 #elif defined USE_BLAS
 #include	<cblas.h>

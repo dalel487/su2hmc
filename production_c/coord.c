@@ -27,14 +27,14 @@ int Addrc(){
 #ifdef __NVCC__
 	cudaMallocManaged((void**)&iu,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
 	cudaMallocManaged((void**)&id,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
-#elif defined USE_MKL
+#elif defined __INTEL_MKL__
 	id = mkl_malloc(ndim*kvol*sizeof(int),AVX);
 	iu = mkl_malloc(ndim*kvol*sizeof(int),AVX);
 #else
 	id = aligned_alloc(AVX,ndim*kvol*sizeof(int));
 	iu = aligned_alloc(AVX,ndim*kvol*sizeof(int));
 #endif
-#ifdef USE_MKL
+#ifdef __INTEL_MKL__
 	hd = (unsigned int*)mkl_malloc(ndim*halo*sizeof(int),AVX);
 	hu = (unsigned int*)mkl_malloc(ndim*halo*sizeof(int),AVX);
 	h1u = (unsigned int*)mkl_malloc(ndim*sizeof(int),AVX);

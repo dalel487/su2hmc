@@ -26,7 +26,7 @@
  ******************************************************************/
 #ifndef	SIZES
 #define	SIZES
-#ifdef	USE_MKL
+#ifdef	__INTEL_MKL__
 #include	<mkl.h>
 #endif
 #ifdef	__NVCC__
