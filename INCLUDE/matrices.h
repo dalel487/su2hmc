@@ -12,6 +12,8 @@ int Dslashd(Complex *phi, Complex *r);
 int Hdslash(Complex *phi, Complex *r);
 int Hdslashd(Complex *phi, Complex *r);
 //Float version
+int Dslash_f(Complex_f *phi, Complex_f *r);
+int Dslashd_f(Complex_f *phi, Complex_f *r);
 int Hdslash_f(Complex_f *phi, Complex_f *r);
 int Hdslashd_f(Complex_f *phi, Complex_f *r);
 #else
@@ -21,6 +23,8 @@ extern "C" int Dslashd(Complex *phi, Complex *r);
 extern "C" int Hdslash(Complex *phi, Complex *r);
 extern "C" int Hdslashd(Complex *phi, Complex *r);
 //Float version
+extern "C" int Dslash_f(Complex_f *phi, Complex_f *r);
+extern "C" int Dslashd_f(Complex_f *phi, Complex_f *r);
 extern "C" int Hdslash_f(Complex_f *phi, Complex_f *r);
 extern "C" int Hdslashd_f(Complex_f *phi, Complex_f *r);
 

@@ -24,6 +24,7 @@ cublasHandle_t cublas_status;
 #include	<cblas.h>
 #endif
 #include	<sizes.h>
+#include	<time.h>
 
 //Definitions:
 //###########
@@ -71,8 +72,10 @@ float	*dk4m_f, *dk4p_f;
 //The diquark
 #ifdef __NVCC__
 __device__ Complex *jqq_d;
+__device__ Complex *jqq_f_d;
 #endif 
 extern Complex jqq;
+extern Complex_f jqq_f;
 
 //Average # of congrad iter guidance and acceptance
 double ancg, ancgh;
