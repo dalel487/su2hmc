@@ -181,6 +181,55 @@ int Gauss_z(Complex *ps, unsigned int n, const double mu, const double sigma){
 	}     
 	return 0;
 }
+int Gauss_c(Complex_f *ps, unsigned int n, const float mu, const float sigma){
+	/* Generates a vector of normally distributed random complex numbers
+	 * using the Box-Muller Method
+	 * 
+	 * Parameters:
+	 * ==========
+	 * Complex *ps:   The array
+	 * unsigned int n: The array length
+	 * double mu:     mean
+	 * double sigma:  variance
+	 *
+	 * Globals:
+	 * =======
+	 * seed
+	 *
+	 * Calls:
+	 * =====
+	 * ran2
+	 * 
+	 * Returns:
+	 * =======
+	 * Zero on success integer error code otherwise
+	 */
+	const char *funcname = "Gauss_z";
+	if(n<=0){
+		fprintf(stderr, "Error %i in %s: Array cannot have length %i.\nExiting...\n\n",
+				ARRAYLEN, funcname, n);
+		exit(ARRAYLEN);
+	}
+#pragma unroll
+	for(int i=0;i<n;i++){
+		/* Marsaglia Method for fun
+		   do{
+		   u=sfmt_genrand_real1(sfmt);
+		   v=sfmt_genrand_real1(sfmt);
+		   r=u*u+v*v;
+		   }while(0<r & r<1);
+		   r=sqrt(r);
+		   r=sqrt(-2.0*log(r)/r)*sigma;
+		   ps[i] = mu+u*r + I*(mu+v*r);
+		 */
+#ifdef USE_RAN2
+		float r =sigma*sqrt(-2*log(ran2(&seed)));
+		float theta=2.0*M_PI*ran2(&seed);
+		ps[i]=r*(cos(theta)+mu+(sin(theta)+mu)*I);
+#endif
+	}     
+	return 0;
+}
 int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma){
 	/* Generates a vector of normally distributed random complex numbers
 	 * using the Box-Muller Method
@@ -215,6 +264,71 @@ int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma){
 	}
 	int i;
 	double r, u, v;
+	//If n is odd we calculate the last index seperately and the rest in pairs
+	if(n%2==1){
+		n--;
+#ifdef USE_RAN2
+		r=2.0*M_PI*ran2(&seed);
+		ps[n]=sqrt(-2*log(ran2(&seed)))*cos(r);
+#else
+#endif
+	}
+	for(i=0;i<n;i+=2){
+		/* Marsaglia Method for fun
+		   do{
+		   u=sfmt_genrand_real1(sfmt);
+		   v=sfmt_genrand_real1(sfmt);
+		   r=u*u+v*v;
+		   }while(0<r & r<1);
+		   r=sqrt(r);
+		   r=sqrt(-2.0*log(r)/r)*sigma;
+		   ps[i] = mu+u*r; 
+		   ps[i+1]=mu+v*r;
+		 */
+#ifdef USE_RAN2
+		u=sqrt(-2*log(ran2(&seed)))*sigma;
+		r=2.0*M_PI*ran2(&seed);
+#else
+#endif
+		ps[i]=u*cos(r)+mu;
+		ps[i+1]=u*sin(r)+mu;
+	}     
+	return 0;
+}
+int Gauss_f(float *ps, unsigned int n, const float mu, const float sigma){
+	/* Generates a vector of normally distributed random complex numbers
+	 * using the Box-Muller Method
+	 * 
+	 * Parameters:
+	 * ==========
+	 * double *ps:   The array
+	 * unsigned int n: The array length
+	 * double mu:     mean
+	 * double sigma:  variance
+	 *
+	 * Globals:
+	 * ======
+	 * seed
+	 *
+	 * Calls:
+	 * =====
+	 * ran2
+	 * 
+	 * Returns:
+	 * =======
+	 * Zero on success integer error code otherwise
+	 */
+	const char *funcname = "Gauss_z";
+	//The FORTRAN Code had two different Gauss Routines. gaussp having unit
+	//mean and variance and gauss0 where the variance would appear to be 1/sqrt(2)
+	//(Since we multiply by sqrt(-ln(r)) instead of sqrt(-2ln(r)) )
+	if(n<=0){
+		fprintf(stderr, "Error %i in %s: Array cannot have length %i.\nExiting...\n\n",
+				ARRAYLEN, funcname, n);
+		exit(ARRAYLEN);
+	}
+	int i;
+	float r, u, v;
 	//If n is odd we calculate the last index seperately and the rest in pairs
 	if(n%2==1){
 		n--;

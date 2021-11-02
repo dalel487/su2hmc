@@ -40,6 +40,8 @@ double ranget(double *seed);
 //Use Box-Müller to generate an array of complex numbers
 int Gauss_z(Complex *ps, unsigned int n, const double mu, const double sigma);
 int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma);
+int Gauss_c(Complex_f *ps, unsigned int n, const float mu, const float sigma);
+int Gauss_f(float *ps, unsigned int n, const float mu, const float sigma);
 
 //MPI
 //===

@@ -40,8 +40,12 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	//This x is just a storage container
 
 #ifdef __INTEL_MKL__
-	Complex *x = mkl_malloc(kfermHalo*sizeof(Complex), AVX);
+	Complex	*x = mkl_malloc(kfermHalo*sizeof(Complex), AVX);
+	Complex_f	*xi_f = mkl_malloc(kfermHalo*sizeof(Complex_f), AVX);
+	Complex_f	*R1_f = mkl_malloc(kferm*sizeof(Complex_f), AVX);
 #else
+	Complex *x = aligned_alloc(AVX,kfermHalo*sizeof(Complex));
+	Complex *x = aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 	Complex *x = aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 #endif
 	//Setting up noise.
@@ -57,7 +61,23 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	//R_1= M^† Ξ 
 	//R1 is local in fortran but since its going to be reset anyway I'm going to recycle the
 	//global
-	Dslashd(R1, xi);
+#pragma omp parallel for simd aligned(R1,xi,R1_f,xi_f:AVX)
+	for(int i=0;i<kferm;i++){
+		R1_f[i]=(Complex_f)R1[i];
+		xi_f[i]=(Complex_f)xi[i];
+	}
+	Dslashd_f(R1_f, xi_f);
+#pragma omp parallel for simd aligned(R1,R1_f:AVX)
+	for(int i=0;i<kferm;i++)
+		R1[i]=(Complex)R1_f[i];
+#ifdef __NVCC__
+	cudaFree(xi_f); cudaFree(R1_f);
+#elif defined __INTEL_MKL__
+	mkl_free(xi_f);
+	mkl_free(R1_f);
+#else
+	free(xi_f); free(R1_f);
+#endif
 	//Copying R1 to the first (zeroth) flavour index of Phi
 	//This should be safe with memcpy since the pointer name
 	//references the first block of memory for that pointer
@@ -126,8 +146,8 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	//Idea. One loop instead of two loops but for xuu and xdd just use ngorkov-(igorkov+1) instead
 #ifdef __clang__
 #pragma omp target teams distribute parallel for reduction(+:xd,xu,xdd,xuu)\
-map(to:iu,id,u11t,u12t,x,xi,dk4m,dk4p)\
-map(tofrom:xu,xd,xuu,xdd)
+	map(to:iu,id,u11t,u12t,x,xi,dk4m,dk4p)\
+	map(tofrom:xu,xd,xuu,xdd)
 #else
 #pragma omp parallel for reduction(+:xd,xu,xdd,xuu) 
 #endif

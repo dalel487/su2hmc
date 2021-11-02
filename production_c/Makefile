@@ -54,7 +54,7 @@ release:	CFLAGS +=  -O3  -inline-level=2\
 release:	$(EXE)
 
 debug:	CFLAGS += -g -O0 \
-		-D_DEBUG -DUSE_RAN2 #-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
+		-D_DEBUG #-DUSE_RAN2 #-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 	
 debug:	$(EXE)
 
