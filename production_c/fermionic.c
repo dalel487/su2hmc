@@ -45,8 +45,8 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	Complex_f	*R1_f = mkl_malloc(kferm*sizeof(Complex_f), AVX);
 #else
 	Complex *x = aligned_alloc(AVX,kfermHalo*sizeof(Complex));
-	Complex *x = aligned_alloc(AVX,kfermHalo*sizeof(Complex));
-	Complex *x = aligned_alloc(AVX,kfermHalo*sizeof(Complex));
+	Complex_f *xi_f = aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
+	Complex_f *R1_f = aligned_alloc(AVX,kferm*sizeof(Complex_f));
 #endif
 	//Setting up noise.
 
@@ -73,8 +73,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #ifdef __NVCC__
 	cudaFree(xi_f); cudaFree(R1_f);
 #elif defined __INTEL_MKL__
-	mkl_free(xi_f);
-	mkl_free(R1_f);
+	mkl_free(xi_f);	mkl_free(R1_f);
 #else
 	free(xi_f); free(R1_f);
 #endif

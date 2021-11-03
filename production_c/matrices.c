@@ -480,7 +480,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r){
 	//Diquark Term (antihermitian)
 #ifdef __clang__
 #pragma omp target teams distribute parallel for\
-	map(from:r,u11t_f,u12t_f,gamval_f,id,iu,gamin,dk4m_f,dk4p_f)\
+	map(from:r,u11t_f,u12t_f,gamval_f,id,iu,gamin,dk4m_f,dk4p_f,jqq_f)\
 	map(tofrom:phi)
 #endif
 	for(int i=0;i<kvol;i++){
@@ -501,7 +501,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
-#pragma omp simd aligned(phi,r,u11t_f,u12t_f,gamval_f:AVX)
+#pragma omp simd aligned(phi,r,u11t_f,u12t_f,gamval_f,gamin:AVX)
 			for(int igorkov=0; igorkov<ngorkov; igorkov++){
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing in the dirac term.
 				int idirac=igorkov%4;		
@@ -536,7 +536,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r){
 #endif
 		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
 #ifndef NO_TIME
-#pragma omp simd aligned(phi,r,u11t_f,u12t_f,dk4m_f,dk4p_f:AVX)
+#pragma omp simd aligned(phi,r,u11t_f,u12t_f,dk4m_f,dk4p_f,gamin:AVX)
 		for(int igorkov=0; igorkov<4; igorkov++){
 			int igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
 			//the FORTRAN code did it.
@@ -598,7 +598,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r){
 	memcpy(phi, r, kferm*sizeof(Complex_f));
 #ifdef __clang__
 #pragma omp target teams distribute parallel for\
-	map(from:r,u11t_f,u12t_f,gamval_f,id,iu,gamin,dk4m_f,dk4p_f)\
+	map(from:r,u11t_f,u12t_f,gamval_f,id,iu,gamin,dk4m_f,dk4p_f,jqq_f)\
 	map(tofrom:phi)
 #endif
 	for(int i=0;i<kvol;i++){
@@ -723,7 +723,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r){
 	//Spacelike term
 #ifdef __clang__
 #pragma omp target teams distribute parallel for\
-	map(to:u11t_f,u12t_f,iu,id,gamin,dk4m_f,dk4p_f,r)\
+	map(to:u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,r)\
 	map(tofrom:phi)
 #endif
 	for(int i=0;i<kvol;i++){
@@ -818,7 +818,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r){
 	//Spacelike term
 #ifdef __clang__
 #pragma omp target teams distribute parallel for\
-	map(to:u11t_f,u12t_f,iu,id,gamin,dk4m_f,dk4p_f,r)\
+	map(to:u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,r)\
 	map(tofrom:phi)
 #endif
 	for(int i=0;i<kvol;i++){

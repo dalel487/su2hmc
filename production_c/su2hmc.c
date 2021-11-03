@@ -1184,7 +1184,7 @@ int Congradp(int na, double res, int *itercg){
 	double betad = 1.0; float alphad_f=0; Complex_f alpha_f = 1;
 #ifdef __NVCC__
 	Complex *p, *r;
-	Complex_f *p_f, *r_f;
+	Complex_f *p_f, *r_f, *xi_f;
 	int device; cudaGetDevice(&device);
 	cudaMallocManaged(&p, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMemAdvise(p,kfermHalo*sizeof(Complex),cudaMemAdviseSetPreferredLocation,device);
@@ -1223,15 +1223,15 @@ int Congradp(int na, double res, int *itercg){
 	// This x1 is NOT related to the /common/vectorp/X1 in the FORTRAN code and should not
 	// be confused with X1 the global variable
 #ifdef __NVCC__
-	Complex *x1, *x2;
-	Complex_f *x1_f, *x2_f;
+	Complex  *x2;
+	Complex_f *x1, *x2_f;
 	cudaMemPrefetchAsync(p,kfermHalo*sizeof(Complex),device,NULL);
-	cudaMalloc(&x1, kferm2Halo*sizeof(Complex));
+	cudaMemPrefetchAsync(r,kfermHalo*sizeof(Complex),device,NULL);
+	cudaMalloc(&x1, kferm2Halo*sizeof(Complex_f));
 
 	cudaMallocManaged(&x2, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMemAdvise(x2,kfermHalo*sizeof(Complex),cudaMemAdviseSetPreferredLocation,device);
 
-	cudaMemPrefetchAsync(p_f,kfermHalo*sizeof(Complex_f),device,NULL);
 	cudaMalloc(&x1_f, kfermHalo*sizeof(Complex_f));
 
 	cudaMallocManaged(&x2_f, kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
@@ -1248,7 +1248,7 @@ int Congradp(int na, double res, int *itercg){
 
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
 	//if statements quicker to type
-#pragma omp parallel for simd aligned(p_f,p:AVX)
+#pragma omp parallel for simd aligned(r_f,r:AVX)
 		for(int i=0;i<kferm;i++)
 			r_f[i]=(Complex_f)r[i];
 	float betan_f; double betan;
@@ -1259,6 +1259,7 @@ int Congradp(int na, double res, int *itercg){
 			p_f[i]=(Complex_f)p[i];
 #ifdef	__NVCC__
 		cudaMemPrefetchAsync(p_f,kfermHalo*sizeof(Complex_f),device,NULL);
+		cudaMemPrefetchAsync(r_f,kfermHalo*sizeof(Complex_f),device,NULL);
 #endif
 		Dslash_f(x1,p_f);
 		//We can't evaluate α on the first niterx because we need to get β_n.
@@ -1312,13 +1313,14 @@ int Congradp(int na, double res, int *itercg){
 		//addition.
 		betan = 0;
 		//If we get a small enough β_n before hitting the iteration cap we break
+		#pragma omp parallel for simd aligned(x2_f,r_f:AVX)
 		for(int i = 0; i<kferm;i++){
 			r_f[i]-=alpha*x2_f[i];
 			betan+=conj(r_f[i])*r_f[i];
 		}
 #endif
 		//This is basically just congradq at the end. Check there for comments
-#pragma omp parallel for simd aligned(x2,x2_f:AVX)
+#pragma omp parallel for simd aligned(x2,x2_f,p,p_f,r,r_f:AVX)
 		for(int i=0;i<kferm;i++){
 			x2[i]=(Complex)x2_f[i];
 			p[i]=(Complex)p_f[i];
@@ -1349,7 +1351,7 @@ int Congradp(int na, double res, int *itercg){
 			p[i]=r[i]+beta*p[i];
 #endif
 	}
-#pragma omp parallel for simd aligned(x2,x2_f:AVX)
+#pragma omp parallel for simd aligned(xi,xi_f:AVX)
 		for(int i=0;i<kferm;i++)
 			xi[i]=(Complex)xi_f[i];
 #ifdef	__NVCC__
