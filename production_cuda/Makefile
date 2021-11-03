@@ -8,9 +8,9 @@ NVCC=	nvcc
 IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include"
 
 
-CFLAGS=      $(IFLAGS) -cc=icx -qmkl -std=gnu++11  -DUSE_RAN2 \
+CFLAGS=      $(IFLAGS) -cc=icc -std=gnu++11 -DUSE_RAN2 \
 			 -xHOST -static-intel -static-libgcc -masm=att -fcommon\
-			 -qopenmp-simd -fopenmp -qopenmp-link=static -DSA3AT -x c++\
+			 -qopenmp-simd -qopenmp -qopenmp-link=static -DSA3AT -x c++\
 
 LFLAGS=		-liomp5 -lpthread -lm -ldl -lcudart -lcublas -L${NVSHMEM_HOME}/lib -lnvshmem -wd10237
 
@@ -25,19 +25,22 @@ CUFLAGS=	${IFLAGS} -ccbin ${CC} -arch=compute_75 -code=sm_75 -err-no -w\
 EXE=		cuda_su2hmc_CASCADE
 
 CSRC_DIR=	../production_c
-
 CSRC=	\
 	    coord.c \
 		su2hmc.c \
     	random.c \
 		par_mpi.c \
+		matrices.c\
+		force.c\
+		bosonic.c\
+		fermionic.c
 
 CUSRC_DIR=	../production_cuda
 CUSRC=	\
-		matrices.cu\
+		#matrices.cu\
 		force.cu\
-		fermionic.cu\
-		bosonic.cu
+		bosonic.cu\
+		fermionic.cu
 
 CINC=	\
 		su2hmc.h \

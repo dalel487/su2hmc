@@ -149,7 +149,7 @@ int main(int argc, char *argv[]){
 	Par_icopy(&iread);
 	jqq=ajq*cexp(athq*I);
 	akappa_f=(float)akappa;
-	jqq_f=(float)jqq_f;
+	jqq_f=(Complex_f)jqq_f;
 #ifdef __NVCC__
 	cudaMalloc(&jqq_d,sizeof(Complex));
 	cudaMalloc(&beta_d,sizeof(Complex));
@@ -1184,7 +1184,7 @@ int Congradp(int na, double res, int *itercg){
 	double betad = 1.0; float alphad_f=0; Complex_f alpha_f = 1;
 #ifdef __NVCC__
 	Complex *p, *r;
-	Complex_f *p_f, *r_f;
+	Complex_f *p_f, *r_f, *xi_f;
 	int device; cudaGetDevice(&device);
 	cudaMallocManaged(&p, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMemAdvise(p,kfermHalo*sizeof(Complex),cudaMemAdviseSetPreferredLocation,device);
@@ -1223,16 +1223,14 @@ int Congradp(int na, double res, int *itercg){
 	// This x1 is NOT related to the /common/vectorp/X1 in the FORTRAN code and should not
 	// be confused with X1 the global variable
 #ifdef __NVCC__
-	Complex *x1, *x2;
-	Complex_f *x1_f, *x2_f;
+	Complex *x2;
+	Complex_f *x1, *x2_f;
 	cudaMemPrefetchAsync(p,kfermHalo*sizeof(Complex),device,NULL);
-	cudaMalloc(&x1, kferm2Halo*sizeof(Complex));
+	cudaMemPrefetchAsync(r_f,kfermHalo*sizeof(Complex_f),device,NULL);
+	cudaMalloc(&x1, kferm2Halo*sizeof(Complex_f));
 
 	cudaMallocManaged(&x2, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMemAdvise(x2,kfermHalo*sizeof(Complex),cudaMemAdviseSetPreferredLocation,device);
-
-	cudaMemPrefetchAsync(p_f,kfermHalo*sizeof(Complex_f),device,NULL);
-	cudaMalloc(&x1_f, kfermHalo*sizeof(Complex_f));
 
 	cudaMallocManaged(&x2_f, kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMemAdvise(x2_f,kfermHalo*sizeof(Complex_f),cudaMemAdviseSetPreferredLocation,device);
@@ -1292,8 +1290,8 @@ int Congradp(int na, double res, int *itercg){
 		Dslashd_f(x2_f,x1);
 		//r-α(M^†)Mp and β_n=r*.r
 #ifdef __NVCC__
-		alpha*_f=-1;
-		cublasCaxpy(cublas_handle,kferm, (cuComplex *)&alpha_f,(cuComplex *) x2_f, 1,(cuDoubleComplex *) r_f, 1);
+		alpha_f*=-1;
+		cublasCaxpy(cublas_handle,kferm, (cuComplex *)&alpha_f,(cuComplex *) x2_f, 1,(cuComplex *) r_f, 1);
 		alpha_f*=-1;
 		//r*.r
 		cublasScnrm2(cublas_handle,kferm,(cuComplex *) r_f,1,&betan_f);

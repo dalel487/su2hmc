@@ -3,7 +3,7 @@
 #include <string.h>
 //TO DO: Check and see are there any terms we are evaluating twice in the same loop
 //and use a variable to hold them instead to reduce the number of evaluations.
-int Dslash(complex *phi, complex *r){
+int Dslash(Complex *phi, Complex *r){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -29,7 +29,7 @@ int Dslash(complex *phi, complex *r){
 	ZHalo_swap_all(r, 16);
 
 	//Mass term
-	memcpy(phi, r, kferm*sizeof(complex));
+	memcpy(phi, r, kferm*sizeof(Complex));
 	//Diquark Term (antihermitian)
 #ifdef __clang__
 #pragma omp target teams distribute parallel for\
@@ -38,10 +38,9 @@ int Dslash(complex *phi, complex *r){
 #endif
 	for(int i=0;i<kvol;i++){
 #pragma omp simd aligned(phi,r,gamval:AVX)
-#pragma vector vecremainder
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork = idirac+4;
-			complex a_1, a_2;
+			Complex a_1, a_2;
 			a_1=conj(jqq)*gamval[4][idirac];
 			//We subtract a_2, hence the minus
 			a_2=-jqq*gamval[4][idirac];
@@ -92,7 +91,6 @@ int Dslash(complex *phi, complex *r){
 		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
 #ifndef NO_TIME
 #pragma omp simd aligned(phi,r,u11t_f,u12t_f,dk4m,dk4p:AVX)
-#pragma vector vecremainder
 		for(int igorkov=0; igorkov<4; igorkov++){
 			int igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
 			//the FORTRAN code did it.
@@ -125,7 +123,7 @@ int Dslash(complex *phi, complex *r){
 	}
 	return 0;
 }
-int Dslashd(complex *phi, complex *r){
+int Dslashd(Complex *phi, Complex *r){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -151,7 +149,7 @@ int Dslashd(complex *phi, complex *r){
 	ZHalo_swap_all(r, 16);
 
 	//Mass term
-	memcpy(phi, r, kferm*sizeof(complex));
+	memcpy(phi, r, kferm*sizeof(Complex));
 #ifdef __clang__
 #pragma omp target teams distribute parallel for\
 	map(from:r,u11t,u12t,gamval,id,iu,gamin,dk4m,dk4p)\
@@ -159,11 +157,10 @@ int Dslashd(complex *phi, complex *r){
 #endif
 	for(int i=0;i<kvol;i++){
 #pragma omp simd aligned(phi,r,gamval:AVX)
-#pragma vector vecremainder
 		//Diquark Term (antihermitian) The signs of a_1 and a_2 below flip under dagger
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork = idirac+4;
-			complex a_1, a_2;
+			Complex a_1, a_2;
 			//We subtract a_1, hence the minus
 			a_1=-conj(jqq)*gamval[4][idirac];
 			a_2=jqq*gamval[4][idirac];
@@ -178,7 +175,6 @@ int Dslashd(complex *phi, complex *r){
 		for(int mu = 0; mu <3; mu++){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
 #pragma omp simd aligned(phi,r,u11t_f,u12t_f,gamval:AVX)
-#pragma vector vecremainder
 			for(int igorkov=0; igorkov<ngorkov; igorkov++){
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing.
 				int idirac=igorkov%4;		
@@ -216,7 +212,6 @@ int Dslashd(complex *phi, complex *r){
 		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
 #ifndef NO_TIME
 #pragma omp simd aligned(phi,r,u11t_f,u12t_f,dk4m,dk4p:AVX)
-#pragma vector vecremainder
 		for(int igorkov=0; igorkov<4; igorkov++){
 			//the FORTRAN code did it.
 			int igork1 = gamin[3][igorkov];	
@@ -251,7 +246,7 @@ int Dslashd(complex *phi, complex *r){
 	}
 	return 0;
 }
-int Hdslash(complex *phi, complex *r){
+int Hdslash(Complex *phi, Complex *r){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -278,22 +273,14 @@ int Hdslash(complex *phi, complex *r){
 	ZHalo_swap_all(r, 8);
 
 	//Mass term
-	memcpy(phi, r, kferm2*sizeof(complex));
+	memcpy(phi, r, kferm2*sizeof(Complex));
 	//Spacelike term
-	//#pragma offload target(mic)\
-	in(r: length(kferm2Halo))\
-		in(dk4m, dk4p: length(kvol+halo))\
-		in(id, iu: length(ndim*kvol))\
-		in(u11t, u12t: length(ndim*(kvol+halo)))\
-		inout(phi: length(kferm2Halo))
 #pragma omp parallel for
 		for(int i=0;i<kvol;i++){
 #ifndef NO_SPACE
-			//#pragma ivdep
 			for(int mu = 0; mu <3; mu++){
 				int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
-#pragma omp simd aligned(phi,r,u11t_f,u12t_f,gamval:AVX)
-#pragma vector vecremainder
+#pragma omp simd aligned(phi,r,u11t,u12t,gamval:AVX)
 				for(int idirac=0; idirac<ndirac; idirac++){
 					//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
 					int igork1 = gamin[mu][idirac];
@@ -325,8 +312,7 @@ int Hdslash(complex *phi, complex *r){
 			//Timelike terms
 			int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
 #ifndef NO_TIME
-#pragma omp simd aligned(phi,r,u11t_f,u12t_f,dk4m,dk4p:AVX)
-#pragma vector vecremainder
+#pragma omp simd aligned(phi,r,u11t,u12t,dk4m,dk4p:AVX)
 			for(int idirac=0; idirac<ndirac; idirac++){
 				int igork1 = gamin[3][idirac];
 				//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
@@ -345,7 +331,7 @@ int Hdslash(complex *phi, complex *r){
 		}
 	return 0;
 }
-int Hdslashd(complex *phi, complex *r){
+int Hdslashd(Complex *phi, Complex *r){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -380,19 +366,12 @@ int Hdslashd(complex *phi, complex *r){
 	//Mass term
 	memcpy(phi, r, kferm2*sizeof(complex));
 	//Spacelike term
-	//#pragma offload target(mic)\
-	in(r: length(kferm2Halo))\
-		in(dk4m, dk4p: length(kvol+halo))\
-		in(id, iu: length(ndim*kvol))\
-		in(u11t, u12t: length(ndim*(kvol+halo)))\
-		inout(phi: length(kferm2Halo))
 #pragma omp parallel for
 		for(int i=0;i<kvol;i++){
 #ifndef NO_SPACE
 			for(int mu = 0; mu <ndim-1; mu++){
 				int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
-#pragma omp simd aligned(phi,r,u11t_f,u12t_f,gamval:AVX)
-#pragma vector vecremainder
+#pragma omp simd aligned(phi,r,u11t,u12t,gamval:AVX)
 				for(int idirac=0; idirac<ndirac; idirac++){
 					//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
 					int igork1 = gamin[mu][idirac];
@@ -427,8 +406,7 @@ int Hdslashd(complex *phi, complex *r){
 			//Timelike terms
 			int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
 #ifndef NO_TIME
-#pragma omp simd aligned(phi,r,u11t_f,u12t_f,dk4m,dk4p:AVX)
-#pragma vector vecremainder
+#pragma omp simd aligned(phi,r,u11t,u12t,dk4m,dk4p:AVX)
 			for(int idirac=0; idirac<ndirac; idirac++){
 				int igork1 = gamin[3][idirac];
 				//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)

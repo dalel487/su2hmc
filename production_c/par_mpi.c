@@ -1176,10 +1176,10 @@ int Par_tmul(Complex *z11, Complex *z12){
 	t11=(Complex *)mkl_malloc(kvol3*sizeof(Complex), AVX);
 	t12=(Complex *)mkl_malloc(kvol3*sizeof(Complex), AVX);
 #else
-	a11=aligned_alloc(AVX,kvol3*sizeof(Complex));
-	a12=aligned_alloc(AVX,kvol3*sizeof(Complex));
-	t11=aligned_alloc(AVX,kvol3*sizeof(Complex));
-	t12=aligned_alloc(AVX,kvol3*sizeof(Complex));
+	a11=(Complex *)aligned_alloc(AVX,kvol3*sizeof(Complex));
+	a12=(Complex *)aligned_alloc(AVX,kvol3*sizeof(Complex));
+	t11=(Complex *)aligned_alloc(AVX,kvol3*sizeof(Complex));
+	t12=(Complex *)aligned_alloc(AVX,kvol3*sizeof(Complex));
 #endif
 	//Intitialise for the first loop
 	memcpy(a11, z11, kvol3*sizeof(Complex));
