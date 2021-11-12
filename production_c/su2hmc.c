@@ -905,7 +905,7 @@ int Hamilton(double *h, double *s, double res2){
 		memcpy(X0+na*kferm2Halo,X1,kferm2*sizeof(Complex));
 #ifdef __NVCC__
 		Complex dot;
-		cublasZdotc(cublas_handle,kferm2, (cuDoubleComplex *)smallPhi, 1,(cuDoubleComplex *) X1, 1,(cuDoubleComplex *) &dot);
+		cublasZdotc(cublas_handle,kferm2,(cuDoubleComplex *)smallPhi,1,(cuDoubleComplex *) X1,1,(cuDoubleComplex *) &dot);
 		hf+=creal(dot);
 #elif (defined __INTEL_MKL__ || defined USE_BLAS)
 		Complex dot;
@@ -1247,8 +1247,8 @@ int Congradp(int na, double res, int *itercg){
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
 	//if statements quicker to type
 #pragma omp parallel for simd aligned(r_f,r:AVX)
-		for(int i=0;i<kferm;i++)
-			r_f[i]=(Complex_f)r[i];
+	for(int i=0;i<kferm;i++)
+		r_f[i]=(Complex_f)r[i];
 	float betan_f; double betan;
 	for(int niterx=0; niterx<=niterc; niterx++){
 		(*itercg)++;
@@ -1279,7 +1279,7 @@ int Congradp(int na, double res, int *itercg){
 			alpha_f=alphan_f/alphad_f;
 			//x+αp
 #ifdef __NVCC__
-			cublasCaxpy(cublas_handle,kferm,(cuComplex *) &alpha_f,(cuComplex *) p_f, 1,(cuComplex *) xi_f, 1);
+			cublasCaxpy(cublas_handle,kferm,(cuComplex *) &alpha_f,(cuComplex *) p_f,1,(cuComplex *) xi_f,1);
 #elif (defined __INTEL_MKL__ || defined USE_BLAS)
 			cblas_caxpy(kferm, &alpha_f, p_f, 1, xi_f, 1);
 #else
@@ -1311,7 +1311,7 @@ int Congradp(int na, double res, int *itercg){
 		//addition.
 		betan = 0;
 		//If we get a small enough β_n before hitting the iteration cap we break
-		#pragma omp parallel for simd aligned(x2_f,r_f:AVX)
+#pragma omp parallel for simd aligned(x2_f,r_f:AVX)
 		for(int i = 0; i<kferm;i++){
 			r_f[i]-=alpha*x2_f[i];
 			betan+=conj(r_f[i])*r_f[i];
@@ -1332,7 +1332,8 @@ int Congradp(int na, double res, int *itercg){
 			break;
 		}
 		else if(niterx==niterc-1){
-			if(!rank) fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i β_n=%e\n", ITERLIM, funcname, niterc, betan);
+			if(!rank) fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i β_n=%e\n",
+									ITERLIM, funcname, niterc, betan);
 			break;
 		}
 		//Note that beta below is not the global beta and scoping is used to avoid conflict between them
@@ -1350,8 +1351,8 @@ int Congradp(int na, double res, int *itercg){
 #endif
 	}
 #pragma omp parallel for simd aligned(xi,xi_f:AVX)
-		for(int i=0;i<kferm;i++)
-			xi[i]=(Complex)xi_f[i];
+	for(int i=0;i<kferm;i++)
+		xi[i]=(Complex)xi_f[i];
 #ifdef	__NVCC__
 	cudaFree(x2); cudaFree(p); cudaFree(r);
 	cudaFree(x2_f); cudaFree(p_f); cudaFree(r_f);
@@ -1396,9 +1397,8 @@ inline int Fill_Small_Phi(int na, Complex *smallPhi)
 #pragma omp parallel for simd aligned(smallPhi,Phi:AVX) collapse(3)
 	for(int i = 0; i<kvol;i++)
 		for(int idirac = 0; idirac<ndirac; idirac++)
-			for(int ic= 0; ic<nc; ic++){
+			for(int ic= 0; ic<nc; ic++)
 				//	  PHI_index=i*16+j*2+k;
 				smallPhi[(i*ndirac+idirac)*nc+ic]=Phi[((na*kvol+i)*ngorkov+idirac)*nc+ic];
-			}
 	return 0;
 }
