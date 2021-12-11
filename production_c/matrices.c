@@ -33,8 +33,9 @@ int Dslash(Complex *phi, Complex *r){
 	//Diquark Term (antihermitian)
 #ifdef __clang__
 #pragma omp target teams distribute parallel for\
-	map(from:r,u11t,u12t,gamval,id,iu,gamin,dk4m,dk4p)\
-	map(tofrom:phi)
+	map(from:r[0:kferm],u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],gamval[0:5*4],\
+	id[0:ndim*kvol],iu[ndim*kvol],gamin[0:4*4],dk4m[0:kvol+halo],dk4p[0:kvol+halo])\
+	map(tofrom:phi[0:kferm])
 #endif
 	for(int i=0;i<kvol;i++){
 #pragma omp simd aligned(phi,r,gamval:AVX)
@@ -152,8 +153,9 @@ int Dslashd(Complex *phi, Complex *r){
 	memcpy(phi, r, kferm*sizeof(Complex));
 #ifdef __clang__
 #pragma omp target teams distribute parallel for\
-	map(from:r,u11t,u12t,gamval,id,iu,gamin,dk4m,dk4p)\
-	map(tofrom:phi)
+	map(from:r[0:kferm],u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],gamval[0:5*4],\
+	id[0:ndim*kvol],iu[ndim*kvol],gamin[0:4*4],dk4m[0:kvol+halo],dk4p[0:kvol+halo])\
+	map(tofrom:phi[0:kferm])
 #endif
 	for(int i=0;i<kvol;i++){
 #pragma omp simd aligned(phi,r,gamval:AVX)
@@ -458,8 +460,9 @@ int Dslash_f(Complex_f *phi, Complex_f *r){
 	//Diquark Term (antihermitian)
 #ifdef __clang__
 #pragma omp target teams distribute parallel for\
-	map(from:r,u11t_f,u12t_f,gamval_f,id,iu,gamin,dk4m_f,dk4p_f,jqq_f)\
-	map(tofrom:phi)
+	map(from:r[0:kferm],u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],gamval[0:5*4],\
+	id[0:ndim*kvol],iu[ndim*kvol],gamin[0:4*4],dk4m[0:kvol+halo],dk4p[0:kvol+halo])\
+	map(tofrom:phi[0:kferm])
 #endif
 	for(int i=0;i<kvol;i++){
 #pragma omp simd aligned(phi,r,gamval_f:AVX)
@@ -576,8 +579,9 @@ int Dslashd_f(Complex_f *phi, Complex_f *r){
 	memcpy(phi, r, kferm*sizeof(Complex_f));
 #ifdef __clang__
 #pragma omp target teams distribute parallel for\
-	map(from:r,u11t_f,u12t_f,gamval_f,id,iu,gamin,dk4m_f,dk4p_f,jqq_f)\
-	map(tofrom:phi)
+	map(from:r[0:kferm],u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],gamval[0:5*4],\
+	id[0:ndim*kvol],iu[ndim*kvol],gamin[0:4*4],dk4m[0:kvol+halo],dk4p[0:kvol+halo])\
+	map(tofrom:phi[0:kferm])
 #endif
 	for(int i=0;i<kvol;i++){
 #pragma omp simd aligned(phi,r,gamval_f:AVX)

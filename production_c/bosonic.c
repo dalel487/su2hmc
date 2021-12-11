@@ -40,7 +40,8 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 			//Or merge into a single loop and dispense with the a arrays?
 #ifdef __clang__
 #pragma omp target teams distribute parallel for simd\
-			aligned(u11t,u12t:AVX) reduction(+:hgs,hgt) map(to:u11t,u12t,iu,mu,nu)\
+			aligned(u11t,u12t:AVX) reduction(+:hgs,hgt) map(to:u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)]\
+			,iu[0:ndim*kvol])\
 			map(tofrom:hgs,hgt)
 #else
 #pragma omp parallel for simd aligned(u11t,u12t:AVX) reduction(+:hgs,hgt)
@@ -112,11 +113,11 @@ double Polyakov(){
 	cudaMallocManaged(&Sigma11,kvol3*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&Sigma12,kvol3*sizeof(Complex),cudaMemAttachGlobal);
 #elif defined __INTEL_MKL__
-	Complex *Sigma11 = mkl_malloc(kvol3*sizeof(complex),AVX);
-	Complex *Sigma12 = mkl_malloc(kvol3*sizeof(complex),AVX);
+	Complex *Sigma11 = (Complex *)mkl_malloc(kvol3*sizeof(Complex),AVX);
+	Complex *Sigma12 = (Complex *)mkl_malloc(kvol3*sizeof(Complex),AVX);
 #else
-	Complex *Sigma11 = aligned_alloc(AVX,kvol3*sizeof(complex));
-	Complex *Sigma12 = aligned_alloc(AVX,kvol3*sizeof(complex));
+	Complex *Sigma11 = aligned_alloc(AVX,kvol3*sizeof(Complex));
+	Complex *Sigma12 = aligned_alloc(AVX,kvol3*sizeof(Complex));
 #endif
 #ifdef __NVCC__
 	cublasZcopy(cublas_handle,kvol3, &u11t[3], ndim, Sigma11, 1);
@@ -144,18 +145,14 @@ double Polyakov(){
 	//Buffers
 	//There is a dependency. Can only parallelise the inner loop
 #ifdef __clang__
-#pragma omp target teams map(to:u11t,u12t)\
-	map(from:Sigma11,Sigma12)
+#pragma omp target teams map(to:u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)])\
+	map(from:Sigma11[0:kvol3],Sigma12[0:kvol3])
 	{
 #endif
 #pragma unroll
 		for(int it=1;it<ksizet;it++)
 			//will be faster for parallel code
-#ifdef __clang__
 #pragma omp parallel for simd aligned(u11t,u12t,Sigma11,Sigma12:AVX)
-#else
-#pragma omp parallel for simd aligned(u11t,u12t,Sigma11,Sigma12:AVX)
-#endif
 			for(int i=0;i<kvol3;i++){
 				//Seems a bit more efficient to increment indexu instead of reassigning
 				//it every single loop
