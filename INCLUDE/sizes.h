@@ -52,7 +52,7 @@
 #define	npx	1
 #define	npt	1
 //Number of threads for OpenMP
-#define	nthreads	8
+#define	nthreads	1
 
 // Initially restrict to npz = npy = npx
 // This allows us to have a single ksize variable

@@ -2,14 +2,14 @@ MF=	Makefile
 
 CC=mpicc -cc=clang
 
-IFLAGS=     -I../INCLUDE/ -I /opt/AMD/aocl/aocl-linux-aocc-3.0-6/include/ 
+IFLAGS=     -I../INCLUDE/ -I /opt/AMD/aocl/aocl-linux-aocc-3.1.0/include/ 
 
 CFLAGS=    $(IFLAGS) -std=gnu11 -DUSE_BLAS -fcommon	 -march=native -DUSE_RAN2 \
 		 -fopenmp-simd -fopenmp=libiomp5  -Xopenmp-target=amdgcn -march=gfx902 \
 		 -mcpu=gfx902:xnack+ -DSA3AT -fveclib=AMDLIBM \
 		 -fuse-ld=lld -fremap-arrays# -fprofile-instr-use
 
-LFLAGS=	-L/opt/AMD/aocl/aocl-linux-aocc-3.0-6/lib/	-L/opt/AMD/aocc-compiler-3.1.0/lib \
+LFLAGS=	-L/opt/AMD/aocl/aocl-linux-aocc-3.1.0/lib/	-L/opt/AMD/aocc-compiler-3.2.0/lib \
 		-Wl -latomic -liomp5 -lpthread -lm -ldl -lalm -lblis
 
 EXE=	su2hmc_AMD
@@ -52,7 +52,7 @@ profiler:	release
 
 release:	CFLAGS +=  -Ofast -finline-aggressive -finline-recursion=4\
 				-funroll-loops -flto=full -fnt-store\
-				-mllvm -enable-strided-vectorization -mllvm -enable-epilog-vectorization\
+				-mllvm -enable-strided-vectorization -mllvm -enable-epilogue-vectorization\
 				-mllvm -merge-constant -mllvm -reduce-array-computations=3
 
 release:	$(EXE)

@@ -33,8 +33,8 @@ int Dslash(Complex *phi, Complex *r){
 	//Diquark Term (antihermitian)
 #ifdef __clang__
 #pragma omp target teams distribute parallel for\
-	map(from:r[0:kferm],u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],gamval[0:5*4],\
-	id[0:ndim*kvol],iu[ndim*kvol],gamin[0:4*4],dk4m[0:kvol+halo],dk4p[0:kvol+halo])\
+	map(to:r[0:kferm],u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],gamval[0:5*4],\
+	id[0:ndim*kvol],iu[0:ndim*kvol],gamin[0:4*4],dk4m[0:kvol+halo],dk4p[0:kvol+halo])\
 	map(tofrom:phi[0:kferm])
 #endif
 	for(int i=0;i<kvol;i++){
@@ -153,8 +153,8 @@ int Dslashd(Complex *phi, Complex *r){
 	memcpy(phi, r, kferm*sizeof(Complex));
 #ifdef __clang__
 #pragma omp target teams distribute parallel for\
-	map(from:r[0:kferm],u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],gamval[0:5*4],\
-	id[0:ndim*kvol],iu[ndim*kvol],gamin[0:4*4],dk4m[0:kvol+halo],dk4p[0:kvol+halo])\
+	map(to:r[0:kferm],u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],gamval[0:5*4],\
+	id[0:ndim*kvol],iu[0:ndim*kvol],gamin[0:4*4],dk4m[0:kvol+halo],dk4p[0:kvol+halo])\
 	map(tofrom:phi[0:kferm])
 #endif
 	for(int i=0;i<kvol;i++){
@@ -366,7 +366,7 @@ int Hdslashd(Complex *phi, Complex *r){
 	//anyways so memory access patterns mightn't be as big of an limiting factor here anyway
 
 	//Mass term
-	memcpy(phi, r, kferm2*sizeof(complex));
+	memcpy(phi, r, kferm2*sizeof(Complex));
 	//Spacelike term
 #pragma omp parallel for
 		for(int i=0;i<kvol;i++){
@@ -460,8 +460,8 @@ int Dslash_f(Complex_f *phi, Complex_f *r){
 	//Diquark Term (antihermitian)
 #ifdef __clang__
 #pragma omp target teams distribute parallel for\
-	map(from:r[0:kferm],u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],gamval[0:5*4],\
-	id[0:ndim*kvol],iu[ndim*kvol],gamin[0:4*4],dk4m[0:kvol+halo],dk4p[0:kvol+halo])\
+	map(to:r[0:kferm],u11t_f[0:ndim*(kvol+halo)],u12t_f[0:ndim*(kvol+halo)],gamval_f[0:5*4],\
+	id[0:ndim*kvol],iu[0:ndim*kvol],gamin[0:4*4],dk4m_f[0:kvol+halo],dk4p_f[0:kvol+halo])\
 	map(tofrom:phi[0:kferm])
 #endif
 	for(int i=0;i<kvol;i++){
@@ -579,8 +579,8 @@ int Dslashd_f(Complex_f *phi, Complex_f *r){
 	memcpy(phi, r, kferm*sizeof(Complex_f));
 #ifdef __clang__
 #pragma omp target teams distribute parallel for\
-	map(from:r[0:kferm],u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],gamval[0:5*4],\
-	id[0:ndim*kvol],iu[ndim*kvol],gamin[0:4*4],dk4m[0:kvol+halo],dk4p[0:kvol+halo])\
+	map(to:r[0:kferm],u11t_f[0:ndim*(kvol+halo)],u12t_f[0:ndim*(kvol+halo)],gamval_f[0:5*4],\
+	id[0:ndim*kvol],iu[0:ndim*kvol],gamin[0:4*4],dk4m_f[0:kvol+halo],dk4p_f[0:kvol+halo])\
 	map(tofrom:phi[0:kferm])
 #endif
 	for(int i=0;i<kvol;i++){
@@ -705,8 +705,8 @@ int Hdslash_f(Complex_f *phi, Complex_f *r){
 	//Spacelike term
 #ifdef __clang__
 #pragma omp target teams distribute parallel for\
-	map(to:u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,r)\
-	map(tofrom:phi)
+	map(to:u11t_f[0:ndim*(kvol+halo)],u12t_f[0:ndim*(kvol+halo)],iu[0:ndim*kvol],id[0:ndim*kvol],gamval_f,gamin,dk4m_f,dk4p_f,r)\
+	map(tofrom:phi[0:kferm2])
 #endif
 	for(int i=0;i<kvol;i++){
 #ifndef NO_SPACE
@@ -885,7 +885,7 @@ int New_trial(double dt){
 	char *funcname = "New_trial"; //
 #ifdef __clang__
 #pragma omp target teams distribute parallel for simd collapse(2) aligned(pp,u11t,u12t:AVX) \
-	map(to:pp) map(tofrom:u11t) map(from:u12t)
+	map(to:pp[0:kmomHalo]) map(tofrom:u11t[0:ndim*kvol],u12t[0:ndim*kvol])
 #else
 #pragma omp parallel for simd collapse(2) aligned(pp,u11t,u12t:AVX) 
 #endif
