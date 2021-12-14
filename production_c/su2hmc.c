@@ -21,20 +21,32 @@ double fmu = 0.0;
 double beta = 1.7;
 double akappa = 0.1780;
 float akappa_f = 0.1780f;
-int gamin[4][4] =	{{3,2,1,0},
-	{3,2,1,0},
-	{2,3,0,1},
-	{2,3,0,1}};
-Complex gamval[5][4] =	{{-I,-I,I,I},
-	{-1,1,1,-1},
-	{-I,I,I,-I},
-	{1,1,1,1},
-	{1,1,-1,-1}};
-Complex_f gamval_f[5][4] =	{{-I,-I,I,I},
-	{-1,1,1,-1},
-	{-I,I,I,-I},
-	{1,1,1,1},
-	{1,1,-1,-1}};
+short
+#ifndef __NVCC__ 
+__attribute__((aligned(AVX)))
+#endif
+	gamin[4][4] =	{{3,2,1,0},
+		{3,2,1,0},
+		{2,3,0,1},
+		{2,3,0,1}};
+Complex
+#ifndef __NVCC__ 
+__attribute__((aligned(AVX)))
+#endif
+	gamval[5][4] =	{{-I,-I,I,I},
+		{-1,1,1,-1},
+		{-I,I,I,-I},
+		{1,1,1,1},
+		{1,1,-1,-1}};
+Complex_f 
+#ifndef __NVCC__ 
+__attribute__((aligned(AVX)))
+#endif
+	gamval_f[5][4] =	{{-I,-I,I,I},
+		{-1,1,1,-1},
+		{-I,I,I,-I},
+		{1,1,1,1},
+		{1,1,-1,-1}};
 
 /*
  * For the early phases of this translation, I'm going to try and
@@ -624,12 +636,12 @@ int main(int argc, char *argv[]){
 	mkl_free(X0); mkl_free(X1); mkl_free(u11); mkl_free(u12);
 	mkl_free(id); mkl_free(iu); mkl_free(hd); mkl_free(hu);
 	mkl_free(dk4m_f); mkl_free(dk4p_f); mkl_free(u11t_f); mkl_free(u12t_f);
-	mkl_free(pcoord); mkl_free(h1u); mkl_free(h1d); mkl_free(halosize);
+	mkl_free(h1u); mkl_free(h1d); mkl_free(halosize);
 #else
 	free(dk4m); free(dk4p); free(R1); free(dSdpi); free(pp); free(Phi);
 	free(u11t); free(u12t); free(xi); free(X0); free(X1);
 	free(u11); free(u12); free(id); free(iu); free(hd); free(hu);
-	free(pcoord); free(h1u); free(h1d); free(halosize);
+	free(h1u); free(h1d); free(halosize);
 #endif
 #if (defined SA3AT)
 	if(!rank){
@@ -1333,7 +1345,7 @@ int Congradp(int na, double res, int *itercg){
 		}
 		else if(niterx==niterc-1){
 			if(!rank) fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i β_n=%e\n",
-									ITERLIM, funcname, niterc, betan);
+					ITERLIM, funcname, niterc, betan);
 			break;
 		}
 		//Note that beta below is not the global beta and scoping is used to avoid conflict between them

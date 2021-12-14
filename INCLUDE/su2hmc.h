@@ -33,21 +33,29 @@ cublasHandle_t cublas_status;
 int ibound; 
 //Arrays:
 //------
+//We have the four γ Matrices, and in the final index (labelled 4 in C) is γ_5)
+#ifdef __NVCC__
+__device__ Complex *gamval_d;
+#else
+__attribute__((aligned(AVX)))
+#endif 
+extern Complex gamval[5][4];
+#ifdef __NVCC__
+__device__ Complex_f *gamval_f_d;
+#else
+__attribute__((aligned(AVX)))
+#endif 
+extern Complex_f gamval_f[5][4];
 //Seems a bit redundant looking
 #ifdef __NVCC__
 __managed__ int *gamin_d;
 __managed__ 
 #endif 
-extern int gamin[4][4];
-//We have the four γ Matrices, and in the final index (labelled 4 in C) is γ_5)
-#ifdef __NVCC__
-__device__ Complex *gamval_d;
-#endif 
-extern Complex gamval[5][4];
-#ifdef __NVCC__
-__device__ Complex_f *gamval_f_d;
-#endif 
-extern Complex_f gamval_f[5][4];
+extern short 
+#ifndef __NVCC__ 
+__attribute__((aligned(AVX)))
+#endif
+gamin[4][4];
 
 //From common_pseud
 #ifdef __NVCC__

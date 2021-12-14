@@ -89,6 +89,11 @@ int Par_begin(int argc, char *argv[]){
 	printf("Rank: %i pu: %i %i %i %i pd: %i %i %i %i\n", rank, pu[0], pu[1], pu[2], pu[3],
 			pd[0], pd[1], pd[2], pd[3]);
 #endif
+#ifdef __INTEL_MKL__
+	mkl_free(pcoord); 
+#else
+	free(pcoord);
+#endif
 	return 0;
 }	
 int Par_sread(const int iread, const double beta, const double fmu, const double akappa, const double ajq){
@@ -238,33 +243,33 @@ int Par_sread(const int iread, const double beta, const double fmu, const double
 #endif
 	}
 	else{
-//#pragma omp parallel for shared(u11,u12)\
+		//#pragma omp parallel for shared(u11,u12)\
 		private(u1buff,u2buff)
-		for(int idim = 0; idim<ndim; idim++){
-			//Receiving the data from the master threads.
-			if(MPI_Recv(u1buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, 2*idim, comm, &status)){
-				fprintf(stderr, "Error %i in %s: Falied to receive u11 on process %i.\nExiting...\n\n",
-						CANTRECV, funcname, rank);
-				MPI_Finalise();
-				exit(CANTRECV);
-			}
-			if(MPI_Recv(u2buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, 2*idim+1, comm, &status)){
-				fprintf(stderr, "Error %i in %s: Falied to receive u12 on process %i.\nExiting...\n\n",
-						CANTRECV, funcname, rank);
-				MPI_Finalise();
-				exit(CANTRECV);
-			}
+			for(int idim = 0; idim<ndim; idim++){
+				//Receiving the data from the master threads.
+				if(MPI_Recv(u1buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, 2*idim, comm, &status)){
+					fprintf(stderr, "Error %i in %s: Falied to receive u11 on process %i.\nExiting...\n\n",
+							CANTRECV, funcname, rank);
+					MPI_Finalise();
+					exit(CANTRECV);
+				}
+				if(MPI_Recv(u2buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, 2*idim+1, comm, &status)){
+					fprintf(stderr, "Error %i in %s: Falied to receive u12 on process %i.\nExiting...\n\n",
+							CANTRECV, funcname, rank);
+					MPI_Finalise();
+					exit(CANTRECV);
+				}
 #if (defined __INTEL_MKL__||defined USE_BLAS)
-			cblas_zcopy(kvol,u1buff,1,u11+idim,ndim);
-			cblas_zcopy(kvol,u2buff,1,u12+idim,ndim);
+				cblas_zcopy(kvol,u1buff,1,u11+idim,ndim);
+				cblas_zcopy(kvol,u2buff,1,u12+idim,ndim);
 #else
 #pragma omp parallel for simd aligned(u11,u12,u1buff,u2buff:AVX)
-			for(int i=0;i<kvol;i++){
-				u11[i*ndim+idim]=u1buff[i];
-				u12[i*ndim+idim]=u2buff[i];
-			}
+				for(int i=0;i<kvol;i++){
+					u11[i*ndim+idim]=u1buff[i];
+					u12[i*ndim+idim]=u2buff[i];
+				}
 #endif
-		}
+			}
 	}
 #ifdef __INTEL_MKL__
 	mkl_free(u1buff); mkl_free(u2buff);
@@ -356,7 +361,7 @@ int Par_psread(char *filename, double *ps){
 	return 0;
 }
 int Par_swrite(const int itraj, const int icheck, const double beta, const double fmu, const double akappa, 
-					const double ajq){
+		const double ajq){
 	/*
 	 * Modified from an original version of swrite in FORTRAN
 	 *

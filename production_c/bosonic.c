@@ -38,14 +38,14 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 		for(int nu=0;nu<mu;nu++)
 			//Don't merge into a single loop. Makes vectorisation easier?
 			//Or merge into a single loop and dispense with the a arrays?
-#ifdef __clang__
-#pragma omp target teams distribute parallel for simd\
-			aligned(u11t,u12t:AVX) reduction(+:hgs,hgt) map(to:u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)]\
-			,iu[0:ndim*kvol])\
+//#ifdef __clang__
+//#pragma omp target teams distribute parallel for simd\
+			reduction(+:hgs,hgt) map(to:u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)]\
+			,iu[0:ndim*kvol],mu,nu)\
 			map(tofrom:hgs,hgt)
-#else
-#pragma omp parallel for simd aligned(u11t,u12t:AVX) reduction(+:hgs,hgt)
-#endif
+//#else
+#pragma omp parallel for simd aligned(u11t,u12t,iu:AVX) reduction(+:hgs,hgt)
+//#endif
 			for(int i=0;i<kvol;i++){
 				//Save us from typing iu[mu+ndim*i] everywhere
 				int uidm = iu[mu+ndim*i]; 
@@ -146,7 +146,7 @@ double Polyakov(){
 	//There is a dependency. Can only parallelise the inner loop
 #ifdef __clang__
 #pragma omp target teams map(to:u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)])\
-	map(from:Sigma11[0:kvol3],Sigma12[0:kvol3])
+	map(tofrom:Sigma11[0:kvol3],Sigma12[0:kvol3])
 	{
 #endif
 #pragma unroll
