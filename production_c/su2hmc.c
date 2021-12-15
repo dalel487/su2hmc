@@ -636,12 +636,12 @@ int main(int argc, char *argv[]){
 	mkl_free(X0); mkl_free(X1); mkl_free(u11); mkl_free(u12);
 	mkl_free(id); mkl_free(iu); mkl_free(hd); mkl_free(hu);
 	mkl_free(dk4m_f); mkl_free(dk4p_f); mkl_free(u11t_f); mkl_free(u12t_f);
-	mkl_free(h1u); mkl_free(h1d); mkl_free(halosize);
+	mkl_free(pcoord); mkl_free(h1u); mkl_free(h1d); mkl_free(halosize);
 #else
 	free(dk4m); free(dk4p); free(R1); free(dSdpi); free(pp); free(Phi);
 	free(u11t); free(u12t); free(xi); free(X0); free(X1);
 	free(u11); free(u12); free(id); free(iu); free(hd); free(hu);
-	free(h1u); free(h1d); free(halosize);
+	free(pcoord); free(h1u); free(h1d); free(halosize);
 #endif
 #if (defined SA3AT)
 	if(!rank){
