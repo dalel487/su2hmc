@@ -51,7 +51,7 @@ extern Complex_f gamval_f[5][4];
 __managed__ int *gamin_d;
 __managed__ 
 #endif 
-extern short 
+extern int 
 #ifndef __NVCC__ 
 __attribute__((aligned(AVX)))
 #endif

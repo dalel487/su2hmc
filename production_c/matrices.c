@@ -34,7 +34,7 @@ int Dslash(Complex *phi, Complex *r){
 #ifdef __clang__
 #pragma omp target teams distribute parallel for\
 	map(to:r[0:kfermHalo],u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],gamval[0:5*4],\
-	id[0:ndim*kvol],iu[0:ndim*kvol],gamin[0:4*4],dk4m[0:kvol+halo],dk4p[0:kvol+halo])\
+	id[0:ndim*kvol],iu[0:ndim*kvol],dk4m[0:kvol+halo],dk4p[0:kvol+halo])\
 	map(tofrom:phi[0:kferm])
 #endif
 	for(int i=0;i<kvol;i++){
@@ -154,7 +154,7 @@ int Dslashd(Complex *phi, Complex *r){
 #ifdef __clang__
 #pragma omp target teams distribute parallel for\
 	map(to:r[0:kfermHalo],u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],gamval[0:5*4],\
-	id[0:ndim*kvol],iu[0:ndim*kvol],gamin[0:4*4],dk4m[0:kvol+halo],dk4p[0:kvol+halo])\
+	id[0:ndim*kvol],iu[0:ndim*kvol],dk4m[0:kvol+halo],dk4p[0:kvol+halo])\
 	map(tofrom:phi[0:kferm])
 #endif
 	for(int i=0;i<kvol;i++){
@@ -461,7 +461,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r){
 #ifdef __clang__
 #pragma omp target teams distribute parallel for\
 	map(to:r[0:kfermHalo],u11t_f[0:ndim*(kvol+halo)],u12t_f[0:ndim*(kvol+halo)],gamval_f[0:5*4],\
-	id[0:ndim*kvol],iu[0:ndim*kvol],gamin[0:4*4],dk4m_f[0:kvol+halo],dk4p_f[0:kvol+halo])\
+	id[0:ndim*kvol],iu[0:ndim*kvol],dk4m_f[0:kvol+halo],dk4p_f[0:kvol+halo])\
 	map(tofrom:phi[0:kferm])
 #endif
 	for(int i=0;i<kvol;i++){
@@ -579,8 +579,8 @@ int Dslashd_f(Complex_f *phi, Complex_f *r){
 	memcpy(phi, r, kferm*sizeof(Complex_f));
 #ifdef __clang__
 #pragma omp target teams distribute parallel for\
-	map(to:r[0:kfermHalo],u11t_f[0:ndim*(kvol+halo)],u12t_f[0:ndim*(kvol+halo)],gamval_f[0:5*4],\
-	id[0:ndim*kvol],iu[0:ndim*kvol],gamin[0:4*4],dk4m_f[0:kvol+halo],dk4p_f[0:kvol+halo])\
+	map(to:r[0:kfermHalo],u11t_f[0:ndim*(kvol+halo)],u12t_f[0:ndim*(kvol+halo)],\
+	id[0:ndim*kvol],iu[0:ndim*kvol],dk4m_f[0:kvol+halo],dk4p_f[0:kvol+halo])\
 	map(tofrom:phi[0:kferm])
 #endif
 	for(int i=0;i<kvol;i++){
@@ -706,7 +706,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r){
 #ifdef __clang__
 #pragma omp target teams distribute parallel for\
 	map(to:u11t_f[0:ndim*(kvol+halo)],u12t_f[0:ndim*(kvol+halo)],iu[0:ndim*kvol],id[0:ndim*kvol],\
-	gamin[0:4*4],gamval_f[0:5*4],dk4m_f[0:kvol+halo],dk4p_f[0:kvol+halo],r[0:kferm2Halo],akappa_f)\
+	gamval_f[0:5*4],dk4m_f[0:kvol+halo],dk4p_f[0:kvol+halo],r[0:kferm2Halo],akappa_f)\
 	map(tofrom:phi[0:kferm2])
 #endif
 	for(int i=0;i<kvol;i++){
@@ -802,7 +802,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r){
 #ifdef __clang__
 #pragma omp target teams distribute parallel for\
 	map(to:u11t_f[0:ndim*(kvol+halo)],u12t_f[0:ndim*(kvol+halo)],iu[0:ndim*kvol],id[0:ndim*kvol],\
-	gamval_f[0:5*4],gamin[0:4*4],dk4m_f[0:kvol+halo],dk4p_f[0:kvol+halo],r[0:kferm2Halo],akappa_f)\
+	gamval_f[0:5*4],dk4m_f[0:kvol+halo],dk4p_f[0:kvol+halo],r[0:kferm2Halo],akappa_f)\
 	map(tofrom:phi[0:kferm2])
 #endif
 	for(int i=0;i<kvol;i++){

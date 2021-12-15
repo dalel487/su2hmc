@@ -21,7 +21,7 @@ double fmu = 0.0;
 double beta = 1.7;
 double akappa = 0.1780;
 float akappa_f = 0.1780f;
-short
+int
 #ifndef __NVCC__ 
 __attribute__((aligned(AVX)))
 #endif
