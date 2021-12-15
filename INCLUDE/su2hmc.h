@@ -61,7 +61,7 @@ gamin[4][4];
 #ifdef __NVCC__
 __managed__ 
 #endif 
-Complex *Phi, *R1, *X0, *X1, *xi;
+Complex *Phi, *R1, *X0, *X1;
 //From common_mat
 #ifdef __NVCC__
 __managed__ 

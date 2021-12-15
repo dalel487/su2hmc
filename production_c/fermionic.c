@@ -41,6 +41,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 
 #ifdef __INTEL_MKL__
 	Complex	*x = mkl_malloc(kfermHalo*sizeof(Complex), AVX);
+	Complex *xi	= mkl_malloc(kfermHalo*sizeof(Complex),AVX);
 	Complex_f	*xi_f = mkl_malloc(kfermHalo*sizeof(Complex_f), AVX);
 	Complex_f	*R1_f = mkl_malloc(kferm*sizeof(Complex_f), AVX);
 #else
@@ -143,13 +144,13 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 
 	//Instead of typing id[i*ndim+3] a lot, we'll just assign them to variables.
 	//Idea. One loop instead of two loops but for xuu and xdd just use ngorkov-(igorkov+1) instead
-#ifdef __clang__
-#pragma omp target teams distribute parallel for reduction(+:xd,xu,xdd,xuu)\
+//#ifdef __clang__
+//#pragma omp target teams distribute parallel for reduction(+:xd,xu,xdd,xuu)\
 	map(to:iu,id,u11t,u12t,x,xi,dk4m,dk4p)\
 	map(tofrom:xu,xd,xuu,xdd)
-#else
+//#else
 #pragma omp parallel for reduction(+:xd,xu,xdd,xuu) 
-#endif
+//#endif
 	for(int i = 0; i<kvol; i++){
 		int did=id[3+ndim*i];
 		int uid=iu[3+ndim*i];
@@ -196,11 +197,11 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	*endenf/=2*gvol; *denf/=2*gvol;
 	//Future task. Chiral susceptibility measurements
 #ifdef __NVCC__
-	cudaFree(x);
+	cudaFree(x); cudaFree(xi);
 #elif defined __INTEL_MKL__
-	mkl_free(x);
+	mkl_free(x); mkl_free(xi);
 #else
-	free(x);
+	free(x); free(xi);
 #endif
 	return 0;
 }

@@ -257,7 +257,6 @@ int main(int argc, char *argv[]){
 	int device=-1;
 	cudaGetDevice(&device);
 	cudaMallocManaged(&R1, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&xi, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&Phi, nf*kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&X0, nf*kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&X1, kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
@@ -265,7 +264,6 @@ int main(int argc, char *argv[]){
 	cudaMallocManaged(&dSdpi, kmomHalo*sizeof(double),cudaMemAttachGlobal);
 #elif defined __INTEL_MKL__
 	R1= mkl_malloc(kfermHalo*sizeof(Complex),AVX);
-	xi= mkl_malloc(kfermHalo*sizeof(Complex),AVX);
 	Phi= mkl_malloc(nf*kfermHalo*sizeof(Complex),AVX); 
 	X0= mkl_malloc(nf*kferm2Halo*sizeof(Complex),AVX); 
 	X1= mkl_malloc(kferm2Halo*sizeof(Complex),AVX); 
@@ -274,7 +272,6 @@ int main(int argc, char *argv[]){
 	pp = mkl_malloc(kmomHalo*sizeof(double), AVX);
 #else
 	R1= aligned_alloc(AVX,kfermHalo*sizeof(Complex));
-	xi= aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 	Phi= aligned_alloc(AVX,nf*kfermHalo*sizeof(Complex)); 
 	X0= aligned_alloc(AVX,nf*kferm2Halo*sizeof(Complex)); 
 	X1= aligned_alloc(AVX,kferm2Halo*sizeof(Complex)); 
@@ -625,21 +622,21 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 	//Make a routine that does this for us
 	cudaFree(dk4m); cudaFree(dk4p); cudaFree(R1); cudaFree(dSdpi); cudaFree(pp);
-	cudaFree(Phi); cudaFree(u11t); cudaFree(u12t); cudaFree(xi);
+	cudaFree(Phi); cudaFree(u11t); cudaFree(u12t);
 	cudaFree(X0); cudaFree(X1); cudaFree(u11); cudaFree(u12);
 	cudaFree(id); cudaFree(iu); cudaFree(hd); cudaFree(hu);
 	cudaFree(dk4m_f); cudaFree(dk4p_f); cudaFree(u11t_f); cudaFree(u12t_f);
 #elif defined __INTEL_MKL__
 	mkl_free_buffers();
 	mkl_free(dk4m); mkl_free(dk4p); mkl_free(R1); mkl_free(dSdpi); mkl_free(pp);
-	mkl_free(Phi); mkl_free(u11t); mkl_free(u12t); mkl_free(xi);
+	mkl_free(Phi); mkl_free(u11t); mkl_free(u12t);
 	mkl_free(X0); mkl_free(X1); mkl_free(u11); mkl_free(u12);
 	mkl_free(id); mkl_free(iu); mkl_free(hd); mkl_free(hu);
 	mkl_free(dk4m_f); mkl_free(dk4p_f); mkl_free(u11t_f); mkl_free(u12t_f);
 	mkl_free(pcoord); mkl_free(h1u); mkl_free(h1d); mkl_free(halosize);
 #else
 	free(dk4m); free(dk4p); free(R1); free(dSdpi); free(pp); free(Phi);
-	free(u11t); free(u12t); free(xi); free(X0); free(X1);
+	free(u11t); free(u12t); free(X0); free(X1);
 	free(u11); free(u12); free(id); free(iu); free(hd); free(hu);
 	free(pcoord); free(h1u); free(h1d); free(halosize);
 #endif
@@ -1195,7 +1192,7 @@ int Congradp(int na, double res, int *itercg){
 	//Give initial values Will be overwritten if niterx>0
 	double betad = 1.0; float alphad_f=0; Complex_f alpha_f = 1;
 #ifdef __NVCC__
-	Complex *p, *r;
+	Complex *p, *r, *xi;
 	Complex_f *p_f, *r_f, *xi_f;
 	int device; cudaGetDevice(&device);
 	cudaMallocManaged(&p, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
@@ -1203,6 +1200,8 @@ int Congradp(int na, double res, int *itercg){
 
 	cudaMallocManaged(&r, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMemAdvise(r,kfermHalo*sizeof(Complex),cudaMemAdviseSetPreferredLocation,device);
+
+	cudaMallocManaged(&xi, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
 
 	cudaMallocManaged(&p_f, kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMemAdvise(p_f,kfermHalo*sizeof(Complex_f),cudaMemAdviseSetPreferredLocation,device);
@@ -1214,6 +1213,7 @@ int Congradp(int na, double res, int *itercg){
 	cudaMemAdvise(xi_f,kfermHalo*sizeof(Complex_f),cudaMemAdviseSetPreferredLocation,device);
 #elif defined __INTEL_MKL__
 	Complex *p  = mkl_calloc(kfermHalo,sizeof(Complex),AVX);
+	Complex *xi	= mkl_malloc(kfermHalo*sizeof(Complex),AVX);
 	Complex *r  = mkl_calloc(kferm,sizeof(Complex),AVX);
 
 	Complex_f *p_f  = mkl_calloc(kfermHalo,sizeof(Complex_f),AVX);
@@ -1221,6 +1221,7 @@ int Congradp(int na, double res, int *itercg){
 	Complex_f *xi_f  = mkl_calloc(kferm,sizeof(Complex_f),AVX);
 #else
 	Complex *p  = aligned_alloc(AVX,kfermHalo*sizeof(Complex));
+	Complex *xi	= aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 	Complex *r  = aligned_alloc(AVX,kferm*sizeof(Complex));
 
 	Complex_f *p_f  = aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
@@ -1368,13 +1369,15 @@ int Congradp(int na, double res, int *itercg){
 #ifdef	__NVCC__
 	cudaFree(x2); cudaFree(p); cudaFree(r);
 	cudaFree(x2_f); cudaFree(p_f); cudaFree(r_f);
-	cudaFree(x1); cudaFree(xi_f);
+	cudaFree(x1); cudaFree(xi_f); cudaFree(xi);
 #elif defined __INTEL_MKL__
 	mkl_free(p); mkl_free(r); mkl_free(x1); mkl_free(x2);
 	mkl_free(p_f); mkl_free(r_f); mkl_free(xi_f); mkl_free(x2_f);
+	mkl_free(xi);
 #else
 	free(p); free(r); free(x1); free(x2);
 	free(p_f); free(r_f); free(xi_f); free(x2_f);
+	free(xi);
 #endif
 	return 0;
 }
