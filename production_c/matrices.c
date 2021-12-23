@@ -806,7 +806,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r){
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
 	//Spacelike term
 #ifdef __clang__
-#pragma omp target teams distribute parallel for aligned(r,phi:AVX)\
+#pragma omp target teams distribute parallel for\
 	map(to:r[0:kferm2Halo])	map(tofrom:phi[0:kferm2])
 #else
 #pragma omp parallel for

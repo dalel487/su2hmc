@@ -46,6 +46,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	Complex_f	*R1_f = mkl_malloc(kferm*sizeof(Complex_f), AVX);
 #else
 	Complex *x = aligned_alloc(AVX,kfermHalo*sizeof(Complex));
+	Complex *xi = aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 	Complex_f *xi_f = aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 	Complex_f *R1_f = aligned_alloc(AVX,kferm*sizeof(Complex_f));
 #endif
