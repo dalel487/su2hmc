@@ -146,7 +146,6 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	//Idea. One loop instead of two loops but for xuu and xdd just use ngorkov-(igorkov+1) instead
 //#ifdef __clang__
 //#pragma omp target teams distribute parallel for reduction(+:xd,xu,xdd,xuu)\
-	map(to:iu,id,u11t,u12t,x,xi,dk4m,dk4p)\
 	map(tofrom:xu,xd,xuu,xdd)
 //#else
 #pragma omp parallel for reduction(+:xd,xu,xdd,xuu) 

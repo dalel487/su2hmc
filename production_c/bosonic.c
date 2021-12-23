@@ -39,10 +39,8 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 			//Don't merge into a single loop. Makes vectorisation easier?
 			//Or merge into a single loop and dispense with the a arrays?
 //#ifdef __clang__
-//#pragma omp target teams distribute parallel for simd\
-			reduction(+:hgs,hgt) map(to:u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)]\
-			,iu[0:ndim*kvol],mu,nu)\
-			map(tofrom:hgs,hgt)
+//#pragma omp target teams distribute parallel for simd aligned(u11t,u12t,iu:AVX)\
+			reduction(+:hgs,hgt)	map(tofrom:hgs,hgt)
 //#else
 #pragma omp parallel for simd aligned(u11t,u12t,iu:AVX) reduction(+:hgs,hgt)
 //#endif
@@ -145,8 +143,7 @@ double Polyakov(){
 	//Buffers
 	//There is a dependency. Can only parallelise the inner loop
 #ifdef __clang__
-#pragma omp target teams map(to:u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)])\
-	map(tofrom:Sigma11[0:kvol3],Sigma12[0:kvol3])
+#pragma omp target teams map(tofrom:Sigma11[0:kvol3],Sigma12[0:kvol3])
 	{
 #endif
 #pragma unroll
