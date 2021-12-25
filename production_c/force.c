@@ -147,11 +147,11 @@ int Force(double *dSdpi, int iflag, double res1){
 	//X1=(M†M)^{1} Phi
 	int itercg;
 #if defined __INTEL_MKL__
-	complex *X2= mkl_malloc(kferm2Halo*sizeof(complex), AVX);
-	complex *smallPhi =mkl_malloc(kferm2Halo*sizeof(complex), AVX); 
+	Complex *X2= mkl_malloc(kferm2Halo*sizeof(Complex), AVX);
+	Complex *smallPhi =mkl_malloc(kferm2Halo*sizeof(Complex), AVX); 
 #else
-	complex *X2= aligned_alloc(AVX,kferm2Halo*sizeof(complex));
-	complex *smallPhi = aligned_alloc(AVX,kferm2Halo*sizeof(complex)); 
+	Complex *X2= aligned_alloc(AVX,kferm2Halo*sizeof(Complex));
+	Complex *smallPhi = aligned_alloc(AVX,kferm2Halo*sizeof(Complex)); 
 #endif
 	for(int na = 0; na<nf; na++){
 		memcpy(X1, X0+na*kferm2Halo, nc*ndirac*kvol*sizeof(complex));
@@ -199,12 +199,12 @@ int Force(double *dSdpi, int iflag, double res1){
 		//  as a result, need to swap the DOWN halos in all dirs for
 		//  both these arrays, each of which has 8 cpts
 		//
-#ifdef __clang__
-#pragma omp target teams distribute parallel for\
+//#ifdef __clang__
+//#pragma omp target teams distribute parallel for\
 		map(to:X2[0:kferm2Halo],X1[0:kferm2Halo],akappa)
-#else
+//#else
 #pragma omp parallel for
-#endif
+//#endif
 		for(int i=0;i<kvol;i++)
 			for(int idirac=0;idirac<ndirac;idirac++){
 				int mu, uid, igork1;

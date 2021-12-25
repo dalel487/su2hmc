@@ -373,14 +373,15 @@ int main(int argc, char *argv[]){
 		printf("av_force before we do anything= %e\n", av_force/kmom);
 #endif
 #ifdef __NVCC__
-		cublasDaxpy(cublas_handle,nadj*ndim*kvol, &d, dSdpi, 1, pp, 1);
+		cublasDaxpy(cublas_handle,kmom, &d, dSdpi, 1, pp, 1);
 #elif (defined __INTEL_MKL__ || defined USE_BLAS)
-		cblas_daxpy(nadj*ndim*kvol, d, dSdpi, 1, pp, 1);
+		cblas_daxpy(kmom, d, dSdpi, 1, pp, 1);
 #else
 		for(int i=0;i<kmom;i++)
 			//d negated above
 			pp[i]+=d*dSdpi[i];
 #endif
+#pragma omp target update to(pp[0:kvol])
 		//Main loop for classical time evolution
 		//======================================
 		for(int step = 1; step<=stepmax; step++){
@@ -414,11 +415,12 @@ int main(int argc, char *argv[]){
 			//statement but only the value of d changes. This is due to the break in the if part
 			if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
 #ifdef __NVCC__
-				cublasDaxpy(cublas_handle,ndim*nadj*kvol, &d, dSdpi, 1, pp, 1);
+				cublasDaxpy(cublas_handle,kmom, &d, dSdpi, 1, pp, 1);
 #elif (defined __INTEL_MKL__ || defined USE_BLAS)
 				//cuBLAS calls from CPU allowed?
-				cblas_daxpy(ndim*nadj*kvol, d, dSdpi, 1, pp, 1);
+				cblas_daxpy(kmom, d, dSdpi, 1, pp, 1);
 #else
+#pragma omp parallel for simd aligned(pp,dSdpi:AVX)
 				for(int i = 0; i<kmom; i++)
 					//d negated above
 					pp[i]+=d*dSdpi[i];
@@ -431,15 +433,14 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 				//dt is needed for the trial fields so has to be negated every time.
 				dt*=-1;
-				cublasDaxpy(cublas_handle,ndim*nadj*kvol, &dt, dSdpi, 1, pp, 1);
+				cublasDaxpy(cublas_handle,kmom, &dt, dSdpi, 1, pp, 1);
 				dt*=-1;
 #elif (defined __INTEL_MKL__ || defined USE_BLAS)
-				cblas_daxpy(ndim*nadj*kvol, -dt, dSdpi, 1, pp, 1);
+				cblas_daxpy(kmom, -dt, dSdpi, 1, pp, 1);
 #else
-				for(int i = 0; i<kvol; i++)
-					for(int iadj=0; iadj<nadj; iadj++)
-						for(int mu = 0; mu < ndim; mu++)
-							pp[(i*nadj+iadj)*nc+mu]-=dt*dSdpi[(i*nadj+iadj)*nc+mu];
+#pragma omp parallel for simd aligned(pp,dSdpi:AVX)
+				for(int i = 0; i<kmom; i++)
+							pp[i]-=dt*dSdpi[i];
 #endif
 #pragma omp target update to(pp[0:kmom])
 			}
