@@ -46,7 +46,8 @@ TMP=	$(MOD) $(EDT) core
 
 all:	$(EXE)
 
-profiler:	CFLAGS += -g -D_DEBUG #-DUSE_RAN2 -DDIAGNOSTIC
+profiler:	CFLAGS += -g -D_DEBUG #-DNO_GAUGE -DNO_SPACE -DNO_TIME\
+								#-DUSE_RAN2 -DDIAGNOSTIC
 
 profiler:	release
 
@@ -55,8 +56,7 @@ release:	CFLAGS +=  -O3  -inline-level=2\
 release:	$(EXE)
 
 debug:	CFLAGS +=	-g -O0 \
-					-D_DEBUG #-DUSE_RAN2 -DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
-	
+					-D_DEBUG #-DUSE_RAN2 -DDIAGNOSTIC
 debug:	$(EXE)
 
 $(EXE):	$(OBJ)

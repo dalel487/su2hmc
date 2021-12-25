@@ -810,7 +810,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r){
 	map(to:r[0:kferm2Halo])	map(tofrom:phi[0:kferm2])
 #else
 #pragma omp parallel for
-/#endif
+#endif
 	for(int i=0;i<kvol;i++){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <ndim-1; mu++){

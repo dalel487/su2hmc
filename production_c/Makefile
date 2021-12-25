@@ -45,7 +45,7 @@ TMP=	$(MOD) $(EDT) core
 
 all:	$(EXE)
 
-profiler:	CFLAGS += -g
+profiler:	CFLAGS += -g -D_DEBUG
 
 profiler:	release
 

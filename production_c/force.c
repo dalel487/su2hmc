@@ -37,7 +37,7 @@ int Gauge_force(double *dSdpi){
 #endif
 	//Assign local arrays to accelerator
 #ifdef __clang__
-#pragma omp target enter data map(to:u11sh[0:kvol+halo],u12sh[0:kvol+halo],\
+//#pragma omp target enter data map(alloc:u11sh[0:kvol+halo],u12sh[0:kvol+halo],\
 		Sigma11[0:kvol],Sigma12[0:kvol])
 #endif
 	//Holders for directions
@@ -45,14 +45,16 @@ int Gauge_force(double *dSdpi){
 		memset(Sigma11,0, kvol*sizeof(complex));
 		memset(Sigma12,0, kvol*sizeof(complex));
 		//Send the Sigmas to the accelerator.
-#pragma omp target update to(Sigma11[0:kvol],Sigma12[0:kvol])
+//#pragma omp target update to(Sigma11[0:kvol],Sigma12[0:kvol])
 		for(int nu=0; nu<ndim; nu++){
 			if(nu!=mu){
 				//The +ν Staple
-#ifdef __clang__
-#pragma omp target teams distribute parallel for simd\
+//#ifdef __clang__
+//#pragma omp target teams distribute parallel for simd\
 				aligned(u11t,u12t,Sigma11,Sigma12,iu:AVX)
-#endif
+//#else
+#pragma omp simd aligned(u11t,u12t,Sigma11,Sigma12,iu:AVX)
+//#endif
 				for(int i=0;i<kvol;i++){
 					int uidm = iu[mu+ndim*i];
 					int uidn = iu[nu+ndim*i];
@@ -66,15 +68,17 @@ int Gauge_force(double *dSdpi){
 				Z_gather(u11sh, u11t, kvol, id, nu);
 				ZHalo_swap_dir(u11sh, 1, mu, DOWN);
 				//Send u11sh to the accelerator while u12sh is getting sorted
-#pragma omp target update to(u11sh[0:kvol+halo])
+//#pragma omp target update to(u11sh[0:kvol+halo])
 				Z_gather(u12sh, u12t, kvol, id, nu);
 				ZHalo_swap_dir(u12sh, 1, mu, DOWN);
-#ifdef __clang__
-#pragma omp target update to(u12sh[0:kvol+halo])
+//#ifdef __clang__
+//#pragma omp target update to(u12sh[0:kvol+halo])
 				//Next up, the -ν staple
-#pragma omp target teams distribute parallel for simd\
+//#pragma omp target teams distribute parallel for simd\
 				aligned(u11t,u12t,u11sh,u12sh,Sigma11,Sigma12,iu,id:AVX)
-#endif
+//#else
+#pragma omp simd aligned(u11t,u12t,u11sh,u12sh,Sigma11,Sigma12,iu:AVX)
+//#endif
 				for(int i=0;i<kvol;i++){
 					int uidm = iu[mu+ndim*i];
 					int didn = id[nu+ndim*i];
@@ -88,12 +92,12 @@ int Gauge_force(double *dSdpi){
 				}
 			}
 		}
-#ifdef __clang__
-#pragma omp target teams distribute parallel for simd\
-		aligned(u11t,u12t,dSdpi,Sigma11,Sigma12:AVX) 
-#else
-#pragma omp parallel for simd aligned(u11t,u12t,Sigma11,Sigma12,dSdpi:AVX)
-#endif
+//#ifdef __clang__
+//#pragma omp target teams distribute parallel for simd\
+		aligned(u11t,u12t,dSdpi,Sigma11,Sigma12:AVX) map(from:dSdpi[0:kmom])
+//#else
+#pragma omp parallel for simd aligned(u11t,u12t,Sigma11,Sigma12,dSdpi:AVX) shared(mu)
+//#endif
 		for(int i=0;i<kvol;i++){
 			complex a11 = u11t[i*ndim+mu]*Sigma12[i]+u12t[i*ndim+mu]*conj(Sigma11[i]);
 			complex a12 = u11t[i*ndim+mu]*Sigma11[i]+conj(u12t[i*ndim+mu])*Sigma12[i];
@@ -103,11 +107,11 @@ int Gauge_force(double *dSdpi){
 			dSdpi[(i*nadj+2)*ndim+mu]=beta*cimag(a12);
 		}
 	}
-#pragma omp target update from(dSdpi[0:kmom])
-#ifdef __clang__
-#pragma omp target exit data map(delete:Sigma11[0:kvol],Sigma12[0:kvol],\
+//#pragma omp target update from(dSdpi[0:kmom])
+//#ifdef __clang__
+//#pragma omp target exit data map(delete:Sigma11[0:kvol],Sigma12[0:kvol],\
 		u11sh[0:kvol+halo],u12sh[0:kvol+halo])
-#endif
+//#endif
 #ifdef __INTEL_MKL__
 	mkl_free(u11sh); mkl_free(u12sh); mkl_free(Sigma11); mkl_free(Sigma12);
 #else
@@ -132,7 +136,7 @@ int Force(double *dSdpi, int iflag, double res1){
 	 *
 	 *	Parameters:
 	 *	===========
-	 *	double dSdpi[3][kvol]
+	 *	double dSdpi[ndim][nadj][kvol]
 	 *	int	iflag
 	 *	double	res1;
 	 *
@@ -200,8 +204,9 @@ int Force(double *dSdpi, int iflag, double res1){
 		//  both these arrays, each of which has 8 cpts
 		//
 //#ifdef __clang__
+//#pragma omp target update to(X1[0:kferm2halo])
 //#pragma omp target teams distribute parallel for\
-		map(to:X2[0:kferm2Halo],X1[0:kferm2Halo],akappa)
+		map(to:X1[0:kferm2Halo],X2[0:kferm2Halo]) map(tofrom:dSdpi[0:kmom])
 //#else
 #pragma omp parallel for
 //#endif
@@ -209,7 +214,7 @@ int Force(double *dSdpi, int iflag, double res1){
 			for(int idirac=0;idirac<ndirac;idirac++){
 				int mu, uid, igork1;
 #ifndef NO_SPACE
-#pragma omp simd aligned(dSdpi,X1,X2,u11t,u12t,iu:AVX)
+//#pragma omp simd aligned(dSdpi,X1,X2,u11t,u12t,iu:AVX)
 				for(mu=0; mu<3; mu++){
 					//Long term ambition. I used the diff command on the different
 					//spacial components of dSdpi and saw a lot of the values required
@@ -395,7 +400,7 @@ int Force(double *dSdpi, int iflag, double res1){
 #endif
 			}
 	}
-#pragma omp target update from(dSdpi[0:kmom])
+//#pragma omp target update from(dSdpi[0:kmom])
 #if defined __INTEL_MKL__
 	mkl_free(X2); mkl_free(smallPhi);
 #else

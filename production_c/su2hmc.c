@@ -262,7 +262,6 @@ int main(int argc, char *argv[]){
 	dSdpi = mkl_malloc(kmom*sizeof(double), AVX);
 	//pp is the momentum field
 	pp = mkl_malloc(kmom*sizeof(double), AVX);
-#pragma omp target enter data map(to:dSdpi[0:kmom],pp[0:kmom])
 #else
 	R1= aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 	Phi= aligned_alloc(AVX,nf*kfermHalo*sizeof(Complex)); 
@@ -270,14 +269,15 @@ int main(int argc, char *argv[]){
 	X1= aligned_alloc(AVX,kferm2Halo*sizeof(Complex)); 
 	dSdpi = aligned_alloc(AVX,kmom*sizeof(double));
 	pp = aligned_alloc(AVX,kmom*sizeof(double));
-#pragma omp target enter data map(to:dSdpi[0:kmom],pp[0:kmom])
 #endif
+#pragma omp target enter data map(alloc:pp[0:kmom]/*dSdpi[0:kmom],,X1[0:kferm2Halo]*/)
 	//Arabic for hour/watch so probably not defined elsewhere like TIME potentially is
 #if (defined SA3AT)
 	double start_time=0;
 	if(!rank)
 		start_time = MPI_Wtime();
 #endif
+	double action;
 	for(int itraj = iread+1; itraj <= ntraj+iread; itraj++){
 		//Reset conjugate gradient averages
 		ancg = 0; ancgh = 0;
@@ -340,7 +340,6 @@ int main(int argc, char *argv[]){
 #endif
 #pragma omp target update to(pp[0:kmom])
 		//Initialise Trial Fields
-		//Does CUDA like memcpy in this way?
 		memcpy(u11t, u11, ndim*kvol*sizeof(Complex));
 		memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
 		Trial_Exchange();
@@ -355,7 +354,6 @@ int main(int argc, char *argv[]){
 #ifdef _DEBUG
 		if(!rank) printf("H0: %e S0: %e\n", H0, S0);
 #endif
-		double action;
 		if(itraj==1)
 			action = S0/gvol;
 
@@ -381,7 +379,6 @@ int main(int argc, char *argv[]){
 			//d negated above
 			pp[i]+=d*dSdpi[i];
 #endif
-#pragma omp target update to(pp[0:kvol])
 		//Main loop for classical time evolution
 		//======================================
 		for(int step = 1; step<=stepmax; step++){
@@ -417,7 +414,6 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 				cublasDaxpy(cublas_handle,kmom, &d, dSdpi, 1, pp, 1);
 #elif (defined __INTEL_MKL__ || defined USE_BLAS)
-				//cuBLAS calls from CPU allowed?
 				cblas_daxpy(kmom, d, dSdpi, 1, pp, 1);
 #else
 #pragma omp parallel for simd aligned(pp,dSdpi:AVX)
@@ -440,7 +436,7 @@ int main(int argc, char *argv[]){
 #else
 #pragma omp parallel for simd aligned(pp,dSdpi:AVX)
 				for(int i = 0; i<kmom; i++)
-							pp[i]-=dt*dSdpi[i];
+					pp[i]-=dt*dSdpi[i];
 #endif
 #pragma omp target update to(pp[0:kmom])
 			}
@@ -478,7 +474,7 @@ int main(int argc, char *argv[]){
 			memcpy(u11,u11t,ndim*(kvol+halo)*sizeof(Complex));
 			memcpy(u12,u12t,ndim*(kvol+halo)*sizeof(Complex));
 			naccp++;
-			//Divide by gvol because of halos?
+			//Divide by gvol since we've summed over all lattice sites
 			action=S1/gvol;
 		}
 		else
@@ -620,7 +616,7 @@ int main(int argc, char *argv[]){
 #pragma omp target exit data map(delete:u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],gamval[0:5*4],\
 		u11t_f[0:ndim*(kvol+halo)],u12t_f[0:ndim*(kvol+halo)], dk4m[0:kvol*halo],gamval_f[0:5*4],\
 		dk4p[0:kvol+halo], dk4m_f[0:kvol+halo],dk4p_f[0:kvol+halo], iu[0:ndim*kvol],id[0:ndim*kvol],\
-		dSdpi[0:kmom],pp[0:kmom])
+		dSdpi[0:kmom],pp[0:kmom],X1[0:kferm2Halo])
 	mkl_free_buffers();
 	mkl_free(dk4m); mkl_free(dk4p); mkl_free(R1); mkl_free(dSdpi); mkl_free(pp);
 	mkl_free(Phi); mkl_free(u11t); mkl_free(u12t);
@@ -632,7 +628,7 @@ int main(int argc, char *argv[]){
 #pragma omp target exit data map(delete:u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],gamval[0:5*4],\
 		u11t_f[0:ndim*(kvol+halo)],u12t_f[0:ndim*(kvol+halo)], dk4m[0:kvol*halo],gamval_f[0:5*4],\
 		dk4p[0:kvol+halo], dk4m_f[0:kvol+halo],dk4p_f[0:kvol+halo], iu[0:ndim*kvol],id[0:ndim*kvol],\
-		dSdpi[0:kmom],pp[0:kmom])
+		dSdpi[0:kmom],pp[0:kmom],X1[0:kferm2Halo])
 	free(dk4m); free(dk4p); free(R1); free(dSdpi); free(pp); free(Phi);
 	free(u11t); free(u12t); free(X0); free(X1);
 	free(u11); free(u12); free(id); free(iu); free(hd); free(hu);
@@ -986,7 +982,6 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 	 */
 	const char *funcname = "Congradq";
 	double resid = kferm2*res*res;
-	*itercg = 0;
 	//The κ^2 factor is needed to normalise the fields correctly
 	//jqq is the diquark codensate and is global scope.
 #ifdef __NVCC__
@@ -1047,8 +1042,9 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
 	//if statements quicker to type
 	double betan;
-	for(int niterx=0; niterx<niterc; niterx++){
-		(*itercg)++;
+//#pragma omp target update to(X1[0:kferm2])
+//#pragma omp target enter data map(to:p[0:kferm2]) map(alloc:x2[0:kferm2],r[0:kferm2])
+	for(*itercg=0; *itercg<=niterc; (*itercg)++){
 #pragma omp parallel for simd aligned(p_f,p:AVX)
 		for(int i=0;i<kferm2;i++)
 			p_f[i]=(Complex_f)p[i];
@@ -1071,8 +1067,8 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 		for(int i=0; i<kferm2; i++)
 			x2[i]+=fac*p[i];
 #endif
-		//We can't evaluate α on the first niterx because we need to get β_n.
-		if(niterx){
+		//We can't evaluate α on the first *itercg because we need to get β_n.
+		if(*itercg){
 			//α_d= p* (M^†M+J^2)p
 #ifdef __NVCC__
 			cublasZdotc(cublas_handle,kferm2,(cuDoubleComplex *)p,1,(cuDoubleComplex *)x2,1,(cuDoubleComplex *)&alphad);
@@ -1124,18 +1120,18 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 		Par_dsum(&betan);
 		if(betan<resid){ 
 #ifdef _DEBUG
-			if(!rank) printf("Iter (CG) = %i resid = %e toler = %e\n", niterx+1, betan, resid);
+			if(!rank) printf("Iter (CG) = %i resid = %e toler = %e\n", *itercg, betan, resid);
 #endif
 			break;
 		}
-		else if(niterx==niterc-1){
-			if(!rank) fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i β_n=%e\n", ITERLIM, funcname, niterc, betan);
+		else if(*itercg==niterc){
+			if(!rank) fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i β_n=%e\n", ITERLIM, funcname, *itercg, betan);
 			break;
 		}
 		//Here we evaluate β=(r_{k+1}.r_{k+1})/(r_k.r_k) and then shuffle our indices down the line.
 		//On the first iteration we define beta to be zero.
 		//Note that beta below is not the global beta and scoping is used to avoid conflict between them
-		Complex beta = (niterx) ?  betan/betad : 0;
+		Complex beta = (*itercg) ?  betan/betad : 0;
 		betad=betan; alphan=betan;
 		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multipyling y by
 		//β instead of x.
@@ -1153,12 +1149,15 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 	cudaFree(x2); cudaFree(p); cudaFree(r);
 	cudaFree(x1_f);cudaFree(x2_f); cudaFree(p_f);
 #elif defined __INTEL_MKL__
+#pragma omp target exit data map(delete:p[0:kferm2],x2[0:kferm2], r[0:kferm2])
 	mkl_free(x1_f); mkl_free(x2); mkl_free(p); mkl_free(r);
 	mkl_free(p_f); mkl_free(x2_f);
 #else
+#pragma omp target exit data map(delete:p[0:kferm2],x2[0:kferm2], r[0:kferm2])
 	free(x1_f); free(x2); free(p); free(r);
 	free(p_f); free(x2_f);
 #endif
+//#pragma omp target update from(X1[0:kferm2])
 	return 0;
 }
 int Congradp(int na, double res, int *itercg){
