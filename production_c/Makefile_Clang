@@ -5,7 +5,7 @@ CC= mpiicc
 IFLAGS=     -I../INCLUDE 
 
 CFLAGS=		$(IFLAGS) -cc=icx -qmkl -std=c11 -ipo -qopt-zmm-usage=high \
-			-xHOST -static-intel -static-libgcc -DMKL_DIRECT_CALL -D__INTEL_MKL__\
+			-xCOMMON-AVX512 -static-intel -static-libgcc -DMKL_DIRECT_CALL -D__INTEL_MKL__\
 			-qopenmp-simd -fiopenmp  -qopenmp-link=static -DSA3AT -fcommon\
 			 -fopenmp-targets=spir64 \
 

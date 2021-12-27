@@ -108,7 +108,7 @@ extern "C" int Gauge_force(double *dSdpi);
 int Init(int istart);
 int Hamilton(double *h, double *s, double res2);
 int Congradq(int na, double res, Complex *smallPhi, int *itercg);
-int Congradp(int na, double res, int *itercg);
+int Congradp(int na, double res, Complex_f *xi_f, int *itercg);
 int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbqb, double res, int *itercg);
 #ifndef __NVCC__
 int SU2plaq(double *hg, double *avplaqs, double *avplaqt);

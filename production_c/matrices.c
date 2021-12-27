@@ -32,7 +32,8 @@ int Dslash(Complex *phi, Complex *r){
 	memcpy(phi, r, kferm*sizeof(Complex));
 	//Diquark Term (antihermitian)
 #ifdef __clang__
-#pragma omp target teams distribute parallel for\
+//Double precision bad for offloading
+//#pragma omp target teams distribute parallel for\
 	map(to:r[0:kfermHalo]) map(tofrom:phi[0:kferm])
 #endif
 	for(int i=0;i<kvol;i++){
@@ -53,8 +54,7 @@ int Dslash(Complex *phi, Complex *r){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
-#pragma omp simd aligned(phi,r,u11t_f,u12t_f,gamval:AVX)
-#pragma vector vecremainder
+#pragma omp simd aligned(phi,r,u11t,u12t,gamval:AVX)
 			for(int igorkov=0; igorkov<ngorkov; igorkov++){
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing in the dirac term.
 				int idirac=igorkov%4;		
@@ -89,7 +89,7 @@ int Dslash(Complex *phi, Complex *r){
 #endif
 		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
 #ifndef NO_TIME
-#pragma omp simd aligned(phi,r,u11t_f,u12t_f,dk4m,dk4p:AVX)
+#pragma omp simd aligned(phi,r,u11t,u12t,dk4m,dk4p:AVX)
 		for(int igorkov=0; igorkov<4; igorkov++){
 			int igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
 			//the FORTRAN code did it.
@@ -150,7 +150,8 @@ int Dslashd(Complex *phi, Complex *r){
 	//Mass term
 	memcpy(phi, r, kferm*sizeof(Complex));
 #ifdef __clang__
-#pragma omp target teams distribute parallel for\
+//Double precision bad for offloading
+//#pragma omp target teams distribute parallel for\
 	map(to:r[0:kfermHalo]) map(tofrom:phi[0:kferm])
 #endif
 	for(int i=0;i<kvol;i++){
@@ -172,7 +173,7 @@ int Dslashd(Complex *phi, Complex *r){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
-#pragma omp simd aligned(phi,r,u11t_f,u12t_f,gamval:AVX)
+#pragma omp simd aligned(phi,r,u11t,u12t,gamval:AVX)
 			for(int igorkov=0; igorkov<ngorkov; igorkov++){
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing.
 				int idirac=igorkov%4;		
@@ -209,7 +210,7 @@ int Dslashd(Complex *phi, Complex *r){
 		//Under dagger, dk4p and dk4m get swapped and the dirac component flips sign.
 		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
 #ifndef NO_TIME
-#pragma omp simd aligned(phi,r,u11t_f,u12t_f,dk4m,dk4p:AVX)
+#pragma omp simd aligned(phi,r,u11t,u12t,dk4m,dk4p:AVX)
 		for(int igorkov=0; igorkov<4; igorkov++){
 			//the FORTRAN code did it.
 			int igork1 = gamin[3][igorkov];	
@@ -274,7 +275,8 @@ int Hdslash(Complex *phi, Complex *r){
 	memcpy(phi, r, kferm2*sizeof(Complex));
 	//Spacelike term
 #ifdef __clang__
-#pragma omp target teams distribute parallel for\
+//Double precision bad for offloading
+//#pragma omp target teams distribute parallel for\
 	map(to:r[0:kferm2Halo]) map(tofrom:phi[0:kferm2])
 #else
 #pragma omp parallel for
@@ -370,7 +372,8 @@ int Hdslashd(Complex *phi, Complex *r){
 	memcpy(phi, r, kferm2*sizeof(Complex));
 	//Spacelike term
 #ifdef __clang__
-#pragma omp target teams distribute parallel for\
+//Double precision bad for offloading
+//#pragma omp target teams distribute parallel for\
 	map(to:r[0:kferm2Halo]) map(tofrom:phi[0:kferm2])
 #else
 #pragma omp parallel for
@@ -891,11 +894,13 @@ int New_trial(double dt){
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "New_trial"; //
-#ifdef __clang__
-#pragma omp target teams distribute parallel for simd collapse(2) aligned(pp,u11t,u12t:AVX) 
-#else
+//#ifdef __clang__
+//Double precision bad for offloading
+//#pragma omp target teams distribute parallel for simd collapse(2)\
+map(to:pp[0:kmom]) aligned(pp,u11t,u12t:AVX) 
+//#else
 #pragma omp parallel for simd collapse(2) aligned(pp,u11t,u12t:AVX) 
-#endif
+//#endif
 	for(int i=0;i<kvol;i++)
 		for(int mu = 0; mu<ndim; mu++){
 			//Sticking to what was in the FORTRAN for variable names.
@@ -935,11 +940,12 @@ inline int Reunitarise(){
 	 * Zero on success, integer error code otherwise
 	 */
 	const char *funcname = "Reunitarise";
-#ifdef __clang__
-#pragma omp target teams distribute parallel for simd aligned(u11t,u12t:AVX)
-#else
+//#ifdef __clang__
+//Double precision bad for offloading
+//#pragma omp target teams distribute parallel for simd aligned(u11t,u12t:AVX)
+//#else
 #pragma omp simd aligned(u11t,u12t:AVX)
-#endif
+//#endif
 	for(int i=0; i<kvol*ndim; i++){
 		//Declaring anorm inside the loop will hopefully let the compiler know it
 		//is safe to vectorise aggessively

@@ -1,7 +1,6 @@
 /*
  *Code for fermionic observables
  */
-
 #include	<matrices.h>
 #include	<random.h>
 #include	<su2hmc.h>
@@ -20,7 +19,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	 *
 	 * Globals:
 	 * =======
-	 * Phi, X0, xi, R1, u11t, u12t, ganval, iu, id 
+	 * Phi, X0, R1, u11t, u12t, ganval, iu, id 
 	 *
 	 * Parameters:
 	 * ==========
@@ -43,16 +42,14 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	Complex	*x = mkl_malloc(kfermHalo*sizeof(Complex), AVX);
 	Complex *xi	= mkl_malloc(kfermHalo*sizeof(Complex),AVX);
 	Complex_f	*xi_f = mkl_malloc(kfermHalo*sizeof(Complex_f), AVX);
-	Complex_f	*R1_f = mkl_malloc(kferm*sizeof(Complex_f), AVX);
+	Complex_f	*R1_f = mkl_malloc(kfermHalo*sizeof(Complex_f), AVX);
 #else
 	Complex *x = aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 	Complex *xi = aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 	Complex_f *xi_f = aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
-	Complex_f *R1_f = aligned_alloc(AVX,kferm*sizeof(Complex_f));
+	Complex_f *R1_f = aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 #endif
 	//Setting up noise.
-
-	//The root two term comes from the fact we called gauss0 in the fortran code instead of gaussp
 #if (defined(USE_RAN2)||!defined(__INTEL_MKL__))
 	Gauss_z(xi, kferm, 0, 1/sqrt(2));
 #else
@@ -72,6 +69,14 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #pragma omp parallel for simd aligned(R1,R1_f:AVX)
 	for(int i=0;i<kferm;i++)
 		R1[i]=(Complex)R1_f[i];
+	//Copying R1 to the first (zeroth) flavour index of Phi
+	//This should be safe with memcpy since the pointer name
+	//references the first block of memory for that pointer
+	memcpy(Phi, R1, kferm*sizeof(Complex));
+	memcpy(xi, R1, kferm*sizeof(Complex));
+	memcpy(xi_f, R1_f, kferm*sizeof(Complex_f));
+	//Evaluate xi = (M^† M)^-1 R_1 
+	Congradp(0, res, xi_f, itercg);
 #ifdef __NVCC__
 	cudaFree(xi_f); cudaFree(R1_f);
 #elif defined __INTEL_MKL__
@@ -79,15 +84,6 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #else
 	free(xi_f); free(R1_f);
 #endif
-	//Copying R1 to the first (zeroth) flavour index of Phi
-	//This should be safe with memcpy since the pointer name
-	//references the first block of memory for that pointer
-	memcpy(Phi, R1, nc*ngorkov*kvol*sizeof(Complex));
-	memcpy(xi, R1, nc*ngorkov*kvol*sizeof(Complex));
-
-	//Evaluate xi = (M^† M)^-1 R_1 
-	//This is still double precision for now
-	Congradp(0, res, itercg);
 #if (defined __INTEL_MKL__ || defined USE_BLAS)
 	Complex buff;
 	cblas_zdotc_sub(kferm, x, 1, xi,  1, &buff);
@@ -101,7 +97,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	Par_dsum(pbp);
 	*pbp/=4*gvol;
 
-	*qbqb=0; *qq=0;
+	*qbqb=*qq=0;
 #if (defined __INTEL_MKL__ || defined USE_BLAS)
 	for(int idirac = 0; idirac<ndirac; idirac++){
 		int igork=idirac+4;
@@ -135,7 +131,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	Par_dsum(qq); Par_dsum(qbqb);
 	*qq=(*qq+*qbqb)/(2*gvol);
 	Complex xu, xd, xuu, xdd;
-	xu=0;xd=0;xuu=0;xdd=0;
+	xu=xd=xuu=xdd=0;
 
 	//Halos
 	ZHalo_swap_dir(x,16,3,DOWN);		ZHalo_swap_dir(x,16,3,UP);

@@ -142,14 +142,15 @@ double Polyakov(){
 	//	previously started at t+T and looped back to 1, 2, ... T-1
 	//Buffers
 	//There is a dependency. Can only parallelise the inner loop
-#ifdef __clang__
-#pragma omp target teams map(tofrom:Sigma11[0:kvol3],Sigma12[0:kvol3])
-	{
-#endif
+#pragma omp target enter data map(to:Sigma11[0:kvol3],Sigma12[0:kvol3])
 #pragma unroll
 		for(int it=1;it<ksizet;it++)
 			//will be faster for parallel code
+#ifdef __clang__
+#pragma omp target teams distribute parallel for simd aligned(u11t,u12t,Sigma11,Sigma12:AVX)
+#else
 #pragma omp parallel for simd aligned(u11t,u12t,Sigma11,Sigma12:AVX)
+#endif
 			for(int i=0;i<kvol3;i++){
 				//Seems a bit more efficient to increment indexu instead of reassigning
 				//it every single loop
@@ -159,10 +160,7 @@ double Polyakov(){
 				Sigma12[i]=Sigma11[i]*u12t[indexu*ndim+3]+Sigma12[i]*conj(u11t[indexu*ndim+3]);
 				Sigma11[i]=a11;
 			}
-#ifdef __clang__
-	}
-#endif
-
+#pragma omp target update from(Sigma11[0:kvol3],Sigma12[0:kvol3])
 	//Multiply this partial loop with the contributions of the other cores in the
 	//timelike dimension
 #if (npt>1)
@@ -176,6 +174,7 @@ double Polyakov(){
 #pragma omp parallel for simd reduction(+:poly) aligned(Sigma11:AVX)
 	for(int i=0;i<kvol3;i++)
 		poly+=creal(Sigma11[i]);
+#pragma omp target exit data map(from:Sigma11[0:kvol3],Sigma12[0:kvol3])
 #ifdef __NVCC__
 	cudaFree(Sigma11); cudaFree(sigma12);
 #elif defined __INTEL_MKL__
