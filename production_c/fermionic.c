@@ -53,18 +53,16 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #if (defined(USE_RAN2)||!defined(__INTEL_MKL__))
 	Gauss_z(xi, kferm, 0, 1/sqrt(2));
 #else
-	vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, xi, 0, 1/sqrt(2));
+	vsRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, xi_f, 0, 1/sqrt(2));
 #endif
-	memcpy(x, xi, kferm*sizeof(Complex));
 
 	//R_1= M^† Ξ 
 	//R1 is local in fortran but since its going to be reset anyway I'm going to recycle the
 	//global
 #pragma omp parallel for simd aligned(R1,xi,R1_f,xi_f:AVX)
-	for(int i=0;i<kferm;i++){
-		R1_f[i]=(Complex_f)R1[i];
-		xi_f[i]=(Complex_f)xi[i];
-	}
+	for(int i=0;i<kferm;i++)
+		xi[i]=(Complex)xi_f[i];
+	memcpy(x, xi, kferm*sizeof(Complex));
 	Dslashd_f(R1_f, xi_f);
 #pragma omp parallel for simd aligned(R1,R1_f:AVX)
 	for(int i=0;i<kferm;i++)
@@ -74,9 +72,8 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	//references the first block of memory for that pointer
 	memcpy(Phi, R1, kferm*sizeof(Complex));
 	memcpy(xi, R1, kferm*sizeof(Complex));
-	memcpy(xi_f, R1_f, kferm*sizeof(Complex_f));
 	//Evaluate xi = (M^† M)^-1 R_1 
-	Congradp(0, res, xi_f, itercg);
+	Congradp(0, res, R1_f, itercg);
 #ifdef __NVCC__
 	cudaFree(xi_f); cudaFree(R1_f);
 #elif defined __INTEL_MKL__
@@ -141,51 +138,51 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 
 	//Instead of typing id[i*ndim+3] a lot, we'll just assign them to variables.
 	//Idea. One loop instead of two loops but for xuu and xdd just use ngorkov-(igorkov+1) instead
-//#ifdef __clang__
-//#pragma omp target teams distribute parallel for reduction(+:xd,xu,xdd,xuu)\
+	//#ifdef __clang__
+	//#pragma omp target teams distribute parallel for reduction(+:xd,xu,xdd,xuu)\
 	map(tofrom:xu,xd,xuu,xdd)
-//#else
+		//#else
 #pragma omp parallel for reduction(+:xd,xu,xdd,xuu) 
-//#endif
-	for(int i = 0; i<kvol; i++){
-		int did=id[3+ndim*i];
-		int uid=iu[3+ndim*i];
+		//#endif
+		for(int i = 0; i<kvol; i++){
+			int did=id[3+ndim*i];
+			int uid=iu[3+ndim*i];
 #pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX) 
-		for(int igorkov=0; igorkov<4; igorkov++){
-			int igork1=gamin[3][igorkov];
-			//For the C Version I'll try and factorise where possible
+			for(int igorkov=0; igorkov<4; igorkov++){
+				int igork1=gamin[3][igorkov];
+				//For the C Version I'll try and factorise where possible
 
-			xu+=dk4p[did]*(conj(x[(did*ngorkov+igorkov)*nc])*(\
-						u11t[did*ndim+3]*(xi[(i*ngorkov+igork1)*nc]-xi[(i*ngorkov+igorkov)*nc])+\
-						u12t[did*ndim+3]*(xi[(i*ngorkov+igork1)*nc+1]-xi[(i*ngorkov+igorkov)*nc+1]) )+\
-					conj(x[(did*ngorkov+igorkov)*nc+1])*(\
-						conj(u11t[did*ndim+3])*(xi[(i*ngorkov+igork1)*nc+1]-xi[(i*ngorkov+igorkov)*nc+1])+\
-						conj(u12t[did*ndim+3])*(xi[(i*ngorkov+igorkov)*nc]-xi[(i*ngorkov+igork1)*nc])));
+				xu+=dk4p[did]*(conj(x[(did*ngorkov+igorkov)*nc])*(\
+							u11t[did*ndim+3]*(xi[(i*ngorkov+igork1)*nc]-xi[(i*ngorkov+igorkov)*nc])+\
+							u12t[did*ndim+3]*(xi[(i*ngorkov+igork1)*nc+1]-xi[(i*ngorkov+igorkov)*nc+1]) )+\
+						conj(x[(did*ngorkov+igorkov)*nc+1])*(\
+							conj(u11t[did*ndim+3])*(xi[(i*ngorkov+igork1)*nc+1]-xi[(i*ngorkov+igorkov)*nc+1])+\
+							conj(u12t[did*ndim+3])*(xi[(i*ngorkov+igorkov)*nc]-xi[(i*ngorkov+igork1)*nc])));
 
-			xd+=dk4m[i]*(conj(x[(uid*ngorkov+igorkov)*nc])*(\
-						conj(u11t[i*ndim+3])*(xi[(i*ngorkov+igork1)*nc]+xi[(i*ngorkov+igorkov)*nc])-\
-						u12t[i*ndim+3]*(xi[(i*ngorkov+igork1)*nc+1]+xi[(i*ngorkov+igorkov)*nc+1]) )+\
-					conj(x[(uid*ngorkov+igorkov)*nc+1])*(\
-						u11t[i*ndim+3]*(xi[(i*ngorkov+igork1)*nc+1]+xi[(i*ngorkov+igorkov)*nc+1])+\
-						conj(u12t[i*ndim+3])*(xi[(i*ngorkov+igorkov)*nc]+xi[(i*ngorkov+igork1)*nc]) ) );
+				xd+=dk4m[i]*(conj(x[(uid*ngorkov+igorkov)*nc])*(\
+							conj(u11t[i*ndim+3])*(xi[(i*ngorkov+igork1)*nc]+xi[(i*ngorkov+igorkov)*nc])-\
+							u12t[i*ndim+3]*(xi[(i*ngorkov+igork1)*nc+1]+xi[(i*ngorkov+igorkov)*nc+1]) )+\
+						conj(x[(uid*ngorkov+igorkov)*nc+1])*(\
+							u11t[i*ndim+3]*(xi[(i*ngorkov+igork1)*nc+1]+xi[(i*ngorkov+igorkov)*nc+1])+\
+							conj(u12t[i*ndim+3])*(xi[(i*ngorkov+igorkov)*nc]+xi[(i*ngorkov+igork1)*nc]) ) );
 
-			int igorkovPP=igorkov+4;
-			int igork1PP=igork1+4;
-			xuu-=dk4m[did]*(conj(x[(did*ngorkov+igorkovPP)*nc])*(\
-						u11t[did*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc]-xi[(i*ngorkov+igorkovPP)*nc])+\
-						u12t[did*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc+1]-xi[(i*ngorkov+igorkovPP)*nc+1]) )+\
-					conj(x[(did*ngorkov+igorkovPP)*nc+1])*(\
-						conj(u11t[did*ndim+3])*(xi[(i*ngorkov+igork1PP)*nc+1]-xi[(i*ngorkov+igorkovPP)*nc+1])+\
-						conj(u12t[did*ndim+3])*(xi[(i*ngorkov+igorkovPP)*nc]-xi[(i*ngorkov+igork1PP)*nc]) ) );
+				int igorkovPP=igorkov+4;
+				int igork1PP=igork1+4;
+				xuu-=dk4m[did]*(conj(x[(did*ngorkov+igorkovPP)*nc])*(\
+							u11t[did*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc]-xi[(i*ngorkov+igorkovPP)*nc])+\
+							u12t[did*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc+1]-xi[(i*ngorkov+igorkovPP)*nc+1]) )+\
+						conj(x[(did*ngorkov+igorkovPP)*nc+1])*(\
+							conj(u11t[did*ndim+3])*(xi[(i*ngorkov+igork1PP)*nc+1]-xi[(i*ngorkov+igorkovPP)*nc+1])+\
+							conj(u12t[did*ndim+3])*(xi[(i*ngorkov+igorkovPP)*nc]-xi[(i*ngorkov+igork1PP)*nc]) ) );
 
-			xdd-=dk4p[i]*(conj(x[(uid*ngorkov+igorkovPP)*nc])*(\
-						conj(u11t[i*ndim+3])*(xi[(i*ngorkov+igork1PP)*nc]+xi[(i*ngorkov+igorkovPP)*nc])-\
-						u12t[i*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc+1]+xi[(i*ngorkov+igorkovPP)*nc+1]) )+\
-					conj(x[(uid*ngorkov+igorkovPP)*nc+1])*(\
-						u11t[i*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc+1]+xi[(i*ngorkov+igorkovPP)*nc+1])+\
-						conj(u12t[i*ndim+3])*(xi[(i*ngorkov+igorkovPP)*nc]+xi[(i*ngorkov+igork1PP)*nc]) ) );
+				xdd-=dk4p[i]*(conj(x[(uid*ngorkov+igorkovPP)*nc])*(\
+							conj(u11t[i*ndim+3])*(xi[(i*ngorkov+igork1PP)*nc]+xi[(i*ngorkov+igorkovPP)*nc])-\
+							u12t[i*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc+1]+xi[(i*ngorkov+igorkovPP)*nc+1]) )+\
+						conj(x[(uid*ngorkov+igorkovPP)*nc+1])*(\
+							u11t[i*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc+1]+xi[(i*ngorkov+igorkovPP)*nc+1])+\
+							conj(u12t[i*ndim+3])*(xi[(i*ngorkov+igorkovPP)*nc]+xi[(i*ngorkov+igork1PP)*nc]) ) );
+			}
 		}
-	}
 	*endenf=creal(xu-xd-xuu+xdd);
 	*denf=creal(xu+xd+xuu+xdd);
 
