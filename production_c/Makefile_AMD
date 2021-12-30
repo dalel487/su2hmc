@@ -10,7 +10,7 @@ CFLAGS=	$(IFLAGS) -std=gnu11 -DUSE_BLAS -fcommon -static -DSA3AT -fveclib=AMDLIB
 		 # -fprofile-instr-use
 
 LFLAGS=	-L/opt/AMD/aocl/aocl-linux-aocc-3.1.0/lib/	-L/opt/AMD/aocc-compiler-3.2.0/lib \
-		-Wl -latomic -lomp -lpthread -lm -ldl -lalm -lblis 
+		-Wl -latomic -lpthread -lm -ldl -lalm -lblis 
 
 EXE=	su2hmc_AMD
 

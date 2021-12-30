@@ -1153,7 +1153,7 @@ int Trial_Exchange(){
 		u12t_f[i]=(Complex_f)u12t[i];
 	}
 	//Only upload the halo of the trial field, but the full single precision field
-#pragma omp target update to(u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],\
+#pragma acc update device(u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],\
 		u11t_f[0:ndim*(kvol+halo)],u12t_f[0:ndim*(kvol+halo)])
 	return 0;
 }

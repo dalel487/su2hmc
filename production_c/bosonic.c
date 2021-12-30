@@ -38,12 +38,11 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 		for(int nu=0;nu<mu;nu++)
 			//Don't merge into a single loop. Makes vectorisation easier?
 			//Or merge into a single loop and dispense with the a arrays?
-//#ifdef __clang__
-//#pragma omp target teams distribute parallel for simd aligned(u11t,u12t,iu:AVX)\
-			reduction(+:hgs,hgt)	map(tofrom:hgs,hgt)
-//#else
+#ifdef __OPENACC
+#pragma acc parallel loop reduction(+:hgs,hgt)
+#else
 #pragma omp parallel for simd aligned(u11t,u12t,iu:AVX) reduction(+:hgs,hgt)
-//#endif
+#endif
 			for(int i=0;i<kvol;i++){
 				//Save us from typing iu[mu+ndim*i] everywhere
 				int uidm = iu[mu+ndim*i]; 
@@ -142,12 +141,15 @@ double Polyakov(){
 	//	previously started at t+T and looped back to 1, 2, ... T-1
 	//Buffers
 	//There is a dependency. Can only parallelise the inner loop
-#pragma omp target enter data map(to:Sigma11[0:kvol3],Sigma12[0:kvol3])
+//#pragma omp target enter data map(to:Sigma11[0:kvol3],Sigma12[0:kvol3])
+#pragma acc enter data copyin(Sigma11[0:kvol3],Sigma12[0:kvol3])
 #pragma unroll
 		for(int it=1;it<ksizet;it++)
 			//will be faster for parallel code
-#ifdef __clang__
-#pragma omp target teams distribute parallel for simd aligned(u11t,u12t,Sigma11,Sigma12:AVX)
+//#ifdef __clang__
+//#pragma omp target teams distribute parallel for simd aligned(u11t,u12t,Sigma11,Sigma12:AVX)
+#ifdef __OPENACC
+#pragma acc parallel loop
 #else
 #pragma omp parallel for simd aligned(u11t,u12t,Sigma11,Sigma12:AVX)
 #endif
@@ -160,21 +162,29 @@ double Polyakov(){
 				Sigma12[i]=Sigma11[i]*u12t[indexu*ndim+3]+Sigma12[i]*conj(u11t[indexu*ndim+3]);
 				Sigma11[i]=a11;
 			}
-#pragma omp target update from(Sigma11[0:kvol3],Sigma12[0:kvol3])
+//#pragma omp target update from(Sigma11[0:kvol3],Sigma12[0:kvol3])
 	//Multiply this partial loop with the contributions of the other cores in the
 	//timelike dimension
 #if (npt>1)
+//Only send to the accelerator if the time component is parallised with MPI. Otherwise
+//it gets sent straight into another loop
+#pragma acc update self(Sigma11[0:kvol3],Sigma12[0:kvol3])
 #ifdef _DEBUG
 	printf("Multiplying with MPI\n");
 #endif
 	//Par_tmul does nothing if there is only a single processor in the time direction. So we only compile
 	//its call if it is required
 	Par_tmul(Sigma11, Sigma12);
+#pragma acc update device(Sigma11[0:kvol3],Sigma12[0:kvol3])
 #endif
+#ifdef __OPENACC
+#pragma acc parallel loop reduction(+:poly)
+#else
 #pragma omp parallel for simd reduction(+:poly) aligned(Sigma11:AVX)
+#endif
 	for(int i=0;i<kvol3;i++)
 		poly+=creal(Sigma11[i]);
-#pragma omp target exit data map(from:Sigma11[0:kvol3],Sigma12[0:kvol3])
+#pragma acc exit data delete(Sigma11[0:kvol3],Sigma12[0:kvol3])
 #ifdef __NVCC__
 	cudaFree(Sigma11); cudaFree(sigma12);
 #elif defined __INTEL_MKL__

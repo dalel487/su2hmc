@@ -1,16 +1,17 @@
 MF=	Makefile
 
-CC=mpigcc 
+CC=mpicc 
 
-IFLAGS=  -I ../INCLUDE/ -I /opt/AMD/aocl/aocl-linux-gcc-3.0-6/include/
+IFLAGS=  -I ../INCLUDE/ -I /opt/AMD/aocl/aocl-linux-aocc-3.1.0/include/
 
-CFLAGS=	$(IFLAGS) -cc=gcc-10 -std=gnu11 -DUSE_BLAS -fcommon\
-		-march=native  -DUSE_RAN2 \
-		-fopenmp-simd -fopenmp  -DSA3AT -flto\
-#		-pg -fprofile-arcs
+CFLAGS=	$(IFLAGS) -std=gnu11 -DUSE_BLAS -fcommon\
+		-march=znver1 -mtune=znver3 -DUSE_RAN2\
+		-fopenmp-simd -DSA3AT -flto\
+#		-foffload=amdgcn-amdhsa="-march=gfx90c" -fopenacc\
+#		-pg -fprofile-arcs-foffload=amdgcn-amdhsa="-march=gfx90c"
 
-LFLAGS=	-L /opt/AMD/aocl/aocl-linux-gcc-3.0-6/lib/ -latomic \
-		-lgomp -lpthread -lm -ldl -lalm -lblis
+LFLAGS=	-L /opt/AMD/aocl/aocl-linux-aocc-3.1.0/lib/ -latomic \
+		-lm -ldl -lalm -lblis
 
 EXE=	su2hmc_GCC
 

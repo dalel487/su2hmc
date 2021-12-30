@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <complex.h>
 #include <matrices.h>
 #include <string.h>
 //TO DO: Check and see are there any terms we are evaluating twice in the same loop
@@ -31,10 +32,10 @@ int Dslash(Complex *phi, Complex *r){
 	//Mass term
 	memcpy(phi, r, kferm*sizeof(Complex));
 	//Diquark Term (antihermitian)
-#ifdef __clang__
-//Double precision bad for offloading
-//#pragma omp target teams distribute parallel for\
-	map(to:r[0:kfermHalo]) map(tofrom:phi[0:kferm])
+#ifdef __OPENACC
+#pragma acc parallel loop copy(phi[0:kferm]) copyin(r[0:kfermHalo])
+#else
+#pragma omp parallel for
 #endif
 	for(int i=0;i<kvol;i++){
 #pragma omp simd aligned(phi,r,gamval:AVX)
@@ -149,10 +150,10 @@ int Dslashd(Complex *phi, Complex *r){
 
 	//Mass term
 	memcpy(phi, r, kferm*sizeof(Complex));
-#ifdef __clang__
-//Double precision bad for offloading
-//#pragma omp target teams distribute parallel for\
-	map(to:r[0:kfermHalo]) map(tofrom:phi[0:kferm])
+#ifdef __OPENACC
+#pragma acc parallel loop copy(phi[0:kferm]) copyin(r[0:kfermHalo])
+#else
+#pragma omp parallel for
 #endif
 	for(int i=0;i<kvol;i++){
 #pragma omp simd aligned(phi,r,gamval:AVX)
@@ -274,10 +275,8 @@ int Hdslash(Complex *phi, Complex *r){
 	//Mass term
 	memcpy(phi, r, kferm2*sizeof(Complex));
 	//Spacelike term
-#ifdef __clang__
-//Double precision bad for offloading
-//#pragma omp target teams distribute parallel for\
-	map(to:r[0:kferm2Halo]) map(tofrom:phi[0:kferm2])
+#ifdef __OPENACC
+#pragma acc parallel loop copy(phi[0:kferm2]) copyin(r[0:kferm2Halo])
 #else
 #pragma omp parallel for
 #endif
@@ -371,10 +370,8 @@ int Hdslashd(Complex *phi, Complex *r){
 	//Mass term
 	memcpy(phi, r, kferm2*sizeof(Complex));
 	//Spacelike term
-#ifdef __clang__
-//Double precision bad for offloading
-//#pragma omp target teams distribute parallel for\
-	map(to:r[0:kferm2Halo]) map(tofrom:phi[0:kferm2])
+#ifdef __OPENACC
+#pragma acc parallel loop copy(phi[0:kferm2]) copyin(r[0:kferm2Halo])
 #else
 #pragma omp parallel for
 #endif
@@ -467,7 +464,9 @@ int Dslash_f(Complex_f *phi, Complex_f *r){
 	//Mass term
 	memcpy(phi, r, kferm*sizeof(Complex_f));
 	//Diquark Term (antihermitian)
-#ifdef __clang__
+#ifdef __OPENACC
+#pragma acc parallel loop copy(phi[0:kferm]) copyin(r[0:kfermHalo])
+#elif defined __clang__
 #pragma omp target teams distribute parallel for\
 	map(to:r[0:kfermHalo]) map(tofrom:phi[0:kferm])
 #else
@@ -586,7 +585,9 @@ int Dslashd_f(Complex_f *phi, Complex_f *r){
 
 	//Mass term
 	memcpy(phi, r, kferm*sizeof(Complex_f));
-#ifdef __clang__
+#ifdef __OPENACC
+#pragma acc parallel loop copy(phi[0:kferm]) copyin(r[0:kfermHalo])
+#elif defined __clang__
 #pragma omp target teams distribute parallel for\
 	map(to:r[0:kfermHalo]) map(tofrom:phi[0:kferm])
 #else 
@@ -712,7 +713,9 @@ int Hdslash_f(Complex_f *phi, Complex_f *r){
 	//Mass term
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
 	//Spacelike term
-#ifdef __clang__
+#ifdef __OPENACC
+#pragma acc parallel loop copy(phi[0:kferm2]) copyin(r[0:kferm2Halo])
+#elif defined __clang__
 #pragma omp target teams distribute parallel for\
 	map(to:r[0:kferm2Halo]) map(tofrom:phi[0:kferm2])
 #else
@@ -808,7 +811,9 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r){
 	//Mass term
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
 	//Spacelike term
-#ifdef __clang__
+#ifdef __OPENACC
+#pragma acc parallel loop copy(phi[0:kferm2]) copyin(r[0:kferm2Halo])
+#elif defined __clang__
 #pragma omp target teams distribute parallel for\
 	map(to:r[0:kferm2Halo])	map(tofrom:phi[0:kferm2])
 #else
@@ -898,9 +903,11 @@ int New_trial(double dt){
 //Double precision bad for offloading
 //#pragma omp target teams distribute parallel for simd collapse(2)\
 map(to:pp[0:kmom]) aligned(pp,u11t,u12t:AVX) 
-//#else
+#ifdef __OPENACC
+#pragma acc parallel loop
+#else
 #pragma omp parallel for simd collapse(2) aligned(pp,u11t,u12t:AVX) 
-//#endif
+#endif
 	for(int i=0;i<kvol;i++)
 		for(int mu = 0; mu<ndim; mu++){
 			//Sticking to what was in the FORTRAN for variable names.
@@ -940,12 +947,11 @@ inline int Reunitarise(){
 	 * Zero on success, integer error code otherwise
 	 */
 	const char *funcname = "Reunitarise";
-//#ifdef __clang__
-//Double precision bad for offloading
-//#pragma omp target teams distribute parallel for simd aligned(u11t,u12t:AVX)
-//#else
+#ifdef __OPENACC
+#pragma acc parallel loop
+#else
 #pragma omp simd aligned(u11t,u12t:AVX)
-//#endif
+#endif
 	for(int i=0; i<kvol*ndim; i++){
 		//Declaring anorm inside the loop will hopefully let the compiler know it
 		//is safe to vectorise aggessively

@@ -266,6 +266,7 @@ int main(int argc, char *argv[]){
 	pp = aligned_alloc(AVX,kmom*sizeof(double));
 #endif
 	//#pragma omp target enter data map(alloc:pp[0:kmom],dSdpi[0:kmom],X1[0:kferm2Halo]) nowait
+#pragma acc enter data create(pp[0:kmom],dSdpi[0:kmom],X1[0:kferm2Halo])
 	//Arabic for hour/watch so probably not defined elsewhere like TIME potentially is
 #if (defined SA3AT)
 	double start_time=0;
@@ -332,7 +333,7 @@ int main(int argc, char *argv[]){
 #else
 		vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, kmom, pp, 0, 1);
 #endif
-		//#pragma omp target update to(pp[0:kmom])
+#pragma acc update device(pp[0:kmom])
 		//Initialise Trial Fields
 		memcpy(u11t, u11, ndim*kvol*sizeof(Complex));
 		memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
@@ -388,7 +389,7 @@ int main(int argc, char *argv[]){
 			Reunitarise();
 			//Get trial fields from accelerator for halo exchange
 			//Cancel that until we check for double precision flags. It's really bad on Xe since it isn't natively supported
-			//#pragma omp target update from(u11t[0:ndim*kvol],u12t[0:ndim*kvol])
+#pragma acc update self(u11t[0:ndim*kvol],u12t[0:ndim*kvol])
 			Trial_Exchange();
 #ifdef __NVCC__
 			//Mark trial fields as primarily read only here? Can renable writing at the end of each trajectory
@@ -416,7 +417,7 @@ int main(int argc, char *argv[]){
 					//d negated above
 					pp[i]+=d*dSdpi[i];
 #endif
-				//#pragma omp target update to(pp[0:kmom]) 
+#pragma acc update device(pp[0:kmom]) 
 				itot+=step;
 				break;
 			}
@@ -433,7 +434,7 @@ int main(int argc, char *argv[]){
 				for(int i = 0; i<kmom; i++)
 					pp[i]-=dt*dSdpi[i];
 #endif
-				//#pragma omp target update to(pp[0:kmom]) nowait
+#pragma acc update device(pp[0:kmom]) 
 			}
 		}
 		//Monte Carlo step: Accept new fields with the probability of min(1,exp(H0-X0))
@@ -601,10 +602,16 @@ int main(int argc, char *argv[]){
 #endif
 	//End of main loop
 	//Free arrays
+#ifdef _OPENACC
+#pragma acc exit data delete(u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],\
+		u11t_f[0:ndim*(kvol+halo)],u12t_f[0:ndim*(kvol+halo)], dk4m[0:kvol*halo],\
+		dk4p[0:kvol+halo], dk4m_f[0:kvol+halo],dk4p_f[0:kvol+halo], iu[0:ndim*kvol],id[0:ndim*kvol],\
+		pp[0:kmom],dSdpi[0:kmom],X1[0:kferm2Halo])
+#else
 #pragma omp target exit data map(delete:u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],\
 		u11t_f[0:ndim*(kvol+halo)],u12t_f[0:ndim*(kvol+halo)], dk4m[0:kvol*halo],\
 		dk4p[0:kvol+halo], dk4m_f[0:kvol+halo],dk4p_f[0:kvol+halo], iu[0:ndim*kvol],id[0:ndim*kvol])
-	//pp[0:kmom],dSdpi[0:kmom],X1[0:kferm2Halo])
+#endif
 #ifdef __NVCC__
 	//Make a routine that does this for us
 	cudaFree(dk4m); cudaFree(dk4p); cudaFree(R1); cudaFree(dSdpi); cudaFree(pp);
@@ -693,7 +700,11 @@ int Init(int istart){
 	//And confirm they're legit
 	Check_addr(iu, ksize, ksizet, 0, kvol+halo);
 	Check_addr(id, ksize, ksizet, 0, kvol+halo);
+#ifdef _OPENACC
+#pragma acc enter data copyin(iu[0:ndim*kvol],id[0:ndim*kvol])
+#else
 #pragma omp target enter data map(to:iu[0:ndim*kvol],id[0:ndim*kvol]) nowait
+#endif
 #ifdef _DEBUG
 	printf("Checked addresses\n");
 #endif
@@ -752,8 +763,13 @@ int Init(int istart){
 		dk4p_f[i]=(float)dk4p[i];
 		dk4m_f[i]=(float)dk4m[i];
 	}
+#ifdef _OPENACC
+#pragma acc data copyin(dk4p[0:kvol+halo], dk4m_f[0:kvol+halo],\
+		dk4p_f[0:kvol+halo],dk4m[0:kvol+halo])
+#else
 #pragma omp target enter data map(to:dk4p[0:kvol+halo], dk4m_f[0:kvol+halo],\
 		dk4p_f[0:kvol+halo],dk4m[0:kvol+halo]) nowait
+#endif
 
 	//Each gamma matrix is rescaled by akappa by flattening the gamval array
 #if (defined __INTEL_MKL__ || defined USE_BLAS)
@@ -769,7 +785,11 @@ int Init(int istart){
 	for(int i=0;i<5;i++)
 		for(int j=0;j<4;j++)
 			gamval_f[i][j]=(Complex_f)gamval[i][j];
-	//#pragma omp target enter data map(to: gamval[0:5*4], gamval_f[0:5*4]) nowait
+#ifdef _OPENACC
+#pragma acc enter data copyin(gamval[0:5][0:4], gamval_f[0:5][0:4], gamin[0:4][0:4])
+#else
+#pragma omp target enter data map(to:gamval[0:5*4], gamval_f[0:5*4]) nowait
+#endif
 #ifdef __NVCC__
 	//Gamma matrices and indices on the GPU
 	cudaMallocManaged(&gamin_d,4*4*sizeof(int),cudaMemAttachGlobal);
@@ -808,8 +828,13 @@ int Init(int istart){
 	u11t_f = aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex_f));
 	u12t_f = aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex_f));
 #endif
+#ifdef _OPENACC
+#pragma acc enter data create(u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],\
+		u11t_f[0:ndim*(kvol+halo)],u12t_f[0:ndim*(kvol+halo)])
+#else
 #pragma omp target enter data map(alloc:u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],\
 		u11t_f[0:ndim*(kvol+halo)],u12t_f[0:ndim*(kvol+halo)]) nowait
+#endif
 	if(istart==0){
 		//Initialise a cold start to zero
 		//memset is safe to use here because zero is zero 
@@ -841,7 +866,11 @@ int Init(int istart){
 #endif
 	//Send trials to accelerator for reunitarisation
 #pragma omp taskwait
+#ifdef _OPENACC
+#pragma acc update device(u11t[0:ndim*kvol],u12t[0:ndim*kvol])
+#else
 #pragma omp target update to(u11t[0:ndim*kvol],u12t[0:ndim*kvol])
+#endif
 	Reunitarise();
 	//Get trials back
 	//#pragma omp target update from(u11t[0:ndim*kvol],u12t[0:ndim*kvol]) 
@@ -982,7 +1011,7 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 	__managed__
 #endif
 		Complex fac = conj(jqq)*jqq*akappa*akappa;
-		Complex_f fac_f = (Complex_f)fac;
+	Complex_f fac_f = (Complex_f)fac;
 	//These were evaluated only in the first loop of niterx so we'll just do it ouside of the loop.
 	double alphan;
 	//The alpha and beta terms should be double, but that causes issues with BLAS pointers. Instead we declare
@@ -1244,7 +1273,7 @@ int Congradp(int na, double res, Complex_f *xi_f, int *itercg){
 	//if statements quicker to type
 	double betan;
 	for((*itercg)=0; (*itercg)<=niterc; (*itercg)++){
-	//Don't overwrite on first run. 
+		//Don't overwrite on first run. 
 #ifdef	__NVCC__
 		cudaMemPrefetchAsync(p_f,kfermHalo*sizeof(Complex_f),device,NULL);
 		cudaMemPrefetchAsync(r_f,kfermHalo*sizeof(Complex_f),device,NULL);
@@ -1338,8 +1367,8 @@ int Congradp(int na, double res, Complex_f *xi_f, int *itercg){
 			p[i]=r[i]+beta*p[i];
 #endif
 #pragma omp parallel for simd aligned(p_f,p:AVX)
-			for(int i=0;i<kferm;i++)
-				p_f[i]=(Complex_f)p[i];
+		for(int i=0;i<kferm;i++)
+			p_f[i]=(Complex_f)p[i];
 	}
 #ifdef	__NVCC__
 	cudaFree(p); cudaFree(r);
