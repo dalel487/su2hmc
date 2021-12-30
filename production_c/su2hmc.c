@@ -300,7 +300,7 @@ int main(int argc, char *argv[]){
 			//gaussp was the normal box-muller and gauss0 didn't have 2 inside the square root
 			//Using σ=1/sqrt(2) in these routines has the same effect as gauss0
 #if (defined(USE_RAN2)||!defined(__INTEL_MKL__))
-			Gauss_z(R, kferm, 0, 1/sqrt(2));
+			Gauss_z(R, kfermHalo, 0, 1/sqrt(2));
 #else
 			vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, R, 0, 1/sqrt(2));
 #endif
