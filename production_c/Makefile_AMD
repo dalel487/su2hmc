@@ -2,16 +2,15 @@ MF=	Makefile
 
 CC=mpicc -cc=clang
 
-IFLAGS=     -I../INCLUDE/ -I /opt/AMD/aocl/aocl-linux-aocc-3.1.0/include/ 
+IFLAGS=     -I../INCLUDE/ -I /opt/AMD/aocl/aocl-linux-aocc-3.1.0/include/ -I/opt/AMD/aocc-compiler-3.2.0/include
 
-CFLAGS=    $(IFLAGS) -std=gnu11 -DUSE_BLAS -fcommon -march=znver1,znver3 -DUSE_RAN2 \
-		 -fopenmp-simd -fopenmp=libiomp5 -DSA3AT -fveclib=AMDLIBM \
-		 -fuse-ld=lld -fremap-arrays -mcpu=gfx902:xnack+,gfx90c:xnack+\
-		 -Xopenmp-target=amdgcn -march=gfx902,gfx90c \
-		 # -fprofile-instr-use  # 
+CFLAGS=	$(IFLAGS) -std=gnu11 -DUSE_BLAS -fcommon -static -DSA3AT -fveclib=AMDLIBM -march=znver1 -mtune=znver3 -DUSE_RAN2\
+		-fopenmp-simd -fopenmp=libomp -fremap-arrays\
+		-fopenmp-targets=amdgcn-amd-amdhsa -Xopenmp-target=amdgcn-amd-amdhsa  -march=gfx90c\
+		 # -fprofile-instr-use
 
 LFLAGS=	-L/opt/AMD/aocl/aocl-linux-aocc-3.1.0/lib/	-L/opt/AMD/aocc-compiler-3.2.0/lib \
-		-Wl -latomic -liomp5 -lpthread -lm -ldl -lalm -lblis
+		-Wl -latomic -lomp -lpthread -lm -ldl -lalm -lblis 
 
 EXE=	su2hmc_AMD
 
@@ -47,14 +46,14 @@ TMP=	$(MOD) $(EDT) core
 
 all:	$(EXE)
 
-profiler:	CFLAGS += -g -D_DEBUG -fprofile-generate
+profiler:	CFLAGS += -g -D_DEBUG #-fprofile-generate
 
 profiler:	release
 
 release:	CFLAGS +=  -Ofast -finline-aggressive -finline-recursion=4\
 				-funroll-loops -flto=full -fnt-store\
-				-mllvm -enable-strided-vectorization -mllvm -enable-epilogue-vectorization\
-				-mllvm -merge-constant -mllvm -reduce-array-computations=3
+#				-mllvm -enable-strided-vectorization -mllvm -enable-epilogue-vectorization\
+#				-mllvm -merge-constant -mllvm -reduce-array-computations=3
 
 release:	$(EXE)
 
