@@ -299,8 +299,8 @@ int main(int argc, char *argv[]){
 			//The FORTRAN code had two gaussian routines.
 			//gaussp was the normal box-muller and gauss0 didn't have 2 inside the square root
 			//Using σ=1/sqrt(2) in these routines has the same effect as gauss0
-#if (defined(USE_RAN2)||!defined(__INTEL_MKL__))
-			Gauss_z(R, kfermHalo, 0, 1/sqrt(2));
+#if (defined(USE_RAN2)||defined(__RANLUX__)||!defined(__INTEL_MKL__))
+			Gauss_z(R, kferm, 0, 1/sqrt(2));
 #else
 			vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, R, 0, 1/sqrt(2));
 #endif
@@ -328,7 +328,7 @@ int main(int argc, char *argv[]){
 		//========
 		//We're going to make the most of the new Gauss_d routine to send a flattened array
 		//and do this all in one step.
-#if (defined(USE_RAN2)||!defined(__INTEL_MKL__))
+#if (defined(USE_RAN2)||defined(__RANLUX__)||!defined(__INTEL_MKL__))
 		Gauss_d(pp, kmom, 0, 1);
 #else
 		vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, kmom, pp, 0, 1);
@@ -358,13 +358,6 @@ int main(int argc, char *argv[]){
 		printf("Evaluating force on rank %i\n", rank);
 #endif
 		Force(dSdpi, 1, rescgg);
-#ifdef _DEBUG
-		double av_force=0;
-#pragma omp parallel for simd reduction(+:av_force) aligned(dSdpi:AVX)
-		for(int i = 0; i<kmom; i++)
-			av_force+=dSdpi[i];
-		printf("av_force before we do anything= %e\n", av_force/kmom);
-#endif
 #ifdef __NVCC__
 		cublasDaxpy(cublas_handle,kmom, &d, dSdpi, 1, pp, 1);
 #elif (defined __INTEL_MKL__ || defined USE_BLAS)
@@ -398,12 +391,6 @@ int main(int argc, char *argv[]){
 #endif
 			//p(t+3dt/2)=p(t+dt/2)-dSds(t+dt)*dt
 			Force(dSdpi, 0, rescgg);
-#ifdef _DEBUG
-#pragma omp parallel for simd reduction(+:av_force) aligned(dSdpi:AVX)
-			for(int i = 0; i<kmom; i++)
-				av_force+=dSdpi[i];
-			printf("av_force after trial field update = %e\n", av_force/kmom);
-#endif
 			//The same for loop is given in both the if and else
 			//statement but only the value of d changes. This is due to the break in the if part
 			if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
@@ -846,7 +833,12 @@ int Init(int istart){
 	}
 	else if(istart>0){
 		//Still thinking about how best to deal with PRNG
-#if (defined __INTEL_MKL__&&!defined USE_RAN2)
+#ifdef __RANLUX__
+		for(int i=0; i<kvol*ndim;i++){
+			u11t[i]=2*(gsl_rng_uniform(ranlux_instd)-0.5+I*(gsl_rng_uniform(ranlux_instd)-0.5));
+			u12t[i]=2*(gsl_rng_uniform(ranlux_instd)-0.5+I*(gsl_rng_uniform(ranlux_instd)-0.5));
+		}
+#elif (defined __INTEL_MKL__&&!defined USE_RAN2)
 		//Good news, casting works for using a double to create random complex numbers
 		vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*kvol, u11t, -1, 1);
 		vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*kvol, u12t, -1, 1);

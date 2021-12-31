@@ -1243,7 +1243,11 @@ int Par_tmul(Complex *z11, Complex *z12){
 
 		//Post-multiply current loop by incoming one.
 		//This is begging to be done in CUDA or BLAS
+#ifdef _OPENACC
+#pragma acc parallel loop copy(t11[0:kvol3],t12[0:kvol3]) copyin(a11[0:kvol],a12[0:kvol])
+#else
 #pragma omp parallel for simd
+#endif
 		for(i=0;i<kvol3;i++){
 			t11[i]=z11[i]*a11[i]-z12[i]*conj(a12[i]);
 			t12[i]=z11[i]*a12[i]+z12[i]*conj(a11[i]);

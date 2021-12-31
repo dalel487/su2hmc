@@ -5,13 +5,13 @@ CC=mpicc
 IFLAGS=  -I ../INCLUDE/ -I /opt/AMD/aocl/aocl-linux-aocc-3.1.0/include/
 
 CFLAGS=	$(IFLAGS) -std=gnu11 -DUSE_BLAS -fcommon\
-		-march=znver1 -mtune=znver3 -DUSE_RAN2\
+		-march=znver1 -mtune=znver3 -static -DUSE_RAN2\
 		-fopenmp-simd -DSA3AT -flto\
 #		-foffload=amdgcn-amdhsa="-march=gfx90c" -fopenacc\
 #		-pg -fprofile-arcs-foffload=amdgcn-amdhsa="-march=gfx90c"
 
 LFLAGS=	-L /opt/AMD/aocl/aocl-linux-aocc-3.1.0/lib/ -latomic \
-		-lm -ldl -lalm -lblis
+		-lm -ldl -lalm -lblis -lgsl
 
 EXE=	su2hmc_GCC
 
@@ -48,12 +48,14 @@ TMP=	$(MOD) $(EDT) core
 
 all:	$(EXE)
 
+profiler:	CFLAGS += -g -D_DEBUG #-fprofile-generate
+profiler:	release
+
 release:	CFLAGS +=  -Ofast -funroll-all-loops
 release:	$(EXE)
 
 debug:	CFLAGS += -g -O0  \
 		-D_DEBUG #-DDIAGNOSTIC -DNO_TIME -DNO_SPACE
-
 debug:	$(EXE)
 
 $(EXE):	$(OBJ)

@@ -19,23 +19,25 @@ VSLStreamStatePtr stream;
 #include <time.h>
 
 //Declaring external variables
-#if (defined USE_RAN2||!defined __INTEL_MKL__)
+#if (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))
 long seed;
-#elif defined __INTEL_MKL__
+#elif (defined__INTEL_MKL__||defined __RANLUX__)
 unsigned int seed;
-#else
 #endif
 #ifndef M_PI
 #define M_PI           3.14159265358979323846
 #endif
 
-#if (defined USE_RAN2||!defined __INTEL_MKL__)
+#if (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))
 inline int ranset(long *seed)
-#else
+#elif (defined__INTEL_MKL__||defined __RANLUX__)
 inline int ranset(unsigned int *seed)
 #endif
 {
-#ifdef __INTEL_MKL__
+#ifdef __RANLUX__
+	ranlux_instd=gsl_rng_alloc(gsl_rng_ranlxd2);
+	gsl_rng_set(ranlux_instd,*seed);
+#elif defined __INTEL_MKL__
 	vslNewStream( &stream, VSL_BRNG_MT19937, *seed );
 #endif
 	return 0;
@@ -67,12 +69,10 @@ int Par_ranread(char *filename, double *ranval){
 	Par_dcopy(ranval);
 	return 0;
 }
-#ifdef USE_RAN2
+#if (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))
 int Par_ranset(long *seed)
-#elif defined(__INTEL_MKL__)
+#elif (defined__INTEL_MKL__||defined __RANLUX__)
 int Par_ranset(unsigned int *seed)
-#else
-int Par_ranset(long *seed)
 #endif
 {
 	/* Uses the rank to get a new seed.
@@ -100,7 +100,7 @@ int Par_ranset(long *seed)
 		*seed *= 1.0+8.0*(float)rank/(float)(size-1);
 	//Next we set the seed using ranset
 	//This is one of the really weird FORTRANN 66 esque functions with ENTRY points, so good luck!
-#ifdef __INTEL_MKL__
+#if (defined __INTEL_MKL__||defined __RANLUX__)
 	return ranset(seed);
 #else
 	return 0;
@@ -177,6 +177,8 @@ int Gauss_z(Complex *ps, unsigned int n, const double mu, const double sigma){
 		double	r =sigma*sqrt(-2*log(ran2(&seed)));
 		double	theta=2.0*M_PI*ran2(&seed);
 		ps[i]=r*(cos(theta)+mu+(sin(theta)+mu)*I);
+#elif defined __RANLUX__
+		ps[i]=(gsl_ran_gaussian(ranlux_instd,sigma)+mu)+I*(gsl_ran_gaussian(ranlux_instd,sigma)+mu);
 #endif
 	}     
 	return 0;
@@ -226,6 +228,8 @@ int Gauss_c(Complex_f *ps, unsigned int n, const float mu, const float sigma){
 		float r =sigma*sqrt(-2*log(ran2(&seed)));
 		float theta=2.0*M_PI*ran2(&seed);
 		ps[i]=r*(cos(theta)+mu+(sin(theta)+mu)*I);
+#elif defined __RANLUX__
+		ps[i]=(gsl_ran_gaussian(ranlux_instd,(double)sigma)+mu)+I*(gsl_ran_gaussian(ranlux_instd,(double)sigma)+mu);
 #endif
 	}     
 	return 0;
@@ -265,13 +269,11 @@ int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma){
 	int i;
 	double r, u, v;
 	//If n is odd we calculate the last index seperately and the rest in pairs
+#ifdef USE_RAN2
 	if(n%2==1){
 		n--;
-#ifdef USE_RAN2
 		r=2.0*M_PI*ran2(&seed);
 		ps[n]=sqrt(-2*log(ran2(&seed)))*cos(r);
-#else
-#endif
 	}
 	for(i=0;i<n;i+=2){
 		/* Marsaglia Method for fun
@@ -285,14 +287,15 @@ int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma){
 		   ps[i] = mu+u*r; 
 		   ps[i+1]=mu+v*r;
 		 */
-#ifdef USE_RAN2
 		u=sqrt(-2*log(ran2(&seed)))*sigma;
 		r=2.0*M_PI*ran2(&seed);
-#else
-#endif
 		ps[i]=u*cos(r)+mu;
 		ps[i+1]=u*sin(r)+mu;
 	}     
+#else
+	for(i=0;i<n;i++)
+		ps[i]=gsl_ran_gaussian(ranlux_instd,(double)sigma)+mu;
+#endif
 	return 0;
 }
 int Gauss_f(float *ps, unsigned int n, const float mu, const float sigma){
@@ -330,13 +333,11 @@ int Gauss_f(float *ps, unsigned int n, const float mu, const float sigma){
 	int i;
 	float r, u, v;
 	//If n is odd we calculate the last index seperately and the rest in pairs
+#ifdef USE_RAN2
 	if(n%2==1){
 		n--;
-#ifdef USE_RAN2
 		r=2.0*M_PI*ran2(&seed);
 		ps[n]=sqrt(-2*log(ran2(&seed)))*cos(r);
-#else
-#endif
 	}
 	for(i=0;i<n;i+=2){
 		/* Marsaglia Method for fun
@@ -350,14 +351,15 @@ int Gauss_f(float *ps, unsigned int n, const float mu, const float sigma){
 		   ps[i] = mu+u*r; 
 		   ps[i+1]=mu+v*r;
 		 */
-#ifdef USE_RAN2
 		u=sqrt(-2*log(ran2(&seed)))*sigma;
 		r=2.0*M_PI*ran2(&seed);
-#else
-#endif
 		ps[i]=u*cos(r)+mu;
 		ps[i+1]=u*sin(r)+mu;
 	}     
+#else
+	for(i=0;i<n;i++)
+		ps[i]=gsl_ran_gaussian(ranlux_instd,(double)sigma)+mu;
+#endif
 	return 0;
 }
 double ran2(long *idum) {

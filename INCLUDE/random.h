@@ -9,27 +9,36 @@
 #include <mkl_vsl.h>
 #define M_PI		3.14159265358979323846	/* pi */
 #endif
+#ifdef __RANLUX__
+#include <gsl/gsl_rng.h>
+#endif
 #include <math.h>
 #include <par_mpi.h>
 //Configuration for existing generators if called
 //===============================================
-#if (defined USE_RAN2||!defined __INTEL_MKL__)
+#if (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))
 extern long seed;
 int Par_ranset(long *seed);
 int ranset(long *seed);
-#elif defined(__INTEL_MKL__)
+#elif (defined__INTEL_MKL__||defined __RANLUX__)
 extern unsigned int seed;
 int ranset(unsigned int *seed);
 int Par_ranset(unsigned int *seed);
-extern VSLStreamStatePtr stream;
 #else
 extern int seed;
 //Mersenne Twister
 int ranset(int *seed);
 int Par_ranset(int *seed);
 #endif
-//Luxury for the RANLUX generator, default to 3
-//#define lux 3;
+#ifdef __RANLUX__
+//Need to get a float version that uses a different seed for performance reasons.
+//Otherwise we get two generators (one float, one double) starting from the same seed. Not good
+//For now, the float generator will be a cast of the double one.
+//gsl_rng *ranlux_instf;
+gsl_rng *ranlux_instd;
+#elif defined __INTEL_MKL__
+extern VSLStreamStatePtr stream;
+#endif
 int Rand_init();
 //PLACEHOLDERS TO TRICK COMPLIER
 double ranget(double *seed);
