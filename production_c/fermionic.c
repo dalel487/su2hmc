@@ -51,7 +51,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #endif
 	//Setting up noise.
 #if (defined(USE_RAN2)||defined(__RANLUX__)||!defined(__INTEL_MKL__))
-	Gauss_c(xi_f, kferm, 0, 1/sqrt(2));
+	Gauss_c(xi_f, kferm, 0, (float)(1/sqrt(2)));
 #else
 	vsRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, xi_f, 0, 1/sqrt(2));
 #endif

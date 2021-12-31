@@ -229,7 +229,7 @@ int Gauss_c(Complex_f *ps, unsigned int n, const float mu, const float sigma){
 		float theta=2.0*M_PI*ran2(&seed);
 		ps[i]=r*(cos(theta)+mu+(sin(theta)+mu)*I);
 #elif defined __RANLUX__
-		ps[i]=(gsl_ran_gaussian(ranlux_instd,(double)sigma)+mu)+I*(gsl_ran_gaussian(ranlux_instd,(double)sigma)+mu);
+		ps[i]=(Complex_f)((gsl_ran_gaussian(ranlux_instd,(double)sigma)+mu)+I*(gsl_ran_gaussian(ranlux_instd,(double)sigma)+mu));
 #endif
 	}     
 	return 0;
