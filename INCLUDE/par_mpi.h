@@ -52,7 +52,6 @@ int ierr;
 //MPI_Status
 //      int status[_STAT_SIZE_];
 //      int statarray[_STAT_SIZE_][2*ndim];
-MPI_Status status;
 extern MPI_Comm comm ;
 int request;
 

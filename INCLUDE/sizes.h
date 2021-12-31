@@ -41,7 +41,7 @@
 // Common block definition for parallel variables
 
 #define	nx	32
-#define	nt	32
+#define	nt	64
 // Keep original restriction of single spatial extent
 
 #define	ny    nx
@@ -50,7 +50,7 @@
 #define	gvol3   (nx*ny*nz)
 
 #define	npx	2
-#define	npt	2
+#define	npt	1
 //Number of threads for OpenMP
 #define	nthreads	1
 

@@ -105,6 +105,7 @@ int Par_sread(const int iread, const double beta, const double fmu, const double
 	 */
 	char *funcname = "Par_sread";
 	double seed;
+	MPI_Status status;
 	//We shall allow the almighty master thread to open the file
 #ifdef __INTEL_MKL__
 	Complex *u1buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
@@ -238,33 +239,33 @@ int Par_sread(const int iread, const double beta, const double fmu, const double
 #endif
 	}
 	else{
-//#pragma omp parallel for shared(u11,u12)\
+		//#pragma omp parallel for shared(u11,u12)\
 		private(u1buff,u2buff)
-		for(int idim = 0; idim<ndim; idim++){
-			//Receiving the data from the master threads.
-			if(MPI_Recv(u1buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, 2*idim, comm, &status)){
-				fprintf(stderr, "Error %i in %s: Falied to receive u11 on process %i.\nExiting...\n\n",
-						CANTRECV, funcname, rank);
-				MPI_Finalise();
-				exit(CANTRECV);
-			}
-			if(MPI_Recv(u2buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, 2*idim+1, comm, &status)){
-				fprintf(stderr, "Error %i in %s: Falied to receive u12 on process %i.\nExiting...\n\n",
-						CANTRECV, funcname, rank);
-				MPI_Finalise();
-				exit(CANTRECV);
-			}
+			for(int idim = 0; idim<ndim; idim++){
+				//Receiving the data from the master threads.
+				if(MPI_Recv(u1buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, 2*idim, comm, &status)){
+					fprintf(stderr, "Error %i in %s: Falied to receive u11 on process %i.\nExiting...\n\n",
+							CANTRECV, funcname, rank);
+					MPI_Finalise();
+					exit(CANTRECV);
+				}
+				if(MPI_Recv(u2buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, 2*idim+1, comm, &status)){
+					fprintf(stderr, "Error %i in %s: Falied to receive u12 on process %i.\nExiting...\n\n",
+							CANTRECV, funcname, rank);
+					MPI_Finalise();
+					exit(CANTRECV);
+				}
 #if (defined __INTEL_MKL__||defined USE_BLAS)
-			cblas_zcopy(kvol,u1buff,1,u11+idim,ndim);
-			cblas_zcopy(kvol,u2buff,1,u12+idim,ndim);
+				cblas_zcopy(kvol,u1buff,1,u11+idim,ndim);
+				cblas_zcopy(kvol,u2buff,1,u12+idim,ndim);
 #else
 #pragma omp parallel for simd aligned(u11,u12,u1buff,u2buff:AVX)
-			for(int i=0;i<kvol;i++){
-				u11[i*ndim+idim]=u1buff[i];
-				u12[i*ndim+idim]=u2buff[i];
-			}
+				for(int i=0;i<kvol;i++){
+					u11[i*ndim+idim]=u1buff[i];
+					u12[i*ndim+idim]=u2buff[i];
+				}
 #endif
-		}
+			}
 	}
 #ifdef __INTEL_MKL__
 	mkl_free(u1buff); mkl_free(u2buff);
@@ -291,6 +292,7 @@ int Par_psread(char *filename, double *ps){
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Par_psread";
+	MPI_Status status;
 #ifdef __INTEL_MKL__
 	double *psbuff = (double*)mkl_malloc(nc*kvol*sizeof(double),AVX);
 	double *gps= (double*)mkl_malloc(nc*gvol*sizeof(double),AVX);
@@ -356,7 +358,7 @@ int Par_psread(char *filename, double *ps){
 	return 0;
 }
 int Par_swrite(const int itraj, const int icheck, const double beta, const double fmu, const double akappa, 
-					const double ajq){
+		const double ajq){
 	/*
 	 * Modified from an original version of swrite in FORTRAN
 	 *
@@ -385,6 +387,7 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "par_swrite";
+	MPI_Status status;
 #ifdef __INTEL_MKL__
 	Complex *u1buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
 	Complex *u2buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
@@ -807,6 +810,7 @@ int ZHalo_swap_dir(Complex *z, int ncpt, int idir, int layer){
 	 *  Zero on success, Integer Error code otherwise
 	 */
 	char *funcname = "CHalo_swap_dir";
+	MPI_Status status;
 	if(layer!=DOWN && layer!=UP){
 		fprintf(stderr, "Error %i in %s: Cannot swap in the direction given by %i.\nExiting...\n\n",
 				LAYERROR, funcname, layer);
@@ -877,12 +881,12 @@ int ZHalo_swap_dir(Complex *z, int ncpt, int idir, int layer){
 			}
 			break;
 	}
+	MPI_Wait(&request, &status);
 #ifdef __INTEL_MKL__
 	mkl_free(sendbuf);
 #else
 	free(sendbuf);
 #endif
-	MPI_Wait(&request, &status);
 	return 0;
 }
 int CHalo_swap_all(Complex_f *c, int ncpt){
@@ -929,6 +933,7 @@ int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer){
 	 *  Zero on success, Integer Error code otherwise
 	 */
 	char *funcname = "CHalo_swap_dir";
+	MPI_Status status;
 	if(layer!=DOWN && layer!=UP){
 		fprintf(stderr, "Error %i in %s: Cannot swap in the direction given by %i.\nExiting...\n\n",
 				LAYERROR, funcname, layer);
@@ -1024,6 +1029,7 @@ int DHalo_swap_dir(double *d, int ncpt, int idir, int layer){
 	 *  Zero on success, Integer Error code otherwise
 	 */
 	char *funcname = "ZHalo_swap_dir";
+	MPI_Status status;
 #ifdef __INTEL_MKL__
 	double *sendbuf =(double *) mkl_malloc(halo*ncpt*sizeof(double), AVX);
 #else
@@ -1153,7 +1159,7 @@ int Trial_Exchange(){
 		u12t_f[i]=(Complex_f)u12t[i];
 	}
 	//Only upload the halo of the trial field, but the full single precision field
-#pragma acc update device(u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],\
+#pragma acc update device(u11t[ndim*kvol:ndim*(kvol+halo)],u12t[ndim*kvol:ndim*(kvol+halo)],\
 		u11t_f[0:ndim*(kvol+halo)],u12t_f[0:ndim*(kvol+halo)])
 	return 0;
 }
@@ -1168,6 +1174,7 @@ int Par_tmul(Complex *z11, Complex *z12){
 	 * =======
 	 * Zero on success, integer error code otherwise.
 	 */
+	MPI_Status status;
 	char *funcname = "Par_tmul";
 	Complex *a11, *a12, *t11, *t12;
 	int i, itime;

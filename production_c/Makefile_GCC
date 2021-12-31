@@ -11,7 +11,7 @@ CFLAGS=	$(IFLAGS) -std=gnu11 -DUSE_BLAS -fcommon\
 #		-pg -fprofile-arcs-foffload=amdgcn-amdhsa="-march=gfx90c"
 
 LFLAGS=	-L /opt/AMD/aocl/aocl-linux-aocc-3.1.0/lib/ -latomic \
-		-lm -ldl -lalm -lblis -lgsl
+		-lm -ldl -lalm -lblis -lgsl 
 
 EXE=	su2hmc_GCC
 

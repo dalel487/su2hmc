@@ -50,8 +50,8 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	Complex_f *R1_f = aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 #endif
 	//Setting up noise.
-#if (defined(USE_RAN2)||!defined(__INTEL_MKL__))
-	Gauss_z(xi, kferm, 0, 1/sqrt(2));
+#if (defined(USE_RAN2)||defined(__RANLUX__)||!defined(__INTEL_MKL__))
+	Gauss_c(xi_f, kferm, 0, 1/sqrt(2));
 #else
 	vsRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, xi_f, 0, 1/sqrt(2));
 #endif
