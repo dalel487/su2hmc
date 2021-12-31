@@ -81,7 +81,11 @@ int Par_begin(int argc, char *argv[]){
 			pstop[idim][iproc]  = pstart[idim][iproc] + lsize[idim];
 		}
 	}
-
+#ifdef __INTEL_MKL__
+	mkl_free(pcoord);
+#else
+	free(pcoord);
+#endif
 #ifdef _DEBUG
 	if(!rank)
 		printf("Running on %i processors.\n Grid layout is %ix%ix%ix%i\n",

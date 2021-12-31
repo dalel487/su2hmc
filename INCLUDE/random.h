@@ -20,7 +20,7 @@
 extern long seed;
 int Par_ranset(long *seed);
 int ranset(long *seed);
-#elif (defined__INTEL_MKL__||defined __RANLUX__)
+#elif (defined __INTEL_MKL__||defined __RANLUX__)
 extern unsigned int seed;
 int ranset(unsigned int *seed);
 int Par_ranset(unsigned int *seed);
@@ -36,7 +36,8 @@ int Par_ranset(int *seed);
 //For now, the float generator will be a cast of the double one.
 //gsl_rng *ranlux_instf;
 gsl_rng *ranlux_instd;
-#elif defined __INTEL_MKL__
+#endif
+#ifdef __INTEL_MKL__
 extern VSLStreamStatePtr stream;
 #endif
 int Rand_init();

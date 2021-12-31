@@ -613,13 +613,14 @@ int main(int argc, char *argv[]){
 	mkl_free(X0); mkl_free(X1); mkl_free(u11); mkl_free(u12);
 	mkl_free(id); mkl_free(iu); mkl_free(hd); mkl_free(hu);
 	mkl_free(dk4m_f); mkl_free(dk4p_f); mkl_free(u11t_f); mkl_free(u12t_f);
-	mkl_free(pcoord); mkl_free(h1u); mkl_free(h1d); mkl_free(halosize);
+	mkl_free(h1u); mkl_free(h1d); mkl_free(halosize);
+	vslDeleteStream(&stream);
 #else
 	free(dk4m); free(dk4p); free(R1); free(dSdpi); free(pp); free(Phi);
 	free(u11t); free(u12t); free(X0); free(X1);
 	free(u11); free(u12); free(id); free(iu); free(hd); free(hu);
 	free(dk4m_f); free(dk4p_f); free(u11t_f); free(u12t_f);
-	free(pcoord); free(h1u); free(h1d); free(halosize);
+	free(h1u); free(h1d); free(halosize);
 #endif
 #if (defined SA3AT)
 	if(!rank){
@@ -996,7 +997,7 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 	 * 0 on success, integer error code otherwise
 	 */
 	const char *funcname = "Congradq";
-	double resid = kferm2*res*res;
+	const double resid = kferm2*res*res;
 	//The κ^2 factor is needed to normalise the fields correctly
 	//jqq is the diquark codensate and is global scope.
 #ifdef __NVCC__
@@ -1205,7 +1206,7 @@ int Congradp(int na, double res, Complex_f *xi_f, int *itercg){
 	 * 0 on success, integer error code otherwise
 	 */
 	const char *funcname = "Congradp";
-	double resid = kferm*res*res;
+	const double resid = kferm*res*res;
 	//These were evaluated only in the first loop of niterx so we'll just do it ouside of the loop.
 	//These alpha and beta terms should be double, but that causes issues with BLAS. Instead we declare
 	//them Complex and work with the real part (especially for α_d)
@@ -1228,10 +1229,10 @@ int Congradp(int na, double res, Complex_f *xi_f, int *itercg){
 #elif defined __INTEL_MKL__
 	Complex *p  = mkl_malloc(kfermHalo*sizeof(Complex),AVX);
 	Complex *r  = mkl_malloc(kferm*sizeof(Complex),AVX);
-	Complex *x2=mkl_malloc(kferm*sizeof(Complex), AVX);
+	Complex *x2	= mkl_malloc(kferm*sizeof(Complex), AVX);
 
-	Complex_f *p_f  = mkl_malloc(kfermHalo*sizeof(Complex_f),AVX);
-	Complex_f *x1=mkl_malloc(kfermHalo*sizeof(Complex_f), AVX);
+	Complex_f *p_f	= mkl_malloc(kfermHalo*sizeof(Complex_f),AVX);
+	Complex_f *x1	=mkl_malloc(kfermHalo*sizeof(Complex_f), AVX);
 	Complex_f *x2_f=mkl_malloc(kfermHalo*sizeof(Complex_f), AVX);
 #else
 	Complex *p  = aligned_alloc(AVX,kfermHalo*sizeof(Complex));
@@ -1299,12 +1300,12 @@ int Congradp(int na, double res, Complex_f *xi_f, int *itercg){
 				xi_f[i]+=alpha_f*p_f[i];
 #endif
 		}
-		//r-α(M^†)Mp and β_n=r*.r
 #pragma omp parallel for simd aligned(p,p_f,x2,x2_f:AVX)
 		for(int i=0;i<kferm;i++){
 			p[i]=(Complex)p_f[i];
 			x2[i]=(Complex)x2_f[i];
 		}
+		//r=α(M^†)Mp and β_n=r*.r
 #ifdef __NVCC__
 		Complex alpha=-(Complex)alpha_f;
 		cublasZaxpy(cublas_handle,kferm, (cuDoubleComplex *)&alpha,(cuDoubleComplex *) x2, 1,(cuDoubleComplex *) r, 1);
@@ -1314,7 +1315,7 @@ int Congradp(int na, double res, Complex_f *xi_f, int *itercg){
 		betan*=betan;
 #elif (defined __INTEL_MKL__ || defined USE_BLAS)
 		Complex alpha=-(Complex)alpha_f;
-		cblas_zaxpy(kferm,(Complex*) &alpha_f,(Complex*) x2, 1,(Complex*) r, 1);
+		cblas_zaxpy(kferm,(Complex*) &alpha,(Complex*) x2, 1,(Complex*) r, 1);
 		//r*.r
 		betan = cblas_dznrm2(kferm, (Complex*)r,1);
 		//Gotta square it to "undo" the norm
@@ -1334,7 +1335,7 @@ int Congradp(int na, double res, Complex_f *xi_f, int *itercg){
 		Par_dsum(&betan);
 		if(betan<resid){
 			//Started counting from zero so add one to make it accurate
-			*itercg++;
+			(*itercg)++;
 #ifdef _DEBUG
 			if(!rank) printf("Iter (CG) = %i resid = %e toler = %e\n", *itercg, betan, resid);
 #endif
@@ -1363,9 +1364,8 @@ int Congradp(int na, double res, Complex_f *xi_f, int *itercg){
 			p_f[i]=(Complex_f)p[i];
 	}
 #ifdef	__NVCC__
-	cudaFree(p); cudaFree(r);
+	cudaFree(p); cudaFree(r);cudaFree(x1); 
 	cudaFree(x2_f); cudaFree(p_f); cudaFree(x2);
-	cudaFree(x1); cudaFree(xi_f);
 #elif defined __INTEL_MKL__
 	mkl_free(p); mkl_free(r); mkl_free(x1);
 	mkl_free(p_f); mkl_free(x2); mkl_free(x2_f);

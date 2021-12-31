@@ -21,7 +21,7 @@ VSLStreamStatePtr stream;
 //Declaring external variables
 #if (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))
 long seed;
-#elif (defined__INTEL_MKL__||defined __RANLUX__)
+#elif (defined __INTEL_MKL__||defined __RANLUX__)
 unsigned int seed;
 #endif
 #ifndef M_PI
@@ -30,7 +30,7 @@ unsigned int seed;
 
 #if (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))
 inline int ranset(long *seed)
-#elif (defined__INTEL_MKL__||defined __RANLUX__)
+#elif (defined __INTEL_MKL__||defined __RANLUX__)
 inline int ranset(unsigned int *seed)
 #endif
 {
@@ -71,7 +71,7 @@ int Par_ranread(char *filename, double *ranval){
 }
 #if (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))
 int Par_ranset(long *seed)
-#elif (defined__INTEL_MKL__||defined __RANLUX__)
+#elif (defined __INTEL_MKL__||defined __RANLUX__)
 int Par_ranset(unsigned int *seed)
 #endif
 {
@@ -123,12 +123,15 @@ double Par_granf(){
 	 */
 	char *funcname = "Par_granf";
 	double ran_val;
-	if(!rank)
-#if defined(USE_RAN2)||!defined(__INTEL_MKL__)
-	ran_val = ran2(&seed);
+	if(!rank){
+#if (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))
+		ran_val = ran2(&seed);
+#elif defined __RANLUX__
+		ran_val=gsl_rng_uniform(ranlux_instd);
 #else
-	vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 1, &ran_val, 0,1);
+		vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 1, &ran_val, 0,1);
 #endif
+	}
 	Par_dcopy(&ran_val);
 	return ran_val;
 }
@@ -164,14 +167,14 @@ int Gauss_z(Complex *ps, unsigned int n, const double mu, const double sigma){
 #pragma unroll
 	for(int i=0;i<n;i++){
 		/* Marsaglia Method for fun
-		   do{
-		   u=sfmt_genrand_real1(sfmt);
-		   v=sfmt_genrand_real1(sfmt);
-		   r=u*u+v*v;
-		   }while(0<r & r<1);
-		   r=sqrt(r);
-		   r=sqrt(-2.0*log(r)/r)*sigma;
-		   ps[i] = mu+u*r + I*(mu+v*r);
+			do{
+			u=sfmt_genrand_real1(sfmt);
+			v=sfmt_genrand_real1(sfmt);
+			r=u*u+v*v;
+			}while(0<r & r<1);
+			r=sqrt(r);
+			r=sqrt(-2.0*log(r)/r)*sigma;
+			ps[i] = mu+u*r + I*(mu+v*r);
 		 */
 #ifdef USE_RAN2
 		double	r =sigma*sqrt(-2*log(ran2(&seed)));
@@ -215,14 +218,14 @@ int Gauss_c(Complex_f *ps, unsigned int n, const float mu, const float sigma){
 #pragma unroll
 	for(int i=0;i<n;i++){
 		/* Marsaglia Method for fun
-		   do{
-		   u=sfmt_genrand_real1(sfmt);
-		   v=sfmt_genrand_real1(sfmt);
-		   r=u*u+v*v;
-		   }while(0<r & r<1);
-		   r=sqrt(r);
-		   r=sqrt(-2.0*log(r)/r)*sigma;
-		   ps[i] = mu+u*r + I*(mu+v*r);
+			do{
+			u=sfmt_genrand_real1(sfmt);
+			v=sfmt_genrand_real1(sfmt);
+			r=u*u+v*v;
+			}while(0<r & r<1);
+			r=sqrt(r);
+			r=sqrt(-2.0*log(r)/r)*sigma;
+			ps[i] = mu+u*r + I*(mu+v*r);
 		 */
 #ifdef USE_RAN2
 		float r =sigma*sqrt(-2*log(ran2(&seed)));
@@ -269,7 +272,10 @@ int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma){
 	int i;
 	double r, u, v;
 	//If n is odd we calculate the last index seperately and the rest in pairs
-#ifdef USE_RAN2
+#ifdef __RANLUX__
+	for(i=0;i<n;i++)
+		ps[i]=gsl_ran_gaussian(ranlux_instd,(double)sigma)+mu;
+#elif defined USE_RAN2
 	if(n%2==1){
 		n--;
 		r=2.0*M_PI*ran2(&seed);
@@ -277,24 +283,21 @@ int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma){
 	}
 	for(i=0;i<n;i+=2){
 		/* Marsaglia Method for fun
-		   do{
-		   u=sfmt_genrand_real1(sfmt);
-		   v=sfmt_genrand_real1(sfmt);
-		   r=u*u+v*v;
-		   }while(0<r & r<1);
-		   r=sqrt(r);
-		   r=sqrt(-2.0*log(r)/r)*sigma;
-		   ps[i] = mu+u*r; 
-		   ps[i+1]=mu+v*r;
+			do{
+			u=sfmt_genrand_real1(sfmt);
+			v=sfmt_genrand_real1(sfmt);
+			r=u*u+v*v;
+			}while(0<r & r<1);
+			r=sqrt(r);
+			r=sqrt(-2.0*log(r)/r)*sigma;
+			ps[i] = mu+u*r; 
+			ps[i+1]=mu+v*r;
 		 */
 		u=sqrt(-2*log(ran2(&seed)))*sigma;
 		r=2.0*M_PI*ran2(&seed);
 		ps[i]=u*cos(r)+mu;
 		ps[i+1]=u*sin(r)+mu;
 	}     
-#else
-	for(i=0;i<n;i++)
-		ps[i]=gsl_ran_gaussian(ranlux_instd,(double)sigma)+mu;
 #endif
 	return 0;
 }
@@ -341,40 +344,40 @@ int Gauss_f(float *ps, unsigned int n, const float mu, const float sigma){
 	}
 	for(i=0;i<n;i+=2){
 		/* Marsaglia Method for fun
-		   do{
-		   u=sfmt_genrand_real1(sfmt);
-		   v=sfmt_genrand_real1(sfmt);
-		   r=u*u+v*v;
-		   }while(0<r & r<1);
-		   r=sqrt(r);
-		   r=sqrt(-2.0*log(r)/r)*sigma;
-		   ps[i] = mu+u*r; 
-		   ps[i+1]=mu+v*r;
+			do{
+			u=sfmt_genrand_real1(sfmt);
+			v=sfmt_genrand_real1(sfmt);
+			r=u*u+v*v;
+			}while(0<r & r<1);
+			r=sqrt(r);
+			r=sqrt(-2.0*log(r)/r)*sigma;
+			ps[i] = mu+u*r; 
+			ps[i+1]=mu+v*r;
 		 */
 		u=sqrt(-2*log(ran2(&seed)))*sigma;
 		r=2.0*M_PI*ran2(&seed);
 		ps[i]=u*cos(r)+mu;
 		ps[i+1]=u*sin(r)+mu;
 	}     
-#else
+#elif defined __RANLUX__
 	for(i=0;i<n;i++)
 		ps[i]=gsl_ran_gaussian(ranlux_instd,(double)sigma)+mu;
 #endif
 	return 0;
 }
 double ran2(long *idum) {
-/*
- * Generates uniformly distributed random double betweeen zero and one as 
- * described in numerical recipes. It's also threadsafe for different seeds.
- *
- * Parameters:
- * ==========
- * long *idum: Pointer to the seed
- *
- * Returns:
- * double: The random number between zero and one
- *
- */
+	/*
+	 * Generates uniformly distributed random double betweeen zero and one as 
+	 * described in numerical recipes. It's also threadsafe for different seeds.
+	 *
+	 * Parameters:
+	 * ==========
+	 * long *idum: Pointer to the seed
+	 *
+	 * Returns:
+	 * double: The random number between zero and one
+	 *
+	 */
 	long k;
 	int j;
 	static long idum2=123456789; 

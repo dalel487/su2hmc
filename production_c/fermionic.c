@@ -40,12 +40,12 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 
 #ifdef __INTEL_MKL__
 	Complex	*x = mkl_malloc(kfermHalo*sizeof(Complex), AVX);
-	Complex *xi	= mkl_malloc(kfermHalo*sizeof(Complex),AVX);
+	Complex *xi	= mkl_malloc(kferm*sizeof(Complex),AVX);
 	Complex_f	*xi_f = mkl_malloc(kfermHalo*sizeof(Complex_f), AVX);
 	Complex_f	*R1_f = mkl_malloc(kfermHalo*sizeof(Complex_f), AVX);
 #else
 	Complex *x = aligned_alloc(AVX,kfermHalo*sizeof(Complex));
-	Complex *xi = aligned_alloc(AVX,kfermHalo*sizeof(Complex));
+	Complex *xi = aligned_alloc(AVX,kferm*sizeof(Complex));
 	Complex_f *xi_f = aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 	Complex_f *R1_f = aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 #endif
@@ -71,9 +71,11 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	//This should be safe with memcpy since the pointer name
 	//references the first block of memory for that pointer
 	memcpy(Phi, R1, kferm*sizeof(Complex));
-	memcpy(xi, R1, kferm*sizeof(Complex));
 	//Evaluate xi = (M^† M)^-1 R_1 
 	Congradp(0, res, R1_f, itercg);
+#pragma omp parallel for simd aligned(R1,R1_f:AVX)
+	for(int i=0;i<kferm;i++)
+		xi[i]=(Complex)R1_f[i];
 #ifdef __NVCC__
 	cudaFree(xi_f); cudaFree(R1_f);
 #elif defined __INTEL_MKL__
