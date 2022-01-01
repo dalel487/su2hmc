@@ -167,22 +167,23 @@ int Gauss_z(Complex *ps, unsigned int n, const double mu, const double sigma){
 #pragma unroll
 	for(int i=0;i<n;i++){
 		/* Marsaglia Method for fun
-			do{
-			u=sfmt_genrand_real1(sfmt);
-			v=sfmt_genrand_real1(sfmt);
-			r=u*u+v*v;
-			}while(0<r & r<1);
-			r=sqrt(r);
-			r=sqrt(-2.0*log(r)/r)*sigma;
-			ps[i] = mu+u*r + I*(mu+v*r);
+		   do{
+		   u=sfmt_genrand_real1(sfmt);
+		   v=sfmt_genrand_real1(sfmt);
+		   r=u*u+v*v;
+		   }while(0<r & r<1);
+		   r=sqrt(r);
+		   r=sqrt(-2.0*log(r)/r)*sigma;
+		   ps[i] = mu+u*r + I*(mu+v*r);
 		 */
-#ifdef USE_RAN2
+#ifdef __RANLUX__
+		double	r =sigma*sqrt(-2*log(gsl_rng_uniform(ranlux_instd)));
+		double	theta=2.0*M_PI*gsl_rng_uniform(ranlux_instd);
+#else
 		double	r =sigma*sqrt(-2*log(ran2(&seed)));
 		double	theta=2.0*M_PI*ran2(&seed);
-		ps[i]=r*(cos(theta)+mu+(sin(theta)+mu)*I);
-#elif defined __RANLUX__
-		ps[i]=(gsl_ran_gaussian(ranlux_instd,sigma)+mu)+I*(gsl_ran_gaussian(ranlux_instd,sigma)+mu);
 #endif
+		ps[i]=r*(cos(theta)+mu+(sin(theta)+mu)*I);
 	}     
 	return 0;
 }
@@ -218,22 +219,23 @@ int Gauss_c(Complex_f *ps, unsigned int n, const float mu, const float sigma){
 #pragma unroll
 	for(int i=0;i<n;i++){
 		/* Marsaglia Method for fun
-			do{
-			u=sfmt_genrand_real1(sfmt);
-			v=sfmt_genrand_real1(sfmt);
-			r=u*u+v*v;
-			}while(0<r & r<1);
-			r=sqrt(r);
-			r=sqrt(-2.0*log(r)/r)*sigma;
-			ps[i] = mu+u*r + I*(mu+v*r);
+		   do{
+		   u=sfmt_genrand_real1(sfmt);
+		   v=sfmt_genrand_real1(sfmt);
+		   r=u*u+v*v;
+		   }while(0<r & r<1);
+		   r=sqrt(r);
+		   r=sqrt(-2.0*log(r)/r)*sigma;
+		   ps[i] = mu+u*r + I*(mu+v*r);
 		 */
-#ifdef USE_RAN2
+#ifdef __RANLUX__
+		float r =sigma*sqrt(-2*log(gsl_rng_uniform(ranlux_instd)));
+		float theta=2.0*M_PI*gsl_rng_uniform(ranlux_instd);
+#else
 		float r =sigma*sqrt(-2*log(ran2(&seed)));
 		float theta=2.0*M_PI*ran2(&seed);
-		ps[i]=r*(cos(theta)+mu+(sin(theta)+mu)*I);
-#elif defined __RANLUX__
-		ps[i]=(Complex_f)((gsl_ran_gaussian(ranlux_instd,(double)sigma)+mu)+I*(gsl_ran_gaussian(ranlux_instd,(double)sigma)+mu));
 #endif
+		ps[i]=r*(cos(theta)+mu+(sin(theta)+mu)*I);
 	}     
 	return 0;
 }
@@ -272,33 +274,38 @@ int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma){
 	int i;
 	double r, u, v;
 	//If n is odd we calculate the last index seperately and the rest in pairs
-#ifdef __RANLUX__
-	for(i=0;i<n;i++)
-		ps[i]=gsl_ran_gaussian(ranlux_instd,(double)sigma)+mu;
-#elif defined USE_RAN2
 	if(n%2==1){
 		n--;
+#ifdef __RANLUX__
+		r=2.0*M_PI*gsl_rng_uniform(ranlux_instd);
+		ps[n]=sqrt(-2*log(gsl_rng_uniform(ranlux_instd)))*cos(r);
+#else
 		r=2.0*M_PI*ran2(&seed);
 		ps[n]=sqrt(-2*log(ran2(&seed)))*cos(r);
+#endif
 	}
 	for(i=0;i<n;i+=2){
 		/* Marsaglia Method for fun
-			do{
-			u=sfmt_genrand_real1(sfmt);
-			v=sfmt_genrand_real1(sfmt);
-			r=u*u+v*v;
-			}while(0<r & r<1);
-			r=sqrt(r);
-			r=sqrt(-2.0*log(r)/r)*sigma;
-			ps[i] = mu+u*r; 
-			ps[i+1]=mu+v*r;
+		   do{
+		   u=sfmt_genrand_real1(sfmt);
+		   v=sfmt_genrand_real1(sfmt);
+		   r=u*u+v*v;
+		   }while(0<r & r<1);
+		   r=sqrt(r);
+		   r=sqrt(-2.0*log(r)/r)*sigma;
+		   ps[i] = mu+u*r; 
+		   ps[i+1]=mu+v*r;
 		 */
+#ifdef __RANLUX__
+		u=sqrt(-2*log(gsl_rng_uniform(ranlux_instd)))*sigma;
+		r=2.0*M_PI*gsl_rng_uniform(ranlux_instd);
+#else
 		u=sqrt(-2*log(ran2(&seed)))*sigma;
 		r=2.0*M_PI*ran2(&seed);
+#endif
 		ps[i]=u*cos(r)+mu;
 		ps[i+1]=u*sin(r)+mu;
 	}     
-#endif
 	return 0;
 }
 int Gauss_f(float *ps, unsigned int n, const float mu, const float sigma){
@@ -335,34 +342,36 @@ int Gauss_f(float *ps, unsigned int n, const float mu, const float sigma){
 	}
 	int i;
 	float r, u, v;
-	//If n is odd we calculate the last index seperately and the rest in pairs
-#ifdef USE_RAN2
-	if(n%2==1){
-		n--;
-		r=2.0*M_PI*ran2(&seed);
-		ps[n]=sqrt(-2*log(ran2(&seed)))*cos(r);
-	}
+#ifdef __RANLUX__
+	r=2.0*M_PI*gsl_rng_uniform(ranlux_instd);
+	ps[n]=sqrt(-2*log(gsl_rng_uniform(ranlux_instd)))*cos(r);
+#else
+	r=2.0*M_PI*ran2(&seed);
+	ps[n]=sqrt(-2*log(ran2(&seed)))*cos(r);
+#endif
 	for(i=0;i<n;i+=2){
 		/* Marsaglia Method for fun
-			do{
-			u=sfmt_genrand_real1(sfmt);
-			v=sfmt_genrand_real1(sfmt);
-			r=u*u+v*v;
-			}while(0<r & r<1);
-			r=sqrt(r);
-			r=sqrt(-2.0*log(r)/r)*sigma;
-			ps[i] = mu+u*r; 
-			ps[i+1]=mu+v*r;
+		   do{
+		   u=sfmt_genrand_real1(sfmt);
+		   v=sfmt_genrand_real1(sfmt);
+		   r=u*u+v*v;
+		   }while(0<r & r<1);
+		   r=sqrt(r);
+		   r=sqrt(-2.0*log(r)/r)*sigma;
+		   ps[i] = mu+u*r; 
+		   ps[i+1]=mu+v*r;
 		 */
+#ifdef __RANLUX__
+		u=sqrt(-2*log(gsl_rng_uniform(ranlux_instd)))*sigma;
+		r=2.0*M_PI*gsl_rng_uniform(ranlux_instd);
+#else
 		u=sqrt(-2*log(ran2(&seed)))*sigma;
 		r=2.0*M_PI*ran2(&seed);
+#endif
 		ps[i]=u*cos(r)+mu;
 		ps[i+1]=u*sin(r)+mu;
-	}     
-#elif defined __RANLUX__
-	for(i=0;i<n;i++)
-		ps[i]=gsl_ran_gaussian(ranlux_instd,(double)sigma)+mu;
-#endif
+		//If n is odd we calculate the last index seperately and the rest in pairs
+	}
 	return 0;
 }
 double ran2(long *idum) {
