@@ -614,6 +614,7 @@ int main(int argc, char *argv[]){
 	mkl_free(id); mkl_free(iu); mkl_free(hd); mkl_free(hu);
 	mkl_free(dk4m_f); mkl_free(dk4p_f); mkl_free(u11t_f); mkl_free(u12t_f);
 	mkl_free(h1u); mkl_free(h1d); mkl_free(halosize);
+	mkl_free(pcoord);
 	vslDeleteStream(&stream);
 #else
 	free(dk4m); free(dk4p); free(R1); free(dSdpi); free(pp); free(Phi);
@@ -621,6 +622,7 @@ int main(int argc, char *argv[]){
 	free(u11); free(u12); free(id); free(iu); free(hd); free(hu);
 	free(dk4m_f); free(dk4p_f); free(u11t_f); free(u12t_f);
 	free(h1u); free(h1d); free(halosize);
+	free(pcoord);
 #endif
 #if (defined SA3AT)
 	if(!rank){
