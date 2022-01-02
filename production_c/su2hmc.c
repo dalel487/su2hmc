@@ -441,13 +441,8 @@ int main(int argc, char *argv[]){
 		yav+=y;
 		yyav+=y*y;
 		//The Monte-Carlo
-		//x is unassigned in the FORTRAN at declaration, so hopefully that won't be an issue here...
-		//Only update x if dH is negative
+		//Always update  dH is positive (gone from higher to lower energy)
 		if(dH>0 || Par_granf()<=y){
-			// We only test x if it is updated (inside the previous if block)
-			//But that required a goto in FORTRAN to get around doing the acceptance operations
-			//in the case where dH>=0 or x<=y. We'll nest the if statements in C to 
-			//get around this using the reverse test to the FORTRAN if (x<=y instead of x>y).
 			//Step is accepted. Set s=st
 			if(!rank)
 				printf("New configuration accepted on trajectory %i.\n", itraj);

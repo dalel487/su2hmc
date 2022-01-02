@@ -899,35 +899,35 @@ int New_trial(double dt){
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "New_trial"; //
-//#ifdef __clang__
-//Double precision bad for offloading
-//#pragma omp target teams distribute parallel for simd collapse(2)\
-map(to:pp[0:kmom]) aligned(pp,u11t,u12t:AVX) 
+	//#ifdef __clang__
+	//Double precision bad for offloading
+	//#pragma omp target teams distribute parallel for simd collapse(2)\
+	map(to:pp[0:kmom]) aligned(pp,u11t,u12t:AVX) 
 #ifdef __OPENACC
 #pragma acc parallel loop
 #else
 #pragma omp parallel for simd collapse(2) aligned(pp,u11t,u12t:AVX) 
 #endif
-	for(int i=0;i<kvol;i++)
-		for(int mu = 0; mu<ndim; mu++){
-			//Sticking to what was in the FORTRAN for variable names.
-			//CCC for cosine SSS for sine AAA for...
-			//Re-exponentiating the force field. Can be done analytically in SU(2)
-			//using sine and cosine which is nice
+		for(int i=0;i<kvol;i++)
+			for(int mu = 0; mu<ndim; mu++){
+				//Sticking to what was in the FORTRAN for variable names.
+				//CCC for cosine SSS for sine AAA for...
+				//Re-exponentiating the force field. Can be done analytically in SU(2)
+				//using sine and cosine which is nice
 
-			double AAA = dt*sqrt(pp[i*nadj*ndim+mu]*pp[i*nadj*ndim+mu]\
-					+pp[(i*nadj+1)*ndim+mu]*pp[(i*nadj+1)*ndim+mu]\
-					+pp[(i*nadj+2)*ndim+mu]*pp[(i*nadj+2)*ndim+mu]);
-			double CCC = cos(AAA);
-			double SSS = dt*sin(AAA)/AAA;
-			Complex a11 = CCC+I*SSS*pp[(i*nadj+2)*ndim+mu];
-			Complex a12 = pp[(i*nadj+1)*ndim+mu]*SSS + I*SSS*pp[i*nadj*ndim+mu];
-			//b11 and b12 are u11t and u12t terms, so we'll use u12t directly
-			//but use b11 for u11t to prevent RAW dependency
-			complex b11 = u11t[i*ndim+mu];
-			u11t[i*ndim+mu] = a11*b11-a12*conj(u12t[i*ndim+mu]);
-			u12t[i*ndim+mu] = a11*u12t[i*ndim+mu]+a12*conj(b11);
-		}
+				double AAA = dt*sqrt(pp[i*nadj*ndim+mu]*pp[i*nadj*ndim+mu]\
+						+pp[(i*nadj+1)*ndim+mu]*pp[(i*nadj+1)*ndim+mu]\
+						+pp[(i*nadj+2)*ndim+mu]*pp[(i*nadj+2)*ndim+mu]);
+				double CCC = cos(AAA);
+				double SSS = dt*sin(AAA)/AAA;
+				Complex a11 = CCC+I*SSS*pp[(i*nadj+2)*ndim+mu];
+				Complex a12 = pp[(i*nadj+1)*ndim+mu]*SSS + I*SSS*pp[i*nadj*ndim+mu];
+				//b11 and b12 are u11t and u12t terms, so we'll use u12t directly
+				//but use b11 for u11t to prevent RAW dependency
+				complex b11 = u11t[i*ndim+mu];
+				u11t[i*ndim+mu] = a11*b11-a12*conj(u12t[i*ndim+mu]);
+				u12t[i*ndim+mu] = a11*u12t[i*ndim+mu]+a12*conj(b11);
+			}
 	return 0;
 }
 inline int Reunitarise(){

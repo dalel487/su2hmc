@@ -122,12 +122,12 @@ double Par_granf(){
 	 *
 	 */
 	char *funcname = "Par_granf";
-	double ran_val;
+	double ran_val=0;
 	if(!rank){
 #if (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))
 		ran_val = ran2(&seed);
 #elif defined __RANLUX__
-		ran_val=gsl_rng_uniform(ranlux_instd);
+		ran_val = gsl_rng_uniform(ranlux_instd);
 #else
 		vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 1, &ran_val, 0,1);
 #endif
