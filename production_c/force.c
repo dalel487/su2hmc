@@ -35,14 +35,19 @@ int Gauge_force(double *dSdpi){
 	Complex *u11sh = aligned_alloc(AVX,(kvol+halo)*sizeof(Complex)); 
 	Complex *u12sh = aligned_alloc(AVX,(kvol+halo)*sizeof(Complex)); 
 #endif
+#pragma acc enter data create(Sigma11[0:kvol],Sigma12[0:kvol],u11sh[0:kvol+halo],u12sh[0:kvol+halo])
 	//Holders for directions
 	for(int mu=0; mu<ndim; mu++){
 		memset(Sigma11,0, kvol*sizeof(Complex));
 		memset(Sigma12,0, kvol*sizeof(Complex));
-		for(int nu=0; nu<ndim; nu++){
+		for(int nu=0; nu<ndim; nu++)
 			if(nu!=mu){
 				//The +ν Staple
+#ifdef _OPENACC
+#pragma acc parallel loop
+#else
 #pragma omp parallel for simd aligned(u11t,u12t,Sigma11,Sigma12,iu:AVX)
+#endif
 				for(int i=0;i<kvol;i++){
 					int uidm = iu[mu+ndim*i];
 					int uidn = iu[nu+ndim*i];
@@ -55,10 +60,16 @@ int Gauge_force(double *dSdpi){
 				}
 				Z_gather(u11sh, u11t, kvol, id, nu);
 				ZHalo_swap_dir(u11sh, 1, mu, DOWN);
+#pragma acc update device(u11sh[0:kvol+halo])
 				Z_gather(u12sh, u12t, kvol, id, nu);
 				ZHalo_swap_dir(u12sh, 1, mu, DOWN);
+#pragma acc update device(u12sh[0:kvol+halo])
 				//Next up, the -ν staple
+#ifdef _OPENACC
+#pragma acc parallel loop
+#else
 #pragma omp parallel for simd aligned(u11t,u12t,u11sh,u12sh,Sigma11,Sigma12,iu,id:AVX)
+#endif
 				for(int i=0;i<kvol;i++){
 					int uidm = iu[mu+ndim*i];
 					int didn = id[nu+ndim*i];
@@ -71,8 +82,12 @@ int Gauge_force(double *dSdpi){
 					Sigma12[i]+=a11*u12t[didn*ndim+nu]+a12*conj(u11t[didn*ndim+nu]);
 				}
 			}
-		}
+
+#ifdef _OPENACC
+#pragma acc parallel loop
+#else
 #pragma omp parallel for simd aligned(u11t,u12t,Sigma11,Sigma12,dSdpi:AVX)
+#endif
 		for(int i=0;i<kvol;i++){
 			Complex a11 = u11t[i*ndim+mu]*Sigma12[i]+u12t[i*ndim+mu]*conj(Sigma11[i]);
 			Complex a12 = u11t[i*ndim+mu]*Sigma11[i]+conj(u12t[i*ndim+mu])*Sigma12[i];
@@ -82,6 +97,7 @@ int Gauge_force(double *dSdpi){
 			dSdpi[(i*nadj+2)*ndim+mu]=beta*cimag(a12);
 		}
 	}
+#pragma acc exit data delete(Sigma11[0:kvol],Sigma12[0:kvol],u11sh[0:kvol+halo],u12sh[0:kvol+halo])
 #ifdef __INTEL_MKL__
 	mkl_free(u11sh); mkl_free(u12sh); mkl_free(Sigma11); mkl_free(Sigma12);
 #else
@@ -115,6 +131,7 @@ int Force(double *dSdpi, int iflag, double res1){
 	 *	Zero on success, integer error code otherwise
 	 */
 	const char *funcname = "Force";
+#pragma acc update device(dSdpi[0:kmom])
 #ifndef NO_GAUGE
 	Gauge_force(dSdpi);
 #endif
@@ -171,6 +188,7 @@ int Force(double *dSdpi, int iflag, double res1){
 			ZHalo_swap_dir(X1,8,mu,DOWN);
 			ZHalo_swap_dir(X2,8,mu,DOWN);
 		}
+#pragma acc update device(X1[kerm2:kferm2Halo])
 
 		//	The original FORTRAN Comment:
 		//    dSdpi=dSdpi-Re(X1*(d(Mdagger)dp)*X2) -- Yikes!
@@ -180,11 +198,12 @@ int Force(double *dSdpi, int iflag, double res1){
 		//  as a result, need to swap the DOWN halos in all dirs for
 		//  both these arrays, each of which has 8 cpts
 		//
-//#ifdef __clang__
+#ifdef _OPENACC
+#pragma acc parallel loop copyin(X2[0:kferm2Halo])
+#else
 //#pragma omp target teams distribute parallel for map(to:X1[0:kferm2Halo],X2[0:kferm2Halo]) map(tofrom:dSdpi[0:kmom])
-//#else
 #pragma omp parallel for
-//#endif
+#endif
 		for(int i=0;i<kvol;i++)
 			for(int idirac=0;idirac<ndirac;idirac++){
 				int mu, uid, igork1;
@@ -375,6 +394,7 @@ int Force(double *dSdpi, int iflag, double res1){
 #endif
 			}
 	}
+#pragma acc update host(dSdpi[0:kmom])
 #if defined __INTEL_MKL__
 	mkl_free(X2);
 #else

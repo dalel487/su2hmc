@@ -7,7 +7,6 @@
 #include <mkl.h>
 #include <mkl_vsl.h>
 //Bad practice? Yes but it is convenient
-VSLStreamStatePtr stream;
 #endif
 #include <mpi.h>
 #include "par_mpi.h"
@@ -21,26 +20,32 @@ VSLStreamStatePtr stream;
 //Declaring external variables
 #if (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))
 long seed;
-#elif (defined __INTEL_MKL__||defined __RANLUX__)
+#elif defined __RANLUX__
+unsigned long seed;
+#elif defined __INTEL_MKL__
 unsigned int seed;
+VSLStreamStatePtr stream;
 #endif
 #ifndef M_PI
 #define M_PI           3.14159265358979323846
 #endif
 
-#if (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))
-inline int ranset(long *seed)
-#elif (defined __INTEL_MKL__||defined __RANLUX__)
+#ifdef __RANLUX__
+inline int ranset(unsigned long *seed)
+#elif (defined __INTEL_MKL__&&!defined USE_RAN2)
 inline int ranset(unsigned int *seed)
+#else
+inline int ranset(long *seed)
 #endif
 {
 #ifdef __RANLUX__
 	ranlux_instd=gsl_rng_alloc(gsl_rng_ranlxd2);
 	gsl_rng_set(ranlux_instd,*seed);
-#elif defined __INTEL_MKL__
-	vslNewStream( &stream, VSL_BRNG_MT19937, *seed );
-#endif
 	return 0;
+#elif (defined __INTEL_MKL__&& !defined USE_RAN2)
+	vslNewStream( &stream, VSL_BRNG_MT19937, *seed );
+	return 0;
+#endif
 }
 int Par_ranread(char *filename, double *ranval){
 	/* Reads ps from a file
@@ -71,6 +76,8 @@ int Par_ranread(char *filename, double *ranval){
 }
 #if (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))
 int Par_ranset(long *seed)
+#elif defined __RANLUX__
+int Par_ranset(unsigned long *seed)
 #elif (defined __INTEL_MKL__||defined __RANLUX__)
 int Par_ranset(unsigned int *seed)
 #endif
@@ -96,8 +103,14 @@ int Par_ranset(unsigned int *seed)
 	 */
 	const char *funcname = "Par_ranset";
 	//If we're not using the masterthread, we need to change the seed
+#ifdef _DEBUG
+	printf("Master seed: %i\t",*seed);
+#endif
 	if(rank)
-		*seed *= 1.0+8.0*(float)rank/(float)(size-1);
+		*seed *= 1.0f+8.0f*(float)rank/(float)(size-1);
+#ifdef _DEBUG
+	printf("Rank:  %i\tSeed %i\n",rank, *seed);
+#endif
 	//Next we set the seed using ranset
 	//This is one of the really weird FORTRANN 66 esque functions with ENTRY points, so good luck!
 #if (defined __INTEL_MKL__||defined __RANLUX__)
@@ -135,7 +148,7 @@ double Par_granf(){
 	Par_dcopy(&ran_val);
 	return ran_val;
 }
-int Gauss_z(Complex *ps, unsigned int n, const double mu, const double sigma){
+int Gauss_z(Complex *ps, unsigned int n, const Complex mu, const double sigma){
 	/* Generates a vector of normally distributed random complex numbers
 	 * using the Box-Muller Method
 	 * 
@@ -167,14 +180,14 @@ int Gauss_z(Complex *ps, unsigned int n, const double mu, const double sigma){
 #pragma unroll
 	for(int i=0;i<n;i++){
 		/* Marsaglia Method for fun
-		   do{
-		   u=sfmt_genrand_real1(sfmt);
-		   v=sfmt_genrand_real1(sfmt);
-		   r=u*u+v*v;
-		   }while(0<r & r<1);
-		   r=sqrt(r);
-		   r=sqrt(-2.0*log(r)/r)*sigma;
-		   ps[i] = mu+u*r + I*(mu+v*r);
+			do{
+			u=sfmt_genrand_real1(sfmt);
+			v=sfmt_genrand_real1(sfmt);
+			r=u*u+v*v;
+			}while(0<r & r<1);
+			r=sqrt(r);
+			r=sqrt(-2.0*log(r)/r)*sigma;
+			ps[i] = mu+u*r + I*(mu+v*r);
 		 */
 #ifdef __RANLUX__
 		double	r =sigma*sqrt(-2*log(gsl_rng_uniform(ranlux_instd)));
@@ -183,11 +196,11 @@ int Gauss_z(Complex *ps, unsigned int n, const double mu, const double sigma){
 		double	r =sigma*sqrt(-2*log(ran2(&seed)));
 		double	theta=2.0*M_PI*ran2(&seed);
 #endif
-		ps[i]=r*(cos(theta)+mu+(sin(theta)+mu)*I);
+		ps[i]=r*(cos(theta)+sin(theta)*I)+mu;
 	}     
 	return 0;
 }
-int Gauss_c(Complex_f *ps, unsigned int n, const float mu, const float sigma){
+int Gauss_c(Complex_f *ps, unsigned int n, const Complex_f mu, const float sigma){
 	/* Generates a vector of normally distributed random complex numbers
 	 * using the Box-Muller Method
 	 * 
@@ -219,14 +232,14 @@ int Gauss_c(Complex_f *ps, unsigned int n, const float mu, const float sigma){
 #pragma unroll
 	for(int i=0;i<n;i++){
 		/* Marsaglia Method for fun
-		   do{
-		   u=sfmt_genrand_real1(sfmt);
-		   v=sfmt_genrand_real1(sfmt);
-		   r=u*u+v*v;
-		   }while(0<r & r<1);
-		   r=sqrt(r);
-		   r=sqrt(-2.0*log(r)/r)*sigma;
-		   ps[i] = mu+u*r + I*(mu+v*r);
+			do{
+			u=sfmt_genrand_real1(sfmt);
+			v=sfmt_genrand_real1(sfmt);
+			r=u*u+v*v;
+			}while(0<r & r<1);
+			r=sqrt(r);
+			r=sqrt(-2.0*log(r)/r)*sigma;
+			ps[i] = mu+u*r + I*(mu+v*r);
 		 */
 #ifdef __RANLUX__
 		float r =sigma*sqrt(-2*log(gsl_rng_uniform(ranlux_instd)));
@@ -235,7 +248,7 @@ int Gauss_c(Complex_f *ps, unsigned int n, const float mu, const float sigma){
 		float r =sigma*sqrt(-2*log(ran2(&seed)));
 		float theta=2.0*M_PI*ran2(&seed);
 #endif
-		ps[i]=r*(cos(theta)+mu+(sin(theta)+mu)*I);
+		ps[i]=r*(cos(theta)+mu+sin(theta)*I)+mu;
 	}     
 	return 0;
 }
@@ -286,15 +299,15 @@ int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma){
 	}
 	for(i=0;i<n;i+=2){
 		/* Marsaglia Method for fun
-		   do{
-		   u=sfmt_genrand_real1(sfmt);
-		   v=sfmt_genrand_real1(sfmt);
-		   r=u*u+v*v;
-		   }while(0<r & r<1);
-		   r=sqrt(r);
-		   r=sqrt(-2.0*log(r)/r)*sigma;
-		   ps[i] = mu+u*r; 
-		   ps[i+1]=mu+v*r;
+			do{
+			u=sfmt_genrand_real1(sfmt);
+			v=sfmt_genrand_real1(sfmt);
+			r=u*u+v*v;
+			}while(0<r & r<1);
+			r=sqrt(r);
+			r=sqrt(-2.0*log(r)/r)*sigma;
+			ps[i] = mu+u*r; 
+			ps[i+1]=mu+v*r;
 		 */
 #ifdef __RANLUX__
 		u=sqrt(-2*log(gsl_rng_uniform(ranlux_instd)))*sigma;
@@ -351,15 +364,15 @@ int Gauss_f(float *ps, unsigned int n, const float mu, const float sigma){
 #endif
 	for(i=0;i<n;i+=2){
 		/* Marsaglia Method for fun
-		   do{
-		   u=sfmt_genrand_real1(sfmt);
-		   v=sfmt_genrand_real1(sfmt);
-		   r=u*u+v*v;
-		   }while(0<r & r<1);
-		   r=sqrt(r);
-		   r=sqrt(-2.0*log(r)/r)*sigma;
-		   ps[i] = mu+u*r; 
-		   ps[i+1]=mu+v*r;
+			do{
+			u=sfmt_genrand_real1(sfmt);
+			v=sfmt_genrand_real1(sfmt);
+			r=u*u+v*v;
+			}while(0<r & r<1);
+			r=sqrt(r);
+			r=sqrt(-2.0*log(r)/r)*sigma;
+			ps[i] = mu+u*r; 
+			ps[i+1]=mu+v*r;
 		 */
 #ifdef __RANLUX__
 		u=sqrt(-2*log(gsl_rng_uniform(ranlux_instd)))*sigma;
@@ -431,5 +444,44 @@ double ran2(long *idum) {
 
 	else return temp;
 
+}
+
+int ran_test(){
+	char *funcname ="ran_test";
+	const double mu = 0.3;
+	const double sigma = 2;
+	const float mu_f = 0.7;
+	const float sigma_f = 1.6;
+	long seed = 10;
+	ranset(&seed);
+	Complex *z_arr=malloc(1024*1024*sizeof(Complex));
+	FILE *z_out=fopen("z_ran.out","w");
+	Gauss_z(z_arr,1024*1024,mu,sigma);
+	for(int i =0; i<1024*1024;i++)
+		fprintf(z_out, "%f\t%f\n", creal(z_arr[i]), cimag(z_arr[i]));
+	fclose(z_out);
+	free(z_arr);
+	Complex_f *c_arr=malloc(1024*1024*sizeof(Complex_f));
+	Gauss_c(c_arr,1024*1024,mu_f,sigma_f);
+	FILE *c_out=fopen("c_ran.out","w");
+	free(c_arr);
+	for(int i =0; i<1024*1024;i++)
+		fprintf(c_out,"%f\t%f\n", creal(c_arr[i]), cimag(c_arr[i]));
+	fclose(c_out);
+	double *d_arr=malloc(1024*1024*sizeof(double));
+	Gauss_d(d_arr,1024*1024,mu,sigma);
+	FILE *d_out=fopen("d_ran.out","w");
+	for(int i =0; i<1024*1024;i++)
+		fprintf(d_out,"%f\n", d_arr[i]);
+	fclose(d_out);
+	free(d_arr);
+	float *f_arr=malloc(1024*1024*sizeof(float));
+	Gauss_f(f_arr,1024*1024,mu_f,sigma_f);
+	FILE *f_out=fopen("f_ran.out","w");
+	for(int i =0; i<1024*1024;i++)
+		fprintf(f_out,"%f\n", f_arr[i]);
+	fclose(f_out);
+	free(f_arr);
+	return 0;
 }
 //Distributions

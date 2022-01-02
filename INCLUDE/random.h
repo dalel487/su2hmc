@@ -20,7 +20,18 @@
 extern long seed;
 int Par_ranset(long *seed);
 int ranset(long *seed);
-#elif (defined __INTEL_MKL__||defined __RANLUX__)
+double ran2(long *idum); 
+#elif defined __RANLUX__
+gsl_rng *ranlux_instd;
+//Need to get a float version that uses a different seed for performance reasons.
+//Otherwise we get two generators (one float, one double) starting from the same seed. Not good
+//For now, the float generator will be a cast of the double one.
+//gsl_rng *ranlux_instf;
+extern unsigned long seed;
+int Par_ranset(unsigned long *seed);
+int ranset(unsigned long *seed);
+#elif defined __INTEL_MKL__
+extern VSLStreamStatePtr stream;
 extern unsigned int seed;
 int ranset(unsigned int *seed);
 int Par_ranset(unsigned int *seed);
@@ -30,27 +41,14 @@ extern int seed;
 int ranset(int *seed);
 int Par_ranset(int *seed);
 #endif
-#ifdef __RANLUX__
-//Need to get a float version that uses a different seed for performance reasons.
-//Otherwise we get two generators (one float, one double) starting from the same seed. Not good
-//For now, the float generator will be a cast of the double one.
-//gsl_rng *ranlux_instf;
-gsl_rng *ranlux_instd;
-#endif
-#ifdef __INTEL_MKL__
-extern VSLStreamStatePtr stream;
-#endif
-int Rand_init();
-//PLACEHOLDERS TO TRICK COMPLIER
-double ranget(double *seed);
 //Generators:
 //==========
 //Distributions
 //=============
 //Use Box-Müller to generate an array of complex numbers
-int Gauss_z(Complex *ps, unsigned int n, const double mu, const double sigma);
+int Gauss_z(Complex *ps, unsigned int n, const Complex mu, const double sigma);
 int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma);
-int Gauss_c(Complex_f *ps, unsigned int n, const float mu, const float sigma);
+int Gauss_c(Complex_f *ps, unsigned int n, const Complex_f mu, const float sigma);
 int Gauss_f(float *ps, unsigned int n, const float mu, const float sigma);
 
 //MPI
@@ -78,6 +76,5 @@ double Par_granf();
 #define RNMX (1.0-EPS)
 
 //Prototypes
-double ran2(long *idum); 
 int	ran_test();
 #endif

@@ -610,7 +610,9 @@ int main(int argc, char *argv[]){
 	mkl_free(dk4m_f); mkl_free(dk4p_f); mkl_free(u11t_f); mkl_free(u12t_f);
 	mkl_free(h1u); mkl_free(h1d); mkl_free(halosize);
 	mkl_free(pcoord);
+#if (!defined  __RANLUX__&&!defined USE_RAN2)
 	vslDeleteStream(&stream);
+#endif
 #else
 	free(dk4m); free(dk4p); free(R1); free(dSdpi); free(pp); free(Phi);
 	free(u11t); free(u12t); free(X0); free(X1);
