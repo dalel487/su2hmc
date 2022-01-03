@@ -21,6 +21,7 @@ SRC= \
 	fermionic.c\
 	par_mpi.c \
     coord.c \
+    congrad.c \
     random.c \
     matrices.c \
 

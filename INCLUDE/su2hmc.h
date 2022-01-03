@@ -23,6 +23,8 @@ cublasHandle_t cublas_status;
 #elif defined USE_BLAS
 #include	<cblas.h>
 #endif
+#include	<stdio.h>
+#include	<stdlib.h>
 #include	<sizes.h>
 #include	<time.h>
 
