@@ -171,10 +171,6 @@ int Par_sread(const int iread, const double beta, const double fmu, const double
 		fread(&seed, sizeof(seed), 1, con);
 		fclose(con);
 
-		//Run over processors, dimensions and colours
-		//Could be sped up with omp but parallel MPI_Sends is risky. 
-#pragma omp parallel for collapse(2)\
-		private(u1buff,u2buff)	shared(u11Read,u12Read)
 		for(int iproc = 0; iproc < nproc; iproc++)
 			for(int idim = 0; idim < ndim; idim++){
 				int i = 0;
@@ -237,7 +233,6 @@ int Par_sread(const int iread, const double beta, const double fmu, const double
 #endif
 	}
 	else{
-#pragma omp parallel for shared(u11,u12)	private(u1buff,u2buff)
 		for(int idim = 0; idim<ndim; idim++){
 			//Receiving the data from the master threads.
 			if(MPI_Recv(u1buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, 2*idim, comm, &status)){
