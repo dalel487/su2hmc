@@ -10,7 +10,7 @@ CFLAGS=     $(IFLAGS) -qmkl -DUSE_MKL -std=gnu11 -ipo -qopt-zmm-usage=high\
 			-qopenmp -qno-openmp-offload -qopenmp-simd -qopenmp-link=static -DSA3AT \
 
 LFLAGS=	-L${MKLROOT}/lib/intel64 -lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_core -lmkl_blacs_intelmpi_ilp64\
-		-liomp5 -lpthread -ldl -Bstatic -lgsl
+		-liomp5 -lpthread -ldl #-Bstatic -lgsl
 
 EXE=	su2hmc
 
@@ -55,7 +55,7 @@ release:	CFLAGS +=  -O3  -inline-level=2\
 release:	$(EXE)
 
 debug:	CFLAGS += -g -O0 \
-		-D_DEBUG #-DUSE_RAN2 #-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
+		-D_DEBUG -DUSE_RAN2 -DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 	
 debug:	$(EXE)
 

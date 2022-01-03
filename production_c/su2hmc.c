@@ -932,8 +932,8 @@ int Hamilton(double *h, double *s, double res2){
 		memcpy(X1,X0+na*kferm2,kferm2*sizeof(Complex));
 		Fill_Small_Phi(na, smallPhi);
 		Congradq(na,res2,smallPhi,&itercg);
-		Fill_Small_Phi(na, smallPhi);
 		ancgh+=itercg;
+		Fill_Small_Phi(na, smallPhi);
 		memcpy(X0+na*kferm2,X1,kferm2*sizeof(Complex));
 #ifdef __NVCC__
 		Complex dot;
@@ -1017,8 +1017,8 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 	Complex *p, *r, *x2;
 	Complex_f *p_f, *x1_f, *x2_f;
 	int device=-1; cudaGetDevice(&device);
-	cudaMallocManaged(&p, kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMemAdvise(p,kferm2Halo*sizeof(Complex),cudaMemAdviseSetPreferredLocation,device);
+	cudaMallocManaged(&p, kferm2*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMemAdvise(p,kferm2*sizeof(Complex),cudaMemAdviseSetPreferredLocation,device);
 
 	cudaMallocManaged(&p_f, kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMemAdvise(p_f,kferm2Halo*sizeof(Complex_f),cudaMemAdviseSetPreferredLocation,device);
@@ -1033,7 +1033,7 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 	cudaMemAdvise(x2,kferm2*sizeof(Complex),cudaMemAdviseSetPreferredLocation,device);
 	cudaMemPrefetchAsync(x2,kferm2*sizeof(Complex),device,NULL);
 #elif defined __INTEL_MKL__
-	Complex *p  = mkl_calloc(kferm2Halo,sizeof(Complex),AVX);
+	Complex *p  = mkl_calloc(kferm2,sizeof(Complex),AVX);
 	Complex *r  = mkl_calloc(kferm2,sizeof(Complex),AVX);
 	Complex *x2=mkl_calloc(kferm2, sizeof(Complex), AVX);
 
@@ -1041,7 +1041,7 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 	Complex_f *x2_f=mkl_calloc(kferm2Halo, sizeof(Complex_f), AVX);
 	Complex_f *x1_f=mkl_calloc(kferm2Halo, sizeof(Complex_f), AVX);
 #else
-	Complex *p  = aligned_alloc(AVX,kferm2Halo*sizeof(Complex));
+	Complex *p  = aligned_alloc(AVX,kferm2*sizeof(Complex));
 	Complex *r  = aligned_alloc(AVX,kferm2*sizeof(Complex));
 	Complex *x2=aligned_alloc(AVX,kferm2*sizeof(Complex));
 
@@ -1053,7 +1053,7 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 	//Instead of copying elementwise in a loop, use memcpy.
 	memcpy(p, X1, kferm2*sizeof(Complex));
 #ifdef __NVCC__
-	cudaMemPrefetchAsync(p,kferm2Halo*sizeof(Complex),device,NULL);
+	cudaMemPrefetchAsync(p,kferm2*sizeof(Complex),device,NULL);
 #endif
 	memcpy(r, smallPhi, kferm2*sizeof(Complex));
 
@@ -1100,7 +1100,7 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 			//to the real part so this is fine
 			Par_fsum((float *)&alphad);
 			//α=α_n/α_d = (r.r)/p(M^†M)p 
-			alpha=alphan/alphad;
+			alpha=alphan/creal(alphad);
 			//x-αp, 
 #ifdef __NVCC__
 			cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&alpha,(cuDoubleComplex *)p,1,(cuDoubleComplex *)X1,1);
