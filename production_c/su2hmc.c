@@ -310,7 +310,7 @@ int main(int argc, char *argv[]){
 			Dslashd(R1, R);
 			memcpy(Phi+na*kferm,R1, kferm*sizeof(Complex));
 			//Up/down partitioning (using only pseudofermions of flavour 1)
-#pragma omp parallel for simd aligned(X0,R1:AVX)
+#pragma omp parallel for simd collapse(2) aligned(X0,R1:AVX)
 			for(int i=0; i<kvol; i++)
 				for(int idirac = 0; idirac < ndirac; idirac++){
 					X0[((na*kvol+i)*ndirac+idirac)*nc]=R1[(i*ngorkov+idirac)*nc];
@@ -426,7 +426,8 @@ int main(int argc, char *argv[]){
 		}
 		//Monte Carlo step: Accept new fields with the probability of min(1,exp(H0-X0))
 		//Kernel Call needed here?
-
+		Reunitarise();
+		#pragma acc update self(u11t[0:kvol*ndim],u12t[0:kvol*ndim])
 		double H1, S1;
 		Hamilton(&H1, &S1, rescga);
 		double dH = H0 - H1;
@@ -931,6 +932,7 @@ int Hamilton(double *h, double *s, double res2){
 		memcpy(X1,X0+na*kferm2,kferm2*sizeof(Complex));
 		Fill_Small_Phi(na, smallPhi);
 		Congradq(na,res2,smallPhi,&itercg);
+		Fill_Small_Phi(na, smallPhi);
 		ancgh+=itercg;
 		memcpy(X0+na*kferm2,X1,kferm2*sizeof(Complex));
 #ifdef __NVCC__

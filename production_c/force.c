@@ -188,7 +188,7 @@ int Force(double *dSdpi, int iflag, double res1){
 			ZHalo_swap_dir(X1,8,mu,DOWN);
 			ZHalo_swap_dir(X2,8,mu,DOWN);
 		}
-#pragma acc update device(X1[kerm2:kferm2Halo])
+#pragma acc update device(X1[kferm2:kferm2Halo])
 
 		//	The original FORTRAN Comment:
 		//    dSdpi=dSdpi-Re(X1*(d(Mdagger)dp)*X2) -- Yikes!
@@ -208,7 +208,9 @@ int Force(double *dSdpi, int iflag, double res1){
 			for(int idirac=0;idirac<ndirac;idirac++){
 				int mu, uid, igork1;
 #ifndef NO_SPACE
+#ifndef _OPENACC
 #pragma omp simd aligned(dSdpi,X1,X2,u11t,u12t,iu:AVX)
+#endif
 				for(mu=0; mu<3; mu++){
 					//Long term ambition. I used the diff command on the different
 					//spacial components of dSdpi and saw a lot of the values required
@@ -394,7 +396,7 @@ int Force(double *dSdpi, int iflag, double res1){
 #endif
 			}
 	}
-#pragma acc update host(dSdpi[0:kmom])
+#pragma acc update self(dSdpi[0:kmom])
 #if defined __INTEL_MKL__
 	mkl_free(X2);
 #else

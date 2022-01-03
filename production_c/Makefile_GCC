@@ -1,13 +1,13 @@
 MF=	Makefile
 
-CC=mpicc 
+CC=mpiicc 
 
 IFLAGS=  -I ../INCLUDE/ -I /opt/AMD/aocl/aocl-linux-aocc-3.1.0/include/
 
-CFLAGS=	$(IFLAGS) -std=gnu11 -DUSE_BLAS -fcommon\
+CFLAGS=	$(IFLAGS) -cc=gcc-10 -std=gnu11 -DUSE_BLAS -fcommon\
 		-march=znver1 -mtune=znver3 -static -D__RANLUX__\
 		-fopenmp-simd -DSA3AT -flto\
-#		-foffload=amdgcn-amdhsa="-march=gfx90c" -fopenacc\
+		-foffload=amdgcn-amdhsa="-march=gfx900" -fopenacc\
 #		-pg -fprofile-arcs-foffload=amdgcn-amdhsa="-march=gfx90c"
 
 LFLAGS=	-L /opt/AMD/aocl/aocl-linux-aocc-3.1.0/lib/ -latomic \

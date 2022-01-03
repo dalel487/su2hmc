@@ -173,64 +173,63 @@ int Par_sread(const int iread, const double beta, const double fmu, const double
 
 		//Run over processors, dimensions and colours
 		//Could be sped up with omp but parallel MPI_Sends is risky. 
-		//#pragma omp parallel for collapse(2)\
-		private(u1buff,u2buff)\
-			shared(u11Read,u12Read)
-			for(int iproc = 0; iproc < nproc; iproc++)
-				for(int idim = 0; idim < ndim; idim++){
-					int i = 0;
-					//Index order is reversed from FORTRAN for performance
-					//Going to split up assigning icoord[i] to reduce the
-					//number of assignments.
-					//We're weaving our way through the memory here, converting
-					//between lattice and memory coordinates
-					for(int ix=pstart[0][iproc]; ix<pstop[0][iproc]; ix++)
-						for(int iy=pstart[1][iproc]; iy<pstop[1][iproc]; iy++)
-							for(int iz=pstart[2][iproc]; iz<pstop[2][iproc]; iz++)
-								for(int it=pstart[3][iproc]; it<pstop[3][iproc]; it++){
-									//j is the relative memory index of icoord
-									int j = Coord2gindex(ix,iy,iz,it);
-									//ubuff[i]  = (ic == 0) ? u11read[j][idim] : u12read[j][idim];
-									u1buff[i]=u11Read[idim*gvol+j];
-									u2buff[i]=u12Read[idim*gvol+j];
-									//C starts counting from zero, not 1 so increment afterwards or start at int i=-1
-									i++;
-								}
-					if(i!=kvol){
-						fprintf(stderr, "Error %i in %s: Number of elements %i is not equal to\
-								kvol %i.\nExiting...\n\n", NUMELEM, funcname, i, kvol);
-						MPI_Finalise();
-						exit(NUMELEM);
-					}
-					if(!iproc){
+#pragma omp parallel for collapse(2)\
+		private(u1buff,u2buff)	shared(u11Read,u12Read)
+		for(int iproc = 0; iproc < nproc; iproc++)
+			for(int idim = 0; idim < ndim; idim++){
+				int i = 0;
+				//Index order is reversed from FORTRAN for performance
+				//Going to split up assigning icoord[i] to reduce the
+				//number of assignments.
+				//We're weaving our way through the memory here, converting
+				//between lattice and memory coordinates
+				for(int ix=pstart[0][iproc]; ix<pstop[0][iproc]; ix++)
+					for(int iy=pstart[1][iproc]; iy<pstop[1][iproc]; iy++)
+						for(int iz=pstart[2][iproc]; iz<pstop[2][iproc]; iz++)
+							for(int it=pstart[3][iproc]; it<pstop[3][iproc]; it++){
+								//j is the relative memory index of icoord
+								int j = Coord2gindex(ix,iy,iz,it);
+								//ubuff[i]  = (ic == 0) ? u11read[j][idim] : u12read[j][idim];
+								u1buff[i]=u11Read[idim*gvol+j];
+								u2buff[i]=u12Read[idim*gvol+j];
+								//C starts counting from zero, not 1 so increment afterwards or start at int i=-1
+								i++;
+							}
+				if(i!=kvol){
+					fprintf(stderr, "Error %i in %s: Number of elements %i is not equal to\
+							kvol %i.\nExiting...\n\n", NUMELEM, funcname, i, kvol);
+					MPI_Finalise();
+					exit(NUMELEM);
+				}
+				if(!iproc){
 #if (defined __INTEL_MKL__||defined USE_BLAS)
-						cblas_zcopy(kvol,u1buff,1,u11+idim,ndim);
-						cblas_zcopy(kvol,u2buff,1,u12+idim,ndim);
+					cblas_zcopy(kvol,u1buff,1,u11+idim,ndim);
+					cblas_zcopy(kvol,u2buff,1,u12+idim,ndim);
 #else
-#pragma omp parallel for simd aligned(u11,u12,u1buff,u2buff:AVX)
-						for(i=0;i<kvol;i++){
-							u11[i*ndim+idim]=u1buff[i];
-							u12[i*ndim+idim]=u2buff[i];
-						}
+#pragma omp simd aligned(u11,u12,u1buff,u2buff:AVX)
+					for(i=0;i<kvol;i++){
+						u11[i*ndim+idim]=u1buff[i];
+						u12[i*ndim+idim]=u2buff[i];
+					}
 #endif
-					}		
-					else{
-						//The master thread did all the hard work, the minions just need to receive their
-						//data and go.
-						if(MPI_Isend(u1buff, kvol, MPI_C_DOUBLE_COMPLEX,iproc, 2*idim, comm, &request)){
-							fprintf(stderr, "Error %i in %s: Failed to send ubuff to process %i.\nExiting...\n\n",
-									CANTSEND, funcname, iproc);
-							MPI_Finalise();
-							exit(CANTSEND);
-						}
-						if(MPI_Isend(u2buff, kvol, MPI_C_DOUBLE_COMPLEX,iproc, 2*idim+1, comm, &request)){
-							fprintf(stderr, "Error %i in %s: Failed to send ubuff to process %i.\nExiting...\n\n",
-									CANTSEND, funcname, iproc);
-							MPI_Finalise();
-							exit(CANTSEND);
-						}
+				}		
+				else{
+					//The master thread did all the hard work, the minions just need to receive their
+					//data and go.
+					if(MPI_Isend(u1buff, kvol, MPI_C_DOUBLE_COMPLEX,iproc, 2*idim, comm, &request)){
+						fprintf(stderr, "Error %i in %s: Failed to send ubuff to process %i.\nExiting...\n\n",
+								CANTSEND, funcname, iproc);
+						MPI_Finalise();
+						exit(CANTSEND);
+					}
+					if(MPI_Isend(u2buff, kvol, MPI_C_DOUBLE_COMPLEX,iproc, 2*idim+1, comm, &request)){
+						fprintf(stderr, "Error %i in %s: Failed to send ubuff to process %i.\nExiting...\n\n",
+								CANTSEND, funcname, iproc);
+						MPI_Finalise();
+						exit(CANTSEND);
 					}
 				}
+			}
 #ifdef __INTEL_MKL__
 		mkl_free(u11Read); mkl_free(u12Read);
 #else
@@ -238,33 +237,32 @@ int Par_sread(const int iread, const double beta, const double fmu, const double
 #endif
 	}
 	else{
-		//#pragma omp parallel for shared(u11,u12)\
-		private(u1buff,u2buff)
-			for(int idim = 0; idim<ndim; idim++){
-				//Receiving the data from the master threads.
-				if(MPI_Recv(u1buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, 2*idim, comm, &status)){
-					fprintf(stderr, "Error %i in %s: Falied to receive u11 on process %i.\nExiting...\n\n",
-							CANTRECV, funcname, rank);
-					MPI_Finalise();
-					exit(CANTRECV);
-				}
-				if(MPI_Recv(u2buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, 2*idim+1, comm, &status)){
-					fprintf(stderr, "Error %i in %s: Falied to receive u12 on process %i.\nExiting...\n\n",
-							CANTRECV, funcname, rank);
-					MPI_Finalise();
-					exit(CANTRECV);
-				}
+#pragma omp parallel for shared(u11,u12)	private(u1buff,u2buff)
+		for(int idim = 0; idim<ndim; idim++){
+			//Receiving the data from the master threads.
+			if(MPI_Recv(u1buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, 2*idim, comm, &status)){
+				fprintf(stderr, "Error %i in %s: Falied to receive u11 on process %i.\nExiting...\n\n",
+						CANTRECV, funcname, rank);
+				MPI_Finalise();
+				exit(CANTRECV);
+			}
+			if(MPI_Recv(u2buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, 2*idim+1, comm, &status)){
+				fprintf(stderr, "Error %i in %s: Falied to receive u12 on process %i.\nExiting...\n\n",
+						CANTRECV, funcname, rank);
+				MPI_Finalise();
+				exit(CANTRECV);
+			}
 #if (defined __INTEL_MKL__||defined USE_BLAS)
-				cblas_zcopy(kvol,u1buff,1,u11+idim,ndim);
-				cblas_zcopy(kvol,u2buff,1,u12+idim,ndim);
+			cblas_zcopy(kvol,u1buff,1,u11+idim,ndim);
+			cblas_zcopy(kvol,u2buff,1,u12+idim,ndim);
 #else
 #pragma omp parallel for simd aligned(u11,u12,u1buff,u2buff:AVX)
-				for(int i=0;i<kvol;i++){
-					u11[i*ndim+idim]=u1buff[i];
-					u12[i*ndim+idim]=u2buff[i];
-				}
-#endif
+			for(int i=0;i<kvol;i++){
+				u11[i*ndim+idim]=u1buff[i];
+				u12[i*ndim+idim]=u2buff[i];
 			}
+#endif
+		}
 	}
 #ifdef __INTEL_MKL__
 	mkl_free(u1buff); mkl_free(u2buff);
