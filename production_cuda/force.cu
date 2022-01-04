@@ -106,7 +106,7 @@ extern "C" int Force(double *dSdpi, int iflag, double res1){
 			ancg+=itercg;
 			//This is not a general BLAS Routine, just an MKL/AMD one
 			//CUDA in particulare does not support it
-#if (defined USE_MKL||defined USE_BLAS)
+#if (defined __INTEL_MKL__||defined USE_BLAS)
 			Complex blasa=2.0; Complex blasb=-1.0;
 			cblas_zaxpby(kvol*ndirac*nc, &blasa, X1, 1, &blasb, X0+na*kferm2Halo, 1); 
 #else

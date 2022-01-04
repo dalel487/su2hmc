@@ -8,11 +8,13 @@ NVCC=	nvcc
 IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include"
 
 
-CFLAGS=      $(IFLAGS) -cc=icc -std=gnu++11 -DUSE_RAN2 \
-			 -xHOST -static-intel -static-libgcc -masm=att -fcommon\
-			 -qopenmp-simd -qopenmp -qopenmp-link=static -DSA3AT -x c++\
+CFLAGS=     $(IFLAGS) -cc=icc -x c++ -DUSE_MKL -std=gnu11 -qopt-zmm-usage=high\
+			-xSKYLAKE -axCASCADELAKE\
+			-static-intel -static-libgcc -DMKL_DIRECT_CALL -D__INTEL_MKL__ -DUSE_RAN2\
+			-qopenmp -qno-openmp-offload -qopenmp-simd -qopenmp-link=static -DSA3AT \
+			 -masm=att -fcommon
 
-LFLAGS=		-liomp5 -lpthread -lm -ldl -lcudart -lcublas -L${NVSHMEM_HOME}/lib -lnvshmem -wd10237
+LFLAGS=		-liomp5 -lpthread -ldl -lcudart -lcublas -L${NVSHMEM_HOME}/lib -lnvshmem 
 
 MKLFLAGS=	-L${MKLROOT}/lib/intel64 -qmkl -DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
 
@@ -27,17 +29,14 @@ EXE=		cuda_su2hmc_CASCADE
 CSRC_DIR=	../production_c
 CSRC=	\
 	    coord.c \
+	    congrad.c \
 		su2hmc.c \
     	random.c \
 		par_mpi.c \
-		matrices.c\
-		force.c\
-		bosonic.c\
-		fermionic.c
 
 CUSRC_DIR=	../production_cuda
 CUSRC=	\
-		#matrices.cu\
+		matrices.cu\
 		force.cu\
 		bosonic.cu\
 		fermionic.cu
@@ -59,6 +58,7 @@ CUINC= \
 #
 
 .SUFFIXES: .c .cu .h .hpp .o
+.PHONY: clean debug release profiler tar
 
 COBJ=	$(CSRC:.c=.o)
 CUOBJ=	$(CUSRC:.cu=.o)
@@ -70,25 +70,26 @@ CEDT=	$(CSRC:.c=.c~)
 CUEDT=	$(CUSRC:.cu=.cu~)
 TMP=	$(MOD) $(CEDT) $(CUEDT) core
 
-.PHONY: release
-release:	CFLAGS +=  -O3 -inline-level=2 -ipo -qopt-zmm-usage=high
+profiler:	CFLAGS += -g
+profiler:	CUFLAGS += -O0 -G -g 
+profiler:	release
+
+release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high
 release:	CUFLAGS += -O3 #-dlto 
 release:	$(EXE)
 
-.PHONY: debug 
 debug:		CFLAGS += -O0 -g -D_DEBUG -rdynamic # -DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 debug:		CUFLAGS += -O0 -G -g -D_DEBUG 
 debug:		$(EXE)
 
 $(EXE): $(OBJ)
-	#$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $(LFLAGS) $^ -o $@
-	$(CXX) $(CFLAGS) $(MKLFLAGS) $(LFLAGS) $^ -o $@
+	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $(LFLAGS) $^ -o $@
+	#$(CXX) $(CFLAGS) $(MKLFLAGS) $(LFLAGS) $^ -o $@
 $(CUOBJ): %.o: $(CUSRC_DIR)/%.cu
-	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" -dlink $< 
+	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" -c $< 
 $(COBJ): %.o: $(CSRC_DIR)/%.c
 	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" -c $< 
 
-.PHONY: clean 
 clean:
 	rm -f $(OBJ) $(TMP)
 

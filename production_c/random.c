@@ -454,28 +454,28 @@ int ran_test(){
 	const float sigma_f = 1.6;
 	long seed = 10;
 	ranset(&seed);
-	Complex *z_arr=malloc(1024*1024*sizeof(Complex));
+	Complex *z_arr=(Complex *)malloc(1024*1024*sizeof(Complex));
 	FILE *z_out=fopen("z_ran.out","w");
 	Gauss_z(z_arr,1024*1024,mu,sigma);
 	for(int i =0; i<1024*1024;i++)
 		fprintf(z_out, "%f\t%f\n", creal(z_arr[i]), cimag(z_arr[i]));
 	fclose(z_out);
 	free(z_arr);
-	Complex_f *c_arr=malloc(1024*1024*sizeof(Complex_f));
+	Complex_f *c_arr=(Complex_f *)malloc(1024*1024*sizeof(Complex_f));
 	Gauss_c(c_arr,1024*1024,mu_f,sigma_f);
 	FILE *c_out=fopen("c_ran.out","w");
 	free(c_arr);
 	for(int i =0; i<1024*1024;i++)
 		fprintf(c_out,"%f\t%f\n", creal(c_arr[i]), cimag(c_arr[i]));
 	fclose(c_out);
-	double *d_arr=malloc(1024*1024*sizeof(double));
+	double *d_arr=(double *)malloc(1024*1024*sizeof(double));
 	Gauss_d(d_arr,1024*1024,mu,sigma);
 	FILE *d_out=fopen("d_ran.out","w");
 	for(int i =0; i<1024*1024;i++)
 		fprintf(d_out,"%f\n", d_arr[i]);
 	fclose(d_out);
 	free(d_arr);
-	float *f_arr=malloc(1024*1024*sizeof(float));
+	float *f_arr=(float *)malloc(1024*1024*sizeof(float));
 	Gauss_f(f_arr,1024*1024,mu_f,sigma_f);
 	FILE *f_out=fopen("f_ran.out","w");
 	for(int i =0; i<1024*1024;i++)

@@ -249,7 +249,7 @@ int Congradp(int na, double res, Complex_f *xi_f, int *itercg){
 	//them Complex and work with the real part (especially for α_d)
 	//Give initial values Will be overwritten if niterx>0
 #ifdef __NVCC__
-	Complex *p, *r;
+	Complex *p, *r, *x2;
 	Complex_f *p_f, *r_f;
 	int device; cudaGetDevice(&device);
 	cudaMallocManaged(&p, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);

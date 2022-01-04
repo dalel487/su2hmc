@@ -43,33 +43,39 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 
 	int device=-1;
 	cudaGetDevice(&device);
-	Complex *x;
+	Complex *x,*xi;
+	Complex_f *xi_f, *R1_f;
 	cudaMallocManaged(&x,kfermHalo*sizeof(Complex), cudaMemAttachGlobal);
+	cudaMallocManaged(&xi,kferm*sizeof(Complex), cudaMemAttachGlobal);
+	cudaMallocManaged(&xi_f,kfermHalo*sizeof(Complex_f), cudaMemAttachGlobal);
+	cudaMallocManaged(&R1_f,kfermHalo*sizeof(Complex_f), cudaMemAttachGlobal);
 	//Setting up noise. I don't see any reason to loop
 
 	//The root two term comes from the fact we called gauss0 in the fortran code instead of gaussp
 #if (defined(USE_RAN2)||!defined(USE_MKL))
-	Gauss_z(xi, kferm, 0, 1/sqrt(2));
+	Gauss_c(xi_f, kferm, 0, 1/sqrt(2));
 #else
-	vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, (double*)xi, 0, 1/sqrt(2));
+	vsRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, (float*)xi_f, 0, 1/sqrt(2));
 #endif
-	cudaMemPrefetchAsync(xi, kferm*sizeof(Complex),device,NULL);
+	cudaMemPrefetchAsync(xi_f, kferm*sizeof(Complex_f),device,NULL);
+	for(int i=0;i<kferm;i++)
+		xi[i]=(Complex)xi_f[i];
 	memcpy(x, xi, kferm*sizeof(Complex));
-
 	//R_1= M^† Ξ 
 	//R1 is local in fortran but since its going to be reset anyway I'm going to recycle the
 	//global
-	Dslashd(R1, xi);
+	Dslashd_f(R1_f, xi_f);
+	for(int i=0;i<kferm;i++)
+		R1[i]=(Complex)R1_f[i];
 	//Copying R1 to the first (zeroth) flavour index of Phi
 	//This should be safe with memcpy since the pointer name
 	//references the first block of memory for that pointer
 	memcpy(Phi, R1, nc*ngorkov*kvol*sizeof(Complex));
-	memcpy(xi, R1, nc*ngorkov*kvol*sizeof(Complex));
-
 	//Evaluate xi = (M^† M)^-1 R_1 
-	cudaMemPrefetchAsync(x, kferm*sizeof(Complex),device,NULL);
-	Congradp(0, res, itercg);
+	cudaMemPrefetchAsync(R1_f, kfermHalo*sizeof(Complex_f),device,NULL);
+	Congradp(0, res, R1_f, itercg);
 
+	cudaFree(xi_f); cudaFree(R1_f);
 	Complex buff;
 	cublasZdotc(cublas_handle,kferm, (cuDoubleComplex *)x, 1, (cuDoubleComplex *)xi,  1, (cuDoubleComplex *)&buff);
 	*pbp=buff.real();

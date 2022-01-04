@@ -76,9 +76,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #pragma omp parallel for simd aligned(R1,R1_f:AVX)
 	for(int i=0;i<kferm;i++)
 		xi[i]=(Complex)R1_f[i];
-#ifdef __NVCC__
-	cudaFree(xi_f); cudaFree(R1_f);
-#elif defined __INTEL_MKL__
+#ifdef __INTEL_MKL__
 	mkl_free(xi_f);	mkl_free(R1_f);
 #else
 	free(xi_f); free(R1_f);
@@ -143,13 +141,17 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	//#ifdef __clang__
 	//#pragma omp target teams distribute parallel for reduction(+:xd,xu,xdd,xuu)\
 	map(tofrom:xu,xd,xuu,xdd)
-		//#else
+#ifdef _OPENACC
+#pragma acc parallel loop reduction(+:xd,xu,xdd,xuu) copyin(xi[0:kferm],x[0:kfermHalo])
+#else
 #pragma omp parallel for reduction(+:xd,xu,xdd,xuu) 
-		//#endif
+#endif
 		for(int i = 0; i<kvol; i++){
 			int did=id[3+ndim*i];
 			int uid=iu[3+ndim*i];
+#ifndef _OPENACC
 #pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX) 
+#endif
 			for(int igorkov=0; igorkov<4; igorkov++){
 				int igork1=gamin[3][igorkov];
 				//For the C Version I'll try and factorise where possible
