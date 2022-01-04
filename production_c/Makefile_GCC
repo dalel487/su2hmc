@@ -1,10 +1,10 @@
 MF=	Makefile
 
-CC=mpiicc 
+CC=mpicc 
 
 IFLAGS=  -I ../INCLUDE/ -I /opt/AMD/aocl/aocl-linux-aocc-3.1.0/include/
 
-CFLAGS=	$(IFLAGS) -cc=gcc-10 -std=gnu11 -DUSE_BLAS -fcommon\
+CFLAGS=	$(IFLAGS) -std=gnu11 -DUSE_BLAS -fcommon\
 		-march=znver1 -mtune=znver3 -static -D__RANLUX__\
 		-fopenmp-simd -DSA3AT -flto\
 		-foffload=amdgcn-amdhsa="-march=gfx900" -fopenacc\
@@ -21,6 +21,7 @@ SRC= \
 	bosonic.c\
 	fermionic.c\
 	par_mpi.c \
+	congrad.c \
     coord.c \
     random.c \
     matrices.c \
@@ -51,7 +52,7 @@ all:	$(EXE)
 profiler:	CFLAGS += -g -D_DEBUG #-fprofile-generate
 profiler:	release
 
-release:	CFLAGS +=  -Ofast -funroll-all-loops
+release:	CFLAGS +=  -Ofast -funroll-all-loops -fcf-protection=none
 release:	$(EXE)
 
 debug:	CFLAGS += -g -O0  \
