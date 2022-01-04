@@ -364,7 +364,7 @@ int Congradp(int na, double res, Complex_f *xi_f, int *itercg){
 		//If we get a small enough β_n before hitting the iteration cap we break
 #pragma omp parallel for simd aligned(x2_f,r_f:AVX)
 		for(int i = 0; i<kferm;i++){
-			r[i]-=alpha*x2[i];
+			r[i]-=alpha_f*x2[i];
 			betan+=conj(r[i])*r[i];
 		}
 #endif
