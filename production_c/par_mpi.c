@@ -103,8 +103,9 @@ int Par_sread(const int iread, const double beta, const double fmu, const double
 	 *  Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Par_sread";
-	double seed;
 	MPI_Status status;
+	//For sending the seeds later
+	MPI_Datatype MPI_SEED_TYPE = (sizeof(seed)==sizeof(int)) ? MPI_INT:MPI_LONG;
 	//We shall allow the almighty master thread to open the file
 #ifdef __INTEL_MKL__
 	Complex *u1buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
@@ -161,15 +162,36 @@ int Par_sread(const int iread, const double beta, const double fmu, const double
 			exit(OPENERROR);	
 		}
 		//TODO: SAFETY CHECKS FOR EACH READ OPERATION
-#ifdef FORT_CONFIG
-#warning Compiling with FORTRAN binary layout in par_sread
-		int con_size;
-		fread(&con_size, sizeof(int), 1, con);
-#endif
+		int old_nproc;
+		fread(&old_nproc, sizeof(int), 1, con);
+		if(old_nproc!=nproc)
+			fprintf(stderr, "Warning %i in %s: Previous run was done on %i processors, current run uses %i.\n",\
+					DIFNPROC,funcname,old_nproc,nproc);
 		fread(u11Read, ndim*gvol*sizeof(Complex), 1, con);
 		fread(u12Read, ndim*gvol*sizeof(Complex), 1, con);
-		fread(&seed, sizeof(seed), 1, con);
+#ifdef __RANLUX__
+		unsigned long *seed_array=(unsigned long*)calloc(nproc,sizeof(seed));
+#elif defined __INTEL_MKL__ && !defined USE_RAN2
+		int *seed_array=(int *)calloc(nproc,sizeof(seed));
+#else
+		long *seed_array=(long*)calloc(nproc,sizeof(seed));
+#endif
+		for(int i=0; i<fmin(old_nproc,nproc);i++)
+			fread(seed_array+i, sizeof(seed), 1, con);
 		fclose(con);
+		//Any remaining processors get their initial value set as is done in Par_ranset
+		for(int i=old_nproc; i<nproc; i++)
+			seed_array[i] = seed_array[0]*(1.0f+8.0f*(float)i/(float)(size-1));
+		if(!rank)
+			seed=seed_array[0];
+		for(int iproc = 1; iproc<nproc; iproc++)
+			if(MPI_Send(&seed_array[iproc], 1, MPI_SEED_TYPE,iproc, 1, comm)){
+				fprintf(stderr, "Error %i in %s: Failed to send seed to process %i.\nExiting...\n\n",
+						CANTSEND, funcname, iproc);
+				MPI_Finalise();
+				exit(CANTSEND);
+			}
+
 
 		for(int iproc = 0; iproc < nproc; iproc++)
 			for(int idim = 0; idim < ndim; idim++){
@@ -212,13 +234,13 @@ int Par_sread(const int iread, const double beta, const double fmu, const double
 				else{
 					//The master thread did all the hard work, the minions just need to receive their
 					//data and go.
-					if(MPI_Isend(u1buff, kvol, MPI_C_DOUBLE_COMPLEX,iproc, 2*idim, comm, &request)){
+					if(MPI_Send(u1buff, kvol, MPI_C_DOUBLE_COMPLEX,iproc, 2*idim, comm)){
 						fprintf(stderr, "Error %i in %s: Failed to send ubuff to process %i.\nExiting...\n\n",
 								CANTSEND, funcname, iproc);
 						MPI_Finalise();
 						exit(CANTSEND);
 					}
-					if(MPI_Isend(u2buff, kvol, MPI_C_DOUBLE_COMPLEX,iproc, 2*idim+1, comm, &request)){
+					if(MPI_Send(u2buff, kvol, MPI_C_DOUBLE_COMPLEX,iproc, 2*idim+1, comm)){
 						fprintf(stderr, "Error %i in %s: Failed to send ubuff to process %i.\nExiting...\n\n",
 								CANTSEND, funcname, iproc);
 						MPI_Finalise();
@@ -231,8 +253,15 @@ int Par_sread(const int iread, const double beta, const double fmu, const double
 #else
 		free(u11Read); free(u12Read);
 #endif
+		free(seed_array);
 	}
 	else{
+		if(MPI_Recv(&seed, 1, MPI_SEED_TYPE, masterproc, 1, comm, &status)){
+			fprintf(stderr, "Error %i in %s: Falied to receive seed on process %i.\nExiting...\n\n",
+					CANTRECV, funcname, rank);
+			MPI_Finalise();
+			exit(CANTRECV);
+		}
 		for(int idim = 0; idim<ndim; idim++){
 			//Receiving the data from the master threads.
 			if(MPI_Recv(u1buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, 2*idim, comm, &status)){
@@ -266,7 +295,6 @@ int Par_sread(const int iread, const double beta, const double fmu, const double
 #endif
 	memcpy(u11t, u11, ndim*kvol*sizeof(Complex));
 	memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
-	Par_dcopy(&seed);
 	return 0;
 }
 int Par_psread(char *filename, double *ps){
@@ -380,6 +408,8 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 	 */
 	char *funcname = "par_swrite";
 	MPI_Status status;
+	//Used for seed array later on
+	MPI_Datatype MPI_SEED_TYPE = (sizeof(seed)==sizeof(int)) ? MPI_INT:MPI_LONG;
 #ifdef __INTEL_MKL__
 	Complex *u1buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
 	Complex *u2buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
@@ -388,6 +418,21 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 	Complex *u2buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
 #endif
 	if(!rank){
+#ifdef __RANLUX__
+		unsigned long *seed_array=(unsigned long*)calloc(nproc,sizeof(seed));
+#elif defined __INTEL_MKL__ && !defined USE_RAN2
+		int *seed_array=(int *)calloc(nproc,sizeof(seed));
+#else
+		long *seed_array=(long*)calloc(nproc,sizeof(seed));
+#endif
+		seed_array[0]=seed;
+		for(int iproc = 1; iproc<nproc; iproc++)
+			if(MPI_Recv(&seed_array[iproc], 1, MPI_SEED_TYPE,iproc, 1, comm, &status)){
+				fprintf(stderr, "Error %i in %s: Failed to receive seed from process %i.\nExiting...\n\n",
+						CANTRECV, funcname, iproc);
+				MPI_Finalise();
+				exit(CANTSEND);
+			}
 #ifdef __INTEL_MKL__
 		Complex *u11Write = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
 		Complex *u12Write = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
@@ -492,22 +537,28 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 			exit(OPENERROR);	
 		}
 		//TODO: SAFETY CHECKS FOR EACH WRITE OPERATION
-#ifdef FORT_CONFIG
-#warning Compiling with FORTRAN binary layout in par_swrite
-		static int con_size=2*ndim*gvol*sizeof(Complex)+sizeof(seed)+sizeof(int);
-		fwrite(&con_size,sizeof(int),1,con);
-#endif
+		//Write the number of processors used in the previous run. This takes the place of the FORTRAN integer rather nicely
+		fwrite(&size,sizeof(int),1,con);
 		fwrite(u11Write, ndim*gvol*sizeof(Complex), 1, con);
 		fwrite(u12Write, ndim*gvol*sizeof(Complex), 1, con);
-		fwrite(&seed, sizeof(seed), 1, con);
+		//TODO
+		//Make a seed array, where the nth component is the seed on the nth rank for continuation runs.
+		fwrite(seed_array, nproc*sizeof(seed), 1, con);
 		fclose(con);
 #ifdef __INTEL_MKL__
 		mkl_free(u11Write); mkl_free(u12Write);
 #else
 		free(u11Write); free(u12Write);
 #endif
+		free(seed_array);
 	}
 	else{
+		if(MPI_Send(&seed, 1, MPI_SEED_TYPE, masterproc, 1, comm)){
+			fprintf(stderr, "Error %i in %s: Falied to send u11 from process %i.\nExiting...\n\n",
+					CANTSEND, funcname, rank);
+			MPI_Finalise();
+			exit(CANTSEND);
+		}
 		for(int idim = 0; idim<ndim; idim++){
 #if (defined __INTEL_MKL__||defined USE_BLAS)
 			cblas_zcopy(kvol,u11+idim,ndim,u1buff,1);
@@ -543,7 +594,7 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 //To be lazy, we've got modules to help us do reductions and broadcasts with a single argument
 //rather than type them all every single time
 
-int Par_isum(int *ival){
+inline int Par_isum(int *ival){
 	/*
 	 * Performs a reduction on a double ival to get a sum which is
 	 * then distributed to all ranks.
@@ -569,7 +620,7 @@ int Par_isum(int *ival){
 	}
 	return 0;
 }
-int Par_dsum(double *dval){
+inline int Par_dsum(double *dval){
 	/*
 	 * Performs a reduction on a double dval to get a sum which is
 	 * then distributed to all ranks.
@@ -596,7 +647,7 @@ int Par_dsum(double *dval){
 	*dval = dtmp;
 	return 0;
 }
-int Par_fsum(float *fval){
+inline int Par_fsum(float *fval){
 	/*
 	 * Performs a reduction on a double dval to get a sum which is
 	 * then distributed to all ranks.
@@ -623,7 +674,7 @@ int Par_fsum(float *fval){
 	*fval = ftmp;
 	return 0;
 }
-int Par_csum(Complex_f *cval){
+inline int Par_csum(Complex_f *cval){
 	/*
 	 * Performs a reduction on a Complex zval to get a sum which is
 	 * then distributed to all ranks.
@@ -653,7 +704,7 @@ int Par_csum(Complex_f *cval){
 	*cval = ctmp;
 	return 0;
 }
-int Par_zsum(Complex *zval){
+inline int Par_zsum(Complex *zval){
 	/*
 	 * Performs a reduction on a Complex zval to get a sum which is
 	 * then distributed to all ranks.
@@ -683,7 +734,7 @@ int Par_zsum(Complex *zval){
 	*zval = ztmp;
 	return 0;
 }
-int Par_icopy(int *ival){
+inline int Par_icopy(int *ival){
 	/*
 	 * Broadcasts an integer to the other processes
 	 *
@@ -704,7 +755,7 @@ int Par_icopy(int *ival){
 	}
 	return 0;
 }
-int Par_dcopy(double *dval){
+inline int Par_dcopy(double *dval){
 	/*
 	 * Broadcasts an double to the other processes
 	 *
@@ -725,7 +776,7 @@ int Par_dcopy(double *dval){
 	}
 	return 0;
 }
-int Par_zcopy(Complex *zval){
+inline int Par_zcopy(Complex *zval){
 	/*
 	 * Broadcasts a Complex value to the other processes
 	 *
@@ -758,7 +809,7 @@ int Par_zcopy(Complex *zval){
  *	function or DOWN FORTRAN function
  */
 
-int ZHalo_swap_all(Complex *z, int ncpt){
+inline int ZHalo_swap_all(Complex *z, int ncpt){
 	/*
 	 * Calls the functions to send data to both the up and down halos
 	 *
@@ -881,7 +932,7 @@ int ZHalo_swap_dir(Complex *z, int ncpt, int idir, int layer){
 #endif
 	return 0;
 }
-int CHalo_swap_all(Complex_f *c, int ncpt){
+inline int CHalo_swap_all(Complex_f *c, int ncpt){
 	/*
 	 * Calls the functions to send data to both the up and down halos
 	 *

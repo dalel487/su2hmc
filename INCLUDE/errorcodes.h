@@ -60,6 +60,9 @@
 #define	BROADERR	12008	//Couldn't broadcast to the processes
 #define	REDUCERR	12009	//Couldn't carry out a reduction
 #define	GATHERR	12010	//Couldn't complete a gather
+//Warnings:
+//---------
+#define	DIFNPROC	12101	//Continuation run on a different number of ranks
 
 //Halo Errors. Leading digits are 13
 //=================================
