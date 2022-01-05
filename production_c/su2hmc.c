@@ -510,7 +510,7 @@ int main(int argc, char *argv[]){
 								//It would explain the weird names like fort.1X that looked like they were somehow
 								//FORTRAN related...
 								//Not yet implemented
-								fprintf(output, "Iter (CG) %i ancg %e ancgh %e\n", itercg, ancg, ancgh);
+								fprintf(output, "Iter (CG) %i ancg %e ancgh %e\n", itercg, ancg/stepl, ancgh/stepl);
 								fflush(output);
 								break;
 							case(1):
