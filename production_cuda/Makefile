@@ -1,22 +1,27 @@
 MF=	Makefile
 
 FC=		mpifort 
-CC=		mpiicc
-CXX=	mpiicpc
+CC=		mpic++
+CXX=	mpic++
 NVCC=	nvcc
 
-IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include"
+IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include" -I/opt/AMD/aocl/aocl-linux-gcc-3.0-6/include/\
+				-I/usr/local/cuda/targets/x86_64-linux/include/
 
 
-CFLAGS=     $(IFLAGS) -cc=icc -x c++ -DUSE_MKL -std=gnu11 -qopt-zmm-usage=high\
+#CFLAGS=     $(IFLAGS) -cc=icc -x c++ -DUSE_MKL -std=gnu11 -qopt-zmm-usage=high\
 			-xSKYLAKE -axCASCADELAKE\
 			-static-intel -static-libgcc -DMKL_DIRECT_CALL -D__INTEL_MKL__ -DUSE_RAN2\
 			-qopenmp -qno-openmp-offload -qopenmp-simd -qopenmp-link=static -DSA3AT \
 			 -masm=att -fcommon
+CFLAGS=	$(IFLAGS) -DUSE_BLAS -fcommon\
+		-march=skylake -mtune=cascadelake -static -D__RANLUX__\
+		-fopenmp-simd -DSA3AT -flto\
+#		-foffload=amdgcn-amdhsa="-march=gfx900" -fopenacc\
 
-LFLAGS=		-liomp5 -lpthread -ldl -lcudart -lcublas -L${NVSHMEM_HOME}/lib -lnvshmem 
+LFLAGS=		-liomp5 -lpthread -ldl -lblis -lgsl -lcudart -lcublas -L${NVSHMEM_HOME}/lib -lnvshmem 
 
-MKLFLAGS=	-L${MKLROOT}/lib/intel64 -qmkl -DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
+MKLFLAGS=	-L${MKLROOT}/lib/intel64 #-qmkl -DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
 
 CUFLAGS=	${IFLAGS} -ccbin ${CC} -arch=compute_75 -code=sm_75 -err-no -w\
 			--allow-unsupported-compiler #-expt-relaxed-constexpr 
@@ -74,7 +79,8 @@ profiler:	CFLAGS += -g
 profiler:	CUFLAGS += -O0 -G -g 
 profiler:	release
 
-release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high
+#release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high
+release:	CFLAGS +=  -Ofast -funroll-all-loops -fcf-protection=none
 release:	CUFLAGS += -O3 #-dlto 
 release:	$(EXE)
 
