@@ -30,8 +30,8 @@
 
 //Warnings:
 //---------
-#define	OPENWARN	10101
-#define	READWARN	10102
+#define	OPENWARN		10101
+#define	READWARN		10102
 #define	WRITEWARN	10103
 
 //Indexing Errors. Leading digits are 11
@@ -41,7 +41,7 @@
 #define	INDTOCOORD	11001	//Issues converting index to coordinates
 #define	COORDTOIND	11002	//Issues converting coordinate to index
 #define	BOUNDERROR	11003	//Accessing out of bounds element
-#define	ARRAYLEN	11004 //Impossible value for array length
+#define	ARRAYLEN		11004 //Impossible value for array length
 //Warnings:
 //---------
 #define	BOUNDWARN	11103	//Accessing an out of bounds element, but not a big enough problem to crash the programme.
@@ -53,32 +53,32 @@
 #define	NO_MPI_INIT	12001	//Failed to initialise MPI
 #define	NO_MPI_RANK	12002	//Failed to get the rank of the process
 #define	NO_MPI_SIZE	12003	//Failed to get the number of ranks
-#define	SIZEPROC	12004	//
-#define	NUMELEM	12005	//Failed to evaluate the number of elements
-#define	CANTSEND	12006	//Couldn't send to another process
-#define	CANTRECV	12007	//Couldn't receive from a process
-#define	BROADERR	12008	//Couldn't broadcast to the processes
-#define	REDUCERR	12009	//Couldn't carry out a reduction
-#define	GATHERR	12010	//Couldn't complete a gather
+#define	SIZEPROC		12004	//
+#define	NUMELEM		12005	//Failed to evaluate the number of elements
+#define	CANTSEND		12006	//Couldn't send to another process
+#define	CANTRECV		12007	//Couldn't receive from a process
+#define	BROADERR		12008	//Couldn't broadcast to the processes
+#define	REDUCERR		12009	//Couldn't carry out a reduction
+#define	GATHERR		12010	//Couldn't complete a gather
 
 //Halo Errors. Leading digits are 13
 //=================================
 //Errors:
 //-------
-#define	LAYERROR	13001	//Can't access a layer of a halo
-#define	HALOLIM	13002	//Index goes beyond the halo
+#define	LAYERROR		13001	//Can't access a layer of a halo
+#define	HALOLIM		13002	//Index goes beyond the halo
 
 //Physics/Maths Errors. Leading digits are 14
 //=================================
 //Errors:
 //-------
-#define	DIVZERO	14001	//Not quite an indexing error, bu division by zero
+#define	DIVZERO		14001	//Not quite an indexing error, bu division by zero
 
 //Warnings:
 //--------
-#define	ITERLIM	14101 //Exceeded max number of iterations
+#define	ITERLIM		14101 //Exceeded max number of iterations
 
 //Alerts:
 //------
-#define	NOINIT	14201 //Not initialising the lattice
+#define	NOINIT		14201 //Not initialising the lattice
 #endif
