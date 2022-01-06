@@ -18,7 +18,7 @@
 //===============================================
 #if (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))
 extern long seed;
-int Par_ranset(long *seed);
+int Par_ranset(long *seed, int iread);
 int ranset(long *seed);
 double ran2(long *idum); 
 #elif defined __RANLUX__
@@ -28,13 +28,13 @@ gsl_rng *ranlux_instd;
 //For now, the float generator will be a cast of the double one.
 //gsl_rng *ranlux_instf;
 extern unsigned long seed;
-int Par_ranset(unsigned long *seed);
+int Par_ranset(unsigned long *seed, int iread);
 int ranset(unsigned long *seed);
 #elif defined __INTEL_MKL__
 extern VSLStreamStatePtr stream;
 extern unsigned int seed;
 int ranset(unsigned int *seed);
-int Par_ranset(unsigned int *seed);
+int Par_ranset(unsigned int *seed, int iread);
 #else
 extern int seed;
 //Mersenne Twister

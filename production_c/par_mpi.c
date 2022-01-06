@@ -163,12 +163,17 @@ int Par_sread(const int iread, const double beta, const double fmu, const double
 		}
 		//TODO: SAFETY CHECKS FOR EACH READ OPERATION
 		int old_nproc;
+		//What was previously the the FORTRAN integer is now used to store the number of processors used to
+		//generate the configuration
 		fread(&old_nproc, sizeof(int), 1, con);
 		if(old_nproc!=nproc)
 			fprintf(stderr, "Warning %i in %s: Previous run was done on %i processors, current run uses %i.\n",\
 					DIFNPROC,funcname,old_nproc,nproc);
 		fread(u11Read, ndim*gvol*sizeof(Complex), 1, con);
 		fread(u12Read, ndim*gvol*sizeof(Complex), 1, con);
+		//The seed array will be used to gather and sort the seeds from each rank so they can be in a continuation run
+		//If less processors are used then only nproc seeds are used (breaking the Markov Chain)
+		//If more processors are used then we use the first seed to generate the rest as in Par_ranset
 #ifdef __RANLUX__
 		unsigned long *seed_array=(unsigned long*)calloc(nproc,sizeof(seed));
 #elif defined __INTEL_MKL__ && !defined USE_RAN2
@@ -191,7 +196,6 @@ int Par_sread(const int iread, const double beta, const double fmu, const double
 				MPI_Finalise();
 				exit(CANTSEND);
 			}
-
 
 		for(int iproc = 0; iproc < nproc; iproc++)
 			for(int idim = 0; idim < ndim; idim++){
@@ -418,6 +422,7 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 	Complex *u2buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
 #endif
 	if(!rank){
+	//Array to store the seeds. nth index is the nth processor
 #ifdef __RANLUX__
 		unsigned long *seed_array=(unsigned long*)calloc(nproc,sizeof(seed));
 #elif defined __INTEL_MKL__ && !defined USE_RAN2
