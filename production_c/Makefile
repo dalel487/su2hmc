@@ -4,7 +4,7 @@ CC=	mpiicc
 
 IFLAGS=	-I../INCLUDE 
 
-CFLAGS=     $(IFLAGS) -mkl -DUSE_MKL -std=gnu11 -ipo -qopt-zmm-usage=high\
+CFLAGS=     $(IFLAGS) -qmkl -std=gnu11 -ipo -qopt-zmm-usage=high\
 			-xHASWELL -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,SKYLAKE,COFFEELAKE\
 			-static-intel -static-libgcc -DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
 			-qopenmp -qno-openmp-offload -qopenmp-simd -qopenmp-link=static -DSA3AT \
@@ -15,40 +15,39 @@ LFLAGS=	-L${MKLROOT}/lib/intel64 -lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_core
 EXE=	su2hmc
 
 SRC= \
-	su2hmc.c \
-	force.c\
+	coord.c \
+	random.c \
+	matrices.c \
+	congrad.c \
 	bosonic.c\
 	fermionic.c\
+	force.c\
 	par_mpi.c \
-    coord.c \
-    congrad.c \
-    random.c \
-    matrices.c \
+	su2hmc.c \
 
 INC= \
-	su2hmc.h \
 	sizes.h \
-	par_mpi.h \
+	errorcodes.h \
+	coord.h \
 	random.h \
 	matrices.h \
-	coord.h \
-	errorcodes.h \
-
+	par_mpi.h \
+	su2hmc.h \
 #
 # No need to edit below this line
 #
-
 .SUFFIXES: .c .o
 .PHONY: clean debug release profiler tar
 
 OBJ=	$(SRC:.c=.o)
+DEPS=	$(OBJ:.o=.d)
 EDT=	$(SRC:.c=.c~)
 TMP=	$(MOD) $(EDT) core
 
+-include $(DEPS)
 all:	$(EXE)
 
 profiler:	CFLAGS += -g -D_DEBUG
-
 profiler:	release
 
 release:	CFLAGS +=  -O3  -inline-level=2\
@@ -57,20 +56,18 @@ release:	$(EXE)
 
 debug:	CFLAGS += -g -O0 \
 		-D_DEBUG #-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
-	
 debug:	$(EXE)
 
 $(EXE):	$(OBJ)
-		$(CC) $(CFLAGS) -o $@ $(OBJ) $(LFLAGS)
+		$(CC) -MMD -MP $(CFLAGS) -o $@ $(OBJ) $(LFLAGS)  
 
 $(OBJ):	$(MF) 
 
 clean:
-		rm -f $(OBJ) $(TMP)
+		rm -f $(OBJ) $(TMP) $(DEPS)
 
 INP=	\
-		midout \
-		con
+		midout
 
 tar:
-	tar cvfz $(EXE).tar $(MF) $(SRC) $(INC) $(INP) $(EXE)
+	tar cvfz $(EXE).tar $(MF) $(SRC) $(INC) $(INP) $(EXE) $(DEPS)

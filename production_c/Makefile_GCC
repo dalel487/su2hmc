@@ -16,37 +16,36 @@ LFLAGS=	-L /opt/AMD/aocl/aocl-linux-aocc-3.1.0/lib/ -latomic \
 EXE=	su2hmc_GCC
 
 SRC= \
-	su2hmc.c \
-	force.c\
+	coord.c \
+	random.c \
+	matrices.c \
+	congrad.c \
 	bosonic.c\
 	fermionic.c\
+	force.c\
 	par_mpi.c \
-	congrad.c \
-    coord.c \
-    random.c \
-    matrices.c \
+	su2hmc.c \
 
 INC= \
-	su2hmc.h \
 	sizes.h \
-    par_mpi.h \
-    slash.h \
-    random.h \
-    matrices.h \
-    coord.h \
-    errorcodes.h \
-
+	errorcodes.h \
+	coord.h \
+	random.h \
+	matrices.h \
+	par_mpi.h \
+	su2hmc.h \
 #
 # No need to edit below this line
 #
-
 .SUFFIXES: .c .o
 .PHONY: clean debug release advisor tar
 
 OBJ=	$(SRC:.c=.o)
+DEPS=	$(OBJ:.o=.d)
 EDT=	$(SRC:.c=.c~)
 TMP=	$(MOD) $(EDT) core
 
+-include $(DEPS)
 all:	$(EXE)
 
 profiler:	CFLAGS += -g -D_DEBUG #-fprofile-generate
@@ -60,16 +59,15 @@ debug:	CFLAGS += -g -O0  \
 debug:	$(EXE)
 
 $(EXE):	$(OBJ)
-	$(CC) $(CFLAGS) -o $@ $(OBJ) $(LFLAGS)
+		$(CC) -MMD -MP $(CFLAGS) -o $@ $(OBJ) $(LFLAGS)  
 
 $(OBJ):	$(MF) 
 
 clean:
-	rm -f $(OBJ) $(TMP)
+		rm -f $(OBJ) $(TMP) $(DEPS)
 
 INP=	\
 	midout \
-	con
 
 tar:
-	tar cvfz $(EXE).tar $(MF) $(SRC) $(INC) $(INP) $(EXE)
+	tar cvfz $(EXE).tar $(MF) $(SRC) $(INC) $(INP) $(EXE) $(DEPS)
