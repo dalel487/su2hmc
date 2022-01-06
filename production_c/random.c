@@ -75,11 +75,11 @@ int Par_ranread(char *filename, double *ranval){
 	return 0;
 }
 #if (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))
-int Par_ranset(long *seed)
+int Par_ranset(long *seed,int iread)
 #elif defined __RANLUX__
-int Par_ranset(unsigned long *seed)
+int Par_ranset(unsigned long *seed,int iread)
 #elif (defined __INTEL_MKL__||defined __RANLUX__)
-int Par_ranset(unsigned int *seed)
+int Par_ranset(unsigned int *seed,int iread)
 #endif
 {
 	/* Uses the rank to get a new seed.
@@ -106,7 +106,7 @@ int Par_ranset(unsigned int *seed)
 #ifdef _DEBUG
 	printf("Master seed: %i\t",*seed);
 #endif
-	if(rank)
+	if(rank&&iread)
 		*seed *= 1.0f+8.0f*(float)rank/(float)(size-1);
 #ifdef _DEBUG
 	printf("Rank:  %i\tSeed %i\n",rank, *seed);

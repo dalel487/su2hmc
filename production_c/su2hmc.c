@@ -153,7 +153,7 @@ int main(int argc, char *argv[]){
 	Par_dcopy(&dt); Par_dcopy(&beta); Par_dcopy(&akappa); Par_dcopy(&ajq);
 	Par_dcopy(&athq); Par_dcopy(&fmu); Par_dcopy(&delb); //Not used?
 	Par_icopy(&stepl); Par_icopy(&ntraj); Par_icopy(&istart); Par_icopy(&icheck);
-	Par_icopy(&iread); jqq=ajq*cexp(athq*I); akappa_f=(float)akappa; jqq_f=(Complex_f)jqq_f;
+	Par_icopy(&iread); jqq=ajq*cexp(athq*I); akappa_f=(float)akappa; jqq_f=(Complex_f)jqq;
 #ifdef __NVCC__
 	cudaMalloc(&jqq_d,sizeof(Complex));		cudaMalloc(&beta_d,sizeof(Complex));
 	cudaMalloc(&akappa_d,sizeof(Complex));	cudaMalloc(&akappa_f_d,sizeof(Complex_f));
@@ -171,18 +171,13 @@ int main(int argc, char *argv[]){
 #else
 	seed = time(NULL);
 #endif
-	Par_ranset(&seed);
 
 	//Initialisation
 	//istart < 0: Start from tape?!? How old is this code?
 	//istart = 0: Ordered/Cold Start
 	//			For some reason this leaves the trial fields as zero in the FORTRAN code?
 	//istart > 0: Random/Hot Start
-	Init(istart);
-	if(iread){
-		if(!rank) printf("Calling Par_sread() for configuration: %i\n", iread);
-		Par_sread(iread, beta, fmu, akappa, ajq);
-	}
+	Init(istart,iread,beta,fmu,akappa,ajq);
 #ifdef DIAGNOSTIC
 	Diagnostics(istart);
 #endif
@@ -425,7 +420,7 @@ int main(int argc, char *argv[]){
 		//Monte Carlo step: Accept new fields with the probability of min(1,exp(H0-X0))
 		//Kernel Call needed here?
 		Reunitarise();
-		#pragma acc update self(u11t[0:kvol*ndim],u12t[0:kvol*ndim])
+#pragma acc update self(u11t[0:kvol*ndim],u12t[0:kvol*ndim])
 		double H1, S1;
 		Hamilton(&H1, &S1, rescga);
 		double dH = H0 - H1;
@@ -646,7 +641,7 @@ int main(int argc, char *argv[]){
 	fflush(stdout);
 	return 0;
 }
-int Init(int istart){
+int Init(int istart, int iread, double beta, double fmu, double akappa, Complex ajq){
 	/*
 	 * Initialises the system
 	 *
@@ -814,6 +809,13 @@ int Init(int istart){
 	u11t_f = aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex_f));
 	u12t_f = aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex_f));
 #endif
+	if(iread){
+		if(!rank) printf("Calling Par_sread() for configuration: %i\n", iread);
+		Par_sread(iread, beta, fmu, akappa, ajq);
+		Par_ranset(&seed,iread);
+	}
+	else{
+		Par_ranset(&seed,iread);
 #ifdef _OPENACC
 #pragma acc enter data create(u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],\
 		u11t_f[0:ndim*(kvol+halo)],u12t_f[0:ndim*(kvol+halo)])
@@ -821,52 +823,54 @@ int Init(int istart){
 #pragma omp target enter data map(alloc:u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],\
 		u11t_f[0:ndim*(kvol+halo)],u12t_f[0:ndim*(kvol+halo)]) nowait
 #endif
-	if(istart==0){
-		//Initialise a cold start to zero
-		//memset is safe to use here because zero is zero 
+		if(istart==0){
+			//Initialise a cold start to zero
+			//memset is safe to use here because zero is zero 
 #pragma omp parallel for simd aligned(u11t:AVX) 
-		//Leave it to the GPU?
-		for(int i=0; i<kvol*ndim;i++){
-			u11t[i]=1;	u12t[i]=0;
+			//Leave it to the GPU?
+			for(int i=0; i<kvol*ndim;i++){
+				u11t[i]=1;	u12t[i]=0;
+			}
 		}
-	}
-	else if(istart>0){
-		//Still thinking about how best to deal with PRNG
+		else if(istart>0){
+			//Still thinking about how best to deal with PRNG
 #ifdef __RANLUX__
-		for(int i=0; i<kvol*ndim;i++){
-			u11t[i]=2*(gsl_rng_uniform(ranlux_instd)-0.5+I*(gsl_rng_uniform(ranlux_instd)-0.5));
-			u12t[i]=2*(gsl_rng_uniform(ranlux_instd)-0.5+I*(gsl_rng_uniform(ranlux_instd)-0.5));
-		}
+			for(int i=0; i<kvol*ndim;i++){
+				u11t[i]=2*(gsl_rng_uniform(ranlux_instd)-0.5+I*(gsl_rng_uniform(ranlux_instd)-0.5));
+				u12t[i]=2*(gsl_rng_uniform(ranlux_instd)-0.5+I*(gsl_rng_uniform(ranlux_instd)-0.5));
+			}
 #elif (defined __INTEL_MKL__&&!defined USE_RAN2)
-		//Good news, casting works for using a double to create random complex numbers
-		vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*kvol, u11t, -1, 1);
-		vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*kvol, u12t, -1, 1);
+			//Good news, casting works for using a double to create random complex numbers
+			vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*kvol, u11t, -1, 1);
+			vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*kvol, u12t, -1, 1);
 #else
-		//Depending if we have the RANLUX or SFMT19977 generator.	
-		for(int i=0; i<kvol*ndim;i++){
-			u11t[i]=2*(ran2(&seed)-0.5+I*(ran2(&seed)-0.5));
-			u12t[i]=2*(ran2(&seed)-0.5+I*(ran2(&seed)-0.5));
+			//Depending if we have the RANLUX or SFMT19977 generator.	
+			for(int i=0; i<kvol*ndim;i++){
+				u11t[i]=2*(ran2(&seed)-0.5+I*(ran2(&seed)-0.5));
+				u12t[i]=2*(ran2(&seed)-0.5+I*(ran2(&seed)-0.5));
+			}
+#endif
 		}
-#endif
-	}
-	else
-		fprintf(stderr,"Warning %i in %s: Gauge fields are not initialised.\n", NOINIT, funcname);
+		else
+			fprintf(stderr,"Warning %i in %s: Gauge fields are not initialised.\n", NOINIT, funcname);
+
 #ifdef __NVCC__
-	cudaMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),device,NULL);
-	cudaMemPrefetchAsync(u12t, ndim*kvol*sizeof(Complex),device,NULL);
+		cudaMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),device,NULL);
+		cudaMemPrefetchAsync(u12t, ndim*kvol*sizeof(Complex),device,NULL);
 #endif
-	//Send trials to accelerator for reunitarisation
+		//Send trials to accelerator for reunitarisation
 #pragma omp taskwait
 #ifdef _OPENACC
 #pragma acc update device(u11t[0:ndim*kvol],u12t[0:ndim*kvol])
 #else
 #pragma omp target update to(u11t[0:ndim*kvol],u12t[0:ndim*kvol])
 #endif
-	Reunitarise();
-	//Get trials back
-	//#pragma omp target update from(u11t[0:ndim*kvol],u12t[0:ndim*kvol]) 
-	memcpy(u11, u11t, ndim*kvol*sizeof(Complex));
-	memcpy(u12, u12t, ndim*kvol*sizeof(Complex));
+		Reunitarise();
+		//Get trials back
+		//#pragma omp target update from(u11t[0:ndim*kvol],u12t[0:ndim*kvol]) 
+		memcpy(u11, u11t, ndim*kvol*sizeof(Complex));
+		memcpy(u12, u12t, ndim*kvol*sizeof(Complex));
+	}
 #ifdef _DEBUG
 	printf("Initialisation Complete\n");
 #endif

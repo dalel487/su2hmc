@@ -6,7 +6,7 @@ IFLAGS=	-I../INCLUDE
 
 CFLAGS=     $(IFLAGS) -mkl -DUSE_MKL -std=gnu11 -ipo -qopt-zmm-usage=high\
 			-xHASWELL -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,SKYLAKE,COFFEELAKE\
-			-static -static-intel -static-libgcc -DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
+			-static-intel -static-libgcc -DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
 			-qopenmp -qno-openmp-offload -qopenmp-simd -qopenmp-link=static -DSA3AT \
 
 LFLAGS=	-L${MKLROOT}/lib/intel64 -lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_core -lmkl_blacs_intelmpi_ilp64\
@@ -56,7 +56,7 @@ release:	CFLAGS +=  -O3  -inline-level=2\
 release:	$(EXE)
 
 debug:	CFLAGS += -g -O0 \
-		-D_DEBUG -DUSE_RAN2 -DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
+		-D_DEBUG #-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 	
 debug:	$(EXE)
 

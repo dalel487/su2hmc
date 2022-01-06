@@ -18,7 +18,7 @@
 #include	<sizes.h>
 #include	<stdio.h>
 #include	<stdlib.h>
-#include    <string.h>
+#include	<string.h>
 
 //Avoid any accidents with US/UK spelling
 #define MPI_Finalise() MPI_Finalize()
@@ -26,7 +26,7 @@
 //Definitons
 //==========
 #define	DOWN	0
-#define     UP	1
+#define	UP		1
 
 #define masterproc 0
 
