@@ -8,14 +8,7 @@ cublasHandle_t cublas_status;
 //Get rid of that dirty yankee English
 #define cudaDeviceSynchronise() cudaDeviceSynchronize()
 #endif 
-#ifdef __NVCC__
-#include <thrust_complex.h>
-#else
-#include	<complex.h>
-#define Complex_f	float	complex
-#define Complex	complex
-#endif
-//MKL is powerful, but not guaranteed to be available (especially on AMD systems or future
+#include	<fields.h>
 //ARM Based machines.) BLAS routines should work with other libraries, so we can set a compiler
 //flag to sort them out. But the PRNG routines etc. are MKL exclusive
 #ifdef	__INTEL_MKL__
@@ -59,20 +52,6 @@ __attribute__((aligned(AVX)))
 #endif
 gamin[4][4];
 
-//From common_pseud
-#ifdef __NVCC__
-__managed__ 
-#endif 
-Complex *Phi, *R1, *X0, *X1;
-//From common_mat
-#ifdef __NVCC__
-__managed__ 
-#endif 
-double *dk4m, *dk4p, *pp;
-#ifdef __NVCC__
-__managed__ 
-#endif 
-float	*dk4m_f, *dk4p_f;
 //From common_trial_u11u12
 //complex *u11, *u12;
 //double pp[kvol+halo][nadj][ndim] __attribute__((aligned(AVX)));

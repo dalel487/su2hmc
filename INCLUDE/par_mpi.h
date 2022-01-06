@@ -1,14 +1,8 @@
 #ifndef	PAR_MPI
 #define	PAR_MPI
 #include	<coord.h>
-#ifdef __NVCC__
-#include	<thrust_complex.h>
-#else
-#include	<complex.h>
-#define	Complex_f	float	complex
-#define	Complex	complex
-#endif
 #include	<errorcodes.h>
+#include	<fields.h>
 #include	<math.h>
 #include	<mpi.h> 
 #ifdef _OPENMP
@@ -46,12 +40,6 @@ int pd[ndim] __attribute__((aligned(AVX)));
 //MPI Stuff
 int procid;
 int ierr;
-
-
-//In C and Fortran 2008, MPI_STATUS_SIZE is replaced with 
-//MPI_Status
-//      int status[_STAT_SIZE_];
-//      int statarray[_STAT_SIZE_][2*ndim];
 extern MPI_Comm comm ;
 int request;
 
@@ -77,15 +65,6 @@ int ismaster;
 
 //A couple of other components usually defined in common_*.h files in fortran. But since C has global scope
 //may as well put them in here instead.
-//Gauges and trial matrices
-#ifdef __NVCC__
-__managed__ 
-#endif 
-Complex *u11, *u12, *u11t, *u12t;
-#ifdef __NVCC__
-__managed__ 
-#endif 
-Complex_f *u11t_f, *u12t_f;
 //halos indices
 //-------------
 //static unsigned int *iu, *id;
@@ -97,7 +76,7 @@ int Par_sread(const int iread, const double beta, const double fmu, const double
 int Par_psread(char *filename, double *ps);
 int Par_swrite(const int itraj, const int icheck, const double beta, const double fmu, const double akappa, const double ajq);
 int Par_end();
-//Shortcuts for reductions and broadcasts
+//Shortcuts for reductions and broadcasts. These should be inlined
 int Par_isum(int *ival);
 int Par_dsum(double *dval);
 int Par_fsum(float *dval);
@@ -112,6 +91,6 @@ int CHalo_swap_all(Complex_f *c, int ncpt);
 int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer);
 int DHalo_swap_dir(double *d, int ncpt, int idir, int layer);
 int Trial_Exchange();
-
+//If we have more than two processors on the time axis, there's an extra step in the Polyakov loop calculation
 int Par_tmul(Complex *z11, Complex *z12);
 #endif
