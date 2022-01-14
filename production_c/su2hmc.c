@@ -641,7 +641,7 @@ int main(int argc, char *argv[]){
 	fflush(stdout);
 	return 0;
 }
-int Init(int istart, int iread, double beta, double fmu, double akappa, double ajq){
+int Init(int istart, int iread, double beta, double fmu, double akappa, Complex ajq){
 	/*
 	 * Initialises the system
 	 *

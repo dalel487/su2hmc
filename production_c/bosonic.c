@@ -38,7 +38,7 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 		for(int nu=0;nu<mu;nu++)
 			//Don't merge into a single loop. Makes vectorisation easier?
 			//Or merge into a single loop and dispense with the a arrays?
-#ifdef __OPENACC
+#ifdef _OPENACC
 #pragma acc parallel loop reduction(+:hgs,hgt)
 #else
 #pragma omp parallel for simd aligned(u11t,u12t,iu:AVX) reduction(+:hgs,hgt)
@@ -148,7 +148,7 @@ double Polyakov(){
 			//will be faster for parallel code
 //#ifdef __clang__
 //#pragma omp target teams distribute parallel for simd aligned(u11t,u12t,Sigma11,Sigma12:AVX)
-#ifdef __OPENACC
+#ifdef _OPENACC
 #pragma acc parallel loop
 #else
 #pragma omp parallel for simd aligned(u11t,u12t,Sigma11,Sigma12:AVX)
@@ -177,7 +177,7 @@ double Polyakov(){
 	Par_tmul(Sigma11, Sigma12);
 #pragma acc update device(Sigma11[0:kvol3],Sigma12[0:kvol3])
 #endif
-#ifdef __OPENACC
+#ifdef _OPENACC
 #pragma acc parallel loop reduction(+:poly)
 #else
 #pragma omp parallel for simd reduction(+:poly) aligned(Sigma11:AVX)

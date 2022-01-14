@@ -86,7 +86,7 @@ int Gauge_force(double *dSdpi);
 extern "C" int Force(double *dSdpi, int iflag, double res1);
 extern "C" int Gauge_force(double *dSdpi);
 #endif
-int Init(int istart, int iread, double beta, double fmu, double akappa, double ajq);
+int Init(int istart, int iread, double beta, double fmu, double akappa, Complex ajq);
 int Hamilton(double *h, double *s, double res2);
 int Congradq(int na, double res, Complex *smallPhi, int *itercg);
 int Congradp(int na, double res, Complex_f *xi_f, int *itercg);
