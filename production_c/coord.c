@@ -429,7 +429,8 @@ inline int Coord2gindex(int ix, int iy, int iz, int it){
 	//I've factorised this function compared to its original 
 	//implimentation to reduce the number of multiplications
 	//and hopefully improve performance
-	return it+nt*(iz+nz*(iy+ny*ix));
+//	return it+nt*(iz+nz*(iy+ny*ix));
+	return ix+nx*(iy+ny*(iz+nz*it));
 }
 int Testlcoord(int cap){
 	/* Tests if the coordinate transformation functions are working

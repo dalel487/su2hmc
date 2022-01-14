@@ -125,7 +125,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #endif
 	//In the FORTRAN Code dsum was used instead despite qq and qbqb being complex
 	//Since we only care about the real part this shouldn't cause (m)any serious issues
-	Par_dsum(qq); Par_dsum(qbqb);
+	Par_zsum(qq); Par_zsum(qbqb);
 	*qq=(*qq+*qbqb)/(2*gvol);
 	Complex xu, xd, xuu, xdd;
 	xu=xd=xuu=xdd=0;

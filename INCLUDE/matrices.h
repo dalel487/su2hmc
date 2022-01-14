@@ -29,7 +29,7 @@ extern "C" int Hdslashd(Complex *phi, Complex *r);
 extern "C" int Dslash_f(Complex_f *phi, Complex_f *r);
 extern "C" int Dslashd_f(Complex_f *phi, Complex_f *r);
 extern "C" int Hdslash_f(Complex_f *phi, Complex_f *r);
-int Hdslashd_f(Complex_f *phi, Complex_f *r);
+extern "C" int Hdslashd_f(Complex_f *phi, Complex_f *r);
 //New Trial Fields
 extern "C" int Reunitarise();
 extern "C" int New_trial(double dt);
@@ -40,7 +40,6 @@ __global__ void cuHdslash(Complex *phi, Complex *r);
 __global__ void cuHdslashd(Complex *phi, Complex *r);
 __global__ void cuDslash_f(Complex_f *phi, Complex_f *r);
 __global__ void cuDslashd_f(Complex_f *phi, Complex_f *r);
-__global__ void cuHdslash(Complex *phi, Complex *r);
 __global__ void cuHdslash_f(Complex_f *phi, Complex_f *r);
 __global__ void cuHdslashd_f(Complex_f *phi, Complex_f *r);
 __global__ void cuNew_trial(double dt);

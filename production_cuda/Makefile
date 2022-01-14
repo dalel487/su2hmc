@@ -1,29 +1,28 @@
 MF=	Makefile
 
 FC=		mpifort 
-CC=		mpic++
-CXX=	mpic++
+CC=		mpiicc
+CXX=	mpiicpc
 NVCC=	nvcc
 
 IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include" -I/opt/AMD/aocl/aocl-linux-gcc-3.0-6/include/\
-				-I/usr/local/cuda/targets/x86_64-linux/include/
+				-I/usr/local/cuda/include/ -I/usr/include/c++/10/\
+				-I/usr/x86_64-linux-gnu/include/c++/10/x86_64-linux-gnu/
 
-
-#CFLAGS=     $(IFLAGS) -cc=icc -x c++ -DUSE_MKL -std=gnu11 -qopt-zmm-usage=high\
-			-xSKYLAKE -axCASCADELAKE\
-			-static-intel -static-libgcc -DMKL_DIRECT_CALL -D__INTEL_MKL__ -DUSE_RAN2\
+CFLAGS=     $(IFLAGS) -std=gnu11 -qopt-zmm-usage=high -xSKYLAKE -axCASCADELAKE\
+			-static-intel -static-libgcc -DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
 			-qopenmp -qno-openmp-offload -qopenmp-simd -qopenmp-link=static -DSA3AT \
 			 -masm=att -fcommon
-CFLAGS=	$(IFLAGS) -DUSE_BLAS -fcommon\
+#CFLAGS=	$(IFLAGS) -DUSE_BLAS -fcommon -fpermissive \
 		-march=skylake -mtune=cascadelake -static -D__RANLUX__\
 		-fopenmp-simd -DSA3AT -flto\
 #		-foffload=amdgcn-amdhsa="-march=gfx900" -fopenacc\
 
-LFLAGS=		-liomp5 -lpthread -ldl -lblis -lgsl -lcudart -lcublas -L${NVSHMEM_HOME}/lib -lnvshmem 
+LFLAGS=		-liomp5 -lpthread -ldl -lgsl -lcudart -lcublas -dlink #-L${NVSHMEM_HOME}/lib -lnvshmem -lblis 
 
-MKLFLAGS=	-L${MKLROOT}/lib/intel64 #-qmkl -DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
+MKLFLAGS=	-L${MKLROOT}/lib/intel64 -qmkl #-DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
 
-CUFLAGS=	${IFLAGS} -ccbin ${CC} -arch=compute_75 -code=sm_75 -err-no -w\
+CUFLAGS=	${IFLAGS}  -arch=compute_75 -code=sm_75 -err-no -w\
 			--allow-unsupported-compiler #-expt-relaxed-constexpr 
 			#Last flag is an experimental one used to call host functions in device code. Not sure
 			#if it does what we want because the error message suggesting it came up when declaring
@@ -79,8 +78,8 @@ profiler:	CFLAGS += -g
 profiler:	CUFLAGS += -O0 -G -g 
 profiler:	release
 
-#release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high
-release:	CFLAGS +=  -Ofast -funroll-all-loops -fcf-protection=none
+release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high
+#release:	CFLAGS +=  -Ofast -funroll-all-loops -fcf-protection=none
 release:	CUFLAGS += -O3 #-dlto 
 release:	$(EXE)
 
@@ -89,12 +88,12 @@ debug:		CUFLAGS += -O0 -G -g -D_DEBUG
 debug:		$(EXE)
 
 $(EXE): $(OBJ)
-	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $(LFLAGS) $^ -o $@
+	$(NVCC) -ccbin ${CC} $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $(LFLAGS) $^ -o $@
 	#$(CXX) $(CFLAGS) $(MKLFLAGS) $(LFLAGS) $^ -o $@
 $(CUOBJ): %.o: $(CUSRC_DIR)/%.cu
-	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" -c $< 
+	$(NVCC) -ccbin ${CXX} $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS) " -dc $< 
 $(COBJ): %.o: $(CSRC_DIR)/%.c
-	$(NVCC) $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" -c $< 
+	$(NVCC) -ccbin ${CC}  $(CUFLAGS) -Xcompiler "$(CFLAGS) -x c++ $(MKLFLAGS)" -c $< 
 
 clean:
 	rm -f $(OBJ) $(TMP)

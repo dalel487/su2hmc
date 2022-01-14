@@ -3,7 +3,7 @@
 #define TCMPLX
 #include <thrust/complex.h>
 using namespace thrust;
-#undef	complex
+//#undef	complex
 #define	Complex_f	 complex<float>
 #define	Complex	 complex<double>
 //Adding the macros for extracting the real, imaginary parts 

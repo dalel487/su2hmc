@@ -446,6 +446,7 @@ double ran2(long *idum) {
 
 }
 
+/*
 int ran_test(){
 	char *funcname ="ran_test";
 	const double mu = 0.3;
@@ -484,4 +485,5 @@ int ran_test(){
 	free(f_arr);
 	return 0;
 }
+*/
 //Distributions

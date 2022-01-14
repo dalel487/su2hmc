@@ -421,8 +421,19 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 	Complex *u1buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
 	Complex *u2buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
 #endif
+#if _DEBUG
+	char dump_prefix[FILELEN]="u11.";
+	char dump_buff[32];
+	sprintf(dump_buff,"r%01d_c%06d",rank,itraj);
+	strcat(dump_prefix,dump_buff);
+	FILE *gauge_dump=fopen(dump_prefix,"wb");
+	//Print the local trial field in the order it is stored in memory.
+	//This is not the same order as it is stored in secondary storage
+	fwrite(u11,ndim*kvol*sizeof(Complex),1,gauge_dump);
+	fclose(gauge_dump);
+#endif
 	if(!rank){
-	//Array to store the seeds. nth index is the nth processor
+		//Array to store the seeds. nth index is the nth processor
 #ifdef __RANLUX__
 		unsigned long *seed_array=(unsigned long*)calloc(nproc,sizeof(seed));
 #elif defined __INTEL_MKL__ && !defined USE_RAN2
@@ -475,12 +486,21 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 						u2buff[i]=u12[i*ndim+idim];
 					}
 #endif
+#if _DEBUG
+					char part_dump[FILELEN]="";
+					strcat(part_dump,dump_prefix);
+					sprintf(dump_buff,"_d%d",idim);
+					strcat(part_dump,dump_buff);
+					FILE *pdump=fopen(part_dump,"wb");
+					fwrite(u1buff,ndim*kvol*sizeof(Complex),1,pdump);
+					fclose(pdump);
+#endif
 				}
 				int i=0;
-				for(int ix=pstart[0][iproc]; ix<pstop[0][iproc]; ix++)
-					for(int iy=pstart[1][iproc]; iy<pstop[1][iproc]; iy++)
+							for(int it=pstart[3][iproc]; it<pstop[3][iproc]; it++)
 						for(int iz=pstart[2][iproc]; iz<pstop[2][iproc]; iz++)
-							for(int it=pstart[3][iproc]; it<pstop[3][iproc]; it++){
+					for(int iy=pstart[1][iproc]; iy<pstop[1][iproc]; iy++)
+				for(int ix=pstart[0][iproc]; ix<pstop[0][iproc]; ix++){
 								//j is the relative memory index of icoord
 								int j = Coord2gindex(ix, iy, iz, it);
 								u11Write[idim*gvol+j] = u1buff[i];	
@@ -575,6 +595,16 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 				u2buff[i]=u12[i*ndim+idim];
 			}
 #endif
+#ifdef _DEBUG
+			char part_dump[FILELEN]="";
+			strcat(part_dump,dump_prefix);
+			sprintf(dump_buff,"_d%d",idim);
+			strcat(part_dump,dump_buff);
+			FILE *pdump=fopen(part_dump,"wb");
+			fwrite(u1buff,ndim*kvol*sizeof(Complex),1,pdump);
+			fclose(pdump);
+#endif
+			int i=0;
 			if(MPI_Send(u1buff, kvol, MPI_C_DOUBLE_COMPLEX, masterproc, 2*idim, comm)){
 				fprintf(stderr, "Error %i in %s: Falied to send u11 from process %i.\nExiting...\n\n",
 						CANTSEND, funcname, rank);

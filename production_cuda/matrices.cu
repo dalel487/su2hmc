@@ -1,7 +1,9 @@
 #include <assert.h>
+extern "C" {
 #include <matrices.h>
+}
 #include <string.h>
-#include <cuComplex.h>
+#include	<thrust_complex.h>
 __global__ void cuDslash(Complex *phi, Complex *r){
 	char *funcname = "cuDslash";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
