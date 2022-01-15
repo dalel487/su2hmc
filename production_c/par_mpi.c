@@ -205,10 +205,10 @@ int Par_sread(const int iread, const double beta, const double fmu, const double
 				//number of assignments.
 				//We're weaving our way through the memory here, converting
 				//between lattice and memory coordinates
-				for(int ix=pstart[0][iproc]; ix<pstop[0][iproc]; ix++)
-					for(int iy=pstart[1][iproc]; iy<pstop[1][iproc]; iy++)
-						for(int iz=pstart[2][iproc]; iz<pstop[2][iproc]; iz++)
-							for(int it=pstart[3][iproc]; it<pstop[3][iproc]; it++){
+				for(int it=pstart[3][iproc]; it<pstop[3][iproc]; it++)
+					for(int iz=pstart[2][iproc]; iz<pstop[2][iproc]; iz++)
+						for(int iy=pstart[1][iproc]; iy<pstop[1][iproc]; iy++)
+							for(int ix=pstart[0][iproc]; ix<pstop[0][iproc]; ix++){
 								//j is the relative memory index of icoord
 								int j = Coord2gindex(ix,iy,iz,it);
 								//ubuff[i]  = (ic == 0) ? u11read[j][idim] : u12read[j][idim];
@@ -497,10 +497,10 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 #endif
 				}
 				int i=0;
-							for(int it=pstart[3][iproc]; it<pstop[3][iproc]; it++)
-						for(int iz=pstart[2][iproc]; iz<pstop[2][iproc]; iz++)
-					for(int iy=pstart[1][iproc]; iy<pstop[1][iproc]; iy++)
-				for(int ix=pstart[0][iproc]; ix<pstop[0][iproc]; ix++){
+				for(int it=pstart[3][iproc]; it<pstop[3][iproc]; it++)
+					for(int iz=pstart[2][iproc]; iz<pstop[2][iproc]; iz++)
+						for(int iy=pstart[1][iproc]; iy<pstop[1][iproc]; iy++)
+							for(int ix=pstart[0][iproc]; ix<pstop[0][iproc]; ix++){
 								//j is the relative memory index of icoord
 								int j = Coord2gindex(ix, iy, iz, it);
 								u11Write[idim*gvol+j] = u1buff[i];	
