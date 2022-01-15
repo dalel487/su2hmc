@@ -12,7 +12,7 @@ CFLAGS=     $(IFLAGS) -qmkl -std=gnu11 -ipo -qopt-zmm-usage=high\
 LFLAGS=	-L${MKLROOT}/lib/intel64 -lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_core -lmkl_blacs_intelmpi_ilp64\
 		-liomp5 -lpthread -ldl -Bstatic -lgsl
 
-EXE=	su2hmc
+EXE=	su2hmc_INTEL
 
 SRC= \
 	coord.c \
