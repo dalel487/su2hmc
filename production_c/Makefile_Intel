@@ -1,4 +1,4 @@
-MF=	Makefile
+#MF=	Makefile
 
 CC=	mpiicc
 
