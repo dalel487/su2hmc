@@ -90,7 +90,7 @@ int Par_begin(int argc, char *argv[]){
 #endif
 	return 0;
 }	
-int Par_sread(const int iread, const double beta, const double fmu, const double akappa, const double ajq){
+int Par_sread(const int iread, const double beta, const double fmu, const double akappa, const Complex ajq){
 	/*
 	 * Reads and assigns the gauges from file
 	 *
@@ -138,7 +138,7 @@ int Par_sread(const int iread, const double beta, const double fmu, const double
 		sprintf(buff2,"mu%04d",buffer);
 		strcat(gauge_file,buff2);
 		//J
-		buffer = (int)(100*ajq);
+		buffer = (int)(100*creal(ajq));
 		sprintf(buff2,"j%02d",buffer);
 		strcat(gauge_file,buff2);
 		//nx
@@ -382,7 +382,7 @@ int Par_psread(char *filename, double *ps){
 	return 0;
 }
 int Par_swrite(const int itraj, const int icheck, const double beta, const double fmu, const double akappa, 
-		const double ajq){
+		const Complex ajq){
 	/*
 	 * Modified from an original version of swrite in FORTRAN
 	 *
@@ -536,7 +536,7 @@ int Par_swrite(const int itraj, const int icheck, const double beta, const doubl
 		sprintf(buff2,"mu%04d",buffer);
 		strcat(gauge_title,buff2);
 		//J
-		buffer = (int)(100*ajq);
+		buffer = (int)(100*creal(ajq));
 		sprintf(buff2,"j%02d",buffer);
 		strcat(gauge_title,buff2);
 		//nx

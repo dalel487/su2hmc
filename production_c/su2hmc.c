@@ -45,6 +45,9 @@ __attribute__((aligned(AVX)))
 		{-I,I,I,-I},
 		{1,1,1,1},
 		{1,1,-1,-1}};
+#ifdef __NVCC__
+
+#endif
 
 /*
  * For the early phases of this translation, I'm going to try and
@@ -775,6 +778,7 @@ int Init(int istart, int iread, double beta, double fmu, double akappa, Complex 
 	//Gamma matrices and indices on the GPU
 	cudaMallocManaged(&gamin_d,4*4*sizeof(int),cudaMemAttachGlobal);
 	memcpy(gamin_d,gamin,4*4*sizeof(int));
+	gamval_d=NULL;
 	cudaMalloc(&gamval_d,5*4*sizeof(Complex));
 	cudaMemcpy(gamval_d,gamval,5*4*sizeof(Complex),cudaMemcpyHostToDevice);
 	cudaMalloc(&gamval_f_d,5*4*sizeof(Complex_f));

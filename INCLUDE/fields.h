@@ -9,28 +9,28 @@
 #define	Complex_f	float	complex
 #define	Complex	complex
 #endif
-//Gauges and trial fields 
+	//Gauges and trial fields 
 #ifdef __NVCC__
-__managed__ 
+	__managed__ extern 
 #endif 
-Complex *u11, *u12, *u11t, *u12t;
+		Complex *u11, *u12, *u11t, *u12t;
 #ifdef __NVCC__
-__managed__ 
+	__managed__ extern 
 #endif 
-Complex_f *u11t_f, *u12t_f;
+		Complex_f *u11t_f, *u12t_f;
 
-//From common_pseud
+	//From common_pseud
 #ifdef __NVCC__
-__managed__ 
+	__managed__ extern 
 #endif 
-Complex *Phi, *R1, *X0, *X1;
-//From common_mat
+		Complex *Phi, *R1, *X0, *X1;
+	//From common_mat
 #ifdef __NVCC__
-__managed__ 
+	__managed__ extern 
 #endif 
-double *dk4m, *dk4p, *pp;
+		double *dk4m, *dk4p, *pp;
 #ifdef __NVCC__
-__managed__ 
+	__managed__ extern 
 #endif 
-float	*dk4m_f, *dk4p_f;
+		float	*dk4m_f, *dk4p_f;
 #endif

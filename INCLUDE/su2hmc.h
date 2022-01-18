@@ -30,77 +30,84 @@ int ibound;
 //------
 //We have the four γ Matrices, and in the final index (labelled 4 in C) is γ_5)
 #ifdef __NVCC__
-__device__ Complex *gamval_d;
+__device__ extern Complex *gamval_d;
 #else
 __attribute__((aligned(AVX)))
 #endif 
-extern Complex gamval[5][4];
+	extern Complex gamval[5][4];
 #ifdef __NVCC__
-__device__ Complex_f *gamval_f_d;
+	__device__ extern Complex_f *gamval_f_d;
 #else
 __attribute__((aligned(AVX)))
 #endif 
-extern Complex_f gamval_f[5][4];
-//Seems a bit redundant looking
+	extern Complex_f gamval_f[5][4];
+	//Seems a bit redundant looking
 #ifdef __NVCC__
-__managed__ int *gamin_d;
-__managed__ 
+	__managed__ extern int *gamin_d;
+	__managed__ 
 #endif 
-extern int 
+	extern int 
 #ifndef __NVCC__ 
 __attribute__((aligned(AVX)))
 #endif
-gamin[4][4];
+	gamin[4][4];
 
-//From common_trial_u11u12
-//complex *u11, *u12;
-//double pp[kvol+halo][nadj][ndim] __attribute__((aligned(AVX)));
+	//From common_trial_u11u12
+	//complex *u11, *u12;
+	//double pp[kvol+halo][nadj][ndim] __attribute__((aligned(AVX)));
 
-//Values:
-//------
-//The diquark
+	//Values:
+	//------
+	//The diquark
 #ifdef __NVCC__
-__device__ Complex *jqq_d;
-__device__ Complex *jqq_f_d;
+	__device__ extern Complex *jqq_d;
+	__device__ extern Complex *jqq_f_d;
 #endif 
-extern Complex jqq;
-extern Complex_f jqq_f;
+	extern Complex jqq;
+	extern Complex_f jqq_f;
 
-//Average # of congrad iter guidance and acceptance
-double ancg, ancgh;
+	//Average # of congrad iter guidance and acceptance
+	double ancg, ancgh;
 #ifdef __NVCC__
-__device__ double *beta_d, *akappa_d;
+	__device__ extern double *beta_d, *akappa_d;
 #endif 
-extern double fmu, beta, akappa;
+	extern double fmu, beta, akappa;
 #ifdef __NVCC__
-__device__ float *akappa_f_d;
+	__device__ extern float *akappa_f_d;
 #endif 
-extern float akappa_f;
+	extern float akappa_f;
 
-//Function Declarations:
-//#####################
-#ifndef __NVCC__
-int Force(double *dSdpi, int iflag, double res1);
-int Gauge_force(double *dSdpi);
-#else
-extern "C" int Force(double *dSdpi, int iflag, double res1);
-extern "C" int Gauge_force(double *dSdpi);
+	//Function Declarations:
+	//#####################
+#ifdef __cplusplus
+	extern "C"
+{
 #endif
-int Init(int istart, int iread, double beta, double fmu, double akappa, Complex ajq);
-int Hamilton(double *h, double *s, double res2);
-int Congradq(int na, double res, Complex *smallPhi, int *itercg);
-int Congradp(int na, double res, Complex_f *xi_f, int *itercg);
-int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbqb, double res, int *itercg);
 #ifndef __NVCC__
-int SU2plaq(double *hg, double *avplaqs, double *avplaqt);
-double Polyakov();
+	int Force(double *dSdpi, int iflag, double res1);
+	int Gauge_force(double *dSdpi);
 #else
-extern "C" int SU2plaq(double *hg, double *avplaqs, double *avplaqt);
-extern "C" double Polyakov();
+	int Force(double *dSdpi, int iflag, double res1);
+	int Gauge_force(double *dSdpi);
 #endif
-//Inline Stuff
-extern int Z_gather(Complex*x, Complex *y, int n, unsigned int *table, unsigned int mu);
-extern int Fill_Small_Phi(int na, Complex *smallPhi);
+	int Init(int istart, int iread, double beta, double fmu, double akappa, Complex ajq);
+	int Hamilton(double *h, double *s, double res2);
+	int Congradq(int na, double res, Complex *smallPhi, int *itercg);
+	int Congradp(int na, double res, Complex_f *xi_f, int *itercg);
+	int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbqb, double res, int *itercg);
+#ifndef __NVCC__
+	int SU2plaq(double *hg, double *avplaqs, double *avplaqt);
+	double Polyakov();
+#else
+	int SU2plaq(double *hg, double *avplaqs, double *avplaqt);
+	double Polyakov();
+#endif
+	//Inline Stuff
+	extern int Z_gather(Complex*x, Complex *y, int n, unsigned int *table, unsigned int mu);
+	extern int Fill_Small_Phi(int na, Complex *smallPhi);
+#ifdef __cplusplus
+}
+#endif
 
 //CUDA Declarations:
 //#################

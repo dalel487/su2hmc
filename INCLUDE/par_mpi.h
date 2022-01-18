@@ -71,26 +71,33 @@ int ismaster;
 
 //Function Declarations
 //=====================
-int Par_begin(int argc, char *argv[]);
-int Par_sread(const int iread, const double beta, const double fmu, const double akappa, const double ajq);
-int Par_psread(char *filename, double *ps);
-int Par_swrite(const int itraj, const int icheck, const double beta, const double fmu, const double akappa, const double ajq);
-int Par_end();
-//Shortcuts for reductions and broadcasts. These should be inlined
-int Par_isum(int *ival);
-int Par_dsum(double *dval);
-int Par_fsum(float *dval);
-int Par_zsum(Complex *zval);
-int Par_icopy(int *ival);
-int Par_dcopy(double *dval);
-int Par_zcopy(Complex *zval);
-//Halo Manipulation
-int ZHalo_swap_all(Complex *z, int ncpt);
-int ZHalo_swap_dir(Complex *z, int ncpt, int idir, int layer);
-int CHalo_swap_all(Complex_f *c, int ncpt);
-int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer);
-int DHalo_swap_dir(double *d, int ncpt, int idir, int layer);
-int Trial_Exchange();
-//If we have more than two processors on the time axis, there's an extra step in the Polyakov loop calculation
-int Par_tmul(Complex *z11, Complex *z12);
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+	int Par_begin(int argc, char *argv[]);
+	int Par_sread(const int iread, const double beta, const double fmu, const double akappa, const Complex ajq);
+	int Par_psread(char *filename, double *ps);
+	int Par_swrite(const int itraj, const int icheck, const double beta, const double fmu, const double akappa, const Complex ajq);
+	int Par_end();
+	//Shortcuts for reductions and broadcasts. These should be inlined
+	int Par_isum(int *ival);
+	int Par_dsum(double *dval);
+	int Par_fsum(float *dval);
+	int Par_zsum(Complex *zval);
+	int Par_icopy(int *ival);
+	int Par_dcopy(double *dval);
+	int Par_zcopy(Complex *zval);
+	//Halo Manipulation
+	int ZHalo_swap_all(Complex *z, int ncpt);
+	int ZHalo_swap_dir(Complex *z, int ncpt, int idir, int layer);
+	int CHalo_swap_all(Complex_f *c, int ncpt);
+	int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer);
+	int DHalo_swap_dir(double *d, int ncpt, int idir, int layer);
+	int Trial_Exchange();
+	//If we have more than two processors on the time axis, there's an extra step in the Polyakov loop calculation
+	int Par_tmul(Complex *z11, Complex *z12);
+#ifdef __cplusplus
+}
+#endif
 #endif

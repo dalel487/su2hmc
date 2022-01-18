@@ -18,9 +18,16 @@
 //===============================================
 #if (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))
 extern long seed;
-int Par_ranset(long *seed, int iread);
-int ranset(long *seed);
-double ran2(long *idum); 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+	int Par_ranset(long *seed, int iread);
+	int ranset(long *seed);
+	double ran2(long *idum); 
+#ifdef __cplusplus
+}
+#endif
 #elif defined __RANLUX__
 gsl_rng *ranlux_instd;
 //Need to get a float version that uses a different seed for performance reasons.
@@ -28,34 +35,63 @@ gsl_rng *ranlux_instd;
 //For now, the float generator will be a cast of the double one.
 //gsl_rng *ranlux_instf;
 extern unsigned long seed;
-int Par_ranset(unsigned long *seed, int iread);
-int ranset(unsigned long *seed);
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+	int Par_ranset(unsigned long *seed, int iread);
+	int ranset(unsigned long *seed);
+#ifdef __cplusplus
+}
+#endif
 #elif defined __INTEL_MKL__
 extern VSLStreamStatePtr stream;
 extern unsigned int seed;
-int ranset(unsigned int *seed);
-int Par_ranset(unsigned int *seed, int iread);
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+	int ranset(unsigned int *seed);
+	int Par_ranset(unsigned int *seed, int iread);
+#ifdef __cplusplus
+}
+#endif
 #else
 extern int seed;
-//Mersenne Twister
-int ranset(int *seed);
-int Par_ranset(int *seed);
+#ifdef __cplusplus
+extern "C"
+{
 #endif
-//Generators:
-//==========
-//Distributions
-//=============
-//Use Box-Müller to generate an array of complex numbers
-int Gauss_z(Complex *ps, unsigned int n, const Complex mu, const double sigma);
-int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma);
-int Gauss_c(Complex_f *ps, unsigned int n, const Complex_f mu, const float sigma);
-int Gauss_f(float *ps, unsigned int n, const float mu, const float sigma);
+	//Mersenne Twister
+	int ranset(int *seed);
+	int Par_ranset(int *seed);
+#ifdef __cplusplus
+}
+#endif
+#endif
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+	//Generators:
+	//==========
+	//Distributions
+	//=============
+	//Use Box-Müller to generate an array of complex numbers
+	int Gauss_z(Complex *ps, unsigned int n, const Complex mu, const double sigma);
+	int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma);
+	int Gauss_c(Complex_f *ps, unsigned int n, const Complex_f mu, const float sigma);
+	int Gauss_f(float *ps, unsigned int n, const float mu, const float sigma);
 
-//MPI
-//===
-int Par_ranread(char *filename, double *ranval);
-double Par_granf();
+	//MPI
+	//===
+	int Par_ranread(char *filename, double *ranval);
+	double Par_granf();
+	//Test Functions
+	int	ran_test();
 
+#ifdef __cplusplus
+}
 #endif
 //RAN2 stuff treat it seperately so as to avoid any accidents
 #ifndef RAN2
@@ -74,7 +110,5 @@ double Par_granf();
 #define NDIV (1+IMM1/NTAB)
 #define EPS 1.2e-7
 #define RNMX (1.0-EPS)
-
-//Prototypes
-int	ran_test();
+#endif
 #endif

@@ -5,11 +5,11 @@ CC=		mpiicc
 CXX=	mpiicpc
 NVCC=	nvcc
 
-IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include" -I/opt/AMD/aocl/aocl-linux-gcc-3.0-6/include/\
+IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include"\
 				-I/usr/local/cuda/include/ -I/usr/include/c++/10/\
 				-I/usr/x86_64-linux-gnu/include/c++/10/x86_64-linux-gnu/
 
-CFLAGS=     $(IFLAGS) -std=gnu11 -qopt-zmm-usage=high -xSKYLAKE -axCASCADELAKE\
+CFLAGS=     $(IFLAGS) -std=gnu11 -ipo -qopt-zmm-usage=high -xSKYLAKE -axCASCADELAKE\
 			-static-intel -static-libgcc -DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
 			-qopenmp -qno-openmp-offload -qopenmp-simd -qopenmp-link=static -DSA3AT \
 			 -masm=att -fcommon
@@ -18,12 +18,12 @@ CFLAGS=     $(IFLAGS) -std=gnu11 -qopt-zmm-usage=high -xSKYLAKE -axCASCADELAKE\
 		-fopenmp-simd -DSA3AT -flto\
 #		-foffload=amdgcn-amdhsa="-march=gfx900" -fopenacc\
 
-LFLAGS=		-liomp5 -lpthread -ldl -lgsl -lcudart -lcublas -dlink #-L${NVSHMEM_HOME}/lib -lnvshmem -lblis 
+LFLAGS=		-liomp5 -lpthread -ldl -lgsl -lcudart -lcublas #-L${NVSHMEM_HOME}/lib -lnvshmem -lblis 
 
 MKLFLAGS=	-L${MKLROOT}/lib/intel64 -qmkl #-DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
 
 CUFLAGS=	${IFLAGS}  -arch=compute_75 -code=sm_75 -err-no -w\
-			--allow-unsupported-compiler #-expt-relaxed-constexpr 
+			--allow-unsupported-compiler -expt-relaxed-constexpr 
 			#Last flag is an experimental one used to call host functions in device code. Not sure
 			#if it does what we want because the error message suggesting it came up when declaring
 			#a11 and a12 in the Dslash routine
