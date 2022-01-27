@@ -37,9 +37,6 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 	const double resid = kferm2*res*res;
 	//The κ^2 factor is needed to normalise the fields correctly
 	//jqq is the diquark codensate and is global scope.
-#ifdef __NVCC__
-	__managed__
-#endif
 		Complex fac = conj(jqq)*jqq*akappa*akappa;
 	Complex_f fac_f = (Complex_f)fac;
 	//These were evaluated only in the first loop of niterx so we'll just do it ouside of the loop.
