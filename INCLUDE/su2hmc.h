@@ -96,8 +96,8 @@ __attribute__((aligned(AVX)))
 	int Congradp(int na, double res, Complex_f *xi_f, int *itercg);
 	int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbqb, double res, int *itercg);
 #ifndef __NVCC__
-	int SU2plaq(double *hg, double *avplaqs, double *avplaqt);
-	double Polyakov();
+	int SU2plaq(double *hg, double *avplaqs, double *avplaqt, Complex *u11t, Complex *u12t, int *iu);
+	double Polyakov(Complex * u11t, Complex *u12t);
 #else
 	int SU2plaq(double *hg, double *avplaqs, double *avplaqt);
 	double Polyakov();

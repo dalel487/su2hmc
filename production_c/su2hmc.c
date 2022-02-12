@@ -187,13 +187,13 @@ int main(int argc, char *argv[]){
 
 	//Initial Measurements
 	//====================
-	double poly = Polyakov();
+	double poly = Polyakov(u11t,u12t);
 #ifdef _DEBUG
 	if(!rank) printf("Initial Polyakov loop evaluated as %e\n", poly);
 #endif
 	double hg, avplaqs, avplaqt;
 	Trial_Exchange();
-	SU2plaq(&hg,&avplaqs,&avplaqt);
+	SU2plaq(&hg,&avplaqs,&avplaqt,u11t,u12t,iu);
 	//Loop on β
 	//Print Heading
 	double traj=stepl*dt;
@@ -489,8 +489,8 @@ int main(int argc, char *argv[]){
 				printf("Finished measurements\n");
 #endif
 			pbpa+=pbp; endenfa+=endenf; denfa+=denf; ipbp++;
-			SU2plaq(&hg,&avplaqs,&avplaqt); 
-			poly = Polyakov();
+	SU2plaq(&hg,&avplaqs,&avplaqt,u11t,u12t,iu);
+			poly = Polyakov(u11t,u12t);
 			//We have four output files, so may as well get the other ranks to help out
 			//and abuse scoping rules while we're at it.
 #if (nproc>=4)
@@ -922,7 +922,7 @@ int Hamilton(double *h, double *s, double res2){
 	double avplaqs, avplaqt;
 	double hg = 0;
 	//avplaq? isn't seen again here.
-	SU2plaq(&hg,&avplaqs,&avplaqt);
+	SU2plaq(&hg,&avplaqs,&avplaqt,u11t,u12t,iu);
 
 	double hf = 0; int itercg = 0;
 #ifdef __NVCC__
