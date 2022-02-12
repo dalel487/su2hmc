@@ -303,7 +303,7 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 			cudaMemPrefetchAsync(R,kfermHalo*sizeof(Complex),device,NULL);
 #endif
-			Dslashd(R1, R);
+			Dslashd(R1, R,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 			memcpy(Phi+na*kferm,R1, kferm*sizeof(Complex));
 			//Up/down partitioning (using only pseudofermions of flavour 1)
 #pragma omp parallel for simd collapse(2) aligned(X0,R1:AVX)
@@ -374,8 +374,8 @@ int main(int argc, char *argv[]){
 			//I'll stick to using dt though.
 			//step (i) st(t+dt)=st(t)+p(t+dt/2)*dt;
 			//Replace with a Kernel call and move trial exchange onto CPU for now
-			New_trial(dt);
-			Reunitarise();
+			New_trial(dt,pp,u11t,u12t);
+			Reunitarise(u11t,u12t);
 			//Get trial fields from accelerator for halo exchange
 			//Cancel that until we check for double precision flags. It's really bad on Xe since it isn't natively supported
 #pragma acc update self(u11t[0:ndim*kvol],u12t[0:ndim*kvol])
@@ -422,7 +422,7 @@ int main(int argc, char *argv[]){
 		}
 		//Monte Carlo step: Accept new fields with the probability of min(1,exp(H0-X0))
 		//Kernel Call needed here?
-		Reunitarise();
+		Reunitarise(u11t,u12t);
 #pragma acc update self(u11t[0:kvol*ndim],u12t[0:kvol*ndim])
 		double H1, S1;
 		Hamilton(&H1, &S1, rescga);
@@ -489,7 +489,7 @@ int main(int argc, char *argv[]){
 				printf("Finished measurements\n");
 #endif
 			pbpa+=pbp; endenfa+=endenf; denfa+=denf; ipbp++;
-	SU2plaq(&hg,&avplaqs,&avplaqt,u11t,u12t,iu);
+			SU2plaq(&hg,&avplaqs,&avplaqt,u11t,u12t,iu);
 			poly = Polyakov(u11t,u12t);
 			//We have four output files, so may as well get the other ranks to help out
 			//and abuse scoping rules while we're at it.
@@ -869,7 +869,7 @@ int Init(int istart, int iread, double beta, double fmu, double akappa, Complex 
 #else
 #pragma omp target update to(u11t[0:ndim*kvol],u12t[0:ndim*kvol])
 #endif
-		Reunitarise();
+		Reunitarise(u11t,u12t);
 		//Get trials back
 		//#pragma omp target update from(u11t[0:ndim*kvol],u12t[0:ndim*kvol]) 
 		memcpy(u11, u11t, ndim*kvol*sizeof(Complex));

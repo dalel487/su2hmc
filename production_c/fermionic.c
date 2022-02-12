@@ -63,7 +63,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	for(int i=0;i<kferm;i++)
 		xi[i]=(Complex)xi_f[i];
 	memcpy(x, xi, kferm*sizeof(Complex));
-	Dslashd_f(R1_f, xi_f);
+	Dslashd_f(R1_f,xi_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq_f,akappa_f);
 #pragma omp parallel for simd aligned(R1,R1_f:AVX)
 	for(int i=0;i<kferm;i++)
 		R1[i]=(Complex)R1_f[i];

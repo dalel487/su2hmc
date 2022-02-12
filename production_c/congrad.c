@@ -101,7 +101,8 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 		cudaMemPrefetchAsync(p_f,kferm2Halo*sizeof(Complex_f),device,NULL);
 #endif
 		//x2 =  (M^†M)p 
-		Hdslash_f(x1_f,p_f); Hdslashd_f(x2_f, x1_f);
+		Hdslash_f(x1_f,p_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq_f,akappa_f);
+		Hdslashd_f(x2_f,x1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq_f,akappa_f);
 #ifdef	__NVCC__
 		//x2 =  (M^†M+J^2)p 
 		cublasCaxpy(cublas_handle,kferm2,(cuComplex *)&fac_f,(cuComplex *)p_f,1,(cuComplex *)x2_f,1);
@@ -306,7 +307,8 @@ int Congradp(int na, double res, Complex_f *xi_f, int *itercg){
 		cudaMemPrefetchAsync(r_f,kfermHalo*sizeof(Complex_f),device,NULL);
 #endif
 		//x2=(M^†)x1=(M^†)Mp
-		Dslash_f(x1,p_f);	Dslashd_f(x2_f,x1);
+		Dslash_f(x1,p_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq_f,akappa_f);
+		Dslashd_f(x2_f,x1,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq_f,akappa_f);
 		//We can't evaluate α on the first niterx because we need to get β_n.
 		if(*itercg){
 			//x*.x

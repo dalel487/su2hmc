@@ -79,7 +79,7 @@
 //     integer, parameter :: niterc=2*gvol  
 //      #define niterc 2*gvol
 //    jis: hard limit to avoid runaway trajectories
-#define	niterc	100000
+#define	niterc	9999
 //    Constants for dimensions.
 #define	nc	2
 #define	nadj	3

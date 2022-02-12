@@ -174,7 +174,8 @@ int Force(double *dSdpi, int iflag, double res1){
 			}
 #endif
 		}
-		Hdslash(X2,X1);
+//		Hdslash(X2,X1);
+		Hdslash(X2,X1,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 #if (defined __INTEL_MKL__ || defined USE_BLAS)
 		double blasd=2.0;
 		cblas_zdscal(kferm2, blasd, X2, 1);
