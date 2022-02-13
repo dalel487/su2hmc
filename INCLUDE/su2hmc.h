@@ -83,25 +83,15 @@ __attribute__((aligned(AVX)))
 	extern "C"
 {
 #endif
-#ifndef __NVCC__
 	int Force(double *dSdpi, int iflag, double res1);
 	int Gauge_force(double *dSdpi);
-#else
-	int Force(double *dSdpi, int iflag, double res1);
-	int Gauge_force(double *dSdpi);
-#endif
 	int Init(int istart, int iread, double beta, double fmu, double akappa, Complex ajq);
 	int Hamilton(double *h, double *s, double res2);
 	int Congradq(int na, double res, Complex *smallPhi, int *itercg);
 	int Congradp(int na, double res, Complex_f *xi_f, int *itercg);
 	int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbqb, double res, int *itercg);
-#ifndef __NVCC__
-	int SU2plaq(double *hg, double *avplaqs, double *avplaqt, Complex *u11t, Complex *u12t, int *iu);
-	double Polyakov(Complex * u11t, Complex *u12t);
-#else
-	int SU2plaq(double *hg, double *avplaqs, double *avplaqt);
-	double Polyakov();
-#endif
+	int SU2plaq(double *hg, double *avplaqs, double *avplaqt, Complex *u11t, Complex *u12t, int *iu, double beta);
+	double Polyakov(Complex *u11t, Complex *u12t);
 	//Inline Stuff
 	extern int Z_gather(Complex*x, Complex *y, int n, unsigned int *table, unsigned int mu);
 	extern int Fill_Small_Phi(int na, Complex *smallPhi);

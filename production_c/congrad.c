@@ -218,8 +218,8 @@ int Congradp(int na, double res, Complex_f *xi_f, int *itercg){
 	 * Calls:
 	 * =====
 	 * Fill_Small_Phi
-	 * Hdslash
-	 * Hdslashd
+	 * Dslash
+	 * Dslashd
 	 *
 	 * Globals:
 	 * =======

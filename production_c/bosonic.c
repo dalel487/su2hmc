@@ -4,7 +4,7 @@
  */
 #include	<par_mpi.h>
 #include	<su2hmc.h>
-int SU2plaq(double *hg, double *avplaqs, double *avplaqt, Complex *u11t, Complex *u12t, int *iu){
+int SU2plaq(double *hg, double *avplaqs, double *avplaqt, Complex *u11t, Complex *u12t, int *iu, double beta){
 	/* 
 	 * Calculates the gauge action using new (how new?) lookup table
 	 * Follows a routine called qedplaq in some QED3 code
@@ -20,6 +20,7 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt, Complex *u11t, Complex
 	 * double	avplaqt		Average Temporal Plaquette
 	 * Complex*	u11t,u12t	The trial fields
 	 * int*		iu				Upper halo indices
+	 * double	beta
 	 *
 	 * Calls:
 	 * =====
