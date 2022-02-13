@@ -106,7 +106,8 @@ int Par_ranset(unsigned int *seed,int iread)
 #ifdef _DEBUG
 	printf("Master seed: %i\t",*seed);
 #endif
-	if(rank&&iread)
+//I told this to check for iread but I honestly don't know why
+	if(rank)
 		*seed *= 1.0f+8.0f*(float)rank/(float)(size-1);
 #ifdef _DEBUG
 	printf("Rank:  %i\tSeed %i\n",rank, *seed);
