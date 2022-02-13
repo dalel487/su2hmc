@@ -41,7 +41,7 @@
 // Common block definition for parallel variables
 
 #define	nx	24
-#define	nt	4
+#define	nt	9
 // Keep original restriction of single spatial extent
 
 #define	ny    nx

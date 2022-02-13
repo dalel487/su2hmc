@@ -508,7 +508,7 @@ int main(int argc, char *argv[]){
 								//It would explain the weird names like fort.1X that looked like they were somehow
 								//FORTRAN related...
 								//Not yet implemented
-								fprintf(output, "Iter (CG) %i ancg %e ancgh %e\n", itercg, ancg/stepl, ancgh/stepl);
+								fprintf(output, "Iter (CG) %i ancg %e ancgh %e\n", itercg, ancg/stepl, ancgh);
 								fflush(output);
 								break;
 							case(1):
@@ -772,7 +772,7 @@ int Init(int istart, int iread, double beta, double fmu, double akappa, Complex 
 #ifdef _OPENACC
 #pragma acc enter data copyin(gamval[0:5][0:4], gamval_f[0:5][0:4], gamin[0:4][0:4])
 #else
-#pragma omp target enter data map(to:gamval[0:5*4], gamval_f[0:5*4]) nowait
+#pragma omp target enter data map(to:gamval[0:5][0:4], gamval_f[0:5][0:4], gamin[0:4][0:4]) nowait
 #endif
 #ifdef __NVCC__
 	//Gamma matrices and indices on the GPU
