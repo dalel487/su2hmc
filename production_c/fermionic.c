@@ -19,19 +19,27 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	 * =====
 	 * Gauss_z, Par_dsum, ZHalo_swap_dir, DHalo_swap_dir, Congradp, Dslashd
 	 *
-	 * Globals:
-	 * =======
-	 * Phi, X0, R1, u11t, u12t, gamval, iu, id 
-	 *
 	 * Parameters:
 	 * ==========
-	 * double *pbp:		Pointer to ψ-bar ψ
-	 * double endenf:		Energy density
-	 * double denf:
-	 * Complex qq:		Diquark
-	 * Complex qbqb:		Antidiquark
-	 * double res:		Conjugate Gradient Residue
-	 * int itercg:		Iterations of Conjugate Gradient
+	 * double		*pbp:			Pointer to ψ-bar ψ
+	 * double		*endenf:		Energy density
+	 * double		*denf:		Number Density
+	 * Complex 		*qq:			Diquark
+	 * Complex		*qbqb:		Antidiquark
+	 * double		res:			Conjugate Gradient Residue
+	 * int			itercg:		Iterations of Conjugate Gradient
+	 * Complex		*u11t:		First colour trial field
+	 * Complex		*u12t:		Second colour trial field
+	 * Complex_f	*u11t_f:		First colour trial field
+	 * Complex_f	*u12t_f:		Second colour trial field
+	 *	int			*iu:			Upper halo indices
+	 *	int			*id:			Lower halo indices
+	 *	Complex_f	*gamval_f:	Gamma matrices
+	 *	int			*gamin:		Indices for dirac terms
+	 *	float			*dk4m_f:	
+	 *	float			*dk4p_f:	
+	 *	Complex_f	jqq:			Diquark source
+	 *	float			akappa:		Hopping parameter
 	 *
 	 * Returns:
 	 * =======
