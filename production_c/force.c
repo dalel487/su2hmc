@@ -151,7 +151,8 @@ int Force(double *dSdpi, int iflag, double res1){
 			Complex *smallPhi = aligned_alloc(AVX,kferm2Halo*sizeof(Complex)); 
 #endif
 			Fill_Small_Phi(na, smallPhi);
-			Congradq(na, res1,smallPhi, &itercg );
+		//	Congradq(na, res1,smallPhi, &itercg );
+		Congradq(na,res1,smallPhi,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,&itercg);
 #if defined __INTEL_MKL__
 			mkl_free(smallPhi);
 #else
@@ -174,7 +175,6 @@ int Force(double *dSdpi, int iflag, double res1){
 			}
 #endif
 		}
-//		Hdslash(X2,X1);
 		Hdslash(X2,X1,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 #if (defined __INTEL_MKL__ || defined USE_BLAS)
 		double blasd=2.0;

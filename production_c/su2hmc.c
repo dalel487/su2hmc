@@ -13,12 +13,10 @@
 #include	<su2hmc.h>
 
 //Extern definitions, especially default values for fmu, beta and akappa
-Complex jqq = 0;
-Complex_f jqq_f = 0;
-double fmu = 0.0;
-double beta = 1.7;
-double akappa = 0.1780;
-float akappa_f = 0.1780f;
+Complex_f jqq = 0;
+float fmu = 0.0;
+float beta = 1.7;
+float akappa = 0.1780f;
 int
 #ifndef __NVCC__ 
 __attribute__((aligned(AVX)))
@@ -133,9 +131,9 @@ int main(int argc, char *argv[]){
 	//End of input
 	//===========
 	//rank is zero means it must be the "master process"
-	double dt=0.004; double ajq = 0.0;
-	double delb; //Not used?
-	double athq = 0.0;
+	float dt=0.004; float ajq = 0.0;
+	float delb; //Not used?
+	float athq = 0.0;
 	int stepl = 250; int ntraj = 10;
 	if(!rank){
 		FILE *midout;
@@ -147,7 +145,7 @@ int main(int argc, char *argv[]){
 					, OPENERROR, funcname, filename, fileop);
 			exit(OPENERROR);
 		}
-		fscanf(midout, "%lf %lf %lf %lf %lf %lf %lf %d %d %d %d %d", &dt, &beta, &akappa,\
+		fscanf(midout, "%f %f %f %f %f %f %f %d %d %d %d %d", &dt, &beta, &akappa,\
 				&ajq, &athq, &fmu, &delb, &stepl, &ntraj, &istart, &icheck, &iread);
 		fclose(midout);
 		assert(stepl>0);	assert(ntraj>0);	  assert(istart>0);  assert(icheck>0);  assert(iread>=0); 
@@ -156,15 +154,14 @@ int main(int argc, char *argv[]){
 	Par_dcopy(&dt); Par_dcopy(&beta); Par_dcopy(&akappa); Par_dcopy(&ajq);
 	Par_dcopy(&athq); Par_dcopy(&fmu); Par_dcopy(&delb); //Not used?
 	Par_icopy(&stepl); Par_icopy(&ntraj); Par_icopy(&istart); Par_icopy(&icheck);
-	Par_icopy(&iread); jqq=ajq*cexp(athq*I); akappa_f=(float)akappa; jqq_f=(Complex_f)jqq;
+	Par_icopy(&iread); jqq=ajq*cexp(athq*I);
 #ifdef __NVCC__
 	cudaMalloc(&jqq_d,sizeof(Complex));		cudaMalloc(&beta_d,sizeof(Complex));
-	cudaMalloc(&akappa_d,sizeof(Complex));	cudaMalloc(&akappa_f_d,sizeof(Complex_f));
+	cudaMalloc(&akappa_d,sizeof(Complex));	
 
 	cudaMemcpy(jqq_d,&jqq,sizeof(Complex),cudaMemcpyHostToDevice);
 	cudaMemcpy(beta_d,&beta,sizeof(Complex),cudaMemcpyHostToDevice);
 	cudaMemcpy(akappa_d,&akappa,sizeof(Complex),cudaMemcpyHostToDevice);
-	cudaMemcpy(akappa_f_d,&akappa_f,sizeof(Complex_f),cudaMemcpyHostToDevice);
 #endif
 #ifdef _DEBUG
 	printf("jqq=%f+(%f)I\n",creal(jqq),cimag(jqq));
@@ -937,7 +934,8 @@ int Hamilton(double *h, double *s, double res2){
 	for(int na=0;na<nf;na++){
 		memcpy(X1,X0+na*kferm2,kferm2*sizeof(Complex));
 		Fill_Small_Phi(na, smallPhi);
-		Congradq(na,res2,smallPhi,&itercg);
+		Congradq(na,res2,smallPhi,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,&itercg);
+		//Congradq(na,res2,smallPhi, &itercg );
 		ancgh+=itercg;
 		Fill_Small_Phi(na, smallPhi);
 		memcpy(X0+na*kferm2,X1,kferm2*sizeof(Complex));

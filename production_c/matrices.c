@@ -5,7 +5,7 @@
 //TO DO: Check and see are there any terms we are evaluating twice in the same loop
 //and use a variable to hold them instead to reduce the number of evaluations.
 int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, int *iu, int *id, Complex gamval[5][4], int gamin[4][4],\
-		double *dk4m, double *dk4p, Complex jqq, double akappa){
+		double *dk4m, double *dk4p, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -137,7 +137,7 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, int *iu, int 
 	return 0;
 }
 int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, int *iu, int *id, Complex gamval[5][4], int gamin[4][4],\
-		double *dk4m, double *dk4p, Complex jqq, double akappa){
+		double *dk4m, double *dk4p, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M^†*r
 	 *
@@ -272,8 +272,9 @@ int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, int *iu, int
 	}
 	return 0;
 }
-int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, int *iu, int *id, Complex gamval[4][5], int gamin[4][4],\
-		double *dk4m, double *dk4p, Complex jqq, double akappa){
+int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, int *iu, int *id, Complex gamval[5][4], int gamin[4][4],\
+		double *dk4m, double *dk4p, Complex_f jqq, float akappa){
+//int Hdslash(Complex *phi, Complex *r){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -372,7 +373,7 @@ int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, int *iu, int
 	return 0;
 }
 int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, int *iu, int *id, Complex gamval[4][5], int gamin[4][4],\
-		double *dk4m, double *dk4p, Complex jqq, double akappa){
+		double *dk4m, double *dk4p, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M^†*r
 	 *
@@ -484,7 +485,7 @@ int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, int *iu, in
 //Float Versions
 //int Dslash_f(Complex_f *phi, Complex_f *r){
 int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f, int *iu, int *id, Complex_f gamval_f[5][4],\
-					int gamin[4][4],	float *dk4m_f, float *dk4p_f, Complex_f jqq_f, float akappa_f){
+		int gamin[4][4],	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -505,8 +506,8 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 	 *	int			*gamin:		Indices for dirac terms
 	 *	float			*dk4m_f:	
 	 *	float			*dk4p_f:	
-	 *	Complex_f	jqq_f:		Diquark source
-	 *	float			akappa_f:	Hopping parameter
+	 *	Complex_f	jqq:		Diquark source
+	 *	float			akappa:	Hopping parameter
 	 *
 	 * Returns:
 	 * Zero on success, integer error code otherwise
@@ -533,9 +534,9 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork = idirac+4;
 			Complex_f a_1, a_2;
-			a_1=conj(jqq_f)*gamval_f[4][idirac];
+			a_1=conj(jqq)*gamval_f[4][idirac];
 			//We subtract a_2, hence the minus
-			a_2=-jqq_f*gamval_f[4][idirac];
+			a_2=-jqq*gamval_f[4][idirac];
 			phi[(i*ngorkov+idirac)*nc]+=a_1*r[(i*ngorkov+igork)*nc+0];
 			phi[(i*ngorkov+idirac)*nc+1]+=a_1*r[(i*ngorkov+igork)*nc+1];
 			phi[(i*ngorkov+igork)*nc+0]+=a_2*r[(i*ngorkov+idirac)*nc];
@@ -556,7 +557,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 				//Can manually vectorise with a pragma?
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
-				phi[(i*ngorkov+igorkov)*nc]+=-akappa_f*(u11t_f[i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc]+\
+				phi[(i*ngorkov+igorkov)*nc]+=-akappa*(u11t_f[i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc]+\
 						u12t_f[i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc+1]+\
 						conj(u11t_f[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]-\
 						u12t_f[did*ndim+mu]*r[(did*ngorkov+igorkov)*nc+1])+\
@@ -566,7 +567,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 															  conj(u11t_f[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]+\
 															  u12t_f[did*ndim+mu]*r[(did*ngorkov+igork1)*nc+1]);
 
-				phi[(i*ngorkov+igorkov)*nc+1]+=-akappa_f*(-conj(u12t_f[i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc]+\
+				phi[(i*ngorkov+igorkov)*nc+1]+=-akappa*(-conj(u12t_f[i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc]+\
 						conj(u11t_f[i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc+1]+\
 						conj(u12t_f[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]+\
 						u11t_f[did*ndim+mu]*r[(did*ngorkov+igorkov)*nc+1])+\
@@ -619,7 +620,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 	return 0;
 }
 int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f, int *iu, int *id, Complex_f gamval_f[5][4],\
-					int gamin[4][4],	float *dk4m_f, float *dk4p_f, Complex_f jqq_f, float akappa_f){
+		int gamin[4][4],	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -640,8 +641,8 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	 *	int			*gamin:		Indices for dirac terms
 	 *	float			*dk4m_f:	
 	 *	float			*dk4p_f:	
-	 *	Complex_f	jqq_f:		Diquark source
-	 *	float			akappa_f:	Hopping parameter
+	 *	Complex_f	jqq:		Diquark source
+	 *	float			akappa:	Hopping parameter
 	 *
 	 * Returns:
 	 * Zero on success, integer error code otherwise
@@ -669,8 +670,8 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 			int igork = idirac+4;
 			Complex_f a_1, a_2;
 			//We subtract a_1, hence the minus
-			a_1=-conj(jqq_f)*gamval_f[4][idirac];
-			a_2=jqq_f*gamval_f[4][idirac];
+			a_1=-conj(jqq)*gamval_f[4][idirac];
+			a_2=jqq*gamval_f[4][idirac];
 			phi[(i*ngorkov+idirac)*nc]+=a_1*r[(i*ngorkov+igork)*nc];
 			phi[(i*ngorkov+idirac)*nc+1]+=a_1*r[(i*ngorkov+igork)*nc+1];
 			phi[(i*ngorkov+igork)*nc]+=a_2*r[(i*ngorkov+idirac)*nc];
@@ -691,7 +692,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
 				phi[(i*ngorkov+igorkov)*nc]+=
-					-akappa_f*(      u11t_f[i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc]
+					-akappa*(      u11t_f[i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc]
 							+u12t_f[i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc+1]
 							+conj(u11t_f[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]
 							-u12t_f[did*ndim+mu] *r[(did*ngorkov+igorkov)*nc+1])
@@ -702,7 +703,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 								  +u12t_f[did*ndim+mu] *r[(did*ngorkov+igork1)*nc+1]);
 
 				phi[(i*ngorkov+igorkov)*nc+1]+=
-					-akappa_f*(-conj(u12t_f[i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc]
+					-akappa*(-conj(u12t_f[i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc]
 							+conj(u11t_f[i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc+1]
 							+conj(u12t_f[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]
 							+u11t_f[did*ndim+mu] *r[(did*ngorkov+igorkov)*nc+1])
@@ -758,7 +759,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	return 0;
 }
 int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f, int *iu, int *id, Complex_f gamval_f[5][4],\
-					int gamin[4][4],	float *dk4m_f, float *dk4p_f, Complex_f jqq_f, float akappa_f){
+		int gamin[4][4],	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -779,8 +780,8 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	 *	int			*gamin:		Indices for dirac terms
 	 *	float			*dk4m_f:	
 	 *	float			*dk4p_f:	
-	 *	Complex_f	jqq_f:		Diquark source
-	 *	float			akappa_f:	Hopping parameter
+	 *	Complex_f	jqq:		Diquark source
+	 *	float			akappa:	Hopping parameter
 	 *
 	 * Returns:
 	 * Zero on success, integer error code otherwise
@@ -813,7 +814,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 				//Can manually vectorise with a pragma?
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
-				phi[(i*ndirac+idirac)*nc]+=-akappa_f*(u11t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]+\
+				phi[(i*ndirac+idirac)*nc]+=-akappa*(u11t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]+\
 						u12t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]+\
 						conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]-\
 						u12t_f[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1]);\
@@ -823,7 +824,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 															conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]+\
 															u12t_f[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
 
-				phi[(i*ndirac+idirac)*nc+1]+=-akappa_f*(-conjf(u12t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]+\
+				phi[(i*ndirac+idirac)*nc+1]+=-akappa*(-conjf(u12t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]+\
 						conjf(u11t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]+\
 						conjf(u12t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]+\
 						u11t_f[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1])+\
@@ -860,7 +861,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	return 0;
 }
 int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f, int *iu, int *id, Complex_f gamval_f[5][4],\
-					int gamin[4][4],	float *dk4m_f, float *dk4p_f, Complex_f jqq_f, float akappa_f){
+		int gamin[4][4],	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -881,8 +882,8 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_
 	 *	int			*gamin:		Indices for dirac terms
 	 *	float			*dk4m_f:	
 	 *	float			*dk4p_f:	
-	 *	Complex_f	jqq_f:		Diquark source
-	 *	float			akappa_f:	Hopping parameter
+	 *	Complex_f	jqq:		Diquark source
+	 *	float			akappa:	Hopping parameter
 	 *
 	 * Returns:
 	 * Zero on success, integer error code otherwise
@@ -923,7 +924,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_
 				//to read when split into different loops, but should be faster this way
 
 				phi[(i*ndirac+idirac)*nc]+=
-					-akappa_f*(u11t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]
+					-akappa*(u11t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]
 							+u12t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]
 							+conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
 							-u12t_f[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
@@ -934,7 +935,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_
 								  +u12t_f[did*ndim+mu] *r[(did*ndirac+igork1)*nc+1]);
 
 				phi[(i*ndirac+idirac)*nc+1]+=
-					-akappa_f*(-conjf(u12t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]
+					-akappa*(-conjf(u12t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]
 							+conjf(u11t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]
 							+conjf(u12t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
 							+u11t_f[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
@@ -1022,7 +1023,7 @@ int New_trial(double dt, double *pp, Complex *u11t, Complex *u12t){
 			}
 	return 0;
 }
-	inline int Reunitarise(Complex *u11t, Complex *u12t){
+inline int Reunitarise(Complex *u11t, Complex *u12t){
 	/*
 	 * Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1
 	 *

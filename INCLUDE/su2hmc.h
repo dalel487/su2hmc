@@ -60,22 +60,16 @@ __attribute__((aligned(AVX)))
 	//------
 	//The diquark
 #ifdef __NVCC__
-	__device__ extern Complex *jqq_d;
-	__device__ extern Complex *jqq_f_d;
+	__device__
 #endif 
-	extern Complex jqq;
-	extern Complex_f jqq_f;
+	extern Complex_f jqq;
 
 	//Average # of congrad iter guidance and acceptance
 	double ancg, ancgh;
 #ifdef __NVCC__
-	__device__ extern double *beta_d, *akappa_d;
+	__device__ extern float *beta_d, *akappa_d;
 #endif 
-	extern double fmu, beta, akappa;
-#ifdef __NVCC__
-	__device__ extern float *akappa_f_d;
-#endif 
-	extern float akappa_f;
+	extern float fmu, beta, akappa;
 
 	//Function Declarations:
 	//#####################
@@ -87,7 +81,9 @@ __attribute__((aligned(AVX)))
 	int Gauge_force(double *dSdpi);
 	int Init(int istart, int iread, double beta, double fmu, double akappa, Complex ajq);
 	int Hamilton(double *h, double *s, double res2);
-	int Congradq(int na, double res, Complex *smallPhi, int *itercg);
+//	int Congradq(int na, double res, Complex *smallPhi, int *itercg);
+int Congradq(int na, double res, Complex *r, Complex_f *u11t_f, Complex_f *u12t_f, int *iu, int *id, Complex_f gamval_f[5][4],\
+		int gamin[4][4],	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa, int *itercg);
 	int Congradp(int na, double res, Complex_f *xi_f, int *itercg);
 	int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbqb, double res, int *itercg);
 	int SU2plaq(double *hg, double *avplaqs, double *avplaqt, Complex *u11t, Complex *u12t, int *iu, double beta);

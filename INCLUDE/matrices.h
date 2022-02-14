@@ -10,15 +10,15 @@
 extern "C"
 {
 #endif
-	int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, int *iu, int *id, Complex gamval[4][5], int gamin[4][4],\
-			double *dk4m, double *dk4p, Complex jqq, double akappa);
-	int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, int *iu, int *id, Complex gamval[4][5], int gamin[4][4],\
-			double *dk4m, double *dk4p, Complex jqq, double akappa);
-	int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, int *iu, int *id, Complex gamval[4][5], int gamin[4][4],\
-			double *dk4m, double *dk4p, Complex jqq, double akappa);
-	//	int Hdslash(Complex *phi, Complex *r);
-	int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, int *iu, int *id, Complex gamval[4][5], int gamin[4][4],\
-			double *dk4m, double *dk4p, Complex jqq, double akappa);
+	int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, int *iu, int *id, Complex gamval[5][4], int gamin[4][4],\
+			double *dk4m, double *dk4p, Complex_f jqq, float akappa);
+	int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, int *iu, int *id, Complex gamval[5][4], int gamin[4][4],\
+			double *dk4m, double *dk4p, Complex_f jqq, float akappa);
+	int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, int *iu, int *id, Complex gamval[5][4], int gamin[4][4],\
+			double *dk4m, double *dk4p, Complex_f jqq, float akappa);
+//	int Hdslash(Complex *phi, Complex *r);
+	int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, int *iu, int *id, Complex gamval[5][4], int gamin[4][4],\
+			double *dk4m, double *dk4p, Complex_f jqq, float akappa);
 	//Float version
 	int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f, int *iu, int *id, Complex_f gamval_f[5][4],\
 			int gamin[4][4],	float *dk4m_f, float *dk4p_f, Complex_f jqq_f, float akappa_f);

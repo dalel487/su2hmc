@@ -1,7 +1,8 @@
 #include	<matrices.h>
 #include	<par_mpi.h>
 #include	<su2hmc.h>
-int Congradq(int na, double res, Complex *smallPhi, int *itercg){
+int Congradq(int na, double res, Complex *r, Complex_f *u11t_f, Complex_f *u12t_f, int *iu, int *id, Complex_f gamval_f[5][4],\
+		int gamin[4][4],	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa, int *itercg){
 	/*
 	 * Matrix Inversion via Mixed Precision Conjugate Gradient
 	 * Solves (M^†)Mx=Phi
@@ -23,10 +24,7 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 	 * ==========
 	 * int na: Flavour index
 	 * double res: Limit for conjugate gradient
-	 * complex *smallPhi: Partition of Phi being used. This is actually going to be overwritten
-	 * 				pretty much straight away but it seems more efficent to pass the
-	 * 				memory from Hamiltonian that's no longer being used than to assign
-	 * 				a second identical array
+	 * Complex *r: Partition of Phi being used. Gets recycled as the residual vector
 	 * int itercg: Counts the iterations of the conjugate gradient
 	 *
 	 * Returns:
@@ -37,8 +35,7 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 	const double resid = kferm2*res*res;
 	//The κ^2 factor is needed to normalise the fields correctly
 	//jqq is the diquark codensate and is global scope.
-		Complex fac = conj(jqq)*jqq*akappa*akappa;
-	Complex_f fac_f = (Complex_f)fac;
+	Complex_f fac_f = conj(jqq)*jqq*akappa*akappa;
 	//These were evaluated only in the first loop of niterx so we'll just do it ouside of the loop.
 	double alphan;
 	//The alpha and beta terms should be double, but that causes issues with BLAS pointers. Instead we declare
@@ -47,7 +44,7 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 	double betad = 1.0; Complex_f alphad=0; Complex alpha = 1;
 	//Because we're dealing with flattened arrays here we can call cblas safely without the halo
 #ifdef __NVCC__
-	Complex *p, *r, *x2;
+	Complex *p, *x2;
 	Complex_f *p_f, *x1_f, *x2_f;
 	int device=-1; cudaGetDevice(&device);
 	cudaMallocManaged(&p, kferm2*sizeof(Complex),cudaMemAttachGlobal);
@@ -55,9 +52,6 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 
 	cudaMallocManaged(&p_f, kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMemAdvise(p_f,kferm2Halo*sizeof(Complex_f),cudaMemAdviseSetPreferredLocation,device);
-
-	cudaMallocManaged(&r, kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMemAdvise(r,kferm2Halo*sizeof(Complex),cudaMemAdviseSetPreferredLocation,device);
 
 	cudaMalloc(&x1_f, kferm2Halo*sizeof(Complex_f));
 	cudaMalloc(&x2_f, kferm2Halo*sizeof(Complex_f));
@@ -67,7 +61,6 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 	cudaMemPrefetchAsync(x2,kferm2*sizeof(Complex),device,NULL);
 #elif defined __INTEL_MKL__
 	Complex *p  = mkl_calloc(kferm2,sizeof(Complex),AVX);
-	Complex *r  = mkl_calloc(kferm2,sizeof(Complex),AVX);
 	Complex *x2=mkl_calloc(kferm2, sizeof(Complex), AVX);
 
 	Complex_f *p_f  = mkl_calloc(kferm2Halo,sizeof(Complex_f),AVX);
@@ -75,20 +68,17 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 	Complex_f *x1_f=mkl_calloc(kferm2Halo, sizeof(Complex_f), AVX);
 #else
 	Complex *p  = aligned_alloc(AVX,kferm2*sizeof(Complex));
-	Complex *r  = aligned_alloc(AVX,kferm2*sizeof(Complex));
 	Complex *x2=aligned_alloc(AVX,kferm2*sizeof(Complex));
 
 	Complex_f *p_f=aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
 	Complex_f *x1_f=aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
 	Complex_f *x2_f=aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
 #endif
-	Fill_Small_Phi(na, smallPhi);
 	//Instead of copying elementwise in a loop, use memcpy.
 	memcpy(p, X1, kferm2*sizeof(Complex));
 #ifdef __NVCC__
 	cudaMemPrefetchAsync(p,kferm2*sizeof(Complex),device,NULL);
 #endif
-	memcpy(r, smallPhi, kferm2*sizeof(Complex));
 
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
 	//if statements quicker to type
@@ -101,8 +91,8 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 		cudaMemPrefetchAsync(p_f,kferm2Halo*sizeof(Complex_f),device,NULL);
 #endif
 		//x2 =  (M^†M)p 
-		Hdslash_f(x1_f,p_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq_f,akappa_f);
-		Hdslashd_f(x2_f,x1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq_f,akappa_f);
+		Hdslash_f(x1_f,p_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
+		Hdslashd_f(x2_f,x1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 #ifdef	__NVCC__
 		//x2 =  (M^†M+J^2)p 
 		cublasCaxpy(cublas_handle,kferm2,(cuComplex *)&fac_f,(cuComplex *)p_f,1,(cuComplex *)x2_f,1);
@@ -198,13 +188,13 @@ int Congradq(int na, double res, Complex *smallPhi, int *itercg){
 #endif
 	}
 #ifdef __NVCC__
-	cudaFree(x2); cudaFree(p); cudaFree(r);
+	cudaFree(x2); cudaFree(p);
 	cudaFree(x1_f);cudaFree(x2_f); cudaFree(p_f);
 #elif defined __INTEL_MKL__
-	mkl_free(x1_f); mkl_free(x2); mkl_free(p); mkl_free(r);
+	mkl_free(x1_f); mkl_free(x2); mkl_free(p);
 	mkl_free(p_f); mkl_free(x2_f);
 #else
-	free(x1_f); free(x2); free(p); free(r);
+	free(x1_f); free(x2); free(p);
 	free(p_f); free(x2_f);
 #endif
 	return 0;
@@ -217,7 +207,6 @@ int Congradp(int na, double res, Complex_f *xi_f, int *itercg){
 	 *
 	 * Calls:
 	 * =====
-	 * Fill_Small_Phi
 	 * Dslash
 	 * Dslashd
 	 *
@@ -307,8 +296,8 @@ int Congradp(int na, double res, Complex_f *xi_f, int *itercg){
 		cudaMemPrefetchAsync(r_f,kfermHalo*sizeof(Complex_f),device,NULL);
 #endif
 		//x2=(M^†)x1=(M^†)Mp
-		Dslash_f(x1,p_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq_f,akappa_f);
-		Dslashd_f(x2_f,x1,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq_f,akappa_f);
+		Dslash_f(x1,p_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
+		Dslashd_f(x2_f,x1,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 		//We can't evaluate α on the first niterx because we need to get β_n.
 		if(*itercg){
 			//x*.x
