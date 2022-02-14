@@ -169,6 +169,17 @@ int main(int argc, char *argv[]){
 	seed = time(NULL);
 #endif
 
+//Cannot assign memory to these inside Init without using double pointers, and that's more trouble than it is worth
+#ifdef __NVCC__
+	cudaMallocManaged((void**)&iu,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
+	cudaMallocManaged((void**)&id,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
+#elif defined __INTEL_MKL__
+	id = (unsigned int*)mkl_malloc(ndim*kvol*sizeof(int),AVX);
+	iu = (unsigned int*)mkl_malloc(ndim*kvol*sizeof(int),AVX);
+#else
+	id = (unsigned int*)aligned_alloc(AVX,ndim*kvol*sizeof(int));
+	iu = (unsigned int*)aligned_alloc(AVX,ndim*kvol*sizeof(int));
+#endif
 	//Initialisation
 	//istart < 0: Start from tape?!? How old is this code?
 	//istart = 0: Ordered/Cold Start
@@ -650,7 +661,7 @@ int Init(int istart, int iread, double beta, double fmu, double akappa, Complex 
 	 *
 	 * Globals:
 	 * ========
-	 * u11, u12, u11t, u12t, u11_f, u12_f, dk4m, dk4p, dk4m_4, dk4p_f
+	 * u11, u12, u11t, u12t, u11t_f, u12t_f, dk4m, dk4p, dk4m_4, dk4p_f
 	 * iu, id
 	 *
 	 * Parameters:
@@ -675,7 +686,7 @@ int Init(int istart, int iread, double beta, double fmu, double akappa, Complex 
 #endif
 #endif
 	//First things first, calculate a few constants
-	Addrc();
+	Addrc(iu, id);
 	//And confirm they're legit
 	Check_addr(iu, ksize, ksizet, 0, kvol+halo);
 	Check_addr(id, ksize, ksizet, 0, kvol+halo);

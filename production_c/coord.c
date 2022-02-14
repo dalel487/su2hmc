@@ -8,14 +8,19 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-int Addrc(){
+int Addrc(unsigned int *iu, unsigned int *id){
 	/*
 	 * Loads the addresses required during the update
 	 * 
-	 * Globals:
+	 * Globals (Only referenced by the CPU):
 	 * ======
-	 * id, iu, hu, hd, h1u, h1d, h2u, h2d, halosize
+	 * hu, hd, h1u, h1d, h2u, h2d, halosize
 	 * 
+	 * Parameters (Used for CPU and GPU):
+	 * =========
+	 * unsigned int *iu:	Upper halo indices
+	 * unsigned int *id:	Lower halo indices
+	 *
 	 * Returns:
 	 * ========
 	 * Zero on success, integer error code otherwise
@@ -24,16 +29,6 @@ int Addrc(){
 	//Rather than having 8 ih variables I'm going to use a 2x4 array
 	//down is 0, up is 1
 	int ih[2][4] = {{-1,-1,-1,-1},{-1,-1,-1,-1}};
-#ifdef __NVCC__
-	cudaMallocManaged((void**)&iu,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
-	cudaMallocManaged((void**)&id,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
-#elif defined __INTEL_MKL__
-	id = mkl_malloc(ndim*kvol*sizeof(int),AVX);
-	iu = mkl_malloc(ndim*kvol*sizeof(int),AVX);
-#else
-	id = aligned_alloc(AVX,ndim*kvol*sizeof(int));
-	iu = aligned_alloc(AVX,ndim*kvol*sizeof(int));
-#endif
 #ifdef __INTEL_MKL__
 	hd = (unsigned int*)mkl_malloc(ndim*halo*sizeof(int),AVX);
 	hu = (unsigned int*)mkl_malloc(ndim*halo*sizeof(int),AVX);
@@ -429,7 +424,7 @@ inline int Coord2gindex(int ix, int iy, int iz, int it){
 	//I've factorised this function compared to its original 
 	//implimentation to reduce the number of multiplications
 	//and hopefully improve performance
-//	return it+nt*(iz+nz*(iy+ny*ix));
+	//	return it+nt*(iz+nz*(iy+ny*ix));
 	return ix+nx*(iy+ny*(iz+nz*it));
 }
 int Testlcoord(int cap){

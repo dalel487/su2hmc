@@ -28,7 +28,7 @@ extern "C"
 #endif
 	//Functions
 	//========
-	int Addrc();
+	int Addrc(unsigned int *iu, unsigned int *id);
 	/*
 	 * Loads the addresses required during the update
 	 */
