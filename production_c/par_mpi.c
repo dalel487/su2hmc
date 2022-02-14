@@ -811,6 +811,27 @@ inline int Par_dcopy(double *dval){
 	}
 	return 0;
 }
+inline int Par_fcopy(float *fval){
+	/*
+	 * Broadcasts an float to the other processes
+	 *
+	 * Parameters:
+	 * ----------
+	 * float dval
+	 *
+	 * Returns:
+	 * -------
+	 * Zero on success, integer error code otherwise
+	 */
+	char *funcname = "Par_dfopy";
+	if(MPI_Bcast(fval,1,MPI_FLOAT,masterproc,comm)){
+		fprintf(stderr, "Error %i in %s: Failed to broadcast %f from %i.\nExiting...\n\n",
+				BROADERR, funcname, *fval, rank);
+		MPI_Finalise();
+		exit(BROADERR);
+	}
+	return 0;
+}
 inline int Par_zcopy(Complex *zval){
 	/*
 	 * Broadcasts a Complex value to the other processes

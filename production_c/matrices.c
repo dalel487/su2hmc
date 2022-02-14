@@ -372,7 +372,7 @@ int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, int *iu, int
 	}
 	return 0;
 }
-int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, int *iu, int *id, Complex gamval[4][5], int gamin[4][4],\
+int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, int *iu, int *id, Complex gamval[5][4], int gamin[4][4],\
 		double *dk4m, double *dk4p, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M^†*r

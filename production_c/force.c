@@ -150,7 +150,7 @@ int Force(double *dSdpi, int iflag, double res1){
 #else
 			Complex *smallPhi = aligned_alloc(AVX,kferm2Halo*sizeof(Complex)); 
 #endif
-			Fill_Small_Phi(na, smallPhi);
+			Fill_Small_Phi(na, smallPhi, Phi);
 			//	Congradq(na, res1,smallPhi, &itercg );
 			Congradq(na,res1,X1,smallPhi,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,&itercg);
 #if defined __INTEL_MKL__

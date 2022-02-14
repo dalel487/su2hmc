@@ -148,8 +148,8 @@ int main(int argc, char *argv[]){
 		assert(stepl>0);	assert(ntraj>0);	  assert(istart>0);  assert(icheck>0);  assert(iread>=0); 
 	}
 	//Send inputs to other ranks
-	Par_dcopy(&dt); Par_dcopy(&beta); Par_dcopy(&akappa); Par_dcopy(&ajq);
-	Par_dcopy(&athq); Par_dcopy(&fmu); Par_dcopy(&delb); //Not used?
+	Par_fcopy(&dt); Par_fcopy(&beta); Par_fcopy(&akappa); Par_fcopy(&ajq);
+	Par_fcopy(&athq); Par_fcopy(&fmu); Par_fcopy(&delb); //Not used?
 	Par_icopy(&stepl); Par_icopy(&ntraj); Par_icopy(&istart); Par_icopy(&icheck);
 	Par_icopy(&iread); jqq=ajq*cexp(athq*I);
 #ifdef __NVCC__
@@ -169,16 +169,55 @@ int main(int argc, char *argv[]){
 	seed = time(NULL);
 #endif
 
-//Cannot assign memory to these inside Init without using double pointers, and that's more trouble than it is worth
+	//Cannot assign memory to these inside Init without using double pointers, and that's more trouble than it is worth
 #ifdef __NVCC__
 	cudaMallocManaged((void**)&iu,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
 	cudaMallocManaged((void**)&id,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
+
+	cudaMallocManaged(&dk4m,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
+	cudaMallocManaged(&dk4p,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
+	cudaMallocManaged(&dk4m_f,(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
+	cudaMallocManaged(&dk4p_f,(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
+
+	cudaMalloc(&gamval_d,5*4*sizeof(Complex));
+	cudaMalloc(&gamval_f_d,5*4*sizeof(Complex_f));
+
+	cudaMallocManaged(&u11,ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&u12,ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&u11t,ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&u12t,ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&u11t_f,ndim*(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged(&u12t_f,ndim*(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
 #elif defined __INTEL_MKL__
 	id = (unsigned int*)mkl_malloc(ndim*kvol*sizeof(int),AVX);
 	iu = (unsigned int*)mkl_malloc(ndim*kvol*sizeof(int),AVX);
+
+	dk4m = mkl_malloc((kvol+halo)*sizeof(double), AVX);
+	dk4p = mkl_malloc((kvol+halo)*sizeof(double), AVX);
+	dk4m_f = mkl_malloc((kvol+halo)*sizeof(float), AVX);
+	dk4p_f = mkl_malloc((kvol+halo)*sizeof(float), AVX);
+
+	u11 = mkl_malloc(ndim*kvol*sizeof(Complex),AVX);
+	u12 = mkl_malloc(ndim*kvol*sizeof(Complex),AVX);
+	u11t = mkl_malloc(ndim*(kvol+halo)*sizeof(Complex),AVX);
+	u12t = mkl_malloc(ndim*(kvol+halo)*sizeof(Complex),AVX);
+	u11t_f = mkl_malloc(ndim*(kvol+halo)*sizeof(Complex_f),AVX);
+	u12t_f = mkl_malloc(ndim*(kvol+halo)*sizeof(Complex_f),AVX);
 #else
 	id = (unsigned int*)aligned_alloc(AVX,ndim*kvol*sizeof(int));
 	iu = (unsigned int*)aligned_alloc(AVX,ndim*kvol*sizeof(int));
+
+	dk4m = aligned_alloc(AVX,(kvol+halo)*sizeof(double));
+	dk4p = aligned_alloc(AVX,(kvol+halo)*sizeof(double));
+	dk4m_f = aligned_alloc(AVX,(kvol+halo)*sizeof(float));
+	dk4p_f = aligned_alloc(AVX,(kvol+halo)*sizeof(float));
+
+	u11 = aligned_alloc(AVX,ndim*kvol*sizeof(Complex));
+	u12 = aligned_alloc(AVX,ndim*kvol*sizeof(Complex));
+	u11t = aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex));
+	u12t = aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex));
+	u11t_f = aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex_f));
+	u12t_f = aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex_f));
 #endif
 	//Initialisation
 	//istart < 0: Start from tape?!? How old is this code?
@@ -346,7 +385,8 @@ int main(int argc, char *argv[]){
 		cudaMemPrefetchAsync(u12t_f, ndim*(kvol+halo)*sizeof(Complex_f),device,NULL);
 #endif
 		double H0, S0;
-		Hamilton(&H0, &S0, rescga);
+		Hamilton(&H0, &S0, rescga,pp,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval_f,gamin,\
+		dk4m_f,dk4p_f,jqq,akappa,beta);
 #ifdef _DEBUG
 		if(!rank) printf("H0: %e S0: %e\n", H0, S0);
 #endif
@@ -430,7 +470,8 @@ int main(int argc, char *argv[]){
 		Reunitarise(u11t,u12t);
 #pragma acc update self(u11t[0:kvol*ndim],u12t[0:kvol*ndim])
 		double H1, S1;
-		Hamilton(&H1, &S1, rescga);
+		Hamilton(&H1, &S1, rescga,pp,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval_f,gamin,\
+		dk4m_f,dk4p_f,jqq,akappa,beta);
 		double dH = H0 - H1;
 		double dS = S0 - S1;
 		if(!rank){
@@ -707,21 +748,6 @@ int Init(int istart, int iread, double beta, double fmu, double akappa, Complex 
 	cudaMemAdvise(id,ndim*kvol*sizeof(int),cudaMemAdviseSetReadMostly,device);
 	cudaMemPrefetchAsync(iu,ndim*kvol*sizeof(int),device,NULL);
 	cudaMemPrefetchAsync(id,ndim*kvol*sizeof(int),device,NULL);
-
-	cudaMallocManaged(&dk4m,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
-	cudaMallocManaged(&dk4p,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
-	cudaMallocManaged(&dk4m_f,(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
-	cudaMallocManaged(&dk4p_f,(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
-#elif defined __INTEL_MKL__
-	dk4m = mkl_malloc((kvol+halo)*sizeof(double), AVX);
-	dk4p = mkl_malloc((kvol+halo)*sizeof(double), AVX);
-	dk4m_f = mkl_malloc((kvol+halo)*sizeof(float), AVX);
-	dk4p_f = mkl_malloc((kvol+halo)*sizeof(float), AVX);
-#else
-	dk4m = aligned_alloc(AVX,(kvol+halo)*sizeof(double));
-	dk4p = aligned_alloc(AVX,(kvol+halo)*sizeof(double));
-	dk4m_f = aligned_alloc(AVX,(kvol+halo)*sizeof(float));
-	dk4p_f = aligned_alloc(AVX,(kvol+halo)*sizeof(float));
 #endif
 	//CUDA this. Only limit will be the bus speed
 #pragma omp parallel for simd aligned(dk4m,dk4p:AVX)
@@ -782,12 +808,9 @@ int Init(int istart, int iread, double beta, double fmu, double akappa, Complex 
 #endif
 #ifdef __NVCC__
 	//Gamma matrices and indices on the GPU
-	cudaMallocManaged(&gamin_d,4*4*sizeof(int),cudaMemAttachGlobal);
 	memcpy(gamin_d,gamin,4*4*sizeof(int));
 	gamval_d=NULL;
-	cudaMalloc(&gamval_d,5*4*sizeof(Complex));
 	cudaMemcpy(gamval_d,gamval,5*4*sizeof(Complex),cudaMemcpyHostToDevice);
-	cudaMalloc(&gamval_f_d,5*4*sizeof(Complex_f));
 	cudaMemcpy(gamval_f_d,gamval_f,5*4*sizeof(Complex_f),cudaMemcpyHostToDevice);
 	//More prefetching and marking as read-only (mostly)
 	cudaMemAdvise(dk4p,(kvol+halo)*sizeof(double),cudaMemAdviseSetReadMostly,device);
@@ -797,27 +820,6 @@ int Init(int istart, int iread, double beta, double fmu, double akappa, Complex 
 	cudaMemPrefetchAsync(dk4p,(kvol+halo)*sizeof(double),device,NULL);
 	cudaMemPrefetchAsync(dk4m,(kvol+halo)*sizeof(double),device,NULL);
 	cudaMemPrefetchAsync(gamin_d,16*sizeof(int),device,NULL);
-
-	cudaMallocManaged(&u11,ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&u12,ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&u11t,ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&u12t,ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&u11t_f,ndim*(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged(&u12t_f,ndim*(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
-#elif defined __INTEL_MKL__
-	u11 = mkl_malloc(ndim*kvol*sizeof(Complex),AVX);
-	u12 = mkl_malloc(ndim*kvol*sizeof(Complex),AVX);
-	u11t = mkl_malloc(ndim*(kvol+halo)*sizeof(Complex),AVX);
-	u12t = mkl_malloc(ndim*(kvol+halo)*sizeof(Complex),AVX);
-	u11t_f = mkl_malloc(ndim*(kvol+halo)*sizeof(Complex_f),AVX);
-	u12t_f = mkl_malloc(ndim*(kvol+halo)*sizeof(Complex_f),AVX);
-#else
-	u11 = aligned_alloc(AVX,ndim*kvol*sizeof(Complex));
-	u12 = aligned_alloc(AVX,ndim*kvol*sizeof(Complex));
-	u11t = aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex));
-	u12t = aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex));
-	u11t_f = aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex_f));
-	u12t_f = aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex_f));
 #endif
 	if(iread){
 		if(!rank) printf("Calling Par_sread() for configuration: %i\n", iread);
@@ -886,7 +888,10 @@ int Init(int istart, int iread, double beta, double fmu, double akappa, Complex 
 #endif
 	return 0;
 }
-int Hamilton(double *h, double *s, double res2){
+int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex *X1, Complex *Phi,\
+		Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f, int * iu, int *id,\
+		Complex_f gamval_f[5][4], int gamin[4][4], float *dk4m_f, float * dk4p_f, Complex_f jqq,\
+		float akappa, float beta){
 	/* Evaluates the Hamiltonian function
 	 * 
 	 * Calls:
@@ -942,11 +947,11 @@ int Hamilton(double *h, double *s, double res2){
 	//Iterating over flavours
 	for(int na=0;na<nf;na++){
 		memcpy(X1,X0+na*kferm2,kferm2*sizeof(Complex));
-		Fill_Small_Phi(na, smallPhi);
+		Fill_Small_Phi(na, smallPhi, Phi);
 		Congradq(na,res2,X1,smallPhi,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,&itercg);
 		//Congradq(na,res2,smallPhi, &itercg );
 		ancgh+=itercg;
-		Fill_Small_Phi(na, smallPhi);
+		Fill_Small_Phi(na, smallPhi,Phi);
 		memcpy(X0+na*kferm2,X1,kferm2*sizeof(Complex));
 #ifdef __NVCC__
 		Complex dot;
@@ -987,7 +992,7 @@ inline int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned
 		x[i]=y[table[i*ndim+mu]*ndim+mu];
 	return 0;
 }
-inline int Fill_Small_Phi(int na, Complex *smallPhi)
+inline int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
 {
 	/*Copies necessary (2*4*kvol) elements of Phi into a vector variable
 	 *

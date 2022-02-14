@@ -87,6 +87,7 @@ extern "C"
 	int Par_zsum(Complex *zval);
 	int Par_icopy(int *ival);
 	int Par_dcopy(double *dval);
+	int Par_fcopy(float *fval);
 	int Par_zcopy(Complex *zval);
 	//Halo Manipulation
 	int ZHalo_swap_all(Complex *z, int ncpt);

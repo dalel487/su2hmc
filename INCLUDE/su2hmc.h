@@ -80,7 +80,10 @@ __attribute__((aligned(AVX)))
 	int Force(double *dSdpi, int iflag, double res1);
 	int Gauge_force(double *dSdpi);
 	int Init(int istart, int iread, double beta, double fmu, double akappa, Complex ajq);
-	int Hamilton(double *h, double *s, double res2);
+	int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex *X1, Complex *Phi,\
+			Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f, int * iu, int *id,\
+			Complex_f gamval_f[5][4], int gamin[4][4], float *dk4m_f, float * dk4p_f, Complex_f jqq,\
+			float akappa, float beta);
 	//	int Congradq(int na, double res, Complex *smallPhi, int *itercg);
 	int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_f *u12t_f,int *iu,int *id,\
 			Complex_f gamval_f[5][4],int gamin[4][4],float *dk4m_f,float *dk4p_f,Complex_f jqq,float akappa,int *itercg);
@@ -95,7 +98,7 @@ __attribute__((aligned(AVX)))
 	double Polyakov(Complex *u11t, Complex *u12t);
 	//Inline Stuff
 	extern int Z_gather(Complex*x, Complex *y, int n, unsigned int *table, unsigned int mu);
-	extern int Fill_Small_Phi(int na, Complex *smallPhi);
+	extern int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi);
 #ifdef __cplusplus
 }
 #endif
