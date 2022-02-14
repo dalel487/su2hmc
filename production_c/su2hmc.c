@@ -43,9 +43,6 @@ __attribute__((aligned(AVX)))
 		{-I,I,I,-I},
 		{1,1,1,1},
 		{1,1,-1,-1}};
-#ifdef __NVCC__
-
-#endif
 
 /*
  * For the early phases of this translation, I'm going to try and
@@ -480,7 +477,8 @@ int main(int argc, char *argv[]){
 			int itercg=0;
 			double endenf, denf;
 			Complex qbqb;
-			Measure(&pbp,&endenf,&denf,&qq,&qbqb,respbp,&itercg);
+			Measure(&pbp,&endenf,&denf,&qq,&qbqb,respbp,&itercg,u11t,u12t,u11t_f,u12t_f,iu,id,gamval_f,\
+					gamin,dk4m_f,dk4p_f,jqq,akappa);
 #ifdef _DEBUG
 			if(!rank)
 				printf("Finished measurements\n");
@@ -934,7 +932,7 @@ int Hamilton(double *h, double *s, double res2){
 	for(int na=0;na<nf;na++){
 		memcpy(X1,X0+na*kferm2,kferm2*sizeof(Complex));
 		Fill_Small_Phi(na, smallPhi);
-		Congradq(na,res2,smallPhi,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,&itercg);
+		Congradq(na,res2,X1,smallPhi,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,&itercg);
 		//Congradq(na,res2,smallPhi, &itercg );
 		ancgh+=itercg;
 		Fill_Small_Phi(na, smallPhi);

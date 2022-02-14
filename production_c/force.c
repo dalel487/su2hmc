@@ -151,8 +151,8 @@ int Force(double *dSdpi, int iflag, double res1){
 			Complex *smallPhi = aligned_alloc(AVX,kferm2Halo*sizeof(Complex)); 
 #endif
 			Fill_Small_Phi(na, smallPhi);
-		//	Congradq(na, res1,smallPhi, &itercg );
-		Congradq(na,res1,smallPhi,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,&itercg);
+			//	Congradq(na, res1,smallPhi, &itercg );
+			Congradq(na,res1,X1,smallPhi,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,&itercg);
 #if defined __INTEL_MKL__
 			mkl_free(smallPhi);
 #else
@@ -202,7 +202,7 @@ int Force(double *dSdpi, int iflag, double res1){
 #ifdef _OPENACC
 #pragma acc parallel loop copyin(X2[0:kferm2Halo])
 #else
-//#pragma omp target teams distribute parallel for map(to:X1[0:kferm2Halo],X2[0:kferm2Halo]) map(tofrom:dSdpi[0:kmom])
+		//#pragma omp target teams distribute parallel for map(to:X1[0:kferm2Halo],X2[0:kferm2Halo]) map(tofrom:dSdpi[0:kmom])
 #pragma omp parallel for
 #endif
 		for(int i=0;i<kvol;i++)

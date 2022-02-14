@@ -1,31 +1,35 @@
 #include	<matrices.h>
 #include	<par_mpi.h>
 #include	<su2hmc.h>
-int Congradq(int na, double res, Complex *r, Complex_f *u11t_f, Complex_f *u12t_f, int *iu, int *id, Complex_f gamval_f[5][4],\
-		int gamin[4][4],	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa, int *itercg){
+int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_f *u12t_f,int *iu,int *id,\
+		Complex_f gamval_f[5][4],int gamin[4][4],float *dk4m_f,float *dk4p_f,Complex_f jqq,float akappa,int *itercg){
 	/*
 	 * Matrix Inversion via Mixed Precision Conjugate Gradient
 	 * Solves (M^†)Mx=Phi
-	 * Impliments up/down partitioning
+	 * Implements up/down partitioning
 	 * The matrix multiplication step is done at single precision, while the update is done at double
 	 * 
 	 * Calls:
 	 * =====
-	 * Fill_Small_Phi, Hdslash_f, Hdslashd_f
-	 *
-	 * Globals:
-	 * =======
-	 * Phi, X0, X1, jqq 
-	 * WARNING: Due to how the common statement works in FORTRAN X1 here is the X1 in force and Hamilton, but
-	 * 		called x in the FORTRAN congradq as so not to clash with the placeholder x1 (FORTRAN is 
-	 * 		case insensitive.)
+	 * Hdslash_f, Hdslashd_f, Par_fsum, Par_dsum
 	 *
 	 * Parameters:
 	 * ==========
-	 * int na: Flavour index
-	 * double res: Limit for conjugate gradient
-	 * Complex *r: Partition of Phi being used. Gets recycled as the residual vector
-	 * int itercg: Counts the iterations of the conjugate gradient
+	 * int			na:			Flavour index
+	 * double		res:			Limit for conjugate gradient
+	 * Complex		*X1:			Phi initially, returned as (M†M)^{1} Phi
+	 * Complex		*r:			Partition of Phi being used. Gets recycled as the residual vector
+	 * Complex		*u11t_f:		First colour's trial field
+	 * Complex		*u12t_f:		Second colour's trial field
+	 * int			*iu:			Upper halo indices
+	 * int			*id:			Lower halo indices
+	 * Complex_f	*gamval_f:	Gamma matrices
+	 * int			*gamin:		Dirac indices
+	 * float			*dk4m_f:
+	 * float			*dk4p_f:
+	 * Complex_f	jqq:			Diquark source
+	 * float			akappa:		Hopping Parameter
+	 * int 			*itercg:		Counts the iterations of the conjugate gradient
 	 *
 	 * Returns:
 	 * =======
@@ -93,11 +97,10 @@ int Congradq(int na, double res, Complex *r, Complex_f *u11t_f, Complex_f *u12t_
 		//x2 =  (M^†M)p 
 		Hdslash_f(x1_f,p_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 		Hdslashd_f(x2_f,x1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
-#ifdef	__NVCC__
 		//x2 =  (M^†M+J^2)p 
+#ifdef	__NVCC__
 		cublasCaxpy(cublas_handle,kferm2,(cuComplex *)&fac_f,(cuComplex *)p_f,1,(cuComplex *)x2_f,1);
 #elif (defined __INTEL_MKL__ || defined USE_BLAS)
-		//x2 =  (M^†M+J^2)p 
 		cblas_caxpy(kferm2, &fac_f, p_f, 1, x2_f, 1);
 #else
 #pragma omp parallel for simd aligned(p_f,x2_f:AVX)
@@ -199,7 +202,8 @@ int Congradq(int na, double res, Complex *r, Complex_f *u11t_f, Complex_f *u12t_
 #endif
 	return 0;
 }
-int Congradp(int na, double res, Complex_f *xi_f, int *itercg){
+int Congradp(int na,double res,Complex *Phi,Complex_f *xi_f,Complex_f *u11t_f,Complex_f *u12t_f,int *iu,int *id,\
+		Complex_f gamval_f[5][4],int gamin[4][4],float *dk4m_f,float *dk4p_f,Complex_f jqq,float akappa,int *itercg){
 	/*
 	 * Matrix Inversion via Conjugate Gradient
 	 * Solves (M^†)Mx=Phi
@@ -207,23 +211,25 @@ int Congradp(int na, double res, Complex_f *xi_f, int *itercg){
 	 *
 	 * Calls:
 	 * =====
-	 * Dslash
-	 * Dslashd
-	 *
-	 * Globals:
-	 * =======
-	 * Phi, X0, xi
-	 * WARNING: Due to how the FORTRAN common statement works, you can have different names for the same global
-	 * 		variable in different functions. It is the order they appear on the list that matters. xi here
-	 * 		was called xi in the FORTRAN Measure subroutine and x in the congradp subroutine. We'll use
-	 * 		xi for both as it does not appear elsewhere
-	 * 		xi stores the result
+	 * Dslash_f, Dslashd_f, Par_fsum, Par_dsum
 	 *
 	 * Parameters:
 	 * ==========
-	 * int na: Flavour index
-	 * double res:
-	 * int itercg:
+	 * int			na:			Flavour index
+	 * double		res:			Limit for conjugate gradient
+	 * Complex		*Phi:			Phi initially, 
+	 * Complex_f	*r:			Returned as (M†M)^{1} Phi
+	 * Complex		*u11t_f:		First colour's trial field
+	 * Complex		*u12t_f:		Second colour's trial field
+	 * int			*iu:			Upper halo indices
+	 * int			*id:			Lower halo indices
+	 * Complex_f	*gamval_f:	Gamma matrices
+	 * int			*gamin:		Dirac indices
+	 * float			*dk4m_f:
+	 * float			*dk4p_f:
+	 * Complex_f	jqq:			Diquark source
+	 * float			akappa:		Hopping Parameter
+	 * int 			*itercg:		Counts the iterations of the conjugate gradient
 	 *
 	 * Returns:
 	 * =======
