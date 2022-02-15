@@ -66,14 +66,16 @@ __attribute__((aligned(AVX)))
 	int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Complex *Phi,Complex *u11t, Complex *u12t,\
 			Complex_f *u11t_f,Complex_f *u12t_f,int *iu,int *id,Complex gamval[5][4],Complex_f gamval_f[5][4],\
 			int gamin[4][4],double *dk4m, double *dk4p, float *dk4m_f,float *dk4p_f,Complex_f jqq,\
-			float akappa,float beta,int *ancg);
+			float akappa,float beta,double *ancg);
 	//	int Gauge_force(double *dSdpi);
 	int Gauge_force(double *dSdpi,Complex *u11t, Complex *u12t, int *iu, int *id, float beta);
-	int Init(int istart, int iread, double beta, double fmu, double akappa, Complex ajq);
+	int Init(int istart, int iread, double beta, double fmu, double akappa, Complex ajq,\
+			Complex *u11, Complex *u12, Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f,\
+			double *dk4m, double *dk4p, float *dk4m_f, float *dk4p_f, int *iu, int *id);
 	int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex *X1, Complex *Phi,\
 			Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f, int * iu, int *id,\
 			Complex_f gamval_f[5][4], int gamin[4][4], float *dk4m_f, float * dk4p_f, Complex_f jqq,\
-			float akappa, float beta,int *ancgh);
+			float akappa, float beta,double *ancgh);
 	//	int Congradq(int na, double res, Complex *smallPhi, int *itercg);
 	int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_f *u12t_f,int *iu,int *id,\
 			Complex_f gamval_f[5][4],int gamin[4][4],float *dk4m_f,float *dk4p_f,Complex_f jqq,float akappa,int *itercg);

@@ -188,7 +188,6 @@ int main(int argc, char *argv[]){
 	__managed__ 
 #endif 
 		float	*dk4m_f, *dk4p_f;
-#endif
 #ifdef __NVCC__
 	cudaMallocManaged((void**)&iu,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
 	cudaMallocManaged((void**)&id,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
@@ -243,7 +242,7 @@ int main(int argc, char *argv[]){
 	//istart = 0: Ordered/Cold Start
 	//			For some reason this leaves the trial fields as zero in the FORTRAN code?
 	//istart > 0: Random/Hot Start
-	Init(istart,iread,beta,fmu,akappa,ajq);
+	Init(istart,iread,beta,fmu,akappa,ajq,u11,u12,u11t,u12t,u11t_f,u12t_f,dk4m,dk4p,dk4m_f,dk4p_f,iu,id);
 #ifdef DIAGNOSTIC
 	Diagnostics(istart);
 #endif
@@ -255,7 +254,7 @@ int main(int argc, char *argv[]){
 	if(!rank) printf("Initial Polyakov loop evaluated as %e\n", poly);
 #endif
 	double hg, avplaqs, avplaqt;
-	Trial_Exchange();
+	Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
 	SU2plaq(&hg,&avplaqs,&avplaqt,u11t,u12t,iu,beta);
 	//Loop on β
 	//Print Heading
@@ -403,7 +402,7 @@ int main(int argc, char *argv[]){
 		//Initialise Trial Fields
 		memcpy(u11t, u11, ndim*kvol*sizeof(Complex));
 		memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
-		Trial_Exchange();
+	Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
 #ifdef __NVCC__
 		cudaMemPrefetchAsync(u11t, ndim*(kvol+halo)*sizeof(Complex),device,NULL);
 		cudaMemPrefetchAsync(u12t, ndim*(kvol+halo)*sizeof(Complex),device,NULL);
@@ -451,7 +450,7 @@ int main(int argc, char *argv[]){
 			//Get trial fields from accelerator for halo exchange
 			//Cancel that until we check for double precision flags. It's really bad on Xe since it isn't natively supported
 #pragma acc update self(u11t[0:ndim*kvol],u12t[0:ndim*kvol])
-			Trial_Exchange();
+	Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
 #ifdef __NVCC__
 			//Mark trial fields as primarily read only here? Can renable writing at the end of each trajectory
 			cudaMemPrefetchAsync(u11t, ndim*(kvol+halo)*sizeof(Complex),device,NULL);
@@ -550,7 +549,7 @@ int main(int argc, char *argv[]){
 			//If rejected, copy the previously accepted field in for measurements
 			memcpy(u11t, u11, ndim*kvol*sizeof(Complex));
 			memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
-			Trial_Exchange();
+	Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
 #ifdef _DEBUG
 			if(!rank)
 				printf("Starting measurements\n");
@@ -645,7 +644,7 @@ int main(int argc, char *argv[]){
 						}
 		}
 		if(itraj%icheck==0){
-			Par_swrite(itraj,icheck,beta,fmu,akappa,ajq);
+			Par_swrite(itraj,icheck,beta,fmu,akappa,ajq,u11,u12);
 		}
 		if(!rank)
 			fflush(output);
@@ -720,7 +719,9 @@ int main(int argc, char *argv[]){
 	fflush(stdout);
 	return 0;
 }
-int Init(int istart, int iread, double beta, double fmu, double akappa, Complex ajq){
+int Init(int istart, int iread, double beta, double fmu, double akappa, Complex ajq,\
+		Complex *u11, Complex *u12, Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f,\
+		double *dk4m, double *dk4p, float *dk4m_f, float *dk4p_f, int *iu, int *id){
 	/*
 	 * Initialises the system
 	 *
@@ -852,7 +853,7 @@ int Init(int istart, int iread, double beta, double fmu, double akappa, Complex 
 #endif
 	if(iread){
 		if(!rank) printf("Calling Par_sread() for configuration: %i\n", iread);
-		Par_sread(iread, beta, fmu, akappa, ajq);
+		Par_sread(iread, beta, fmu, akappa, ajq,u11,u12,u11t,u12t);
 		Par_ranset(&seed,iread);
 	}
 	else{
@@ -920,7 +921,7 @@ int Init(int istart, int iread, double beta, double fmu, double akappa, Complex 
 int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex *X1, Complex *Phi,\
 		Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f, int * iu, int *id,\
 		Complex_f gamval_f[5][4], int gamin[4][4], float *dk4m_f, float * dk4p_f, Complex_f jqq,\
-		float akappa, float beta, int *ancgh){
+		float akappa, float beta, double *ancgh){
 	/* Evaluates the Hamiltonian function
 	 * 
 	 * Calls:
