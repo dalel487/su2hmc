@@ -90,7 +90,8 @@ int Par_begin(int argc, char *argv[]){
 #endif
 	return 0;
 }	
-int Par_sread(const int iread, const double beta, const double fmu, const double akappa, const Complex ajq){
+int Par_sread(const int iread, const double beta, const double fmu, const double akappa, const Complex ajq,\
+		Complex *u11, Complex *u12, Complex *u11t, Complex *u12t){
 	/*
 	 * Reads and assigns the gauges from file
 	 *
@@ -301,6 +302,7 @@ int Par_sread(const int iread, const double beta, const double fmu, const double
 	memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
 	return 0;
 }
+/*
 int Par_psread(char *filename, double *ps){
 	/* Reads ps from a file
 	 * Since this function is very similar to Par_sread, I'm not really going to comment it
@@ -314,7 +316,7 @@ int Par_psread(char *filename, double *ps){
 	 * Returns:
 	 * =======
 	 * Zero on success, integer error code otherwise
-	 */
+	 *
 	char *funcname = "Par_psread";
 	MPI_Status status;
 #ifdef __INTEL_MKL__
@@ -381,8 +383,9 @@ int Par_psread(char *filename, double *ps){
 #endif
 	return 0;
 }
+*/
 int Par_swrite(const int itraj, const int icheck, const double beta, const double fmu, const double akappa, 
-		const Complex ajq){
+		const Complex ajq, Complex *u11, Complex *u12){
 	/*
 	 * Modified from an original version of swrite in FORTRAN
 	 *
@@ -1205,7 +1208,7 @@ int DHalo_swap_dir(double *d, int ncpt, int idir, int layer){
 	MPI_Wait(&request, &status);
 	return 0;
 }
-int Trial_Exchange(){
+int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f){
 	/*
 	 *	Exchanges the trial fields. I noticed that this halo exchange was happening
 	 *	even though the trial fields hadn't been updated. To get around this

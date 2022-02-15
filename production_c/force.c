@@ -5,7 +5,7 @@
 #include	<matrices.h>
 #include	<par_mpi.h>
 #include	<su2hmc.h>
-int Gauge_force(double *dSdpi){
+int Gauge_force(double *dSdpi,Complex *u11t, Complex *u12t, int *iu, int *id, float beta){
 	/*
 	 * Calculates dSdpi due to the Wilson Action at each intermediate time
 	 *
@@ -105,7 +105,10 @@ int Gauge_force(double *dSdpi){
 #endif
 	return 0;
 }
-int Force(double *dSdpi, int iflag, double res1){
+int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Complex *Phi,Complex *u11t, Complex *u12t,\
+		Complex_f *u11t_f,Complex_f *u12t_f,int *iu,int *id,Complex gamval[5][4],Complex_f gamval_f[5][4],\
+		int gamin[4][4],double *dk4m, double *dk4p, float *dk4m_f,float *dk4p_f,Complex_f jqq,\
+		float akappa,float beta,int *ancg){
 	/*
 	 *	Calculates dSds at each intermediate time
 	 *	
@@ -133,7 +136,7 @@ int Force(double *dSdpi, int iflag, double res1){
 	const char *funcname = "Force";
 #pragma acc update device(dSdpi[0:kmom])
 #ifndef NO_GAUGE
-	Gauge_force(dSdpi);
+	Gauge_force(dSdpi,u11t,u12t,iu,id,beta);
 #endif
 	//X1=(M†M)^{1} Phi
 	int itercg;

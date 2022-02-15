@@ -76,9 +76,11 @@ extern "C"
 {
 #endif
 	int Par_begin(int argc, char *argv[]);
-	int Par_sread(const int iread, const double beta, const double fmu, const double akappa, const Complex ajq);
-	int Par_psread(char *filename, double *ps);
-	int Par_swrite(const int itraj, const int icheck, const double beta, const double fmu, const double akappa, const Complex ajq);
+	int Par_sread(const int iread, const double beta, const double fmu, const double akappa, const Complex ajq,\
+			Complex *u11, Complex *u12, Complex *u11t, Complex *u12t);
+	//	int Par_psread(char *filename, double *ps);
+	int Par_swrite(const int itraj, const int icheck, const double beta, const double fmu, const double akappa, const Complex ajq,\
+			Complex *u11, Complex *u12);
 	int Par_end();
 	//Shortcuts for reductions and broadcasts. These should be inlined
 	int Par_isum(int *ival);
@@ -95,7 +97,7 @@ extern "C"
 	int CHalo_swap_all(Complex_f *c, int ncpt);
 	int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer);
 	int DHalo_swap_dir(double *d, int ncpt, int idir, int layer);
-	int Trial_Exchange();
+	int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f);
 	//If we have more than two processors on the time axis, there's an extra step in the Polyakov loop calculation
 	int Par_tmul(Complex *z11, Complex *z12);
 #ifdef __cplusplus

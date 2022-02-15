@@ -13,10 +13,6 @@
 #include	<su2hmc.h>
 
 //Extern definitions, especially default values for fmu, beta and akappa
-Complex_f jqq = 0;
-float fmu = 0.0;
-float beta = 1.7;
-float akappa = 0.1780f;
 int
 #ifndef __NVCC__ 
 __attribute__((aligned(AVX)))
@@ -114,9 +110,13 @@ int main(int argc, char *argv[]){
 	//Input
 	//The default values here are straight from the FORTRAN
 	//=====================================================
+	float beta = 1.7;
+	float akappa = 0.1780f;
+	Complex_f jqq = 0;
+	float fmu = 0.0;
 	int iread = 0;
 	int istart = 1;
-	ibound = -1;
+	int ibound = -1;
 	int iwrite = 1;
 	int iprint = 1; //For the measures
 	int icheck = 5; //Save conf
@@ -170,6 +170,25 @@ int main(int argc, char *argv[]){
 #endif
 
 	//Cannot assign memory to these inside Init without using double pointers, and that's more trouble than it is worth
+	//Gauges and trial fields 
+#ifdef __NVCC__
+	__managed__ 
+#endif 
+		Complex *u11, *u12, *u11t, *u12t;
+#ifdef __NVCC__
+	__managed__ 
+#endif 
+		Complex_f *u11t_f, *u12t_f;
+
+#ifdef __NVCC__
+	__managed__ 
+#endif 
+		double *dk4m, *dk4p, *pp;
+#ifdef __NVCC__
+	__managed__ 
+#endif 
+		float	*dk4m_f, *dk4p_f;
+#endif
 #ifdef __NVCC__
 	cudaMallocManaged((void**)&iu,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
 	cudaMallocManaged((void**)&id,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
@@ -277,9 +296,14 @@ int main(int argc, char *argv[]){
 	//===========================
 	double pbp;
 	Complex qq;
-	//Initialise Some Arrays. Leaving it late for scoping
-	//check the sizes in sizes.h
 	double *dSdpi;
+	//Field and related declarations
+#ifdef __NVCC__
+	__managed__ 
+#endif 
+		Complex *Phi, *R1, *X0, *X1;
+	//Initialise Arrays. Leaving it late for scoping
+	//check the sizes in sizes.h
 #ifdef __NVCC__
 	int device=-1;
 	cudaGetDevice(&device);
@@ -314,6 +338,8 @@ int main(int argc, char *argv[]){
 		start_time = MPI_Wtime();
 #endif
 	double action;
+	//Congugate Gradient iteration counters
+	double ancg,ancgh;
 	for(int itraj = iread+1; itraj <= ntraj+iread; itraj++){
 		//Reset conjugate gradient averages
 		ancg = 0; ancgh = 0;
@@ -386,7 +412,7 @@ int main(int argc, char *argv[]){
 #endif
 		double H0, S0;
 		Hamilton(&H0, &S0, rescga,pp,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval_f,gamin,\
-		dk4m_f,dk4p_f,jqq,akappa,beta);
+				dk4m_f,dk4p_f,jqq,akappa,beta,&ancgh);
 #ifdef _DEBUG
 		if(!rank) printf("H0: %e S0: %e\n", H0, S0);
 #endif
@@ -398,7 +424,8 @@ int main(int argc, char *argv[]){
 #ifdef _DEBUG
 		printf("Evaluating force on rank %i\n", rank);
 #endif
-		Force(dSdpi, 1, rescgg);
+		Force(dSdpi, 1, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
+				dk4m_f,dk4p_f,jqq,akappa,beta,&ancg);
 #ifdef __NVCC__
 		cublasDaxpy(cublas_handle,kmom, &d, dSdpi, 1, pp, 1);
 #elif (defined __INTEL_MKL__ || defined USE_BLAS)
@@ -431,7 +458,9 @@ int main(int argc, char *argv[]){
 			cudaMemPrefetchAsync(u12t, ndim*(kvol+halo)*sizeof(Complex),device,NULL);
 #endif
 			//p(t+3dt/2)=p(t+dt/2)-dSds(t+dt)*dt
-			Force(dSdpi, 0, rescgg);
+			//	Force(dSdpi, 0, rescgg);
+			Force(dSdpi, 0, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
+					dk4m_f,dk4p_f,jqq,akappa,beta,&ancg);
 			//The same for loop is given in both the if and else
 			//statement but only the value of d changes. This is due to the break in the if part
 			if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
@@ -471,7 +500,7 @@ int main(int argc, char *argv[]){
 #pragma acc update self(u11t[0:kvol*ndim],u12t[0:kvol*ndim])
 		double H1, S1;
 		Hamilton(&H1, &S1, rescga,pp,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval_f,gamin,\
-		dk4m_f,dk4p_f,jqq,akappa,beta);
+				dk4m_f,dk4p_f,jqq,akappa,beta,&ancgh);
 		double dH = H0 - H1;
 		double dS = S0 - S1;
 		if(!rank){
@@ -530,7 +559,7 @@ int main(int argc, char *argv[]){
 			double endenf, denf;
 			Complex qbqb;
 			Measure(&pbp,&endenf,&denf,&qq,&qbqb,respbp,&itercg,u11t,u12t,u11t_f,u12t_f,iu,id,gamval_f,\
-					gamin,dk4m_f,dk4p_f,jqq,akappa);
+					gamin,dk4m,dk4p,dk4m_f,dk4p_f,jqq,akappa,Phi,R1);
 #ifdef _DEBUG
 			if(!rank)
 				printf("Finished measurements\n");
@@ -891,7 +920,7 @@ int Init(int istart, int iread, double beta, double fmu, double akappa, Complex 
 int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex *X1, Complex *Phi,\
 		Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f, int * iu, int *id,\
 		Complex_f gamval_f[5][4], int gamin[4][4], float *dk4m_f, float * dk4p_f, Complex_f jqq,\
-		float akappa, float beta){
+		float akappa, float beta, int *ancgh){
 	/* Evaluates the Hamiltonian function
 	 * 
 	 * Calls:
@@ -950,7 +979,7 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 		Fill_Small_Phi(na, smallPhi, Phi);
 		Congradq(na,res2,X1,smallPhi,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,&itercg);
 		//Congradq(na,res2,smallPhi, &itercg );
-		ancgh+=itercg;
+		*ancgh+=itercg;
 		Fill_Small_Phi(na, smallPhi,Phi);
 		memcpy(X0+na*kferm2,X1,kferm2*sizeof(Complex));
 #ifdef __NVCC__
