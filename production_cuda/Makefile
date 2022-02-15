@@ -32,18 +32,19 @@ EXE=		cuda_su2hmc_CASCADE
 
 CSRC_DIR=	../production_c
 CSRC=	\
-#	    coord.c \
+	    coord.c \
 	    congrad.c \
 		su2hmc.c \
     	random.c \
 		par_mpi.c \
+		force.c\
+		fermionic.c
 
 CUSRC_DIR=	../production_cuda
-#CUSRC=	\
-		matrices.cu\
-		force.cu\
+CUSRC=	\
 		bosonic.cu\
-		fermionic.cu
+		matrices.cu\
+
 CUSRC= CUDA_Compile.cu
 
 CINC=	\

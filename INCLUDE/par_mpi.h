@@ -2,7 +2,6 @@
 #define	PAR_MPI
 #include	<coord.h>
 #include	<errorcodes.h>
-#include	<fields.h>
 #include	<math.h>
 #include	<mpi.h> 
 #ifdef _OPENMP

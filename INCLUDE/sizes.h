@@ -31,6 +31,11 @@
 #endif
 #ifdef	__NVCC__
 #include	<cuda.h>
+#include	<thrust_complex.h>
+#else
+#include	<complex.h>
+#define	Complex_f	float	complex
+#define	Complex	complex
 #endif
 // Define booleans for C because they don't exist natively
 // They do in C99...

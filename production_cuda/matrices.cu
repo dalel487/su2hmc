@@ -2,7 +2,8 @@
 #include <matrices.h>
 #include <string.h>
 #include	<thrust_complex.h>
-__global__ void cuDslash(Complex *phi, Complex *r){
+__global__ void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
+		Complex gamval[5][4], int gamin[4][4],	double *dk4m, double *dk4p, Complex_f jqq, float akappa){
 	char *funcname = "cuDslash";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -36,21 +37,21 @@ __global__ void cuDslash(Complex *phi, Complex *r){
 						u12t[i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc+1]+\
 						conj(u11t[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]-\
 						u12t[did*ndim+mu]*r[(did*ngorkov+igorkov)*nc+1])+\
-								     //Dirac term
-								     gamval_d[mu*ndirac+idirac]*(u11t[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc]+\
-										     u12t[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc+1]-\
-										     conj(u11t[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]+\
-										     u12t[did*ndim+mu]*r[(did*ngorkov+igork1)*nc+1]);
+													  //Dirac term
+													  gamval_d[mu*ndirac+idirac]*(u11t[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc]+\
+															  u12t[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc+1]-\
+															  conj(u11t[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]+\
+															  u12t[did*ndim+mu]*r[(did*ngorkov+igork1)*nc+1]);
 
 				phi[(i*ngorkov+igorkov)*nc+1]+=-(*akappa_d)*(-conj(u12t[i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc]+\
 						conj(u11t[i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc+1]+\
 						conj(u12t[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]+\
 						u11t[did*ndim+mu]*r[(did*ngorkov+igorkov)*nc+1])+\
-									 //Dirac term
-									 gamval_d[mu*ndirac+idirac]*(-conj(u12t[i*ndim+mu])*r[(uid*ngorkov+igork1)*nc]+\
-											 conj(u11t[i*ndim+mu])*r[(uid*ngorkov+igork1)*nc+1]-\
-											 conj(u12t[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]-\
-											 u11t[did*ndim+mu]*r[(did*ngorkov+igork1)*nc+1]);
+														 //Dirac term
+														 gamval_d[mu*ndirac+idirac]*(-conj(u12t[i*ndim+mu])*r[(uid*ngorkov+igork1)*nc]+\
+																 conj(u11t[i*ndim+mu])*r[(uid*ngorkov+igork1)*nc+1]-\
+																 conj(u12t[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]-\
+																 u11t[did*ndim+mu]*r[(did*ngorkov+igork1)*nc+1]);
 			}
 		}
 		//Timelike terms next. These run from igorkov=0..3 and 4..7 with slightly different rules for each
@@ -79,18 +80,19 @@ __global__ void cuDslash(Complex *phi, Complex *r){
 			//And the +4 terms. Note that dk4p and dk4m swap positions compared to the above				
 			phi[(i*ngorkov+igorkovPP)*nc]+=-dk4m[i]*(u11t[i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc]-r[(uid*ngorkov+igork1PP)*nc])+\
 					u12t[i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc+1]-r[(uid*ngorkov+igork1PP)*nc+1]))-\
-								 dk4p[did]*(conj(u11t[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])-\
-										 u12t[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
+													 dk4p[did]*(conj(u11t[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])-\
+															 u12t[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
 
 			phi[(i*ngorkov+igorkovPP)*nc+1]+=-dk4m[i]*(conj(-u12t[i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc]-r[(uid*ngorkov+igork1PP)*nc])+\
 					conj(u11t[i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc+1]-r[(uid*ngorkov+igork1PP)*nc+1]))-\
-								   dk4p[did]*(conj(u12t[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])+\
-										   u11t[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
+														dk4p[did]*(conj(u12t[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])+\
+																u11t[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
 		}
 #endif
 	}
 }
-__global__ void cuDslashd(Complex *phi, Complex *r){
+__global__ void cuDslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
+		Complex gamval[5][4], int gamin[4][4],	double *dk4m, double *dk4p, Complex_f jqq, float akappa){
 	char *funcname = "cuDslashd";
 	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -127,9 +129,9 @@ __global__ void cuDslashd(Complex *phi, Complex *r){
 							-u12t[did*ndim+mu] *r[(did*ngorkov+igorkov)*nc+1])
 					-gamval_d[mu*ndirac+idirac]*
 					(          u11t[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc]
-						     +u12t[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc+1]
-						     -conj(u11t[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]
-						     +u12t[did*ndim+mu] *r[(did*ngorkov+igork1)*nc+1]);
+								  +u12t[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc+1]
+								  -conj(u11t[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]
+								  +u12t[did*ndim+mu] *r[(did*ngorkov+igork1)*nc+1]);
 
 				phi[(i*ngorkov+igorkov)*nc+1]+=
 					-(*akappa_d)*(-conj(u12t[i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc]
@@ -171,19 +173,20 @@ __global__ void cuDslashd(Complex *phi, Complex *r){
 			//And the +4 terms. Note that dk4p and dk4m swap positions compared to the above				
 			phi[(i*ngorkov+igorkovPP)*nc]+=-dk4p[i]*(u11t[i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc]+r[(uid*ngorkov+igork1PP)*nc])+\
 					u12t[i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc+1]+r[(uid*ngorkov+igork1PP)*nc+1]))-\
-								 dk4m[did]*(conj(u11t[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]-r[(did*ngorkov+igork1PP)*nc])-\
-										 u12t[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]-r[(did*ngorkov+igork1PP)*nc+1]));
+													 dk4m[did]*(conj(u11t[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]-r[(did*ngorkov+igork1PP)*nc])-\
+															 u12t[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]-r[(did*ngorkov+igork1PP)*nc+1]));
 
 			phi[(i*ngorkov+igorkovPP)*nc+1]+=dk4p[i]*(conj(u12t[i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc]+r[(uid*ngorkov+igork1PP)*nc])-\
 					conj(u11t[i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc+1]+r[(uid*ngorkov+igork1PP)*nc+1]))-\
-								   dk4m[did]*(conj(u12t[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]-r[(did*ngorkov+igork1PP)*nc])+
-										   u11t[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]-r[(did*ngorkov+igork1PP)*nc+1]));
+														dk4m[did]*(conj(u12t[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]-r[(did*ngorkov+igork1PP)*nc])+
+																u11t[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]-r[(did*ngorkov+igork1PP)*nc+1]));
 
 		}
 #endif
 	}
 }
-__global__ void cuHdslash(Complex *phi, Complex *r){
+__global__ void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
+		Complex gamval[5][4], int gamin[4][4],	double *dk4m, double *dk4p, Complex_f jqq, float akappa){
 	char *funcname = "cuHdslash";
 	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -203,21 +206,21 @@ __global__ void cuHdslash(Complex *phi, Complex *r){
 						u12t[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]+\
 						conj(u11t[did*ndim+mu])*r[(did*ndirac+idirac)*nc]-\
 						u12t[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1])+\
-								   //Dirac term
-								   gamval_d[mu*ndirac+idirac]*(u11t[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]+\
-										   u12t[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]-\
-										   conj(u11t[did*ndim+mu])*r[(did*ndirac+igork1)*nc]+\
-										   u12t[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
+													//Dirac term
+													gamval_d[mu*ndirac+idirac]*(u11t[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]+\
+															u12t[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]-\
+															conj(u11t[did*ndim+mu])*r[(did*ndirac+igork1)*nc]+\
+															u12t[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
 
 				phi[(i*ndirac+idirac)*nc+1]+=-(*akappa_d)*(-conj(u12t[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]+\
 						conj(u11t[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]+\
 						conj(u12t[did*ndim+mu])*r[(did*ndirac+idirac)*nc]+\
 						u11t[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1])+\
-								     //Dirac term
-								     gamval_d[mu*ndirac+idirac]*(-conj(u12t[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]+\
-										     conj(u11t[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]-\
-										     conj(u12t[did*ndim+mu])*r[(did*ndirac+igork1)*nc]-\
-										     u11t[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
+													  //Dirac term
+													  gamval_d[mu*ndirac+idirac]*(-conj(u12t[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]+\
+															  conj(u11t[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]-\
+															  conj(u12t[did*ndim+mu])*r[(did*ndirac+igork1)*nc]-\
+															  u11t[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
 			}
 		}
 #endif
@@ -241,7 +244,8 @@ __global__ void cuHdslash(Complex *phi, Complex *r){
 #endif
 	}
 }
-__global__ void cuHdslashd(Complex *phi, Complex *r){
+__global__ void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
+		Complex gamval[5][4], int gamin[4][4],	double *dk4m, double *dk4p, Complex_f jqq, float akappa){
 	char *funcname = "cuHdslashd";
 	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -265,9 +269,9 @@ __global__ void cuHdslashd(Complex *phi, Complex *r){
 							-u12t[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
 					-gamval_d[mu*ndirac+idirac]*
 					(          u11t[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]
-						     +u12t[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]
-						     -conj(u11t[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
-						     +u12t[did*ndim+mu] *r[(did*ndirac+igork1)*nc+1]);
+								  +u12t[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]
+								  -conj(u11t[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
+								  +u12t[did*ndim+mu] *r[(did*ndirac+igork1)*nc+1]);
 
 				phi[(i*ndirac+idirac)*nc+1]+=
 					-(*akappa_d)*(-conj(u12t[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]
@@ -306,7 +310,8 @@ __global__ void cuHdslashd(Complex *phi, Complex *r){
 }
 
 //Float editions
-__global__ void cuDslash_f(Complex_f *phi, Complex_f *r){
+__global__ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu, unsigned int *id,\
+		Complex_f gamval_f[5][4],	int gamin[4][4],	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
 	char *funcname = "cuDslash";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -340,21 +345,21 @@ __global__ void cuDslash_f(Complex_f *phi, Complex_f *r){
 						u12t_f[i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc+1]+\
 						conj(u11t_f[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]-\
 						u12t_f[did*ndim+mu]*r[(did*ngorkov+igorkov)*nc+1])+\
-								     //Dirac term
-								     gamval_f_d[mu*ndirac+idirac]*(u11t_f[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc]+\
-										     u12t_f[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc+1]-\
-										     conj(u11t_f[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]+\
-										     u12t_f[did*ndim+mu]*r[(did*ngorkov+igork1)*nc+1]);
+													  //Dirac term
+													  gamval_f_d[mu*ndirac+idirac]*(u11t_f[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc]+\
+															  u12t_f[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc+1]-\
+															  conj(u11t_f[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]+\
+															  u12t_f[did*ndim+mu]*r[(did*ngorkov+igork1)*nc+1]);
 
 				phi[(i*ngorkov+igorkov)*nc+1]+=-(*akappa_f_d)*(-conj(u12t_f[i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc]+\
 						conj(u11t_f[i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc+1]+\
 						conj(u12t_f[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]+\
 						u11t_f[did*ndim+mu]*r[(did*ngorkov+igorkov)*nc+1])+\
-									 //Dirac term
-									 gamval_f_d[mu*ndirac+idirac]*(-conj(u12t_f[i*ndim+mu])*r[(uid*ngorkov+igork1)*nc]+\
-											 conj(u11t_f[i*ndim+mu])*r[(uid*ngorkov+igork1)*nc+1]-\
-											 conj(u12t_f[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]-\
-											 u11t_f[did*ndim+mu]*r[(did*ngorkov+igork1)*nc+1]);
+														 //Dirac term
+														 gamval_f_d[mu*ndirac+idirac]*(-conj(u12t_f[i*ndim+mu])*r[(uid*ngorkov+igork1)*nc]+\
+																 conj(u11t_f[i*ndim+mu])*r[(uid*ngorkov+igork1)*nc+1]-\
+																 conj(u12t_f[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]-\
+																 u11t_f[did*ndim+mu]*r[(did*ngorkov+igork1)*nc+1]);
 			}
 		}
 		//Timelike terms next. These run from igorkov=0..3 and 4..7 with slightly different rules for each
@@ -383,18 +388,19 @@ __global__ void cuDslash_f(Complex_f *phi, Complex_f *r){
 			//And the +4 terms. Note that dk4p_f and dk4m_f swap positions compared to the above				
 			phi[(i*ngorkov+igorkovPP)*nc]+=-dk4m_f[i]*(u11t_f[i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc]-r[(uid*ngorkov+igork1PP)*nc])+\
 					u12t_f[i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc+1]-r[(uid*ngorkov+igork1PP)*nc+1]))-\
-								 dk4p_f[did]*(conj(u11t_f[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])-\
-										 u12t_f[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
+													 dk4p_f[did]*(conj(u11t_f[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])-\
+															 u12t_f[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
 
 			phi[(i*ngorkov+igorkovPP)*nc+1]+=-dk4m_f[i]*(conj(-u12t_f[i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc]-r[(uid*ngorkov+igork1PP)*nc])+\
 					conj(u11t_f[i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc+1]-r[(uid*ngorkov+igork1PP)*nc+1]))-\
-								   dk4p_f[did]*(conj(u12t_f[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])+\
-										   u11t_f[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
+														dk4p_f[did]*(conj(u12t_f[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])+\
+																u11t_f[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
 		}
 #endif
 	}
 }
-__global__ void cuDslashd_f(Complex_f *phi, Complex_f *r){
+__global__ void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu, unsigned int *id,\
+		Complex_f gamval_f[5][4],	int gamin[4][4],	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
 	char *funcname = "cuDslashd";
 	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -431,9 +437,9 @@ __global__ void cuDslashd_f(Complex_f *phi, Complex_f *r){
 							-u12t_f[did*ndim+mu] *r[(did*ngorkov+igorkov)*nc+1])
 					-gamval_f_d[mu*ndirac+idirac]*
 					(          u11t_f[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc]
-						     +u12t_f[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc+1]
-						     -conj(u11t_f[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]
-						     +u12t_f[did*ndim+mu] *r[(did*ngorkov+igork1)*nc+1]);
+								  +u12t_f[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc+1]
+								  -conj(u11t_f[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]
+								  +u12t_f[did*ndim+mu] *r[(did*ngorkov+igork1)*nc+1]);
 
 				phi[(i*ngorkov+igorkov)*nc+1]+=
 					-(*akappa_f_d)*(-conj(u12t_f[i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc]
@@ -475,19 +481,20 @@ __global__ void cuDslashd_f(Complex_f *phi, Complex_f *r){
 			//And the +4 terms. Note that dk4p_f and dk4m_f swap positions compared to the above				
 			phi[(i*ngorkov+igorkovPP)*nc]+=-dk4p_f[i]*(u11t_f[i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc]+r[(uid*ngorkov+igork1PP)*nc])+\
 					u12t_f[i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc+1]+r[(uid*ngorkov+igork1PP)*nc+1]))-\
-								 dk4m_f[did]*(conj(u11t_f[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]-r[(did*ngorkov+igork1PP)*nc])-\
-										 u12t_f[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]-r[(did*ngorkov+igork1PP)*nc+1]));
+													 dk4m_f[did]*(conj(u11t_f[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]-r[(did*ngorkov+igork1PP)*nc])-\
+															 u12t_f[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]-r[(did*ngorkov+igork1PP)*nc+1]));
 
 			phi[(i*ngorkov+igorkovPP)*nc+1]+=dk4p_f[i]*(conj(u12t_f[i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc]+r[(uid*ngorkov+igork1PP)*nc])-\
 					conj(u11t_f[i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc+1]+r[(uid*ngorkov+igork1PP)*nc+1]))-\
-								   dk4m_f[did]*(conj(u12t_f[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]-r[(did*ngorkov+igork1PP)*nc])+
-										   u11t_f[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]-r[(did*ngorkov+igork1PP)*nc+1]));
+														dk4m_f[did]*(conj(u12t_f[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]-r[(did*ngorkov+igork1PP)*nc])+
+																u11t_f[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]-r[(did*ngorkov+igork1PP)*nc+1]));
 
 		}
 #endif
 	}
 }
-__global__ void cuHdslash_f(Complex_f *phi, Complex_f *r){
+__global__ void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu, unsigned int *id,\
+		Complex_f gamval_f[5][4],	int gamin[4][4],	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
 	char *funcname = "cuHdslash";
 	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -507,21 +514,21 @@ __global__ void cuHdslash_f(Complex_f *phi, Complex_f *r){
 						u12t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]+\
 						conj(u11t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]-\
 						u12t_f[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1])+\
-								   //Dirac term
-								   gamval_f_d[mu*ndirac+idirac]*(u11t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]+\
-										   u12t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]-\
-										   conj(u11t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]+\
-										   u12t_f[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
+													//Dirac term
+													gamval_f_d[mu*ndirac+idirac]*(u11t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]+\
+															u12t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]-\
+															conj(u11t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]+\
+															u12t_f[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
 
 				phi[(i*ndirac+idirac)*nc+1]+=-(*akappa_f_d)*(-conj(u12t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]+\
 						conj(u11t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]+\
 						conj(u12t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]+\
 						u11t_f[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1])+\
-								     //Dirac term
-								     gamval_f_d[mu*ndirac+idirac]*(-conj(u12t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]+\
-										     conj(u11t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]-\
-										     conj(u12t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]-\
-										     u11t_f[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
+													  //Dirac term
+													  gamval_f_d[mu*ndirac+idirac]*(-conj(u12t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]+\
+															  conj(u11t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]-\
+															  conj(u12t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]-\
+															  u11t_f[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
 			}
 		}
 #endif
@@ -545,7 +552,8 @@ __global__ void cuHdslash_f(Complex_f *phi, Complex_f *r){
 #endif
 	}
 }
-__global__ void cuHdslashd_f(Complex_f *phi, Complex_f *r){
+__global__ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu, unsigned int *id,\
+		Complex_f gamval_f[5][4],	int gamin[4][4],	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
 	char *funcname = "cuHdslashd";
 	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -569,9 +577,9 @@ __global__ void cuHdslashd_f(Complex_f *phi, Complex_f *r){
 							-u12t_f[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
 					-gamval_f_d[mu*ndirac+idirac]*
 					(          u11t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]
-						     +u12t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]
-						     -conj(u11t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
-						     +u12t_f[did*ndim+mu] *r[(did*ndirac+igork1)*nc+1]);
+								  +u12t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]
+								  -conj(u11t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
+								  +u12t_f[did*ndim+mu] *r[(did*ndirac+igork1)*nc+1]);
 
 				phi[(i*ndirac+idirac)*nc+1]+=
 					-(*akappa_f_d)*(-conj(u12t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]
@@ -673,7 +681,8 @@ __global__ void cuReunitarise(){
 	}
 }
 
-int Dslash(Complex *phi, Complex *r){
+int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
+		Complex gamval[5][4], int gamin[4][4],	double *dk4m, double *dk4p, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -705,7 +714,8 @@ int Dslash(Complex *phi, Complex *r){
 	cuDslash<<<dimGrid,dimBlock>>>(phi,r);
 	return 0;
 }
-int Dslashd(Complex *phi, Complex *r){
+int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
+		Complex gamval[5][4], int gamin[4][4],	double *dk4m, double *dk4p, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -737,7 +747,8 @@ int Dslashd(Complex *phi, Complex *r){
 	cuDslashd<<<dimGrid,dimBlock>>>(phi,r);
 	return 0;
 }
-int Hdslash(Complex *phi, Complex *r){
+int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
+		Complex gamval[5][4], int gamin[4][4],	double *dk4m, double *dk4p, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -776,7 +787,8 @@ int Hdslash(Complex *phi, Complex *r){
 		cuHdslash<<<dimGrid,dimBlock>>>(phi,r);
 	return 0;
 }
-int Hdslashd(Complex *phi, Complex *r){
+int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
+		Complex gamval[5][4], int gamin[4][4],	double *dk4m, double *dk4p, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -822,16 +834,17 @@ int Hdslashd(Complex *phi, Complex *r){
 	return 0;
 }
 
-int Reunitarise(){
+inline int Reunitarise(Complex *u11t, Complex *u12t){
 	cuReunitarise<<<dimGrid,dimBlock>>>();
 	return 0;
 }
-int New_trial(double dt){
+int New_trial(double dt, double *pp, Complex *u11t, Complex *u12t){
 	cuNew_trial<<<dimGrid,dimBlock>>>(dt);
 	return 0;
 }
 //Float editions
-int Dslash_f(Complex_f *phi, Complex_f *r){
+int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu, unsigned int *id,\
+		Complex_f gamval_f[5][4],	int gamin[4][4],	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -863,7 +876,8 @@ int Dslash_f(Complex_f *phi, Complex_f *r){
 	cuDslash_f<<<dimGrid,dimBlock>>>(phi,r);
 	return 0;
 }
-int Dslashd_f(Complex_f *phi, Complex_f *r){
+int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
+		Complex_f gamval_f[5][4],		int gamin[4][4],	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -895,7 +909,8 @@ int Dslashd_f(Complex_f *phi, Complex_f *r){
 	cuDslashd_f<<<dimGrid,dimBlock>>>(phi,r);
 	return 0;
 }
-int Hdslash_f(Complex_f *phi, Complex_f *r){
+int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned  int *iu,unsigned  int *id,\
+		Complex_f gamval_f[5][4],	int gamin[4][4],	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -934,7 +949,8 @@ int Hdslash_f(Complex_f *phi, Complex_f *r){
 		cuHdslash_f<<<dimGrid,dimBlock>>>(phi,r);
 	return 0;
 }
-int Hdslashd_f(Complex_f *phi, Complex_f *r){
+int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
+		Complex_f gamval_f[5][4],int gamin[4][4],	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -1018,7 +1034,7 @@ int Diagnostics(int istart){
 	X0= mkl_malloc(nf*kferm2Halo*sizeof(complex),AVX); 
 	X1= mkl_malloc(kferm2Halo*sizeof(complex),AVX); 
 	double *dSdpi = mkl_malloc(kmomHalo*sizeof(double), AVX);
-	#else
+#else
 	R1= aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 	xi= aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 	Phi= aligned_alloc(AVX,nf*kfermHalo*sizeof(Complex)); 
@@ -1026,7 +1042,7 @@ int Diagnostics(int istart){
 	X1= aligned_alloc(AVX,kferm2Halo*sizeof(Complex)); 
 	pp = aligned_alloc(AVX,kmomHalo*sizeof(double));
 	double *dSdpi = aligned_alloc(AVX,kmomHalo*sizeof(double));
-	#endif
+#endif
 	//pp is the momentum field
 
 	//Trial fields don't get modified so I'll set them up outside
@@ -1222,25 +1238,25 @@ int Diagnostics(int istart){
 	}
 
 	//George Michael's favourite bit of the code
-	#ifdef __NVCC__
+#ifdef __NVCC__
 	cudaFree(dk4m); cudaFree(dk4p); cudaFree(R1); cudaFree(dSdpi); cudaFree(pp);
 	cudaFree(Phi); cudaFree(u11t); cudaFree(u12t); cudaFree(xi);
 	cudaFree(X0); cudaFree(X1); cudaFree(u11); cudaFree(u12);
 	cudaFree(id); cudaFree(iu); cudaFree(hd); cudaFree(hu);
 	cudaFree(pcoord);
-	#elif defined USE_MKL
+#elif defined USE_MKL
 	mkl_free(dk4m); mkl_free(dk4p); mkl_free(R1); mkl_free(dSdpi); mkl_free(pp);
 	mkl_free(Phi); mkl_free(u11t); mkl_free(u12t); mkl_free(xi);
 	mkl_free(X0); mkl_free(X1); mkl_free(u11); mkl_free(u12);
 	mkl_free(id); mkl_free(iu); mkl_free(hd); mkl_free(hu);
 	mkl_free(pcoord);
-	#else
+#else
 	free(dk4m); free(dk4p); free(R1); free(dSdpi); free(pp);
 	free(Phi); free(u11t); free(u12t); free(xi);
 	free(X0); free(X1); free(u11); free(u12);
 	free(id); free(iu); free(hd); free(hu);
 	free(pcoord);
-	#endif
+#endif
 
 	MPI_Finalise();
 	exit(0);

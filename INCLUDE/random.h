@@ -14,6 +14,7 @@
 #endif
 #include <math.h>
 #include <par_mpi.h>
+#include <sizes.h>
 //Configuration for existing generators if called
 //===============================================
 #if (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))

@@ -153,6 +153,7 @@ int main(int argc, char *argv[]){
 	Par_icopy(&stepl); Par_icopy(&ntraj); Par_icopy(&istart); Par_icopy(&icheck);
 	Par_icopy(&iread); jqq=ajq*cexp(athq*I);
 #ifdef __NVCC__
+	Complex *jqq_d, *beta_d, *akappa_d;
 	cudaMalloc(&jqq_d,sizeof(Complex));		cudaMalloc(&beta_d,sizeof(Complex));
 	cudaMalloc(&akappa_d,sizeof(Complex));	
 
@@ -197,6 +198,10 @@ int main(int argc, char *argv[]){
 	cudaMallocManaged(&dk4m_f,(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
 	cudaMallocManaged(&dk4p_f,(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
 
+	int	*gamin_d;
+	Complex	*gamval_d;
+	Complex_f *gamval_f_d;
+	cudaMalloc(&gamin_d,4*4*sizeof(Complex));
 	cudaMalloc(&gamval_d,5*4*sizeof(Complex));
 	cudaMalloc(&gamval_f_d,5*4*sizeof(Complex_f));
 
@@ -242,7 +247,7 @@ int main(int argc, char *argv[]){
 	//istart = 0: Ordered/Cold Start
 	//			For some reason this leaves the trial fields as zero in the FORTRAN code?
 	//istart > 0: Random/Hot Start
-	Init(istart,iread,beta,fmu,akappa,ajq,u11,u12,u11t,u12t,u11t_f,u12t_f,dk4m,dk4p,dk4m_f,dk4p_f,iu,id);
+	Init(istart,ibound,iread,beta,fmu,akappa,ajq,u11,u12,u11t,u12t,u11t_f,u12t_f,dk4m,dk4p,dk4m_f,dk4p_f,iu,id);
 #ifdef DIAGNOSTIC
 	Diagnostics(istart);
 #endif
@@ -306,6 +311,13 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 	int device=-1;
 	cudaGetDevice(&device);
+	memcpy(gamin_d,gamin,4*4*sizeof(int));
+	gamval_d=NULL;
+	cudaMemcpy(gamval_d,gamval,5*4*sizeof(Complex),cudaMemcpyHostToDevice);
+	cudaMemAdvise(gamin_d,16*sizeof(int),cudaMemAdviseSetReadMostly,device);
+	cudaMemPrefetchAsync(gamin_d,16*sizeof(int),device,NULL);
+
+	cudaMemcpy(gamval_f_d,gamval_f,5*4*sizeof(Complex_f),cudaMemcpyHostToDevice);
 	cudaMallocManaged(&R1, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&Phi, nf*kferm*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&X0, nf*kferm2*sizeof(Complex),cudaMemAttachGlobal);
@@ -402,7 +414,7 @@ int main(int argc, char *argv[]){
 		//Initialise Trial Fields
 		memcpy(u11t, u11, ndim*kvol*sizeof(Complex));
 		memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
-	Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
+		Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
 #ifdef __NVCC__
 		cudaMemPrefetchAsync(u11t, ndim*(kvol+halo)*sizeof(Complex),device,NULL);
 		cudaMemPrefetchAsync(u12t, ndim*(kvol+halo)*sizeof(Complex),device,NULL);
@@ -450,7 +462,7 @@ int main(int argc, char *argv[]){
 			//Get trial fields from accelerator for halo exchange
 			//Cancel that until we check for double precision flags. It's really bad on Xe since it isn't natively supported
 #pragma acc update self(u11t[0:ndim*kvol],u12t[0:ndim*kvol])
-	Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
+			Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
 #ifdef __NVCC__
 			//Mark trial fields as primarily read only here? Can renable writing at the end of each trajectory
 			cudaMemPrefetchAsync(u11t, ndim*(kvol+halo)*sizeof(Complex),device,NULL);
@@ -480,9 +492,8 @@ int main(int argc, char *argv[]){
 			else{
 #ifdef __NVCC__
 				//dt is needed for the trial fields so has to be negated every time.
-				dt*=-1;
-				cublasDaxpy(cublas_handle,kmom, &dt, dSdpi, 1, pp, 1);
-				dt*=-1;
+				double dt_d=-1*dt;
+				cublasDaxpy(cublas_handle,kmom, &dt_d, dSdpi, 1, pp, 1);
 #elif (defined __INTEL_MKL__ || defined USE_BLAS)
 				cblas_daxpy(kmom, -dt, dSdpi, 1, pp, 1);
 #else
@@ -549,7 +560,7 @@ int main(int argc, char *argv[]){
 			//If rejected, copy the previously accepted field in for measurements
 			memcpy(u11t, u11, ndim*kvol*sizeof(Complex));
 			memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
-	Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
+			Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
 #ifdef _DEBUG
 			if(!rank)
 				printf("Starting measurements\n");
@@ -557,8 +568,8 @@ int main(int argc, char *argv[]){
 			int itercg=0;
 			double endenf, denf;
 			Complex qbqb;
-			Measure(&pbp,&endenf,&denf,&qq,&qbqb,respbp,&itercg,u11t,u12t,u11t_f,u12t_f,iu,id,gamval_f,\
-					gamin,dk4m,dk4p,dk4m_f,dk4p_f,jqq,akappa,Phi,R1);
+			Measure(&pbp,&endenf,&denf,&qq,&qbqb,respbp,&itercg,u11t,u12t,u11t_f,u12t_f,iu,id,\
+					gamval,gamval_f,gamin,dk4m,dk4p,dk4m_f,dk4p_f,jqq,akappa,Phi,R1);
 #ifdef _DEBUG
 			if(!rank)
 				printf("Finished measurements\n");
@@ -719,9 +730,9 @@ int main(int argc, char *argv[]){
 	fflush(stdout);
 	return 0;
 }
-int Init(int istart, int iread, double beta, double fmu, double akappa, Complex ajq,\
+int Init(int istart, int ibound, int iread, double beta, double fmu, double akappa, Complex ajq,\
 		Complex *u11, Complex *u12, Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f,\
-		double *dk4m, double *dk4p, float *dk4m_f, float *dk4p_f, int *iu, int *id){
+		double *dk4m, double *dk4p, float *dk4m_f, float *dk4p_f, unsigned int *iu, unsigned int *id){
 	/*
 	 * Initialises the system
 	 *
@@ -838,18 +849,12 @@ int Init(int istart, int iread, double beta, double fmu, double akappa, Complex 
 #endif
 #ifdef __NVCC__
 	//Gamma matrices and indices on the GPU
-	memcpy(gamin_d,gamin,4*4*sizeof(int));
-	gamval_d=NULL;
-	cudaMemcpy(gamval_d,gamval,5*4*sizeof(Complex),cudaMemcpyHostToDevice);
-	cudaMemcpy(gamval_f_d,gamval_f,5*4*sizeof(Complex_f),cudaMemcpyHostToDevice);
 	//More prefetching and marking as read-only (mostly)
 	cudaMemAdvise(dk4p,(kvol+halo)*sizeof(double),cudaMemAdviseSetReadMostly,device);
 	cudaMemAdvise(dk4m,(kvol+halo)*sizeof(double),cudaMemAdviseSetReadMostly,device);
-	cudaMemAdvise(gamin_d,16*sizeof(int),cudaMemAdviseSetReadMostly,device);
 
 	cudaMemPrefetchAsync(dk4p,(kvol+halo)*sizeof(double),device,NULL);
 	cudaMemPrefetchAsync(dk4m,(kvol+halo)*sizeof(double),device,NULL);
-	cudaMemPrefetchAsync(gamin_d,16*sizeof(int),device,NULL);
 #endif
 	if(iread){
 		if(!rank) printf("Calling Par_sread() for configuration: %i\n", iread);
@@ -919,7 +924,7 @@ int Init(int istart, int iread, double beta, double fmu, double akappa, Complex 
 	return 0;
 }
 int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex *X1, Complex *Phi,\
-		Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f, int * iu, int *id,\
+		Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f, unsigned int * iu, unsigned int *id,\
 		Complex_f gamval_f[5][4], int gamin[4][4], float *dk4m_f, float * dk4p_f, Complex_f jqq,\
 		float akappa, float beta, double *ancgh){
 	/* Evaluates the Hamiltonian function
