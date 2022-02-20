@@ -49,7 +49,7 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt, Complex *u11t, Complex
 #endif
 	return 0;
 }
-double Polyakov(){
+double Polyakov(Complex *u11t, Complex *u12t){
 	/*
 	 * Calculate the Polyakov loop (no prizes for guessing that one...)
 	 *
@@ -116,7 +116,7 @@ double Polyakov(){
 	//Buffers
 	cudaMemPrefetchAsync(Sigma11,kvol3*sizeof(Complex),device,NULL);
 	cudaMemPrefetchAsync(Sigma12,kvol3*sizeof(Complex),device,NULL);
-	cuPolyakov<<<dimGrid,dimBlock>>>(Sigma11,Sigma12);
+	cuPolyakov<<<dimGrid,dimBlock>>>(Sigma11,Sigma12,u11t,u12t);
 	//Multiply this partial loop with the contributions of the other cores in the
 	//timelike dimension
 	//Par_tmul does nothing if there is only a single processor in the time direction. So we only compile

@@ -5,7 +5,7 @@
 #include	<matrices.h>
 #include	<par_mpi.h>
 #include	<su2hmc.h>
-int Gauge_force(double *dSdpi,Complex *u11t, Complex *u12t, int *iu, int *id, float beta){
+int Gauge_force(double *dSdpi,Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id, float beta){
 	/*
 	 * Calculates dSdpi due to the Wilson Action at each intermediate time
 	 *
@@ -25,15 +25,15 @@ int Gauge_force(double *dSdpi,Complex *u11t, Complex *u12t, int *iu, int *id, fl
 	//	#endif
 	//Was a trial field halo exchange here at one point.
 #ifdef __INTEL_MKL__
-	Complex *Sigma11 = mkl_malloc(kvol*sizeof(Complex),AVX); 
-	Complex *Sigma12= mkl_malloc(kvol*sizeof(Complex),AVX); 
-	Complex *u11sh = mkl_malloc((kvol+halo)*sizeof(Complex),AVX); 
-	Complex *u12sh = mkl_malloc((kvol+halo)*sizeof(Complex),AVX); 
+	Complex *Sigma11 = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX); 
+	Complex *Sigma12= (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX); 
+	Complex *u11sh = (Complex *)mkl_malloc((kvol+halo)*sizeof(Complex),AVX); 
+	Complex *u12sh = (Complex *)mkl_malloc((kvol+halo)*sizeof(Complex),AVX); 
 #else
-	Complex *Sigma11 = aligned_alloc(AVX,kvol*sizeof(Complex)); 
-	Complex *Sigma12= aligned_alloc(AVX,kvol*sizeof(Complex)); 
-	Complex *u11sh = aligned_alloc(AVX,(kvol+halo)*sizeof(Complex)); 
-	Complex *u12sh = aligned_alloc(AVX,(kvol+halo)*sizeof(Complex)); 
+	Complex *Sigma11 = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex)); 
+	Complex *Sigma12= (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex)); 
+	Complex *u11sh = (Complex *)aligned_alloc(AVX,(kvol+halo)*sizeof(Complex)); 
+	Complex *u12sh = (Complex *)aligned_alloc(AVX,(kvol+halo)*sizeof(Complex)); 
 #endif
 #pragma acc enter data create(Sigma11[0:kvol],Sigma12[0:kvol],u11sh[0:kvol+halo],u12sh[0:kvol+halo])
 	//Holders for directions
@@ -106,7 +106,7 @@ int Gauge_force(double *dSdpi,Complex *u11t, Complex *u12t, int *iu, int *id, fl
 	return 0;
 }
 int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Complex *Phi,Complex *u11t, Complex *u12t,\
-		Complex_f *u11t_f,Complex_f *u12t_f,int *iu,int *id,Complex gamval[5][4],Complex_f gamval_f[5][4],\
+		Complex_f *u11t_f,Complex_f *u12t_f,unsigned int *iu,unsigned int *id,Complex gamval[5][4],Complex_f gamval_f[5][4],\
 		int gamin[4][4],double *dk4m, double *dk4p, float *dk4m_f,float *dk4p_f,Complex_f jqq,\
 		float akappa,float beta,double *ancg){
 	/*
@@ -141,17 +141,17 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 	//X1=(M†M)^{1} Phi
 	int itercg;
 #if defined __INTEL_MKL__
-	Complex *X2= mkl_malloc(kferm2Halo*sizeof(Complex), AVX);
+	Complex *X2= (Complex *)mkl_malloc(kferm2Halo*sizeof(Complex), AVX);
 #else
-	Complex *X2= aligned_alloc(AVX,kferm2Halo*sizeof(Complex));
+	Complex *X2= (Complex *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex));
 #endif
 	for(int na = 0; na<nf; na++){
 		memcpy(X1, X0+na*kferm2, kferm2*sizeof(Complex));
 		if(!iflag){
 #if defined __INTEL_MKL__
-			Complex *smallPhi =mkl_malloc(kferm2Halo*sizeof(Complex), AVX); 
+			Complex *smallPhi =(Complex *)mkl_malloc(kferm2Halo*sizeof(Complex), AVX); 
 #else
-			Complex *smallPhi = aligned_alloc(AVX,kferm2Halo*sizeof(Complex)); 
+			Complex *smallPhi = (Complex *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex)); 
 #endif
 			Fill_Small_Phi(na, smallPhi, Phi);
 			//	Congradq(na, res1,smallPhi, &itercg );

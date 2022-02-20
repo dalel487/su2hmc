@@ -180,7 +180,6 @@ int main(int argc, char *argv[]){
 	__managed__ 
 #endif 
 		Complex_f *u11t_f, *u12t_f;
-
 #ifdef __NVCC__
 	__managed__ 
 #endif 
@@ -189,6 +188,10 @@ int main(int argc, char *argv[]){
 	__managed__ 
 #endif 
 		float	*dk4m_f, *dk4p_f;
+#ifdef __NVCC__
+	__managed__ 
+#endif 
+	unsigned int *iu, *id;
 #ifdef __NVCC__
 	cudaMallocManaged((void**)&iu,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
 	cudaMallocManaged((void**)&id,ndim*kvol*sizeof(int),cudaMemAttachGlobal);

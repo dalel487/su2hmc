@@ -17,7 +17,7 @@
 #ifdef __NVCC__
 __managed__ extern
 #endif
-unsigned int *id, *iu, *hu, *hd;
+unsigned int *hu, *hd;
 #ifdef __NVCC__
 __managed__ extern
 #endif

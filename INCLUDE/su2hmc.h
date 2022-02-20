@@ -46,7 +46,7 @@ extern "C"
 	int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
 			Complex_f gamval_f[5][4],int gamin[4][4],float *dk4m_f,float *dk4p_f,Complex_f jqq,float akappa,int *itercg);
 	//	int Congradp(int na, double res, Complex_f *xi_f, int *itercg);
-	int Congradp(int na,double res,Complex *Phi,Complex_f *xi_f,Complex_f *u11t_f,Complex_f *u12t_f,int *iu,int *id,\
+	int Congradp(int na,double res,Complex *Phi,Complex_f *xi_f,Complex_f *u11t_f,Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
 			Complex_f gamval_f[5][4],int gamin[4][4],float *dk4m_f,float *dk4p_f,Complex_f jqq,float akappa,int *itercg);
 	//	int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbqb, double res, int *itercg);
 	int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbqb, double res, int *itercg,\
@@ -65,11 +65,13 @@ extern "C"
 //CUDA Declarations:
 //#################
 #ifdef __NVCC__
-__global__ void cuForce(double *dSdpi, Complex *X2);
-__global__ void Plus_staple(int mu, int nu, Complex *Sigma11, Complex *Sigma12);
-__global__ void Minus_staple(int mu, int nu, Complex *Sigma11, Complex *Sigma12, Complex *u11sh, Complex *u12sh);
-__global__ void cuGaugeForce(int mu, Complex *Sigma11, Complex *Sigma12, double * dSdpi);
-__global__ void cuSU2plaq(int mu, int nu, double *hgs, double *hgt, Complex *u11t, Complex *u12t, int *iu);
+__global__ void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
+				double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa);
+__global__ void Plus_staple(int mu, int nu,unsigned int *iu, Complex *Sigma11, Complex *Sigma12, Complex *u11t, Complex *u12t);
+__global__ void Minus_staple(int mu, int nu,unsigned int *iu,unsigned int *id, Complex *Sigma11, Complex *Sigma12,\
+		Complex *u11sh, Complex *u12sh, Complex *u11t, Complex *u12t);
+__global__ void cuGaugeForce(int mu, Complex *Sigma11, Complex *Sigma12,double*dSdpi,Complex *u11t, Complex *u12t, float beta);
+__global__ void cuSU2plaq(double *hgs, double *hgt, Complex *u11t, Complex *u12t, int *iu);
 __global__ void cuPolyakov(Complex *Sigma11, Complex * Sigma12, Complex *u11t, Complex *u12t);
 #endif
 #endif

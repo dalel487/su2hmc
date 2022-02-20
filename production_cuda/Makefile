@@ -37,15 +37,13 @@ CSRC=	\
 		su2hmc.c \
     	random.c \
 		par_mpi.c \
-		force.c\
-		fermionic.c
 
 CUSRC_DIR=	../production_cuda
 CUSRC=	\
 		bosonic.cu\
 		matrices.cu\
-
-CUSRC= CUDA_Compile.cu
+		force.cu\
+		fermionic.cu
 
 CINC=	\
 		su2hmc.h \

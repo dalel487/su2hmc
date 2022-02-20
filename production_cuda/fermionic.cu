@@ -4,7 +4,10 @@
 #include	<matrices.h>
 #include	<random.h>
 #include	<su2hmc.h>
-int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbqb, double res, int *itercg){
+int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbqb, double res, int *itercg,\
+		Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f, unsigned int *iu, unsigned int *id,\
+		Complex gamval[5][4], Complex_f gamval_f[5][4],	int gamin[4][4], double *dk4m, double *dk4p,\
+		float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa,	Complex *Phi, Complex *R1){
 	/*
 	 * Calculate fermion expectation values via a noisy estimator
 	 * -matrix inversion via conjugate gradient algorithm
@@ -64,16 +67,17 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	//R_1= M^† Ξ 
 	//R1 is local in fortran but since its going to be reset anyway I'm going to recycle the
 	//global
-	Dslashd_f(R1_f, xi_f);
+	Dslashd_f(R1_f, xi_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 	for(int i=0;i<kferm;i++)
 		R1[i]=(Complex)R1_f[i];
 	//Copying R1 to the first (zeroth) flavour index of Phi
 	//This should be safe with memcpy since the pointer name
 	//references the first block of memory for that pointer
+	cudaMemPrefetchAsync(Phi, kfermHalo*sizeof(Complex),device,NULL);
 	memcpy(Phi, R1, nc*ngorkov*kvol*sizeof(Complex));
 	//Evaluate xi = (M^† M)^-1 R_1 
-	cudaMemPrefetchAsync(R1_f, kfermHalo*sizeof(Complex_f),device,NULL);
-	Congradp(0, res, R1_f, itercg);
+	cudaMemPrefetchAsync(R1, kfermHalo*sizeof(Complex),device,NULL);
+	Congradp(0, res, Phi, R1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa, itercg);
 
 	cudaFree(xi_f); cudaFree(R1_f);
 	Complex buff;
