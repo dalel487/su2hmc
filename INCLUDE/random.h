@@ -30,7 +30,7 @@ extern "C"
 }
 #endif
 #elif defined __RANLUX__
-gsl_rng *ranlux_instd;
+extern gsl_rng *ranlux_instd;
 //Need to get a float version that uses a different seed for performance reasons.
 //Otherwise we get two generators (one float, one double) starting from the same seed. Not good
 //For now, the float generator will be a cast of the double one.

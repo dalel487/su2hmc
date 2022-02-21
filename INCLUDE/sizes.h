@@ -133,7 +133,7 @@
 //usually between 128 and 256
 //Note that from Volta/Turing  each SM (group of processors)
 //is smaller than on previous generations of GPUs
-dim3	dimBlock(ksizex,ksizey,1);
-dim3	dimGrid(ksizez,ksizet,1);
+extern dim3	dimBlock;
+extern dim3	dimGrid;
 #endif
 #endif

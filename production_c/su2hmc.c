@@ -3,6 +3,8 @@
 #ifdef	__NVCC__
 #include	<cuda.h>
 #include	<cuda_runtime.h>
+cublasHandle_t cublas_handle;
+cublasHandle_t cublas_status;
 //Fix this later
 #endif
 #include	<math.h>
@@ -39,6 +41,10 @@ __attribute__((aligned(AVX)))
 		{-I,I,I,-I},
 		{1,1,1,1},
 		{1,1,-1,-1}};
+#ifdef __CUDACC__
+	extern dim3	dimBlock(ksizex,ksizey,1);
+	extern dim3	dimGrid(ksizez,ksizet,1);
+#endif
 
 /*
  * For the early phases of this translation, I'm going to try and
@@ -191,7 +197,7 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 	__managed__ 
 #endif 
-	unsigned int *iu, *id;
+		unsigned int *iu, *id;
 #ifdef __NVCC__
 	cudaMallocManaged((void**)&iu,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
 	cudaMallocManaged((void**)&id,ndim*kvol*sizeof(int),cudaMemAttachGlobal);

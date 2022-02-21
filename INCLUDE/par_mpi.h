@@ -33,27 +33,17 @@
 //Variables
 //=========
 //Up/Down arrays
-int pu[ndim] __attribute__((aligned(AVX)));
-int pd[ndim] __attribute__((aligned(AVX))); 
+extern int pu[ndim] __attribute__((aligned(AVX)));
+extern int pd[ndim] __attribute__((aligned(AVX))); 
 
 //MPI Stuff
-int procid;
-int ierr;
 extern MPI_Comm comm ;
-int request;
+extern int request;
 
-int gsize[ndim];
-int lsize[ndim];
-
-int *pcoord;
-int pstart[ndim][nproc] __attribute__((aligned(AVX)));
-int pstop [ndim][nproc] __attribute__((aligned(AVX)));
-int rank, size;
-//C doesn't have logicals so we'll instead use an integer
-//although using rank 0 could also work?
-//      logical ismaster
-int ismaster;
-
+extern int *pcoord;
+extern int pstart[ndim][nproc] __attribute__((aligned(AVX)));
+extern int pstop [ndim][nproc] __attribute__((aligned(AVX)));
+extern int rank, size;
 //The common keyword is largely redundant here as everything
 //is already global scope.
 
@@ -68,12 +58,12 @@ int ismaster;
 //-------------
 //static unsigned int *iu, *id;
 
-//Function Declarations
-//=====================
 #ifdef __cplusplus
 extern "C"
 {
 #endif
+//Function Declarations
+//=====================
 	int Par_begin(int argc, char *argv[]);
 	int Par_sread(const int iread, const double beta, const double fmu, const double akappa, const Complex ajq,\
 			Complex *u11, Complex *u12, Complex *u11t, Complex *u12t);

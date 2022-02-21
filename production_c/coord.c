@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+unsigned int *hu, *hd, *h1u, *h1d, *halosize;;
 int Addrc(unsigned int *iu, unsigned int *id){
 	/*
 	 * Loads the addresses required during the update

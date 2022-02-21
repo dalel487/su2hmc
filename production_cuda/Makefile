@@ -9,7 +9,7 @@ IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include" -I ./ -I../production_c\
 				-I/usr/local/cuda/include/ -I/usr/include/c++/10/\
 				-I/usr/x86_64-linux-gnu/include/c++/10/x86_64-linux-gnu/
 
-CFLAGS=     $(IFLAGS) -std=gnu11 -qopt-zmm-usage=high -xSKYLAKE -axCASCADELAKE\
+CFLAGS=     $(IFLAGS) -std=gnu11 -qopt-zmm-usage=high -xCASCADELAKE\
 			-static-intel -static-libgcc -DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
 			-qopenmp -qno-openmp-offload -qopenmp-simd -qopenmp-link=static -DSA3AT \
 			 -masm=att -fcommon
@@ -27,8 +27,10 @@ NVCCFLAGS=	${IFLAGS}  -arch=compute_75 -code=sm_75 -err-no -w \
 			#Last flag is an experimental one used to call host functions in device code. Not sure
 			#if it does what we want because the error message suggesting it came up when declaring
 			#a11 and a12 in the Dslash routine
+#NVCCFLAGS=	${IFLAGS}  -arch=compute_60 -code=sm_60,sm_61,sm_70,sm_75,sm_80,sm_86 -err-no -w \
+#Replace first line of NVCCFLAGS with above when done. Targets every platform since 2016
 
-EXE=		cuda_su2hmc_CASCADE
+EXE=		cuda_su2hmc
 
 CSRC_DIR=	../production_c
 CSRC=	\
@@ -45,6 +47,7 @@ CUSRC=	\
 		force.cu\
 		fermionic.cu
 
+#CUSRC= CUDA_Compile.cu
 CINC=	\
 		su2hmc.h \
 		sizes.h \
@@ -54,8 +57,6 @@ CINC=	\
     	coord.h \
 	    errorcodes.h \
 
-CUINC= \
-		cuda_complex.hpp\
 
 #
 # No need to edit below this line
@@ -88,9 +89,8 @@ debug:		$(EXE)
 
 $(EXE): $(OBJ)
 	$(NVCC) -ccbin ${CXX} $(NVCCFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $(LFLAGS) $^ -o $@
-	#$(CXX) $(CFLAGS) $(MKLFLAGS) $(LFLAGS) $^ -o $@
 $(CUOBJ): %.o: $(CUSRC_DIR)/%.cu
-	$(NVCC) -ccbin ${CC} $(NVCCFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS) " -dc $< 
+	$(NVCC) -ccbin ${CXX} $(NVCCFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS) " -dc $< 
 $(COBJ): %.o: $(CSRC_DIR)/%.c
 	$(NVCC) -ccbin ${CC}  $(NVCCFLAGS) -Xcompiler "$(CFLAGS) -x c++ $(MKLFLAGS)" -dc $< 
 

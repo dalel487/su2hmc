@@ -6,6 +6,13 @@
 
 MPI_Comm comm = MPI_COMM_WORLD;
 
+int *pcoord;
+int pstart[ndim][nproc] __attribute__((aligned(AVX)));
+int pstop [ndim][nproc] __attribute__((aligned(AVX)));
+int rank, size;
+int request;
+int pu[ndim] __attribute__((aligned(AVX)));
+int pd[ndim] __attribute__((aligned(AVX))); 
 int Par_begin(int argc, char *argv[]){
 	/* Initialises the MPI configuration
 	 *
@@ -44,6 +51,7 @@ int Par_begin(int argc, char *argv[]){
 		exit(SIZEPROC);
 	}
 	//gsize is the size of the system, lsize is the size of each MPI Grid
+	int gsize[4], lsize[4];
 	gsize[0]=nx; gsize[1]=ny; gsize[2]=nz; gsize[3]=nt;
 	lsize[0]=ksizex; lsize[1]=ksizey; lsize[2]=ksizez; lsize[3]=ksizet;
 

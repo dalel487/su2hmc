@@ -15,13 +15,9 @@
 //unsigned int id[ndim][kvol], iu[ndim][kvol] __attribute__((aligned(AVX)));
 //unsigned int hu[4][halo], hd[4][halo] __attribute__((aligned(AVX)));
 #ifdef __NVCC__
-__managed__ extern
+__managed__
 #endif
-unsigned int *hu, *hd;
-#ifdef __NVCC__
-__managed__ extern
-#endif
-unsigned int *h1u, *h1d, *halosize;
+extern unsigned int *hu, *hd, *h1u, *h1d, *halosize;;
 #ifdef __cplusplus
 extern "C"
 {

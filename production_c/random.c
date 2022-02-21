@@ -21,6 +21,7 @@
 #if (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))
 long seed;
 #elif defined __RANLUX__
+gsl_rng *ranlux_instd;
 unsigned long seed;
 #elif defined __INTEL_MKL__
 unsigned int seed;
