@@ -5,7 +5,7 @@
 #include	<matrices.h>
 #include	<par_mpi.h>
 #include	<su2hmc.h>
-int Gauge_force(double *dSdpi){
+int Gauge_force(double *dSdpi,Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id, float beta){
 	/*
 	 * Calculates dSdpi due to the Wilson Action at each intermediate time
 	 *
@@ -25,15 +25,15 @@ int Gauge_force(double *dSdpi){
 	//	#endif
 	//Was a trial field halo exchange here at one point.
 #ifdef __INTEL_MKL__
-	Complex *Sigma11 = mkl_malloc(kvol*sizeof(Complex),AVX); 
-	Complex *Sigma12= mkl_malloc(kvol*sizeof(Complex),AVX); 
-	Complex *u11sh = mkl_malloc((kvol+halo)*sizeof(Complex),AVX); 
-	Complex *u12sh = mkl_malloc((kvol+halo)*sizeof(Complex),AVX); 
+	Complex *Sigma11 = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX); 
+	Complex *Sigma12= (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX); 
+	Complex *u11sh = (Complex *)mkl_malloc((kvol+halo)*sizeof(Complex),AVX); 
+	Complex *u12sh = (Complex *)mkl_malloc((kvol+halo)*sizeof(Complex),AVX); 
 #else
-	Complex *Sigma11 = aligned_alloc(AVX,kvol*sizeof(Complex)); 
-	Complex *Sigma12= aligned_alloc(AVX,kvol*sizeof(Complex)); 
-	Complex *u11sh = aligned_alloc(AVX,(kvol+halo)*sizeof(Complex)); 
-	Complex *u12sh = aligned_alloc(AVX,(kvol+halo)*sizeof(Complex)); 
+	Complex *Sigma11 = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex)); 
+	Complex *Sigma12= (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex)); 
+	Complex *u11sh = (Complex *)aligned_alloc(AVX,(kvol+halo)*sizeof(Complex)); 
+	Complex *u12sh = (Complex *)aligned_alloc(AVX,(kvol+halo)*sizeof(Complex)); 
 #endif
 #pragma acc enter data create(Sigma11[0:kvol],Sigma12[0:kvol],u11sh[0:kvol+halo],u12sh[0:kvol+halo])
 	//Holders for directions
@@ -105,7 +105,10 @@ int Gauge_force(double *dSdpi){
 #endif
 	return 0;
 }
-int Force(double *dSdpi, int iflag, double res1){
+int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Complex *Phi,Complex *u11t, Complex *u12t,\
+		Complex_f *u11t_f,Complex_f *u12t_f,unsigned int *iu,unsigned int *id,Complex gamval[5][4],Complex_f gamval_f[5][4],\
+		int gamin[4][4],double *dk4m, double *dk4p, float *dk4m_f,float *dk4p_f,Complex_f jqq,\
+		float akappa,float beta,double *ancg){
 	/*
 	 *	Calculates dSds at each intermediate time
 	 *	
@@ -133,25 +136,26 @@ int Force(double *dSdpi, int iflag, double res1){
 	const char *funcname = "Force";
 #pragma acc update device(dSdpi[0:kmom])
 #ifndef NO_GAUGE
-	Gauge_force(dSdpi);
+	Gauge_force(dSdpi,u11t,u12t,iu,id,beta);
 #endif
 	//X1=(M†M)^{1} Phi
 	int itercg;
 #if defined __INTEL_MKL__
-	Complex *X2= mkl_malloc(kferm2Halo*sizeof(Complex), AVX);
+	Complex *X2= (Complex *)mkl_malloc(kferm2Halo*sizeof(Complex), AVX);
 #else
-	Complex *X2= aligned_alloc(AVX,kferm2Halo*sizeof(Complex));
+	Complex *X2= (Complex *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex));
 #endif
 	for(int na = 0; na<nf; na++){
 		memcpy(X1, X0+na*kferm2, kferm2*sizeof(Complex));
 		if(!iflag){
 #if defined __INTEL_MKL__
-			Complex *smallPhi =mkl_malloc(kferm2Halo*sizeof(Complex), AVX); 
+			Complex *smallPhi =(Complex *)mkl_malloc(kferm2Halo*sizeof(Complex), AVX); 
 #else
-			Complex *smallPhi = aligned_alloc(AVX,kferm2Halo*sizeof(Complex)); 
+			Complex *smallPhi = (Complex *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex)); 
 #endif
-			Fill_Small_Phi(na, smallPhi);
-			Congradq(na, res1,smallPhi, &itercg );
+			Fill_Small_Phi(na, smallPhi, Phi);
+			//	Congradq(na, res1,smallPhi, &itercg );
+			Congradq(na,res1,X1,smallPhi,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,&itercg);
 #if defined __INTEL_MKL__
 			mkl_free(smallPhi);
 #else
@@ -174,7 +178,7 @@ int Force(double *dSdpi, int iflag, double res1){
 			}
 #endif
 		}
-		Hdslash(X2,X1);
+		Hdslash(X2,X1,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 #if (defined __INTEL_MKL__ || defined USE_BLAS)
 		double blasd=2.0;
 		cblas_zdscal(kferm2, blasd, X2, 1);
@@ -201,7 +205,7 @@ int Force(double *dSdpi, int iflag, double res1){
 #ifdef _OPENACC
 #pragma acc parallel loop copyin(X2[0:kferm2Halo])
 #else
-//#pragma omp target teams distribute parallel for map(to:X1[0:kferm2Halo],X2[0:kferm2Halo]) map(tofrom:dSdpi[0:kmom])
+		//#pragma omp target teams distribute parallel for map(to:X1[0:kferm2Halo],X2[0:kferm2Halo]) map(tofrom:dSdpi[0:kmom])
 #pragma omp parallel for
 #endif
 		for(int i=0;i<kvol;i++)

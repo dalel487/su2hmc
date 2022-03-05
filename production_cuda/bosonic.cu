@@ -4,20 +4,27 @@
  */
 #include	<par_mpi.h>
 #include	<su2hmc.h>
-int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
+int SU2plaq(double *hg, double *avplaqs, double *avplaqt, Complex *u11t, Complex *u12t, int *iu, double beta){
 	/* 
 	 * Calculates the gauge action using new (how new?) lookup table
 	 * Follows a routine called qedplaq in some QED3 code
 	 *
 	 * Globals:
 	 * =======
-	 * 
+	 * rank,beta
 	 *
 	 * Parameters:
 	 * ===========
-	 * double hg
-	 * double avplaqs
-	 * double avplaqt
+	 * double	hg				Gauge component of Hamilton
+	 * double	avplaqs		Average spacial Plaquette
+	 * double	avplaqt		Average Temporal Plaquette
+	 * Complex*	u11t,u12t	The trial fields
+	 * int*		iu				Upper halo indices
+	 * double	beta
+	 *
+	 * Calls:
+	 * =====
+	 * Par_dsum
 	 *
 	 * Returns:
 	 * =======
@@ -30,11 +37,9 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 	//	Should work since in the fortran Sigma11[i] only depends on i components  for example
 	double hgs = 0; double hgt = 0;
 	//Since the nu loop doesn't get called for mu=-1 we'll start at mu=1
-	for(int mu=1;mu<ndim;mu++)
-		for(int nu=0;nu<mu;nu++)
-			//Don't merge into a single loop. Makes vectorisation easier?
-			//Or merge into a single loop and dispense with the a arrays?
-			cuSU2plaq<<<dimGrid,dimBlock>>>(mu, nu, &hgs, &hgt);
+	//Don't merge into a single loop. Makes vectorisation easier?
+	//Or merge into a single loop and dispense with the a arrays?
+	cuSU2plaq<<<dimGrid,dimBlock>>>(&hgs, &hgt, u11t, u12t, iu);
 	Par_dsum(&hgs); Par_dsum(&hgt);
 	*avplaqs=-hgs/(3.0*gvol); *avplaqt=-hgt/(gvol*3.0);
 	*hg=(hgs+hgt)*beta;
@@ -44,7 +49,7 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 #endif
 	return 0;
 }
-double Polyakov(){
+double Polyakov(Complex *u11t, Complex *u12t){
 	/*
 	 * Calculate the Polyakov loop (no prizes for guessing that one...)
 	 *
@@ -111,7 +116,7 @@ double Polyakov(){
 	//Buffers
 	cudaMemPrefetchAsync(Sigma11,kvol3*sizeof(Complex),device,NULL);
 	cudaMemPrefetchAsync(Sigma12,kvol3*sizeof(Complex),device,NULL);
-	cuPolyakov<<<dimGrid,dimBlock>>>(Sigma11,Sigma12);
+	cuPolyakov<<<dimGrid,dimBlock>>>(Sigma11,Sigma12,u11t,u12t);
 	//Multiply this partial loop with the contributions of the other cores in the
 	//timelike dimension
 	//Par_tmul does nothing if there is only a single processor in the time direction. So we only compile
@@ -136,38 +141,40 @@ double Polyakov(){
 	return poly;	
 }
 //CUDA Kernels
-__global__ void cuSU2plaq(int mu, int nu, double *hgs, double *hgt){
+__global__ void cuSU2plaq(double *hgs, double *hgt, Complex *u11t, Complex *u12t, int *iu){
 	char *funcname = "cuSU2plaq";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	for(int i=threadId;i<kvol;i+=gsize){
-		//Save us from typing iu[mu+ndim*i] everywhere
-		int uidm = iu[mu+ndim*i]; 
+	for(int mu=1;mu<ndim;mu++)
+		for(int nu=0;nu<mu;nu++)
+			for(int i=threadId;i<kvol;i+=gsize){
+				//Save us from typing iu[mu+ndim*i] everywhere
+				int uidm = iu[mu+ndim*i]; 
 
-		Complex Sigma11=u11t[i*ndim+mu]*u11t[uidm*ndim+nu]-u12t[i*ndim+mu]*conj(u12t[uidm*ndim+nu]);
-		Complex Sigma12=u11t[i*ndim+mu]*u12t[uidm*ndim+nu]+u12t[i*ndim+mu]*conj(u11t[uidm*ndim+nu]);
+				Complex Sigma11=u11t[i*ndim+mu]*u11t[uidm*ndim+nu]-u12t[i*ndim+mu]*conj(u12t[uidm*ndim+nu]);
+				Complex Sigma12=u11t[i*ndim+mu]*u12t[uidm*ndim+nu]+u12t[i*ndim+mu]*conj(u11t[uidm*ndim+nu]);
 
-		int uidn = iu[nu+ndim*i]; 
-		Complex a11=Sigma11*conj(u11t[uidn*ndim+mu])+Sigma12*conj(u12t[uidn*ndim+mu]);
-		Complex a12=-Sigma11*u12t[uidn*ndim+mu]+Sigma12*u11t[uidn*ndim+mu];
+				int uidn = iu[nu+ndim*i]; 
+				Complex a11=Sigma11*conj(u11t[uidn*ndim+mu])+Sigma12*conj(u12t[uidn*ndim+mu]);
+				Complex a12=-Sigma11*u12t[uidn*ndim+mu]+Sigma12*u11t[uidn*ndim+mu];
 
-		Sigma11=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
-		//				Sigma12[i]=-a11[i]*u12t[i*ndim+nu]+a12*u11t[i*ndim+mu];
-		//				Not needed in final result as it traces out
+				Sigma11=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
+				//				Sigma12[i]=-a11[i]*u12t[i*ndim+nu]+a12*u11t[i*ndim+mu];
+				//				Not needed in final result as it traces out
 
-		switch(mu){
-			//Time component
-			case(ndim-1):	atomicAdd(hgt, -Sigma11.real());
-							break;
-							//Space component
-			default:	atomicAdd(hgs, -Sigma11.real());
-						break;
-		}
-	}
+				switch(mu){
+					//Time component
+					case(ndim-1):	atomicAdd(hgt, -Sigma11.real());
+										break;
+										//Space component
+					default:	atomicAdd(hgs, -Sigma11.real());
+								break;
+				}
+			}
 }
-__global__ void cuPolyakov(Complex *Sigma11, Complex * Sigma12){
+__global__ void cuPolyakov(Complex *Sigma11, Complex * Sigma12, Complex * u11t,Complex *u12t){
 	char * funcname = "cuPolyakov";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;

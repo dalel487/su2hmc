@@ -4,20 +4,23 @@
  */
 #include	<par_mpi.h>
 #include	<su2hmc.h>
-int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
+int SU2plaq(double *hg, double *avplaqs, double *avplaqt, Complex *u11t, Complex *u12t, unsigned int *iu, double beta){
 	/* 
 	 * Calculates the gauge action using new (how new?) lookup table
 	 * Follows a routine called qedplaq in some QED3 code
 	 *
 	 * Globals:
 	 * =======
-	 * u11t,u12t,rank,beta
+	 * rank,beta
 	 *
 	 * Parameters:
 	 * ===========
-	 * double hg
-	 * double avplaqs
-	 * double avplaqt
+	 * double	hg				Gauge component of Hamilton
+	 * double	avplaqs		Average spacial Plaquette
+	 * double	avplaqt		Average Temporal Plaquette
+	 * Complex*	u11t,u12t	The trial fields
+	 * int*		iu				Upper halo indices
+	 * double	beta
 	 *
 	 * Calls:
 	 * =====
@@ -76,13 +79,9 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt){
 #endif
 	return 0;
 }
-double Polyakov(){
+double Polyakov(Complex *u11t, Complex *u12t){
 	/*
 	 * Calculate the Polyakov loop (no prizes for guessing that one...)
-	 *
-	 * Globals:
-	 * =======
-	 * u11t, u12t, u11t, u12t
 	 *
 	 * Calls:
 	 * ======
@@ -90,7 +89,7 @@ double Polyakov(){
 	 * 
 	 * Parameters:
 	 * ==========
-	 * double *poly The Polyakov Loop value
+	 * Complex*	u11t, u12t	The trial fields
 	 * 
 	 * Returns:
 	 * =======

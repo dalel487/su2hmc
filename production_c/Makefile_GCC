@@ -4,7 +4,7 @@ IFLAGS=  -I ../INCLUDE/ -I /opt/AMD/aocl/aocl-linux-aocc-3.1.0/include/
 
 CFLAGS=	$(IFLAGS) -std=gnu11 -DUSE_BLAS -fcommon\
 		-march=znver1 -mtune=znver3 -static -D__RANLUX__\
-		-fopenmp -fopenmp-simd -DSA3AT -flto\
+		-fopenmp -fopenmp-simd -DSA3AT -flto -static\
 		-foffload=amdgcn-amdhsa="-march=gfx902" #-fopenacc\
 #		-pg -fprofile-arcs-foffload=amdgcn-amdhsa="-march=gfx90c"
 

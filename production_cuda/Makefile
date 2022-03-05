@@ -1,34 +1,30 @@
-MF=	Makefile
-
 FC=		mpifort 
-CC=		mpiicc
-CXX=	mpiicpc
+CC=		mpiicc 
+CXX=	mpiicpc 
 NVCC=	nvcc
 
-IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include"\
-				-I/usr/local/cuda/include/ -I/usr/include/c++/10/\
-				-I/usr/x86_64-linux-gnu/include/c++/10/x86_64-linux-gnu/
+IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include" -I ./ \
+				-I/usr/include/c++/10/\
+				-I/usr/x86_64-linux-gnu/include/c++/10/x86_64-linux-gnu/\
 
-CFLAGS=     $(IFLAGS) -std=gnu11 -ipo -qopt-zmm-usage=high -xSKYLAKE -axCASCADELAKE\
-			-static-intel -static-libgcc -DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
-			-qopenmp -qno-openmp-offload -qopenmp-simd -qopenmp-link=static -DSA3AT \
-			 -masm=att -fcommon
-#CFLAGS=	$(IFLAGS) -DUSE_BLAS -fcommon -fpermissive \
-		-march=skylake -mtune=cascadelake -static -D__RANLUX__\
-		-fopenmp-simd -DSA3AT -flto\
-#		-foffload=amdgcn-amdhsa="-march=gfx900" -fopenacc\
+CFLAGS=	$(IFLAGS) -DGSL_BLAS -D__RANLUX__ -acc -fast -O4 -Mipa=fast -fpic\
+			-Mcache_align -static -static-nvidia -cuda -cudalib -tp=skylake\
+			-gpu=managed
 
-LFLAGS=		-liomp5 -lpthread -ldl -lgsl -lcudart -lcublas #-L${NVSHMEM_HOME}/lib -lnvshmem -lblis 
+MKLFLAGS=	#-L${MKLROOT}/lib/intel64 -qmkl #-DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
+CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/2022/math_libs/lib64\
+				-lcudart_static -lcublas_static #-L${NVSHMEM_HOME}/lib -lnvshmem #-lblis 
+LFLAGS=		-lpthread -ldl -lgsl  ${CULFLAGS}
 
-MKLFLAGS=	-L${MKLROOT}/lib/intel64 -qmkl #-DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
-
-CUFLAGS=	${IFLAGS}  -arch=compute_75 -code=sm_75 -err-no -w\
-			--allow-unsupported-compiler -expt-relaxed-constexpr 
+NVCCFLAGS=	${IFLAGS}  -arch=compute_60 -code=sm_60,sm_61,sm_70,sm_75,sm_80,sm_86 -err-no -w \
+			-expt-relaxed-constexpr --allow-unsupported-compiler
 			#Last flag is an experimental one used to call host functions in device code. Not sure
 			#if it does what we want because the error message suggesting it came up when declaring
 			#a11 and a12 in the Dslash routine
+#Replace first line of NVCCFLAGS with above when done. Targets every platform since 2016
+#NVCCFLAGS=	${IFLAGS}  -arch=compute_75 -code=sm_75 -err-no -w \
 
-EXE=		cuda_su2hmc_CASCADE
+EXE=		cuda_su2hmc
 
 CSRC_DIR=	../production_c
 CSRC=	\
@@ -40,11 +36,12 @@ CSRC=	\
 
 CUSRC_DIR=	../production_cuda
 CUSRC=	\
+		bosonic.cu\
 		matrices.cu\
 		force.cu\
-		bosonic.cu\
 		fermionic.cu
 
+#CUSRC= CUDA_Compile.cu
 CINC=	\
 		su2hmc.h \
 		sizes.h \
@@ -53,9 +50,6 @@ CINC=	\
 	    matrices.h \
     	coord.h \
 	    errorcodes.h \
-
-CUINC= \
-		cuda_complex.hpp\
 
 #
 # No need to edit below this line
@@ -75,32 +69,29 @@ CUEDT=	$(CUSRC:.cu=.cu~)
 TMP=	$(MOD) $(CEDT) $(CUEDT) core
 
 profiler:	CFLAGS += -g
-profiler:	CUFLAGS += -O0 -G -g 
+profiler:	NVCCFLAGS += -O0 -G -g 
 profiler:	release
 
-release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high
-#release:	CFLAGS +=  -Ofast -funroll-all-loops -fcf-protection=none
-release:	CUFLAGS += -O3 #-dlto 
+#release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high
+release:	NVCCFLAGS += -O3 #-dlto 
 release:	$(EXE)
 
 debug:		CFLAGS += -O0 -g -D_DEBUG -rdynamic # -DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
-debug:		CUFLAGS += -O0 -G -g -D_DEBUG 
+debug:		NVCCFLAGS += -O0 -G -g -D_DEBUG 
 debug:		$(EXE)
 
 $(EXE): $(OBJ)
-	$(NVCC) -ccbin ${CC} $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $(LFLAGS) $^ -o $@
-	#$(CXX) $(CFLAGS) $(MKLFLAGS) $(LFLAGS) $^ -o $@
+	$(NVCC) -ccbin ${CXX} $(NVCCFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $^ $(LFLAGS)  -o $@
 $(CUOBJ): %.o: $(CUSRC_DIR)/%.cu
-	$(NVCC) -ccbin ${CXX} $(CUFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS) " -dc $< 
+	$(NVCC) -ccbin ${CXX} $(NVCCFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" -dc $< 
 $(COBJ): %.o: $(CSRC_DIR)/%.c
-	$(NVCC) -ccbin ${CC}  $(CUFLAGS) -Xcompiler "$(CFLAGS) -x c++ $(MKLFLAGS)" -c $< 
+	$(NVCC) -ccbin ${CC}  $(NVCCFLAGS) -Xcompiler "$(CFLAGS) -x c++ $(MKLFLAGS)" -dc $< 
 
 clean:
 	rm -f $(OBJ) $(TMP)
 
 INP=	\
 	midout \
-	con
 
 tar:
 	tar cvf $(EXE).tar $(MF) $(CSRC) $(CUSRC) $(CINC) $(CUINC) $(INP)

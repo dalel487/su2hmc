@@ -2,7 +2,6 @@
 #define	PAR_MPI
 #include	<coord.h>
 #include	<errorcodes.h>
-#include	<fields.h>
 #include	<math.h>
 #include	<mpi.h> 
 #ifdef _OPENMP
@@ -34,27 +33,17 @@
 //Variables
 //=========
 //Up/Down arrays
-int pu[ndim] __attribute__((aligned(AVX)));
-int pd[ndim] __attribute__((aligned(AVX))); 
+extern int pu[ndim] __attribute__((aligned(AVX)));
+extern int pd[ndim] __attribute__((aligned(AVX))); 
 
 //MPI Stuff
-int procid;
-int ierr;
 extern MPI_Comm comm ;
-int request;
+extern int request;
 
-int gsize[ndim];
-int lsize[ndim];
-
-int *pcoord;
-int pstart[ndim][nproc] __attribute__((aligned(AVX)));
-int pstop [ndim][nproc] __attribute__((aligned(AVX)));
-int rank, size;
-//C doesn't have logicals so we'll instead use an integer
-//although using rank 0 could also work?
-//      logical ismaster
-int ismaster;
-
+extern int *pcoord;
+extern int pstart[ndim][nproc] __attribute__((aligned(AVX)));
+extern int pstop [ndim][nproc] __attribute__((aligned(AVX)));
+extern int rank, size;
 //The common keyword is largely redundant here as everything
 //is already global scope.
 
@@ -69,16 +58,18 @@ int ismaster;
 //-------------
 //static unsigned int *iu, *id;
 
-//Function Declarations
-//=====================
-#ifdef __cplusplus
+#if (defined __NVCC__ || defined __cplusplus)
 extern "C"
 {
 #endif
+//Function Declarations
+//=====================
 	int Par_begin(int argc, char *argv[]);
-	int Par_sread(const int iread, const double beta, const double fmu, const double akappa, const Complex ajq);
-	int Par_psread(char *filename, double *ps);
-	int Par_swrite(const int itraj, const int icheck, const double beta, const double fmu, const double akappa, const Complex ajq);
+	int Par_sread(const int iread, const float beta, const float fmu, const float akappa, const Complex_f ajq,\
+			Complex *u11, Complex *u12, Complex *u11t, Complex *u12t);
+	//	int Par_psread(char *filename, float *ps);
+	int Par_swrite(const int itraj, const int icheck, const float beta, const float fmu, const float akappa, const Complex_f ajq,\
+			Complex *u11, Complex *u12);
 	int Par_end();
 	//Shortcuts for reductions and broadcasts. These should be inlined
 	int Par_isum(int *ival);
@@ -87,6 +78,7 @@ extern "C"
 	int Par_zsum(Complex *zval);
 	int Par_icopy(int *ival);
 	int Par_dcopy(double *dval);
+	int Par_fcopy(float *fval);
 	int Par_zcopy(Complex *zval);
 	//Halo Manipulation
 	int ZHalo_swap_all(Complex *z, int ncpt);
@@ -94,10 +86,10 @@ extern "C"
 	int CHalo_swap_all(Complex_f *c, int ncpt);
 	int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer);
 	int DHalo_swap_dir(double *d, int ncpt, int idir, int layer);
-	int Trial_Exchange();
+	int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f);
 	//If we have more than two processors on the time axis, there's an extra step in the Polyakov loop calculation
 	int Par_tmul(Complex *z11, Complex *z12);
-#ifdef __cplusplus
+#if (defined __NVCC__ || defined __cplusplus)
 }
 #endif
 #endif

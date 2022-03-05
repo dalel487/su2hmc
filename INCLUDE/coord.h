@@ -6,6 +6,8 @@
 #endif
 #if defined __INTEL_MKL__
 #include <mkl.h>
+#elif defined GSL_BLAS
+#include <gsl/gsl_cblas.h>
 #elif defined USE_BLAS
 #include <cblas.h>
 #endif
@@ -15,20 +17,16 @@
 //unsigned int id[ndim][kvol], iu[ndim][kvol] __attribute__((aligned(AVX)));
 //unsigned int hu[4][halo], hd[4][halo] __attribute__((aligned(AVX)));
 #ifdef __NVCC__
-__managed__ extern
+__managed__
 #endif
-unsigned int *id, *iu, *hu, *hd;
-#ifdef __NVCC__
-__managed__ extern
-#endif
-unsigned int *h1u, *h1d, *halosize;
-#ifdef __cplusplus
+extern unsigned int *hu, *hd, *h1u, *h1d, *halosize;;
+#if (defined __NVCC__ || defined __cplusplus)
 extern "C"
 {
 #endif
 	//Functions
 	//========
-	int Addrc();
+	int Addrc(unsigned int *iu, unsigned int *id);
 	/*
 	 * Loads the addresses required during the update
 	 */
@@ -67,7 +65,7 @@ extern "C"
 	/* Tests if the coordinate transformation functions are working
 	 * Depends on Index2gcoord and Coordglindex
 	 */
-#ifdef __cplusplus
+#if (defined __NVCC__ || defined __cplusplus)
 }
 #endif
 #endif

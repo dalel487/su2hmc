@@ -5,7 +5,7 @@
 #include	<matrices.h>
 #include	<par_mpi.h>
 #include	<su2hmc.h>
-int Gauge_force(double *dSdpi){
+int Gauge_force(double *dSdpi,Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id, float beta){
 	/*
 	 * Calculates dSdpi due to the Wilson Action at each intermediate time
 	 *
@@ -40,24 +40,27 @@ int Gauge_force(double *dSdpi){
 		for(int nu=0; nu<ndim; nu++){
 			if(nu!=mu){
 				//The +nu Staple
-				Plus_staple<<<dimGrid,dimBlock>>>(mu, nu, Sigma11, Sigma12);
+				Plus_staple<<<dimGrid,dimBlock>>>(mu, nu, iu, Sigma11, Sigma12,u11t,u12t);
 				Z_gather(u11sh, u11t, kvol, id, nu);
 				Z_gather(u12sh, u12t, kvol, id, nu);
-				
+
 				ZHalo_swap_dir(u11sh, 1, mu, DOWN);
 				cudaMemPrefetchAsync(u11sh, (kvol+halo)*sizeof(Complex),device,NULL);
 				ZHalo_swap_dir(u12sh, 1, mu, DOWN);
 				cudaMemPrefetchAsync(u12sh, (kvol+halo)*sizeof(Complex),device,NULL);
 				//Next up, the -nu staple
-				Minus_staple<<<dimGrid,dimBlock>>>(mu, nu, Sigma11, Sigma12, u11sh, u12sh);
+				Minus_staple<<<dimGrid,dimBlock>>>(mu, nu, iu,id,Sigma11, Sigma12, u11sh, u12sh,u11t,u12t);
 			}
 		}
-		cuGaugeForce<<<dimGrid,dimBlock>>>(mu,Sigma11,Sigma12,dSdpi);
+		cuGaugeForce<<<dimGrid,dimBlock>>>(mu,Sigma11,Sigma12,dSdpi,u11t,u12t,beta);
 	}
 	cudaFree(Sigma11); cudaFree(Sigma12); cudaFree(u11sh); cudaFree(u12sh);
 	return 0;
 }
-int Force(double *dSdpi, int iflag, double res1){
+int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Complex *Phi,Complex *u11t, Complex *u12t,\
+		Complex_f *u11t_f,Complex_f *u12t_f,unsigned int *iu,unsigned int *id,Complex gamval[5][4],Complex_f gamval_f[5][4],\
+		int gamin[4][4],double *dk4m, double *dk4p, float *dk4m_f,float *dk4p_f,Complex_f jqq,\
+		float akappa,float beta,double *ancg){
 	/*
 	 *	Calculates dSds at each intermediate time
 	 *	
@@ -90,19 +93,20 @@ int Force(double *dSdpi, int iflag, double res1){
 	cudaMemPrefetchAsync(X0,nf*kfermHalo*sizeof(Complex),device,NULL);
 	cudaMemPrefetchAsync(Phi,nf*kfermHalo*sizeof(Complex),device,NULL);
 #ifndef NO_GAUGE
-	Gauge_force(dSdpi);
+	Gauge_force(dSdpi,u11t,u12t,iu,id,beta);
 #endif
 	//X1=(M†M)^{1} Phi
 	int itercg;
 	Complex *X2, *smallPhi;
 	cudaMallocManaged(&X2,kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&smallPhi,kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
 	for(int na = 0; na<nf; na++){
 		memcpy(X1, X0+na*kferm2Halo, nc*ndirac*kvol*sizeof(Complex));
 		//FORTRAN's logic is backwards due to the implied goto method
 		//If iflag is zero we do some initalisation stuff 
 		if(!iflag){
-			Congradq(na, res1,smallPhi, &itercg );
+			cudaMallocManaged(&smallPhi,kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
+			Congradq(na,res1,X1,smallPhi,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,&itercg);
+			cudaFree(smallPhi);
 			ancg+=itercg;
 			//This is not a general BLAS Routine, just an MKL/AMD one
 			//CUDA in particulare does not support it
@@ -121,7 +125,7 @@ int Force(double *dSdpi, int iflag, double res1){
 			}
 #endif
 		}
-		Hdslash(X2,X1);
+		Hdslash(X2,X1,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 		double blasd=2.0;
 		cublasZdscal(cublas_handle,kferm2, &blasd, (cuDoubleComplex *)X2, 1);
 #pragma unroll
@@ -138,15 +142,15 @@ int Force(double *dSdpi, int iflag, double res1){
 		//  as a result, need to swap the DOWN halos in all dirs for
 		//  both these arrays, each of which has 8 cpts
 		//
-		cuForce<<<dimGrid,dimBlock>>>(dSdpi,X2);
+		cuForce<<<dimGrid,dimBlock>>>(dSdpi,u11t,u12t,X1,X2,&gamval[0][0],dk4m,dk4p,iu,&gamin[0][0],akappa);
 	}
-	cudaFree(X2); cudaFree(smallPhi);
+	cudaFree(X2);
 	return 0;
 }
-
 //CUDA Kernels
 //TODO: Split cuForce into seperateable streams
-__global__ void cuForce(double *dSdpi, Complex *X2){
+__global__ void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
+				double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa){
 	char *funcname = "cuForce";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -166,21 +170,21 @@ __global__ void cuForce(double *dSdpi, Complex *X2){
 
 				//Up indices
 				uid = iu[mu+ndim*i];
-				igork1 = gamin_d[mu*ndirac+idirac];	
-				dSdpi[(i*nadj)*ndim+mu]+=(*akappa_d)*(I*
+				igork1 = gamin[mu*ndirac+idirac];	
+				dSdpi[(i*nadj)*ndim+mu]+=akappa*(I*
 						(conj(X1[(i*ndirac+idirac)*nc])*
 						 (-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
 						  +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1])
 						 +conj(X1[(uid*ndirac+idirac)*nc])*
 						 ( u12t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
-						   -conj(u11t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])
+							-conj(u11t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])
 						 +conj(X1[(i*ndirac+idirac)*nc+1])*
 						 (u11t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
 						  +u12t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1])
 						 +conj(X1[(uid*ndirac+idirac)*nc+1])*
 						 (-u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
 						  -conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1]))).real();
-				dSdpi[(i*nadj)*ndim+mu]+=(I*gamval_d[mu*ndirac+idirac]*
+				dSdpi[(i*nadj)*ndim+mu]+=(I*gamval[mu*ndirac+idirac]*
 						(conj(X1[(i*ndirac+idirac)*nc])*
 						 (-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
 						  +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1])
@@ -194,7 +198,7 @@ __global__ void cuForce(double *dSdpi, Complex *X2){
 						 (u11t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
 						  +conj(u12t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1]))).real();
 
-				dSdpi[(i*nadj+1)*ndim+mu]+=(*akappa_d)*(
+				dSdpi[(i*nadj+1)*ndim+mu]+=akappa*(
 						(conj(X1[(i*ndirac+idirac)*nc])*
 						 (-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
 						  +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1])
@@ -207,7 +211,7 @@ __global__ void cuForce(double *dSdpi, Complex *X2){
 						 +conj(X1[(uid*ndirac+idirac)*nc+1])*
 						 (u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
 						  -conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1]))).real();
-				dSdpi[(i*nadj+1)*ndim+mu]+=(gamval_d[mu*ndirac+idirac]*
+				dSdpi[(i*nadj+1)*ndim+mu]+=(gamval[mu*ndirac+idirac]*
 						(conj(X1[(i*ndirac+idirac)*nc])*
 						 (-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
 						  +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1])
@@ -221,7 +225,7 @@ __global__ void cuForce(double *dSdpi, Complex *X2){
 						 (-u11t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
 						  +conj(u12t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1]))).real();
 
-				dSdpi[(i*nadj+2)*ndim+mu]+=(*akappa_d)*(I*
+				dSdpi[(i*nadj+2)*ndim+mu]+=akappa*(I*
 						(conj(X1[(i*ndirac+idirac)*nc])*
 						 (u11t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
 						  +u12t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1])
@@ -234,7 +238,7 @@ __global__ void cuForce(double *dSdpi, Complex *X2){
 						 +conj(X1[(uid*ndirac+idirac)*nc+1])*
 						 (-conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc]
 						  +u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc+1]))).real();
-				dSdpi[(i*nadj+2)*ndim+mu]+=(I*gamval_d[mu*ndirac+idirac]*
+				dSdpi[(i*nadj+2)*ndim+mu]+=(I*gamval[mu*ndirac+idirac]*
 						(conj(X1[(i*ndirac+idirac)*nc])*
 						 (u11t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
 						  +u12t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1])
@@ -254,94 +258,94 @@ __global__ void cuForce(double *dSdpi, Complex *X2){
 			//For consistency we'll leave mu in instead of hard coding.
 			mu=3;
 			uid = iu[mu+ndim*i];
-			//We are mutiplying terms by dk4?[i] Also there is no (*akappa_d) or gamval_d factor in the time direction	
-			//for the "gamval_d" terms the sign of d4kp flips
+			//We are mutiplying terms by dk4?[i] Also there is no akappa or gamval factor in the time direction	
+			//for the "gamval" terms the sign of d4kp flips
 #ifndef NO_TIME
 			dSdpi[(i*nadj)*ndim+mu]+=(I*
 					(conj(X1[(i*ndirac+idirac)*nc])*
 					 (dk4m[i]*(-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
-						     +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1]))
+								  +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1]))
 					 +conj(X1[(uid*ndirac+idirac)*nc])*
 					 (dk4p[i]*      (+u12t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
-							     -conj(u11t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1]))
+										  -conj(u11t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1]))
 					 +conj(X1[(i*ndirac+idirac)*nc+1])*
 					 (dk4m[i]*       (u11t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
-								+u12t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1]))
+											+u12t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1]))
 					 +conj(X1[(uid*ndirac+idirac)*nc+1])*
 					 (dk4p[i]*      (-u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
-							     -conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])))).real()
+										  -conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])))).real()
 				+(I*
 						(conj(X1[(i*ndirac+idirac)*nc])*
 						 (dk4m[i]*(-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
-							     +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1]))
+									  +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1]))
 						 +conj(X1[(uid*ndirac+idirac)*nc])*
 						 (-dk4p[i]*       (u12t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
-									 -conj(u11t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1]))
+												 -conj(u11t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1]))
 						 +conj(X1[(i*ndirac+idirac)*nc+1])*
 						 (dk4m[i]*       (u11t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
-									+u12t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1]))
+												+u12t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1]))
 						 +conj(X1[(uid*ndirac+idirac)*nc+1])*
 						 (-dk4p[i]*      (-u11t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
-									-conj(u12t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1])))).real();
+												-conj(u12t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1])))).real();
 
 			dSdpi[(i*nadj+1)*ndim+mu]+=(
 					conj(X1[(i*ndirac+idirac)*nc])*
 					(dk4m[i]*(-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
-						    +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1]))
+								 +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1]))
 					+conj(X1[(uid*ndirac+idirac)*nc])*
 					(dk4p[i]*      (-u12t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
-							    -conj(u11t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1]))
+										 -conj(u11t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1]))
 					+conj(X1[(i*ndirac+idirac)*nc+1])*
 					(dk4m[i]*      (-u11t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
-							    -u12t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1]))
+										 -u12t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1]))
 					+conj(X1[(uid*ndirac+idirac)*nc+1])*
 					(dk4p[i]*      ( u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
-							     -conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1]))).real()
+										  -conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1]))).real()
 				+(
 						(conj(X1[(i*ndirac+idirac)*nc])*
 						 (dk4m[i]*(-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
-							     +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1]))
+									  +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1]))
 						 +conj(X1[(uid*ndirac+idirac)*nc])*
 						 (-dk4p[i]*      (-u12t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
-									-conj(u11t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1]))
+												-conj(u11t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1]))
 						 +conj(X1[(i*ndirac+idirac)*nc+1])*
 						 (dk4m[i]*      (-u11t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
-								     -u12t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1]))
+											  -u12t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1]))
 						 +conj(X1[(uid*ndirac+idirac)*nc+1])*
 						 (-dk4p[i]*       (u11t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
-									 -conj(u12t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1])))).real();
+												 -conj(u12t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1])))).real();
 
 			dSdpi[(i*nadj+2)*ndim+mu]+=(I*
 					(conj(X1[(i*ndirac+idirac)*nc])*
 					 (dk4m[i]*       (u11t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
-								+u12t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1]))
+											+u12t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1]))
 					 +conj(X1[(uid*ndirac+idirac)*nc])*
 					 (dk4p[i]*(-conj(u11t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc]
-						     -u12t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc+1]))
+								  -u12t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc+1]))
 					 +conj(X1[(i*ndirac+idirac)*nc+1])*
 					 (dk4m[i]* (conj(u12t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
-							-conj(u11t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1]))
+									-conj(u11t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1]))
 					 +conj(X1[(uid*ndirac+idirac)*nc+1])*
 					 (dk4p[i]*(-conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc]
-						     +u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc+1])))).real()
+								  +u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc+1])))).real()
 				+(I*
 						(conj(X1[(i*ndirac+idirac)*nc])*
 						 (dk4m[i]*       (u11t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
-									+u12t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1]))
+												+u12t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1]))
 						 +conj(X1[(uid*ndirac+idirac)*nc])*
 						 (-dk4p[i]*(-conj(u11t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc]
-								-u12t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc+1]))
+										-u12t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc+1]))
 						 +conj(X1[(i*ndirac+idirac)*nc+1])*
 						 (dk4m[i]* (conj(u12t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
-								-conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1]))
+										-conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1]))
 						 +conj(X1[(uid*ndirac+idirac)*nc+1])*
 						 (-dk4p[i]*(-conj(u12t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc]
-								+u11t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc+1])))).real();
+										+u11t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc+1])))).real();
 
 #endif
 		}
 }
-__global__ void Plus_staple(int mu, int nu, Complex *Sigma11, Complex *Sigma12){
+__global__ void Plus_staple(int mu, int nu,unsigned int *iu, Complex *Sigma11, Complex *Sigma12, Complex *u11t, Complex *u12t){
 	char *funcname = "Plus_staple";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -351,14 +355,15 @@ __global__ void Plus_staple(int mu, int nu, Complex *Sigma11, Complex *Sigma12){
 		int uidm = iu[mu+ndim*i];
 		int uidn = iu[nu+ndim*i];
 		Complex	a11=u11t[uidm*ndim+nu]*conj(u11t[uidn*ndim+mu])+\
-				    u12t[uidm*ndim+nu]*conj(u12t[uidn*ndim+mu]);
+						 u12t[uidm*ndim+nu]*conj(u12t[uidn*ndim+mu]);
 		Complex	a12=-u11t[uidm*ndim+nu]*u12t[uidn*ndim+mu]+\
-				    u12t[uidm*ndim+nu]*u11t[uidn*ndim+mu];
+						 u12t[uidm*ndim+nu]*u11t[uidn*ndim+mu];
 		Sigma11[i]+=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
 		Sigma12[i]+=-a11*u12t[i*ndim+nu]+a12*u11t[i*ndim+nu];
 	}
 }
-__global__ void Minus_staple(int mu, int nu, Complex *Sigma11, Complex *Sigma12, Complex *u11sh, Complex *u12sh){
+__global__ void Minus_staple(int mu,int nu,unsigned int *iu,unsigned int *id, Complex *Sigma11, Complex *Sigma12,\
+		Complex *u11sh, Complex *u12sh, Complex *u11t, Complex *u12t){
 	char *funcname = "Minus_staple";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -369,14 +374,14 @@ __global__ void Minus_staple(int mu, int nu, Complex *Sigma11, Complex *Sigma12,
 		int didn = id[nu+ndim*i];
 		//uidm is correct here
 		Complex a11=conj(u11sh[uidm])*conj(u11t[didn*ndim+mu])-\
-				u12sh[uidm]*conj(u12t[didn*ndim+mu]);
+						u12sh[uidm]*conj(u12t[didn*ndim+mu]);
 		Complex a12=-conj(u11sh[uidm])*u12t[didn*ndim+mu]-\
-				u12sh[uidm]*u11t[didn*ndim+mu];
+						u12sh[uidm]*u11t[didn*ndim+mu];
 		Sigma11[i]+=a11*u11t[didn*ndim+nu]-a12*conj(u12t[didn*ndim+nu]);
 		Sigma12[i]+=a11*u12t[didn*ndim+nu]+a12*conj(u11t[didn*ndim+nu]);
 	}
 }
-__global__ void cuGaugeForce(int mu, Complex *Sigma11, Complex *Sigma12,double*dSdpi){
+__global__ void cuGaugeForce(int mu, Complex *Sigma11, Complex *Sigma12,double*dSdpi,Complex *u11t, Complex *u12t, float beta){
 	char *funcname = "cuGaugeForce";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -386,8 +391,8 @@ __global__ void cuGaugeForce(int mu, Complex *Sigma11, Complex *Sigma12,double*d
 		Complex a11 = u11t[i*ndim+mu]*Sigma12[i]+u12t[i*ndim+mu]*conj(Sigma11[i]);
 		Complex a12 = u11t[i*ndim+mu]*Sigma11[i]+conj(u12t[i*ndim+mu])*Sigma12[i];
 
-		dSdpi[(i*nadj)*ndim+mu]=(*beta_d)*a11.imag();
-		dSdpi[(i*nadj+1)*ndim+mu]=(*beta_d)*a11.real();
-		dSdpi[(i*nadj+2)*ndim+mu]=(*beta_d)*a12.imag();
+		dSdpi[(i*nadj)*ndim+mu]=beta*a11.imag();
+		dSdpi[(i*nadj+1)*ndim+mu]=beta*a11.real();
+		dSdpi[(i*nadj+2)*ndim+mu]=beta*a12.imag();
 	}
 }

@@ -4,7 +4,10 @@
 #include	<matrices.h>
 #include	<random.h>
 #include	<su2hmc.h>
-int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbqb, double res, int *itercg){
+int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbqb, double res, int *itercg,\
+		Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f, unsigned int *iu, unsigned int *id,\
+		Complex gamval[5][4], Complex_f gamval_f[5][4],	int gamin[4][4], double *dk4m, double *dk4p,\
+		float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa,	Complex *Phi, Complex *R1){
 	/*
 	 * Calculate fermion expectation values via a noisy estimator
 	 * -matrix inversion via conjugate gradient algorithm
@@ -17,19 +20,27 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	 * =====
 	 * Gauss_z, Par_dsum, ZHalo_swap_dir, DHalo_swap_dir, Congradp, Dslashd
 	 *
-	 * Globals:
-	 * =======
-	 * Phi, X0, R1, u11t, u12t, ganval, iu, id 
-	 *
 	 * Parameters:
 	 * ==========
-	 * double *pbp:		Pointer to ψ-bar ψ
-	 * double endenf:		Energy density
-	 * double denf:
-	 * Complex qq:		Diquark
-	 * Complex qbqb:		Antidiquark
-	 * double res:		Conjugate Gradient Residue
-	 * int itercg:		Iterations of Conjugate Gradient
+	 * double		*pbp:			Pointer to ψ-bar ψ
+	 * double		*endenf:		Energy density
+	 * double		*denf:		Number Density
+	 * Complex 		*qq:			Diquark
+	 * Complex		*qbqb:		Antidiquark
+	 * double		res:			Conjugate Gradient Residue
+	 * int			itercg:		Iterations of Conjugate Gradient
+	 * Complex		*u11t:		First colour trial field
+	 * Complex		*u12t:		Second colour trial field
+	 * Complex_f	*u11t_f:		First colour trial field
+	 * Complex_f	*u12t_f:		Second colour trial field
+	 *	int			*iu:			Upper halo indices
+	 *	int			*id:			Lower halo indices
+	 *	Complex_f	*gamval_f:	Gamma matrices
+	 *	int			*gamin:		Indices for dirac terms
+	 *	float			*dk4m_f:	
+	 *	float			*dk4p_f:	
+	 *	Complex_f	jqq:			Diquark source
+	 *	float			akappa:		Hopping parameter
 	 *
 	 * Returns:
 	 * =======
@@ -39,15 +50,15 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	//This x is just a storage container
 
 #ifdef __INTEL_MKL__
-	Complex	*x = mkl_malloc(kfermHalo*sizeof(Complex), AVX);
-	Complex *xi	= mkl_malloc(kferm*sizeof(Complex),AVX);
-	Complex_f	*xi_f = mkl_malloc(kfermHalo*sizeof(Complex_f), AVX);
-	Complex_f	*R1_f = mkl_malloc(kfermHalo*sizeof(Complex_f), AVX);
+	Complex	*x = (Complex *)mkl_malloc(kfermHalo*sizeof(Complex), AVX);
+	Complex *xi	=(Complex *) mkl_malloc(kferm*sizeof(Complex),AVX);
+	Complex_f	*xi_f = (Complex_f *)mkl_malloc(kfermHalo*sizeof(Complex_f), AVX);
+	Complex_f	*R1_f = (Complex_f *)mkl_malloc(kfermHalo*sizeof(Complex_f), AVX);
 #else
-	Complex *x = aligned_alloc(AVX,kfermHalo*sizeof(Complex));
-	Complex *xi = aligned_alloc(AVX,kferm*sizeof(Complex));
-	Complex_f *xi_f = aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
-	Complex_f *R1_f = aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
+	Complex *x =(Complex *)aligned_alloc(AVX,kfermHalo*sizeof(Complex));
+	Complex *xi =(Complex *)aligned_alloc(AVX,kferm*sizeof(Complex));
+	Complex_f *xi_f =(Complex_f *)aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
+	Complex_f *R1_f = (Complex_f *)aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 #endif
 	//Setting up noise.
 #if (defined(USE_RAN2)||defined(__RANLUX__)||!defined(__INTEL_MKL__))
@@ -63,7 +74,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	for(int i=0;i<kferm;i++)
 		xi[i]=(Complex)xi_f[i];
 	memcpy(x, xi, kferm*sizeof(Complex));
-	Dslashd_f(R1_f, xi_f);
+	Dslashd_f(R1_f,xi_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 #pragma omp parallel for simd aligned(R1,R1_f:AVX)
 	for(int i=0;i<kferm;i++)
 		R1[i]=(Complex)R1_f[i];
@@ -72,7 +83,14 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	//references the first block of memory for that pointer
 	memcpy(Phi, R1, kferm*sizeof(Complex));
 	//Evaluate xi = (M^† M)^-1 R_1 
-	Congradp(0, res, R1_f, itercg);
+	//	Congradp(0, res, R1_f, itercg);
+	//If the conjugate gradiant fails to converge for some reason, restart it.
+	if(Congradp(0, res, Phi, R1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,itercg)==ITERLIM){
+		itercg=0;
+		fprintf(stderr, "Restarting conjugate gradient from %s\n", funcname);
+		Congradp(0, res, Phi, R1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,itercg);
+		itercg+=niterc;
+	}
 #pragma omp parallel for simd aligned(R1,R1_f:AVX)
 	for(int i=0;i<kferm;i++)
 		xi[i]=(Complex)R1_f[i];
@@ -125,7 +143,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #endif
 	//In the FORTRAN Code dsum was used instead despite qq and qbqb being complex
 	//Since we only care about the real part this shouldn't cause (m)any serious issues
-	Par_dsum(qq); Par_dsum(qbqb);
+	Par_dsum((double *)qq); Par_dsum((double *)qbqb);
 	*qq=(*qq+*qbqb)/(2*gvol);
 	Complex xu, xd, xuu, xdd;
 	xu=xd=xuu=xdd=0;
@@ -187,8 +205,14 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 							conj(u12t[i*ndim+3])*(xi[(i*ngorkov+igorkovPP)*nc]+xi[(i*ngorkov+igork1PP)*nc]) ) );
 			}
 		}
+	//Dirty CUDA work around since it won't convert thrust<complex> to double
+#ifdef __NVCC__
+	*endenf=(xu-xd-xuu+xdd).real();
+	*denf=(xu+xd+xuu+xdd).real();
+#else
 	*endenf=creal(xu-xd-xuu+xdd);
 	*denf=creal(xu+xd+xuu+xdd);
+#endif
 
 	Par_dsum(endenf); Par_dsum(denf);
 	*endenf/=2*gvol; *denf/=2*gvol;

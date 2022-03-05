@@ -8,243 +8,231 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-int Addrc(){
+unsigned int *hu, *hd, *h1u, *h1d, *halosize;
+int Addrc(unsigned int *iu, unsigned int *id){
 	/*
 	 * Loads the addresses required during the update
 	 * 
-	 * Globals:
+	 * Globals (Only referenced by the CPU):
 	 * ======
-	 * id, iu, hu, hd, h1u, h1d, h2u, h2d, halosize
+	 * hu, hd, h1u, h1d, h2u, h2d, halosize
 	 * 
+	 * Parameters (Used for CPU and GPU):
+	 * =========
+	 * unsigned int *iu:	Upper halo indices
+	 * unsigned int *id:	Lower halo indices
+	 *
 	 * Returns:
 	 * ========
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Addrc";
-	//Rather than having 8 ih variables I'm going to use a 2x4 array
-	//down is 0, up is 1
-	int ih[2][4] = {{-1,-1,-1,-1},{-1,-1,-1,-1}};
-#ifdef __NVCC__
-	cudaMallocManaged((void**)&iu,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
-	cudaMallocManaged((void**)&id,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
-#elif defined __INTEL_MKL__
-	id = mkl_malloc(ndim*kvol*sizeof(int),AVX);
-	iu = mkl_malloc(ndim*kvol*sizeof(int),AVX);
-#else
-	id = aligned_alloc(AVX,ndim*kvol*sizeof(int));
-	iu = aligned_alloc(AVX,ndim*kvol*sizeof(int));
-#endif
+		//Rather than having 8 ih variables I'm going to use a 2x4 array
+		//down is 0, up is 1
+		int ih[2][4] = {{-1,-1,-1,-1},{-1,-1,-1,-1}};
 #ifdef __INTEL_MKL__
-	hd = (unsigned int*)mkl_malloc(ndim*halo*sizeof(int),AVX);
-	hu = (unsigned int*)mkl_malloc(ndim*halo*sizeof(int),AVX);
-	h1u = (unsigned int*)mkl_malloc(ndim*sizeof(int),AVX);
-	h1d = (unsigned int*)mkl_malloc(ndim*sizeof(int),AVX);
-	halosize= (unsigned int*)mkl_malloc(ndim*sizeof(int),AVX);
+		hd = (unsigned int*)mkl_malloc(ndim*halo*sizeof(int),AVX);
+		hu = (unsigned int*)mkl_malloc(ndim*halo*sizeof(int),AVX);
+		h1u = (unsigned int*)mkl_malloc(ndim*sizeof(int),AVX);
+		h1d = (unsigned int*)mkl_malloc(ndim*sizeof(int),AVX);
+		halosize= (unsigned int*)mkl_malloc(ndim*sizeof(int),AVX);
 #else
-	hd = (unsigned int*)aligned_alloc(AVX,ndim*halo*sizeof(int));
-	hu = (unsigned int*)aligned_alloc(AVX,ndim*halo*sizeof(int));
-	h1u = (unsigned int*)aligned_alloc(AVX,ndim*sizeof(int));
-	h1d = (unsigned int*)aligned_alloc(AVX,ndim*sizeof(int));
-	halosize= (unsigned int*)aligned_alloc(AVX,ndim*sizeof(int));
+		hd = (unsigned int*)aligned_alloc(AVX,ndim*halo*sizeof(int));
+		hu = (unsigned int*)aligned_alloc(AVX,ndim*halo*sizeof(int));
+		h1u = (unsigned int*)aligned_alloc(AVX,ndim*sizeof(int));
+		h1d = (unsigned int*)aligned_alloc(AVX,ndim*sizeof(int));
+		halosize= (unsigned int*)aligned_alloc(AVX,ndim*sizeof(int));
 #endif
 
-	//Do the lookups appropriate for overindexing into halos
-	//order is down, up for each x y z t
-	// 
-	// Since the h2? terms are related to the h1? terms I've dropped them in the C Version
-	// saving about 4 billionths of a second in the process
-	//
-	//Need to watch these +/- 1 at the end. Is that a fortran thing or a program thing?
-	//The only time I see h1d called that +1 term gets cancelled by a -1 so I'm going
-	//to omit it here at my own peril.
-	h1d[0]=kvol; h1u[0]=h1d[0]+halox;
-	halosize[0]=halox;
+		//Do the lookups appropriate for overindexing into halos
+		//order is down, up for each x y z t
+		// 
+		// Since the h2? terms are related to the h1? terms I've dropped them in the C Version
+		// saving about 4 billionths of a second in the process
+		//
+		//Need to watch these +/- 1 at the end. Is that a fortran thing or a program thing?
+		//The only time I see h1d called that +1 term gets cancelled by a -1 so I'm going
+		//to omit it here at my own peril.
+		h1d[0]=kvol; h1u[0]=h1d[0]+halox;
+		halosize[0]=halox;
 
-	h1d[1]=h1u[0]+halox; h1u[1]=h1d[1]+haloy;
-	halosize[1]=haloy;
+		h1d[1]=h1u[0]+halox; h1u[1]=h1d[1]+haloy;
+		halosize[1]=haloy;
 
-	h1d[2]=h1u[1]+haloy; h1u[2]=h1d[2]+haloz;
-	halosize[2]=haloz;
+		h1d[2]=h1u[1]+haloy; h1u[2]=h1d[2]+haloz;
+		halosize[2]=haloz;
 
-	h1d[3]=h1u[2]+haloz; h1u[3]=h1d[3]+halot;
-	halosize[3]=halot;
+		h1d[3]=h1u[2]+haloz; h1u[3]=h1d[3]+halot;
+		halosize[3]=halot;
 
-	//Time for the nitty-gritty
-	/*
-	 * Variables are:
-	 *
-	 * h1d(mu) = starting  point in tail of down halo in direction mu
-	 * h2d(mu) = finishing point in tail of down halo in direction mu
-	 *
-	 * h1u(mu) = starting  point in tail of up   halo in direction mu
-	 * h2u(mu) = finishing point in tail of up   halo in direction mu
-	 *
-	 * hd(i,mu) = index in core of point that should be packed into the
-	 *            ith location of the down halo in direction mu
-	 *
-	 * hu(i,mu) = index in core of point that should be packed into the
-	 *            ith location of the up   halo in direction mu
-	 *
-	 * Note that hd and hu should be used for PACKING before SENDING
-	 *
-	 * Unpacking would be done with a loop over ALL the core sites with
-	 * reference to normal dn/up lookups, ie we DO NOT have a list of
-	 * where in the halo the core point i should go
-	 *
-	 * Halo points are ordered "as they come" in the linear loop over
-	 * core sites
-	 */	
-	int iaddr, ic;
-	//if using ic++ inside the loop instead
-	//	ic=-1;
+		//Time for the nitty-gritty
+		/*
+		 * Variables are:
+		 *
+		 * h1d(mu) = starting  point in tail of down halo in direction mu
+		 * h2d(mu) = finishing point in tail of down halo in direction mu
+		 *
+		 * h1u(mu) = starting  point in tail of up   halo in direction mu
+		 * h2u(mu) = finishing point in tail of up   halo in direction mu
+		 *
+		 * hd(i,mu) = index in core of point that should be packed into the
+		 *            ith location of the down halo in direction mu
+		 *
+		 * hu(i,mu) = index in core of point that should be packed into the
+		 *            ith location of the up   halo in direction mu
+		 *
+		 * Note that hd and hu should be used for PACKING before SENDING
+		 *
+		 * Unpacking would be done with a loop over ALL the core sites with
+		 * reference to normal dn/up lookups, ie we DO NOT have a list of
+		 * where in the halo the core point i should go
+		 *
+		 * Halo points are ordered "as they come" in the linear loop over
+		 * core sites
+		 */	
+		int iaddr, ic;
+		//if using ic++ inside the loop instead
+		//	ic=-1;
 #ifdef _DEBUG
-	printf("ksizex = %i, ksizet=%i\n", ksizex, ksizet);
+		printf("ksizex = %i, ksizet=%i\n", ksizex, ksizet);
 #endif
-	//The loop order here matters as it affects the value of ic corresponding to each entry
-	for(int jt=0;jt<ksizet;jt++)
-		for(int jz=0;jz<ksizez;jz++)
-			for(int jy=0;jy<ksizey;jy++)
-				for(int jx=0;jx<ksizex;jx++){
-					//First value of ic is zero as planned.
-					//ic++;
-					ic=(((jt)*ksizez+(jz))*ksizey+(jy))*ksizex+jx;
-					//jx!=0 is logically equivalent to if(jx)
-					if(jx)
-						iaddr = ia(jx-1,jy,jz,jt);
-					else{
-						ih[0][0]++;
-						if(ih[0][0]>= halo){
-							fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."\
-									"\nExiting...\n\n", HALOLIM, funcname, 0, 0, ih[0][0], halo);
-							MPI_Finalise();
-							exit(HALOLIM);
+		//The loop order here matters as it affects the value of ic corresponding to each entry
+		for(int jt=0;jt<ksizet;jt++)
+			for(int jz=0;jz<ksizez;jz++)
+				for(int jy=0;jy<ksizey;jy++)
+					for(int jx=0;jx<ksizex;jx++){
+						//First value of ic is zero as planned.
+						//ic++;
+						ic=(((jt)*ksizez+(jz))*ksizey+(jy))*ksizex+jx;
+						//jx!=0 is logically equivalent to if(jx)
+						if(jx)
+							iaddr = ia(jx-1,jy,jz,jt);
+						else{
+							ih[0][0]++;
+							if(ih[0][0]>= halo){
+								fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."\
+										"\nExiting...\n\n", HALOLIM, funcname, 0, 0, ih[0][0], halo);
+								MPI_Abort(comm,HALOLIM);
+							}
+							hd[0+ndim*ih[0][0]]=ic;
+							iaddr=h1d[0]+ih[0][0];
 						}
-						hd[0+ndim*ih[0][0]]=ic;
-						iaddr=h1d[0]+ih[0][0];
-					}
-					id[0+ndim*ic]=iaddr;
-					if(jx<ksize-1)
-						iaddr = ia(jx+1,jy,jz,jt);
-					else{
-						ih[1][0]++;
-						if(ih[1][0]>= halo){
-							fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."
-									"\nExiting...\n\n", HALOLIM, funcname, 1, 0, ih[1][0], halo);
-							MPI_Finalise();
-							exit(HALOLIM);
+						id[0+ndim*ic]=iaddr;
+						if(jx<ksize-1)
+							iaddr = ia(jx+1,jy,jz,jt);
+						else{
+							ih[1][0]++;
+							if(ih[1][0]>= halo){
+								fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."
+										"\nExiting...\n\n", HALOLIM, funcname, 1, 0, ih[1][0], halo);
+								MPI_Abort(comm,HALOLIM);
+							}
+							hu[0+ndim*ih[1][0]]=ic;
+							iaddr=ih[1][0]+h1u[0];	
 						}
-						hu[0+ndim*ih[1][0]]=ic;
-						iaddr=ih[1][0]+h1u[0];	
-					}
-					iu[0+ndim*ic]=iaddr;
-					if(jy)
-						iaddr = ia(jx,jy-1,jz,jt);
-					else{
-						ih[0][1]++;
-						if(ih[0][1]>= halo){
-							fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."\
-									"\nExiting...\n\n", HALOLIM, funcname, 0, 1, ih[0][1], halo);
-							MPI_Finalise();
-							exit(HALOLIM);
+						iu[0+ndim*ic]=iaddr;
+						if(jy)
+							iaddr = ia(jx,jy-1,jz,jt);
+						else{
+							ih[0][1]++;
+							if(ih[0][1]>= halo){
+								fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."\
+										"\nExiting...\n\n", HALOLIM, funcname, 0, 1, ih[0][1], halo);
+								MPI_Abort(comm,HALOLIM);
+							}
+							hd[1+ndim*ih[0][1]]=ic;
+							iaddr=h1d[1]+ih[0][1];
 						}
-						hd[1+ndim*ih[0][1]]=ic;
-						iaddr=h1d[1]+ih[0][1];
-					}
-					id[1+ndim*ic]=iaddr;
-					if(jy<ksize-1)
-						iaddr = ia(jx,jy+1,jz,jt);
-					else{
-						ih[1][1]++;
-						if(ih[1][1]>= halo){
-							fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."
-									"\nExiting...\n\n", HALOLIM, funcname, 1, 1, ih[1][1], halo);
-							MPI_Finalise();
-							exit(HALOLIM);
+						id[1+ndim*ic]=iaddr;
+						if(jy<ksize-1)
+							iaddr = ia(jx,jy+1,jz,jt);
+						else{
+							ih[1][1]++;
+							if(ih[1][1]>= halo){
+								fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."
+										"\nExiting...\n\n", HALOLIM, funcname, 1, 1, ih[1][1], halo);
+								MPI_Abort(comm,HALOLIM);
+							}
+							hu[1+ndim*ih[1][1]]=ic;
+							iaddr=ih[1][1]+h1u[1];	
 						}
-						hu[1+ndim*ih[1][1]]=ic;
-						iaddr=ih[1][1]+h1u[1];	
-					}
-					iu[1+ndim*ic]=iaddr;
-					if(jz)
-						iaddr = ia(jx,jy,jz-1,jt);
-					else{
-						ih[0][2]++;
-						if(ih[0][2]>= halo){
-							fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."\
-									"\nExiting...\n\n", HALOLIM, funcname, 0, 2, ih[0][2], halo);
-							MPI_Finalise();
-							exit(HALOLIM);
+						iu[1+ndim*ic]=iaddr;
+						if(jz)
+							iaddr = ia(jx,jy,jz-1,jt);
+						else{
+							ih[0][2]++;
+							if(ih[0][2]>= halo){
+								fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."\
+										"\nExiting...\n\n", HALOLIM, funcname, 0, 2, ih[0][2], halo);
+								MPI_Abort(comm,HALOLIM);
+							}
+							hd[2+ndim*ih[0][2]]=ic;
+							iaddr=h1d[2]+ih[0][2];
 						}
-						hd[2+ndim*ih[0][2]]=ic;
-						iaddr=h1d[2]+ih[0][2];
-					}
-					id[2+ndim*ic]=iaddr;
-					if(jz<ksize-1)
-						iaddr = ia(jx,jy,jz+1,jt);
-					else{
-						ih[1][2]++;
-						if(ih[1][2]>= halo){
-							fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."
-									"\nExiting...\n\n", HALOLIM, funcname, 1, 2, ih[1][2], halo);
-							MPI_Finalise();
-							exit(HALOLIM);
+						id[2+ndim*ic]=iaddr;
+						if(jz<ksize-1)
+							iaddr = ia(jx,jy,jz+1,jt);
+						else{
+							ih[1][2]++;
+							if(ih[1][2]>= halo){
+								fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."
+										"\nExiting...\n\n", HALOLIM, funcname, 1, 2, ih[1][2], halo);
+								MPI_Abort(comm,HALOLIM);
+							}
+							hu[2+ndim*ih[1][2]]=ic;
+							iaddr=ih[1][2]+h1u[2];	
 						}
-						hu[2+ndim*ih[1][2]]=ic;
-						iaddr=ih[1][2]+h1u[2];	
-					}
-					iu[2+ndim*ic]=iaddr;
-					if(jt)
-						iaddr = ia(jx,jy,jz,jt-1);
-					else{
-						ih[0][3]++;
-						if(ih[0][3]>= halo){
-							fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."\
-									"\nExiting...\n\n", HALOLIM, funcname, 0, 3, ih[0][3], halo);
-							MPI_Finalise();
-							exit(HALOLIM);
+						iu[2+ndim*ic]=iaddr;
+						if(jt)
+							iaddr = ia(jx,jy,jz,jt-1);
+						else{
+							ih[0][3]++;
+							if(ih[0][3]>= halo){
+								fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."\
+										"\nExiting...\n\n", HALOLIM, funcname, 0, 3, ih[0][3], halo);
+								MPI_Abort(comm,HALOLIM);
+							}
+							hd[3+ndim*ih[0][3]]=ic;
+							iaddr=h1d[3]+ih[0][3];
 						}
-						hd[3+ndim*ih[0][3]]=ic;
-						iaddr=h1d[3]+ih[0][3];
-					}
-					id[3+ndim*ic]=iaddr;
-					if(jt<ksizet-1)
-						iaddr = ia(jx,jy,jz,jt+1);
-					else{
-						ih[1][3]++;
-						if(ih[1][3]>= halo){
-							fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."
-									"\nExiting...\n\n", HALOLIM, funcname, 1, 3, ih[1][3], halo);
-							MPI_Finalise();
-							exit(HALOLIM);
+						id[3+ndim*ic]=iaddr;
+						if(jt<ksizet-1)
+							iaddr = ia(jx,jy,jz,jt+1);
+						else{
+							ih[1][3]++;
+							if(ih[1][3]>= halo){
+								fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."
+										"\nExiting...\n\n", HALOLIM, funcname, 1, 3, ih[1][3], halo);
+								MPI_Abort(comm,HALOLIM);
+							}
+							hu[3+ndim*ih[1][3]]=ic;
+							iaddr=ih[1][3]+h1u[3];	
 						}
-						hu[3+ndim*ih[1][3]]=ic;
-						iaddr=ih[1][3]+h1u[3];	
+						iu[3+ndim*ic]=iaddr;
 					}
-					iu[3+ndim*ic]=iaddr;
-				}
-	//Print iu and id for diagnostics
+		//Print iu and id for diagnostics
 #ifdef DIAGNOSTIC
 #pragma omp parallel sections
-	{
-#pragma omp section
 		{
-			FILE *id_out = fopen("id_out", "w");
-			for(int i=0;i<kvol;i++)
-				fprintf(id_out,"%i %i %i %i\n",id[i*ndim],id[i*ndim+1],id[i*ndim+2],id[i*ndim+3]);
-			fclose(id_out);
-		}
 #pragma omp section
-		{
-			FILE *iu_out = fopen("iu_out", "w");
-			for(int i=0;i<kvol;i++)
-				fprintf(iu_out,"%i %i %i %i\n",iu[i*ndim],iu[i*ndim+1],iu[i*ndim+2],iu[i*ndim+3]);
-			fclose(iu_out);
+			{
+				FILE *id_out = fopen("id_out", "w");
+				for(int i=0;i<kvol;i++)
+					fprintf(id_out,"%i %i %i %i\n",id[i*ndim],id[i*ndim+1],id[i*ndim+2],id[i*ndim+3]);
+				fclose(id_out);
+			}
+#pragma omp section
+			{
+				FILE *iu_out = fopen("iu_out", "w");
+				for(int i=0;i<kvol;i++)
+					fprintf(iu_out,"%i %i %i %i\n",iu[i*ndim],iu[i*ndim+1],iu[i*ndim+2],iu[i*ndim+3]);
+				fclose(iu_out);
+
+			}
 
 		}
-
-	}
 #endif
-	return 0;
+		return 0;
 }
 //No point making this parallel because Addrc is serial and the only thing that calls ia
 inline int ia(int x, int y, int z, int t){
@@ -300,8 +288,7 @@ int Check_addr(unsigned int *table, int lns, int lnt, int imin, int imax){
 			fprintf(stderr, "Error %i in %s: %i is out of the bounds of (%i,%i)\n"\
 					"for a table of size %i^3 *%i.\nExiting...\n\n",\
 					BOUNDERROR,funcname,iaddr,imin,imax,lns,lnt);
-			MPI_Finalise();
-			exit(BOUNDERROR);
+			MPI_Abort(comm,BOUNDERROR);
 		}
 	}
 	return 0;
@@ -429,7 +416,7 @@ inline int Coord2gindex(int ix, int iy, int iz, int it){
 	//I've factorised this function compared to its original 
 	//implimentation to reduce the number of multiplications
 	//and hopefully improve performance
-//	return it+nt*(iz+nz*(iy+ny*ix));
+	//	return it+nt*(iz+nz*(iy+ny*ix));
 	return ix+nx*(iy+ny*(iz+nz*it));
 }
 int Testlcoord(int cap){
@@ -465,8 +452,7 @@ int Testlcoord(int cap){
 			fprintf(stderr, "Error %i in %s: Converted index %i does not match "
 					"original index %i.\nExiting...\n\n",\
 					INDTOCOORD, funcname, index2, index);
-			MPI_Finalise();
-			exit(INDTOCOORD);
+			MPI_Abort(comm,INDTOCOORD);
 		}
 	}
 	return 0;
@@ -507,8 +493,7 @@ int Testgcoord(int cap){
 			fprintf(stderr, "Error %i in %s: Converted index %i does not match "\
 					"original index %i.\nExiting...\n\n",\
 					INDTOCOORD, funcname, index2, index);
-			MPI_Finalise();
-			exit(INDTOCOORD);
+			MPI_Abort(comm,INDTOCOORD);
 		}
 	}
 	return 0;

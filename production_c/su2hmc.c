@@ -3,6 +3,8 @@
 #ifdef	__NVCC__
 #include	<cuda.h>
 #include	<cuda_runtime.h>
+cublasHandle_t cublas_handle;
+cublasHandle_t cublas_status;
 //Fix this later
 #endif
 #include	<math.h>
@@ -13,12 +15,6 @@
 #include	<su2hmc.h>
 
 //Extern definitions, especially default values for fmu, beta and akappa
-Complex jqq = 0;
-Complex_f jqq_f = 0;
-double fmu = 0.0;
-double beta = 1.7;
-double akappa = 0.1780;
-float akappa_f = 0.1780f;
 int
 #ifndef __NVCC__ 
 __attribute__((aligned(AVX)))
@@ -45,8 +41,9 @@ __attribute__((aligned(AVX)))
 		{-I,I,I,-I},
 		{1,1,1,1},
 		{1,1,-1,-1}};
-#ifdef __NVCC__
-
+#ifdef __CUDACC__
+	extern dim3	dimBlock(ksizex,ksizey,1);
+	extern dim3	dimGrid(ksizez,ksizet,1);
 #endif
 
 /*
@@ -119,9 +116,13 @@ int main(int argc, char *argv[]){
 	//Input
 	//The default values here are straight from the FORTRAN
 	//=====================================================
+	float beta = 1.7;
+	float akappa = 0.1780f;
+	Complex_f jqq = 0;
+	float fmu = 0.0;
 	int iread = 0;
 	int istart = 1;
-	ibound = -1;
+	int ibound = -1;
 	int iwrite = 1;
 	int iprint = 1; //For the measures
 	int icheck = 5; //Save conf
@@ -133,9 +134,9 @@ int main(int argc, char *argv[]){
 	//End of input
 	//===========
 	//rank is zero means it must be the "master process"
-	double dt=0.004; double ajq = 0.0;
-	double delb; //Not used?
-	double athq = 0.0;
+	float dt=0.004; float ajq = 0.0;
+	float delb; //Not used?
+	float athq = 0.0;
 	int stepl = 250; int ntraj = 10;
 	if(!rank){
 		FILE *midout;
@@ -145,26 +146,26 @@ int main(int argc, char *argv[]){
 		if( !(midout = fopen(filename, fileop) ) ){
 			fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n"\
 					, OPENERROR, funcname, filename, fileop);
-			exit(OPENERROR);
+			MPI_Abort(comm,OPENERROR);
 		}
-		fscanf(midout, "%lf %lf %lf %lf %lf %lf %lf %d %d %d %d %d", &dt, &beta, &akappa,\
+		fscanf(midout, "%f %f %f %f %f %f %f %d %d %d %d %d", &dt, &beta, &akappa,\
 				&ajq, &athq, &fmu, &delb, &stepl, &ntraj, &istart, &icheck, &iread);
 		fclose(midout);
 		assert(stepl>0);	assert(ntraj>0);	  assert(istart>0);  assert(icheck>0);  assert(iread>=0); 
 	}
 	//Send inputs to other ranks
-	Par_dcopy(&dt); Par_dcopy(&beta); Par_dcopy(&akappa); Par_dcopy(&ajq);
-	Par_dcopy(&athq); Par_dcopy(&fmu); Par_dcopy(&delb); //Not used?
+	Par_fcopy(&dt); Par_fcopy(&beta); Par_fcopy(&akappa); Par_fcopy(&ajq);
+	Par_fcopy(&athq); Par_fcopy(&fmu); Par_fcopy(&delb); //Not used?
 	Par_icopy(&stepl); Par_icopy(&ntraj); Par_icopy(&istart); Par_icopy(&icheck);
-	Par_icopy(&iread); jqq=ajq*cexp(athq*I); akappa_f=(float)akappa; jqq_f=(Complex_f)jqq;
+	Par_icopy(&iread); jqq=ajq*cexp(athq*I);
 #ifdef __NVCC__
+	Complex *jqq_d, *beta_d, *akappa_d;
 	cudaMalloc(&jqq_d,sizeof(Complex));		cudaMalloc(&beta_d,sizeof(Complex));
-	cudaMalloc(&akappa_d,sizeof(Complex));	cudaMalloc(&akappa_f_d,sizeof(Complex_f));
+	cudaMalloc(&akappa_d,sizeof(Complex));	
 
 	cudaMemcpy(jqq_d,&jqq,sizeof(Complex),cudaMemcpyHostToDevice);
 	cudaMemcpy(beta_d,&beta,sizeof(Complex),cudaMemcpyHostToDevice);
 	cudaMemcpy(akappa_d,&akappa,sizeof(Complex),cudaMemcpyHostToDevice);
-	cudaMemcpy(akappa_f_d,&akappa_f,sizeof(Complex_f),cudaMemcpyHostToDevice);
 #endif
 #ifdef _DEBUG
 	printf("jqq=%f+(%f)I\n",creal(jqq),cimag(jqq));
@@ -175,25 +176,85 @@ int main(int argc, char *argv[]){
 	seed = time(NULL);
 #endif
 
+	//Cannot assign memory to these inside Init without using double pointers, and that's more trouble than it is worth
+	//Gauges and trial fields 
+		Complex *u11, *u12, *u11t, *u12t;
+		Complex_f *u11t_f, *u12t_f;
+		double *dk4m, *dk4p, *pp;
+		float	*dk4m_f, *dk4p_f;
+		unsigned int *iu, *id;
+#ifdef __NVCC__
+	cudaMallocManaged((void**)&iu,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
+	cudaMallocManaged((void**)&id,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
+
+	cudaMallocManaged(&dk4m,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
+	cudaMallocManaged(&dk4p,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
+	cudaMallocManaged(&dk4m_f,(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
+	cudaMallocManaged(&dk4p_f,(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
+
+	int	*gamin_d;
+	Complex	*gamval_d;
+	Complex_f *gamval_f_d;
+	cudaMalloc(&gamin_d,4*4*sizeof(Complex));
+	cudaMalloc(&gamval_d,5*4*sizeof(Complex));
+	cudaMalloc(&gamval_f_d,5*4*sizeof(Complex_f));
+
+	cudaMallocManaged(&u11,ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&u12,ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&u11t,ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&u12t,ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&u11t_f,ndim*(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged(&u12t_f,ndim*(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
+#elif defined __INTEL_MKL__
+	id = (unsigned int*)mkl_malloc(ndim*kvol*sizeof(int),AVX);
+	iu = (unsigned int*)mkl_malloc(ndim*kvol*sizeof(int),AVX);
+
+	dk4m = mkl_malloc((kvol+halo)*sizeof(double), AVX);
+	dk4p = mkl_malloc((kvol+halo)*sizeof(double), AVX);
+	dk4m_f = mkl_malloc((kvol+halo)*sizeof(float), AVX);
+	dk4p_f = mkl_malloc((kvol+halo)*sizeof(float), AVX);
+
+	u11 = mkl_malloc(ndim*kvol*sizeof(Complex),AVX);
+	u12 = mkl_malloc(ndim*kvol*sizeof(Complex),AVX);
+	u11t = mkl_malloc(ndim*(kvol+halo)*sizeof(Complex),AVX);
+	u12t = mkl_malloc(ndim*(kvol+halo)*sizeof(Complex),AVX);
+	u11t_f = mkl_malloc(ndim*(kvol+halo)*sizeof(Complex_f),AVX);
+	u12t_f = mkl_malloc(ndim*(kvol+halo)*sizeof(Complex_f),AVX);
+#else
+	id = (unsigned int*)aligned_alloc(AVX,ndim*kvol*sizeof(int));
+	iu = (unsigned int*)aligned_alloc(AVX,ndim*kvol*sizeof(int));
+
+	dk4m = aligned_alloc(AVX,(kvol+halo)*sizeof(double));
+	dk4p = aligned_alloc(AVX,(kvol+halo)*sizeof(double));
+	dk4m_f = aligned_alloc(AVX,(kvol+halo)*sizeof(float));
+	dk4p_f = aligned_alloc(AVX,(kvol+halo)*sizeof(float));
+
+	u11 = aligned_alloc(AVX,ndim*kvol*sizeof(Complex));
+	u12 = aligned_alloc(AVX,ndim*kvol*sizeof(Complex));
+	u11t = aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex));
+	u12t = aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex));
+	u11t_f = aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex_f));
+	u12t_f = aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex_f));
+#endif
 	//Initialisation
 	//istart < 0: Start from tape?!? How old is this code?
 	//istart = 0: Ordered/Cold Start
 	//			For some reason this leaves the trial fields as zero in the FORTRAN code?
 	//istart > 0: Random/Hot Start
-	Init(istart,iread,beta,fmu,akappa,ajq);
+	Init(istart,ibound,iread,beta,fmu,akappa,ajq,u11,u12,u11t,u12t,u11t_f,u12t_f,dk4m,dk4p,dk4m_f,dk4p_f,iu,id);
 #ifdef DIAGNOSTIC
 	Diagnostics(istart);
 #endif
 
 	//Initial Measurements
 	//====================
-	double poly = Polyakov();
+	double poly = Polyakov(u11t,u12t);
 #ifdef _DEBUG
 	if(!rank) printf("Initial Polyakov loop evaluated as %e\n", poly);
 #endif
 	double hg, avplaqs, avplaqt;
-	Trial_Exchange();
-	SU2plaq(&hg,&avplaqs,&avplaqt);
+	Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
+	SU2plaq(&hg,&avplaqs,&avplaqt,u11t,u12t,iu,beta);
 	//Loop on β
 	//Print Heading
 	double traj=stepl*dt;
@@ -203,8 +264,7 @@ int main(int argc, char *argv[]){
 	if(!rank){
 		if(!(output=fopen(outname, outop) )){
 			fprintf(stderr,"Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",OPENERROR,funcname,outname,outop);
-			MPI_Finalise();
-			exit(OPENERROR);
+			MPI_Abort(comm,OPENERROR);
 		}
 		printf("hg = %e, <Ps> = %e, <Pt> = %e, <Poly> = %e\n", hg, avplaqs, avplaqt, poly);
 		fprintf(output, "ksize = %i ksizet = %i Nf = %i Halo =%i\nTime step dt = %e Trajectory length = %e\n"\
@@ -233,12 +293,21 @@ int main(int argc, char *argv[]){
 	//===========================
 	double pbp;
 	Complex qq;
-	//Initialise Some Arrays. Leaving it late for scoping
-	//check the sizes in sizes.h
 	double *dSdpi;
+	//Field and related declarations
+		Complex *Phi, *R1, *X0, *X1;
+	//Initialise Arrays. Leaving it late for scoping
+	//check the sizes in sizes.h
 #ifdef __NVCC__
 	int device=-1;
 	cudaGetDevice(&device);
+	memcpy(gamin_d,gamin,4*4*sizeof(int));
+	gamval_d=NULL;
+	cudaMemcpy(gamval_d,gamval,5*4*sizeof(Complex),cudaMemcpyHostToDevice);
+	cudaMemAdvise(gamin_d,16*sizeof(int),cudaMemAdviseSetReadMostly,device);
+	cudaMemPrefetchAsync(gamin_d,16*sizeof(int),device,NULL);
+
+	cudaMemcpy(gamval_f_d,gamval_f,5*4*sizeof(Complex_f),cudaMemcpyHostToDevice);
 	cudaMallocManaged(&R1, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&Phi, nf*kferm*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&X0, nf*kferm2*sizeof(Complex),cudaMemAttachGlobal);
@@ -270,6 +339,8 @@ int main(int argc, char *argv[]){
 		start_time = MPI_Wtime();
 #endif
 	double action;
+	//Congugate Gradient iteration counters
+	double ancg,ancgh;
 	for(int itraj = iread+1; itraj <= ntraj+iread; itraj++){
 		//Reset conjugate gradient averages
 		ancg = 0; ancgh = 0;
@@ -303,7 +374,7 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 			cudaMemPrefetchAsync(R,kfermHalo*sizeof(Complex),device,NULL);
 #endif
-			Dslashd(R1, R);
+			Dslashd(R1, R,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 			memcpy(Phi+na*kferm,R1, kferm*sizeof(Complex));
 			//Up/down partitioning (using only pseudofermions of flavour 1)
 #pragma omp parallel for simd collapse(2) aligned(X0,R1:AVX)
@@ -333,7 +404,7 @@ int main(int argc, char *argv[]){
 		//Initialise Trial Fields
 		memcpy(u11t, u11, ndim*kvol*sizeof(Complex));
 		memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
-		Trial_Exchange();
+		Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
 #ifdef __NVCC__
 		cudaMemPrefetchAsync(u11t, ndim*(kvol+halo)*sizeof(Complex),device,NULL);
 		cudaMemPrefetchAsync(u12t, ndim*(kvol+halo)*sizeof(Complex),device,NULL);
@@ -341,7 +412,8 @@ int main(int argc, char *argv[]){
 		cudaMemPrefetchAsync(u12t_f, ndim*(kvol+halo)*sizeof(Complex_f),device,NULL);
 #endif
 		double H0, S0;
-		Hamilton(&H0, &S0, rescga);
+		Hamilton(&H0, &S0, rescga,pp,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval_f,gamin,\
+				dk4m_f,dk4p_f,jqq,akappa,beta,&ancgh);
 #ifdef _DEBUG
 		if(!rank) printf("H0: %e S0: %e\n", H0, S0);
 #endif
@@ -353,7 +425,8 @@ int main(int argc, char *argv[]){
 #ifdef _DEBUG
 		printf("Evaluating force on rank %i\n", rank);
 #endif
-		Force(dSdpi, 1, rescgg);
+		Force(dSdpi, 1, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
+				dk4m_f,dk4p_f,jqq,akappa,beta,&ancg);
 #ifdef __NVCC__
 		cublasDaxpy(cublas_handle,kmom, &d, dSdpi, 1, pp, 1);
 #elif (defined __INTEL_MKL__ || defined USE_BLAS)
@@ -374,19 +447,21 @@ int main(int argc, char *argv[]){
 			//I'll stick to using dt though.
 			//step (i) st(t+dt)=st(t)+p(t+dt/2)*dt;
 			//Replace with a Kernel call and move trial exchange onto CPU for now
-			New_trial(dt);
-			Reunitarise();
+			New_trial(dt,pp,u11t,u12t);
+			Reunitarise(u11t,u12t);
 			//Get trial fields from accelerator for halo exchange
 			//Cancel that until we check for double precision flags. It's really bad on Xe since it isn't natively supported
 #pragma acc update self(u11t[0:ndim*kvol],u12t[0:ndim*kvol])
-			Trial_Exchange();
+			Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
 #ifdef __NVCC__
 			//Mark trial fields as primarily read only here? Can renable writing at the end of each trajectory
 			cudaMemPrefetchAsync(u11t, ndim*(kvol+halo)*sizeof(Complex),device,NULL);
 			cudaMemPrefetchAsync(u12t, ndim*(kvol+halo)*sizeof(Complex),device,NULL);
 #endif
 			//p(t+3dt/2)=p(t+dt/2)-dSds(t+dt)*dt
-			Force(dSdpi, 0, rescgg);
+			//	Force(dSdpi, 0, rescgg);
+			Force(dSdpi, 0, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
+					dk4m_f,dk4p_f,jqq,akappa,beta,&ancg);
 			//The same for loop is given in both the if and else
 			//statement but only the value of d changes. This is due to the break in the if part
 			if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
@@ -407,9 +482,8 @@ int main(int argc, char *argv[]){
 			else{
 #ifdef __NVCC__
 				//dt is needed for the trial fields so has to be negated every time.
-				dt*=-1;
-				cublasDaxpy(cublas_handle,kmom, &dt, dSdpi, 1, pp, 1);
-				dt*=-1;
+				double dt_d=-1*dt;
+				cublasDaxpy(cublas_handle,kmom, &dt_d, dSdpi, 1, pp, 1);
 #elif (defined __INTEL_MKL__ || defined USE_BLAS)
 				cblas_daxpy(kmom, -dt, dSdpi, 1, pp, 1);
 #else
@@ -422,10 +496,11 @@ int main(int argc, char *argv[]){
 		}
 		//Monte Carlo step: Accept new fields with the probability of min(1,exp(H0-X0))
 		//Kernel Call needed here?
-		Reunitarise();
+		Reunitarise(u11t,u12t);
 #pragma acc update self(u11t[0:kvol*ndim],u12t[0:kvol*ndim])
 		double H1, S1;
-		Hamilton(&H1, &S1, rescga);
+		Hamilton(&H1, &S1, rescga,pp,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval_f,gamin,\
+				dk4m_f,dk4p_f,jqq,akappa,beta,&ancgh);
 		double dH = H0 - H1;
 		double dS = S0 - S1;
 		if(!rank){
@@ -475,7 +550,7 @@ int main(int argc, char *argv[]){
 			//If rejected, copy the previously accepted field in for measurements
 			memcpy(u11t, u11, ndim*kvol*sizeof(Complex));
 			memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
-			Trial_Exchange();
+			Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
 #ifdef _DEBUG
 			if(!rank)
 				printf("Starting measurements\n");
@@ -483,14 +558,15 @@ int main(int argc, char *argv[]){
 			int itercg=0;
 			double endenf, denf;
 			Complex qbqb;
-			Measure(&pbp,&endenf,&denf,&qq,&qbqb,respbp,&itercg);
+			Measure(&pbp,&endenf,&denf,&qq,&qbqb,respbp,&itercg,u11t,u12t,u11t_f,u12t_f,iu,id,\
+					gamval,gamval_f,gamin,dk4m,dk4p,dk4m_f,dk4p_f,jqq,akappa,Phi,R1);
 #ifdef _DEBUG
 			if(!rank)
 				printf("Finished measurements\n");
 #endif
 			pbpa+=pbp; endenfa+=endenf; denfa+=denf; ipbp++;
-			SU2plaq(&hg,&avplaqs,&avplaqt); 
-			poly = Polyakov();
+			SU2plaq(&hg,&avplaqs,&avplaqt,u11t,u12t,iu,beta);
+			poly = Polyakov(u11t,u12t);
 			//We have four output files, so may as well get the other ranks to help out
 			//and abuse scoping rules while we're at it.
 #if (nproc>=4)
@@ -519,8 +595,7 @@ int main(int argc, char *argv[]){
 									if(!(fortout=fopen(fortname, fortop) )){
 										fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
 												OPENERROR, funcname, fortname, fortop);
-										MPI_Finalise();
-										exit(OPENERROR);
+										MPI_Abort(comm,OPENERROR);
 									}
 									if(itraj==1)
 										fprintf(fortout, "pbp\tendenf\tdenf\n");
@@ -539,8 +614,7 @@ int main(int argc, char *argv[]){
 									if(!(fortout=fopen(fortname, fortop) )){
 										fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
 												OPENERROR, funcname, fortname, fortop);
-										MPI_Finalise();
-										exit(OPENERROR);
+										MPI_Abort(comm,OPENERROR);
 									}
 									if(itraj==1)
 										fprintf(fortout, "avplaqs\tavplaqt\tpoly\n");
@@ -556,8 +630,7 @@ int main(int argc, char *argv[]){
 									if(!(fortout=fopen(fortname, fortop) )){
 										fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
 												OPENERROR, funcname, fortname, fortop);
-										MPI_Finalise();
-										exit(OPENERROR);
+										MPI_Abort(comm,OPENERROR);
 									}
 									if(itraj==1)
 										fprintf(fortout, "Re(qq)\n");
@@ -569,7 +642,7 @@ int main(int argc, char *argv[]){
 						}
 		}
 		if(itraj%icheck==0){
-			Par_swrite(itraj,icheck,beta,fmu,akappa,ajq);
+			Par_swrite(itraj,icheck,beta,fmu,akappa,ajq,u11,u12);
 		}
 		if(!rank)
 			fflush(output);
@@ -644,7 +717,9 @@ int main(int argc, char *argv[]){
 	fflush(stdout);
 	return 0;
 }
-int Init(int istart, int iread, double beta, double fmu, double akappa, Complex ajq){
+int Init(int istart, int ibound, int iread, double beta, double fmu, double akappa, Complex ajq,\
+		Complex *u11, Complex *u12, Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f,\
+		double *dk4m, double *dk4p, float *dk4m_f, float *dk4p_f, unsigned int *iu, unsigned int *id){
 	/*
 	 * Initialises the system
 	 *
@@ -655,7 +730,7 @@ int Init(int istart, int iread, double beta, double fmu, double akappa, Complex 
 	 *
 	 * Globals:
 	 * ========
-	 * u11, u12, u11t, u12t, u11_f, u12_f, dk4m, dk4p, dk4m_4, dk4p_f
+	 * u11, u12, u11t, u12t, u11t_f, u12t_f, dk4m, dk4p, dk4m_4, dk4p_f
 	 * iu, id
 	 *
 	 * Parameters:
@@ -680,7 +755,7 @@ int Init(int istart, int iread, double beta, double fmu, double akappa, Complex 
 #endif
 #endif
 	//First things first, calculate a few constants
-	Addrc();
+	Addrc(iu, id);
 	//And confirm they're legit
 	Check_addr(iu, ksize, ksizet, 0, kvol+halo);
 	Check_addr(id, ksize, ksizet, 0, kvol+halo);
@@ -701,21 +776,6 @@ int Init(int istart, int iread, double beta, double fmu, double akappa, Complex 
 	cudaMemAdvise(id,ndim*kvol*sizeof(int),cudaMemAdviseSetReadMostly,device);
 	cudaMemPrefetchAsync(iu,ndim*kvol*sizeof(int),device,NULL);
 	cudaMemPrefetchAsync(id,ndim*kvol*sizeof(int),device,NULL);
-
-	cudaMallocManaged(&dk4m,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
-	cudaMallocManaged(&dk4p,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
-	cudaMallocManaged(&dk4m_f,(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
-	cudaMallocManaged(&dk4p_f,(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
-#elif defined __INTEL_MKL__
-	dk4m = mkl_malloc((kvol+halo)*sizeof(double), AVX);
-	dk4p = mkl_malloc((kvol+halo)*sizeof(double), AVX);
-	dk4m_f = mkl_malloc((kvol+halo)*sizeof(float), AVX);
-	dk4p_f = mkl_malloc((kvol+halo)*sizeof(float), AVX);
-#else
-	dk4m = aligned_alloc(AVX,(kvol+halo)*sizeof(double));
-	dk4p = aligned_alloc(AVX,(kvol+halo)*sizeof(double));
-	dk4m_f = aligned_alloc(AVX,(kvol+halo)*sizeof(float));
-	dk4p_f = aligned_alloc(AVX,(kvol+halo)*sizeof(float));
 #endif
 	//CUDA this. Only limit will be the bus speed
 #pragma omp parallel for simd aligned(dk4m,dk4p:AVX)
@@ -776,46 +836,16 @@ int Init(int istart, int iread, double beta, double fmu, double akappa, Complex 
 #endif
 #ifdef __NVCC__
 	//Gamma matrices and indices on the GPU
-	cudaMallocManaged(&gamin_d,4*4*sizeof(int),cudaMemAttachGlobal);
-	memcpy(gamin_d,gamin,4*4*sizeof(int));
-	gamval_d=NULL;
-	cudaMalloc(&gamval_d,5*4*sizeof(Complex));
-	cudaMemcpy(gamval_d,gamval,5*4*sizeof(Complex),cudaMemcpyHostToDevice);
-	cudaMalloc(&gamval_f_d,5*4*sizeof(Complex_f));
-	cudaMemcpy(gamval_f_d,gamval_f,5*4*sizeof(Complex_f),cudaMemcpyHostToDevice);
 	//More prefetching and marking as read-only (mostly)
 	cudaMemAdvise(dk4p,(kvol+halo)*sizeof(double),cudaMemAdviseSetReadMostly,device);
 	cudaMemAdvise(dk4m,(kvol+halo)*sizeof(double),cudaMemAdviseSetReadMostly,device);
-	cudaMemAdvise(gamin_d,16*sizeof(int),cudaMemAdviseSetReadMostly,device);
 
 	cudaMemPrefetchAsync(dk4p,(kvol+halo)*sizeof(double),device,NULL);
 	cudaMemPrefetchAsync(dk4m,(kvol+halo)*sizeof(double),device,NULL);
-	cudaMemPrefetchAsync(gamin_d,16*sizeof(int),device,NULL);
-
-	cudaMallocManaged(&u11,ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&u12,ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&u11t,ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&u12t,ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&u11t_f,ndim*(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged(&u12t_f,ndim*(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
-#elif defined __INTEL_MKL__
-	u11 = mkl_malloc(ndim*kvol*sizeof(Complex),AVX);
-	u12 = mkl_malloc(ndim*kvol*sizeof(Complex),AVX);
-	u11t = mkl_malloc(ndim*(kvol+halo)*sizeof(Complex),AVX);
-	u12t = mkl_malloc(ndim*(kvol+halo)*sizeof(Complex),AVX);
-	u11t_f = mkl_malloc(ndim*(kvol+halo)*sizeof(Complex_f),AVX);
-	u12t_f = mkl_malloc(ndim*(kvol+halo)*sizeof(Complex_f),AVX);
-#else
-	u11 = aligned_alloc(AVX,ndim*kvol*sizeof(Complex));
-	u12 = aligned_alloc(AVX,ndim*kvol*sizeof(Complex));
-	u11t = aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex));
-	u12t = aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex));
-	u11t_f = aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex_f));
-	u12t_f = aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex_f));
 #endif
 	if(iread){
 		if(!rank) printf("Calling Par_sread() for configuration: %i\n", iread);
-		Par_sread(iread, beta, fmu, akappa, ajq);
+		Par_sread(iread, beta, fmu, akappa, ajq,u11,u12,u11t,u12t);
 		Par_ranset(&seed,iread);
 	}
 	else{
@@ -869,7 +899,7 @@ int Init(int istart, int iread, double beta, double fmu, double akappa, Complex 
 #else
 #pragma omp target update to(u11t[0:ndim*kvol],u12t[0:ndim*kvol])
 #endif
-		Reunitarise();
+		Reunitarise(u11t,u12t);
 		//Get trials back
 		//#pragma omp target update from(u11t[0:ndim*kvol],u12t[0:ndim*kvol]) 
 		memcpy(u11, u11t, ndim*kvol*sizeof(Complex));
@@ -880,7 +910,10 @@ int Init(int istart, int iread, double beta, double fmu, double akappa, Complex 
 #endif
 	return 0;
 }
-int Hamilton(double *h, double *s, double res2){
+int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex *X1, Complex *Phi,\
+		Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f, unsigned int * iu, unsigned int *id,\
+		Complex_f gamval_f[5][4], int gamin[4][4], float *dk4m_f, float * dk4p_f, Complex_f jqq,\
+		float akappa, float beta, double *ancgh){
 	/* Evaluates the Hamiltonian function
 	 * 
 	 * Calls:
@@ -922,7 +955,7 @@ int Hamilton(double *h, double *s, double res2){
 	double avplaqs, avplaqt;
 	double hg = 0;
 	//avplaq? isn't seen again here.
-	SU2plaq(&hg,&avplaqs,&avplaqt);
+	SU2plaq(&hg,&avplaqs,&avplaqt,u11t,u12t,iu,beta);
 
 	double hf = 0; int itercg = 0;
 #ifdef __NVCC__
@@ -936,10 +969,11 @@ int Hamilton(double *h, double *s, double res2){
 	//Iterating over flavours
 	for(int na=0;na<nf;na++){
 		memcpy(X1,X0+na*kferm2,kferm2*sizeof(Complex));
-		Fill_Small_Phi(na, smallPhi);
-		Congradq(na,res2,smallPhi,&itercg);
-		ancgh+=itercg;
-		Fill_Small_Phi(na, smallPhi);
+		Fill_Small_Phi(na, smallPhi, Phi);
+		Congradq(na,res2,X1,smallPhi,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,&itercg);
+		//Congradq(na,res2,smallPhi, &itercg );
+		*ancgh+=itercg;
+		Fill_Small_Phi(na, smallPhi,Phi);
 		memcpy(X0+na*kferm2,X1,kferm2*sizeof(Complex));
 #ifdef __NVCC__
 		Complex dot;
@@ -980,7 +1014,7 @@ inline int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned
 		x[i]=y[table[i*ndim+mu]*ndim+mu];
 	return 0;
 }
-inline int Fill_Small_Phi(int na, Complex *smallPhi)
+inline int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
 {
 	/*Copies necessary (2*4*kvol) elements of Phi into a vector variable
 	 *

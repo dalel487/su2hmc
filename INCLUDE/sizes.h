@@ -31,6 +31,11 @@
 #endif
 #ifdef	__NVCC__
 #include	<cuda.h>
+#include	<thrust_complex.h>
+#else
+#include	<complex.h>
+#define	Complex_f	float	complex
+#define	Complex	complex
 #endif
 // Define booleans for C because they don't exist natively
 // They do in C99...
@@ -40,8 +45,8 @@
 #define	FILELEN	64
 // Common block definition for parallel variables
 
-#define	nx	24
-#define	nt	9
+#define	nx 24	
+#define	nt	6
 // Keep original restriction of single spatial extent
 
 #define	ny    nx
@@ -79,7 +84,7 @@
 //     integer, parameter :: niterc=2*gvol  
 //      #define niterc 2*gvol
 //    jis: hard limit to avoid runaway trajectories
-#define	niterc	100000
+#define	niterc	2*gvol	
 //    Constants for dimensions.
 #define	nc	2
 #define	nadj	3
@@ -128,7 +133,7 @@
 //usually between 128 and 256
 //Note that from Volta/Turing  each SM (group of processors)
 //is smaller than on previous generations of GPUs
-dim3	dimBlock(ksizex,ksizey,1);
-dim3	dimGrid(ksizez,ksizet,1);
+extern dim3	dimBlock;
+extern dim3	dimGrid;
 #endif
 #endif
