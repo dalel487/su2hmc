@@ -67,7 +67,7 @@ int Par_ranread(char *filename, double *ranval){
 	if(!rank){
 		if(!(dest = fopen(filename, "rb"))){
 			fprintf(stderr, "Error %i in %s: Failed to open %s.\nExiting...\n\n", OPENERROR, funcname, filename);
-			exit(OPENERROR); 
+			MPI_Abort(comm,OPENERROR); 
 		}
 		fread(&ranval, sizeof(ranval), 1, dest);	
 		fclose(dest);
@@ -176,7 +176,7 @@ int Gauss_z(Complex *ps, unsigned int n, const Complex mu, const double sigma){
 	if(n<=0){
 		fprintf(stderr, "Error %i in %s: Array cannot have length %i.\nExiting...\n\n",
 				ARRAYLEN, funcname, n);
-		exit(ARRAYLEN);
+		MPI_Abort(comm,ARRAYLEN);
 	}
 #pragma unroll
 	for(int i=0;i<n;i++){
@@ -228,7 +228,7 @@ int Gauss_c(Complex_f *ps, unsigned int n, const Complex_f mu, const float sigma
 	if(n<=0){
 		fprintf(stderr, "Error %i in %s: Array cannot have length %i.\nExiting...\n\n",
 				ARRAYLEN, funcname, n);
-		exit(ARRAYLEN);
+		MPI_Abort(comm,ARRAYLEN);
 	}
 #pragma unroll
 	for(int i=0;i<n;i++){
@@ -283,7 +283,7 @@ int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma){
 	if(n<=0){
 		fprintf(stderr, "Error %i in %s: Array cannot have length %i.\nExiting...\n\n",
 				ARRAYLEN, funcname, n);
-		exit(ARRAYLEN);
+		MPI_Abort(comm,ARRAYLEN);
 	}
 	int i;
 	double r, u, v;
@@ -352,7 +352,7 @@ int Gauss_f(float *ps, unsigned int n, const float mu, const float sigma){
 	if(n<=0){
 		fprintf(stderr, "Error %i in %s: Array cannot have length %i.\nExiting...\n\n",
 				ARRAYLEN, funcname, n);
-		exit(ARRAYLEN);
+		MPI_Abort(comm,ARRAYLEN);
 	}
 	int i;
 	float r, u, v;

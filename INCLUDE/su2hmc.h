@@ -12,6 +12,8 @@ extern cublasHandle_t cublas_status;
 //flag to sort them out. But the PRNG routines etc. are MKL exclusive
 #ifdef	__INTEL_MKL__
 #include	<mkl.h>
+#elif defined GSL_BLAS
+#include <gsl/gsl_cblas.h>
 #elif defined USE_BLAS
 #include	<cblas.h>
 #endif
@@ -24,7 +26,7 @@ extern cublasHandle_t cublas_status;
 //###########
 //Function Declarations:
 //#####################
-#ifdef __cplusplus
+#if (defined __NVCC__ || defined __cplusplus)
 extern "C"
 {
 #endif
@@ -58,7 +60,7 @@ extern "C"
 	//Inline Stuff
 	extern int Z_gather(Complex*x, Complex *y, int n, unsigned int *table, unsigned int mu);
 	extern int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi);
-#ifdef __cplusplus
+#if (defined __NVCC__ || defined __cplusplus)
 }
 #endif
 

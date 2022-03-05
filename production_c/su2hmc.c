@@ -146,7 +146,7 @@ int main(int argc, char *argv[]){
 		if( !(midout = fopen(filename, fileop) ) ){
 			fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n"\
 					, OPENERROR, funcname, filename, fileop);
-			exit(OPENERROR);
+			MPI_Abort(comm,OPENERROR);
 		}
 		fscanf(midout, "%f %f %f %f %f %f %f %d %d %d %d %d", &dt, &beta, &akappa,\
 				&ajq, &athq, &fmu, &delb, &stepl, &ntraj, &istart, &icheck, &iread);
@@ -178,25 +178,10 @@ int main(int argc, char *argv[]){
 
 	//Cannot assign memory to these inside Init without using double pointers, and that's more trouble than it is worth
 	//Gauges and trial fields 
-#ifdef __NVCC__
-	__managed__ 
-#endif 
 		Complex *u11, *u12, *u11t, *u12t;
-#ifdef __NVCC__
-	__managed__ 
-#endif 
 		Complex_f *u11t_f, *u12t_f;
-#ifdef __NVCC__
-	__managed__ 
-#endif 
 		double *dk4m, *dk4p, *pp;
-#ifdef __NVCC__
-	__managed__ 
-#endif 
 		float	*dk4m_f, *dk4p_f;
-#ifdef __NVCC__
-	__managed__ 
-#endif 
 		unsigned int *iu, *id;
 #ifdef __NVCC__
 	cudaMallocManaged((void**)&iu,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
@@ -279,8 +264,7 @@ int main(int argc, char *argv[]){
 	if(!rank){
 		if(!(output=fopen(outname, outop) )){
 			fprintf(stderr,"Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",OPENERROR,funcname,outname,outop);
-			MPI_Finalise();
-			exit(OPENERROR);
+			MPI_Abort(comm,OPENERROR);
 		}
 		printf("hg = %e, <Ps> = %e, <Pt> = %e, <Poly> = %e\n", hg, avplaqs, avplaqt, poly);
 		fprintf(output, "ksize = %i ksizet = %i Nf = %i Halo =%i\nTime step dt = %e Trajectory length = %e\n"\
@@ -311,9 +295,6 @@ int main(int argc, char *argv[]){
 	Complex qq;
 	double *dSdpi;
 	//Field and related declarations
-#ifdef __NVCC__
-	__managed__ 
-#endif 
 		Complex *Phi, *R1, *X0, *X1;
 	//Initialise Arrays. Leaving it late for scoping
 	//check the sizes in sizes.h
@@ -614,8 +595,7 @@ int main(int argc, char *argv[]){
 									if(!(fortout=fopen(fortname, fortop) )){
 										fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
 												OPENERROR, funcname, fortname, fortop);
-										MPI_Finalise();
-										exit(OPENERROR);
+										MPI_Abort(comm,OPENERROR);
 									}
 									if(itraj==1)
 										fprintf(fortout, "pbp\tendenf\tdenf\n");
@@ -634,8 +614,7 @@ int main(int argc, char *argv[]){
 									if(!(fortout=fopen(fortname, fortop) )){
 										fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
 												OPENERROR, funcname, fortname, fortop);
-										MPI_Finalise();
-										exit(OPENERROR);
+										MPI_Abort(comm,OPENERROR);
 									}
 									if(itraj==1)
 										fprintf(fortout, "avplaqs\tavplaqt\tpoly\n");
@@ -651,8 +630,7 @@ int main(int argc, char *argv[]){
 									if(!(fortout=fopen(fortname, fortop) )){
 										fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
 												OPENERROR, funcname, fortname, fortop);
-										MPI_Finalise();
-										exit(OPENERROR);
+										MPI_Abort(comm,OPENERROR);
 									}
 									if(itraj==1)
 										fprintf(fortout, "Re(qq)\n");

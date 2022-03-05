@@ -77,8 +77,15 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	memcpy(Phi, R1, nc*ngorkov*kvol*sizeof(Complex));
 	//Evaluate xi = (M^† M)^-1 R_1 
 	cudaMemPrefetchAsync(R1, kfermHalo*sizeof(Complex),device,NULL);
-	Congradp(0, res, Phi, R1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa, itercg);
-
+	if(Congradp(0, res, Phi, R1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,itercg)==ITERLIM){
+		itercg=0;
+		fprintf(stderr, "Restarting conjugate gradient from %s\n", funcname);
+		Congradp(0, res, Phi, R1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,itercg);
+		itercg+=niterc;
+	}
+#pragma omp parallel for simd aligned(R1,R1_f:AVX)
+	for(int i=0;i<kferm;i++)
+		xi[i]=(Complex)R1_f[i];
 	cudaFree(xi_f); cudaFree(R1_f);
 	Complex buff;
 	cublasZdotc(cublas_handle,kferm, (cuDoubleComplex *)x, 1, (cuDoubleComplex *)xi,  1, (cuDoubleComplex *)&buff);

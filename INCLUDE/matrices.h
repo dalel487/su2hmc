@@ -6,7 +6,7 @@
 #endif
 #include <par_mpi.h>
 #include <su2hmc.h>
-#ifdef __cplusplus
+#if (defined __NVCC__ || defined __cplusplus)
 extern "C"
 {
 #endif
@@ -33,7 +33,7 @@ extern "C"
 #ifdef DIAGNOSTIC
 	int Diagnostics(int istart);
 #endif
-#ifdef __cplusplus
+#if (defined __NVCC__ || defined __cplusplus)
 }
 #endif
 #ifdef __NVCC__

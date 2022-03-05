@@ -6,6 +6,8 @@
 #endif
 #if defined __INTEL_MKL__
 #include <mkl.h>
+#elif defined GSL_BLAS
+#include <gsl/gsl_cblas.h>
 #elif defined USE_BLAS
 #include <cblas.h>
 #endif
@@ -18,7 +20,7 @@
 __managed__
 #endif
 extern unsigned int *hu, *hd, *h1u, *h1d, *halosize;;
-#ifdef __cplusplus
+#if (defined __NVCC__ || defined __cplusplus)
 extern "C"
 {
 #endif
@@ -63,7 +65,7 @@ extern "C"
 	/* Tests if the coordinate transformation functions are working
 	 * Depends on Index2gcoord and Coordglindex
 	 */
-#ifdef __cplusplus
+#if (defined __NVCC__ || defined __cplusplus)
 }
 #endif
 #endif

@@ -36,6 +36,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 	 * 0 on success, integer error code otherwise
 	 */
 	const char *funcname = "Congradq";
+	int ret_val=0;
 	const double resid = kferm2*res*res;
 	//The κ^2 factor is needed to normalise the fields correctly
 	//jqq is the diquark codensate and is global scope.
@@ -167,11 +168,11 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 #ifdef _DEBUG
 			if(!rank) printf("Iter (CG) = %i resid = %e toler = %e\n", *itercg, betan, resid);
 #endif
-			break;
+			ret_val=0;	break;
 		}
 		else if(*itercg==niterc-1){
 			if(!rank) fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i β_n=%e\n", ITERLIM, funcname, *itercg, betan);
-			break;
+			ret_val=ITERLIM;	break;
 		}
 		//Here we evaluate β=(r_{k+1}.r_{k+1})/(r_k.r_k) and then shuffle our indices down the line.
 		//On the first iteration we define beta to be zero.
@@ -200,7 +201,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 	free(x1_f); free(x2); free(p);
 	free(p_f); free(x2_f);
 #endif
-	return 0;
+	return ret_val;
 }
 int Congradp(int na,double res,Complex *Phi,Complex_f *xi_f,Complex_f *u11t_f,Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
 		Complex_f gamval_f[5][4],int gamin[4][4],float *dk4m_f,float *dk4p_f,Complex_f jqq,float akappa,int *itercg){
@@ -236,6 +237,8 @@ int Congradp(int na,double res,Complex *Phi,Complex_f *xi_f,Complex_f *u11t_f,Co
 	 * 0 on success, integer error code otherwise
 	 */
 	const char *funcname = "Congradp";
+	//Return value
+	int ret_val=0;
 	const double resid = kferm*res*res;
 	//These were evaluated only in the first loop of niterx so we'll just do it ouside of the loop.
 	//These alpha and beta terms should be double, but that causes issues with BLAS. Instead we declare
@@ -273,7 +276,7 @@ int Congradp(int na,double res,Complex *Phi,Complex_f *xi_f,Complex_f *u11t_f,Co
 	Complex_f *x1=aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 	Complex_f *x2_f=aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 #endif
-	double betad = 1.0; float alphad_f=0; Complex_f alpha_f = 1;
+	double betad = 1.0; float alphad_f=0; Complex alpha = 1;
 	float alphan_f=0.0;
 	//Instead of copying elementwise in a loop, use memcpy.
 	memcpy(p_f, xi_f, kferm*sizeof(Complex_f));
@@ -308,7 +311,7 @@ int Congradp(int na,double res,Complex *Phi,Complex_f *xi_f,Complex_f *u11t_f,Co
 		if(*itercg){
 			//x*.x
 #ifdef __NVCC__
-			cublasScnrm2(cublas_handle,kferm,(cuComplex *) x1, 1,&alphad_f);
+			cublasScnrm2(cublas_handle,kferm,(cuComplex*) x1, 1,&alphad_f);
 			alphad_f *= alphad_f;
 #elif (defined __INTEL_MKL__ || defined USE_BLAS)
 			alphad_f = cblas_scnrm2(kferm, x1, 1);
@@ -320,15 +323,16 @@ int Congradp(int na,double res,Complex *Phi,Complex_f *xi_f,Complex_f *u11t_f,Co
 #endif
 			Par_fsum((float *)&alphad_f);
 			//α=(r.r)/p(M^†)Mp
-			alpha_f=alphan_f/alphad_f;
+			alpha=alphan_f/alphad_f;
+			Complex_f alpha_f = (Complex_f)alpha;
 			//x+αp
 #ifdef __NVCC__
-			cublasCaxpy(cublas_handle,kferm,(cuComplex *) &alpha_f,(cuComplex *) p_f,1,(cuComplex *) xi_f,1);
+			cublasCaxpy(cublas_handle,kferm,(cuComplex*) &alpha_f,(cuComplex*) p_f,1,(cuComplex*) xi_f,1);
 #elif (defined __INTEL_MKL__ || defined USE_BLAS)
 			cblas_caxpy(kferm, (Complex_f*)&alpha_f,(Complex_f*)p_f, 1, (Complex_f*)xi_f, 1);
 #else
 			for(int i = 0; i<kferm; i++)
-				xi_f[i]+=alpha_f*p_f[i];
+				xi_f[i]+=alpha*p_f[i];
 #endif
 		}
 #pragma omp parallel for simd aligned(p,p_f,x2,x2_f:AVX)
@@ -338,15 +342,17 @@ int Congradp(int na,double res,Complex *Phi,Complex_f *xi_f,Complex_f *u11t_f,Co
 		}
 		//r=α(M^†)Mp and β_n=r*.r
 #ifdef __NVCC__
-		Complex alpha=-(Complex)alpha_f;
+		alpha*=-1;
 		cublasZaxpy(cublas_handle,kferm, (cuDoubleComplex *)&alpha,(cuDoubleComplex *) x2, 1,(cuDoubleComplex *) r, 1);
+		alpha*=-1;
 		//r*.r
 		cublasDznrm2(cublas_handle,kferm,(cuDoubleComplex *) r,1,&betan);
 		//Gotta square it to "undo" the norm
 		betan*=betan;
 #elif (defined __INTEL_MKL__ || defined USE_BLAS)
-		Complex alpha=-(Complex)alpha_f;
+		alpha*=-1;
 		cblas_zaxpy(kferm,(Complex*) &alpha,(Complex*) x2, 1,(Complex*) r, 1);
+		alpha*=-1;
 		//r*.r
 		betan = cblas_dznrm2(kferm, (Complex*)r,1);
 		//Gotta square it to "undo" the norm
@@ -358,7 +364,7 @@ int Congradp(int na,double res,Complex *Phi,Complex_f *xi_f,Complex_f *u11t_f,Co
 		//If we get a small enough β_n before hitting the iteration cap we break
 #pragma omp parallel for simd aligned(x2_f,r_f:AVX)
 		for(int i = 0; i<kferm;i++){
-			r[i]-=alpha_f*x2[i];
+			r[i]-=alpha*x2[i];
 			betan+=conj(r[i])*r[i];
 		}
 #endif
@@ -370,12 +376,12 @@ int Congradp(int na,double res,Complex *Phi,Complex_f *xi_f,Complex_f *u11t_f,Co
 #ifdef _DEBUG
 			if(!rank) printf("Iter (CG) = %i resid = %e toler = %e\n", *itercg, betan, resid);
 #endif
-			break;
+			ret_val=0;	break;
 		}
 		else if(*itercg==niterc-1){
 			if(!rank) fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i β_n=%e\n",
 					ITERLIM, funcname, niterc, betan);
-			break;
+			ret_val=ITERLIM;	break;
 		}
 		//Note that beta below is not the global beta and scoping is used to avoid conflict between them
 		Complex beta = (*itercg) ? betan/betad : 0;
@@ -404,5 +410,5 @@ int Congradp(int na,double res,Complex *Phi,Complex_f *xi_f,Complex_f *u11t_f,Co
 	free(p); free(r); free(x1);
 	free(p_f); free(x2); free(x2_f);
 #endif
-	return 0;
+	return ret_val;
 }
