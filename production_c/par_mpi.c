@@ -145,8 +145,8 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 		sprintf(buff2,"mu%04d",buffer);
 		strcat(gauge_file,buff2);
 		//J
-		buffer = (int)round(100*creal(ajq));
-		sprintf(buff2,"j%02d",buffer);
+		buffer = (int)round(1000*creal(ajq));
+		sprintf(buff2,"j%03d",buffer);
 		strcat(gauge_file,buff2);
 		//nx
 		sprintf(buff2,"s%02d",nx);
@@ -533,8 +533,8 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 		sprintf(buff2,"mu%04d",buffer);
 		strcat(gauge_title,buff2);
 		//J
-		buffer = (int)round(100*creal(ajq));
-		sprintf(buff2,"j%02d",buffer);
+		buffer = (int)round(1000*creal(ajq));
+		sprintf(buff2,"j%03d",buffer);
 		strcat(gauge_title,buff2);
 		//nx
 		sprintf(buff2,"s%02d",nx);
