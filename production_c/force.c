@@ -24,7 +24,15 @@ int Gauge_force(double *dSdpi,Complex *u11t, Complex *u12t,unsigned int *iu,unsi
 	//		memset(u12t[kvol], 0, ndim*halo*sizeof(Complex));	
 	//	#endif
 	//Was a trial field halo exchange here at one point.
-#ifdef __INTEL_MKL__
+#ifdef __NVCC__
+	int device=-1;
+	cudaGetDevice(&device);
+	Complex *Sigma11, *Sigma12, *u11sh, *u12sh;
+	cudaMallocManaged((Complex**)&Sigma11,kvol*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((Complex**)&Sigma12,kvol*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((Complex**)&u11sh,(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((Complex**)&u12sh,(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
+#elif defined __INTEL_MKL__
 	Complex *Sigma11 = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX); 
 	Complex *Sigma12= (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX); 
 	Complex *u11sh = (Complex *)mkl_malloc((kvol+halo)*sizeof(Complex),AVX); 
@@ -40,9 +48,16 @@ int Gauge_force(double *dSdpi,Complex *u11t, Complex *u12t,unsigned int *iu,unsi
 	for(int mu=0; mu<ndim; mu++){
 		memset(Sigma11,0, kvol*sizeof(Complex));
 		memset(Sigma12,0, kvol*sizeof(Complex));
+#ifdef __NVCC__
+		cudaMemPrefetchAsync(Sigma11,kvol*sizeof(Complex),device,NULL);
+		cudaMemPrefetchAsync(Sigma12,kvol*sizeof(Complex),device,NULL);
+#endif
 		for(int nu=0; nu<ndim; nu++)
 			if(nu!=mu){
 				//The +ν Staple
+#ifdef __NVCC__
+				Plus_staple(mu,nu,iu,Sigma11,Sigma12,u11t,u12t,dimGrid,dimBlock);
+#else
 #ifdef _OPENACC
 #pragma acc parallel loop
 #else
@@ -58,13 +73,23 @@ int Gauge_force(double *dSdpi,Complex *u11t, Complex *u12t,unsigned int *iu,unsi
 					Sigma11[i]+=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
 					Sigma12[i]+=-a11*u12t[i*ndim+nu]+a12*u11t[i*ndim+nu];
 				}
+#endif
 				Z_gather(u11sh, u11t, kvol, id, nu);
 				ZHalo_swap_dir(u11sh, 1, mu, DOWN);
+#ifdef __NVCC__
+				cudaMemPrefetchAsync(u11sh, (kvol+halo)*sizeof(Complex),device,NULL);
+#endif
 #pragma acc update device(u11sh[0:kvol+halo])
 				Z_gather(u12sh, u12t, kvol, id, nu);
+#ifdef __NVCC__
+				cudaMemPrefetchAsync(u12sh, (kvol+halo)*sizeof(Complex),device,NULL);
+#endif
 				ZHalo_swap_dir(u12sh, 1, mu, DOWN);
 #pragma acc update device(u12sh[0:kvol+halo])
 				//Next up, the -ν staple
+#ifdef __NVCC__
+				Minus_staple(mu,nu,iu,id,Sigma11,Sigma12,u11sh,u12sh,u11t,u12t,dimGrid,dimBlock);
+#else
 #ifdef _OPENACC
 #pragma acc parallel loop
 #else
@@ -81,8 +106,11 @@ int Gauge_force(double *dSdpi,Complex *u11t, Complex *u12t,unsigned int *iu,unsi
 					Sigma11[i]+=a11*u11t[didn*ndim+nu]-a12*conj(u12t[didn*ndim+nu]);
 					Sigma12[i]+=a11*u12t[didn*ndim+nu]+a12*conj(u11t[didn*ndim+nu]);
 				}
+#endif
 			}
-
+#ifdef __NVCC__
+		Gauge_force(mu,Sigma11,Sigma12,u11t,u12t,dSdpi,beta,dimGrid,dimBlock);
+#else
 #ifdef _OPENACC
 #pragma acc parallel loop
 #else
@@ -96,9 +124,12 @@ int Gauge_force(double *dSdpi,Complex *u11t, Complex *u12t,unsigned int *iu,unsi
 			dSdpi[(i*nadj+1)*ndim+mu]=beta*creal(a11);
 			dSdpi[(i*nadj+2)*ndim+mu]=beta*cimag(a12);
 		}
+#endif
 	}
 #pragma acc exit data delete(Sigma11[0:kvol],Sigma12[0:kvol],u11sh[0:kvol+halo],u12sh[0:kvol+halo])
-#ifdef __INTEL_MKL__
+#ifdef __NVCC__
+	cudaFree(Sigma11); cudaFree(Sigma12); cudaFree(u11sh); cudaFree(u12sh);
+#elif defined __INTEL_MKL__
 	mkl_free(u11sh); mkl_free(u12sh); mkl_free(Sigma11); mkl_free(Sigma12);
 #else
 	free(u11sh); free(u12sh); free(Sigma11); free(Sigma12);
@@ -134,13 +165,24 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 	 *	Zero on success, integer error code otherwise
 	 */
 	const char *funcname = "Force";
+#ifdef __NVCC__
+	int device=-1;
+	cudaGetDevice(&device);
+	cudaMemPrefetchAsync(u11t,(kvol+halo)*sizeof(Complex),device,NULL);
+	cudaMemPrefetchAsync(u12t,(kvol+halo)*sizeof(Complex),device,NULL);
+	cudaMemPrefetchAsync(X0,nf*kfermHalo*sizeof(Complex),device,NULL);
+	cudaMemPrefetchAsync(Phi,nf*kfermHalo*sizeof(Complex),device,NULL);
+#endif
 #pragma acc update device(dSdpi[0:kmom])
 #ifndef NO_GAUGE
 	Gauge_force(dSdpi,u11t,u12t,iu,id,beta);
 #endif
 	//X1=(M†M)^{1} Phi
-	int itercg;
-#if defined __INTEL_MKL__
+	int itercg=1;
+#ifdef __NVCC__
+	Complex *X2;
+	cudaMallocManaged(&X2,kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
+#elif defined __INTEL_MKL__
 	Complex *X2= (Complex *)mkl_malloc(kferm2Halo*sizeof(Complex), AVX);
 #else
 	Complex *X2= (Complex *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex));
@@ -148,7 +190,10 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 	for(int na = 0; na<nf; na++){
 		memcpy(X1, X0+na*kferm2, kferm2*sizeof(Complex));
 		if(!iflag){
-#if defined __INTEL_MKL__
+#ifdef __NVCC__
+			Complex *smallPhi;
+			cudaMallocManaged(&smallPhi,kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
+#elif defined __INTEL_MKL__
 			Complex *smallPhi =(Complex *)mkl_malloc(kferm2Halo*sizeof(Complex), AVX); 
 #else
 			Complex *smallPhi = (Complex *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex)); 
@@ -156,30 +201,41 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 			Fill_Small_Phi(na, smallPhi, Phi);
 			//	Congradq(na, res1,smallPhi, &itercg );
 			Congradq(na,res1,X1,smallPhi,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,&itercg);
-#if defined __INTEL_MKL__
+#ifdef __NVCC__
+			cudaFree(smallPhi);
+#elif defined __INTEL_MKL__
 			mkl_free(smallPhi);
 #else
 			free(smallPhi);
 #endif
-			ancg+=itercg;
-			//This is not a general BLAS Routine, just an MKL one
+			*ancg+=itercg;
+			//This is not a general BLAS Routine. BLIS and MKl support it
+			//CUDA and GSL does not support it
 #if (defined __INTEL_MKL__ || defined USE_BLAS)
 			Complex blasa=2.0; Complex blasb=-1.0;
 			cblas_zaxpby(kferm2, &blasa, X1, 1, &blasb, X0+na*kferm2, 1); 
 #else
-			for(int i=0;i<kvol;i++){
-#pragma unroll
+#ifdef _OPENACC
+#pragma acc update self(Z1[0:kferm2])
+#pragma acc loop copy(X0[0:kferm2])
+#else
+#pragma omp simd collapse(2)
+#endif
+			for(int i=0;i<kvol;i++)
 				for(int idirac=0;idirac<ndirac;idirac++){
 					X0[((na*kvol+i)*ndirac+idirac)*nc]=
 						2*X1[(i*ndirac+idirac)*nc]-X0[((na*kvol+i)*ndirac+idirac)*nc];
 					X0[((na*kvol+i)*ndirac+idirac)*nc+1]=
 						2*X1[(i*ndirac+idirac)*nc+1]-X0[((na*kvol+i)*ndirac+idirac)*nc+1];
 				}
-			}
+			
 #endif
 		}
 		Hdslash(X2,X1,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
-#if (defined __INTEL_MKL__ || defined USE_BLAS)
+#ifdef __NVCC__
+		double blasd=2.0;
+		cublasZdscal(cublas_handle,kferm2, &blasd, (cuDoubleComplex *)X2, 1);
+#elif (defined __INTEL_MKL__ || defined USE_BLAS)
 		double blasd=2.0;
 		cblas_zdscal(kferm2, blasd, X2, 1);
 #else
@@ -202,8 +258,11 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 		//  as a result, need to swap the DOWN halos in all dirs for
 		//  both these arrays, each of which has 8 cpts
 		//
+#ifdef __NVCC__
+		Force(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,dimGrid,dimBlock);
+#else
 #ifdef _OPENACC
-#pragma acc parallel loop copyin(X2[0:kferm2Halo])
+#pragma acc parallel loop copyin(X2[na*kferm2Halo:(na+1)*kferm2Halo])
 #else
 		//#pragma omp target teams distribute parallel for map(to:X1[0:kferm2Halo],X2[0:kferm2Halo]) map(tofrom:dSdpi[0:kmom])
 #pragma omp parallel for
@@ -399,9 +458,12 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 
 #endif
 			}
+#endif
 	}
 #pragma acc update self(dSdpi[0:kmom])
-#if defined __INTEL_MKL__
+#ifdef __NVCC__
+	cudaFree(X2);
+#elif defined __INTEL_MKL__
 	mkl_free(X2);
 #else
 	free(X2); 
