@@ -14,7 +14,12 @@ cublasHandle_t cublas_status;
 #include	<string.h>
 #include	<su2hmc.h>
 
-//Extern definitions, especially default values for fmu, beta and akappa
+//Extern definitions
+//Some of these are only required for GPUs, hence the __NVCC__ preprocessor statements
+#ifdef __NVCC__
+dim3	dimBlock(ksizex,ksizey,1);
+dim3	dimGrid(ksizez,ksizet,1);
+#endif
 int
 #ifndef __NVCC__ 
 __attribute__((aligned(AVX)))
@@ -41,10 +46,6 @@ __attribute__((aligned(AVX)))
 		{-I,I,I,-I},
 		{1,1,1,1},
 		{1,1,-1,-1}};
-#ifdef __CUDACC__
-	extern dim3	dimBlock(ksizex,ksizey,1);
-	extern dim3	dimGrid(ksizez,ksizet,1);
-#endif
 
 /*
  * For the early phases of this translation, I'm going to try and
@@ -107,7 +108,9 @@ int main(int argc, char *argv[]){
 	 *     Hybrid code, P.Giudice, May 2013
 	 *     Converted from Fortran to C by D. Lawlor March 2021
 	 ******************************************************************/
+	//Instead of hardcoding the function name so the error messages are easier to impliment
 	const char *funcname = "main";
+
 	Par_begin(argc, argv);
 	//Add error catching code...
 	MPI_Comm_rank(comm, &rank);
@@ -124,23 +127,20 @@ int main(int argc, char *argv[]){
 	int istart = 1;
 	int ibound = -1;
 	int iwrite = 1;
-	int iprint = 1; //For the measures
-	int icheck = 5; //Save conf
+	int iprint = 1; //How often are measurements made
+	int icheck = 5; //How often are configurations saved
 #ifdef USE_MATH_DEFINES
 	const double tpi = 2*M_PI;
 #else
 	const double tpi = 2*acos(-1.0);
 #endif
-	//End of input
-	//===========
-	//rank is zero means it must be the "master process"
 	float dt=0.004; float ajq = 0.0;
 	float delb; //Not used?
 	float athq = 0.0;
 	int stepl = 250; int ntraj = 10;
+	//rank is zero means it must be the "master process"
 	if(!rank){
 		FILE *midout;
-		//Instead of hardcoding so the error messages are easier to impliment
 		const char *filename = (argc!=2) ?"midout":argv[1];
 		char *fileop = "r";
 		if( !(midout = fopen(filename, fileop) ) ){
@@ -148,6 +148,7 @@ int main(int argc, char *argv[]){
 					, OPENERROR, funcname, filename, fileop);
 			MPI_Abort(comm,OPENERROR);
 		}
+		//See the README for what each entry means
 		fscanf(midout, "%f %f %f %f %f %f %f %d %d %d %d %d", &dt, &beta, &akappa,\
 				&ajq, &athq, &fmu, &delb, &stepl, &ntraj, &istart, &icheck, &iread);
 		fclose(midout);
@@ -158,6 +159,8 @@ int main(int argc, char *argv[]){
 	Par_fcopy(&athq); Par_fcopy(&fmu); Par_fcopy(&delb); //Not used?
 	Par_icopy(&stepl); Par_icopy(&ntraj); Par_icopy(&istart); Par_icopy(&icheck);
 	Par_icopy(&iread); jqq=ajq*cexp(athq*I);
+	//End of input
+	//For CUDA code, device only variables are needed
 #ifdef __NVCC__
 	Complex *jqq_d, *beta_d, *akappa_d;
 	cudaMalloc(&jqq_d,sizeof(Complex));		cudaMalloc(&beta_d,sizeof(Complex));
@@ -176,13 +179,16 @@ int main(int argc, char *argv[]){
 	seed = time(NULL);
 #endif
 
-	//Cannot assign memory to these inside Init without using double pointers, and that's more trouble than it is worth
-	//Gauges and trial fields 
-		Complex *u11, *u12, *u11t, *u12t;
-		Complex_f *u11t_f, *u12t_f;
-		double *dk4m, *dk4p, *pp;
-		float	*dk4m_f, *dk4p_f;
-		unsigned int *iu, *id;
+	//Gauge, trial and momentum fields 
+	//You'll notice that there are three different allocation/free statements
+	//One for CUDA, one for MKL and one for everything else depending on what's
+	//being used
+	Complex *u11, *u12, *u11t, *u12t;
+	Complex_f *u11t_f, *u12t_f;
+	double *dk4m, *dk4p, *pp;
+	float	*dk4m_f, *dk4p_f;
+	//Halo index arrays
+	unsigned int *iu, *id;
 #ifdef __NVCC__
 	cudaMallocManaged((void**)&iu,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
 	cudaMallocManaged((void**)&id,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
@@ -237,7 +243,7 @@ int main(int argc, char *argv[]){
 	u12t_f = aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex_f));
 #endif
 	//Initialisation
-	//istart < 0: Start from tape?!? How old is this code?
+	//istart < 0: Start from tape in FORTRAN?!? How old was this code?
 	//istart = 0: Ordered/Cold Start
 	//			For some reason this leaves the trial fields as zero in the FORTRAN code?
 	//istart > 0: Random/Hot Start
@@ -253,11 +259,12 @@ int main(int argc, char *argv[]){
 	if(!rank) printf("Initial Polyakov loop evaluated as %e\n", poly);
 #endif
 	double hg, avplaqs, avplaqt;
+	//Halo exchange of the trial fields
 	Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
 	SU2plaq(&hg,&avplaqs,&avplaqt,u11t,u12t,iu,beta);
-	//Loop on β
-	//Print Heading
+	//Trajectory length
 	double traj=stepl*dt;
+	//Acceptance probability
 	double proby = 2.5/stepl;
 	char *outname = "Output"; char *outop="w";
 	FILE *output;
@@ -295,7 +302,7 @@ int main(int argc, char *argv[]){
 	Complex qq;
 	double *dSdpi;
 	//Field and related declarations
-		Complex *Phi, *R1, *X0, *X1;
+	Complex *Phi, *R1, *X0, *X1;
 	//Initialise Arrays. Leaving it late for scoping
 	//check the sizes in sizes.h
 #ifdef __NVCC__
@@ -331,6 +338,7 @@ int main(int argc, char *argv[]){
 	pp = aligned_alloc(AVX,kmom*sizeof(double));
 #endif
 	//#pragma omp target enter data map(alloc:pp[0:kmom],dSdpi[0:kmom],X1[0:kferm2Halo]) nowait
+	//For offloaded OpenACC Code, make device versions of arrays
 #pragma acc enter data create(pp[0:kmom],dSdpi[0:kmom],X1[0:kferm2Halo])
 	//Arabic for hour/watch so probably not defined elsewhere like TIME potentially is
 #if (defined SA3AT)
@@ -340,7 +348,7 @@ int main(int argc, char *argv[]){
 #endif
 	double action;
 	//Congugate Gradient iteration counters
-	double ancg,ancgh;
+	double ancg,ancgh,totancg,totancgh=0;
 	for(int itraj = iread+1; itraj <= ntraj+iread; itraj++){
 		//Reset conjugate gradient averages
 		ancg = 0; ancgh = 0;
@@ -478,6 +486,8 @@ int main(int argc, char *argv[]){
 #pragma acc update device(pp[0:kmom]) 
 				itot+=step;
 				break;
+				ancg/=step;
+				totancg+=ancg;
 			}
 			else{
 #ifdef __NVCC__
@@ -501,6 +511,7 @@ int main(int argc, char *argv[]){
 		double H1, S1;
 		Hamilton(&H1, &S1, rescga,pp,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval_f,gamin,\
 				dk4m_f,dk4p_f,jqq,akappa,beta,&ancgh);
+		totancgh+=ancgh;
 		double dH = H0 - H1;
 		double dS = S0 - S1;
 		if(!rank){
@@ -569,6 +580,7 @@ int main(int argc, char *argv[]){
 			poly = Polyakov(u11t,u12t);
 			//We have four output files, so may as well get the other ranks to help out
 			//and abuse scoping rules while we're at it.
+			//Can use either OpenMP or MPI to do this
 #if (nproc>=4)
 			switch(rank)
 #else
@@ -584,7 +596,7 @@ int main(int argc, char *argv[]){
 								//It would explain the weird names like fort.1X that looked like they were somehow
 								//FORTRAN related...
 								//Not yet implemented
-								fprintf(output, "Iter (CG) %i ancg %e ancgh %e\n", itercg, ancg/stepl, ancgh);
+								fprintf(output, "Iter (CG) %i ancg %e ancgh %e\n", itercg, ancg, ancgh);
 								fflush(output);
 								break;
 							case(1):
@@ -694,12 +706,15 @@ int main(int argc, char *argv[]){
 #if (defined SA3AT)
 	if(!rank){
 		FILE *sa3at = fopen("Bench_times.csv", "a");
-		fprintf(sa3at, "%s,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%f,%f\n",__VERSION__,nx,nt,kvol,npx,npt,nthreads,npx*npt*nthreads,elapsed,elapsed/ntraj);
+		fprintf(sa3at, "%s\nβ%0.3f κ:%0.4f μ:%0.4f j:%0.3f s:%lu t:%lu kvol:%lu\n\
+							npx:%lu npt:%lu nthread:%lu ncore:%lu time:%f traj_time:%f\n\n",\
+				__VERSION__,beta,akappa,fmu,creal(ajq),nx,nt,kvol,npx,npt,nthreads,npx*npt*nthreads,elapsed,elapsed/ntraj);
 		fclose(sa3at);
 	}
 #endif
+	//Get averages for final output
 	actiona/=ntraj; vel2a/=ntraj; pbpa/=ipbp; endenfa/=ipbp; denfa/=ipbp;
-	ancg/=nf*itot; ancgh/=2*nf*ntraj; yav/=ntraj; yyav=sqrt((yyav/ntraj - yav*yav)/(ntraj-1));
+	totancg/=ntraj; totancgh/=ntraj; yav/=ntraj; yyav=sqrt((yyav/ntraj - yav*yav)/(ntraj-1));
 	double atraj=dt*itot/ntraj;
 
 	if(!rank){
@@ -710,14 +725,14 @@ int main(int argc, char *argv[]){
 				"psibarpsi = %e\n"\
 				"Mean Square Velocity = %e Action Per Site = %e\n"\
 				"Energy Density = %e Number Density %e\n",\
-				ntraj, naccp, atraj, yav, yyav, ancg, ancgh, pbpa, vel2a, actiona, endenfa, denfa);
+				ntraj, naccp, atraj, yav, yyav, totancg, totancgh, pbpa, vel2a, actiona, endenfa, denfa);
 		fclose(output);
 	}
 	MPI_Finalise();
 	fflush(stdout);
 	return 0;
 }
-int Init(int istart, int ibound, int iread, double beta, double fmu, double akappa, Complex ajq,\
+int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa, Complex_f ajq,\
 		Complex *u11, Complex *u12, Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f,\
 		double *dk4m, double *dk4p, float *dk4m_f, float *dk4p_f, unsigned int *iu, unsigned int *id){
 	/*
@@ -725,17 +740,34 @@ int Init(int istart, int ibound, int iread, double beta, double fmu, double akap
 	 *
 	 * Calls:
 	 * ======
-	 * Addrc, ran2 (depends on compiler flags), DHalo_swap_dir,
-	 * Reunitarise
+	 * Addrc, Check_addr, ran2, DHalo_swap_dir, Par_sread, Par_ranset, Reunitarise
 	 *
 	 * Globals:
-	 * ========
-	 * u11, u12, u11t, u12t, u11t_f, u12t_f, dk4m, dk4p, dk4m_4, dk4p_f
-	 * iu, id
+	 * =======
+	 * Complex gamval:		Gamma Matrices
+	 * Complex_f gamval_f:	Float Gamma matrices:
 	 *
 	 * Parameters:
 	 * ==========
-	 * int istart: Zero for cold, >1 for hot, <1 for none
+	 * int istart:				Zero for cold, >1 for hot, <1 for none
+	 * int ibound:				Periodic boundary conditions
+	 * int iread:				Read configuration from file
+	 * float beta:				beta
+	 * float fmu:				Chemical potential
+	 * float akappa:			
+	 * Complex_f ajq:			Diquark source
+	 * Complex *u11:			First colour field
+	 * Complex *u12:			Second colour field
+	 * Complex *u11t:			First colour trial field
+	 * Complex *u11t:			Second colour trial field
+	 * Complex_f *u11t_f:	First float trial field
+	 * Complex_f *u12t_f:	Second float trial field
+	 * double	*dk4m:
+	 * double	*dk4p:
+	 * float		*dk4m_f:
+	 * float		*dk4p_f:
+	 * unsigned int *iu:		Up halo indices
+	 * unsigned int *id:		Down halo indices
 	 *
 	 * Returns:
 	 * =======
@@ -754,7 +786,7 @@ int Init(int istart, int ibound, int iread, double beta, double fmu, double akap
 	mkl_set_num_threads(nthreads);
 #endif
 #endif
-	//First things first, calculate a few constants
+	//First things first, calculate a few constants for coordinates
 	Addrc(iu, id);
 	//And confirm they're legit
 	Check_addr(iu, ksize, ksizet, 0, kvol+halo);
@@ -789,8 +821,7 @@ int Init(int istart, int ibound, int iread, double beta, double fmu, double akap
 #ifdef _DEBUG
 		printf("Implimenting antiperiodic boundary conditions on rank %i\n", rank);
 #endif
-		//Also CUDA this. By the looks of it it should saturate the GPU
-		//as is
+		//Also CUDA this? By the looks of it it should saturate the GPU as is
 #pragma omp parallel for simd aligned(dk4m,dk4p:AVX)
 		for(int i= 0; i<kvol3; i++){
 			int k = kvol - kvol3 + i;
@@ -802,6 +833,7 @@ int Init(int istart, int ibound, int iread, double beta, double fmu, double akap
 	//May need to add a synchronisation statement here first
 	DHalo_swap_dir(dk4p, 1, 3, UP);
 	DHalo_swap_dir(dk4m, 1, 3, UP);
+	//Float versions
 #pragma omp parallel for simd aligned(dk4m,dk4p,dk4m_f,dk4p_f:AVX)
 	for(int i=0;i<kvol+halo;i++){
 		dk4p_f[i]=(float)dk4p[i];
@@ -867,18 +899,19 @@ int Init(int istart, int ibound, int iread, double beta, double fmu, double akap
 			}
 		}
 		else if(istart>0){
-			//Still thinking about how best to deal with PRNG
+			//Ideally, we can use gsl_ranlux as the PRNG
 #ifdef __RANLUX__
 			for(int i=0; i<kvol*ndim;i++){
 				u11t[i]=2*(gsl_rng_uniform(ranlux_instd)-0.5+I*(gsl_rng_uniform(ranlux_instd)-0.5));
 				u12t[i]=2*(gsl_rng_uniform(ranlux_instd)-0.5+I*(gsl_rng_uniform(ranlux_instd)-0.5));
 			}
+			//If not, the Intel Vectorise Mersenne Twister
 #elif (defined __INTEL_MKL__&&!defined USE_RAN2)
 			//Good news, casting works for using a double to create random complex numbers
 			vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*kvol, u11t, -1, 1);
 			vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*kvol, u12t, -1, 1);
+			//Last resort, Numerical Recipes' Ran2
 #else
-			//Depending if we have the RANLUX or SFMT19977 generator.	
 			for(int i=0; i<kvol*ndim;i++){
 				u11t[i]=2*(ran2(&seed)-0.5+I*(ran2(&seed)-0.5));
 				u12t[i]=2*(ran2(&seed)-0.5+I*(ran2(&seed)-0.5));

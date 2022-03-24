@@ -37,7 +37,7 @@ extern "C"
 			float akappa,float beta,double *ancg);
 	//	int Gauge_force(double *dSdpi);
 	int Gauge_force(double *dSdpi,Complex *u11t, Complex *u12t, unsigned int *iu, unsigned int *id, float beta);
-	int Init(int istart, int ibound, int iread, double beta, double fmu, double akappa, Complex ajq,\
+	int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa, Complex_f ajq,\
 			Complex *u11, Complex *u12, Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f,\
 			double *dk4m, double *dk4p, float *dk4m_f, float *dk4p_f, unsigned int *iu, unsigned int *id);
 	int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex *X1, Complex *Phi,\
@@ -55,7 +55,7 @@ extern "C"
 			Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f, unsigned int *iu, unsigned int *id,\
 			Complex gamval[5][4], Complex_f gamval_f[5][4],	int gamin[4][4], double *dk4m, double *dk4p,\
 			float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa,	Complex *Phi, Complex *R1);
-	int SU2plaq(double *hg, double *avplaqs, double *avplaqt, Complex *u11t, Complex *u12t, unsigned int *iu, double beta);
+	int SU2plaq(double *hg, double *avplaqs, double *avplaqt, Complex *u11t, Complex *u12t, unsigned int *iu, float beta);
 	double Polyakov(Complex *u11t, Complex *u12t);
 	//Inline Stuff
 	extern int Z_gather(Complex*x, Complex *y, int n, unsigned int *table, unsigned int mu);
@@ -68,12 +68,25 @@ extern "C"
 //#################
 #ifdef __NVCC__
 __global__ void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
-				double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa);
+		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa);
 __global__ void Plus_staple(int mu, int nu,unsigned int *iu, Complex *Sigma11, Complex *Sigma12, Complex *u11t, Complex *u12t);
 __global__ void Minus_staple(int mu, int nu,unsigned int *iu,unsigned int *id, Complex *Sigma11, Complex *Sigma12,\
 		Complex *u11sh, Complex *u12sh, Complex *u11t, Complex *u12t);
 __global__ void cuGaugeForce(int mu, Complex *Sigma11, Complex *Sigma12,double*dSdpi,Complex *u11t, Complex *u12t, float beta);
-__global__ void cuSU2plaq(double *hgs, double *hgt, Complex *u11t, Complex *u12t, int *iu);
+//Calling Functions:
+//=================
+void SU2plaq(double *hgs, double *hgt, Complex *u11t, Complex *u12t, unsigned int *iu,dim3 dimGrid, dim3 dimBlock);
+__global__ void cuSU2plaq(double *hgs, double *hgt, Complex *u11t, Complex *u12t, unsigned int *iu);
+void Polyakov(Complex *Sigma11, Complex * Sigma12, Complex *u11t, Complex *u12t,dim3 dimGrid, dim3 dimBlock);
 __global__ void cuPolyakov(Complex *Sigma11, Complex * Sigma12, Complex *u11t, Complex *u12t);
+void Gauge_force(int mu,Complex *Sigma11, Complex *Sigma12, Complex *u11t,Complex *u12t,double *dSdpi,float beta,\
+		dim3 dimGrid, dim3 dimBlock);
+void Plus_staple(int mu, int nu, unsigned int *iu, Complex *Sigma11, Complex *Sigma12, Complex *u11t, Complex *u12t,\
+		dim3 dimGrid, dim3 dimBlock);
+void Minus_staple(int mu, int nu, unsigned int *iu, unsigned int *id, Complex *Sigma11, Complex *Sigma12,\
+		Complex *u11sh, Complex *u12sh,Complex *u11t, Complex*u12t,	dim3 dimGrid, dim3 dimBlock);
+void Force(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, \
+		Complex gamval[5][4],double *dk4m, double *dk4p,unsigned int *iu,int gamin[4][4],\
+		float akappa, dim3 dimGrid, dim3 dimBlock);
 #endif
 #endif

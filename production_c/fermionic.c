@@ -161,7 +161,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	map(tofrom:xu,xd,xuu,xdd)
 #ifdef _OPENACC
 #pragma acc parallel loop reduction(+:xd,xu,xdd,xuu) copyin(xi[0:kferm],x[0:kfermHalo])
-#else
+#elif !defined __NVCC__
 #pragma omp parallel for reduction(+:xd,xu,xdd,xuu) 
 #endif
 		for(int i = 0; i<kvol; i++){

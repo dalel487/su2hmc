@@ -45,8 +45,8 @@
 #define	FILELEN	64
 // Common block definition for parallel variables
 
-#define	nx 24	
-#define	nt	6
+#define	nx 32	
+#define	nt	4
 // Keep original restriction of single spatial extent
 
 #define	ny    nx
@@ -54,10 +54,10 @@
 #define	gvol    (nx*ny*nz*nt)
 #define	gvol3   (nx*ny*nz)
 
-#define	npx	2
+#define	npx	8
 #define	npt	1
 //Number of threads for OpenMP
-#define	nthreads	2
+#define	nthreads	1
 
 // Initially restrict to npz = npy = npx
 // This allows us to have a single ksize variable
@@ -127,7 +127,7 @@
 #define	AVX	16
 #endif
 
-#ifdef	__CUDACC__
+#ifdef	__NVCC__
 //Threads are grouped together to form warps of 32 threads
 //best to keep the block dimension (ksizex*ksizey) multiples of 32,
 //usually between 128 and 256

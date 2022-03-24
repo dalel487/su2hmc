@@ -1,6 +1,6 @@
 FC=		mpifort 
 CC=		mpiicc 
-CXX=	mpiicpc 
+CXX=	mpicxx -cxx=nvc++
 NVCC=	nvcc
 
 IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include" -I ./ \
@@ -28,18 +28,20 @@ EXE=		cuda_su2hmc
 
 CSRC_DIR=	../production_c
 CSRC=	\
+		su2hmc.c\
 	    coord.c \
 	    congrad.c \
-		su2hmc.c \
+		force.c \
     	random.c \
 		par_mpi.c \
-
+		bosonic.c\
+		fermionic.c
+		
 CUSRC_DIR=	../production_cuda
 CUSRC=	\
-		bosonic.cu\
-		matrices.cu\
-		force.cu\
-		fermionic.cu
+		cubosonic.cu\
+		cumatrices.cu\
+		cuforce.cu\
 
 #CUSRC= CUDA_Compile.cu
 CINC=	\
@@ -55,12 +57,14 @@ CINC=	\
 # No need to edit below this line
 #
 
-.SUFFIXES: .c .cu .h .hpp .o
+.SUFFIXES: .c .cu .h .hpp .o 
 .PHONY: clean debug release profiler tar
 
 COBJ=	$(CSRC:.c=.o)
-CUOBJ=	$(CUSRC:.cu=.o)
-OBJ=	$(COBJ) $(CUOBJ)  
+CLIB= libc.a
+CUOBJ= $(CUSRC:.cu=.o)
+CULIB= libcu.a
+OBJ=	$(COBJ) $(CULIB) # $(CLIB) 
 
 #MOD=	$(CSRC:.c=.mod)
 MOD=	
@@ -72,7 +76,7 @@ profiler:	CFLAGS += -g
 profiler:	NVCCFLAGS += -O0 -G -g 
 profiler:	release
 
-#release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high
+release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high
 release:	NVCCFLAGS += -O3 #-dlto 
 release:	$(EXE)
 
@@ -81,14 +85,19 @@ debug:		NVCCFLAGS += -O0 -G -g -D_DEBUG
 debug:		$(EXE)
 
 $(EXE): $(OBJ)
-	$(NVCC) -ccbin ${CXX} $(NVCCFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $^ $(LFLAGS)  -o $@
+	${CXX}  $(CFLAGS) -D__NVCC__$(CSRC_DIR)/su2hmc.c -o $@   $^ $(LFLAGS) $(CULFLAGS) 
+$(CULIB): $(CUOBJ)
+	$(NVCC) -ccbin ${CXX} $(NVCCFLAGS) -Xcompiler "$(CFLAGS) " $(LFLAGS)  $^ -lib --output-file $@
+#$(CLIB):	$(COBJ) 
+#	xiar  rc  $@  $^
 $(CUOBJ): %.o: $(CUSRC_DIR)/%.cu
-	$(NVCC) -ccbin ${CXX} $(NVCCFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" -dc $< 
+	$(NVCC) -ccbin ${CXX} $(NVCCFLAGS) -Xcompiler "$(CFLAGS) " -dc $< 
 $(COBJ): %.o: $(CSRC_DIR)/%.c
-	$(NVCC) -ccbin ${CC}  $(NVCCFLAGS) -Xcompiler "$(CFLAGS) -x c++ $(MKLFLAGS)" -dc $< 
+	${CXX} $(CFLAGS) $(IFLAGS)  -D__NVCC__ -c $< 
+	#$(NVCC) -ccbin ${CC}  $(NVCCFLAGS) -Xcompiler "$(CFLAGS) -x c++ $(MKLFLAGS)" -dc $< 
 
 clean:
-	rm -f $(OBJ) $(TMP)
+	rm -f $(OBJ) $(COBJ) $(CUOBJ) $(TMP)
 
 INP=	\
 	midout \

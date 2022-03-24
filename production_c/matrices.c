@@ -39,6 +39,9 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int 
 	//Mass term
 	memcpy(phi, r, kferm*sizeof(Complex));
 	//Diquark Term (antihermitian)
+#ifdef __NVCC__
+	Dslash(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,dimGrid,dimBlock);
+#else
 #ifdef _OPENACC
 #pragma acc parallel loop copy(phi[0:kferm]) copyin(r[0:kfermHalo])
 #else
@@ -134,6 +137,7 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int 
 		}
 #endif
 	}
+#endif
 	return 0;
 }
 int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
@@ -170,6 +174,9 @@ int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int 
 
 	//Mass term
 	memcpy(phi, r, kferm*sizeof(Complex));
+#ifdef __NVCC__
+	Dslashd(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,dimGrid,dimBlock);
+#else
 #ifdef _OPENACC
 #pragma acc parallel loop copy(phi[0:kferm]) copyin(r[0:kfermHalo])
 #else
@@ -270,6 +277,7 @@ int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int 
 		}
 #endif
 	}
+#endif
 	return 0;
 }
 int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int *iu,unsigned  int *id,\
@@ -308,6 +316,9 @@ int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int
 	//Mass term
 	memcpy(phi, r, kferm2*sizeof(Complex));
 	//Spacelike term
+#ifdef __NVCC__
+	Hdslash(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,dimGrid,dimBlock);
+#else
 #ifdef _OPENACC
 #pragma acc parallel loop copy(phi[0:kferm2]) copyin(r[0:kferm2Halo])
 #else
@@ -370,6 +381,7 @@ int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int
 		}
 #endif
 	}
+#endif
 	return 0;
 }
 int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int *iu,unsigned  int *id,\
@@ -412,6 +424,9 @@ int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  in
 
 	//Mass term
 	memcpy(phi, r, kferm2*sizeof(Complex));
+#ifdef __NVCC__
+	Hdslashd(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,dimGrid,dimBlock);
+#else
 	//Spacelike term
 #ifdef _OPENACC
 #pragma acc parallel loop copy(phi[0:kferm2]) copyin(r[0:kferm2Halo])
@@ -480,6 +495,7 @@ int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  in
 		}
 #endif
 	}
+#endif
 	return 0;
 }
 //Float Versions
@@ -519,6 +535,9 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 	//Mass term
 	memcpy(phi, r, kferm*sizeof(Complex_f));
 	//Diquark Term (antihermitian)
+#ifdef __NVCC__
+	Dslash_f(phi,r,u11t_f,u12t_f,iu,id,gamval,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
+#else
 #ifdef _OPENACC
 #pragma acc parallel loop copy(phi[0:kferm]) copyin(r[0:kfermHalo])
 #elif defined __clang__
@@ -617,6 +636,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 		}
 #endif
 	}
+#endif
 	return 0;
 }
 int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
@@ -653,6 +673,9 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 
 	//Mass term
 	memcpy(phi, r, kferm*sizeof(Complex_f));
+#ifdef __NVCC__
+	Dslashd_f(phi,r,u11t_f,u12t_f,iu,id,gamval,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
+#else
 #ifdef _OPENACC
 #pragma acc parallel loop copy(phi[0:kferm]) copyin(r[0:kfermHalo])
 #elif defined __clang__
@@ -756,6 +779,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 		}
 #endif
 	}
+#endif
 	return 0;
 }
 int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned  int *iu,unsigned  int *id,\
@@ -793,6 +817,9 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	//Mass term
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
 	//Spacelike term
+#ifdef __NVCC__
+	Hdslash_f(phi,r,u11t_f,u12t_f,iu,id,gamval,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
+#else
 #ifdef _OPENACC
 #pragma acc parallel loop copy(phi[0:kferm2]) copyin(r[0:kferm2Halo])
 #elif defined __clang__
@@ -858,6 +885,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 		}
 #endif
 	}
+#endif
 	return 0;
 }
 int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
@@ -900,6 +928,9 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_
 
 	//Mass term
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
+#ifdef __NVCC__
+	Hdslashd_f(phi,r,u11t_f,u12t_f,iu,id,gamval,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
+#else
 	//Spacelike term
 #ifdef _OPENACC
 #pragma acc parallel loop copy(phi[0:kferm2]) copyin(r[0:kferm2Halo])
@@ -971,6 +1002,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_
 		}
 #endif
 	}
+#endif
 	return 0;
 }
 int New_trial(double dt, double *pp, Complex *u11t, Complex *u12t){
@@ -996,31 +1028,35 @@ int New_trial(double dt, double *pp, Complex *u11t, Complex *u12t){
 	//Double precision bad for offloading
 	//#pragma omp target teams distribute parallel for simd collapse(2)\
 	map(to:pp[0:kmom]) aligned(pp,u11t,u12t:AVX) 
+#ifdef __NVCC__
+		New_trial(dt,pp,u11t,u12t,dimGrid,dimBlock);
+#else
 #ifdef _OPENACC
 #pragma acc parallel loop collapse(2)
 #else
 #pragma omp parallel for simd collapse(2) aligned(pp,u11t,u12t:AVX) 
 #endif
-		for(int i=0;i<kvol;i++)
-			for(int mu = 0; mu<ndim; mu++){
-				//Sticking to what was in the FORTRAN for variable names.
-				//CCC for cosine SSS for sine AAA for...
-				//Re-exponentiating the force field. Can be done analytically in SU(2)
-				//using sine and cosine which is nice
+	for(int i=0;i<kvol;i++)
+		for(int mu = 0; mu<ndim; mu++){
+			//Sticking to what was in the FORTRAN for variable names.
+			//CCC for cosine SSS for sine AAA for...
+			//Re-exponentiating the force field. Can be done analytically in SU(2)
+			//using sine and cosine which is nice
 
-				double AAA = dt*sqrt(pp[i*nadj*ndim+mu]*pp[i*nadj*ndim+mu]\
-						+pp[(i*nadj+1)*ndim+mu]*pp[(i*nadj+1)*ndim+mu]\
-						+pp[(i*nadj+2)*ndim+mu]*pp[(i*nadj+2)*ndim+mu]);
-				double CCC = cos(AAA);
-				double SSS = dt*sin(AAA)/AAA;
-				Complex a11 = CCC+I*SSS*pp[(i*nadj+2)*ndim+mu];
-				Complex a12 = pp[(i*nadj+1)*ndim+mu]*SSS + I*SSS*pp[i*nadj*ndim+mu];
-				//b11 and b12 are u11t and u12t terms, so we'll use u12t directly
-				//but use b11 for u11t to prevent RAW dependency
-				complex b11 = u11t[i*ndim+mu];
-				u11t[i*ndim+mu] = a11*b11-a12*conj(u12t[i*ndim+mu]);
-				u12t[i*ndim+mu] = a11*u12t[i*ndim+mu]+a12*conj(b11);
-			}
+			double AAA = dt*sqrt(pp[i*nadj*ndim+mu]*pp[i*nadj*ndim+mu]\
+					+pp[(i*nadj+1)*ndim+mu]*pp[(i*nadj+1)*ndim+mu]\
+					+pp[(i*nadj+2)*ndim+mu]*pp[(i*nadj+2)*ndim+mu]);
+			double CCC = cos(AAA);
+			double SSS = dt*sin(AAA)/AAA;
+			Complex a11 = CCC+I*SSS*pp[(i*nadj+2)*ndim+mu];
+			Complex a12 = pp[(i*nadj+1)*ndim+mu]*SSS + I*SSS*pp[i*nadj*ndim+mu];
+			//b11 and b12 are u11t and u12t terms, so we'll use u12t directly
+			//but use b11 for u11t to prevent RAW dependency
+			complex b11 = u11t[i*ndim+mu];
+			u11t[i*ndim+mu] = a11*b11-a12*conj(u12t[i*ndim+mu]);
+			u12t[i*ndim+mu] = a11*u12t[i*ndim+mu]+a12*conj(b11);
+		}
+#endif
 	return 0;
 }
 inline int Reunitarise(Complex *u11t, Complex *u12t){
@@ -1040,6 +1076,9 @@ inline int Reunitarise(Complex *u11t, Complex *u12t){
 	 * Zero on success, integer error code otherwise
 	 */
 	const char *funcname = "Reunitarise";
+#ifdef __NVCC__
+	Reunitarise(u11t,u12t,dimGrid,dimBlock);
+#else
 #ifdef _OPENACC
 #pragma acc parallel loop
 #else
@@ -1059,6 +1098,7 @@ inline int Reunitarise(Complex *u11t, Complex *u12t){
 		u11t[i]/=anorm;
 		u12t[i]/=anorm;
 	}
+#endif
 	return 0;
 }
 #ifdef DIAGNOSTIC
