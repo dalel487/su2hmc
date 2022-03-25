@@ -95,8 +95,8 @@ This code is written for MPI, thus has a few caveats to get up and running
 ### Input parameters
 A sample input file looks like
 ```
-0.00238	1.7		0.1780	0.00	0.000	0.0	0.0	420		20		1		1		420
-dt		beta	akappa	jqq		thetaq	fmu	aNf	stepl	ntraj	istart	icheck	iread
+0.00238	1.7	0.1780	0.00	0.000	0.0	0.0	420	20	1	1	420
+dt	beta	akappa	jqq	thetaq	fmu	aNf	stepl	ntraj	istart	icheck	iread
 ```
 where
 - `dt` is the step size for the update
