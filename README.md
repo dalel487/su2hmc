@@ -6,9 +6,9 @@ based on the algorithm of Duane et al. Phys. Lett. B195 (1987) 216.
 There is "up/down partitioning": each update requires
 one operation of congradq on complex vectors to determine
 $$
-(M\dagger M)^{-1}\Phi
+\left(M\dagger M\right)^{-1}\Phi
 $$ 
-where $\Phi$ has dimension 4* kvol* nc * Nf -
+where $\Phi$ has dimension 4 * kvol * nc * Nf -
 The matrix M is the Wilson matrix for a single flavor
 there is no extra species doubling as a result
 
@@ -19,11 +19,11 @@ number of continuum flavors N_f by
               N_f = 2 * Nf
 
 Fermion expectation values are measured using a noisy estimator.
-on the Wilson-Gor'kov matrix, which has dimension 8*kvol*nc*Nf
+on the Wilson-Gor'kov matrix, which has dimension 8 * kvol * nc * Nf
 inversions done using congradp, and matrix multiplies with dslash,
 dslashd
 
-trajectory length is random with mean dt*stepl
+trajectory length is random with mean dt * stepl
 The code runs for a fixed number ntraj of trajectories.
 
 Phi: pseudofermion field 
@@ -94,12 +94,10 @@ This code is written for MPI, thus has a few caveats to get up and running
 
 ### Input parameters
 A sample input file looks like
-	
-	
+	``` sh
 	0.00238	1.7		0.1780	0.00	0.000	0.0	0.0	420		20		1		1		420
 	dt		beta	akappa	jqq		thetaq	fmu	aNf	stepl	ntraj	istart	icheck	iread
-
-	
+	```
 where
 - `dt` is the step size for the update
 - `beta` is β, given up to three significant figures
