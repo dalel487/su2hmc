@@ -156,6 +156,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 		betan *= betan;
 #else
 		betan=0;
+#pragma omp parallel for simd aligned(r,x2:AVX) reduction(+:betan) 
 		for(int i=0; i<kferm2; i++){
 			r[i]-=alpha*x2[i];
 			betan += conj(r[i])*r[i];
@@ -163,6 +164,9 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 #endif
 		//And... reduce.
 		Par_dsum(&betan);
+#ifdef _DEBUG
+			if(!rank) printf("Iter (CG) = %i β_n= %e α_d= %e\n", *itercg, betan, alpha);
+#endif
 		if(betan<resid){ 
 			(*itercg)++;
 #ifdef _DEBUG
@@ -362,7 +366,7 @@ int Congradp(int na,double res,Complex *Phi,Complex_f *xi_f,Complex_f *u11t_f,Co
 		//addition.
 		betan = 0;
 		//If we get a small enough β_n before hitting the iteration cap we break
-#pragma omp parallel for simd aligned(x2_f,r_f:AVX)
+#pragma omp parallel for simd aligned(x2_f,r:AVX) reduction(+:betan)
 		for(int i = 0; i<kferm;i++){
 			r[i]-=alpha*x2[i];
 			betan+=conj(r[i])*r[i];
