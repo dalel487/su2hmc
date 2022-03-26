@@ -53,23 +53,23 @@ __attribute__((aligned(AVX)))
  * in one file. Hopefully this will change as we move through
  * the methods so we can get a more logical structure.
  *
- * Another vestiage of the Fortran code that will be implimented here is
+ * Another vestige of the Fortran code that will be implemented here is
  * the frequent flattening of arrays. But while FORTRAN Allows you to write
  * array(i,j) as array(i+M*j) where M is the number of rows, C resorts to 
  * pointers
  *
- * One change I will try and make is the introdction of error-codes (nothing
+ * One change I will try and make is the introduction of error-codes (nothing
  * to do with the Irish postal service)
  * These can be found in the file errorcode.h and can help with debugging
  *
  * Lastly, the comment style for the start of a function is based off of 
  * Niall Moran's python style (which may have come from numpy?) It should
  * consist of a description of the function, a list of parameters with a brief
- * explaination and lastly what is returned by the function (on success or failure)
+ * explanation and lastly what is returned by the function (on success or failure)
  */
 int main(int argc, char *argv[]){
 	/*******************************************************************
-	 *    Hybrid Monte Carlo algorithm for Two Color QCD with Wilson-Gor'kov fermions
+	 *    Hybrid Monte Carlo algorithm for Two Colour QCD with Wilson-Gor'kov fermions
 	 *    based on the algorithm of Duane et al. Phys. Lett. B195 (1987) 216. 
 	 *
 	 *    There is "up/down partitioning": each update requires
@@ -108,7 +108,7 @@ int main(int argc, char *argv[]){
 	 *     Hybrid code, P.Giudice, May 2013
 	 *     Converted from Fortran to C by D. Lawlor March 2021
 	 ******************************************************************/
-	//Instead of hardcoding the function name so the error messages are easier to impliment
+	//Instead of hard coding the function name so the error messages are easier to implement
 	const char *funcname = "main";
 
 	Par_begin(argc, argv);
@@ -293,7 +293,7 @@ int main(int argc, char *argv[]){
 
 	int naccp = 0; int ipbp = 0; int itot = 0;
 
-	//This was originally in the half-step of the fortran code, but it makes more sense to declare
+	//This was originally in the half-step of the FORTRAN code, but it makes more sense to declare
 	//it outside the loop. Since it's always being subtracted we'll define it as negative
 	const	double d = -dt*0.5;
 	//Start of classical evolution
@@ -347,7 +347,7 @@ int main(int argc, char *argv[]){
 		start_time = MPI_Wtime();
 #endif
 	double action;
-	//Congugate Gradient iteration counters
+	//Conjugate Gradient iteration counters
 	double ancg,ancgh,totancg,totancgh=0;
 	for(int itraj = iread+1; itraj <= ntraj+iread; itraj++){
 		//Reset conjugate gradient averages
@@ -358,7 +358,7 @@ int main(int argc, char *argv[]){
 #endif
 		for(int na=0; na<nf; na++){
 			//Probably makes sense to declare this outside the loop
-			//but I do like scoping/don't want to break anything else just yeat
+			//but I do like scoping/don't want to break anything else just teat
 			//
 			//How do we optimise this for use in CUDA? Do we use CUDA's PRNG
 			//or stick with MKL and synchronise/copy over the array
@@ -371,8 +371,8 @@ int main(int argc, char *argv[]){
 			Complex *R=aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 #endif
 			//Multiply the dimension of R by 2 because R is complex
-			//The FORTRAN code had two gaussian routines.
-			//gaussp was the normal box-muller and gauss0 didn't have 2 inside the square root
+			//The FORTRAN code had two Gaussian routines.
+			//gaussp was the normal Box-Muller and gauss0 didn't have 2 inside the square root
 			//Using σ=1/sqrt(2) in these routines has the same effect as gauss0
 #if (defined(USE_RAN2)||defined(__RANLUX__)||!defined(__INTEL_MKL__))
 			Gauss_z(R, kferm, 0, 1/sqrt(2));
@@ -462,11 +462,11 @@ int main(int argc, char *argv[]){
 #pragma acc update self(u11t[0:ndim*kvol],u12t[0:ndim*kvol])
 			Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
 #ifdef __NVCC__
-			//Mark trial fields as primarily read only here? Can renable writing at the end of each trajectory
+			//Mark trial fields as primarily read only here? Can re-enable writing at the end of each trajectory
 			cudaMemPrefetchAsync(u11t, ndim*(kvol+halo)*sizeof(Complex),device,NULL);
 			cudaMemPrefetchAsync(u12t, ndim*(kvol+halo)*sizeof(Complex),device,NULL);
 #endif
-			//p(t+3dt/2)=p(t+dt/2)-dSds(t+dt)*dt
+			//p(t+3et/2)=p(t+dt/2)-dSds(t+dt)*dt
 			//	Force(dSdpi, 0, rescgg);
 			Force(dSdpi, 0, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
 					dk4m_f,dk4p_f,jqq,akappa,beta,&ancg);
@@ -616,7 +616,7 @@ int main(int argc, char *argv[]){
 									break;
 								}
 							case(2):
-								//The origninal code implicitly created these files with the name
+								//The original code implicitly created these files with the name
 								//fort.XX where XX is the file label
 								//from FORTRAN. This was fort.12
 								{
@@ -815,7 +815,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 		dk4p[i]=akappa*chem1;
 		dk4m[i]=akappa*chem2;
 	}
-	//Antiperiodic Boundary Conditions. Flip the terms at the edge of the time
+	//Anti periodic Boundary Conditions. Flip the terms at the edge of the time
 	//direction
 	if(ibound == -1 && pcoord[3+ndim*rank]==npt -1){
 #ifdef _DEBUG
@@ -969,7 +969,7 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 	 */	
 	const char *funcname = "Hamilton";
 	double hp;
-	//Itereate over momentum terms.
+	//Iterate over momentum terms.
 #ifdef __NVCC__
 	int device=-1;
 	cudaGetDevice(&device);
@@ -1017,7 +1017,7 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 		cblas_zdotc_sub(kferm2, smallPhi, 1, X1, 1, &dot);
 		hf+=creal(dot);
 #else
-		//It is a dot product of the flattend arrays, could use
+		//It is a dot product of the flattened arrays, could use
 		//a module to convert index to coordinate array...
 		for(int j=0;j<kferm2;j++)
 			hf+= conj(smallPhi[j])*X1[j];
@@ -1040,7 +1040,7 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 }
 inline int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu)
 {
-	//FORTRAN had a second parameter m gving the size of y (kvol+halo) normally
+	//FORTRAN had a second parameter m giving the size of y (kvol+halo) normally
 	//Pointers mean that's not an issue for us so I'm leaving it out
 #pragma omp parallel for simd aligned (x,y,table:AVX)
 	for(int i=0; i<n; i++)
