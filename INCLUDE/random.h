@@ -94,7 +94,7 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif
-//RAN2 stuff treat it seperately so as to avoid any accidents
+//RAN2 stuff treat it separately so as to avoid any accidents
 #ifndef RAN2
 #define RAN2
 #define IM1 2147483563

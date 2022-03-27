@@ -5,7 +5,7 @@
  *
  * Error codes will take the following format:
  * XXYZZ
- * where XX is the catagory of code (File Related, Index Related etc.)
+ * where XX is the category of code (File Related, Index Related etc.)
  * Y is the severity (0 for error, 1 for warning and more to be added later)
  * ZZ is the identifying code.
  * 

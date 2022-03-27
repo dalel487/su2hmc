@@ -16,7 +16,7 @@
 //Avoid any accidents with US/UK spelling
 #define MPI_Finalise() MPI_Finalize()
 
-//Definitons
+//Definitions
 //==========
 #define	DOWN	0
 #define	UP		1
@@ -52,7 +52,7 @@ extern int rank, size;
   1             ismaster, masterproc
  */	
 
-//A couple of other components usually defined in common_*.h files in fortran. But since C has global scope
+//A couple of other components usually defined in common_*.h files in FORTRAN. But since C has global scope
 //may as well put them in here instead.
 //halos indices
 //-------------

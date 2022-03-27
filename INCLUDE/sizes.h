@@ -96,8 +96,8 @@
 #define	kferm	(nc*ngorkov*kvol)
 #define	kferm2	(nc*ndirac*kvol)
 //    For those who may not have used MPI Before, halos are just a bit 
-//    of padding we put on the outside of the subarrays we're using in MPI
-//    so we can look at terms outside the subarray we're actively working
+//    of padding we put on the outside of the sub-arrays we're using in MPI
+//    so we can look at terms outside the sub-array we're actively working
 //    on with that process.
 #define	halox	(ksizey*ksizez*ksizet)
 #define	haloy	(ksizex*ksizez*ksizet)
