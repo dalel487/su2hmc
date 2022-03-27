@@ -16,7 +16,7 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int 
 	 * Parameter:
 	 * ==========
 	 * Complex	*phi:		The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
-	 * 						for consistency with the fortran code I'll keep the name here
+	 * 						for consistency with the FORTRAN code I'll keep the name here
 	 * Complex	*r:		The array being acted on by M
 	 * Complex	*u11t:	First colour trial field
 	 * Complex	*u12t:	Second colour trial field
@@ -152,7 +152,7 @@ int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int 
 	 * Parameter:
 	 * ==========
 	 * Complex	*phi:		The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
-	 * 						for consistency with the fortran code I'll keep the name here
+	 * 						for consistency with the FORTRAN code I'll keep the name here
 	 * Complex	*r:		The array being acted on by M
 	 * Complex	*u11t:	First colour trial field
 	 * Complex	*u12t:	Second colour trial field
@@ -293,7 +293,7 @@ int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int
 	 * Parameter:
 	 * ==========
 	 * Complex	*phi:		The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
-	 * 						for consistency with the fortran code I'll keep the name here
+	 * 						for consistency with the FORTRAN code I'll keep the name here
 	 * Complex	*r:		The array being acted on by M
 	 * Complex	*u11t:	First colour trial field
 	 * Complex	*u12t:	Second colour trial field
@@ -396,7 +396,7 @@ int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  in
 	 * Parameter:
 	 * ==========
 	 * Complex	*phi:		The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
-	 * 						for consistency with the fortran code I'll keep the name here
+	 * 						for consistency with the FORTRAN code I'll keep the name here
 	 * Complex	*r:		The array being acted on by M
 	 * Complex	*u11t:	First colour trial field
 	 * Complex	*u12t:	Second colour trial field
@@ -512,7 +512,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 	 * Parameter:
 	 * ==========
 	 * Complex_f	*phi:			The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
-	 * 								for consistency with the fortran code I'll keep the name here
+	 * 								for consistency with the FORTRAN code I'll keep the name here
 	 * Complex_f	*r:			The array being acted on by M
 	 * Complex_f	*u11t_f:		First colour trial field
 	 * Complex_f	*u12t_f:		Second colour trial field
@@ -651,7 +651,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	 * Parameter:
 	 * ==========
 	 * Complex_f	*phi:			The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
-	 * 								for consistency with the fortran code I'll keep the name here
+	 * 								for consistency with the FORTRAN code I'll keep the name here
 	 * Complex_f	*r:			The array being acted on by M
 	 * Complex_f	*u11t_f:		First colour trial field
 	 * Complex_f	*u12t_f:		Second colour trial field
@@ -794,7 +794,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	 * Parameter:
 	 * ==========
 	 * Complex_f	*phi:			The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
-	 * 								for consistency with the fortran code I'll keep the name here
+	 * 								for consistency with the FORTRAN code I'll keep the name here
 	 * Complex_f	*r:			The array being acted on by M
 	 * Complex_f	*u11t_f:		First colour trial field
 	 * Complex_f	*u12t_f:		Second colour trial field
@@ -900,7 +900,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_
 	 * Parameter:
 	 * ==========
 	 * Complex_f	*phi:			The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
-	 * 								for consistency with the fortran code I'll keep the name here
+	 * 								for consistency with the FORTRAN code I'll keep the name here
 	 * Complex_f	*r:			The array being acted on by M
 	 * Complex_f	*u11t_f:		First colour trial field
 	 * Complex_f	*u12t_f:		Second colour trial field
@@ -1086,7 +1086,7 @@ inline int Reunitarise(Complex *u11t, Complex *u12t){
 #endif
 	for(int i=0; i<kvol*ndim; i++){
 		//Declaring anorm inside the loop will hopefully let the compiler know it
-		//is safe to vectorise aggessively
+		//is safe to vectorise aggressively
 		double anorm=sqrt(conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]);
 		//		Exception handling code. May be faster to leave out as the exit prevents vectorisation.
 		//		if(anorm==0){
@@ -1212,7 +1212,7 @@ int Diagnostics(int istart){
 #pragma omp parallel for simd aligned(u11t,u12t:AVX) 
 	for(int i=0; i<kvol*ndim; i++){
 		//Declaring anorm inside the loop will hopefully let the compiler know it
-		//is safe to vectorise aggessively
+		//is safe to vectorise aggressively
 		double anorm=sqrt(conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]);
 		assert(anorm!=0);
 		u11t[i]/=anorm;

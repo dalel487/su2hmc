@@ -9,12 +9,22 @@ int Gauge_force(double *dSdpi,Complex *u11t, Complex *u12t,unsigned int *iu,unsi
 	/*
 	 * Calculates dSdpi due to the Wilson Action at each intermediate time
 	 *
-	 * Globals:
-	 * =======
-	 * u11t, u12t, u11, u12, iu, id, beta
 	 * Calls:
 	 * =====
 	 * Z_Halo_swap_all, Z_gather, Z_Halo_swap_dir
+	 *
+	 * Parameters:
+	 * =======
+	 * double			*dSdpi
+	 * Complex 			*u11t
+	 * Complex			*u12t
+	 * unsigned int	*iu 
+	 * unsigned int	*id 
+	 * float				beta
+	 *
+	 * Returns:
+	 * =======
+	 * Zero on success, integer error code otherwise
 	 */
 	const char *funcname = "Gauge_force";
 
@@ -141,24 +151,31 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 		int gamin[4][4],double *dk4m, double *dk4p, float *dk4m_f,float *dk4p_f,Complex_f jqq,\
 		float akappa,float beta,double *ancg){
 	/*
-	 *	Calculates dSds at each intermediate time
+	 *	Calculates dSdpi at each intermediate time
 	 *	
 	 *	Calls:
 	 *	=====
-	 *
-	 *	Globals:
-	 *	=======
-	 *	u11t, u12t, X1, Phi
-	 *
-	 *	This X1 is the one being referred to in the common/vector/ statement in the original FORTRAN
-	 *	code. There may subroutines with a different X1 (or use a different common block definition
-	 *	for this X1) so keep your wits about you
+	 *	Gauge_force, Fill_Small_Phi, Congradq, Hdslash, ZHalo_swap_dir
 	 *
 	 *	Parameters:
 	 *	===========
-	 *	double dSdpi[][3][kvol+halo]
-	 *	int	iflag
-	 *	double	res1;
+	 *	double			*dSdpi
+	 *	int				iflag
+	 *	double			res1:
+	 *	Complex			*X0:
+	 *	Complex			*X1:
+	 *	Complex			*Phi:
+	 *	Complex			*u11t:
+	 *	Complex			*u12t:
+	 *	Complex_f		*u11t_f:
+	 *	Complex_f		*u12t_f:
+	 *	unsigned int	*iu:
+	 *	unsigned int	*id:
+	 *	Complex			gamval[5][4]:
+	 *	Complex_f		gamval_f[5][4]:
+	 *	float				akappa:
+	 *	float				beta:
+	 *	double			*ancg:
 	 *
 	 *	Returns:
 	 *	=======
@@ -228,7 +245,6 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 					X0[((na*kvol+i)*ndirac+idirac)*nc+1]=
 						2*X1[(i*ndirac+idirac)*nc+1]-X0[((na*kvol+i)*ndirac+idirac)*nc+1];
 				}
-			
 #endif
 		}
 		Hdslash(X2,X1,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);

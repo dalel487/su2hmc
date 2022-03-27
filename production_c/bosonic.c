@@ -11,7 +11,7 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt, Complex *u11t, Complex
 	 *
 	 * Globals:
 	 * =======
-	 * rank,beta
+	 * rank
 	 *
 	 * Parameters:
 	 * ===========
@@ -32,9 +32,9 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt, Complex *u11t, Complex
 	 */
 	const char *funcname = "SU2plaq";
 	//Was a halo exchange here but moved it outside
-	//	The fortran code used several consecutive loops to get the plaquette
+	//	The FORTRAN code used several consecutive loops to get the plaquette
 	//	Instead we'll just make the arrays variables and do everything in one loop
-	//	Should work since in the fortran Sigma11[i] only depends on i components  for example
+	//	Should work since in the FORTRAN Sigma11[i] only depends on i components  for example
 	double hgs = 0; double hgt = 0;
 	//Since the ν loop doesn't get called for μ=0 we'll start at μ=1
 #ifdef __NVCC__
@@ -103,7 +103,7 @@ double Polyakov(Complex *u11t, Complex *u12t){
 	double poly = 0;
 	//Originally at the very end before Par_dsum
 	//Now all cores have the value for the complete Polyakov line at all spacial sites
-	//We need to globally sum over spacial processores but not across time as these
+	//We need to globally sum over spacial processors but not across time as these
 	//are duplicates. So we zero the value for all but t=0
 	//This is (according to the FORTRAN code) a bit of a hack
 	//I will expand on this hack and completely avoid any work
@@ -174,10 +174,10 @@ double Polyakov(Complex *u11t, Complex *u12t){
 		}
 	//#pragma omp target update from(Sigma11[0:kvol3],Sigma12[0:kvol3])
 	//Multiply this partial loop with the contributions of the other cores in the
-	//timelike dimension
+	//Time-like dimension
 #endif
 #if (npt>1)
-	//Only send to the accelerator if the time component is parallised with MPI. Otherwise
+	//Only send to the accelerator if the time component is parallelised with MPI. Otherwise
 	//it gets sent straight into another loop
 #pragma acc update self(Sigma11[0:kvol3],Sigma12[0:kvol3])
 #ifdef _DEBUG

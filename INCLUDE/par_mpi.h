@@ -67,7 +67,6 @@ extern "C"
 	int Par_begin(int argc, char *argv[]);
 	int Par_sread(const int iread, const float beta, const float fmu, const float akappa, const Complex_f ajq,\
 			Complex *u11, Complex *u12, Complex *u11t, Complex *u12t);
-	//	int Par_psread(char *filename, float *ps);
 	int Par_swrite(const int itraj, const int icheck, const float beta, const float fmu, const float akappa, const Complex_f ajq,\
 			Complex *u11, Complex *u12);
 	int Par_end();

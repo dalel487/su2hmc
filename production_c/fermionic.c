@@ -14,7 +14,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	 * solves Mx=x1
 	 * (Numerical Recipes section 2.10 pp.70-73)   
 	 * uses NEW lookup tables **
-	 * Implimented in CongradX
+	 * Implemented in CongradX
 	 *
 	 * Calls:
 	 * =====
@@ -36,7 +36,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	 *	int			*iu:			Upper halo indices
 	 *	int			*id:			Lower halo indices
 	 *	Complex_f	*gamval_f:	Gamma matrices
-	 *	int			*gamin:		Indices for dirac terms
+	 *	int			*gamin:		Indices for Dirac terms
 	 *	float			*dk4m_f:	
 	 *	float			*dk4p_f:	
 	 *	Complex_f	jqq:			Diquark source
@@ -68,7 +68,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #endif
 
 	//R_1= M^† Ξ 
-	//R1 is local in fortran but since its going to be reset anyway I'm going to recycle the
+	//R1 is local in FORTRAN but since its going to be reset anyway I'm going to recycle the
 	//global
 #pragma omp parallel for simd aligned(R1,xi,R1_f,xi_f:AVX)
 	for(int i=0;i<kferm;i++)
@@ -84,7 +84,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	memcpy(Phi, R1, kferm*sizeof(Complex));
 	//Evaluate xi = (M^† M)^-1 R_1 
 	//	Congradp(0, res, R1_f, itercg);
-	//If the conjugate gradiant fails to converge for some reason, restart it.
+	//If the conjugate gradient fails to converge for some reason, restart it.
 	if(Congradp(0, res, Phi, R1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,itercg)==ITERLIM){
 		itercg=0;
 		fprintf(stderr, "Restarting conjugate gradient from %s\n", funcname);
@@ -161,6 +161,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	map(tofrom:xu,xd,xuu,xdd)
 #ifdef _OPENACC
 #pragma acc parallel loop reduction(+:xd,xu,xdd,xuu) copyin(xi[0:kferm],x[0:kfermHalo])
+		//Dirty CUDA work around since it won't convert thrust<complex> to double
 #elif !defined __NVCC__
 #pragma omp parallel for reduction(+:xd,xu,xdd,xuu) 
 #endif
@@ -205,7 +206,6 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 							conj(u12t[i*ndim+3])*(xi[(i*ngorkov+igorkovPP)*nc]+xi[(i*ngorkov+igork1PP)*nc]) ) );
 			}
 		}
-	//Dirty CUDA work around since it won't convert thrust<complex> to double
 #ifdef __NVCC__
 	*endenf=(xu-xd-xuu+xdd).real();
 	*denf=(xu+xd+xuu+xdd).real();
