@@ -84,7 +84,7 @@ int Par_ranset(unsigned int *seed,int iread)
 #endif
 {
 	/* Uses the rank to get a new seed.
-	 * Copying from the fortran description here 
+	 * Copying from the FORTRAN description here 
 	 * c     create new seeds in range seed to 9*seed
 	 * c     having a range of 0*seed gave an unfortunate pattern
 	 * c     in the underlying value of ds(1) (it was always 10 times bigger
@@ -103,7 +103,7 @@ int Par_ranset(unsigned int *seed,int iread)
 	 * Zero on success, integer error code otherwise
 	 */
 	const char *funcname = "Par_ranset";
-	//If we're not using the masterthread, we need to change the seed
+	//If we're not using the master thread, we need to change the seed
 #ifdef _DEBUG
 	printf("Master seed: %i\t",*seed);
 #endif
@@ -113,7 +113,7 @@ int Par_ranset(unsigned int *seed,int iread)
 	printf("Rank:  %i\tSeed %i\n",rank, *seed);
 #endif
 	//Next we set the seed using ranset
-	//This is one of the really weird FORTRANN 66 esque functions with ENTRY points, so good luck!
+	//This is one of the really weird FORTRAN 66-esque functions with ENTRY points, so good luck!
 #if (defined __INTEL_MKL__||defined __RANLUX__)
 	return ranset(seed);
 #else
@@ -390,8 +390,8 @@ int Gauss_f(float *ps, unsigned int n, const float mu, const float sigma){
 }
 double ran2(long *idum) {
 	/*
-	 * Generates uniformly distributed random double betweeen zero and one as 
-	 * described in numerical recipes. It's also threadsafe for different seeds.
+	 * Generates uniformly distributed random double between zero and one as 
+	 * described in numerical recipes. It's also thread-safe for different seeds.
 	 *
 	 * Parameters:
 	 * ==========
@@ -409,7 +409,7 @@ double ran2(long *idum) {
 	//Hopefully not anymore. Combining with unique seeds
 	//should do the trick (famous last words...)
 	//Combining this with a different seed for each thread
-	//should give a threadsafe and repeatable result
+	//should give a thread-safe and repeatable result
 #pragma omp threadprivate(idum2, iy, iv)
 	//No worries
 	double temp;
@@ -487,4 +487,3 @@ int ran_test(){
 	return 0;
 }
 */
-//Distributions

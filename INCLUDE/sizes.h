@@ -45,7 +45,7 @@
 #define	FILELEN	64
 // Common block definition for parallel variables
 
-#define	nx 32	
+#define	nx 4
 #define	nt	4
 // Keep original restriction of single spatial extent
 
@@ -54,7 +54,7 @@
 #define	gvol    (nx*ny*nz*nt)
 #define	gvol3   (nx*ny*nz)
 
-#define	npx	8
+#define	npx	1
 #define	npt	1
 //Number of threads for OpenMP
 #define	nthreads	1
@@ -96,8 +96,8 @@
 #define	kferm	(nc*ngorkov*kvol)
 #define	kferm2	(nc*ndirac*kvol)
 //    For those who may not have used MPI Before, halos are just a bit 
-//    of padding we put on the outside of the subarrays we're using in MPI
-//    so we can look at terms outside the subarray we're actively working
+//    of padding we put on the outside of the sub-arrays we're using in MPI
+//    so we can look at terms outside the sub-array we're actively working
 //    on with that process.
 #define	halox	(ksizey*ksizez*ksizet)
 #define	haloy	(ksizex*ksizez*ksizet)

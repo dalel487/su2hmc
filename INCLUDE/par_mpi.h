@@ -16,7 +16,7 @@
 //Avoid any accidents with US/UK spelling
 #define MPI_Finalise() MPI_Finalize()
 
-//Definitons
+//Definitions
 //==========
 #define	DOWN	0
 #define	UP		1
@@ -52,7 +52,7 @@ extern int rank, size;
   1             ismaster, masterproc
  */	
 
-//A couple of other components usually defined in common_*.h files in fortran. But since C has global scope
+//A couple of other components usually defined in common_*.h files in FORTRAN. But since C has global scope
 //may as well put them in here instead.
 //halos indices
 //-------------
@@ -67,7 +67,6 @@ extern "C"
 	int Par_begin(int argc, char *argv[]);
 	int Par_sread(const int iread, const float beta, const float fmu, const float akappa, const Complex_f ajq,\
 			Complex *u11, Complex *u12, Complex *u11t, Complex *u12t);
-	//	int Par_psread(char *filename, float *ps);
 	int Par_swrite(const int itraj, const int icheck, const float beta, const float fmu, const float akappa, const Complex_f ajq,\
 			Complex *u11, Complex *u12);
 	int Par_end();

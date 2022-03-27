@@ -39,9 +39,9 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 	int ret_val=0;
 	const double resid = kferm2*res*res;
 	//The κ^2 factor is needed to normalise the fields correctly
-	//jqq is the diquark codensate and is global scope.
+	//jqq is the diquark condensate and is global scope.
 	Complex_f fac_f = conj(jqq)*jqq*akappa*akappa;
-	//These were evaluated only in the first loop of niterx so we'll just do it ouside of the loop.
+	//These were evaluated only in the first loop of niterx so we'll just do it outside of the loop.
 	double alphan;
 	//The alpha and beta terms should be double, but that causes issues with BLAS pointers. Instead we declare
 	//them complex and work with the real part (especially for α_d)
@@ -79,7 +79,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 	Complex_f *x1_f=aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
 	Complex_f *x2_f=aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
 #endif
-	//Instead of copying elementwise in a loop, use memcpy.
+	//Instead of copying element-wise in a loop, use memcpy.
 	memcpy(p, X1, kferm2*sizeof(Complex));
 #ifdef __NVCC__
 	cudaMemPrefetchAsync(p,kferm2*sizeof(Complex),device,NULL);
@@ -156,6 +156,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 		betan *= betan;
 #else
 		betan=0;
+#pragma omp parallel for simd aligned(r,x2:AVX) reduction(+:betan) 
 		for(int i=0; i<kferm2; i++){
 			r[i]-=alpha*x2[i];
 			betan += conj(r[i])*r[i];
@@ -163,6 +164,9 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 #endif
 		//And... reduce.
 		Par_dsum(&betan);
+#ifdef _DEBUG
+			if(!rank) printf("Iter (CG) = %i β_n= %e α_d= %e\n", *itercg, betan, alpha);
+#endif
 		if(betan<resid){ 
 			(*itercg)++;
 #ifdef _DEBUG
@@ -179,7 +183,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 		//Note that beta below is not the global beta and scoping is used to avoid conflict between them
 		Complex beta = (*itercg) ?  betan/betad : 0;
 		betad=betan; alphan=betan;
-		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multipyling y by
+		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multiplying y by
 		//β instead of x.
 #if (defined __INTEL_MKL__||defined USE_BLAS)
 		Complex a = 1.0;
@@ -240,7 +244,7 @@ int Congradp(int na,double res,Complex *Phi,Complex_f *xi_f,Complex_f *u11t_f,Co
 	//Return value
 	int ret_val=0;
 	const double resid = kferm*res*res;
-	//These were evaluated only in the first loop of niterx so we'll just do it ouside of the loop.
+	//These were evaluated only in the first loop of niterx so we'll just do it outside of the loop.
 	//These alpha and beta terms should be double, but that causes issues with BLAS. Instead we declare
 	//them Complex and work with the real part (especially for α_d)
 	//Give initial values Will be overwritten if niterx>0
@@ -278,7 +282,7 @@ int Congradp(int na,double res,Complex *Phi,Complex_f *xi_f,Complex_f *u11t_f,Co
 #endif
 	double betad = 1.0; float alphad_f=0; Complex alpha = 1;
 	float alphan_f=0.0;
-	//Instead of copying elementwise in a loop, use memcpy.
+	//Instead of copying element-wise in a loop, use memcpy.
 	memcpy(p_f, xi_f, kferm*sizeof(Complex_f));
 	memcpy(r, Phi+na*kferm, kferm*sizeof(Complex));
 
@@ -362,7 +366,7 @@ int Congradp(int na,double res,Complex *Phi,Complex_f *xi_f,Complex_f *u11t_f,Co
 		//addition.
 		betan = 0;
 		//If we get a small enough β_n before hitting the iteration cap we break
-#pragma omp parallel for simd aligned(x2_f,r_f:AVX)
+#pragma omp parallel for simd aligned(x2_f,r:AVX) reduction(+:betan)
 		for(int i = 0; i<kferm;i++){
 			r[i]-=alpha*x2[i];
 			betan+=conj(r[i])*r[i];
@@ -386,7 +390,7 @@ int Congradp(int na,double res,Complex *Phi,Complex_f *xi_f,Complex_f *u11t_f,Co
 		//Note that beta below is not the global beta and scoping is used to avoid conflict between them
 		Complex beta = (*itercg) ? betan/betad : 0;
 		betad=betan; alphan_f=(float)betan;
-		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multipyling y by 
+		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multiplying y by 
 		//β instead of x.
 		//There is cblas_zaxpby in the MKL though, set a = 1 and b = β.
 #if (defined __INTEL_MKL__||defined USE_BLAS)

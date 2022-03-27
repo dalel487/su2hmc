@@ -103,7 +103,7 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 	 *
 	 * Parameters:
 	 * ----------
-	 *  None (file names are hardcoded in)
+	 *  None (file names are hard-coded in)
 	 *
 	 *  Returns:
 	 *  -------
@@ -132,7 +132,7 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 #endif
 		static char gauge_file[FILELEN]="config.";
 		int buffer; char buff2[7];
-		//Add script for extrating correct mu, j etc.
+		//Add script for extracting correct mu, j etc.
 		buffer = (int)round(100*beta);
 		sprintf(buff2,"b%03d",buffer);
 		strcat(gauge_file,buff2);
@@ -169,7 +169,7 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 		}
 		//TODO: SAFETY CHECKS FOR EACH READ OPERATION
 		int old_nproc;
-		//What was previously the the FORTRAN integer is now used to store the number of processors used to
+		//What was previously the FORTRAN integer is now used to store the number of processors used to
 		//generate the configuration
 		fread(&old_nproc, sizeof(int), 1, con);
 		if(old_nproc!=nproc)
@@ -216,7 +216,6 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 							for(int ix=pstart[0][iproc]; ix<pstop[0][iproc]; ix++){
 								//j is the relative memory index of icoord
 								int j = Coord2gindex(ix,iy,iz,it);
-								//ubuff[i]  = (ic == 0) ? u11read[j][idim] : u12read[j][idim];
 								u1buff[i]=u11Read[idim*gvol+j];
 								u2buff[i]=u12Read[idim*gvol+j];
 								//C starts counting from zero, not 1 so increment afterwards or start at int i=-1
@@ -300,88 +299,6 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 	memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
 	return 0;
 }
-/*
-	int Par_psread(char *filename, double *ps){
-/* Reads ps from a file
- * Since this function is very similar to Par_sread, I'm not really going to comment it
- * check there if you are confused about things. 
- *
- * Parameters;
- * ==========
- * char 	*filename: The name of the file we're reading from
- * double	ps:	The destination for the file's contents
- *
- * Returns:
- * =======
- * Zero on success, integer error code otherwise
- *
- char *funcname = "Par_psread";
- MPI_Status status;
-#ifdef __INTEL_MKL__
-double *psbuff = (double*)mkl_malloc(nc*kvol*sizeof(double),AVX);
-double *gps= (double*)mkl_malloc(nc*gvol*sizeof(double),AVX);
-#else
-double *psbuff = (double*)aligned_alloc(AVX,nc*kvol*sizeof(double));
-double *gps= (double*)aligned_alloc(AVX,nc*gvol*sizeof(double));
-#endif
-FILE *dest;
-if(!rank){
-if(!(dest = fopen(filename, "rb"))){
-fprintf(stderr, "Error %i in %s: Failed to open %s.\nExiting...\n\n", OPENERROR, funcname, filename);
-MPI_Finalise();
-exit(OPENERROR); 
-}
-fread(&gps, sizeof(gps), 1, dest);	
-fclose(dest);
-
-int i;
-for(int iproc=0;iproc<nproc;iproc++){
-i = 0;
-for(int ix=pstart[0][iproc]; ix<pstop[0][iproc]; ix++)
-for(int iy=pstart[1][iproc]; iy<pstop[1][iproc]; iy++)
-for(int iz=pstart[2][iproc]; iz<pstop[2][iproc]; iz++)
-for(int it=pstart[3][iproc]; it<pstop[3][iproc]; it++){
-i++;
-//j is the relative memory index of icoord
-int j = Coord2gindex(ix,iy,iz,it);
-//ubuff[i]  = (ic == 0) ? u11read[j][idim] : u12read[j][idim];
-psbuff[i*nc]=gps[j*nc];
-psbuff[i*nc+1]=gps[j*nc+1];
-}
-//Think its kvol-1 in C as C indexes from 0 not 1
-if(i!=kvol-1){
-fprintf(stderr, "Error %i in %s: Number of elements %i is not equal to\
-kvol %i.\nExiting...\n\n", NUMELEM, funcname, i, kvol);
-MPI_Finalise();
-exit(NUMELEM);
-}
-if(!iproc)
-//Replacing loops with memcpy for performance
-memcpy(ps, psbuff, kvol*2*sizeof(double));
-else
-if(MPI_Ssend(psbuff, kvol, MPI_DOUBLE,iproc, tag, comm)){
-fprintf(stderr, "Error %i in %s: Failed to send psbuff to process %i.\nExiting...\n\n",
-CANTSEND, funcname, iproc);
-MPI_Finalise();
-exit(CANTSEND);
-}
-}
-}
-else
-if(MPI_Recv(psbuff, kvol, MPI_DOUBLE, masterproc, tag, comm, &status)){
-fprintf(stderr, "Error %i in %s: Falied to receive psbuff from process %i.\nExiting...\n\n",
-CANTRECV, funcname, masterproc);
-MPI_Finalise();
-exit(CANTRECV);
-}
-#ifdef __INTEL_MKL__
-mkl_free(psbuff); mkl_free(gps);
-#else
-free(psbuff); free(gps);
-#endif
-return 0;
-}
-*/
 int Par_swrite(const int itraj, const int icheck, const float beta, const float fmu, const float akappa, 
 		const Complex_f ajq, Complex *u11, Complex *u12){
 	/*
@@ -520,7 +437,7 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 
 		char gauge_title[FILELEN]="config.";
 		int buffer; char buff2[7];
-		//Add script for extrating correct mu, j etc.
+		//Add script for extracting correct mu, j etc.
 		buffer = (int)round(100*beta);
 		sprintf(buff2,"b%03d",buffer);
 		strcat(gauge_title,buff2);
@@ -840,8 +757,8 @@ inline int Par_zcopy(Complex *zval){
 }
 
 /*	Code for swapping halos.
- *	In the original FORTRAN there were seperate subroutines for up and down halos
- *	To make code maintainence easier I'm going to impliment this with switches
+ *	In the original FORTRAN there were separate subroutines for up and down halos
+ *	To make code maintenance easier I'm going to implement this with switches
  *	and common functions
  *	We will define in su2hmc UP and DOWN. And add a parameter called layer to 
  *	functions. layer will be used to tell us if we wanted to call the up FORTRAN
@@ -855,7 +772,7 @@ inline int ZHalo_swap_all(Complex *z, int ncpt){
 	 * Parameters:
 	 * -----------
 	 * Complex z:	The data being sent
-	 * int	ncpt:	Good Question
+	 * int	ncpt:	Number of components being sent
 	 *
 	 * Returns:
 	 * -------
@@ -883,7 +800,7 @@ int ZHalo_swap_dir(Complex *z, int ncpt, int idir, int layer){
 	 * Parameters:
 	 * -----------
 	 *  Complex	*z:	The data being moved about. It should be an array of dimension [kvol+halo][something else]
-	 *  int		ncpt: The size of something else above. 	
+	 *  int		ncpt: Number of components being sent
 	 *  int		idir:	The axis being moved along in C Indexing
 	 *  int		layer:	Either DOWN (0) or UP (1)
 	 *
@@ -971,7 +888,7 @@ inline int CHalo_swap_all(Complex_f *c, int ncpt){
 	 * Parameters:
 	 * -----------
 	 * Complex z:	The data being sent
-	 * int	ncpt:	Good Question
+	 * int	ncpt:	Number of components being sent
 	 *
 	 * Returns:
 	 * -------
@@ -1088,7 +1005,7 @@ int DHalo_swap_dir(double *d, int ncpt, int idir, int layer){
 	 * Parameters:
 	 * -----------
 	 *  double	*d:	The data being moved about
-	 *  int		ncpt:	No idea
+	 *  int		ncpt:	Number of components being sent
 	 *  int		idir:	The axis being moved along
 	 *  int		layer:	Either DOWN (0) or UP (1)
 	 *
@@ -1193,7 +1110,7 @@ int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u
 		//And the swap back
 #if (defined __INTEL_MKL__ || USE_BLAS)
 		cblas_zcopy(kvol+halo, z, 1, &u11t[mu], ndim);
-		//Repat for u12t
+		//Repeat for u12t
 		cblas_zcopy(kvol, &u12t[mu], ndim, z, 1);
 #else
 		for(int i=0; i<kvol+halo;i++){
@@ -1253,11 +1170,11 @@ int Par_tmul(Complex *z11, Complex *z12){
 	t11=(Complex *)aligned_alloc(AVX,kvol3*sizeof(Complex));
 	t12=(Complex *)aligned_alloc(AVX,kvol3*sizeof(Complex));
 #endif
-	//Intitialise for the first loop
+	//Initialise for the first loop
 	memcpy(a11, z11, kvol3*sizeof(Complex));
 	memcpy(a12, z12, kvol3*sizeof(Complex));
 
-	//Since the index of the outer loop isn't used as an array index anywher
+	//Since the index of the outer loop isn't used as an array index anywhere
 	//I'm going format it exactly like the original FORTRAN
 #ifdef _DEBUG
 	if(!rank) printf("Sending between halos in the time direction. For rank %i pu[3]=%i and pd[3] = %i\n",

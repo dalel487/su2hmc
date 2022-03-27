@@ -44,15 +44,15 @@ int Addrc(unsigned int *iu, unsigned int *id){
 		halosize= (unsigned int*)aligned_alloc(AVX,ndim*sizeof(int));
 #endif
 
-		//Do the lookups appropriate for overindexing into halos
+		//Do the lookups appropriate for over indexing into halos
 		//order is down, up for each x y z t
 		// 
 		// Since the h2? terms are related to the h1? terms I've dropped them in the C Version
 		// saving about 4 billionths of a second in the process
 		//
-		//Need to watch these +/- 1 at the end. Is that a fortran thing or a program thing?
+		//Need to watch these +/- 1 at the end. Is that a FORTRAN thing or a program thing?
 		//The only time I see h1d called that +1 term gets cancelled by a -1 so I'm going
-		//to omit it here at my own peril.
+		//to omit it here at my own peril. (Turned out I was right)
 		h1d[0]=kvol; h1u[0]=h1d[0]+halox;
 		halosize[0]=halox;
 
@@ -388,7 +388,7 @@ inline int Coord2lindex(int ix, int iy, int iz, int it){
 	char *funcname = "Coord2gindex";
 
 	//I've factorised this function compared to its original 
-	//implimentation to reduce the number of multiplications
+	//implementation to reduce the number of multiplications
 	//and hopefully improve performance
 	//int index = coord[3]+ksizez*(coord[2]+ksizey*(coord[1]+ksizex*coord[0]));
 	return it+ksizet*(iz+ksizez*(iy+ksizey*ix));
@@ -414,7 +414,7 @@ inline int Coord2gindex(int ix, int iy, int iz, int it){
 	char *funcname = "Coord2gindex";
 
 	//I've factorised this function compared to its original 
-	//implimentation to reduce the number of multiplications
+	//implementation to reduce the number of multiplications
 	//and hopefully improve performance
 	//	return it+nt*(iz+nz*(iy+ny*ix));
 	return ix+nx*(iy+ny*(iz+nz*it));
