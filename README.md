@@ -95,7 +95,7 @@ This code is written for MPI on Linux, thus has a few caveats to get up and runn
 ### Input parameters
 A sample input file looks like
 ```
-0.00238	1.7	0.1780	0.00	0.000	0.0	0.0	420	20	1	1	420
+0.00200	1.7	0.1780	0.00	0.000	0.0	0.0	500	20	1	1	100
 dt	beta	akappa	jqq	thetaq	fmu	aNf	stepl	ntraj	istart	icheck	iread
 ```
 where
