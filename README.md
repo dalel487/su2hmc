@@ -68,7 +68,7 @@ Other works in progress include:
 -	OpenACC.
 
 ## Getting started
-This code is written for MPI, thus has a few caveats to get up and running
+This code is written for MPI on Linux, thus has a few caveats to get up and running
 1.	In sizes.h, set the lattice size. By default we assume the spatial components
 	to be equal
 2.	Also in sizes.h set the processor grid size by setting the values of
