@@ -26,10 +26,12 @@ inversions done using `congradp`, and matrix multiplies with `dslash`,
 trajectory length is random with mean dt * stepl
 The code runs for a fixed number ntraj of trajectories.
 
-Phi: pseudofermion field 
-bmass: bare fermion mass 
-fmu: chemical potential 
-actiona: running average of total action
+| | |
+|--|--:|
+|Phi| pseudofermion field|
+|bmass| bare fermion mass|
+|fmu| chemical potential|
+|actiona| running average of total action|
 
 Fermion expectation values are measured using a noisy estimator.
 The code productes the following outputs:
