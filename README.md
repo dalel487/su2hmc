@@ -105,7 +105,7 @@ where
 - `jqq` is the diquark source, given up to three significant figures
 - `thetaq` is the diquark mixing angle
 - `fmu` is the chemical potential
-- `aNf` is ignored and left as a legacy of the FORTRAN input, where it was also ignored
+- `aNf` is ignored. Originating in the Cornell group when Ken Wilson was still there, that molecular dynamics time-discretisation artifacts can be absorbed into renormalisation of the bare parameters of the lattice action
 - `stepl` is the average number of steps per trajectory. For a single trajectory it times dt should equal 1
 - `ntraj` is the umber of trajectories
 - `istart` signals a hot start (>=1) or cold start (<=0)
