@@ -90,7 +90,7 @@ This code is written for MPI on Linux, thus has a few caveats to get up and runn
 	```
 
 -	`nproc` is the number of processors, given by the product of `npx npy npz npt`
--	If no input file is given, the programme defaults to midout. I need to ask why that name was chosen. Maybe even change it...
+-	If no input file is given, the programme defaults to midout. The default name is a historical one which goes back generations to the early days of Lattice QCD.
 
 ### Input parameters
 A sample input file looks like
