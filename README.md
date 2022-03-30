@@ -34,7 +34,7 @@ The code runs for a fixed number ntraj of trajectories.
 |actiona| running average of total action|
 
 Fermion expectation values are measured using a noisy estimator.
-The code productes the following outputs:
+The code produces the following outputs:
 |File Name| Data type|
 |---------|:---------|
 |config.bβββkκκκmuμμμμjJJJsNXtNT.XXXXXX| Lattice configuration for given parameters. Last digits are the configuration number|
@@ -114,6 +114,6 @@ where
 - `icheck` is how often to print out a configuration. We typically use 5 for an 80% acceptance rate
 - `iread` is the starting configuration for continuation runs. If zero, start without reading
 
-The bottom line of the input is ignored by the programme and is just there to make your life easier
+The bottom line of the input is ignored by the programme and is just there to make your life easier.
 Blank space does not matter, so long as there is some gap between the input parameters in the file and they are all
 on a single line.
