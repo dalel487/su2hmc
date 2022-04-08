@@ -45,6 +45,7 @@
 //Warnings:
 //---------
 #define	BOUNDWARN	11103	//Accessing an out of bounds element, but not a big enough problem to crash the programme.
+#define	LIMWARN		11104	//Order of limits (x_min and x_max for example) is reversed.
 
 //MPI Errors. Leading digits are 12
 //================================

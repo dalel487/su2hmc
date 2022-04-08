@@ -1,6 +1,6 @@
 #MF=	Makefile
 
-CC=	mpiicc 
+CC=	mpiicc
 
 IFLAGS=	-I../INCLUDE 
 
