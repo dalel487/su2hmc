@@ -437,7 +437,7 @@ int main(int argc, char *argv[]){
 				dk4m_f,dk4p_f,jqq,akappa,beta,&ancg);
 #ifdef __NVCC__
 		cublasDaxpy(cublas_handle,kmom, &d, dSdpi, 1, pp, 1);
-#elif (defined __INTEL_MKL__ || defined USE_BLAS)
+#elif defined USE_BLAS
 		cblas_daxpy(kmom, d, dSdpi, 1, pp, 1);
 #else
 		for(int i=0;i<kmom;i++)
@@ -475,7 +475,7 @@ int main(int argc, char *argv[]){
 			if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
 #ifdef __NVCC__
 				cublasDaxpy(cublas_handle,kmom, &d, dSdpi, 1, pp, 1);
-#elif (defined __INTEL_MKL__ || defined USE_BLAS)
+#elif defined USE_BLAS
 				cblas_daxpy(kmom, d, dSdpi, 1, pp, 1);
 #else
 #pragma omp parallel for simd aligned(pp,dSdpi:AVX)
@@ -494,7 +494,7 @@ int main(int argc, char *argv[]){
 				//dt is needed for the trial fields so has to be negated every time.
 				double dt_d=-1*dt;
 				cublasDaxpy(cublas_handle,kmom, &dt_d, dSdpi, 1, pp, 1);
-#elif (defined __INTEL_MKL__ || defined USE_BLAS)
+#elif defined USE_BLAS
 				cblas_daxpy(kmom, -dt, dSdpi, 1, pp, 1);
 #else
 #pragma omp parallel for simd aligned(pp,dSdpi:AVX)
@@ -546,7 +546,7 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 		cublasDnrm2(cublas_handle,kmom, pp, 1,&vel2);
 		vel2*=vel2;
-#elif (defined __INTEL_MKL__ || defined USE_BLAS)
+#elif defined USE_BLAS
 		vel2 = cblas_dnrm2(kmom, pp, 1);
 		vel2*=vel2;
 #else
@@ -848,7 +848,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 #endif
 
 	//Each gamma matrix is rescaled by akappa by flattening the gamval array
-#if (defined __INTEL_MKL__ || defined USE_BLAS)
+#if defined USE_BLAS
 	//Don't cuBLAS this. It is small and won't saturate the GPU. Let the CPU handle
 	//it and just copy it later
 	cblas_zdscal(5*4, akappa, gamval, 1);
@@ -976,7 +976,7 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 	cudaMemPrefetchAsync(pp,kmom*sizeof(double),device,NULL);
 	cublasDnrm2(cublas_handle, kmom, pp, 1,&hp);
 	hp*=hp;
-#elif (defined __INTEL_MKL__ || defined USE_BLAS)
+#elif defined USE_BLAS
 	hp = cblas_dnrm2(kmom, pp, 1);
 	hp*=hp;
 #else
@@ -1012,7 +1012,7 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 		Complex dot;
 		cublasZdotc(cublas_handle,kferm2,(cuDoubleComplex *)smallPhi,1,(cuDoubleComplex *) X1,1,(cuDoubleComplex *) &dot);
 		hf+=creal(dot);
-#elif (defined __INTEL_MKL__ || defined USE_BLAS)
+#elif defined USE_BLAS
 		Complex dot;
 		cblas_zdotc_sub(kferm2, smallPhi, 1, X1, 1, &dot);
 		hf+=creal(dot);

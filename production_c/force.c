@@ -228,7 +228,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 			*ancg+=itercg;
 			//This is not a general BLAS Routine. BLIS and MKl support it
 			//CUDA and GSL does not support it
-#if (defined __INTEL_MKL__ || defined USE_BLAS)
+#if (defined __INTEL_MKL__ || defined AMD_BLAS)
 			Complex blasa=2.0; Complex blasb=-1.0;
 			cblas_zaxpby(kferm2, &blasa, X1, 1, &blasb, X0+na*kferm2, 1); 
 #else
@@ -251,7 +251,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 #ifdef __NVCC__
 		double blasd=2.0;
 		cublasZdscal(cublas_handle,kferm2, &blasd, (cuDoubleComplex *)X2, 1);
-#elif (defined __INTEL_MKL__ || defined USE_BLAS)
+#elif defined USE_BLAS
 		double blasd=2.0;
 		cblas_zdscal(kferm2, blasd, X2, 1);
 #else

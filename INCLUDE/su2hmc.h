@@ -2,6 +2,7 @@
 #define SU2HEAD
 #ifdef __NVCC__
 #include <cuda.h>
+#define	USE_BLAS
 #include	<cublas_v2.h>
 extern cublasHandle_t cublas_handle;
 extern cublasHandle_t cublas_status;
@@ -11,10 +12,13 @@ extern cublasHandle_t cublas_status;
 //ARM Based machines. BLAS routines should work with other libraries, so we can set a compiler
 //flag to sort them out. But the PRNG routines etc. are MKL exclusive
 #ifdef	__INTEL_MKL__
+#define	USE_BLAS
 #include	<mkl.h>
 #elif defined GSL_BLAS
+#define	USE_BLAS
 #include <gsl/gsl_cblas.h>
-#elif defined USE_BLAS
+#elif defined AMD_BLAS
+#define	USE_BLAS
 #include	<cblas.h>
 #endif
 #include	<stdio.h>

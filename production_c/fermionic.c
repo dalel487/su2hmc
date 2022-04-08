@@ -99,7 +99,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #else
 	free(xi_f); free(R1_f);
 #endif
-#if (defined __INTEL_MKL__ || defined USE_BLAS)
+#if defined USE_BLAS
 	Complex buff;
 	cblas_zdotc_sub(kferm, x, 1, xi,  1, &buff);
 	*pbp=creal(buff);
@@ -113,7 +113,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	*pbp/=4*gvol;
 
 	*qbqb=*qq=0;
-#if (defined __INTEL_MKL__ || defined USE_BLAS)
+#if defined USE_BLAS
 	for(int idirac = 0; idirac<ndirac; idirac++){
 		int igork=idirac+4;
 		//Unrolling the colour indices, Then its just (γ_5*x)*Ξ or (γ_5*Ξ)*x 
@@ -169,7 +169,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 			int did=id[3+ndim*i];
 			int uid=iu[3+ndim*i];
 #ifndef _OPENACC
-#pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX) 
+#pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX)
 #endif
 			for(int igorkov=0; igorkov<4; igorkov++){
 				int igork1=gamin[3][igorkov];
