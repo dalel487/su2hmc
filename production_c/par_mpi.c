@@ -1099,7 +1099,7 @@ int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u
 #endif
 	for(int mu=0;mu<ndim;mu++){
 		//Copy the column from u11t
-#if USE_BLAS
+#ifdef USE_BLAS
 		cblas_zcopy(kvol, &u11t[mu], ndim, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
@@ -1108,7 +1108,7 @@ int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u
 		//Halo exchange on that column
 		ZHalo_swap_all(z, 1);
 		//And the swap back
-#if USE_BLAS
+#ifdef USE_BLAS
 		cblas_zcopy(kvol+halo, z, 1, &u11t[mu], ndim);
 		//Repeat for u12t
 		cblas_zcopy(kvol, &u12t[mu], ndim, z, 1);
@@ -1119,7 +1119,7 @@ int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u
 		}
 #endif
 		ZHalo_swap_all(z, 1);
-#if USE_BLAS
+#ifdef USE_BLAS
 		cblas_zcopy(kvol+halo, z, 1, &u12t[mu], ndim);
 #else
 		for(int i=0; i<kvol+halo;i++)
