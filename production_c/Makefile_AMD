@@ -1,10 +1,10 @@
-CC=mpicc -v -cc=clang
+CC=mpicc -v 
 
 IFLAGS=     -I../INCLUDE/ -I ${AOCL_ROOT}/include
 
 CFLAGS=	$(IFLAGS) -std=gnu11 -DAMD_BLAS -fcommon -DSA3AT\
 			-fveclib=AMDLIBM -march=znver1 -mtune=znver2 -D__RANLUX__\
-			-fopenmp -fopenmp-simd -fremap-arrays\
+			-fopenmp -static-openmp -fopenmp-simd -fremap-arrays\
 		  #-fprofile-instr-use
 
 LFLAGS=	-Wl -L${AOCL_ROOT}/lib -latomic -lpthread -lm -ldl -lalm -lblis -lgsl

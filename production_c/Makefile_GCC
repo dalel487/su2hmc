@@ -1,4 +1,4 @@
-CC=mpicc
+CC=mpicc 
 
 IFLAGS=     -I../INCLUDE/ -I ${AOCL_ROOT}/include
 
@@ -8,8 +8,7 @@ CFLAGS=	$(IFLAGS) -std=gnu11 -DAMD_BLAS -fcommon\
 #		-foffload=amdgcn-amdhsa="-march=gfx902" #-fopenacc\
 #		-pg -fprofile-arcs-foffload=amdgcn-amdhsa="-march=gfx90c"
 
-LFLAGS=	-L /${AOCL_ROOT}/lib/ -latomic \
-		-lm -ldl -lalm -lblis -lgsl 
+LFLAGS=	-L ${AOCL_ROOT}/lib/ -latomic -ldl -lalm -lblis -lgsl 
 
 EXE=	su2hmc_GCC
 
