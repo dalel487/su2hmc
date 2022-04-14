@@ -169,35 +169,47 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 			int did=id[3+ndim*i];
 			int uid=iu[3+ndim*i];
 #ifndef _OPENACC
-#pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX)
+#pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX) reduction(+:xu)
 #endif
 			for(int igorkov=0; igorkov<4; igorkov++){
 				int igork1=gamin[3][igorkov];
 				//For the C Version I'll try and factorise where possible
-
 				xu+=dk4p[did]*(conj(x[(did*ngorkov+igorkov)*nc])*(\
 							u11t[did*ndim+3]*(xi[(i*ngorkov+igork1)*nc]-xi[(i*ngorkov+igorkov)*nc])+\
 							u12t[did*ndim+3]*(xi[(i*ngorkov+igork1)*nc+1]-xi[(i*ngorkov+igorkov)*nc+1]) )+\
 						conj(x[(did*ngorkov+igorkov)*nc+1])*(\
 							conj(u11t[did*ndim+3])*(xi[(i*ngorkov+igork1)*nc+1]-xi[(i*ngorkov+igorkov)*nc+1])+\
 							conj(u12t[did*ndim+3])*(xi[(i*ngorkov+igorkov)*nc]-xi[(i*ngorkov+igork1)*nc])));
-
+			}
+#ifndef _OPENACC
+#pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX) reduction(+:xd)
+#endif
+			for(int igorkov=0; igorkov<4; igorkov++){
+				int igork1=gamin[3][igorkov];
 				xd+=dk4m[i]*(conj(x[(uid*ngorkov+igorkov)*nc])*(\
 							conj(u11t[i*ndim+3])*(xi[(i*ngorkov+igork1)*nc]+xi[(i*ngorkov+igorkov)*nc])-\
 							u12t[i*ndim+3]*(xi[(i*ngorkov+igork1)*nc+1]+xi[(i*ngorkov+igorkov)*nc+1]) )+\
 						conj(x[(uid*ngorkov+igorkov)*nc+1])*(\
 							u11t[i*ndim+3]*(xi[(i*ngorkov+igork1)*nc+1]+xi[(i*ngorkov+igorkov)*nc+1])+\
 							conj(u12t[i*ndim+3])*(xi[(i*ngorkov+igorkov)*nc]+xi[(i*ngorkov+igork1)*nc]) ) );
-
-				int igorkovPP=igorkov+4;
-				int igork1PP=igork1+4;
+			}
+#ifndef _OPENACC
+#pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX) reduction(+:xuu)
+#endif
+			for(int igorkovPP=4; igorkovPP<8; igorkovPP++){
+				int igork1PP=4+gamin[3][igorkovPP-4];
 				xuu-=dk4m[did]*(conj(x[(did*ngorkov+igorkovPP)*nc])*(\
 							u11t[did*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc]-xi[(i*ngorkov+igorkovPP)*nc])+\
 							u12t[did*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc+1]-xi[(i*ngorkov+igorkovPP)*nc+1]) )+\
 						conj(x[(did*ngorkov+igorkovPP)*nc+1])*(\
 							conj(u11t[did*ndim+3])*(xi[(i*ngorkov+igork1PP)*nc+1]-xi[(i*ngorkov+igorkovPP)*nc+1])+\
 							conj(u12t[did*ndim+3])*(xi[(i*ngorkov+igorkovPP)*nc]-xi[(i*ngorkov+igork1PP)*nc]) ) );
-
+			}
+#ifndef _OPENACC
+#pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX) reduction(+:xdd)
+#endif
+			for(int igorkovPP=4; igorkovPP<8; igorkovPP++){
+				int igork1PP=4+gamin[3][igorkovPP-4];
 				xdd-=dk4p[i]*(conj(x[(uid*ngorkov+igorkovPP)*nc])*(\
 							conj(u11t[i*ndim+3])*(xi[(i*ngorkov+igork1PP)*nc]+xi[(i*ngorkov+igorkovPP)*nc])-\
 							u12t[i*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc+1]+xi[(i*ngorkov+igorkovPP)*nc+1]) )+\
