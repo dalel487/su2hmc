@@ -569,7 +569,11 @@ int main(int argc, char *argv[]){
 			int itercg=0;
 			double endenf, denf;
 			Complex qbqb;
-			Measure(&pbp,&endenf,&denf,&qq,&qbqb,respbp,&itercg,u11t,u12t,u11t_f,u12t_f,iu,id,\
+			//Stop gap for measurement failure on Kay;
+			//If the Congrad in Measure fails, don't measure the Diquark or PBP-Density observables for
+			//that trajectory
+			int measure_check=0;
+			measure_check = Measure(&pbp,&endenf,&denf,&qq,&qbqb,respbp,&itercg,u11t,u12t,u11t_f,u12t_f,iu,id,\
 					gamval,gamval_f,gamin,dk4m,dk4p,dk4m_f,dk4p_f,jqq,akappa,Phi,R1);
 #ifdef _DEBUG
 			if(!rank)
@@ -620,35 +624,39 @@ int main(int argc, char *argv[]){
 								//fort.XX where XX is the file label
 								//from FORTRAN. This was fort.12
 								{
-									FILE *fortout;
-									char *fortname = "Bosonic_Observables"; 
-									const char *fortop= (itraj==1) ? "w" : "a";
-									if(!(fortout=fopen(fortname, fortop) )){
-										fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
-												OPENERROR, funcname, fortname, fortop);
-										MPI_Abort(comm,OPENERROR);
+									if(!measure_check){
+										FILE *fortout;
+										char *fortname = "Bosonic_Observables"; 
+										const char *fortop= (itraj==1) ? "w" : "a";
+										if(!(fortout=fopen(fortname, fortop) )){
+											fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
+													OPENERROR, funcname, fortname, fortop);
+											MPI_Abort(comm,OPENERROR);
+										}
+										if(itraj==1)
+											fprintf(fortout, "avplaqs\tavplaqt\tpoly\n");
+										fprintf(fortout, "%e\t%e\t%e\n", avplaqs, avplaqt, poly);
+										fclose(fortout);
+										break;
 									}
-									if(itraj==1)
-										fprintf(fortout, "avplaqs\tavplaqt\tpoly\n");
-									fprintf(fortout, "%e\t%e\t%e\n", avplaqs, avplaqt, poly);
-									fclose(fortout);
-									break;
 								}
 							case(3):
 								{
-									FILE *fortout;
-									char *fortname = "Diquark";
-									const char *fortop= (itraj==1) ? "w" : "a";
-									if(!(fortout=fopen(fortname, fortop) )){
-										fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
-												OPENERROR, funcname, fortname, fortop);
-										MPI_Abort(comm,OPENERROR);
+									if(!measure_check){
+										FILE *fortout;
+										char *fortname = "Diquark";
+										const char *fortop= (itraj==1) ? "w" : "a";
+										if(!(fortout=fopen(fortname, fortop) )){
+											fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
+													OPENERROR, funcname, fortname, fortop);
+											MPI_Abort(comm,OPENERROR);
+										}
+										if(itraj==1)
+											fprintf(fortout, "Re(qq)\n");
+										fprintf(fortout, "%e\n", creal(qq));
+										fclose(fortout);
+										break;
 									}
-									if(itraj==1)
-										fprintf(fortout, "Re(qq)\n");
-									fprintf(fortout, "%e\n", creal(qq));
-									fclose(fortout);
-									break;
 								}
 							default: break;
 						}
@@ -707,7 +715,7 @@ int main(int argc, char *argv[]){
 	if(!rank){
 		FILE *sa3at = fopen("Bench_times.csv", "a");
 		fprintf(sa3at, "%s\nβ%0.3f κ:%0.4f μ:%0.4f j:%0.3f s:%lu t:%lu kvol:%lu\n\
-							npx:%lu npt:%lu nthread:%lu ncore:%lu time:%f traj_time:%f\n\n",\
+				npx:%lu npt:%lu nthread:%lu ncore:%lu time:%f traj_time:%f\n\n",\
 				__VERSION__,beta,akappa,fmu,creal(ajq),nx,nt,kvol,npx,npt,nthreads,npx*npt*nthreads,elapsed,elapsed/ntraj);
 		fclose(sa3at);
 	}

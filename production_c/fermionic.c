@@ -85,11 +85,13 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	//Evaluate xi = (M^† M)^-1 R_1 
 	//	Congradp(0, res, R1_f, itercg);
 	//If the conjugate gradient fails to converge for some reason, restart it.
+	//That's causing issues with NaN's. Plan B is to not record the measurements.
 	if(Congradp(0, res, Phi, R1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,itercg)==ITERLIM){
-		itercg=0;
-		if(!rank) fprintf(stderr, "Restarting conjugate gradient from %s\n", funcname);
-		Congradp(0, res, Phi, R1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,itercg);
-		itercg+=niterc;
+		return ITERLIM;
+		//itercg=0;
+		//if(!rank) fprintf(stderr, "Restarting conjugate gradient from %s\n", funcname);
+		//Congradp(0, res, Phi, R1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,itercg);
+		//itercg+=niterc;
 	}
 #pragma omp parallel for simd aligned(R1,R1_f:AVX)
 	for(int i=0;i<kferm;i++)
