@@ -608,6 +608,7 @@ int main(int argc, char *argv[]){
 									FILE *fortout;
 									char *fortname = "PBP-Density";
 									const char *fortop= (itraj==1) ? "w" : "a";
+									if(!measure_check){
 									if(!(fortout=fopen(fortname, fortop) )){
 										fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
 												OPENERROR, funcname, fortname, fortop);
@@ -618,13 +619,13 @@ int main(int argc, char *argv[]){
 									fprintf(fortout, "%e\t%e\t%e\n", pbp, endenf, denf);
 									fclose(fortout);
 									break;
+									}
 								}
 							case(2):
 								//The original code implicitly created these files with the name
 								//fort.XX where XX is the file label
 								//from FORTRAN. This was fort.12
 								{
-									if(!measure_check){
 										FILE *fortout;
 										char *fortname = "Bosonic_Observables"; 
 										const char *fortop= (itraj==1) ? "w" : "a";
@@ -638,7 +639,6 @@ int main(int argc, char *argv[]){
 										fprintf(fortout, "%e\t%e\t%e\n", avplaqs, avplaqt, poly);
 										fclose(fortout);
 										break;
-									}
 								}
 							case(3):
 								{
