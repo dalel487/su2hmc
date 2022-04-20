@@ -630,8 +630,8 @@ int main(int argc, char *argv[]){
 							case(1):
 								{
 									FILE *fortout;
-									char fortname[FILELEN] = "fermi";
-									sprintf(fortname,".%s", suffix);
+									char fortname[FILELEN] = "fermi.";
+									strcat(fortname,suffix);
 									const char *fortop= (itraj==1) ? "w" : "a";
 									if(!measure_check){
 										if(!(fortout=fopen(fortname, fortop) )){
@@ -652,8 +652,8 @@ int main(int argc, char *argv[]){
 								//from FORTRAN. This was fort.12
 								{
 									FILE *fortout;
-									char fortname[FILELEN] = "bose"; 
-									sprintf(fortname,".%s", suffix);
+									char fortname[FILELEN] = "bose."; 
+									strcat(fortname,suffix);
 									const char *fortop= (itraj==1) ? "w" : "a";
 									if(!(fortout=fopen(fortname, fortop) )){
 										fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
@@ -670,8 +670,8 @@ int main(int argc, char *argv[]){
 								{
 									if(!measure_check){
 										FILE *fortout;
-										char fortname[FILELEN] = "diq";
-										sprintf(fortname,".%s", suffix);
+										char fortname[FILELEN] = "diq,";
+									strcat(fortname,suffix);
 										const char *fortop= (itraj==1) ? "w" : "a";
 										if(!(fortout=fopen(fortname, fortop) )){
 											fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
