@@ -585,6 +585,30 @@ int main(int argc, char *argv[]){
 			//We have four output files, so may as well get the other ranks to help out
 			//and abuse scoping rules while we're at it.
 			//Can use either OpenMP or MPI to do this
+			char suffix[FILELEN];
+			int buffer; char buff2[7];
+			//Add script for extracting correct mu, j etc.
+			buffer = (int)round(100*beta);
+			sprintf(buff2,"b%03d",buffer);
+			strcat(suffix,buff2);
+			//κ
+			buffer = (int)round(10000*akappa);
+			sprintf(buff2,"k%04d",buffer);
+			strcat(suffix,buff2);
+			//μ
+			buffer = (int)round(1000*fmu);
+			sprintf(buff2,"mu%04d",buffer);
+			strcat(suffix,buff2);
+			//J
+			buffer = (int)round(1000*creal(ajq));
+			sprintf(buff2,"j%03d",buffer);
+			strcat(suffix,buff2);
+			//nx
+			sprintf(buff2,"s%02d",nx);
+			strcat(suffix,buff2);
+			//nt
+			sprintf(buff2,"t%02d",nt);
+			strcat(suffix,buff2);
 #if (nproc>=4)
 			switch(rank)
 #else
@@ -606,19 +630,20 @@ int main(int argc, char *argv[]){
 							case(1):
 								{
 									FILE *fortout;
-									char *fortname = "PBP-Density";
+									char *fortname[FILELEN] = "fermi";
+									sprintf(fortname,".%s", suffix);
 									const char *fortop= (itraj==1) ? "w" : "a";
 									if(!measure_check){
-									if(!(fortout=fopen(fortname, fortop) )){
-										fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
-												OPENERROR, funcname, fortname, fortop);
-										MPI_Abort(comm,OPENERROR);
-									}
-									if(itraj==1)
-										fprintf(fortout, "pbp\tendenf\tdenf\n");
-									fprintf(fortout, "%e\t%e\t%e\n", pbp, endenf, denf);
-									fclose(fortout);
-									break;
+										if(!(fortout=fopen(fortname, fortop) )){
+											fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
+													OPENERROR, funcname, fortname, fortop);
+											MPI_Abort(comm,OPENERROR);
+										}
+										if(itraj==1)
+											fprintf(fortout, "pbp\tendenf\tdenf\n");
+										fprintf(fortout, "%e\t%e\t%e\n", pbp, endenf, denf);
+										fclose(fortout);
+										break;
 									}
 								}
 							case(2):
@@ -626,25 +651,27 @@ int main(int argc, char *argv[]){
 								//fort.XX where XX is the file label
 								//from FORTRAN. This was fort.12
 								{
-										FILE *fortout;
-										char *fortname = "Bosonic_Observables"; 
-										const char *fortop= (itraj==1) ? "w" : "a";
-										if(!(fortout=fopen(fortname, fortop) )){
-											fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
-													OPENERROR, funcname, fortname, fortop);
-											MPI_Abort(comm,OPENERROR);
-										}
-										if(itraj==1)
-											fprintf(fortout, "avplaqs\tavplaqt\tpoly\n");
-										fprintf(fortout, "%e\t%e\t%e\n", avplaqs, avplaqt, poly);
-										fclose(fortout);
-										break;
+									FILE *fortout;
+									char *fortname = "bose"; 
+									sprintf(fortname,".%s", suffix);
+									const char *fortop= (itraj==1) ? "w" : "a";
+									if(!(fortout=fopen(fortname, fortop) )){
+										fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
+												OPENERROR, funcname, fortname, fortop);
+										MPI_Abort(comm,OPENERROR);
+									}
+									if(itraj==1)
+										fprintf(fortout, "avplaqs\tavplaqt\tpoly\n");
+									fprintf(fortout, "%e\t%e\t%e\n", avplaqs, avplaqt, poly);
+									fclose(fortout);
+									break;
 								}
 							case(3):
 								{
 									if(!measure_check){
 										FILE *fortout;
-										char *fortname = "Diquark";
+										char *fortname[FILELEN] = "diq";
+										sprintf(fortname,".%s", suffix);
 										const char *fortop= (itraj==1) ? "w" : "a";
 										if(!(fortout=fopen(fortname, fortop) )){
 											fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\

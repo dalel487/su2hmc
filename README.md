@@ -39,9 +39,9 @@ The code produces the following outputs:
 |---------|:---------|
 |config.bβββkκκκmuμμμμjJJJsNXtNT.XXXXXX| Lattice configuration for given parameters. Last digits are the configuration number|
 |Output|	Number of conjugate gradient steps for each trajectory. Also contains general simulation details upon completion|
-|Bosonic_Observables|		spatial plaquette, temporal plaquette, Polyakov line|
-|PBP-Density|				psibarpsi, energy density, baryon density|
-|Diquark|					real<qq>|
+|bose.bβββkκκκmuμμμμjJJJsNXtNT|		spatial plaquette, temporal plaquette, Polyakov line|
+|fermi.bβββkκκκmuμμμμjJJJsNXtNT|				psibarpsi, energy density, baryon density|
+|diq.bβββkκκκmuμμμμjJJJsNXtNT|					real<qq>|
 
 SJH March 2005
 
