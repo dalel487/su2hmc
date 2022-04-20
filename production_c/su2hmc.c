@@ -585,7 +585,7 @@ int main(int argc, char *argv[]){
 			//We have four output files, so may as well get the other ranks to help out
 			//and abuse scoping rules while we're at it.
 			//Can use either OpenMP or MPI to do this
-			char suffix[FILELEN];
+			char suffix[FILELEN]="";
 			int buffer; char buff2[7];
 			//Add script for extracting correct mu, j etc.
 			buffer = (int)round(100*beta);
@@ -670,7 +670,7 @@ int main(int argc, char *argv[]){
 								{
 									if(!measure_check){
 										FILE *fortout;
-										char fortname[FILELEN] = "diq,";
+										char fortname[FILELEN] = "diq.";
 									strcat(fortname,suffix);
 										const char *fortop= (itraj==1) ? "w" : "a";
 										if(!(fortout=fopen(fortname, fortop) )){
