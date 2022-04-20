@@ -630,7 +630,7 @@ int main(int argc, char *argv[]){
 							case(1):
 								{
 									FILE *fortout;
-									char *fortname[FILELEN] = "fermi";
+									char fortname[FILELEN] = "fermi";
 									sprintf(fortname,".%s", suffix);
 									const char *fortop= (itraj==1) ? "w" : "a";
 									if(!measure_check){
@@ -652,7 +652,7 @@ int main(int argc, char *argv[]){
 								//from FORTRAN. This was fort.12
 								{
 									FILE *fortout;
-									char *fortname = "bose"; 
+									char fortname[FILELEN] = "bose"; 
 									sprintf(fortname,".%s", suffix);
 									const char *fortop= (itraj==1) ? "w" : "a";
 									if(!(fortout=fopen(fortname, fortop) )){
@@ -670,7 +670,7 @@ int main(int argc, char *argv[]){
 								{
 									if(!measure_check){
 										FILE *fortout;
-										char *fortname[FILELEN] = "diq";
+										char fortname[FILELEN] = "diq";
 										sprintf(fortname,".%s", suffix);
 										const char *fortop= (itraj==1) ? "w" : "a";
 										if(!(fortout=fopen(fortname, fortop) )){
