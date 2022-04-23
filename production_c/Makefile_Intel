@@ -1,11 +1,11 @@
 #MF=	Makefile
 
-CC=	mpiicc 
+CC=	mpiicc
 
 IFLAGS=	-I../INCLUDE 
 
 CFLAGS=     $(IFLAGS) -qmkl -std=gnu11 -ipo -qopt-zmm-usage=high -MD\
-			-xHASWELL -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,SKYLAKE,COFFEELAKE\
+			-xHASWELL -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,SKYLAKE,COFFEELAKE,ALDERLAKE\
 			-static-intel -static-libgcc -DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
 			-qopenmp -qno-openmp-offload -qopenmp-simd -qopenmp-link=static -DSA3AT \
 
@@ -40,7 +40,7 @@ INC= \
 .PHONY: clean debug release profiler tar
 
 OBJ=	$(SRC:.c=.o)
-DEPS=	$(OBJ:.o=.d)
+DEPS=	$(OBJ:.o=.d_icc)
 EDT=	$(SRC:.c=.c~)
 TMP=	$(MOD) $(EDT) core
 

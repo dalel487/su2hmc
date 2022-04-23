@@ -437,7 +437,7 @@ int main(int argc, char *argv[]){
 				dk4m_f,dk4p_f,jqq,akappa,beta,&ancg);
 #ifdef __NVCC__
 		cublasDaxpy(cublas_handle,kmom, &d, dSdpi, 1, pp, 1);
-#elif (defined __INTEL_MKL__ || defined USE_BLAS)
+#elif defined USE_BLAS
 		cblas_daxpy(kmom, d, dSdpi, 1, pp, 1);
 #else
 		for(int i=0;i<kmom;i++)
@@ -475,7 +475,7 @@ int main(int argc, char *argv[]){
 			if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
 #ifdef __NVCC__
 				cublasDaxpy(cublas_handle,kmom, &d, dSdpi, 1, pp, 1);
-#elif (defined __INTEL_MKL__ || defined USE_BLAS)
+#elif defined USE_BLAS
 				cblas_daxpy(kmom, d, dSdpi, 1, pp, 1);
 #else
 #pragma omp parallel for simd aligned(pp,dSdpi:AVX)
@@ -494,7 +494,7 @@ int main(int argc, char *argv[]){
 				//dt is needed for the trial fields so has to be negated every time.
 				double dt_d=-1*dt;
 				cublasDaxpy(cublas_handle,kmom, &dt_d, dSdpi, 1, pp, 1);
-#elif (defined __INTEL_MKL__ || defined USE_BLAS)
+#elif defined USE_BLAS
 				cblas_daxpy(kmom, -dt, dSdpi, 1, pp, 1);
 #else
 #pragma omp parallel for simd aligned(pp,dSdpi:AVX)
@@ -546,7 +546,7 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 		cublasDnrm2(cublas_handle,kmom, pp, 1,&vel2);
 		vel2*=vel2;
-#elif (defined __INTEL_MKL__ || defined USE_BLAS)
+#elif defined USE_BLAS
 		vel2 = cblas_dnrm2(kmom, pp, 1);
 		vel2*=vel2;
 #else
@@ -569,7 +569,11 @@ int main(int argc, char *argv[]){
 			int itercg=0;
 			double endenf, denf;
 			Complex qbqb;
-			Measure(&pbp,&endenf,&denf,&qq,&qbqb,respbp,&itercg,u11t,u12t,u11t_f,u12t_f,iu,id,\
+			//Stop gap for measurement failure on Kay;
+			//If the Congrad in Measure fails, don't measure the Diquark or PBP-Density observables for
+			//that trajectory
+			int measure_check=0;
+			measure_check = Measure(&pbp,&endenf,&denf,&qq,&qbqb,respbp,&itercg,u11t,u12t,u11t_f,u12t_f,iu,id,\
 					gamval,gamval_f,gamin,dk4m,dk4p,dk4m_f,dk4p_f,jqq,akappa,Phi,R1);
 #ifdef _DEBUG
 			if(!rank)
@@ -581,6 +585,30 @@ int main(int argc, char *argv[]){
 			//We have four output files, so may as well get the other ranks to help out
 			//and abuse scoping rules while we're at it.
 			//Can use either OpenMP or MPI to do this
+			char suffix[FILELEN]="";
+			int buffer; char buff2[7];
+			//Add script for extracting correct mu, j etc.
+			buffer = (int)round(100*beta);
+			sprintf(buff2,"b%03d",buffer);
+			strcat(suffix,buff2);
+			//κ
+			buffer = (int)round(10000*akappa);
+			sprintf(buff2,"k%04d",buffer);
+			strcat(suffix,buff2);
+			//μ
+			buffer = (int)round(1000*fmu);
+			sprintf(buff2,"mu%04d",buffer);
+			strcat(suffix,buff2);
+			//J
+			buffer = (int)round(1000*creal(ajq));
+			sprintf(buff2,"j%03d",buffer);
+			strcat(suffix,buff2);
+			//nx
+			sprintf(buff2,"s%02d",nx);
+			strcat(suffix,buff2);
+			//nt
+			sprintf(buff2,"t%02d",nt);
+			strcat(suffix,buff2);
 #if (nproc>=4)
 			switch(rank)
 #else
@@ -602,18 +630,21 @@ int main(int argc, char *argv[]){
 							case(1):
 								{
 									FILE *fortout;
-									char *fortname = "PBP-Density";
+									char fortname[FILELEN] = "fermi.";
+									strcat(fortname,suffix);
 									const char *fortop= (itraj==1) ? "w" : "a";
-									if(!(fortout=fopen(fortname, fortop) )){
-										fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
-												OPENERROR, funcname, fortname, fortop);
-										MPI_Abort(comm,OPENERROR);
+									if(!measure_check){
+										if(!(fortout=fopen(fortname, fortop) )){
+											fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
+													OPENERROR, funcname, fortname, fortop);
+											MPI_Abort(comm,OPENERROR);
+										}
+										if(itraj==1)
+											fprintf(fortout, "pbp\tendenf\tdenf\n");
+										fprintf(fortout, "%e\t%e\t%e\n", pbp, endenf, denf);
+										fclose(fortout);
+										break;
 									}
-									if(itraj==1)
-										fprintf(fortout, "pbp\tendenf\tdenf\n");
-									fprintf(fortout, "%e\t%e\t%e\n", pbp, endenf, denf);
-									fclose(fortout);
-									break;
 								}
 							case(2):
 								//The original code implicitly created these files with the name
@@ -621,7 +652,8 @@ int main(int argc, char *argv[]){
 								//from FORTRAN. This was fort.12
 								{
 									FILE *fortout;
-									char *fortname = "Bosonic_Observables"; 
+									char fortname[FILELEN] = "bose."; 
+									strcat(fortname,suffix);
 									const char *fortop= (itraj==1) ? "w" : "a";
 									if(!(fortout=fopen(fortname, fortop) )){
 										fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
@@ -636,19 +668,22 @@ int main(int argc, char *argv[]){
 								}
 							case(3):
 								{
-									FILE *fortout;
-									char *fortname = "Diquark";
-									const char *fortop= (itraj==1) ? "w" : "a";
-									if(!(fortout=fopen(fortname, fortop) )){
-										fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
-												OPENERROR, funcname, fortname, fortop);
-										MPI_Abort(comm,OPENERROR);
+									if(!measure_check){
+										FILE *fortout;
+										char fortname[FILELEN] = "diq.";
+									strcat(fortname,suffix);
+										const char *fortop= (itraj==1) ? "w" : "a";
+										if(!(fortout=fopen(fortname, fortop) )){
+											fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
+													OPENERROR, funcname, fortname, fortop);
+											MPI_Abort(comm,OPENERROR);
+										}
+										if(itraj==1)
+											fprintf(fortout, "Re(qq)\n");
+										fprintf(fortout, "%e\n", creal(qq));
+										fclose(fortout);
+										break;
 									}
-									if(itraj==1)
-										fprintf(fortout, "Re(qq)\n");
-									fprintf(fortout, "%e\n", creal(qq));
-									fclose(fortout);
-									break;
 								}
 							default: break;
 						}
@@ -707,7 +742,7 @@ int main(int argc, char *argv[]){
 	if(!rank){
 		FILE *sa3at = fopen("Bench_times.csv", "a");
 		fprintf(sa3at, "%s\nβ%0.3f κ:%0.4f μ:%0.4f j:%0.3f s:%lu t:%lu kvol:%lu\n\
-							npx:%lu npt:%lu nthread:%lu ncore:%lu time:%f traj_time:%f\n\n",\
+				npx:%lu npt:%lu nthread:%lu ncore:%lu time:%f traj_time:%f\n\n",\
 				__VERSION__,beta,akappa,fmu,creal(ajq),nx,nt,kvol,npx,npt,nthreads,npx*npt*nthreads,elapsed,elapsed/ntraj);
 		fclose(sa3at);
 	}
@@ -848,7 +883,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 #endif
 
 	//Each gamma matrix is rescaled by akappa by flattening the gamval array
-#if (defined __INTEL_MKL__ || defined USE_BLAS)
+#if defined USE_BLAS
 	//Don't cuBLAS this. It is small and won't saturate the GPU. Let the CPU handle
 	//it and just copy it later
 	cblas_zdscal(5*4, akappa, gamval, 1);
@@ -976,7 +1011,7 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 	cudaMemPrefetchAsync(pp,kmom*sizeof(double),device,NULL);
 	cublasDnrm2(cublas_handle, kmom, pp, 1,&hp);
 	hp*=hp;
-#elif (defined __INTEL_MKL__ || defined USE_BLAS)
+#elif defined USE_BLAS
 	hp = cblas_dnrm2(kmom, pp, 1);
 	hp*=hp;
 #else
@@ -1012,7 +1047,7 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 		Complex dot;
 		cublasZdotc(cublas_handle,kferm2,(cuDoubleComplex *)smallPhi,1,(cuDoubleComplex *) X1,1,(cuDoubleComplex *) &dot);
 		hf+=creal(dot);
-#elif (defined __INTEL_MKL__ || defined USE_BLAS)
+#elif defined USE_BLAS
 		Complex dot;
 		cblas_zdotc_sub(kferm2, smallPhi, 1, X1, 1, &dot);
 		hf+=creal(dot);

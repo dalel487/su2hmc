@@ -85,11 +85,13 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	//Evaluate xi = (M^† M)^-1 R_1 
 	//	Congradp(0, res, R1_f, itercg);
 	//If the conjugate gradient fails to converge for some reason, restart it.
+	//That's causing issues with NaN's. Plan B is to not record the measurements.
 	if(Congradp(0, res, Phi, R1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,itercg)==ITERLIM){
-		itercg=0;
-		fprintf(stderr, "Restarting conjugate gradient from %s\n", funcname);
-		Congradp(0, res, Phi, R1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,itercg);
-		itercg+=niterc;
+		return ITERLIM;
+		//itercg=0;
+		//if(!rank) fprintf(stderr, "Restarting conjugate gradient from %s\n", funcname);
+		//Congradp(0, res, Phi, R1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,itercg);
+		//itercg+=niterc;
 	}
 #pragma omp parallel for simd aligned(R1,R1_f:AVX)
 	for(int i=0;i<kferm;i++)
@@ -99,7 +101,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #else
 	free(xi_f); free(R1_f);
 #endif
-#if (defined __INTEL_MKL__ || defined USE_BLAS)
+#if defined USE_BLAS
 	Complex buff;
 	cblas_zdotc_sub(kferm, x, 1, xi,  1, &buff);
 	*pbp=creal(buff);
@@ -113,7 +115,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	*pbp/=4*gvol;
 
 	*qbqb=*qq=0;
-#if (defined __INTEL_MKL__ || defined USE_BLAS)
+#if defined USE_BLAS
 	for(int idirac = 0; idirac<ndirac; idirac++){
 		int igork=idirac+4;
 		//Unrolling the colour indices, Then its just (γ_5*x)*Ξ or (γ_5*Ξ)*x 
@@ -169,35 +171,47 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 			int did=id[3+ndim*i];
 			int uid=iu[3+ndim*i];
 #ifndef _OPENACC
-#pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX) 
+#pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX) reduction(+:xu)
 #endif
 			for(int igorkov=0; igorkov<4; igorkov++){
 				int igork1=gamin[3][igorkov];
 				//For the C Version I'll try and factorise where possible
-
 				xu+=dk4p[did]*(conj(x[(did*ngorkov+igorkov)*nc])*(\
 							u11t[did*ndim+3]*(xi[(i*ngorkov+igork1)*nc]-xi[(i*ngorkov+igorkov)*nc])+\
 							u12t[did*ndim+3]*(xi[(i*ngorkov+igork1)*nc+1]-xi[(i*ngorkov+igorkov)*nc+1]) )+\
 						conj(x[(did*ngorkov+igorkov)*nc+1])*(\
 							conj(u11t[did*ndim+3])*(xi[(i*ngorkov+igork1)*nc+1]-xi[(i*ngorkov+igorkov)*nc+1])+\
 							conj(u12t[did*ndim+3])*(xi[(i*ngorkov+igorkov)*nc]-xi[(i*ngorkov+igork1)*nc])));
-
+			}
+#ifndef _OPENACC
+#pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX) reduction(+:xd)
+#endif
+			for(int igorkov=0; igorkov<4; igorkov++){
+				int igork1=gamin[3][igorkov];
 				xd+=dk4m[i]*(conj(x[(uid*ngorkov+igorkov)*nc])*(\
 							conj(u11t[i*ndim+3])*(xi[(i*ngorkov+igork1)*nc]+xi[(i*ngorkov+igorkov)*nc])-\
 							u12t[i*ndim+3]*(xi[(i*ngorkov+igork1)*nc+1]+xi[(i*ngorkov+igorkov)*nc+1]) )+\
 						conj(x[(uid*ngorkov+igorkov)*nc+1])*(\
 							u11t[i*ndim+3]*(xi[(i*ngorkov+igork1)*nc+1]+xi[(i*ngorkov+igorkov)*nc+1])+\
 							conj(u12t[i*ndim+3])*(xi[(i*ngorkov+igorkov)*nc]+xi[(i*ngorkov+igork1)*nc]) ) );
-
-				int igorkovPP=igorkov+4;
-				int igork1PP=igork1+4;
+			}
+#ifndef _OPENACC
+#pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX) reduction(+:xuu)
+#endif
+			for(int igorkovPP=4; igorkovPP<8; igorkovPP++){
+				int igork1PP=4+gamin[3][igorkovPP-4];
 				xuu-=dk4m[did]*(conj(x[(did*ngorkov+igorkovPP)*nc])*(\
 							u11t[did*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc]-xi[(i*ngorkov+igorkovPP)*nc])+\
 							u12t[did*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc+1]-xi[(i*ngorkov+igorkovPP)*nc+1]) )+\
 						conj(x[(did*ngorkov+igorkovPP)*nc+1])*(\
 							conj(u11t[did*ndim+3])*(xi[(i*ngorkov+igork1PP)*nc+1]-xi[(i*ngorkov+igorkovPP)*nc+1])+\
 							conj(u12t[did*ndim+3])*(xi[(i*ngorkov+igorkovPP)*nc]-xi[(i*ngorkov+igork1PP)*nc]) ) );
-
+			}
+#ifndef _OPENACC
+#pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX) reduction(+:xdd)
+#endif
+			for(int igorkovPP=4; igorkovPP<8; igorkovPP++){
+				int igork1PP=4+gamin[3][igorkovPP-4];
 				xdd-=dk4p[i]*(conj(x[(uid*ngorkov+igorkovPP)*nc])*(\
 							conj(u11t[i*ndim+3])*(xi[(i*ngorkov+igork1PP)*nc]+xi[(i*ngorkov+igorkovPP)*nc])-\
 							u12t[i*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc+1]+xi[(i*ngorkov+igorkovPP)*nc+1]) )+\

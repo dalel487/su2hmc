@@ -101,7 +101,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 		//x2 =  (M^†M+J^2)p 
 #ifdef	__NVCC__
 		cublasCaxpy(cublas_handle,kferm2,(cuComplex *)&fac_f,(cuComplex *)p_f,1,(cuComplex *)x2_f,1);
-#elif (defined __INTEL_MKL__ || defined USE_BLAS)
+#elif defined USE_BLAS
 		cblas_caxpy(kferm2, &fac_f, p_f, 1, x2_f, 1);
 #else
 #pragma omp parallel for simd aligned(p_f,x2_f:AVX)
@@ -116,7 +116,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 			//α_d= p* (M^†M+J^2)p
 #ifdef __NVCC__
 			cublasCdotc(cublas_handle,kferm2,(cuComplex *)p_f,1,(cuComplex *)x2_f,1,(cuComplex *)&alphad);
-#elif (defined __INTEL_MKL__ || defined USE_BLAS)
+#elif defined USE_BLAS
 			cblas_cdotc_sub(kferm2, p_f, 1, x2_f, 1, &alphad);
 #else
 			alphad=0;
@@ -132,7 +132,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 			//x-αp, 
 #ifdef __NVCC__
 			cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&alpha,(cuDoubleComplex *)p,1,(cuDoubleComplex *)X1,1);
-#elif (defined __INTEL_MKL__ || defined USE_BLAS)
+#elif defined USE_BLAS
 			cblas_zaxpy(kferm2, &alpha, p, 1, X1, 1);
 #else
 			for(int i=0; i<kferm2; i++)
@@ -146,7 +146,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 		alpha*=-1;
 		cublasDznrm2(cublas_handle,kferm2,(cuDoubleComplex *)r,1,&betan);
 		betan *= betan;
-#elif (defined __INTEL_MKL__ || defined USE_BLAS)
+#elif defined USE_BLAS
 		alpha *= -1;
 		cblas_zaxpy(kferm2, &alpha, x2, 1, r, 1);
 		//Undo the negation for the BLAS routine
@@ -185,7 +185,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 		betad=betan; alphan=betan;
 		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multiplying y by
 		//β instead of x.
-#if (defined __INTEL_MKL__||defined USE_BLAS)
+#if (defined __INTEL_MKL__||defined AMD_BLAS)
 		Complex a = 1.0;
 		//There is cblas_zaxpby in the MKL and AMD though, set a = 1 and b = β.
 		//If we get a small enough β_n before hitting the iteration cap we break
@@ -317,7 +317,7 @@ int Congradp(int na,double res,Complex *Phi,Complex_f *xi_f,Complex_f *u11t_f,Co
 #ifdef __NVCC__
 			cublasScnrm2(cublas_handle,kferm,(cuComplex*) x1, 1,&alphad_f);
 			alphad_f *= alphad_f;
-#elif (defined __INTEL_MKL__ || defined USE_BLAS)
+#elif defined USE_BLAS
 			alphad_f = cblas_scnrm2(kferm, x1, 1);
 			alphad_f *= alphad_f;
 #else
@@ -332,7 +332,7 @@ int Congradp(int na,double res,Complex *Phi,Complex_f *xi_f,Complex_f *u11t_f,Co
 			//x+αp
 #ifdef __NVCC__
 			cublasCaxpy(cublas_handle,kferm,(cuComplex*) &alpha_f,(cuComplex*) p_f,1,(cuComplex*) xi_f,1);
-#elif (defined __INTEL_MKL__ || defined USE_BLAS)
+#elif defined USE_BLAS
 			cblas_caxpy(kferm, (Complex_f*)&alpha_f,(Complex_f*)p_f, 1, (Complex_f*)xi_f, 1);
 #else
 			for(int i = 0; i<kferm; i++)
@@ -353,7 +353,7 @@ int Congradp(int na,double res,Complex *Phi,Complex_f *xi_f,Complex_f *u11t_f,Co
 		cublasDznrm2(cublas_handle,kferm,(cuDoubleComplex *) r,1,&betan);
 		//Gotta square it to "undo" the norm
 		betan*=betan;
-#elif (defined __INTEL_MKL__ || defined USE_BLAS)
+#elif defined USE_BLAS
 		alpha*=-1;
 		cblas_zaxpy(kferm,(Complex*) &alpha,(Complex*) x2, 1,(Complex*) r, 1);
 		alpha*=-1;
@@ -393,7 +393,7 @@ int Congradp(int na,double res,Complex *Phi,Complex_f *xi_f,Complex_f *u11t_f,Co
 		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multiplying y by 
 		//β instead of x.
 		//There is cblas_zaxpby in the MKL though, set a = 1 and b = β.
-#if (defined __INTEL_MKL__||defined USE_BLAS)
+#if (defined __INTEL_MKL__||defined AMD_BLAS)
 		Complex a = 1;
 		cblas_zaxpby(kferm, &a, r, 1, &beta,  p, 1);
 #else

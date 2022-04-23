@@ -227,7 +227,7 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 					MPI_Abort(comm,NUMELEM);
 				}
 				if(!iproc){
-#if (defined __INTEL_MKL__||defined USE_BLAS)
+#if defined USE_BLAS
 					cblas_zcopy(kvol,u1buff,1,u11+idim,ndim);
 					cblas_zcopy(kvol,u2buff,1,u12+idim,ndim);
 #else
@@ -278,7 +278,7 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 						CANTRECV, funcname, rank);
 				MPI_Abort(comm,CANTRECV);
 			}
-#if (defined __INTEL_MKL__||defined USE_BLAS)
+#if defined USE_BLAS
 			cblas_zcopy(kvol,u1buff,1,u11+idim,ndim);
 			cblas_zcopy(kvol,u2buff,1,u12+idim,ndim);
 #else
@@ -391,7 +391,7 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 				else{
 					//No need to do MPI Send/Receive on the master rank
 					//Array looping is slow so we use memcpy instead
-#if (defined __INTEL_MKL__||defined USE_BLAS)
+#if defined USE_BLAS
 					cblas_zcopy(kvol,u11+idim,ndim,u1buff,1);
 					cblas_zcopy(kvol,u12+idim,ndim,u2buff,1);
 #else
@@ -497,7 +497,7 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 			MPI_Abort(comm,CANTSEND);
 		}
 		for(int idim = 0; idim<ndim; idim++){
-#if (defined __INTEL_MKL__||defined USE_BLAS)
+#if defined USE_BLAS
 			cblas_zcopy(kvol,u11+idim,ndim,u1buff,1);
 			cblas_zcopy(kvol,u12+idim,ndim,u2buff,1);
 #else
@@ -1099,7 +1099,7 @@ int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u
 #endif
 	for(int mu=0;mu<ndim;mu++){
 		//Copy the column from u11t
-#if (defined __INTEL_MKL__ || USE_BLAS)
+#ifdef USE_BLAS
 		cblas_zcopy(kvol, &u11t[mu], ndim, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
@@ -1108,7 +1108,7 @@ int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u
 		//Halo exchange on that column
 		ZHalo_swap_all(z, 1);
 		//And the swap back
-#if (defined __INTEL_MKL__ || USE_BLAS)
+#ifdef USE_BLAS
 		cblas_zcopy(kvol+halo, z, 1, &u11t[mu], ndim);
 		//Repeat for u12t
 		cblas_zcopy(kvol, &u12t[mu], ndim, z, 1);
@@ -1119,7 +1119,7 @@ int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u
 		}
 #endif
 		ZHalo_swap_all(z, 1);
-#if (defined __INTEL_MKL__ || USE_BLAS)
+#ifdef USE_BLAS
 		cblas_zcopy(kvol+halo, z, 1, &u12t[mu], ndim);
 #else
 		for(int i=0; i<kvol+halo;i++)

@@ -2,13 +2,17 @@
 #define COORD
 #ifdef __NVCC__
 #include <cuda.h>
+#define USE_BLAS
 #include <cublas_v2.h>
 #endif
 #if defined __INTEL_MKL__
+#define USE_BLAS
 #include <mkl.h>
 #elif defined GSL_BLAS
+#define USE_BLAS
 #include <gsl/gsl_cblas.h>
-#elif defined USE_BLAS
+#elif defined AMD_BLAS
+#define USE_BLAS
 #include <cblas.h>
 #endif
 #include <par_mpi.h>
