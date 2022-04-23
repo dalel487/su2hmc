@@ -61,8 +61,6 @@ debug:	$(EXE)
 $(EXE):	$(OBJ)
 		$(CC) -MMD -MP $(CFLAGS) -o $@ $(OBJ) $(LFLAGS)  
 
-$(OBJ):	$(MF) 
-
 clean:
 		rm -f $(OBJ) $(TMP) $(DEPS)
 
