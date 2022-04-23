@@ -11,14 +11,10 @@ IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include" -I ./ -I../production_c\
 				-I/opt/nvidia/hpc_sdk/Linux_x86_64/2022/cuda/include/ \
 				-I/opt/nvidia/hpc_sdk/Linux_x86_64/2022/math_libs/include/ 
 
-CFLAGS=     $(IFLAGS) -std=gnu11 -qopt-zmm-usage=high -xCASCADELAKE \
+CFLAGS=     $(IFLAGS) -qmkl -std=gnu11 -qopt-zmm-usage=high -MD\
+			-xSKYLAKE -axCASCADELAKE\
 			-static-intel -static-libgcc -DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
 			-qopenmp -qno-openmp-offload -qopenmp-simd -qopenmp-link=static -DSA3AT \
-			 -masm=att -fcommon 
-#CFLAGS=	$(IFLAGS) -DUSE_BLAS -fcommon -fpermissive \
-		-march=skylake -mtune=cascadelake -static -D__RANLUX__\
-		-fopenmp-simd -DSA3AT -flto\
-#		-foffload=amdgcn-amdhsa="-march=gfx900" -fopenacc\
 
 MKLFLAGS=	-L${MKLROOT}/lib/intel64 -qmkl #-DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
 CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/2022/cuda/lib64/ \
@@ -27,7 +23,7 @@ CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/2022/cuda/lib64/ \
 
 LFLAGS=		-liomp5 -lpthread -ldl -lgsl  #${CULFLAGS}
 
-NVCCFLAGS=	${IFLAGS}  -gencode arch=compute_75,code=sm_75 -gencode arch=compute_80,code=sm_80 -err-no -w \
+NVCCFLAGS=	${IFLAGS}  -gencode arch=compute_75,code=lto_75 -gencode arch=compute_80,code=sm_80 -err-no -w \
 			-expt-relaxed-constexpr 
 			#Last flag is an experimental one used to call host functions in device code. Not sure
 			#if it does what we want because the error message suggesting it came up when declaring
@@ -47,7 +43,7 @@ CSRC=	\
 		bosonic.c\
 		fermionic.c
 
-CUSRC_DIR=	../production_cuda
+CUSRC_DIR=	../production_cuda/
 CUSRC=	\
 		cubosonic.cu\
 		cumatrices.cu\
@@ -71,10 +67,10 @@ CINC=	\
 .PHONY: clean debug release profiler tar
 
 COBJ=	$(CSRC:.c=.o)
-CLIB= libc.a
 CUOBJ= $(CUSRC:.cu=.o)
+CLIB= libc.a
 CULIB= libcu.a
-OBJ=	$(COBJ) $(CUOBJ) $(CULIB)# $(CLIB) 
+OBJ=	$(CLIB) $(CULIB) #$(COBJ) $(CUOBJ) 
 
 #MOD=	$(CSRC:.c=.mod)
 MOD=	
@@ -87,27 +83,27 @@ profiler:	NVCCFLAGS += -O0 -G -g
 profiler:	release
 
 release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high
-release:	NVCCFLAGS += -O3 #-dlto 
+release:	NVCCFLAGS += -O3# -dlto 
 release:	$(EXE)
 
 debug:		CFLAGS += -O0 -g -D_DEBUG -rdynamic # -DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 debug:		NVCCFLAGS += -O0 -G -g -D_DEBUG 
 debug:		$(EXE)
 
-$(EXE): $(OBJ)
-	${CXX}  $(CFLAGS) -D__NVCC__ $(MKLFLAGS)  -o $@   $^ $(LFLAGS) $(CULFLAGS) 
+		 
+$(EXE): ${CSRC_DIR}/su2hmc.c $(OBJ)
+	${CXX} $(CFLAGS) -D__NVCC__ $(MKLFLAGS) $^ -o $@ $(LFLAGS) $(CULFLAGS) 
 $(CULIB): $(CUOBJ)
-	$(NVCC) -ccbin ${CXX} $(NVCCFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $(LFLAGS) $^ -dlink -o $@
+	$(NVCC) -ccbin ${CXX} $(NVCCFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $(LFLAGS) -dlto -dlink $^ -o $@ #
 $(CLIB):	$(COBJ) 
-	xiar  rc  $@  $^
+	xiar  rc  -qnoipo $@  $^
 $(CUOBJ): %.o: $(CUSRC_DIR)/%.cu
-	$(NVCC) -ccbin ${CXX} $(NVCCFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" -dc $< 
+	$(NVCC) -ccbin ${CXX} $(NVCCFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $^ -dc $@ 
 $(COBJ): %.o: $(CSRC_DIR)/%.c
-	${CXX} $(CFLAGS) $(IFLAGS) $(MKLFLAGS) -D__NVCC__ -c $< 
-	#$(NVCC) -ccbin ${CC}  $(NVCCFLAGS) -Xcompiler "$(CFLAGS) -x c++ $(MKLFLAGS)" -dc $< 
+	${CXX} $(CFLAGS) $(IFLAGS) $(MKLFLAGS) -D__NVCC__ -c $^  
 
 clean:
-	rm -f $(OBJ) $(COBJ) $(CUOBJ) $(TMP)
+	rm -f $(OBJ) $(COBJ) $(CUOBJ) $(CULIB) $(CLIB) $(TMP)
 
 INP=	\
 	midout \
