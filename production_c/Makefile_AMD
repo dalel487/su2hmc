@@ -1,4 +1,4 @@
-CC=mpicc -v 
+CC=mpicc -cc=clang 
 
 IFLAGS=     -I../INCLUDE/ -I ${AOCL_ROOT}/include
 
