@@ -170,7 +170,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 		for(int i = 0; i<kvol; i++){
 			int did=id[3+ndim*i];
 			int uid=iu[3+ndim*i];
-#ifndef _OPENACC
+#if (!defined _OPENACC && !defined __NVCC__)
 #pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX) reduction(+:xu)
 #endif
 			for(int igorkov=0; igorkov<4; igorkov++){
@@ -183,7 +183,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 							conj(u11t[did*ndim+3])*(xi[(i*ngorkov+igork1)*nc+1]-xi[(i*ngorkov+igorkov)*nc+1])+\
 							conj(u12t[did*ndim+3])*(xi[(i*ngorkov+igorkov)*nc]-xi[(i*ngorkov+igork1)*nc])));
 			}
-#ifndef _OPENACC
+#if (!defined _OPENACC && !defined __NVCC__)
 #pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX) reduction(+:xd)
 #endif
 			for(int igorkov=0; igorkov<4; igorkov++){
@@ -195,7 +195,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 							u11t[i*ndim+3]*(xi[(i*ngorkov+igork1)*nc+1]+xi[(i*ngorkov+igorkov)*nc+1])+\
 							conj(u12t[i*ndim+3])*(xi[(i*ngorkov+igorkov)*nc]+xi[(i*ngorkov+igork1)*nc]) ) );
 			}
-#ifndef _OPENACC
+#if (!defined _OPENACC && !defined __NVCC__)
 #pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX) reduction(+:xuu)
 #endif
 			for(int igorkovPP=4; igorkovPP<8; igorkovPP++){
@@ -207,7 +207,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 							conj(u11t[did*ndim+3])*(xi[(i*ngorkov+igork1PP)*nc+1]-xi[(i*ngorkov+igorkovPP)*nc+1])+\
 							conj(u12t[did*ndim+3])*(xi[(i*ngorkov+igorkovPP)*nc]-xi[(i*ngorkov+igork1PP)*nc]) ) );
 			}
-#ifndef _OPENACC
+#if (!defined _OPENACC && !defined __NVCC__)
 #pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX) reduction(+:xdd)
 #endif
 			for(int igorkovPP=4; igorkovPP<8; igorkovPP++){
