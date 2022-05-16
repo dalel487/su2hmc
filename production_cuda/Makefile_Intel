@@ -14,7 +14,7 @@ IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include" -I ./ -I../production_c\
 CFLAGS=     $(IFLAGS) -qmkl -std=gnu11 -qopt-zmm-usage=high -MD\
 			-xSKYLAKE -axCASCADELAKE\
 			-static-intel -static-libgcc -DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
-			-qopenmp -qno-openmp-offload -qopenmp-simd -qopenmp-link=static -DSA3AT \
+			-qopenmp -qno-openmp-offload -qopenmp-simd -DSA3AT \
 
 MKLFLAGS=	-L${MKLROOT}/lib/intel64 -qmkl #-DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
 CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/2022/cuda/lib64/ \
