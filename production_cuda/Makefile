@@ -1,23 +1,26 @@
 FC=		mpifort 
 CC=		mpiicc 
-CXX=	mpicxx -cxx=nvc++
+CXX=	mpicxx 
 NVCC=	nvcc
 
 IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include" -I ./ \
 				-I/usr/include/c++/10/\
 				-I/usr/x86_64-linux-gnu/include/c++/10/x86_64-linux-gnu/\
+				-I/opt/nvidia/hpc_sdk/Linux_x86_64/2022/cuda/include/ \
+				-I/opt/nvidia/hpc_sdk/Linux_x86_64/2022/math_libs/include/ 
 
-CFLAGS=	$(IFLAGS) -DGSL_BLAS -D__RANLUX__ -acc -fast -O4 -Mipa=fast -fpic\
-			-Mcache_align -static -static-nvidia -cuda -cudalib -tp=skylake\
-			-gpu=managed
+CFLAGS=	$(IFLAGS) -DGSL_BLAS -D__RANLUX_  -Ofast -O3  -fpic\
+			-march=skylake -mtune=cascadelake\
 
 MKLFLAGS=	#-L${MKLROOT}/lib/intel64 -qmkl #-DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
-CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/2022/math_libs/lib64\
-				-lcudart_static -lcublas_static #-L${NVSHMEM_HOME}/lib -lnvshmem #-lblis 
-LFLAGS=		-lpthread -ldl -lgsl  ${CULFLAGS}
+CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/2022/cuda/lib64/ \
+				-L/opt/nvidia/hpc_sdk/Linux_x86_64/2022/math_libs/lib64/ \
+				-lcuda -lcudart -lcublas #-L${NVSHMEM_HOME}/lib -lnvshmem -lblis 
 
-NVCCFLAGS=	${IFLAGS}  -arch=compute_60 -code=sm_60,sm_61,sm_70,sm_75,sm_80,sm_86 -err-no -w \
-			-expt-relaxed-constexpr --allow-unsupported-compiler
+LFLAGS=		-lpthread -ldl -lgsl ${CULFLAGS}
+
+NVCCFLAGS=	${IFLAGS}  -gencode arch=compute_75,code=lto_75 -gencode arch=compute_80,code=sm_80 -err-no -w \
+			-expt-relaxed-constexpr 
 			#Last flag is an experimental one used to call host functions in device code. Not sure
 			#if it does what we want because the error message suggesting it came up when declaring
 			#a11 and a12 in the Dslash routine
@@ -28,7 +31,6 @@ EXE=		cuda_su2hmc
 
 CSRC_DIR=	../production_c
 CSRC=	\
-		su2hmc.c\
 	    coord.c \
 	    congrad.c \
 		force.c \
@@ -36,7 +38,7 @@ CSRC=	\
 		par_mpi.c \
 		bosonic.c\
 		fermionic.c
-		
+
 CUSRC_DIR=	../production_cuda
 CUSRC=	\
 		cubosonic.cu\
@@ -59,12 +61,14 @@ CINC=	\
 
 .SUFFIXES: .c .cu .h .hpp .o 
 .PHONY: clean debug release profiler tar
-
-COBJ=	$(CSRC:.c=.o)
+C_SOURCES:= $(wildcard $(CSRC_DIR)/*.c)
+CU_SOURCES:= $(wildcard $(CUSRC_DIR)/*.cu)
+COBJ=	$(patsubst $(CSRC_DIR)/%.c, $(CSRC_DIR)/%.o, $(C_SOURCES))
+CUOBJ= $(patsubst $(CUSRC_DIR)/%.cu, $(CUSRC_DIR)/%.o, $(CU_SOURCES))
 CLIB= libc.a
-CUOBJ= $(CUSRC:.cu=.o)
 CULIB= libcu.a
-OBJ=	$(COBJ) $(CULIB) # $(CLIB) 
+CULIB2= libcu2.a
+OBJ=	$(CLIB) $(CULIB2) #$(COBJ) $(CUOBJ) 
 
 #MOD=	$(CSRC:.c=.mod)
 MOD=	
@@ -76,28 +80,30 @@ profiler:	CFLAGS += -g
 profiler:	NVCCFLAGS += -O0 -G -g 
 profiler:	release
 
-release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high
-release:	NVCCFLAGS += -O3 #-dlto 
+release:	CFLAGS +=  -O3
+release:	NVCCFLAGS += -O3# -dlto 
 release:	$(EXE)
 
 debug:		CFLAGS += -O0 -g -D_DEBUG -rdynamic # -DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 debug:		NVCCFLAGS += -O0 -G -g -D_DEBUG 
 debug:		$(EXE)
 
-$(EXE): $(OBJ)
-	${CXX}  $(CFLAGS) -D__NVCC__$(CSRC_DIR)/su2hmc.c -o $@   $^ $(LFLAGS) $(CULFLAGS) 
+		 
+$(EXE): ../su2hmc.c $(OBJ)
+	$(CXX) $(CFLAGS) $(MKLFLAGS) -D__NVCC__ $^ $(LFLAGS) $(CULFLAGS)  -o $@
+$(CULIB2): $(CULIB)
+	ar rc $@ $^ 
 $(CULIB): $(CUOBJ)
-	$(NVCC) -ccbin ${CXX} $(NVCCFLAGS) -Xcompiler "$(CFLAGS) " $(LFLAGS)  $^ -lib --output-file $@
-#$(CLIB):	$(COBJ) 
-#	xiar  rc  $@  $^
-$(CUOBJ): %.o: $(CUSRC_DIR)/%.cu
-	$(NVCC) -ccbin ${CXX} $(NVCCFLAGS) -Xcompiler "$(CFLAGS) " -dc $< 
-$(COBJ): %.o: $(CSRC_DIR)/%.c
-	${CXX} $(CFLAGS) $(IFLAGS)  -D__NVCC__ -c $< 
-	#$(NVCC) -ccbin ${CC}  $(NVCCFLAGS) -Xcompiler "$(CFLAGS) -x c++ $(MKLFLAGS)" -dc $< 
+	$(NVCC) -ccbin $(CXX) $(NVCCFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $(NVCCFLAGS)  $(LFLAGS) -dlto -dlink $^ -o $@ 
+$(CLIB):	$(COBJ) 
+	ar rc $@  $^
+$(CUSRC_DIR)%.o: $(CUSRC_DIR)%.cu
+	$(NVCC) -ccbin $(CXX) $(NVCCFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $^ -dc $@ 
+$(CSRC_DIR)%.o: $(CSRC_DIR)%.c
+	$(CXX) $(CFLAGS) $(IFLAGS) $(MKLFLAGS) -D__NVCC__ -c $^  
 
 clean:
-	rm -f $(OBJ) $(COBJ) $(CUOBJ) $(TMP)
+	rm -f $(OBJ) $(COBJ) $(CUOBJ) $(CULIB) $(CLIB) $(TMP)
 
 INP=	\
 	midout \

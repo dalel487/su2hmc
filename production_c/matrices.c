@@ -536,7 +536,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 	memcpy(phi, r, kferm*sizeof(Complex_f));
 	//Diquark Term (antihermitian)
 #ifdef __NVCC__
-	Dslash_f(phi,r,u11t_f,u12t_f,iu,id,gamval,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
+	Dslash_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
 #else
 #ifdef _OPENACC
 #pragma acc parallel loop copy(phi[0:kferm]) copyin(r[0:kfermHalo])
@@ -674,7 +674,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	//Mass term
 	memcpy(phi, r, kferm*sizeof(Complex_f));
 #ifdef __NVCC__
-	Dslashd_f(phi,r,u11t_f,u12t_f,iu,id,gamval,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
+	Dslashd_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
 #else
 #ifdef _OPENACC
 #pragma acc parallel loop copy(phi[0:kferm]) copyin(r[0:kfermHalo])
@@ -818,7 +818,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
 	//Spacelike term
 #ifdef __NVCC__
-	Hdslash_f(phi,r,u11t_f,u12t_f,iu,id,gamval,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
+	Hdslash_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
 #else
 #ifdef _OPENACC
 #pragma acc parallel loop copy(phi[0:kferm2]) copyin(r[0:kferm2Halo])
@@ -929,7 +929,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_
 	//Mass term
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
 #ifdef __NVCC__
-	Hdslashd_f(phi,r,u11t_f,u12t_f,iu,id,gamval,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
+	Hdslashd_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
 #else
 	//Spacelike term
 #ifdef _OPENACC

@@ -43,7 +43,7 @@ CSRC=	\
 		bosonic.c\
 		fermionic.c
 
-CUSRC_DIR=	../production_cuda/
+CUSRC_DIR=	../production_cuda
 CUSRC=	\
 		cubosonic.cu\
 		cumatrices.cu\
@@ -65,12 +65,14 @@ CINC=	\
 
 .SUFFIXES: .c .cu .h .hpp .o 
 .PHONY: clean debug release profiler tar
-
-COBJ=	$(CSRC:.c=.o)
-CUOBJ= $(CUSRC:.cu=.o)
+C_SOURCES:= $(wildcard $(CSRC_DIR)/*.c)
+CU_SOURCES:= $(wildcard $(CUSRC_DIR)/*.cu)
+COBJ=	$(patsubst $(CSRC_DIR)/%.c, $(CSRC_DIR)/%.o, $(C_SOURCES))
+CUOBJ= $(patsubst $(CUSRC_DIR)/%.cu, $(CUSRC_DIR)/%.o, $(CU_SOURCES))
 CLIB= libc.a
 CULIB= libcu.a
-OBJ=	$(CLIB) $(CULIB) #$(COBJ) $(CUOBJ) 
+CULIB2= libcu2.a
+OBJ=	$(CLIB) $(CULIB2) #$(COBJ) $(CUOBJ) 
 
 #MOD=	$(CSRC:.c=.mod)
 MOD=	
@@ -91,16 +93,18 @@ debug:		NVCCFLAGS += -O0 -G -g -D_DEBUG
 debug:		$(EXE)
 
 		 
-$(EXE): ${CSRC_DIR}/su2hmc.c $(OBJ)
-	${CXX} $(CFLAGS) -D__NVCC__ $(MKLFLAGS) $^ -o $@ $(LFLAGS) $(CULFLAGS) 
+$(EXE): ../su2hmc.c $(OBJ)
+	$(CXX) $(CFLAGS) $(MKLFLAGS) -no-ipo -D__NVCC__ $^ $(LFLAGS) $(CULFLAGS)  -o $@
+$(CULIB2): $(CULIB)
+	ar rc $@ $^ 
 $(CULIB): $(CUOBJ)
-	$(NVCC) -ccbin ${CXX} $(NVCCFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $(LFLAGS) -dlto -dlink $^ -o $@ #
+	$(NVCC) -ccbin $(CXX) $(NVCCFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $(NVCCFLAGS)  $(LFLAGS) -dlto -dlink $^ -o $@ 
 $(CLIB):	$(COBJ) 
-	xiar  rc  -qnoipo $@  $^
-$(CUOBJ): %.o: $(CUSRC_DIR)/%.cu
-	$(NVCC) -ccbin ${CXX} $(NVCCFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $^ -dc $@ 
-$(COBJ): %.o: $(CSRC_DIR)/%.c
-	${CXX} $(CFLAGS) $(IFLAGS) $(MKLFLAGS) -D__NVCC__ -c $^  
+	ar rc $@  $^
+$(CUSRC_DIR)%.o: $(CUSRC_DIR)%.cu
+	$(NVCC) -ccbin $(CXX) $(NVCCFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $^ -dc $@ 
+$(CSRC_DIR)%.o: $(CSRC_DIR)%.c
+	$(CXX) $(CFLAGS) $(IFLAGS) $(MKLFLAGS) -D__NVCC__ -c $^  
 
 clean:
 	rm -f $(OBJ) $(COBJ) $(CUOBJ) $(CULIB) $(CLIB) $(TMP)
