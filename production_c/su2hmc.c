@@ -28,6 +28,9 @@ __attribute__((aligned(AVX)))
 		{3,2,1,0},
 		{2,3,0,1},
 		{2,3,0,1}};
+//Gamma Matrices in Chiral Representation
+//Gattringer and Lang have a nice crash course in appendix A.2 of
+//Quantum Chromodynamics on the Lattice (530.14 GAT)
 Complex
 #ifndef __NVCC__ 
 __attribute__((aligned(AVX)))
