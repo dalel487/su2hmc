@@ -264,7 +264,7 @@ int main(int argc, char *argv[]){
 	double hg, avplaqs, avplaqt;
 	//Halo exchange of the trial fields
 	Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
-	SU2plaq(&hg,&avplaqs,&avplaqt,u11t,u12t,iu,beta);
+	Average_Plaquette(&hg,&avplaqs,&avplaqt,u11t,u12t,iu,beta);
 	//Trajectory length
 	double traj=stepl*dt;
 	//Acceptance probability
@@ -583,7 +583,7 @@ int main(int argc, char *argv[]){
 				printf("Finished measurements\n");
 #endif
 			pbpa+=pbp; endenfa+=endenf; denfa+=denf; ipbp++;
-			SU2plaq(&hg,&avplaqs,&avplaqt,u11t,u12t,iu,beta);
+			Average_Plaquette(&hg,&avplaqs,&avplaqt,u11t,u12t,iu,beta);
 			poly = Polyakov(u11t,u12t);
 			//We have four output files, so may as well get the other ranks to help out
 			//and abuse scoping rules while we're at it.
@@ -989,7 +989,7 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 	 * 
 	 * Calls:
 	 * =====
-	 * SU2plaq, Par_dsum, Congradq, Fill_Small_Phi
+	 * Average_Plaquette, Par_dsum, Congradq, Fill_Small_Phi
 	 *
 	 * Globals:
 	 * =======
@@ -1026,7 +1026,7 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 	double avplaqs, avplaqt;
 	double hg = 0;
 	//avplaq? isn't seen again here.
-	SU2plaq(&hg,&avplaqs,&avplaqt,u11t,u12t,iu,beta);
+	Average_Plaquette(&hg,&avplaqs,&avplaqt,u11t,u12t,iu,beta);
 
 	double hf = 0; int itercg = 0;
 #ifdef __NVCC__
@@ -1066,7 +1066,7 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 #else
 	free(smallPhi);
 #endif
-	//hg was summed over inside of SU2plaq.
+	//hg was summed over inside of Average_Plaquette.
 	Par_dsum(&hp); Par_dsum(&hf);
 	*s=hg+hf; *h=*s+hp;
 #ifdef _DEBUG
