@@ -350,6 +350,9 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 	fwrite(u11,ndim*kvol*sizeof(Complex),1,gauge_dump);
 	fclose(gauge_dump);
 #endif
+#ifdef __RANLUX__
+	seed=gsl_rng_get(ranlux_instd);
+#endif
 	if(!rank){
 		//Array to store the seeds. nth index is the nth processor
 #ifdef __RANLUX__
