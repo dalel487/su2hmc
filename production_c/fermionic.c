@@ -7,7 +7,7 @@
 int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbqb, double res, int *itercg,\
 		Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f, unsigned int *iu, unsigned int *id,\
 		Complex gamval[5][4], Complex_f gamval_f[5][4],	int gamin[4][4], double *dk4m, double *dk4p,\
-		float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa,	Complex *Phi, Complex *R1){
+		float *dk4m_f, float *dk4p_f, Complex jqq, double akappa,	Complex *Phi, Complex *R1){
 	/*
 	 * Calculate fermion expectation values via a noisy estimator
 	 * -matrix inversion via conjugate gradient algorithm
@@ -93,9 +93,12 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 		//Congradp(0, res, Phi, R1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,itercg);
 		//itercg+=niterc;
 	}
+	/*
 #pragma omp parallel for simd aligned(R1,R1_f:AVX)
 	for(int i=0;i<kferm;i++)
 		xi[i]=(Complex)R1_f[i];
+		*/
+	memcpy(xi,R1,kferm*sizeof(Complex));
 #ifdef __INTEL_MKL__
 	mkl_free(xi_f);	mkl_free(R1_f);
 #else

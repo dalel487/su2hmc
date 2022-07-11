@@ -58,7 +58,7 @@ extern "C"
 	int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbqb, double res, int *itercg,\
 			Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f, unsigned int *iu, unsigned int *id,\
 			Complex gamval[5][4], Complex_f gamval_f[5][4],	int gamin[4][4], double *dk4m, double *dk4p,\
-			float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa,	Complex *Phi, Complex *R1);
+			float *dk4m_f, float *dk4p_f, Complex jqq, double akappa,	Complex *Phi, Complex *R1);
 	int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex *u11t, Complex *u12t, unsigned int *iu, float beta);
 	double SU2plaq(Complex *u11t, Complex *u12t, unsigned int *iu, int i, int mu, int nu);
 	double Polyakov(Complex *u11t, Complex *u12t);
@@ -80,7 +80,6 @@ __global__ void Minus_staple(int mu, int nu,unsigned int *iu,unsigned int *id, C
 __global__ void cuGaugeForce(int mu, Complex *Sigma11, Complex *Sigma12,double*dSdpi,Complex *u11t, Complex *u12t, float beta);
 //Calling Functions:
 //=================
-void Average_Plaquette(double *hgs, double *hgt, Complex *u11t, Complex *u12t, unsigned int *iu,dim3 dimGrid, dim3 dimBlock);
 void SU2plaq(double *hgs, double *hgt, Complex *u11t, Complex *u12t, unsigned int *iu,dim3 dimGrid, dim3 dimBlock);
 __global__ void cuSU2plaq(double *hgs, double *hgt, Complex *u11t, Complex *u12t, unsigned int *iu);
 void Polyakov(Complex *Sigma11, Complex * Sigma12, Complex *u11t, Complex *u12t,dim3 dimGrid, dim3 dimBlock);

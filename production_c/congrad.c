@@ -216,24 +216,24 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex *u11t,Complex *u
 	 *
 	 * Calls:
 	 * =====
-	 * Dslash_f, Dslashd_f, Par_fsum, Par_dsum
+	 * Dslash, Dslashd, Parsum, Par_dsum
 	 *
 	 * Parameters:
 	 * ==========
 	 * int			na:			Flavour index
 	 * double		res:			Limit for conjugate gradient
 	 * Complex		*Phi:			Phi initially, 
-	 * Complex_f	*r:			Returned as (M†M)^{1} Phi
-	 * Complex		*u11t_f:		First colour's trial field
-	 * Complex		*u12t_f:		Second colour's trial field
+	 * Complex	*r:			Returned as (M†M)^{1} Phi
+	 * Complex		*u11t:		First colour's trial field
+	 * Complex		*u12t:		Second colour's trial field
 	 * int			*iu:			Upper halo indices
 	 * int			*id:			Lower halo indices
-	 * Complex_f	*gamval_f:	Gamma matrices
+	 * Complex	*gamval:	Gamma matrices
 	 * int			*gamin:		Dirac indices
-	 * float			*dk4m_f:
-	 * float			*dk4p_f:
-	 * Complex_f	jqq:			Diquark source
-	 * float			akappa:		Hopping Parameter
+	 * double			*dk4m:
+	 * double			*dk4p:
+	 * Complex	jqq:			Diquark source
+	 * double			akappa:		Hopping Parameter
 	 * int 			*itercg:		Counts the iterations of the conjugate gradient
 	 *
 	 * Returns:
@@ -261,43 +261,43 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex *u11t,Complex *u
 //	cudaMallocManaged(&p_f, kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
 //	cudaMemAdvise(p_f,kfermHalo*sizeof(Complex_f),cudaMemAdviseSetPreferredLocation,device);
 
-	cudaMallocManaged(&x2, kferm*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMemAdvise(x2,kferm*sizeof(Complex),cudaMemAdviseSetPreferredLocation,device);
+//	cudaMallocManaged(&x2, kferm*sizeof(Complex),cudaMemAttachGlobal);
+//	cudaMemAdvise(x2,kferm*sizeof(Complex),cudaMemAdviseSetPreferredLocation,device);
 #elif defined __INTEL_MKL__
 	Complex *p  = mkl_malloc(kfermHalo*sizeof(Complex),AVX);
 	Complex *r  = mkl_malloc(kferm*sizeof(Complex),AVX);
-	Complex *x1	=mkl_malloc(kfermHalo*sizeof(Complex), AVX);
+	Complex *x1	= mkl_malloc(kfermHalo*sizeof(Complex), AVX);
 	Complex *x2	= mkl_malloc(kferm*sizeof(Complex), AVX);
 
 //	Complex_f *p_f	= mkl_malloc(kfermHalo*sizeof(Complex_f),AVX);
 //	Complex_f *x1	=mkl_malloc(kfermHalo*sizeof(Complex_f), AVX);
 //	Complex_f *x2_f=mkl_malloc(kfermHalo*sizeof(Complex_f), AVX);
 #else
-	Complex *p  = aligned_alloc(AVX,kfermHalo*sizeof(Complex));
-	Complex *r  = aligned_alloc(AVX,kferm*sizeof(Complex));
-	Complex *x2  = aligned_alloc(AVX,kferm*sizeof(Complex));
-	Complex *x1=aligned_alloc(AVX,kfermHalo*sizeof(Complex));
+	Complex *p  =	aligned_alloc(AVX,kfermHalo*sizeof(Complex));
+	Complex *r  =	aligned_alloc(AVX,kferm*sizeof(Complex));
+	Complex *x1	=	aligned_alloc(AVX,kfermHalo*sizeof(Complex));
+	Complex *x2	=	aligned_alloc(AVX,kferm*sizeof(Complex));
 
 //	Complex_f *p_f  = aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 //	Complex_f *x1=aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 //	Complex_f *x2_f=aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 #endif
-	double betad = 1.0; Complex alpha = 1;
-	double alphan=0.0; double alphad=0; 
-//	float alphan_f=0.0; float alphad_f=0; 
+	double betad = 1.0; double alphad=0; Complex alpha = 1;
+	double alphan=0.0;
 	//Instead of copying element-wise in a loop, use memcpy.
 	memcpy(p, xi, kferm*sizeof(Complex));
-	//memcpy(p_f, xi_f, kferm*sizeof(Complex_f));
 	memcpy(r, Phi+na*kferm, kferm*sizeof(Complex));
 
 	// Declaring placeholder arrays 
 	// This x1 is NOT related to the /common/vectorp/X1 in the FORTRAN code and should not
 	// be confused with X1 the global variable
 #ifdef __NVCC__
-	Complex_f *x1;// *x2_f;
+	Complex *x1;
+	//Complex_f *x1, *x2_f;
 	cudaMemPrefetchAsync(p,kfermHalo*sizeof(Complex),device,NULL);
-	cudaMemPrefetchAsync(r_f,kfermHalo*sizeof(Complex_f),device,NULL);
-	cudaMalloc(&x1, kferm2Halo*sizeof(Complex_f));
+	//cudaMemPrefetchAsync(r_f,kfermHalo*sizeof(Complex_f),device,NULL);
+	cudaMalloc(&x1, kferm2Halo*sizeof(Complex));
+	//cudaMalloc(&x1, kferm2Halo*sizeof(Complex_f));
 
 //	cudaMallocManaged(&x2_f, kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
 //	cudaMemAdvise(x2_f,kfermHalo*sizeof(Complex_f),cudaMemAdviseSetPreferredLocation,device);
@@ -319,9 +319,10 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex *u11t,Complex *u
 		if(*itercg){
 			//x*.x
 #ifdef __NVCC__
-			cublasDznrm2(cublas_handle,kferm,(Complex*) x1, 1,&alphad);
+			cublasDznrm2(cublas_handle,kferm,(cuComplex*) x1, 1,&alphad);
 			alphad *= alphad;
 #elif defined USE_BLAS
+//Was float
 			alphad = cblas_dznrm2(kferm, x1, 1);
 			alphad *= alphad;
 #else
@@ -329,21 +330,23 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex *u11t,Complex *u
 			for(int i = 0; i<kferm; i++)
 				alphad+=conj(x1[i])*x1[i];
 #endif
-			Par_dsum((float *)&alphad);
+			Par_dsum((double *)&alphad);
 			//α=(r.r)/p(M^†)Mp
 			alpha=alphan/alphad;
-			Complex alpha = (Complex)alpha;
+//			Complex_f alpha_f = (Complex_f)alpha;
 			//x+αp
 #ifdef __NVCC__
-			cublasZaxpy(cublas_handle,kferm,(Complex*) &alpha,(Complex*) p,1,(Complex*) xi,1);
+			cublasZaxpy(cublas_handle,kferm,(cuComplex*) &alpha,(cuComplex*) p,1,(cuComplex*) xi,1);
+			//cublasCaxpy(cublas_handle,kferm,(cuComplex*) &alpha_f,(cuComplex*) p_f,1,(cuComplex*) xi_f,1);
 #elif defined USE_BLAS
+			//cblas_caxpy(kferm, (Complex_f*)&alpha_f,(Complex_f*)p_f, 1, (Complex_f*)xi_f, 1);
 			cblas_zaxpy(kferm, (Complex*)&alpha,(Complex*)p, 1, (Complex*)xi, 1);
 #else
 			for(int i = 0; i<kferm; i++)
 				xi[i]+=alpha*p[i];
 #endif
 		}
-/*Going back to double precision
+		/*
 #pragma omp parallel for simd aligned(p,p_f,x2,x2_f:AVX)
 		for(int i=0;i<kferm;i++){
 			p[i]=(Complex)p_f[i];
@@ -372,7 +375,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex *u11t,Complex *u
 		//addition.
 		betan = 0;
 		//If we get a small enough β_n before hitting the iteration cap we break
-#pragma omp parallel for simd aligned(x2,r:AVX) reduction(+:betan)
+#pragma omp parallel for simd aligned(x2_f,r:AVX) reduction(+:betan)
 		for(int i = 0; i<kferm;i++){
 			r[i]-=alpha*x2[i];
 			betan+=conj(r[i])*r[i];
@@ -395,7 +398,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex *u11t,Complex *u
 		}
 		//Note that beta below is not the global beta and scoping is used to avoid conflict between them
 		Complex beta = (*itercg) ? betan/betad : 0;
-		betad=betan; alphan=(double)betan;
+		betad=betan; alphan=betan;
 		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multiplying y by 
 		//β instead of x.
 		//There is cblas_zaxpby in the MKL though, set a = 1 and b = β.
@@ -406,7 +409,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex *u11t,Complex *u
 		for(int i=0; i<kferm; i++)
 			p[i]=r[i]+beta*p[i];
 #endif
-/*Going back to double precision
+/*
 #pragma omp parallel for simd aligned(p_f,p:AVX)
 		for(int i=0;i<kferm;i++)
 			p_f[i]=(Complex_f)p[i];
@@ -414,13 +417,13 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex *u11t,Complex *u
 	}
 #ifdef	__NVCC__
 	cudaFree(p); cudaFree(r);cudaFree(x1); 
-	//cudaFree(x2_f); cudaFree(p_f); cudaFree(x2);
+//	cudaFree(x2_f); cudaFree(p_f); cudaFree(x2);
 #elif defined __INTEL_MKL__
-	mkl_free(p); mkl_free(r); mkl_free(x1); mkl_free(x2);
-	//mkl_free(p_f);  mkl_free(x2_f);
+	mkl_free(p); mkl_free(r); mkl_free(x1);
+//	mkl_free(p_f); mkl_free(x2); mkl_free(x2_f);
 #else
-	free(p); free(r); free(x1); free(x2);
-	//free(p_f); free(x2_f);
+	free(p); free(r); free(x1);
+//	free(p_f); free(x2); free(x2_f);
 #endif
 	return ret_val;
 }
