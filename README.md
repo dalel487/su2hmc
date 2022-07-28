@@ -109,9 +109,9 @@ where
 - `fmu` is the chemical potential
 - `aNf` is ignored. Originating in the Cornell group when Ken Wilson was still there, that molecular dynamics time-discretisation artifacts can be absorbed into renormalisation of the bare parameters of the lattice action
 - `stepl` is the average number of steps per trajectory. For a single trajectory it times dt should equal 1
-- `ntraj` is the umber of trajectories
+- `ntraj` is the number of trajectories
 - `istart` signals a hot start (>=1) or cold start (<=0)
-- `icheck` is how often to print out a configuration. We typically use 5 for an 80% acceptance rate
+- `icheck` is how often to print out a configuration. We typically use 5 and tune for 80% acceptance rate
 - `iread` is the starting configuration for continuation runs. If zero, start without reading
 
 The bottom line of the input is ignored by the programme and is just there to make your life easier.

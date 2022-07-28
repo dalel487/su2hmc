@@ -4,7 +4,7 @@
  */
 #include	<par_mpi.h>
 #include	<su2hmc.h>
-int SU2plaq(double *hg, double *avplaqs, double *avplaqt, Complex *u11t, Complex *u12t, unsigned int *iu, float beta){
+int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex *u11t, Complex *u12t, unsigned int *iu, float beta){
 	/* 
 	 * Calculates the gauge action using new (how new?) lookup table
 	 * Follows a routine called qedplaq in some QED3 code
@@ -30,7 +30,7 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt, Complex *u11t, Complex
 	 * =======
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "SU2plaq";
+	const char *funcname = "Average_Plaquette";
 	//Was a halo exchange here but moved it outside
 	//	The FORTRAN code used several consecutive loops to get the plaquette
 	//	Instead we'll just make the arrays variables and do everything in one loop
@@ -51,25 +51,12 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt, Complex *u11t, Complex
 #endif
 			for(int i=0;i<kvol;i++){
 				//Save us from typing iu[mu+ndim*i] everywhere
-				int uidm = iu[mu+ndim*i]; 
-
-				complex Sigma11=u11t[i*ndim+mu]*u11t[uidm*ndim+nu]-u12t[i*ndim+mu]*conj(u12t[uidm*ndim+nu]);
-				complex Sigma12=u11t[i*ndim+mu]*u12t[uidm*ndim+nu]+u12t[i*ndim+mu]*conj(u11t[uidm*ndim+nu]);
-
-				int uidn = iu[nu+ndim*i]; 
-				complex a11=Sigma11*conj(u11t[uidn*ndim+mu])+Sigma12*conj(u12t[uidn*ndim+mu]);
-				complex a12=-Sigma11*u12t[uidn*ndim+mu]+Sigma12*u11t[uidn*ndim+mu];
-
-				Sigma11=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
-				//				Sigma12[i]=-a11[i]*u12t[i*ndim+nu]+a12*u11t[i*ndim+mu];
-				//				Not needed in final result as it traces out
-
 				switch(mu){
 					//Time component
-					case(ndim-1):	hgt -= creal(Sigma11);
+					case(ndim-1):	hgt -= SU2plaq(u11t,u12t,iu,i,mu,nu);
 										break;
 										//Space component
-					default:	hgs -= creal(Sigma11);
+					default:	hgs -= SU2plaq(u11t,u12t,iu,i,mu,nu);
 								break;
 				}
 			}
@@ -82,6 +69,39 @@ int SU2plaq(double *hg, double *avplaqs, double *avplaqt, Complex *u11t, Complex
 		printf("hgs=%e  hgt=%e  hg=%e\n", hgs, hgt, *hg);
 #endif
 	return 0;
+}
+#pragma omp declare simd
+inline double SU2plaq(Complex *u11t, Complex *u12t, unsigned int *iu, int i, int mu, int nu){
+	/*
+	 * Calculates the plaquette at site i in the μ-ν direction
+	 *
+	 * Parameters:
+	 * ==========
+	 * Complex u11t, u12t:	Trial fields
+	 * unsignedi int *iu:	Upper halo indices
+	 * int mu, nu:				Plaquette direction. Note that mu and nu can be negative
+	 * 							to facilitate calculating plaquettes for Clover terms. No
+	 * 							sanity checks are conducted on them in this routine.
+	 *
+	 * Returns:
+	 * ========
+	 * double corresponding to the plaquette value
+	 *
+	 */
+	const char *funcname = "SU2plaq";
+	int uidm = iu[mu+ndim*i]; 
+
+	complex Sigma11=u11t[i*ndim+mu]*u11t[uidm*ndim+nu]-u12t[i*ndim+mu]*conj(u12t[uidm*ndim+nu]);
+	complex Sigma12=u11t[i*ndim+mu]*u12t[uidm*ndim+nu]+u12t[i*ndim+mu]*conj(u11t[uidm*ndim+nu]);
+
+	int uidn = iu[nu+ndim*i]; 
+	complex a11=Sigma11*conj(u11t[uidn*ndim+mu])+Sigma12*conj(u12t[uidn*ndim+mu]);
+	complex a12=-Sigma11*u12t[uidn*ndim+mu]+Sigma12*u11t[uidn*ndim+mu];
+
+	Sigma11=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
+	//				Sigma12[i]=-a11[i]*u12t[i*ndim+nu]+a12*u11t[i*ndim+mu];
+	//				Not needed in final result as it traces out
+	return creal(Sigma11);
 }
 double Polyakov(Complex *u11t, Complex *u12t){
 	/*

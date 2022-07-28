@@ -28,6 +28,9 @@ __attribute__((aligned(AVX)))
 		{3,2,1,0},
 		{2,3,0,1},
 		{2,3,0,1}};
+//Gamma Matrices in Chiral Representation
+//Gattringer and Lang have a nice crash course in appendix A.2 of
+//Quantum Chromodynamics on the Lattice (530.14 GAT)
 Complex
 #ifndef __NVCC__ 
 __attribute__((aligned(AVX)))
@@ -261,12 +264,37 @@ int main(int argc, char *argv[]){
 	double hg, avplaqs, avplaqt;
 	//Halo exchange of the trial fields
 	Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
-	SU2plaq(&hg,&avplaqs,&avplaqt,u11t,u12t,iu,beta);
+	Average_Plaquette(&hg,&avplaqs,&avplaqt,u11t,u12t,iu,beta);
 	//Trajectory length
 	double traj=stepl*dt;
 	//Acceptance probability
 	double proby = 2.5/stepl;
-	char *outname = "Output"; char *outop="w";
+	char suffix[FILELEN]="";
+	int buffer; char buff2[7];
+	//Add script for extracting correct mu, j etc.
+	buffer = (int)round(100*beta);
+	sprintf(buff2,"b%03d",buffer);
+	strcat(suffix,buff2);
+	//κ
+	buffer = (int)round(10000*akappa);
+	sprintf(buff2,"k%04d",buffer);
+	strcat(suffix,buff2);
+	//μ
+	buffer = (int)round(1000*fmu);
+	sprintf(buff2,"mu%04d",buffer);
+	strcat(suffix,buff2);
+	//J
+	buffer = (int)round(1000*ajq);
+	sprintf(buff2,"j%03d",buffer);
+	strcat(suffix,buff2);
+	//nx
+	sprintf(buff2,"s%02d",nx);
+	strcat(suffix,buff2);
+	//nt
+	sprintf(buff2,"t%02d",nt);
+	strcat(suffix,buff2);
+	char outname[FILELEN] = "Output."; char *outop="w";
+	strcat(outname,suffix);
 	FILE *output;
 	if(!rank){
 		if(!(output=fopen(outname, outop) )){
@@ -580,35 +608,11 @@ int main(int argc, char *argv[]){
 				printf("Finished measurements\n");
 #endif
 			pbpa+=pbp; endenfa+=endenf; denfa+=denf; ipbp++;
-			SU2plaq(&hg,&avplaqs,&avplaqt,u11t,u12t,iu,beta);
+			Average_Plaquette(&hg,&avplaqs,&avplaqt,u11t,u12t,iu,beta);
 			poly = Polyakov(u11t,u12t);
 			//We have four output files, so may as well get the other ranks to help out
 			//and abuse scoping rules while we're at it.
 			//Can use either OpenMP or MPI to do this
-			char suffix[FILELEN]="";
-			int buffer; char buff2[7];
-			//Add script for extracting correct mu, j etc.
-			buffer = (int)round(100*beta);
-			sprintf(buff2,"b%03d",buffer);
-			strcat(suffix,buff2);
-			//κ
-			buffer = (int)round(10000*akappa);
-			sprintf(buff2,"k%04d",buffer);
-			strcat(suffix,buff2);
-			//μ
-			buffer = (int)round(1000*fmu);
-			sprintf(buff2,"mu%04d",buffer);
-			strcat(suffix,buff2);
-			//J
-			buffer = (int)round(1000*ajq);
-			sprintf(buff2,"j%03d",buffer);
-			strcat(suffix,buff2);
-			//nx
-			sprintf(buff2,"s%02d",nx);
-			strcat(suffix,buff2);
-			//nt
-			sprintf(buff2,"t%02d",nt);
-			strcat(suffix,buff2);
 #if (nproc>=4)
 			switch(rank)
 #else
@@ -671,7 +675,7 @@ int main(int argc, char *argv[]){
 									if(!measure_check){
 										FILE *fortout;
 										char fortname[FILELEN] = "diq.";
-									strcat(fortname,suffix);
+										strcat(fortname,suffix);
 										const char *fortop= (itraj==1) ? "w" : "a";
 										if(!(fortout=fopen(fortname, fortop) )){
 											fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
@@ -743,7 +747,7 @@ int main(int argc, char *argv[]){
 		FILE *sa3at = fopen("Bench_times.csv", "a");
 		fprintf(sa3at, "%s\nβ%0.3f κ:%0.4f μ:%0.4f j:%0.3f s:%lu t:%lu kvol:%lu\n\
 				npx:%lu npt:%lu nthread:%lu ncore:%lu time:%f traj_time:%f\n\n",\
-				__VERSION__,beta,akappa,fmu,ajq,nx,nt,kvol,npx,npt,nthreads,npx*npt*nthreads,elapsed,elapsed/ntraj);
+				__VERSION__,beta,akappa,fmu,ajq,nx,nt,kvol,npx,npt,nthreads,npx*npy*npz*npt*nthreads,elapsed,elapsed/ntraj);
 		fclose(sa3at);
 	}
 #endif
@@ -986,7 +990,7 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 	 * 
 	 * Calls:
 	 * =====
-	 * SU2plaq, Par_dsum, Congradq, Fill_Small_Phi
+	 * Average_Plaquette, Par_dsum, Congradq, Fill_Small_Phi
 	 *
 	 * Globals:
 	 * =======
@@ -1023,7 +1027,7 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 	double avplaqs, avplaqt;
 	double hg = 0;
 	//avplaq? isn't seen again here.
-	SU2plaq(&hg,&avplaqs,&avplaqt,u11t,u12t,iu,beta);
+	Average_Plaquette(&hg,&avplaqs,&avplaqt,u11t,u12t,iu,beta);
 
 	double hf = 0; int itercg = 0;
 #ifdef __NVCC__
@@ -1063,7 +1067,7 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 #else
 	free(smallPhi);
 #endif
-	//hg was summed over inside of SU2plaq.
+	//hg was summed over inside of Average_Plaquette.
 	Par_dsum(&hp); Par_dsum(&hf);
 	*s=hg+hf; *h=*s+hp;
 #ifdef _DEBUG

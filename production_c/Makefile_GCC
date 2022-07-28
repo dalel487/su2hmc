@@ -4,11 +4,11 @@ IFLAGS=     -I../INCLUDE/ -I ${AOCL_ROOT}/include
 
 CFLAGS=	$(IFLAGS) -std=gnu11 -DAMD_BLAS -fcommon\
 		-march=znver1 -mtune=znver2 -static -D__RANLUX__\
-		-fopenmp -fopenmp-simd -DSA3AT -flto -static\
+		-fopenmp -fopenmp-simd -static-libgcc -DSA3AT -flto -static\
 #		-foffload=amdgcn-amdhsa="-march=gfx902" #-fopenacc\
 #		-pg -fprofile-arcs-foffload=amdgcn-amdhsa="-march=gfx90c"
 
-LFLAGS=	-L ${AOCL_ROOT}/lib/ -latomic -ldl -lalm -lblis -lgsl 
+LFLAGS=	-L ${AOCL_ROOT}/lib/ -latomic -lalm -lblis -lgsl
 
 EXE=	su2hmc_GCC
 

@@ -350,6 +350,9 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 	fwrite(u11,ndim*kvol*sizeof(Complex),1,gauge_dump);
 	fclose(gauge_dump);
 #endif
+#ifdef __RANLUX__
+	seed=gsl_rng_get(ranlux_instd);
+#endif
 	if(!rank){
 		//Array to store the seeds. nth index is the nth processor
 #ifdef __RANLUX__
@@ -808,7 +811,7 @@ int ZHalo_swap_dir(Complex *z, int ncpt, int idir, int layer){
 	 *  -------
 	 *  Zero on success, Integer Error code otherwise
 	 */
-	char *funcname = "CHalo_swap_dir";
+	char *funcname = "ZHalo_swap_dir";
 	MPI_Status status;
 	if(layer!=DOWN && layer!=UP){
 		fprintf(stderr, "Error %i in %s: Cannot swap in the direction given by %i.\nExiting...\n\n",
@@ -873,12 +876,12 @@ int ZHalo_swap_dir(Complex *z, int ncpt, int idir, int layer){
 			}
 			break;
 	}
-	MPI_Wait(&request, &status);
 #ifdef __INTEL_MKL__
 	mkl_free(sendbuf);
 #else
 	free(sendbuf);
 #endif
+	MPI_Wait(&request, &status);
 	return 0;
 }
 inline int CHalo_swap_all(Complex_f *c, int ncpt){
