@@ -1,6 +1,6 @@
 #ifndef COORD
 #define COORD
-#ifdef __NVCC__
+#ifdef __CUDACC__
 #include <cuda.h>
 #define USE_BLAS
 #include <cublas_v2.h>
@@ -15,16 +15,16 @@
 #define USE_BLAS
 #include <cblas.h>
 #endif
-#include <par_mpi.h>
+//#include <par_mpi.h>
 #include <sizes.h>
 //Global Variables
 //unsigned int id[ndim][kvol], iu[ndim][kvol] __attribute__((aligned(AVX)));
 //unsigned int hu[4][halo], hd[4][halo] __attribute__((aligned(AVX)));
-#ifdef __NVCC__
+#ifdef __CUDACC__
 __managed__
 #endif
 extern unsigned int *hu, *hd, *h1u, *h1d, *halosize;;
-#if (defined __NVCC__ || defined __cplusplus)
+#ifdef __cplusplus
 extern "C"
 {
 #endif
@@ -69,7 +69,7 @@ extern "C"
 	/* Tests if the coordinate transformation functions are working
 	 * Depends on Index2gcoord and Coordglindex
 	 */
-#if (defined __NVCC__ || defined __cplusplus)
+#ifdef __cplusplus
 }
 #endif
 #endif

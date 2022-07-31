@@ -1,5 +1,3 @@
-MF=	Makefile
-
 FC=		mpifort 
 CC=		mpiicc 
 CXX=	mpiicpc 
@@ -11,10 +9,10 @@ IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include" -I ./ -I../production_c\
 				-I/opt/nvidia/hpc_sdk/Linux_x86_64/2022/cuda/include/ \
 				-I/opt/nvidia/hpc_sdk/Linux_x86_64/2022/math_libs/include/ 
 
-CFLAGS=     $(IFLAGS) -qmkl -std=gnu11 -qopt-zmm-usage=high -MD\
-			-xSKYLAKE -axCASCADELAKE\
+CFLAGS=   $(IFLAGS) -ipo -qmkl -std=gnu11 -qopt-zmm-usage=high -MD\
+			-xSKYLAKE -axCASCADELAKE -D__NVCC__\
 			-static-intel -static-libgcc -DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
-			-qopenmp -qno-openmp-offload -qopenmp-simd -DSA3AT \
+			-qopenmp -qno-openmp-offload -qopenmp-simd -DSA3AT\
 
 MKLFLAGS=	-L${MKLROOT}/lib/intel64 -qmkl #-DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
 CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/2022/cuda/lib64/ \
@@ -23,7 +21,7 @@ CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/2022/cuda/lib64/ \
 
 LFLAGS=		-liomp5 -lpthread -ldl -lgsl  #${CULFLAGS}
 
-NVCCFLAGS=	${IFLAGS}  -gencode arch=compute_75,code=lto_75 -gencode arch=compute_80,code=sm_80 -err-no -w \
+NVCCFLAGS=	${IFLAGS}  -err-no -w \
 			-expt-relaxed-constexpr 
 			#Last flag is an experimental one used to call host functions in device code. Not sure
 			#if it does what we want because the error message suggesting it came up when declaring
@@ -84,27 +82,27 @@ profiler:	CFLAGS += -g
 profiler:	NVCCFLAGS += -O0 -G -g 
 profiler:	release
 
-release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high
-release:	NVCCFLAGS += -O3# -dlto 
+release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high 
+release:	NVCCFLAGS += -O3 -gencode arch=compute_75,code=lto_75 -gencode arch=compute_80,code=sm_80 
 release:	$(EXE)
 
 debug:		CFLAGS += -O0 -g -D_DEBUG -rdynamic # -DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
-debug:		NVCCFLAGS += -O0 -G -g -D_DEBUG 
+debug:		NVCCFLAGS += -O0 -G -g -D_DEBUG -gencode arch=compute_75,code=sm_75 -gencode arch=compute_80,code=sm_80 
 debug:		$(EXE)
 
 		 
-$(EXE): ../su2hmc.c $(OBJ)
-	$(CXX) $(CFLAGS) $(MKLFLAGS) -no-ipo -D__NVCC__ $^ $(LFLAGS) $(CULFLAGS)  -o $@
+$(EXE): ../main.c $(OBJ)
+	$(CXX) -D__NVCC__ $(CFLAGS) $(MKLFLAGS) $^ $(LFLAGS) $(CULFLAGS)  -o $@
 $(CULIB2): $(CULIB)
 	ar rc $@ $^ 
 $(CULIB): $(CUOBJ)
-	$(NVCC) -ccbin $(CXX) $(NVCCFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $(NVCCFLAGS)  $(LFLAGS) -dlto -dlink $^ -o $@ 
+	$(NVCC) -ccbin $(CXX) $(NVCCFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $(NVCCFLAGS)  $(LFLAGS) -dlink $^ -o $@ 
 $(CLIB):	$(COBJ) 
 	ar rc $@  $^
 $(CUSRC_DIR)%.o: $(CUSRC_DIR)%.cu
 	$(NVCC) -ccbin $(CXX) $(NVCCFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $^ -dc $@ 
-$(CSRC_DIR)%.o: $(CSRC_DIR)%.c
-	$(CXX) $(CFLAGS) $(IFLAGS) $(MKLFLAGS) -D__NVCC__ -c $^  
+%.o: $(CSRC_DIR)%.c
+	$(CXX) $(CFLAGS) -x c++ $(MKLFLAGS) -c $^  
 
 clean:
 	rm -f $(OBJ) $(COBJ) $(CUOBJ) $(CULIB) $(CLIB) $(TMP)

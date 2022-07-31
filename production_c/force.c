@@ -3,8 +3,6 @@
  * Requires multiply.cu to work
  */
 #include	<matrices.h>
-#include	<par_mpi.h>
-#include	<su2hmc.h>
 int Gauge_force(double *dSdpi,Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id, float beta){
 	/*
 	 * Calculates dSdpi due to the Wilson Action at each intermediate time
@@ -66,7 +64,7 @@ int Gauge_force(double *dSdpi,Complex *u11t, Complex *u12t,unsigned int *iu,unsi
 			if(nu!=mu){
 				//The +ν Staple
 #ifdef __NVCC__
-				Plus_staple(mu,nu,iu,Sigma11,Sigma12,u11t,u12t,dimGrid,dimBlock);
+				cuPlus_staple(mu,nu,iu,Sigma11,Sigma12,u11t,u12t,dimGrid,dimBlock);
 #else
 #ifdef _OPENACC
 #pragma acc parallel loop
@@ -98,7 +96,7 @@ int Gauge_force(double *dSdpi,Complex *u11t, Complex *u12t,unsigned int *iu,unsi
 #pragma acc update device(u12sh[0:kvol+halo])
 				//Next up, the -ν staple
 #ifdef __NVCC__
-				Minus_staple(mu,nu,iu,id,Sigma11,Sigma12,u11sh,u12sh,u11t,u12t,dimGrid,dimBlock);
+				cuMinus_staple(mu,nu,iu,id,Sigma11,Sigma12,u11sh,u12sh,u11t,u12t,dimGrid,dimBlock);
 #else
 #ifdef _OPENACC
 #pragma acc parallel loop
@@ -119,7 +117,7 @@ int Gauge_force(double *dSdpi,Complex *u11t, Complex *u12t,unsigned int *iu,unsi
 #endif
 			}
 #ifdef __NVCC__
-		Gauge_force(mu,Sigma11,Sigma12,u11t,u12t,dSdpi,beta,dimGrid,dimBlock);
+		cuGauge_force(mu,Sigma11,Sigma12,u11t,u12t,dSdpi,beta,dimGrid,dimBlock);
 #else
 #ifdef _OPENACC
 #pragma acc parallel loop
@@ -275,7 +273,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 		//  both these arrays, each of which has 8 cpts
 		//
 #ifdef __NVCC__
-		Force(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,dimGrid,dimBlock);
+		cuForce(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,dimGrid,dimBlock);
 #else
 #ifdef _OPENACC
 #pragma acc parallel loop copyin(X2[na*kferm2Halo:(na+1)*kferm2Halo])

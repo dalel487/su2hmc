@@ -4,6 +4,7 @@
 #ifdef  __OPENMP
 #include <omp.h>
 #endif
+#include <par_mpi.h>
 #include <sizes.h>
 #include <stdlib.h>
 #include <stdio.h>

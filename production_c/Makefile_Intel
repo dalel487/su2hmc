@@ -59,7 +59,7 @@ debug:	CFLAGS += -g -O0 \
 debug:	$(EXE)
 
 $(EXE):	$(OBJ)
-		$(CC) -MMD -MP $(CFLAGS) -o $@ $(OBJ) $(LFLAGS)  
+		$(CC) ../main.c -MMD -MP $(CFLAGS) -o $@ $(OBJ) $(LFLAGS)  
 
 clean:
 		rm -f $(OBJ) $(TMP) $(DEPS)

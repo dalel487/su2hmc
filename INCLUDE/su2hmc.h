@@ -30,7 +30,7 @@ extern cublasHandle_t cublas_status;
 //###########
 //Function Declarations:
 //#####################
-#if (defined __NVCC__ || defined __cplusplus)
+#if (defined __cplusplus)
 extern "C"
 {
 #endif
@@ -43,7 +43,8 @@ extern "C"
 	int Gauge_force(double *dSdpi,Complex *u11t, Complex *u12t, unsigned int *iu, unsigned int *id, float beta);
 	int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa, Complex_f ajq,\
 			Complex *u11, Complex *u12, Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f,\
-			double *dk4m, double *dk4p, float *dk4m_f, float *dk4p_f, unsigned int *iu, unsigned int *id);
+			Complex gamval[5][4], Complex_f gamval_f[5][4], int gamin[4][4], double *dk4m, double *dk4p, float *dk4m_f, float *dk4p_f,\
+			unsigned int *iu, unsigned int *id);
 	int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex *X1, Complex *Phi,\
 			Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f, unsigned int * iu, unsigned int *id,\
 			Complex_f gamval_f[5][4], int gamin[4][4], float *dk4m_f, float * dk4p_f, Complex_f jqq,\
@@ -65,33 +66,39 @@ extern "C"
 	//Inline Stuff
 	extern int Z_gather(Complex*x, Complex *y, int n, unsigned int *table, unsigned int mu);
 	extern int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi);
-#if (defined __NVCC__ || defined __cplusplus)
+#if (defined __cplusplus)
 }
 #endif
 
 //CUDA Declarations:
 //#################
-#ifdef __NVCC__
+#ifdef __CUDACC__
 __global__ void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
 		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa);
 __global__ void Plus_staple(int mu, int nu,unsigned int *iu, Complex *Sigma11, Complex *Sigma12, Complex *u11t, Complex *u12t);
 __global__ void Minus_staple(int mu, int nu,unsigned int *iu,unsigned int *id, Complex *Sigma11, Complex *Sigma12,\
 		Complex *u11sh, Complex *u12sh, Complex *u11t, Complex *u12t);
 __global__ void cuGaugeForce(int mu, Complex *Sigma11, Complex *Sigma12,double*dSdpi,Complex *u11t, Complex *u12t, float beta);
+__global__ void cuSU2plaq(double *hgs, double *hgt, Complex *u11t, Complex *u12t, unsigned int *iu);
+__global__ void cuPolyakov(Complex *Sigma11, Complex * Sigma12, Complex *u11t, Complex *u12t);
+#endif
+#ifdef __NVCC__
 //Calling Functions:
 //=================
-void SU2plaq(double *hgs, double *hgt, Complex *u11t, Complex *u12t, unsigned int *iu,dim3 dimGrid, dim3 dimBlock);
-__global__ void cuSU2plaq(double *hgs, double *hgt, Complex *u11t, Complex *u12t, unsigned int *iu);
-void Polyakov(Complex *Sigma11, Complex * Sigma12, Complex *u11t, Complex *u12t,dim3 dimGrid, dim3 dimBlock);
-__global__ void cuPolyakov(Complex *Sigma11, Complex * Sigma12, Complex *u11t, Complex *u12t);
-void Gauge_force(int mu,Complex *Sigma11, Complex *Sigma12, Complex *u11t,Complex *u12t,double *dSdpi,float beta,\
+void cuSU2plaq(double *hgs, double *hgt, Complex *u11t, Complex *u12t, unsigned int *iu,dim3 dimGrid, dim3 dimBlock);
+void cuPolyakov(Complex *Sigma11, Complex * Sigma12, Complex *u11t, Complex *u12t,dim3 dimGrid, dim3 dimBlock);
+void cuGauge_force(int mu,Complex *Sigma11, Complex *Sigma12, Complex *u11t,Complex *u12t,double *dSdpi,float beta,\
 		dim3 dimGrid, dim3 dimBlock);
-void Plus_staple(int mu, int nu, unsigned int *iu, Complex *Sigma11, Complex *Sigma12, Complex *u11t, Complex *u12t,\
+void cuPlus_staple(int mu, int nu, unsigned int *iu, Complex *Sigma11, Complex *Sigma12, Complex *u11t, Complex *u12t,\
 		dim3 dimGrid, dim3 dimBlock);
-void Minus_staple(int mu, int nu, unsigned int *iu, unsigned int *id, Complex *Sigma11, Complex *Sigma12,\
+void cuMinus_staple(int mu, int nu, unsigned int *iu, unsigned int *id, Complex *Sigma11, Complex *Sigma12,\
 		Complex *u11sh, Complex *u12sh,Complex *u11t, Complex*u12t,	dim3 dimGrid, dim3 dimBlock);
-void Force(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, \
+void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, \
 		Complex gamval[5][4],double *dk4m, double *dk4p,unsigned int *iu,int gamin[4][4],\
 		float akappa, dim3 dimGrid, dim3 dimBlock);
+		//Init_CUDA was taken already by CUDA (unsurprisingly)
+void	Init_CUDA(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f, Complex gamval[5][4],\
+		Complex_f gamval_f[5][4], int gamin[4][4],Complex *gamval_d, Complex_f *gamval_f_d, int *gamin_d,\
+		double *dk4m, double *dk4p, float *dk4m_f, float *dk4p_f, unsigned int *iu, unsigned int *id);
 #endif
 #endif

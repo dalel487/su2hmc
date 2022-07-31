@@ -40,7 +40,7 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int 
 	memcpy(phi, r, kferm*sizeof(Complex));
 	//Diquark Term (antihermitian)
 #ifdef __NVCC__
-	Dslash(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,dimGrid,dimBlock);
+	cuDslash(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,dimGrid,dimBlock);
 #else
 #ifdef _OPENACC
 #pragma acc parallel loop copy(phi[0:kferm]) copyin(r[0:kfermHalo])
@@ -175,7 +175,7 @@ int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int 
 	//Mass term
 	memcpy(phi, r, kferm*sizeof(Complex));
 #ifdef __NVCC__
-	Dslashd(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,dimGrid,dimBlock);
+	cuDslashd(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,dimGrid,dimBlock);
 #else
 #ifdef _OPENACC
 #pragma acc parallel loop copy(phi[0:kferm]) copyin(r[0:kfermHalo])
@@ -317,7 +317,7 @@ int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int
 	memcpy(phi, r, kferm2*sizeof(Complex));
 	//Spacelike term
 #ifdef __NVCC__
-	Hdslash(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,dimGrid,dimBlock);
+	cuHdslash(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,dimGrid,dimBlock);
 #else
 #ifdef _OPENACC
 #pragma acc parallel loop copy(phi[0:kferm2]) copyin(r[0:kferm2Halo])
@@ -425,7 +425,7 @@ int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  in
 	//Mass term
 	memcpy(phi, r, kferm2*sizeof(Complex));
 #ifdef __NVCC__
-	Hdslashd(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,dimGrid,dimBlock);
+	cuHdslashd(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,dimGrid,dimBlock);
 #else
 	//Spacelike term
 #ifdef _OPENACC
@@ -536,7 +536,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 	memcpy(phi, r, kferm*sizeof(Complex_f));
 	//Diquark Term (antihermitian)
 #ifdef __NVCC__
-	Dslash_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
+	cuDslash_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
 #else
 #ifdef _OPENACC
 #pragma acc parallel loop copy(phi[0:kferm]) copyin(r[0:kfermHalo])
@@ -674,7 +674,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	//Mass term
 	memcpy(phi, r, kferm*sizeof(Complex_f));
 #ifdef __NVCC__
-	Dslashd_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
+	cuDslashd_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
 #else
 #ifdef _OPENACC
 #pragma acc parallel loop copy(phi[0:kferm]) copyin(r[0:kfermHalo])
@@ -818,7 +818,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
 	//Spacelike term
 #ifdef __NVCC__
-	Hdslash_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
+	cuHdslash_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
 #else
 #ifdef _OPENACC
 #pragma acc parallel loop copy(phi[0:kferm2]) copyin(r[0:kferm2Halo])
@@ -929,7 +929,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_
 	//Mass term
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
 #ifdef __NVCC__
-	Hdslashd_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
+	cuHdslashd_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
 #else
 	//Spacelike term
 #ifdef _OPENACC
@@ -1029,7 +1029,7 @@ int New_trial(double dt, double *pp, Complex *u11t, Complex *u12t){
 	//#pragma omp target teams distribute parallel for simd collapse(2)\
 	map(to:pp[0:kmom]) aligned(pp,u11t,u12t:AVX) 
 #ifdef __NVCC__
-		New_trial(dt,pp,u11t,u12t,dimGrid,dimBlock);
+		cuNew_trial(dt,pp,u11t,u12t,dimGrid,dimBlock);
 #else
 #ifdef _OPENACC
 #pragma acc parallel loop collapse(2)
@@ -1077,7 +1077,7 @@ inline int Reunitarise(Complex *u11t, Complex *u12t){
 	 */
 	const char *funcname = "Reunitarise";
 #ifdef __NVCC__
-	Reunitarise(u11t,u12t,dimGrid,dimBlock);
+	cuReunitarise(u11t,u12t,dimGrid,dimBlock);
 #else
 #ifdef _OPENACC
 #pragma acc parallel loop

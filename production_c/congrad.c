@@ -319,7 +319,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex *u11t,Complex *u
 		if(*itercg){
 			//x*.x
 #ifdef __NVCC__
-			cublasDznrm2(cublas_handle,kferm,(cuComplex*) x1, 1,&alphad);
+			cublasDznrm2(cublas_handle,kferm,(cuDoubleComplex*) x1, 1,&alphad);
 			alphad *= alphad;
 #elif defined USE_BLAS
 //Was float
@@ -336,7 +336,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex *u11t,Complex *u
 //			Complex_f alpha_f = (Complex_f)alpha;
 			//x+αp
 #ifdef __NVCC__
-			cublasZaxpy(cublas_handle,kferm,(cuComplex*) &alpha,(cuComplex*) p,1,(cuComplex*) xi,1);
+			cublasZaxpy(cublas_handle,kferm,(cuDoubleComplex*) &alpha,(cuDoubleComplex*) p,1,(cuDoubleComplex*) xi,1);
 			//cublasCaxpy(cublas_handle,kferm,(cuComplex*) &alpha_f,(cuComplex*) p_f,1,(cuComplex*) xi_f,1);
 #elif defined USE_BLAS
 			//cblas_caxpy(kferm, (Complex_f*)&alpha_f,(Complex_f*)p_f, 1, (Complex_f*)xi_f, 1);

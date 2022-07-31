@@ -9,7 +9,7 @@ IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include" -I ./ \
 				-I/opt/nvidia/hpc_sdk/Linux_x86_64/2022/cuda/include/ \
 				-I/opt/nvidia/hpc_sdk/Linux_x86_64/2022/math_libs/include/ 
 
-CFLAGS=	$(IFLAGS) -DGSL_BLAS -D__RANLUX_  -Ofast -O3  -fpic\
+CFLAGS=	$(IFLAGS) -DGSL_BLAS -D__NVCC__ -D__RANLUX_  -Ofast -O3  -fpic\
 			-march=skylake -mtune=cascadelake\
 
 MKLFLAGS=	#-L${MKLROOT}/lib/intel64 -qmkl #-DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
@@ -89,7 +89,7 @@ debug:		NVCCFLAGS += -O0 -G -g -D_DEBUG
 debug:		$(EXE)
 
 		 
-$(EXE): ../su2hmc.c $(OBJ)
+$(EXE): ../main.c $(OBJ)
 	$(CXX) $(CFLAGS) $(MKLFLAGS) -D__NVCC__ $^ $(LFLAGS) $(CULFLAGS)  -o $@
 $(CULIB2): $(CULIB)
 	ar rc $@ $^ 
@@ -97,10 +97,10 @@ $(CULIB): $(CUOBJ)
 	$(NVCC) -ccbin $(CXX) $(NVCCFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $(NVCCFLAGS)  $(LFLAGS) -dlto -dlink $^ -o $@ 
 $(CLIB):	$(COBJ) 
 	ar rc $@  $^
-$(CUSRC_DIR)%.o: $(CUSRC_DIR)%.cu
+%.o: $(CUSRC_DIR)/%.cu
 	$(NVCC) -ccbin $(CXX) $(NVCCFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $^ -dc $@ 
-$(CSRC_DIR)%.o: $(CSRC_DIR)%.c
-	$(CXX) $(CFLAGS) $(IFLAGS) $(MKLFLAGS) -D__NVCC__ -c $^  
+%.o: $(CSRC_DIR)/%.c
+	$(CXX) $(CFLAGS) $(IFLAGS) $(MKLFLAGS) -c -x c++ $^  
 
 clean:
 	rm -f $(OBJ) $(COBJ) $(CUOBJ) $(CULIB) $(CLIB) $(TMP)

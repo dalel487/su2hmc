@@ -681,7 +681,7 @@ __global__ void cuReunitarise(Complex *u11t, Complex * u12t){
 	}
 }
 
-inline void Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
+inline void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
 		Complex gamval[5][4], int gamin[4][4],	double *dk4m, double *dk4p, Complex_f jqq, float akappa,\
 		dim3 dimGrid, dim3 dimBlock){
 	/*
@@ -709,7 +709,7 @@ inline void Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsign
 	//	cudaMemPrefetchAsync(u11t,kvol+halo,0
 	cuDslash<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,&gamval[0][0],&gamin[0][0],dk4m,dk4p,jqq,akappa);
 }
-inline void Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
+inline void cuDslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
 		Complex gamval[5][4], int gamin[4][4],	double *dk4m, double *dk4p, Complex_f jqq, float akappa,\ 
 		dim3 dimGrid, dim3 dimBlock){
 	/*
@@ -737,7 +737,7 @@ inline void Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsig
 	//	cudaMemPrefetchAsync(u11t,kvol+halo,0
 	cuDslashd<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,&gamval[0][0],&gamin[0][0],dk4m,dk4p,jqq,akappa);
 }
-inline void Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
+inline void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
 		Complex gamval[5][4], int gamin[4][4],	double *dk4m, double *dk4p, Complex_f jqq, float akappa,\ 
 		dim3 dimGrid, dim3 dimBlock){
 	/*
@@ -764,7 +764,7 @@ inline void Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsig
 	char *funcname = "Hdslash";
 	cuHdslash<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,&gamval[0][0],&gamin[0][0],dk4m,dk4p,jqq,akappa);
 }
-inline void Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
+inline void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
 		Complex gamval[5][4], int gamin[4][4],double *dk4m, double *dk4p, Complex_f jqq, float akappa,\ 
 		dim3 dimGrid, dim3 dimBlock){
 	/*
@@ -793,14 +793,14 @@ inline void Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsi
 	cuHdslashd<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,&gamval[0][0],&gamin[0][0],dk4m,dk4p,jqq,akappa);
 }
 
-inline void Reunitarise(Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock){
+inline void cuReunitarise(Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock){
 	cuReunitarise<<<dimGrid,dimBlock>>>(u11t,u12t);
 }
-inline void New_trial(double dt, double *pp, Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock){
+inline void cuNew_trial(double dt, double *pp, Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock){
 	cuNew_trial<<<dimGrid,dimBlock>>>(dt,pp,u11t,u12t);
 }
 //Float editions
-inline void Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
+inline void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
 		Complex_f gamval_f[5][4],int gamin[4][4],	float *dk4m_f, float *dk4p_f, Complex_f jqq_f, float akappa_f,\ 
 		dim3 dimGrid, dim3 dimBlock){
 	/*
@@ -827,7 +827,7 @@ inline void Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f 
 	char *funcname = "Dslash_f";
 	cuDslash_f<<<dimGrid,dimBlock>>>(phi,r,u11t_f,u12t_f,iu,id,&gamval_f[0][0],&gamin[0][0],dk4m_f,dk4p_f,jqq_f,akappa_f);
 }
-inline void Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
+inline void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
 		Complex_f gamval_f[5][4],int gamin[4][4],	float *dk4m_f, float *dk4p_f, Complex_f jqq_f, float akappa_f,\ 
 		dim3 dimGrid, dim3 dimBlock){
 	/*
@@ -854,7 +854,7 @@ inline void Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f
 	char *funcname = "Dslashd_f";
 	cuDslashd_f<<<dimGrid,dimBlock>>>(phi,r,u11t_f,u12t_f,iu,id,&gamval_f[0][0],&gamin[0][0],dk4m_f,dk4p_f,jqq_f,akappa_f);
 }
-inline void Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
+inline void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
 		Complex_f gamval_f[5][4],int gamin[4][4],	float *dk4m_f, float *dk4p_f, Complex_f jqq_f, float akappa_f,\ 
 		dim3 dimGrid, dim3 dimBlock){
 	/*
@@ -881,7 +881,7 @@ inline void Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f
 	char *funcname = "Hdslash_f";
 	cuHdslash_f<<<dimGrid,dimBlock>>>(phi,r,u11t_f,u12t_f,iu,id,&gamval_f[0][0],&gamin[0][0],dk4m_f,dk4p_f,jqq_f,akappa_f);
 }
-inline void Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
+inline void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
 		Complex_f gamval_f[5][4],int gamin[4][4],	float *dk4m_f, float *dk4p_f, Complex_f jqq_f, float akappa_f,\
 		dim3 dimGrid, dim3 dimBlock){
 	/*

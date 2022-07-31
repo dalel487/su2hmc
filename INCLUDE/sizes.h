@@ -31,6 +31,8 @@
 #endif
 #ifdef	__NVCC__
 #include	<cuda.h>
+#endif
+#ifdef __CUDACC__
 #include	<thrust_complex.h>
 #else
 #include	<complex.h>
@@ -45,8 +47,8 @@
 #define	FILELEN	64
 // Common block definition for parallel variables
 
-#define	nx 8
-#define	nt	8
+#define	nx 24
+#define	nt	24
 // Keep original restriction of single spatial extent
 
 #define	ny    nx
@@ -54,8 +56,8 @@
 #define	gvol    (nx*ny*nz*nt)
 #define	gvol3   (nx*ny*nz)
 
-#define	npx	2
-#define	npt	2
+#define	npx	1
+#define	npt	1
 //Number of threads for OpenMP
 #define	nthreads	1
 

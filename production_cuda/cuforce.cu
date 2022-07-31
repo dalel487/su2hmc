@@ -6,22 +6,22 @@
 #include	<par_mpi.h>
 #include	<su2hmc.h>
 //Calling functions
-void Gauge_force(int mu, Complex *Sigma11, Complex *Sigma12, Complex *u11t,Complex *u12t,double *dSdpi,float beta,\
+void cuGauge_force(int mu, Complex *Sigma11, Complex *Sigma12, Complex *u11t,Complex *u12t,double *dSdpi,float beta,\
 		dim3 dimGrid, dim3 dimBlock){
 	const char *funcname = "Gauge_force";
 	cuGaugeForce<<<dimGrid,dimBlock>>>(mu,Sigma11,Sigma12,dSdpi,u11t,u12t,beta);
 }
-void Plus_staple(int mu, int nu, unsigned int *iu, Complex *Sigma11, Complex *Sigma12, Complex *u11t, Complex *u12t,\
+void cuPlus_staple(int mu, int nu, unsigned int *iu, Complex *Sigma11, Complex *Sigma12, Complex *u11t, Complex *u12t,\
 		dim3 dimGrid, dim3 dimBlock){
 	const char *funcname="Plus_staple";
 	Plus_staple<<<dimGrid,dimBlock>>>(mu, nu, iu, Sigma11, Sigma12,u11t,u12t);
 }
-void Minus_staple(int mu, int nu, unsigned int *iu, unsigned int *id, Complex *Sigma11, Complex *Sigma12,\
+void cuMinus_staple(int mu, int nu, unsigned int *iu, unsigned int *id, Complex *Sigma11, Complex *Sigma12,\
 		Complex *u11sh, Complex *u12sh,Complex *u11t, Complex*u12t,dim3 dimGrid, dim3 dimBlock){
 	const char *funcname="Minus_staple";
 	Minus_staple<<<dimGrid,dimBlock>>>(mu, nu, iu, id,Sigma11,Sigma12,u11sh,u12sh,u11t,u12t);
 }
-void Force(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, \
+void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, \
 		Complex gamval[5][4],double *dk4m, double *dk4p,unsigned int *iu,int gamin[4][4],\
 		float akappa, dim3 dimGrid, dim3 dimBlock){
 	const char *funcname = "Force";

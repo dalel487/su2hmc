@@ -58,7 +58,7 @@ extern int rank, size;
 //-------------
 //static unsigned int *iu, *id;
 
-#if (defined __NVCC__ || defined __cplusplus)
+#ifdef __cplusplus
 extern "C"
 {
 #endif
@@ -88,7 +88,7 @@ extern "C"
 	int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f);
 	//If we have more than two processors on the time axis, there's an extra step in the Polyakov loop calculation
 	int Par_tmul(Complex *z11, Complex *z12);
-#if (defined __NVCC__ || defined __cplusplus)
+#ifdef __cplusplus
 }
 #endif
 #endif
