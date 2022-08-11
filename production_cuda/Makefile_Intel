@@ -10,19 +10,18 @@ IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include" -I ./ -I../production_c\
 				-I/opt/nvidia/hpc_sdk/Linux_x86_64/2022/math_libs/include/ 
 
 CFLAGS=   $(IFLAGS) -ipo -qmkl -std=gnu11 -qopt-zmm-usage=high -MD\
-			-xSKYLAKE -axCASCADELAKE -D__NVCC__\
+			-xSKYLAKE -axCASCADELAKE -D__NVCC__ -DSA3AT\
 			-static-intel -static-libgcc -DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
-			-qopenmp -qno-openmp-offload -qopenmp-simd -DSA3AT\
+			-qopenmp -qno-openmp-offload -qopenmp-simd \
 
-MKLFLAGS=	-L${MKLROOT}/lib/intel64 -qmkl #-DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
+MKLFLAGS=	-L${MKLROOT}/lib/intel64 -qmkl -DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
 CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/2022/cuda/lib64/ \
 				-L/opt/nvidia/hpc_sdk/Linux_x86_64/2022/math_libs/lib64/ \
-				-lcuda -lcudart -lcublas #-L${NVSHMEM_HOME}/lib -lnvshmem -lblis 
+				-lcuda -lcudart -lcublas -lcu #-L${NVSHMEM_HOME}/lib -lnvshmem -lblis 
 
-LFLAGS=		-liomp5 -lpthread -ldl -lgsl  #${CULFLAGS}
+LFLAGS=		-lc -liomp5 -lpthread -ldl -lgsl  #${CULFLAGS}
 
-NVCCFLAGS=	${IFLAGS}  -err-no -w \
-			-expt-relaxed-constexpr 
+NVCCFLAGS=	${IFLAGS}  -err-no -w -expt-relaxed-constexpr \
 			#Last flag is an experimental one used to call host functions in device code. Not sure
 			#if it does what we want because the error message suggesting it came up when declaring
 			#a11 and a12 in the Dslash routine
@@ -91,9 +90,9 @@ debug:		NVCCFLAGS += -O0 -G -g -D_DEBUG -gencode arch=compute_75,code=sm_75 -gen
 debug:		$(EXE)
 
 		 
-$(EXE): ../main.c $(OBJ)
-	$(CXX) -D__NVCC__ $(CFLAGS) $(MKLFLAGS) $^ $(LFLAGS) $(CULFLAGS)  -o $@
-$(CULIB2): $(CULIB)
+$(EXE): $(OBJ) #$(CULIB2) $(CULIB) $(CLIB)
+	$(NVCC) -ccbin $(CXX)  -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $(NVCCFLAGS) ../main.c $^ $(LFLAGS) $(CULFLAGS)  -o $@
+$(CULIB2): $(CULIB) $(CLIB)
 	ar rc $@ $^ 
 $(CULIB): $(CUOBJ)
 	$(NVCC) -ccbin $(CXX) $(NVCCFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $(NVCCFLAGS)  $(LFLAGS) -dlink $^ -o $@ 
@@ -102,7 +101,7 @@ $(CLIB):	$(COBJ)
 $(CUSRC_DIR)%.o: $(CUSRC_DIR)%.cu
 	$(NVCC) -ccbin $(CXX) $(NVCCFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $^ -dc $@ 
 %.o: $(CSRC_DIR)%.c
-	$(CXX) $(CFLAGS) -x c++ $(MKLFLAGS) -c $^  
+	$(CXX) $(CFLAGS)  $(MKLFLAGS) -c $^  
 
 clean:
 	rm -f $(OBJ) $(COBJ) $(CUOBJ) $(CULIB) $(CLIB) $(TMP)

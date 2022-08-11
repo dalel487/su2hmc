@@ -223,7 +223,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 							conj(u12t[i*ndim+3])*(xi[(i*ngorkov+igorkovPP)*nc]+xi[(i*ngorkov+igork1PP)*nc]) ) );
 			}
 		}
-#ifdef __NVCC__
+#ifdef __CUDACC__
 	*endenf=(xu-xd-xuu+xdd).real();
 	*denf=(xu+xd+xuu+xdd).real();
 #else

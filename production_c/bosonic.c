@@ -38,7 +38,7 @@ int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex *u11
 	double hgs = 0; double hgt = 0;
 	//Since the ν loop doesn't get called for μ=0 we'll start at μ=1
 #ifdef __NVCC__
-	SU2plaq(&hgs, &hgt, u11t, u12t, iu,dimGrid,dimBlock);
+	cuSU2plaq(&hgs, &hgt, u11t, u12t, iu,dimGrid,dimBlock);
 #else
 	for(int mu=1;mu<ndim;mu++)
 		for(int nu=0;nu<mu;nu++)
@@ -170,7 +170,7 @@ double Polyakov(Complex *u11t, Complex *u12t){
 #ifdef __NVCC__
 	cudaMemPrefetchAsync(Sigma11,kvol3*sizeof(Complex),device,NULL);
 	cudaMemPrefetchAsync(Sigma12,kvol3*sizeof(Complex),device,NULL);
-	Polyakov(Sigma11,Sigma12,u11t,u12t,dimGrid,dimBlock);
+	cuPolyakov(Sigma11,Sigma12,u11t,u12t,dimGrid,dimBlock);
 #else
 #pragma acc enter data copyin(Sigma11[0:kvol3],Sigma12[0:kvol3])
 #pragma unroll

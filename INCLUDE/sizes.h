@@ -31,9 +31,14 @@
 #endif
 #ifdef	__NVCC__
 #include	<cuda.h>
+#include	<cuda_runtime.h>
 #endif
 #ifdef __CUDACC__
 #include	<thrust_complex.h>
+#elif defined __cplusplus
+#include <complex>
+#define	Complex_f	complex<float>
+#define	Complex	complex<double>
 #else
 #include	<complex.h>
 #define	Complex_f	float	complex
@@ -130,12 +135,19 @@
 #endif
 
 #ifdef	__NVCC__
-//Threads are grouped together to form warps of 32 threads
-//best to keep the block dimension (ksizex*ksizey) multiples of 32,
-//usually between 128 and 256
-//Note that from Volta/Turing  each SM (group of processors)
-//is smaller than on previous generations of GPUs
-extern dim3	dimBlock;
-extern dim3	dimGrid;
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+	//Threads are grouped together to form warps of 32 threads
+	//best to keep the block dimension (ksizex*ksizey) multiples of 32,
+	//usually between 128 and 256
+	//Note that from Volta/Turing  each SM (group of processors)
+	//is smaller than on previous generations of GPUs
+	extern dim3	dimBlock;
+	extern dim3	dimGrid;
+#ifdef __cplusplus
+}
+#endif
 #endif
 #endif
