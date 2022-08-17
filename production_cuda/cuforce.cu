@@ -5,8 +5,6 @@
 #include	<matrices.h>
 #include	<par_mpi.h>
 #include	<su2hmc.h>
-extern "C"
-{
 //Calling functions
 void cuGauge_force(int mu, Complex *Sigma11, Complex *Sigma12, Complex *u11t,Complex *u12t,double *dSdpi,float beta,\
 		dim3 dimGrid, dim3 dimBlock){
@@ -29,7 +27,6 @@ void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *
 	const char *funcname = "Force";
 	//X1=(M†M)^{1} Phi
 	cuForce<<<dimGrid,dimBlock>>>(dSdpi,u11t,u12t,X1,X2,&gamval[0][0],dk4m,dk4p,iu,&gamin[0][0],akappa);
-}
 }
 //CUDA Kernels
 //TODO: Split cuForce into seperateable streams

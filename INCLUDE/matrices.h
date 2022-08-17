@@ -32,6 +32,9 @@ extern "C"
 #ifdef DIAGNOSTIC
 	int Diagnostics(int istart);
 #endif
+#ifdef __cplusplus
+}
+#endif
 #ifdef __NVCC__
 //Calling Functions
 void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
@@ -62,9 +65,6 @@ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u1
 //New Trial Fields
 void cuReunitarise(Complex *u11t, Complex *u12t,dim3 dimGrid, dim3 dimBlock);
 void cuNew_trial(double dt, double *pp, Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock);
-#endif
-#ifdef __cplusplus
-}
 #endif
 #ifdef __CUDACC__
 //Actual CUDA

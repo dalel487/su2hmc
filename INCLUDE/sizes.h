@@ -31,14 +31,9 @@
 #endif
 #ifdef	__NVCC__
 #include	<cuda.h>
-#include	<cuda_runtime.h>
 #endif
 #ifdef __CUDACC__
 #include	<thrust_complex.h>
-#elif defined __cplusplus
-#include <complex>
-#define	Complex_f	complex<float>
-#define	Complex	complex<double>
 #else
 #include	<complex.h>
 #define	Complex_f	float	complex
@@ -52,8 +47,8 @@
 #define	FILELEN	64
 // Common block definition for parallel variables
 
-#define	nx 24
-#define	nt	24
+#define	nx 8
+#define	nt	8
 // Keep original restriction of single spatial extent
 
 #define	ny    nx
@@ -61,8 +56,8 @@
 #define	gvol    (nx*ny*nz*nt)
 #define	gvol3   (nx*ny*nz)
 
-#define	npx	1
-#define	npt	1
+#define	npx	2
+#define	npt	2
 //Number of threads for OpenMP
 #define	nthreads	1
 
@@ -135,19 +130,12 @@
 #endif
 
 #ifdef	__NVCC__
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-	//Threads are grouped together to form warps of 32 threads
-	//best to keep the block dimension (ksizex*ksizey) multiples of 32,
-	//usually between 128 and 256
-	//Note that from Volta/Turing  each SM (group of processors)
-	//is smaller than on previous generations of GPUs
-	extern dim3	dimBlock;
-	extern dim3	dimGrid;
-#ifdef __cplusplus
-}
-#endif
+//Threads are grouped together to form warps of 32 threads
+//best to keep the block dimension (ksizex*ksizey) multiples of 32,
+//usually between 128 and 256
+//Note that from Volta/Turing  each SM (group of processors)
+//is smaller than on previous generations of GPUs
+extern dim3	dimBlock;
+extern dim3	dimGrid;
 #endif
 #endif

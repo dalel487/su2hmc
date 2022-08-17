@@ -66,9 +66,22 @@ extern "C"
 	//Inline Stuff
 	extern int Z_gather(Complex*x, Complex *y, int n, unsigned int *table, unsigned int mu);
 	extern int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi);
+#if (defined __cplusplus)
+}
+#endif
 
 //CUDA Declarations:
 //#################
+#ifdef __CUDACC__
+__global__ void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
+		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa);
+__global__ void Plus_staple(int mu, int nu,unsigned int *iu, Complex *Sigma11, Complex *Sigma12, Complex *u11t, Complex *u12t);
+__global__ void Minus_staple(int mu, int nu,unsigned int *iu,unsigned int *id, Complex *Sigma11, Complex *Sigma12,\
+		Complex *u11sh, Complex *u12sh, Complex *u11t, Complex *u12t);
+__global__ void cuGaugeForce(int mu, Complex *Sigma11, Complex *Sigma12,double*dSdpi,Complex *u11t, Complex *u12t, float beta);
+__global__ void cuSU2plaq(double *hgs, double *hgt, Complex *u11t, Complex *u12t, unsigned int *iu);
+__global__ void cuPolyakov(Complex *Sigma11, Complex * Sigma12, Complex *u11t, Complex *u12t);
+#endif
 #ifdef __NVCC__
 //Calling Functions:
 //=================
@@ -86,20 +99,6 @@ void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *
 		//Init_CUDA was taken already by CUDA (unsurprisingly)
 void	Init_CUDA(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f, Complex gamval[5][4],\
 		Complex_f gamval_f[5][4], int gamin[4][4],Complex *gamval_d, Complex_f *gamval_f_d, int *gamin_d,\
-		double *dk4m, double *dk4p, float *dk4m_f, float *dk4p_f, unsigned int *iu, unsigned int *id,\
-		dim3 *dimBlock, dim3 *dimGrid);
-#endif
-#ifdef __cplusplus
-}
-#endif
-#ifdef __CUDACC__
-__global__ void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
-		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa);
-__global__ void Plus_staple(int mu, int nu,unsigned int *iu, Complex *Sigma11, Complex *Sigma12, Complex *u11t, Complex *u12t);
-__global__ void Minus_staple(int mu, int nu,unsigned int *iu,unsigned int *id, Complex *Sigma11, Complex *Sigma12,\
-		Complex *u11sh, Complex *u12sh, Complex *u11t, Complex *u12t);
-__global__ void cuGaugeForce(int mu, Complex *Sigma11, Complex *Sigma12,double*dSdpi,Complex *u11t, Complex *u12t, float beta);
-__global__ void cuSU2plaq(double *hgs, double *hgt, Complex *u11t, Complex *u12t, unsigned int *iu);
-__global__ void cuPolyakov(Complex *Sigma11, Complex * Sigma12, Complex *u11t, Complex *u12t);
+		double *dk4m, double *dk4p, float *dk4m_f, float *dk4p_f, unsigned int *iu, unsigned int *id);
 #endif
 #endif
