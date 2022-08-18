@@ -754,8 +754,8 @@ int main(int argc, char *argv[]){
 #if (defined SA3AT)
 	if(!rank){
 		FILE *sa3at = fopen("Bench_times.csv", "a");
-		fprintf(sa3at, "%s\nβ%0.3f κ:%0.4f μ:%0.4f j:%0.3f s:%lu t:%lu kvol:%lu\n\
-				npx:%lu npt:%lu nthread:%lu ncore:%lu time:%f traj_time:%f\n\n",\
+		fprintf(sa3at, "%s\nβ%0.3f κ:%0.4f μ:%0.4f j:%0.3f s:%lu t:%lu kvol:%lu\n"
+					"npx:%lu npt:%lu nthread:%lu ncore:%lu time:%f traj_time:%f\n\n",\
 				__VERSION__,beta,akappa,fmu,ajq,nx,nt,kvol,npx,npt,nthreads,npx*npy*npz*npt*nthreads,elapsed,elapsed/ntraj);
 		fclose(sa3at);
 	}
