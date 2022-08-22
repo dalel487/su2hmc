@@ -3,11 +3,11 @@ CC=mpicc -cc=clang
 IFLAGS=     -I../INCLUDE/ -I ${AOCL_ROOT}/include
 
 CFLAGS=	$(IFLAGS) -std=gnu11 -DAMD_BLAS -fcommon -DSA3AT\
-			-fveclib=AMDLIBM -march=znver1 -mtune=znver2 -D__RANLUX__\
-			-fopenmp=libgomp -fopenmp-simd -static-openmp -static-libgcc -static -fremap-arrays \
+			-fveclib=AMDLIBM -march=znver2 -mtune=znver3 -D__RANLUX__\
+			-fopenmp=libiomp5 -fopenmp-simd -static-openmp -static-libgcc -static -fremap-arrays \
 		  #-fprofile-instr-use
 
-LFLAGS=	-Wl -L${AOCL_ROOT}/lib -latomic -lpthread -lm -ldl -lalm -lblis -lgsl
+LFLAGS=	-Wl -L${AOCL_ROOT}/lib -lgsl -latomic -lpthread -lm -ldl -lalm -lblis 
 
 EXE=	su2hmc_AMD
 
@@ -49,27 +49,24 @@ profiler:	CFLAGS += -g -D_DEBUG #-fprofile-generate
 
 profiler:	release
 
-release:	CFLAGS +=  -O3 -finline-aggressive -finline-recursion=4\
-				-funroll-loops -flto=full -fnt-store \
+release:	CFLAGS +=  -O3 -finline-aggressive -finline-recursion=4 -funroll-loops -flto=full -fnt-store
 
 release:	$(EXE)
 
-debug:	CFLAGS += -g -O0  -flto=full\
-		-D_DEBUG #-DDIAGNOSTIC -DNO_TIME -DNO_SPACE
+debug:	CFLAGS += -g -O0  -flto=full -D_DEBUG #-DDIAGNOSTIC -DNO_TIME -DNO_SPACE
 
 debug:	$(EXE)
 
 $(EXE):	$(OBJ)
-	$(CC) $(CFLAGS) -o $@ $(OBJ) $(LFLAGS)
+	$(CC) $(CFLAGS) ../main.c -o $@ $(OBJ) $(LFLAGS)
 
-$(OBJ):	$(MF) 
+$(OBJ):	$(MF)
 
 clean:
 	rm -f $(OBJ) $(TMP)
 
 INP=	\
 	midout \
-	con
 
 tar:
 	tar cvfz $(EXE).tar $(MF) $(SRC) $(INC) $(INP) $(EXE)

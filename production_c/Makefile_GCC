@@ -1,4 +1,4 @@
-CC=mpicc 
+CC=mpicc -cc=gcc
 
 IFLAGS=     -I../INCLUDE/ -I ${AOCL_ROOT}/include
 
@@ -56,7 +56,7 @@ debug:	CFLAGS += -g -O0  \
 debug:	$(EXE)
 
 $(EXE):	$(OBJ)
-		$(CC) -MMD -MP $(CFLAGS) -o $@ $(OBJ) $(LFLAGS)  
+		$(CC) ../main.c -MMD -MP $(CFLAGS) -o $@ $(OBJ) $(LFLAGS)  
 
 $(OBJ):	$(MF) 
 
