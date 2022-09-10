@@ -1,14 +1,14 @@
-CC=mpicc -cc=gcc
+CC=mpicc 
 
 IFLAGS=     -I../INCLUDE/ -I ${AOCL_ROOT}/include
 
 CFLAGS=	$(IFLAGS) -std=gnu11 -DAMD_BLAS -fcommon\
-		-march=znver1 -mtune=znver2 -static -D__RANLUX__\
+		-march=znver2 -mtune=znver3 -static -D__RANLUX__\
 		-fopenmp -fopenmp-simd -static-libgcc -DSA3AT -flto -static\
 #		-foffload=amdgcn-amdhsa="-march=gfx902" #-fopenacc\
 #		-pg -fprofile-arcs-foffload=amdgcn-amdhsa="-march=gfx90c"
 
-LFLAGS=	-L ${AOCL_ROOT}/lib/ -latomic -lalm -lblis -lgsl
+LFLAGS=	-L ${AOCL_ROOT}/lib/ -lalm -lblis -lgsl
 
 EXE=	su2hmc_GCC
 
@@ -45,10 +45,10 @@ TMP=	$(MOD) $(EDT) core
 -include $(DEPS)
 all:	$(EXE)
 
-profiler:	CFLAGS += -g -D_DEBUG #-fprofile-generate
+profiler:	CFLAGS += -g -fprofile-generate=./gcc_pgo
 profiler:	release
 
-release:	CFLAGS +=  -Ofast -funroll-all-loops -fcf-protection=none
+release:	CFLAGS +=  -Ofast -funroll-all-loops -fcf-protection=none #-fprofile-use=./gcc_pgo
 release:	$(EXE)
 
 debug:	CFLAGS += -g -O0  \

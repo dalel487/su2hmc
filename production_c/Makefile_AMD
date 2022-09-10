@@ -4,10 +4,10 @@ IFLAGS=     -I../INCLUDE/ -I ${AOCL_ROOT}/include
 
 CFLAGS=	$(IFLAGS) -std=gnu11 -DAMD_BLAS -fcommon -DSA3AT\
 			-fveclib=AMDLIBM -march=znver2 -mtune=znver3 -D__RANLUX__\
-			-fopenmp=libiomp5 -fopenmp-simd -static-openmp -static-libgcc -static -fremap-arrays \
+			-fopenmp=libgomp -fopenmp-simd -static-openmp -static-libgcc -static -fremap-arrays \
 		  #-fprofile-instr-use
 
-LFLAGS=	-Wl -L${AOCL_ROOT}/lib -lgsl -latomic -lpthread -lm -ldl -lalm -lblis 
+LFLAGS=	-Wl -L${AOCL_ROOT}/lib -lgsl -lpthread -ldl -lalm -lblis 
 
 EXE=	su2hmc_AMD
 
@@ -49,7 +49,8 @@ profiler:	CFLAGS += -g -D_DEBUG #-fprofile-generate
 
 profiler:	release
 
-release:	CFLAGS +=  -O3 -finline-aggressive -finline-recursion=4 -funroll-loops -flto=full -fnt-store
+release:	CFLAGS +=  -O3 -finline-aggressive -finline-recursion=4 -funroll-loops -flto=full -fnt-store\
+							-mfma -fvectorize -mfma -mavx2 -m3dnow -floop-unswitch-aggressive -fuse-ld=lld
 
 release:	$(EXE)
 
