@@ -1,75 +1,71 @@
 MF=	Makefile
 
-CC= mpiicc
+CC= mpiicc -cc=icx
 
-IFLAGS=     -I../INCLUDE 
+IFLAGS=	-I../INCLUDE 
 
-CFLAGS=		$(IFLAGS) -cc=icx -qmkl -std=c11 -ipo -qopt-zmm-usage=high \
-			-xCOMMON-AVX512 -static-intel -static-libgcc -DMKL_DIRECT_CALL -D__INTEL_MKL__\
-			-qopenmp-simd -fiopenmp  -qopenmp-link=static -DSA3AT -fcommon\
-			 -fopenmp-targets=spir64 \
+CFLAGS=     $(IFLAGS) -qmkl -std=gnu11 -ipo -qopt-zmm-usage=high -MD\
+			-xHASWELL -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,SKYLAKE,COFFEELAKE,ALDERLAKE\
+			-static-intel -static-libgcc -DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
+			-fiopenmp -fiopenmp-simd -DSA3AT \
 
-LFLAGS=		-L${MKLROOT}/lib/intel64 -lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_core -lmkl_blacs_intelmpi_ilp64\
-			-liomp5 -lpthread -ldl
+LFLAGS=	-L${MKLROOT}/lib/intel64 \
+		-liomp5 -lpthread -ldl -Bstatic -lgsl
 
-EXE=		su2hmc_Clang
+EXE=	su2hmc_Clang
 
 SRC= \
-	su2hmc.c \
-	force.c\
+	coord.c \
+	random.c \
+	matrices.c \
+	congrad.c \
 	bosonic.c\
 	fermionic.c\
+	force.c\
 	par_mpi.c \
-    coord.c \
-    random.c \
-    matrices.c \
+	su2hmc.c \
 
 INC= \
-	su2hmc.h \
 	sizes.h \
-    par_mpi.h \
-    random.h \
-    matrices.h \
-    coord.h \
-    errorcodes.h \
-
+	errorcodes.h \
+	coord.h \
+	random.h \
+	matrices.h \
+	par_mpi.h \
+	su2hmc.h \
 #
 # No need to edit below this line
 #
-
 .SUFFIXES: .c .o
 .PHONY: clean debug release profiler tar
 
 OBJ=	$(SRC:.c=.o)
+DEPS=	$(OBJ:.o=.d_icc)
 EDT=	$(SRC:.c=.c~)
 TMP=	$(MOD) $(EDT) core
 
+-include $(DEPS)
 all:	$(EXE)
 
-profiler:	CFLAGS += -g -D_DEBUG #-DNO_GAUGE -DNO_SPACE -DNO_TIME\
-								#-DUSE_RAN2 -DDIAGNOSTIC
-
+profiler:	CFLAGS += -g -D_DEBUG
 profiler:	release
 
 release:	CFLAGS +=  -O3  -inline-level=2\
-						-DMKL_ILP64  -I"${MKLROOT}/include"# -DUSE_RAN2
+						-DMKL_ILP64  -I"${MKLROOT}/include" #-DUSE_RAN2
 release:	$(EXE)
 
-debug:	CFLAGS +=	-g -O0 \
-					-D_DEBUG #-DUSE_RAN2 -DDIAGNOSTIC
+debug:	CFLAGS += -g -O0 \
+		-D_DEBUG #-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 debug:	$(EXE)
 
 $(EXE):	$(OBJ)
-	$(CC) $(CFLAGS) -o $@ $(LFLAGS) $^ 
-
-$(OBJ):	$(MF) 
+		$(CC) ../main.c -MMD -MP $(CFLAGS) -o $@ $(OBJ) $(LFLAGS)  
 
 clean:
-	rm -f $(OBJ) $(TMP)
+		rm -f $(OBJ) $(TMP) $(DEPS)
 
 INP=	\
-	midout \
-	con
+		midout
 
 tar:
-	tar cvfz $(EXE).tar $(MF) $(SRC) $(INC) $(INP) $(EXE)
+	tar cvfz $(EXE).tar $(MF) $(SRC) $(INC) $(INP) $(EXE) $(DEPS)
