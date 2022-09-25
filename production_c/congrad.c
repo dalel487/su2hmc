@@ -185,7 +185,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 		betad=betan; alphan=betan;
 		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multiplying y by
 		//β instead of x.
-#if (defined __INTEL_MKL__||defined AMD_BLAS)
+#if (defined __INTEL_MKL__)
 		Complex a = 1.0;
 		//There is cblas_zaxpby in the MKL and AMD though, set a = 1 and b = β.
 		//If we get a small enough β_n before hitting the iteration cap we break
@@ -375,7 +375,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex *u11t,Complex *u
 		//addition.
 		betan = 0;
 		//If we get a small enough β_n before hitting the iteration cap we break
-#pragma omp parallel for simd aligned(x2_f,r:AVX) reduction(+:betan)
+#pragma omp parallel for simd aligned(x2,r:AVX) reduction(+:betan)
 		for(int i = 0; i<kferm;i++){
 			r[i]-=alpha*x2[i];
 			betan+=conj(r[i])*r[i];
@@ -402,7 +402,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex *u11t,Complex *u
 		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multiplying y by 
 		//β instead of x.
 		//There is cblas_zaxpby in the MKL though, set a = 1 and b = β.
-#if (defined __INTEL_MKL__||defined AMD_BLAS)
+#if (defined __INTEL_MKL__)
 		Complex a = 1;
 		cblas_zaxpby(kferm, &a, r, 1, &beta,  p, 1);
 #else
