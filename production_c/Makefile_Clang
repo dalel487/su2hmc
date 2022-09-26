@@ -7,7 +7,7 @@ IFLAGS=	-I../INCLUDE
 CFLAGS=     $(IFLAGS) -qmkl -std=gnu11 -ipo -qopt-zmm-usage=high -MD\
 			-xHASWELL -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,SKYLAKE,COFFEELAKE,ALDERLAKE\
 			-static-intel -static-libgcc -DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
-			-fiopenmp -fiopenmp-simd -DSA3AT \
+			-qopenmp -qopenmp-simd -DSA3AT \
 
 LFLAGS=	-L${MKLROOT}/lib/intel64 \
 		-liomp5 -lpthread -ldl -Bstatic -lgsl
@@ -47,10 +47,10 @@ TMP=	$(MOD) $(EDT) core
 -include $(DEPS)
 all:	$(EXE)
 
-profiler:	CFLAGS += -g -D_DEBUG
+profiler:	CFLAGS += -g #-D_DEBUG
 profiler:	release
 
-release:	CFLAGS +=  -O3  -inline-level=2\
+release:	CFLAGS +=  -fast -O3  -inline-level=2\
 						-DMKL_ILP64  -I"${MKLROOT}/include" #-DUSE_RAN2
 release:	$(EXE)
 
