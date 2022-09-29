@@ -106,8 +106,13 @@ int Addrc(unsigned int *iu, unsigned int *id){
 						//ic++;
 						ic=(((jt)*ksizez+(jz))*ksizey+(jy))*ksizex+jx;
 						//jx!=0 is logically equivalent to if(jx)
+						//If we're inside the sublattice, take the down nearest neightbour from inside the sublattice
+#if (npx==1)
+						iaddr = ia(jx-1,jy,jz,jt);
+#elif (npx>1)
 						if(jx)
 							iaddr = ia(jx-1,jy,jz,jt);
+						//Else if we're at the "down" edge, the down nearest neighbour is in the halo
 						else{
 							ih[0][0]++;
 							if(ih[0][0]>= halo){
@@ -118,7 +123,11 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							hd[0+ndim*ih[0][0]]=ic;
 							iaddr=h1d[0]+ih[0][0];
 						}
+#endif
 						id[0+ndim*ic]=iaddr;
+#if (npx==1)
+						iaddr = ia(jx+1,jy,jz,jt);
+#elif (npx>1)
 						if(jx<ksize-1)
 							iaddr = ia(jx+1,jy,jz,jt);
 						else{
@@ -131,7 +140,11 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							hu[0+ndim*ih[1][0]]=ic;
 							iaddr=ih[1][0]+h1u[0];	
 						}
+#endif
 						iu[0+ndim*ic]=iaddr;
+#if (npy>==1)
+						iaddr = ia(jx,jy-1,jz,jt);
+#elif (npy>1)
 						if(jy)
 							iaddr = ia(jx,jy-1,jz,jt);
 						else{
@@ -145,6 +158,10 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							iaddr=h1d[1]+ih[0][1];
 						}
 						id[1+ndim*ic]=iaddr;
+#endif
+#if (npy==1)
+						iaddr = ia(jx,jy+1,jz,jt);
+#elif (npy>1)
 						if(jy<ksize-1)
 							iaddr = ia(jx,jy+1,jz,jt);
 						else{
@@ -157,7 +174,11 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							hu[1+ndim*ih[1][1]]=ic;
 							iaddr=ih[1][1]+h1u[1];	
 						}
+#endif
 						iu[1+ndim*ic]=iaddr;
+#if (npz==1)
+						iaddr = ia(jx,jy,jz-1,jt);
+#elif (npz>1)
 						if(jz)
 							iaddr = ia(jx,jy,jz-1,jt);
 						else{
@@ -170,7 +191,11 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							hd[2+ndim*ih[0][2]]=ic;
 							iaddr=h1d[2]+ih[0][2];
 						}
+#endif
 						id[2+ndim*ic]=iaddr;
+#if (npz==1)
+						iaddr = ia(jx,jy,jz+1,jt);
+#elif (npz>1)
 						if(jz<ksize-1)
 							iaddr = ia(jx,jy,jz+1,jt);
 						else{
@@ -183,7 +208,11 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							hu[2+ndim*ih[1][2]]=ic;
 							iaddr=ih[1][2]+h1u[2];	
 						}
+#endif
 						iu[2+ndim*ic]=iaddr;
+#if (npt==1)
+						iaddr = ia(jx,jy,jz,jt-1);
+#elif (npt>1)
 						if(jt)
 							iaddr = ia(jx,jy,jz,jt-1);
 						else{
@@ -196,7 +225,11 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							hd[3+ndim*ih[0][3]]=ic;
 							iaddr=h1d[3]+ih[0][3];
 						}
+#endif
 						id[3+ndim*ic]=iaddr;
+#if (npt==1)
+						iaddr = ia(jx,jy,jz,jt+1);
+#elif (npt>1)
 						if(jt<ksizet-1)
 							iaddr = ia(jx,jy,jz,jt+1);
 						else{
@@ -209,6 +242,7 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							hu[3+ndim*ih[1][3]]=ic;
 							iaddr=ih[1][3]+h1u[3];	
 						}
+#endif
 						iu[3+ndim*ic]=iaddr;
 					}
 		//Print iu and id for diagnostics
