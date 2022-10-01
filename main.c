@@ -313,13 +313,13 @@ int main(int argc, char *argv[]){
 		printf("hg = %e, <Ps> = %e, <Pt> = %e, <Poly> = %e\n", hg, avplaqs, avplaqt, poly);
 		fprintf(output, "ksize = %i ksizet = %i Nf = %i Halo =%i\nTime step dt = %e Trajectory length = %e\n"\
 				"No. of Trajectories = %i β = %e\nκ = %e μ = %e\nDiquark source = %e Diquark phase angle = %e\n"\
-				"Stopping Residuals: Guidance: %e Acceptance: %e, Estimator: %e\nSeed = %i\n",
+				"Stopping Residuals: Guidance: %e Acceptance: %e, Estimator: %e\nSeed = %ld\n",
 				ksize, ksizet, nf, halo, dt, traj, ntraj, beta, akappa, fmu, ajq, athq, rescgg, rescga, respbp, seed);
 #ifdef _DEBUG
 		//Print to terminal during debugging
 		printf("ksize = %i ksizet = %i Nf = %i Halo = %i\nTime step dt = %e Trajectory length = %e\n"\
 				"No. of Trajectories = %i β = %e\nκ = %e μ = %e\nDiquark source = %e Diquark phase angle = %e\n"\
-				"Stopping Residuals: Guidance: %e Acceptance: %e, Estimator: %e\nSeed = %i\n",
+				"Stopping Residuals: Guidance: %e Acceptance: %e, Estimator: %e\nSeed = %l\n",
 				ksize, ksizet, nf, halo, dt, traj, ntraj, beta, akappa, fmu, ajq, athq, rescgg, rescga, respbp, seed);
 #endif
 	}
@@ -754,8 +754,8 @@ int main(int argc, char *argv[]){
 #if (defined SA3AT)
 	if(!rank){
 		FILE *sa3at = fopen("Bench_times.csv", "a");
-		fprintf(sa3at, "%s\nβ%0.3f κ:%0.4f μ:%0.4f j:%0.3f s:%lu t:%lu kvol:%lu\n"
-					"npx:%lu npt:%lu nthread:%lu ncore:%lu time:%f traj_time:%f\n\n",\
+		fprintf(sa3at, "%s\nβ%0.3f κ:%0.4f μ:%0.4f j:%0.3f s:%i t:%i kvol:%ld\n"
+					"npx:%i npt:%i nthread:%i ncore:%i time:%f traj_time:%f\n\n",\
 				__VERSION__,beta,akappa,fmu,ajq,nx,nt,kvol,npx,npt,nthreads,npx*npy*npz*npt*nthreads,elapsed,elapsed/ntraj);
 		fclose(sa3at);
 	}

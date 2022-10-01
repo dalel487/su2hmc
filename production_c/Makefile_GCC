@@ -1,10 +1,10 @@
-CC=mpicc -cc=gcc-12
+CC=mpicc 
 
 IFLAGS=     -I../INCLUDE/ -I ${AOCL_ROOT}/include
 
 CFLAGS=	$(IFLAGS) -std=gnu11 -DAMD_BLAS -fcommon\
 		-march=znver2 -mtune=znver3 -static -D__RANLUX__\
-		-fopenmp -fopenmp-simd -static-libgcc -DSA3AT -flto -static\
+		-fopenmp -fopenmp-simd -static-libgcc -DSA3AT -flto\
 #		-foffload=amdgcn-amdhsa="-march=gfx902" #-fopenacc\
 #		-pg -fprofile-arcs-foffload=amdgcn-amdhsa="-march=gfx90c"
 

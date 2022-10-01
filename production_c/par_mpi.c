@@ -63,9 +63,9 @@ int Par_begin(int argc, char *argv[]){
 	int periods[ndim] __attribute__((aligned(AVX)));
 #pragma unroll
 	for(int i=0; i<ndim; i++)
-		periods[i] = TRUE;
+		periods[i] = true;
 	//Not going to change the rank order
-	int reorder = FALSE;
+	int reorder = false;
 	//Declare the topology
 	MPI_Cart_create(comm, ndim, cartsize, periods, reorder, &commcart);
 

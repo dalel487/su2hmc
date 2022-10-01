@@ -39,16 +39,12 @@
 #define	Complex_f	float	complex
 #define	Complex		double complex
 #endif
-// Define booleans for C because they don't exist natively
-// They do in C99...
-#define	TRUE	1
-#define	FALSE	0
 
 #define	FILELEN	64
 // Common block definition for parallel variables
 
-#define	nx 8
-#define	nt	8
+#define	nx 24
+#define	nt	3
 // Keep original restriction of single spatial extent
 
 #define	ny    nx
@@ -57,7 +53,7 @@
 #define	gvol3   (nx*ny*nz)
 
 #define	npx	2
-#define	npt	2
+#define	npt	1
 //Number of threads for OpenMP
 #define	nthreads	1
 
@@ -119,13 +115,25 @@
 //Alignment of arrays. 64 for AVX-512, 32 for AVX/AVX2. 16 for SSE. Since AVX is standard
 //on modern x86 machines I've called it that
 #ifdef	__AVX512F__
+#ifdef __unix__
 #warning	AVX512 detected
+#elif (defined WIN32||_WIN32)
+#pragma message("AVX512 detected")
+#endif
 #define	AVX	64
 #elif defined	__AVX__
+#ifdef __unix__
 #warning	AVX or AVX2 detected
+#elif (defined WIN32||_WIN32)
+#pragma message("AVX or AVX2 detected")
+#endif
 #define	AVX	32
 #else
+#ifdef __unix__
 #warning	No AVX detected, assuming SSE is present
+#elif (defined WIN32||_WIN32)
+#pragma message("No AVX detected, assuming SSE is present")
+#endif
 #define	AVX	16
 #endif
 

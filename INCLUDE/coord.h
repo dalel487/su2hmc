@@ -5,6 +5,10 @@
 #define USE_BLAS
 #include <cublas_v2.h>
 #endif
+#include <math.h>
+#if (defined__INTEL_COMPILER || __INTEL_LLVM_COMPILER)
+#include <mathimf.h>
+#endif
 #if defined __INTEL_MKL__
 #define USE_BLAS
 #include <mkl.h>

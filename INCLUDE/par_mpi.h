@@ -2,13 +2,13 @@
 #define	PAR_MPI
 #include	<coord.h>
 #include	<errorcodes.h>
-#include	<math.h>
 #include	<mpi.h> 
 #ifdef _OPENMP
 #include	<omp.h>
 #endif
 #include	<random.h>
 #include	<sizes.h>
+#include	<stdbool.h>
 #include	<stdio.h>
 #include	<stdlib.h>
 #include	<string.h>

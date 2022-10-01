@@ -5,7 +5,6 @@
 #include	<cuda_runtime.h>
 //Fix this later
 #endif
-#include	<math.h>
 #include	<matrices.h>
 #include	<par_mpi.h>
 #include	<random.h>

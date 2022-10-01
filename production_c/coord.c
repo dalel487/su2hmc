@@ -1,6 +1,5 @@
 #include <coord.h>
 #include <errorcodes.h>
-#include <math.h>
 #ifdef  __OPENMP
 #include <omp.h>
 #endif

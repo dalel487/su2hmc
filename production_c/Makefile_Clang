@@ -9,8 +9,7 @@ CFLAGS=     $(IFLAGS) -qmkl -std=gnu11 -ipo -qopt-zmm-usage=high -MD\
 			-static-intel -static-libgcc -DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
 			-qopenmp -qopenmp-simd -DSA3AT \
 
-LFLAGS=	-L${MKLROOT}/lib/intel64 \
-		-liomp5 -lpthread -ldl -Bstatic -lgsl
+LFLAGS=	-L${MKLROOT}/lib/intel64 -limf -Bstatic -lgsl
 
 EXE=	su2hmc_Clang
 
