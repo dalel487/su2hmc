@@ -37,7 +37,7 @@
 #else
 #include	<complex.h>
 #define	Complex_f	float	complex
-#define	Complex	complex
+#define	Complex		double complex
 #endif
 // Define booleans for C because they don't exist natively
 // They do in C99...

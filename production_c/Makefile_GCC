@@ -1,4 +1,4 @@
-CC=mpicc 
+CC=mpicc -cc=gcc-12
 
 IFLAGS=     -I../INCLUDE/ -I ${AOCL_ROOT}/include
 
