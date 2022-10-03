@@ -104,7 +104,7 @@ int Addrc(unsigned int *iu, unsigned int *id){
 					for(int jx=0;jx<ksizex;jx++){
 						//First value of ic is zero as planned.
 						//ic++;
-						ic=(((jt)*ksizez+(jz))*ksizey+(jy))*ksizex+jx;
+						ic=((jt*ksizez+jz)*ksizey+jy)*ksizex+jx;
 						//jx!=0 is logically equivalent to if(jx)
 						//If we're inside the sublattice, take the down nearest neightbour from inside the sublattice
 						if(jx)
@@ -118,11 +118,11 @@ int Addrc(unsigned int *iu, unsigned int *id){
 								MPI_Abort(comm,HALOLIM);
 							}
 							hd[0+ndim*ih[0][0]]=ic;
-//#if npx==1
-//							iaddr = ia(jx-1,jy,jz,jt);
-//#elif npx>1
-							iaddr=h1d[0]+ih[0][0];
-//#endif
+#if npx==1
+ 						iaddr = ia(jx-1,jy,jz,jt);
+#elif npx>1
+ 						iaddr=h1d[0]+ih[0][0];
+#endif
 						}
 						id[0+ndim*ic]=iaddr;
 						
@@ -136,11 +136,11 @@ int Addrc(unsigned int *iu, unsigned int *id){
 								MPI_Abort(comm,HALOLIM);
 							}
 							hu[0+ndim*ih[1][0]]=ic;
-//#if npx==1
-//							iaddr = ia(jx+1,jy,jz,jt);
-//#elif npx>1
-							iaddr=ih[1][0]+h1u[0];	
-//#endif
+#if npx==1
+ 						iaddr = ia(jx+1,jy,jz,jt);
+#elif npx>1
+ 						iaddr=ih[1][0]+h1u[0];	
+#endif
 						}
 						iu[0+ndim*ic]=iaddr;
 
@@ -154,11 +154,11 @@ int Addrc(unsigned int *iu, unsigned int *id){
 								MPI_Abort(comm,HALOLIM);
 							}
 							hd[1+ndim*ih[0][1]]=ic;
-//#if npy==1
-//							iaddr = ia(jx,jy-1,jz,jt);
-//#elif npy>1
-							iaddr=h1d[1]+ih[0][1];
-//#endif
+#if npy==1
+ 						iaddr = ia(jx,jy-1,jz,jt);
+#elif npy>1
+ 						iaddr=h1d[1]+ih[0][1];
+#endif
 						}
 						id[1+ndim*ic]=iaddr;
 
@@ -172,11 +172,11 @@ int Addrc(unsigned int *iu, unsigned int *id){
 								MPI_Abort(comm,HALOLIM);
 							}
 							hu[1+ndim*ih[1][1]]=ic;
-//#if npy==1
-//							iaddr = ia(jx,jy+1,jz,jt);
-//#elif npy>1
-							iaddr=ih[1][1]+h1u[1];	
-//#endif
+#if npy==1
+ 						iaddr = ia(jx,jy+1,jz,jt);
+#elif npy>1
+ 						iaddr=ih[1][1]+h1u[1];	
+#endif
 						}
 						iu[1+ndim*ic]=iaddr;
 
@@ -190,11 +190,11 @@ int Addrc(unsigned int *iu, unsigned int *id){
 								MPI_Abort(comm,HALOLIM);
 							}
 							hd[2+ndim*ih[0][2]]=ic;
-//#if npz==1
-//							iaddr = ia(jx,jy,jz-1,jt);
-//#elif npz>1
-							iaddr=h1d[2]+ih[0][2];
-//#endif
+#if npz==1
+ 						iaddr = ia(jx,jy,jz-1,jt);
+#elif npz>1
+ 						iaddr=h1d[2]+ih[0][2];
+#endif
 						}
 						id[2+ndim*ic]=iaddr;
 
@@ -208,11 +208,11 @@ int Addrc(unsigned int *iu, unsigned int *id){
 								MPI_Abort(comm,HALOLIM);
 							}
 							hu[2+ndim*ih[1][2]]=ic;
-//#if npz==1
-//							iaddr = ia(jx,jy,jz+1,jt);
-//#elif npz>1
-							iaddr=ih[1][2]+h1u[2];	
-//#endif
+#if npz==1
+ 						iaddr = ia(jx,jy,jz+1,jt);
+#elif npz>1
+ 						iaddr=ih[1][2]+h1u[2];	
+#endif
 						}
 						iu[2+ndim*ic]=iaddr;
 
@@ -226,11 +226,11 @@ int Addrc(unsigned int *iu, unsigned int *id){
 								MPI_Abort(comm,HALOLIM);
 							}
 							hd[3+ndim*ih[0][3]]=ic;
-//#if nt==1
-//							iaddr = ia(jx,jy,jz,jt-1);
-//#elif npt>1
+#if npt==1
+							iaddr = ia(jx,jy,jz,jt-1);
+#elif npt>1
 							iaddr=h1d[3]+ih[0][3];
-//#endif
+#endif
 						}
 						id[3+ndim*ic]=iaddr;
 
@@ -244,11 +244,11 @@ int Addrc(unsigned int *iu, unsigned int *id){
 								MPI_Abort(comm,HALOLIM);
 							}
 							hu[3+ndim*ih[1][3]]=ic;
-//#if nt==1
-//							iaddr = ia(jx,jy,jz,jt+1);
-//#elif npt>1
+#if npt==1
+							iaddr = ia(jx,jy,jz,jt+1);
+#elif npt>1
 							iaddr=ih[1][3]+h1u[3];	
-//#endif
+#endif
 						}
 						iu[3+ndim*ic]=iaddr;
 					}

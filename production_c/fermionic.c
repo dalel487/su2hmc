@@ -18,7 +18,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	 *
 	 * Calls:
 	 * =====
-	 * Gauss_z, Par_dsum, ZHalo_swap_dir, DHalo_swap_dir, Congradp, Dslashd
+	 * Gauss_z, Par_dsum, ZHalo_swap_dir, Congradp, Dslashd
 	 *
 	 * Parameters:
 	 * ==========
@@ -114,7 +114,9 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	for(int i=0;i<kferm;i++)
 		*pbp+=creal(conj(x[i])*xi[i]);
 #endif
+	#if(nproc>1)
 	Par_dsum(pbp);
+	#endif
 	*pbp/=4*gvol;
 
 	*qbqb=*qq=0;
@@ -148,13 +150,17 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #endif
 	//In the FORTRAN Code dsum was used instead despite qq and qbqb being complex
 	//Since we only care about the real part this shouldn't cause (m)any serious issues
+	#if(nproc>1)
 	Par_dsum((double *)qq); Par_dsum((double *)qbqb);
+	#endif
 	*qq=(*qq+*qbqb)/(2*gvol);
 	Complex xu, xd, xuu, xdd;
 	xu=xd=xuu=xdd=0;
 
 	//Halos
+#if(npt>1)
 	ZHalo_swap_dir(x,16,3,DOWN);		ZHalo_swap_dir(x,16,3,UP);
+#endif
 	//Pesky halo exchange indices again
 	//The halo exchange for the trial fields was done already at the end of the trajectory
 	//No point doing it again
@@ -231,7 +237,9 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	*denf=creal(xu+xd+xuu+xdd);
 #endif
 
+	#if(nproc>1)
 	Par_dsum(endenf); Par_dsum(denf);
+	#endif
 	*endenf/=2*gvol; *denf/=2*gvol;
 	//Future task. Chiral susceptibility measurements
 #ifdef __NVCC__

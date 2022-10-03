@@ -37,7 +37,7 @@
 #else
 #include	<complex.h>
 #define	Complex_f	float	complex
-#define	Complex	complex
+#define	Complex		double complex
 #endif
 // Define booleans for C because they don't exist natively
 // They do in C99...
@@ -48,27 +48,57 @@
 // Common block definition for parallel variables
 
 #define	nx 8
+#if(nx<1)
+#error "nx is expected it to be greater than or equal to 1"
+#endif
 #define	nt	8
+#if(nt<1)
+#error "nt is expected it to be greater than or equal to 1"
+#endif
 // Keep original restriction of single spatial extent
 
 #define	ny    nx
+#if(ny<1)
+#error "ny is expected it to be greater than or equal to 1"
+#endif
 #define	nz    nx
+#if(nz<1)
+#error "nz is expected it to be greater than or equal to 1"
+#endif
 #define	gvol    (nx*ny*nz*nt)
 #define	gvol3   (nx*ny*nz)
 
-#define	npx	2
+#define	npx	1
 #if(npx<1)
-#error "npx =" npx "but expected it to be greater than or equal to 1"
+#error "npx is expected it to be greater than or equal to 1"
+#elif(nx%npx!=0)
+#error "npx should be a divisor of nx"
 #endif
 #define	npt	1
+#if(npt<1)
+#error "npt is expected it to be greater than or equal to 1"
+#elif(nt%npt!=0)
+#error "npt should be a divisor of nt"
+#endif
 //Number of threads for OpenMP
-#define	nthreads	1
+#define	nthreads	8
 
 // Initially restrict to npz = npy = npx
 // This allows us to have a single ksize variable
 
 #define	npy	npx
+#if(npy<1)
+#error "npy is expected it to be greater than or equal to 1"
+#elif(ny%npy!=0)
+#error "npy should be a divisor of ny"
+#endif
+
 #define	npz	npx
+#if(npz<1)
+#error "npz is expected it to be greater than or equal to 1"
+#elif(nz%npz!=0)
+#error "npz should be a divisor of nz"
+#endif
 
 #define	nproc	(npx*npy*npz*npt)
 
