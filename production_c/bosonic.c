@@ -61,7 +61,9 @@ int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex *u11
 				}
 			}
 #endif
+#if(nproc>1)
 	Par_dsum(&hgs); Par_dsum(&hgt);
+#endif
 	*avplaqs=-hgs/(3.0*gvol); *avplaqt=-hgt/(gvol*3.0);
 	*hg=(hgs+hgt)*beta;
 #ifdef _DEBUG
@@ -225,7 +227,9 @@ double Polyakov(Complex *u11t, Complex *u12t){
 #endif
 
 	if(pcoord[3+rank*ndim]) poly = 0;
+#if(nproc>1)
 	Par_dsum(&poly);
+#endif
 	poly/=gvol3;
 	return poly;	
 }

@@ -84,10 +84,13 @@ extern "C"
 	int ZHalo_swap_dir(Complex *z, int ncpt, int idir, int layer);
 	int CHalo_swap_all(Complex_f *c, int ncpt);
 	int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer);
+	int DHalo_swap_all(double *d, int ncpt);
 	int DHalo_swap_dir(double *d, int ncpt, int idir, int layer);
 	int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f);
 	//If we have more than two processors on the time axis, there's an extra step in the Polyakov loop calculation
+#if(npt>1)
 	int Par_tmul(Complex *z11, Complex *z12);
+#endif
 #ifdef __cplusplus
 }
 #endif

@@ -126,7 +126,9 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 #endif
 			//For now I'll cast it into a double for the reduction. Each rank only sends and writes
 			//to the real part so this is fine
+			#if(nproc>1)
 			Par_fsum((float *)&alphad);
+			#endif
 			//α=α_n/α_d = (r.r)/p(M^†M)p 
 			alpha=alphan/creal(alphad);
 			//x-αp, 
@@ -163,7 +165,9 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 		}
 #endif
 		//And... reduce.
+		#if(nproc>1)
 		Par_dsum(&betan);
+		#endif
 #ifdef _DEBUG
 			if(!rank) printf("Iter (CG) = %i β_n= %e α_d= %e\n", *itercg, betan, alpha);
 #endif
@@ -330,7 +334,9 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex *u11t,Complex *u
 			for(int i = 0; i<kferm; i++)
 				alphad+=conj(x1[i])*x1[i];
 #endif
+			#if(nproc>1)
 			Par_dsum((double *)&alphad);
+			#endif
 			//α=(r.r)/p(M^†)Mp
 			alpha=alphan/alphad;
 //			Complex_f alpha_f = (Complex_f)alpha;
@@ -382,7 +388,9 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex *u11t,Complex *u
 		}
 #endif
 		//This is basically just congradq at the end. Check there for comments
+		#if(nproc>1)
 		Par_dsum(&betan);
+		#endif
 		if(betan<resid){
 			//Started counting from zero so add one to make it accurate
 			(*itercg)++;

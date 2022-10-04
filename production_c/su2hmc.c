@@ -102,8 +102,10 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 	}
 	//These are constant so swap the halos when initialising and be done with it
 	//May need to add a synchronisation statement here first
+#if(npt>1)
 	DHalo_swap_dir(dk4p, 1, 3, UP);
 	DHalo_swap_dir(dk4m, 1, 3, UP);
+#endif
 	//Float versions
 #pragma omp parallel for simd aligned(dk4m,dk4p,dk4m_f,dk4p_f:AVX)
 	for(int i=0;i<kvol+halo;i++){
@@ -291,7 +293,9 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 	free(smallPhi);
 #endif
 	//hg was summed over inside of Average_Plaquette.
+	#if(nproc>1)
 	Par_dsum(&hp); Par_dsum(&hf);
+	#endif
 	*s=hg+hf; *h=*s+hp;
 #ifdef _DEBUG
 	if(!rank)

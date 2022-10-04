@@ -767,7 +767,6 @@ inline int Par_zcopy(Complex *zval){
  *	functions. layer will be used to tell us if we wanted to call the up FORTRAN
  *	function or DOWN FORTRAN function
  */
-
 inline int ZHalo_swap_all(Complex *z, int ncpt){
 	/*
 	 * Calls the functions to send data to both the up and down halos
@@ -788,11 +787,23 @@ inline int ZHalo_swap_all(Complex *z, int ncpt){
 	//As the only place they are called in the FORTRAN code is right here,
 	//I'm going to omit them entirely and just put the direction loop here
 	//instead
-
-	for(int mu=0; mu<ndim; mu++){
-		ZHalo_swap_dir(z, ncpt, mu, DOWN);
-		ZHalo_swap_dir(z, ncpt, mu, UP);			
-	}
+	//Unrolling the loop so we can have pre-processor directives for each dimension
+#if(npx>1)
+	ZHalo_swap_dir(z, ncpt, 0, DOWN);
+	ZHalo_swap_dir(z, ncpt, 0, UP);			
+#endif
+#if(npy>1)
+	ZHalo_swap_dir(z, ncpt, 1, DOWN);
+	ZHalo_swap_dir(z, ncpt, 1, UP);			
+#endif
+#if(npz>1)
+	ZHalo_swap_dir(z, ncpt, 2, DOWN);
+	ZHalo_swap_dir(z, ncpt, 2, UP);			
+#endif
+#if(npt>1)
+	ZHalo_swap_dir(z, ncpt, 3, DOWN);
+	ZHalo_swap_dir(z, ncpt, 3, UP);			
+#endif
 	return 0;
 }
 int ZHalo_swap_dir(Complex *z, int ncpt, int idir, int layer){
@@ -904,11 +915,23 @@ inline int CHalo_swap_all(Complex_f *c, int ncpt){
 	//As the only place they are called in the FORTRAN code is right here,
 	//I'm going to omit them entirely and just put the direction loop here
 	//instead
-
-	for(int mu=0; mu<ndim; mu++){
-		CHalo_swap_dir(c, ncpt, mu, DOWN);
-		CHalo_swap_dir(c, ncpt, mu, UP);			
-	}
+	//Unrolling the loop so we can have pre-processor directives for each dimension
+#if(npx>1)
+	CHalo_swap_dir(c, ncpt, 0, DOWN);
+	CHalo_swap_dir(c, ncpt, 0, UP);			
+#endif
+#if(npy>1)
+	CHalo_swap_dir(c, ncpt, 1, DOWN);
+	CHalo_swap_dir(c, ncpt, 1, UP);			
+#endif
+#if(npz>1)
+	CHalo_swap_dir(c, ncpt, 2, DOWN);
+	CHalo_swap_dir(c, ncpt, 2, UP);			
+#endif
+#if(npt>1)
+	CHalo_swap_dir(c, ncpt, 3, DOWN);
+	CHalo_swap_dir(c, ncpt, 3, UP);			
+#endif
 	return 0;
 }
 int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer){
@@ -998,6 +1021,45 @@ int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer){
 	free(sendbuf);
 #endif
 	MPI_Wait(&request, &status);
+	return 0;
+}
+inline int DHalo_swap_all(double *d, int ncpt){
+	/*
+	 * Calls the functions to send data to both the up and down halos
+	 *
+	 * Parameters:
+	 * -----------
+	 * Complex z:	The data being sent
+	 * int	ncpt:	Number of components being sent
+	 *
+	 * Returns:
+	 * -------
+	 * Zero on success, integer error code otherwise
+	 */
+	char *funcname = "ZHalo_swap_all";
+
+	//FORTRAN called zdnhaloswapall and zuphaloswapall here
+	//Those functions looped over the directions and called zXXhaloswapdir
+	//As the only place they are called in the FORTRAN code is right here,
+	//I'm going to omit them entirely and just put the direction loop here
+	//instead
+	//Unrolling the loop so we can have pre-processor directives for each dimension
+#if(npx>1)
+	DHalo_swap_dir(d, ncpt, 0, DOWN);
+	DHalo_swap_dir(d, ncpt, 0, UP);			
+#endif
+#if(npy>1)
+	DHalo_swap_dir(d, ncpt, 1, DOWN);
+	DHalo_swap_dir(d, ncpt, 1, UP);			
+#endif
+#if(npz>1)
+	DHalo_swap_dir(d, ncpt, 2, DOWN);
+	DHalo_swap_dir(d, ncpt, 2, UP);			
+#endif
+#if(npt>1)
+	DHalo_swap_dir(d, ncpt, 3, DOWN);
+	DHalo_swap_dir(d, ncpt, 3, UP);			
+#endif
 	return 0;
 }
 int DHalo_swap_dir(double *d, int ncpt, int idir, int layer){
@@ -1095,6 +1157,7 @@ int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u
 	 *	the trial fields get updated.
 	 */
 	char *funchame = "Trial_Exchange";
+#if(nproc>1)
 #ifdef __INTEL_MKL__
 	Complex *z = (Complex *)mkl_malloc((kvol+halo)*sizeof(Complex),AVX);
 #else
@@ -1134,6 +1197,7 @@ int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u
 #else
 	free(z);
 #endif
+#endif
 #pragma omp parallel for simd
 	for(int i=0;i<ndim*(kvol+halo);i++){
 		u11t_f[i]=(Complex_f)u11t[i];
@@ -1144,6 +1208,7 @@ int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u
 		u11t_f[0:ndim*(kvol+halo)],u12t_f[0:ndim*(kvol+halo)])
 	return 0;
 }
+#if(npt>1)
 int Par_tmul(Complex *z11, Complex *z12){
 	/*
 	 * Parameters:
@@ -1247,3 +1312,4 @@ int Par_tmul(Complex *z11, Complex *z12){
 #endif
 	return 0;
 }
+#endif

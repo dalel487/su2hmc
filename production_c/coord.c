@@ -103,10 +103,12 @@ int Addrc(unsigned int *iu, unsigned int *id){
 					for(int jx=0;jx<ksizex;jx++){
 						//First value of ic is zero as planned.
 						//ic++;
-						ic=(((jt)*ksizez+(jz))*ksizey+(jy))*ksizex+jx;
+						ic=((jt*ksizez+jz)*ksizey+jy)*ksizex+jx;
 						//jx!=0 is logically equivalent to if(jx)
+						//If we're inside the sublattice, take the down nearest neightbour from inside the sublattice
 						if(jx)
 							iaddr = ia(jx-1,jy,jz,jt);
+						//Else if we're at the "down" edge, the down nearest neighbour is in the halo
 						else{
 							ih[0][0]++;
 							if(ih[0][0]>= halo){
@@ -115,9 +117,14 @@ int Addrc(unsigned int *iu, unsigned int *id){
 								MPI_Abort(comm,HALOLIM);
 							}
 							hd[0+ndim*ih[0][0]]=ic;
-							iaddr=h1d[0]+ih[0][0];
+#if npx==1
+ 						iaddr = ia(jx-1,jy,jz,jt);
+#elif npx>1
+ 						iaddr=h1d[0]+ih[0][0];
+#endif
 						}
 						id[0+ndim*ic]=iaddr;
+						
 						if(jx<ksize-1)
 							iaddr = ia(jx+1,jy,jz,jt);
 						else{
@@ -128,9 +135,14 @@ int Addrc(unsigned int *iu, unsigned int *id){
 								MPI_Abort(comm,HALOLIM);
 							}
 							hu[0+ndim*ih[1][0]]=ic;
-							iaddr=ih[1][0]+h1u[0];	
+#if npx==1
+ 						iaddr = ia(jx+1,jy,jz,jt);
+#elif npx>1
+ 						iaddr=ih[1][0]+h1u[0];	
+#endif
 						}
 						iu[0+ndim*ic]=iaddr;
+
 						if(jy)
 							iaddr = ia(jx,jy-1,jz,jt);
 						else{
@@ -141,9 +153,14 @@ int Addrc(unsigned int *iu, unsigned int *id){
 								MPI_Abort(comm,HALOLIM);
 							}
 							hd[1+ndim*ih[0][1]]=ic;
-							iaddr=h1d[1]+ih[0][1];
+#if npy==1
+ 						iaddr = ia(jx,jy-1,jz,jt);
+#elif npy>1
+ 						iaddr=h1d[1]+ih[0][1];
+#endif
 						}
 						id[1+ndim*ic]=iaddr;
+
 						if(jy<ksize-1)
 							iaddr = ia(jx,jy+1,jz,jt);
 						else{
@@ -154,9 +171,14 @@ int Addrc(unsigned int *iu, unsigned int *id){
 								MPI_Abort(comm,HALOLIM);
 							}
 							hu[1+ndim*ih[1][1]]=ic;
-							iaddr=ih[1][1]+h1u[1];	
+#if npy==1
+ 						iaddr = ia(jx,jy+1,jz,jt);
+#elif npy>1
+ 						iaddr=ih[1][1]+h1u[1];	
+#endif
 						}
 						iu[1+ndim*ic]=iaddr;
+
 						if(jz)
 							iaddr = ia(jx,jy,jz-1,jt);
 						else{
@@ -167,9 +189,14 @@ int Addrc(unsigned int *iu, unsigned int *id){
 								MPI_Abort(comm,HALOLIM);
 							}
 							hd[2+ndim*ih[0][2]]=ic;
-							iaddr=h1d[2]+ih[0][2];
+#if npz==1
+ 						iaddr = ia(jx,jy,jz-1,jt);
+#elif npz>1
+ 						iaddr=h1d[2]+ih[0][2];
+#endif
 						}
 						id[2+ndim*ic]=iaddr;
+
 						if(jz<ksize-1)
 							iaddr = ia(jx,jy,jz+1,jt);
 						else{
@@ -180,9 +207,14 @@ int Addrc(unsigned int *iu, unsigned int *id){
 								MPI_Abort(comm,HALOLIM);
 							}
 							hu[2+ndim*ih[1][2]]=ic;
-							iaddr=ih[1][2]+h1u[2];	
+#if npz==1
+ 						iaddr = ia(jx,jy,jz+1,jt);
+#elif npz>1
+ 						iaddr=ih[1][2]+h1u[2];	
+#endif
 						}
 						iu[2+ndim*ic]=iaddr;
+
 						if(jt)
 							iaddr = ia(jx,jy,jz,jt-1);
 						else{
@@ -193,9 +225,14 @@ int Addrc(unsigned int *iu, unsigned int *id){
 								MPI_Abort(comm,HALOLIM);
 							}
 							hd[3+ndim*ih[0][3]]=ic;
+#if npt==1
+							iaddr = ia(jx,jy,jz,jt-1);
+#elif npt>1
 							iaddr=h1d[3]+ih[0][3];
+#endif
 						}
 						id[3+ndim*ic]=iaddr;
+
 						if(jt<ksizet-1)
 							iaddr = ia(jx,jy,jz,jt+1);
 						else{
@@ -206,26 +243,30 @@ int Addrc(unsigned int *iu, unsigned int *id){
 								MPI_Abort(comm,HALOLIM);
 							}
 							hu[3+ndim*ih[1][3]]=ic;
+#if npt==1
+							iaddr = ia(jx,jy,jz,jt+1);
+#elif npt>1
 							iaddr=ih[1][3]+h1u[3];	
+#endif
 						}
 						iu[3+ndim*ic]=iaddr;
 					}
 		//Print iu and id for diagnostics
-#ifdef DIAGNOSTIC
+#ifdef _DEBUG
 #pragma omp parallel sections
 		{
 #pragma omp section
 			{
 				FILE *id_out = fopen("id_out", "w");
 				for(int i=0;i<kvol;i++)
-					fprintf(id_out,"%i %i %i %i\n",id[i*ndim],id[i*ndim+1],id[i*ndim+2],id[i*ndim+3]);
+					fprintf(id_out,"%i\t%i\t%i\t%i\n",id[i*ndim],id[i*ndim+1],id[i*ndim+2],id[i*ndim+3]);
 				fclose(id_out);
 			}
 #pragma omp section
 			{
 				FILE *iu_out = fopen("iu_out", "w");
 				for(int i=0;i<kvol;i++)
-					fprintf(iu_out,"%i %i %i %i\n",iu[i*ndim],iu[i*ndim+1],iu[i*ndim+2],iu[i*ndim+3]);
+					fprintf(iu_out,"%i\t%i\t%i\t%i\n",iu[i*ndim],iu[i*ndim+1],iu[i*ndim+2],iu[i*ndim+3]);
 				fclose(iu_out);
 
 			}

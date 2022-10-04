@@ -34,7 +34,9 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int 
 	 */
 	char *funcname = "Dslash";
 	//Get the halos in order
+#if(nproc>1)
 	ZHalo_swap_all(r, 16);
+#endif
 
 	//Mass term
 	memcpy(phi, r, kferm*sizeof(Complex));
@@ -170,7 +172,9 @@ int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int 
 	 */
 	char *funcname = "Dslashd";
 	//Get the halos in order
+#if(nproc>1)
 	ZHalo_swap_all(r, 16);
+#endif
 
 	//Mass term
 	memcpy(phi, r, kferm*sizeof(Complex));
@@ -311,7 +315,9 @@ int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int
 	 */
 	char *funcname = "Hdslash";
 	//Get the halos in order
+#if(nproc>1)
 	ZHalo_swap_all(r, 8);
+#endif
 
 	//Mass term
 	memcpy(phi, r, kferm2*sizeof(Complex));
@@ -416,7 +422,9 @@ int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  in
 	//Get the halos in order. Because C is row major, we need to extract the correct
 	//terms for each halo first. Changing the indices was considered but that caused
 	//issues with the BLAS routines.
+#if(nproc>1)
 	ZHalo_swap_all(r, 8);
+#endif
 
 	//Looks like flipping the array ordering for C has meant a lot
 	//of for loops. Sense we're jumping around quite a bit the cache is probably getting refreshed
@@ -530,7 +538,9 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 	 */
 	char *funcname = "Dslash_f";
 	//Get the halos in order
+#if(nproc>1)
 	CHalo_swap_all(r, 16);
+#endif
 
 	//Mass term
 	memcpy(phi, r, kferm*sizeof(Complex_f));
@@ -669,7 +679,9 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	 */
 	char *funcname = "Dslashd_f";
 	//Get the halos in order
+#if(nproc>1)
 	CHalo_swap_all(r, 16);
+#endif
 
 	//Mass term
 	memcpy(phi, r, kferm*sizeof(Complex_f));
@@ -812,7 +824,9 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	 */
 	char *funcname = "Hdslash_f";
 	//Get the halos in order
+#if(nproc>1)
 	CHalo_swap_all(r, 8);
+#endif
 	//TODO: Get u11t_f and u12t_f sorted
 	//Mass term
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
@@ -920,7 +934,9 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_
 	//Get the halos in order. Because C is row major, we need to extract the correct
 	//terms for each halo first. Changing the indices was considered but that caused
 	//issues with the BLAS routines.
+#if(nproc>1)
 	CHalo_swap_all(r, 8);
+#endif
 
 	//Looks like flipping the array ordering for C has meant a lot
 	//of for loops. Sense we're jumping around quite a bit the cache is probably getting refreshed
@@ -1082,7 +1098,7 @@ inline int Reunitarise(Complex *u11t, Complex *u12t){
 #ifdef _OPENACC
 #pragma acc parallel loop
 #else
-#pragma omp simd aligned(u11t,u12t:AVX)
+#pragma omp parallel for simd aligned(u11t,u12t:AVX)
 #endif
 	for(int i=0; i<kvol*ndim; i++){
 		//Declaring anorm inside the loop will hopefully let the compiler know it
@@ -1228,18 +1244,21 @@ int Diagnostics(int istart){
 #endif
 	for(int test = 0; test<=7; test++){
 		//Reset between tests
-#pragma omp parallel for simd aligned(R1,Phi,xi:AVX)
+#pragma omp parallel 
+		{
+#pragma omp for simd aligned(R1,Phi,xi:AVX) nowait
 		for(int i=0; i<kferm; i++){
 			R1[i]=0.5; Phi[i]=0.5;xi[i]=0.5;
 		}
-#pragma omp parallel for simd aligned(X0,X1:AVX)
+#pragma omp for simd aligned(X0,X1:AVX) nowaite
 		for(int i=0; i<kferm2; i++){
 			X0[i]=0.5;
 			X1[i]=0.5;
 		}
-#pragma omp parallel for simd aligned(dSdpi:AVX)
+#pragma omp for simd aligned(dSdpi:AVX) nowait
 		for(int i=0; i<kmom; i++)
 			dSdpi[i] = 1/sqrt(kmom);
+	}
 #pragma omp target update to(Phi[0:kferm],dSdpi[0:kmom])
 		FILE *output_old, *output;
 		FILE *output_f_old, *output_f;

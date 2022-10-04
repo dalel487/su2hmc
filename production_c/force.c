@@ -83,7 +83,9 @@ int Gauge_force(double *dSdpi,Complex *u11t, Complex *u12t,unsigned int *iu,unsi
 				}
 #endif
 				Z_gather(u11sh, u11t, kvol, id, nu);
+#if(nproc>1)
 				ZHalo_swap_dir(u11sh, 1, mu, DOWN);
+#endif
 #ifdef __NVCC__
 				cudaMemPrefetchAsync(u11sh, (kvol+halo)*sizeof(Complex),device,NULL);
 #endif
@@ -92,7 +94,9 @@ int Gauge_force(double *dSdpi,Complex *u11t, Complex *u12t,unsigned int *iu,unsi
 #ifdef __NVCC__
 				cudaMemPrefetchAsync(u12sh, (kvol+halo)*sizeof(Complex),device,NULL);
 #endif
+#if(nproc>1)
 				ZHalo_swap_dir(u12sh, 1, mu, DOWN);
+#endif
 #pragma acc update device(u12sh[0:kvol+halo])
 				//Next up, the -ν staple
 #ifdef __NVCC__
@@ -234,7 +238,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 #pragma acc update self(Z1[0:kferm2])
 #pragma acc loop copy(X0[0:kferm2])
 #else
-#pragma omp simd collapse(2)
+#pragma omp parallel for simd collapse(2)
 #endif
 			for(int i=0;i<kvol;i++)
 				for(int idirac=0;idirac<ndirac;idirac++){
@@ -257,11 +261,22 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 		for(int i=0;i<kferm2;i++)
 			X2[i]*=2;
 #endif
-#pragma unroll
-		for(int mu=0;mu<4;mu++){
-			ZHalo_swap_dir(X1,8,mu,DOWN);
-			ZHalo_swap_dir(X2,8,mu,DOWN);
-		}
+#if(npx>1)
+			ZHalo_swap_dir(X1,8,0,DOWN);
+			ZHalo_swap_dir(X2,8,0,DOWN);
+#endif
+#if(npy>1)
+			ZHalo_swap_dir(X1,8,1,DOWN);
+			ZHalo_swap_dir(X2,8,1,DOWN);
+#endif
+#if(npz>1)
+			ZHalo_swap_dir(X1,8,2,DOWN);
+			ZHalo_swap_dir(X2,8,2,DOWN);
+#endif
+#if(npt>1)
+			ZHalo_swap_dir(X1,8,3,DOWN);
+			ZHalo_swap_dir(X2,8,3,DOWN);
+#endif
 #pragma acc update device(X1[kferm2:kferm2Halo])
 
 		//	The original FORTRAN Comment:
