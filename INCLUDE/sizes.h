@@ -43,7 +43,8 @@
 #define	FILELEN	64
 // Common block definition for parallel variables
 
-#define	nx 24
+#define	nx 16
+#if(nx<1)
 #error "nx is expected it to be greater than or equal to 1"
 #endif
 
@@ -53,8 +54,8 @@
 #if(ny<1)
 #error "ny is expected it to be greater than or equal to 1"
 #endif
-#define	nz    nx
 
+#define	nz    nx
 #if(nz<1)
 #error "nz is expected it to be greater than or equal to 1"
 #endif
@@ -101,7 +102,7 @@
 #define	nproc	(npx*npy*npz*npt)
 
 //Number of threads for OpenMP
-#define	nthreads	8
+#define	nthreads	128
 
 //    Existing parameter definitions.
 #define	ksizex	(nx/npx)
