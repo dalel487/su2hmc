@@ -1098,7 +1098,7 @@ inline int Reunitarise(Complex *u11t, Complex *u12t){
 #ifdef _OPENACC
 #pragma acc parallel loop
 #else
-#pragma omp simd aligned(u11t,u12t:AVX)
+#pragma omp parallel for simd aligned(u11t,u12t:AVX)
 #endif
 	for(int i=0; i<kvol*ndim; i++){
 		//Declaring anorm inside the loop will hopefully let the compiler know it
@@ -1244,18 +1244,21 @@ int Diagnostics(int istart){
 #endif
 	for(int test = 0; test<=7; test++){
 		//Reset between tests
-#pragma omp parallel for simd aligned(R1,Phi,xi:AVX)
+#pragma omp parallel 
+		{
+#pragma omp for simd aligned(R1,Phi,xi:AVX) nowait
 		for(int i=0; i<kferm; i++){
 			R1[i]=0.5; Phi[i]=0.5;xi[i]=0.5;
 		}
-#pragma omp parallel for simd aligned(X0,X1:AVX)
+#pragma omp for simd aligned(X0,X1:AVX) nowaite
 		for(int i=0; i<kferm2; i++){
 			X0[i]=0.5;
 			X1[i]=0.5;
 		}
-#pragma omp parallel for simd aligned(dSdpi:AVX)
+#pragma omp for simd aligned(dSdpi:AVX) nowait
 		for(int i=0; i<kmom; i++)
 			dSdpi[i] = 1/sqrt(kmom);
+	}
 #pragma omp target update to(Phi[0:kferm],dSdpi[0:kmom])
 		FILE *output_old, *output;
 		FILE *output_f_old, *output_f;
