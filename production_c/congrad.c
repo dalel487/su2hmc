@@ -427,10 +427,10 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex *u11t,Complex *u
 	cudaFree(p); cudaFree(r);cudaFree(x1); 
 //	cudaFree(x2_f); cudaFree(p_f); cudaFree(x2);
 #elif defined __INTEL_MKL__
-	mkl_free(p); mkl_free(r); mkl_free(x1);
-//	mkl_free(p_f); mkl_free(x2); mkl_free(x2_f);
+	mkl_free(p); mkl_free(r); mkl_free(x1); mkl_free(x2); 
+//	mkl_free(p_f);mkl_free(x2_f);
 #else
-	free(p); free(r); free(x1);
+	free(p); free(r); free(x1); free(x2); 
 //	free(p_f); free(x2); free(x2_f);
 #endif
 	return ret_val;
