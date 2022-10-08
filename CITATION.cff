@@ -1,17 +1,17 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 authors:
-	- family-names: Hands 
-	  given-names: Simon 
+	- family-names: "Hands"
+	  given-names: "Simon" 
 	  orcid: "https://orcid.org/0000-0001-5720-7852
-	- family-names: Kim 
-	  given-names: Seyong 
-	  orcid: "https://orcid.org/0000-0002-2102-7398
-	- family-names: Lawlor
-	  given-names: Dale
-	  orcid: "https://orcid.org/0000-0002-4119-9461
-	- family-names: Skullerud
-	  given-names: Jon-Ivar
-	  orcid: "https://orcid.org/0000-0002-8255-0043
+	- family-names: "Kim"
+	  given-names: "Seyong"
+	  orcid: "https://orcid.org/0000-0002-2102-7398"
+	- family-names: "Lawlor"
+	  given-names: "Dale"
+	  orcid: "https://orcid.org/0000-0002-4119-9461"
+	- family-names: "Skullerud"
+	  given-names: "Jon-Ivar"
+	  orcid: "https://orcid.org/0000-0002-8255-0043"
 title: "su2hmc"
 url:	"https://github.com/dalel487/su2hmc"
