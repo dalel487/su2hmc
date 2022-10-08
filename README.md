@@ -1,3 +1,4 @@
+[![DOI](https://zenodo.org/badge/473795213.svg)](https://zenodo.org/badge/latestdoi/473795213)
 # su2hmc: Two Colour Hybrid Monte Carlo with Wilson Fermions
 ## Introduction
 Hybrid Monte Carlo algorithm for Two Color QCD with Wilson-Gor'kov fermions
