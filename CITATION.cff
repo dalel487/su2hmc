@@ -1,17 +1,42 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
 cff-version: 1.2.0
-message: "If you use this software, please cite it as below."
+title: su2hmc
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
 authors:
-	- family-names: "Hands"
-	  given-names: "Simon" 
-	  orcid: "https://orcid.org/0000-0001-5720-7852
-	- family-names: "Kim"
-	  given-names: "Seyong"
-	  orcid: "https://orcid.org/0000-0002-2102-7398"
-	- family-names: "Lawlor"
-	  given-names: "Dale"
-	  orcid: "https://orcid.org/0000-0002-4119-9461"
-	- family-names: "Skullerud"
-	  given-names: "Jon-Ivar"
-	  orcid: "https://orcid.org/0000-0002-8255-0043"
-title: "su2hmc"
-url:	"https://github.com/dalel487/su2hmc"
+  - given-names: Dale
+    family-names: Lawlor
+    email: dalel487@thphys.nuim.ie
+    affiliation: 'National University of Ireland, Maynooth'
+    orcid: 'https://orcid.org/0000-0002-2102-7398'
+  - given-names: Simon
+    family-names: Hands
+    email: simon.hands@liverpool.ac.uk
+    affiliation: Universtiy of Liverpool
+    orcid: 'https://orcid.org/0000-0001-5720-7852'
+  - given-names: Kim
+    family-names: Seyong
+    email: skim@sejong.ac.kr
+    orcid: 'https://orcid.org/0000-0002-2102-7398'
+    affiliation: Sejong University
+  - given-names: Jon-Ivar
+    family-names: Skullerud
+    email: jonivar@thphys.nuim.ie
+    affiliation: 'National University of Ireland, Maynooth'
+    orcid: 'https://orcid.org/0000-0002-8255-0043'
+repository-code: 'https://github.com/dalel487/su2hmc'
+abstract: >-
+  Hybrid Monte Carlo algorithm for Two Color QCD with
+  Wilson-Gor'kov fermions based on the algorithm of
+  Duane et al. Phys. Lett. B195 (1987) 216.
+keywords:
+  - QC2D
+  - Two-Colour QCD
+  - Wilson Fermions
+  - Dense QCD
+  - Lattice QCD
+license: GPL-3.0
