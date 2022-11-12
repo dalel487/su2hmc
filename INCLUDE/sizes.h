@@ -43,7 +43,7 @@
 #define	FILELEN	64
 // Common block definition for parallel variables
 
-#define	nx 24
+#define	nx 16
 #if(nx<1)
 #error "nx is expected it to be greater than or equal to 1"
 #endif
@@ -60,7 +60,7 @@
 #error "nz is expected it to be greater than or equal to 1"
 #endif
 
-#define	nt	3
+#define	nt	32
 #if(nt<1)
 #error "nt is expected it to be greater than or equal to 1"
 #endif
@@ -68,7 +68,7 @@
 #define	gvol    (nx*ny*nz*nt)
 #define	gvol3   (nx*ny*nz)
 
-#define	npx	1
+#define	npx	4
 #if(npx<1)
 #error "npx is expected it to be greater than or equal to 1"
 #elif(nx%npx!=0)
@@ -92,7 +92,7 @@
 #error "npz should be a divisor of nz"
 #endif
 
-#define	npt	1
+#define	npt	4
 #if(npt<1)
 #error "npt is expected it to be greater than or equal to 1"
 #elif(nt%npt!=0)
@@ -102,7 +102,7 @@
 #define	nproc	(npx*npy*npz*npt)
 
 //Number of threads for OpenMP
-#define	nthreads	16
+#define	nthreads	1
 
 //    Existing parameter definitions.
 #define	ksizex	(nx/npx)

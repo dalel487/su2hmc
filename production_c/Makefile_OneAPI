@@ -1,17 +1,16 @@
-MF=	Makefile
-
-CC= mpiicc -cc=icx
+MF=	Makefile_Clang
+CC=	mpiicc -cc=icx
 
 IFLAGS=	-I../INCLUDE 
 
 CFLAGS=     $(IFLAGS) -qmkl -std=gnu11 -ipo -qopt-zmm-usage=high -MD\
-			-xHASWELL -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,SKYLAKE,COFFEELAKE,ALDERLAKE\
+			-xSKYLAKE -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE\
 			-static-intel -static-libgcc -DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
-			-qopenmp -qopenmp-simd -DSA3AT \
+			-qopenmp -qopenmp-simd -DSA3AT 
 
 LFLAGS=	-L${MKLROOT}/lib/intel64 -limf -Bstatic -lgsl
 
-EXE=	su2hmc_Clang
+EXE=	su2hmc_OneAPI
 
 SRC= \
 	coord.c \
@@ -46,10 +45,10 @@ TMP=	$(MOD) $(EDT) core
 -include $(DEPS)
 all:	$(EXE)
 
-profiler:	CFLAGS += -g #-D_DEBUG
+profiler:	CFLAGS += -g -D_DEBUG
 profiler:	release
 
-release:	CFLAGS +=  -fast -O3  -inline-level=2\
+release:	CFLAGS +=  -O3  -inline-level=2\
 						-DMKL_ILP64  -I"${MKLROOT}/include" #-DUSE_RAN2
 release:	$(EXE)
 

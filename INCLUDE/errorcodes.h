@@ -27,12 +27,14 @@
 #define	OPENERROR	10001
 #define	READERROR	10002
 #define	WRITERROR	10003
+#define	ARGERROR		10004
 
 //Warnings:
 //---------
 #define	OPENWARN		10101
 #define	READWARN		10102
 #define	WRITEWARN	10103
+#define	ARGWARN		10104
 
 //Indexing Errors. Leading digits are 11
 //======================================
@@ -81,6 +83,7 @@
 //Warnings:
 //--------
 #define	ITERLIM		14101 //Exceeded max number of iterations
+#define	FITWARN		14102 //Fitting function has repeated x value
 
 //Alerts:
 //------
