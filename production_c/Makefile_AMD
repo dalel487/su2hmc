@@ -1,13 +1,13 @@
-CC=mpicc -cc=clang 
+CC=mpicc 
 
 IFLAGS=     -I../INCLUDE/ -I ${AOCL_ROOT}/include
 
 CFLAGS=	$(IFLAGS) -std=gnu11 -DAMD_BLAS -fcommon -DSA3AT\
 			-fveclib=AMDLIBM -march=znver2 -mtune=znver3 -D__RANLUX__\
-			-fopenmp=libgomp -fopenmp-simd -static-openmp -static-libgcc -static -fremap-arrays \
+			-fopenmp=libgomp -fopenmp-simd -static-openmp -static-libgcc -fremap-arrays \
 		  #-fprofile-instr-use
 
-LFLAGS=	-Wl -L${AOCL_ROOT}/lib -lgsl -lpthread -ldl -lalm -lblis 
+LFLAGS=	-Wl -L${AOCL_ROOT}/lib -lgsl -lpthread -ldl -lm -lalm -lblis 
 
 EXE=	su2hmc_AMD
 
