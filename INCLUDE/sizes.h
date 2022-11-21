@@ -60,7 +60,7 @@
 #error "nz is expected it to be greater than or equal to 1"
 #endif
 
-#define	nt	32
+#define	nt	16
 #if(nt<1)
 #error "nt is expected it to be greater than or equal to 1"
 #endif
@@ -68,7 +68,7 @@
 #define	gvol    (nx*ny*nz*nt)
 #define	gvol3   (nx*ny*nz)
 
-#define	npx	4
+#define	npx	2
 #if(npx<1)
 #error "npx is expected it to be greater than or equal to 1"
 #elif(nx%npx!=0)
@@ -92,7 +92,7 @@
 #error "npz should be a divisor of nz"
 #endif
 
-#define	npt	4
+#define	npt	2
 #if(npt<1)
 #error "npt is expected it to be greater than or equal to 1"
 #elif(nt%npt!=0)
