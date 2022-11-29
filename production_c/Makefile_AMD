@@ -46,11 +46,11 @@ TMP=	$(MOD) $(EDT) core
 
 all:	$(EXE)
 
-profiler:	CFLAGS += -g -D_DEBUG #-fprofile-generate
+profiler:	CFLAGS += -g #-D_DEBUG #-fprofile-generate
 
 profiler:	release
 
-release:	CFLAGS +=  -Ofast -finline-aggressive -finline-recursion=4 -funroll-loops -flto=full -fnt-store\
+release:	CFLAGS +=  -Ofast -zopt -finline-aggressive -finline-recursion=4 -funroll-loops -flto=full -fnt-store\
 							-mfma -fvectorize -mfma -mavx2 -m3dnow -floop-unswitch-aggressive -fuse-ld=lld
 
 release:	$(EXE)
