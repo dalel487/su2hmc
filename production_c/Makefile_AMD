@@ -1,14 +1,14 @@
 OMPI_MPICC=clang
-CC=mpicc 
+CC=mpicc -cc=clang
 
 IFLAGS=     -I../INCLUDE/ -I ${AOCL_ROOT}/include
 
 CFLAGS=	$(IFLAGS) -std=gnu11 -DAMD_BLAS -fcommon -DSA3AT\
-			-fveclib=AMDLIBM -march=znver2 -mtune=znver3 -D__RANLUX__\
+			-fveclib=AMDLIBM -march=znver2 -mtune=znver3 -D__RANLUX__ -static\
 			-fopenmp=libgomp -fopenmp-simd -static-openmp -static-libgcc -fremap-arrays \
 		  #-fprofile-instr-use
 
-LFLAGS=	-Wl -L${AOCL_ROOT}/lib -lgsl -lpthread -ldl -lm -lalm -lblis 
+LFLAGS=	-Wl -L${AOCL_ROOT}/lib -lgsl -lpthread -ldl -lalm -lm -lblis  -lamdalloc
 
 EXE=	su2hmc_AMD
 
@@ -46,11 +46,11 @@ TMP=	$(MOD) $(EDT) core
 
 all:	$(EXE)
 
-profiler:	CFLAGS += -g -D_DEBUG #-fprofile-generate
+profiler:	CFLAGS += -g #-D_DEBUG #-fprofile-generate
 
 profiler:	release
 
-release:	CFLAGS +=  -O3 -finline-aggressive -finline-recursion=4 -funroll-loops -flto=full -fnt-store\
+release:	CFLAGS +=  -Ofast -zopt -finline-aggressive -finline-recursion=4 -funroll-loops -flto=full -fnt-store\
 							-mfma -fvectorize -mfma -mavx2 -m3dnow -floop-unswitch-aggressive -fuse-ld=lld
 
 release:	$(EXE)
