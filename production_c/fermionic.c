@@ -95,9 +95,9 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	}
 	/*
 #pragma omp parallel for simd aligned(R1,R1_f:AVX)
-	for(int i=0;i<kferm;i++)
-		xi[i]=(Complex)R1_f[i];
-		*/
+for(int i=0;i<kferm;i++)
+xi[i]=(Complex)R1_f[i];
+	 */
 	memcpy(xi,R1,kferm*sizeof(Complex));
 #ifdef __INTEL_MKL__
 	mkl_free(xi_f);	mkl_free(R1_f);
@@ -114,9 +114,9 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	for(int i=0;i<kferm;i++)
 		*pbp+=creal(conj(x[i])*xi[i]);
 #endif
-	#if(nproc>1)
+#if(nproc>1)
 	Par_dsum(pbp);
-	#endif
+#endif
 	*pbp/=4*gvol;
 
 	*qbqb=*qq=0;
@@ -150,9 +150,9 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #endif
 	//In the FORTRAN Code dsum was used instead despite qq and qbqb being complex
 	//Since we only care about the real part this shouldn't cause (m)any serious issues
-	#if(nproc>1)
+#if(nproc>1)
 	Par_dsum((double *)qq); Par_dsum((double *)qbqb);
-	#endif
+#endif
 	*qq=(*qq+*qbqb)/(2*gvol);
 	Complex xu, xd, xuu, xdd;
 	xu=xd=xuu=xdd=0;
@@ -237,9 +237,9 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	*denf=creal(xu+xd+xuu+xdd);
 #endif
 
-	#if(nproc>1)
+#if(nproc>1)
 	Par_dsum(endenf); Par_dsum(denf);
-	#endif
+#endif
 	*endenf/=2*gvol; *denf/=2*gvol;
 	//Future task. Chiral susceptibility measurements
 #ifdef __NVCC__

@@ -31,6 +31,7 @@
 #endif
 #ifdef	__NVCC__
 #include	<cuda.h>
+#include	<cuda_runtime_api.h>
 #endif
 #ifdef __CUDACC__
 #include	<thrust_complex.h>
@@ -68,7 +69,7 @@
 #define	gvol    (nx*ny*nz*nt)
 #define	gvol3   (nx*ny*nz)
 
-#define	npx	2
+#define	npx	1
 #if(npx<1)
 #error "npx is expected it to be greater than or equal to 1"
 #elif(nx%npx!=0)
@@ -92,7 +93,7 @@
 #error "npz should be a divisor of nz"
 #endif
 
-#define	npt	2
+#define	npt	1
 #if(npt<1)
 #error "npt is expected it to be greater than or equal to 1"
 #elif(nt%npt!=0)
@@ -101,8 +102,8 @@
 
 #define	nproc	(npx*npy*npz*npt)
 
-//Number of threads for OpenMP
-#define	nthreads	1
+//Number of threads for OpenMP, which can be overwritten at runtime
+#define	nthreads	16
 
 //    Existing parameter definitions.
 #define	ksizex	(nx/npx)
@@ -136,10 +137,27 @@
 //    of padding we put on the outside of the sub-arrays we're using in MPI
 //    so we can look at terms outside the sub-array we're actively working
 //    on with that process.
+//TODO: Sort out coord.h so we can run without halos
+#if(npx>1)
 #define	halox	(ksizey*ksizez*ksizet)
+#else
+#define	halox	0
+#endif
+#if(npy>1)
 #define	haloy	(ksizex*ksizez*ksizet)
+#else
+#define	haloy	0
+#endif
+#if(npz>1)
 #define	haloz	(ksizex*ksizey*ksizet)
+#else
+#define	haloz	0
+#endif
+#if(npt>1)
 #define	halot	(ksizex*ksizey*ksizez)
+#else
+#define	halot	0
+#endif
 #define	halo	(2*(halox+haloy+haloz+halot))
 
 #define	kfermHalo	(nc*ngorkov*(kvol+halo))

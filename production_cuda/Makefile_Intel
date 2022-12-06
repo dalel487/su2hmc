@@ -1,28 +1,25 @@
-FC=		mpifort 
+MF=Makefile_Intel
 CC=		mpiicc 
-CXX=	mpiicpc 
-NVCC=	nvcc
+CXX=		icpc 
+NVCC=		nvcc
 
 IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include" -I ./ -I../production_c\
-				-I/usr/include/c++/10/\
-				-I/usr/x86_64-linux-gnu/include/c++/10/x86_64-linux-gnu/ \
-				-I/opt/nvidia/hpc_sdk/Linux_x86_64/2022/cuda/include/ \
-				-I/opt/nvidia/hpc_sdk/Linux_x86_64/2022/math_libs/include/ 
+				-I /opt/nvidia/hpc_sdk/Linux_x86_64/2022/cuda/include/ \
+				-I /opt/nvidia/hpc_sdk/Linux_x86_64/2022/math_libs/include/ \
 
-CFLAGS=   $(IFLAGS) -ipo -qmkl -std=gnu11 -qopt-zmm-usage=high -MD\
-			-xSKYLAKE -axCASCADELAKE -D__NVCC__\
-			-static-intel -static-libgcc -DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
-			-qopenmp -qno-openmp-offload -qopenmp-simd -DSA3AT\
+CFLAGS=  -ipo -qmkl -qopt-zmm-usage=high -MD -D__NVCC__ -static-intel -static-libgcc \
+			-xSKYLAKE -ax'SKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE'\
+			-DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__ -qopenmp -qno-openmp-offload\
+			-qopenmp-simd -DSA3AT -use-intel-optimized-headers $(IFLAGS) 
 
-MKLFLAGS=	-L${MKLROOT}/lib/intel64 -qmkl #-DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
+MKLFLAGS=	-qmkl -L${MKLROOT}/lib/intel64 -limf #-DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
 CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/2022/cuda/lib64/ \
 				-L/opt/nvidia/hpc_sdk/Linux_x86_64/2022/math_libs/lib64/ \
 				-lcuda -lcudart -lcublas #-L${NVSHMEM_HOME}/lib -lnvshmem -lblis 
 
-LFLAGS=		-liomp5 -lpthread -ldl -lgsl  #${CULFLAGS}
+LFLAGS=		-liomp5 -lpthread -ldl -limf -lgsl  #${CULFLAGS}
 
-NVCCFLAGS=	${IFLAGS}  -err-no -w \
-			-expt-relaxed-constexpr 
+NVCCFLAGS=	${IFLAGS}  -err-no -w -expt-relaxed-constexpr 
 			#Last flag is an experimental one used to call host functions in device code. Not sure
 			#if it does what we want because the error message suggesting it came up when declaring
 			#a11 and a12 in the Dslash routine
@@ -70,7 +67,8 @@ CUOBJ= $(patsubst $(CUSRC_DIR)/%.cu, $(CUSRC_DIR)/%.o, $(CU_SOURCES))
 CLIB= libc.a
 CULIB= libcu.a
 CULIB2= libcu2.a
-OBJ=	$(CLIB) $(CULIB2) #$(COBJ) $(CUOBJ) 
+#OBJ=	$(CLIB) $(CULIB2)
+OBJ = $(COBJ) $(CUOBJ) 
 
 #MOD=	$(CSRC:.c=.mod)
 MOD=	
@@ -99,10 +97,10 @@ $(CULIB): $(CUOBJ)
 	$(NVCC) -ccbin $(CXX) $(NVCCFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $(NVCCFLAGS)  $(LFLAGS) -dlink $^ -o $@ 
 $(CLIB):	$(COBJ) 
 	ar rc $@  $^
-$(CUSRC_DIR)%.o: $(CUSRC_DIR)%.cu
-	$(NVCC) -ccbin $(CXX) $(NVCCFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $^ -dc $@ 
+%.o: $(CUSRC_DIR)/%.cu
+	$(NVCC) $(NVCCFLAGS) -ccbin $(CXX) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $^ -dc $@ 
 %.o: $(CSRC_DIR)%.c
-	$(CXX) $(CFLAGS) -x c++ $(MKLFLAGS) -c $^  
+	$(CC) $(CFLAGS) std=gnu11 -x c++ $(MKLFLAGS) -c $^  
 
 clean:
 	rm -f $(OBJ) $(COBJ) $(CUOBJ) $(CULIB) $(CLIB) $(TMP)

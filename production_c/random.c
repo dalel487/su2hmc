@@ -146,7 +146,9 @@ double Par_granf(){
 		vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 1, &ran_val, 0,1);
 #endif
 	}
+	#if(nproc>1)
 	Par_dcopy(&ran_val);
+	#endif
 	return ran_val;
 }
 int Gauss_z(Complex *ps, unsigned int n, const Complex mu, const double sigma){

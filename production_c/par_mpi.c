@@ -110,9 +110,11 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 	 *  Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Par_sread";
+#if(nproc>1)
 	MPI_Status status;
 	//For sending the seeds later
 	MPI_Datatype MPI_SEED_TYPE = (sizeof(seed)==sizeof(int)) ? MPI_INT:MPI_LONG;
+#endif
 	//We shall allow the almighty master thread to open the file
 #ifdef __INTEL_MKL__
 	Complex *u1buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
@@ -165,7 +167,9 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 		if(!(con = fopen(gauge_file, fileop))){
 			fprintf(stderr, "Error %i in %s: Failed to open %s for %s.\
 					\nExiting...\n\n", OPENERROR, funcname, gauge_file, fileop);
+#if(nproc>1)
 			MPI_Abort(comm,OPENERROR);
+#endif
 		}
 		//TODO: SAFETY CHECKS FOR EACH READ OPERATION
 		int old_nproc;
@@ -195,12 +199,14 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 			seed_array[i] = seed_array[0]*(1.0f+8.0f*(float)i/(float)(size-1));
 		if(!rank)
 			seed=seed_array[0];
+#if(nproc>1)
 		for(int iproc = 1; iproc<nproc; iproc++)
 			if(MPI_Send(&seed_array[iproc], 1, MPI_SEED_TYPE,iproc, 1, comm)){
 				fprintf(stderr, "Error %i in %s: Failed to send seed to process %i.\nExiting...\n\n",
 						CANTSEND, funcname, iproc);
 				MPI_Abort(comm,CANTSEND);
 			}
+#endif
 
 		for(int iproc = 0; iproc < nproc; iproc++)
 			for(int idim = 0; idim < ndim; idim++){
@@ -238,6 +244,7 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 					}
 #endif
 				}		
+#if(nproc>1)
 				else{
 					//The master thread did all the hard work, the minions just need to receive their
 					//data and go.
@@ -252,6 +259,7 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 						MPI_Abort(comm,CANTSEND);
 					}
 				}
+#endif
 			}
 #ifdef __INTEL_MKL__
 		mkl_free(u11Read); mkl_free(u12Read);
@@ -260,6 +268,7 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 #endif
 		free(seed_array);
 	}
+#if(nproc>1)
 	else{
 		if(MPI_Recv(&seed, 1, MPI_SEED_TYPE, masterproc, 1, comm, &status)){
 			fprintf(stderr, "Error %i in %s: Falied to receive seed on process %i.\nExiting...\n\n",
@@ -290,6 +299,7 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 #endif
 		}
 	}
+#endif
 #ifdef __INTEL_MKL__
 	mkl_free(u1buff); mkl_free(u2buff);
 #else
@@ -363,12 +373,14 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 		long *seed_array=(long*)calloc(nproc,sizeof(seed));
 #endif
 		seed_array[0]=seed;
+#if(nproc>1)
 		for(int iproc = 1; iproc<nproc; iproc++)
 			if(MPI_Recv(&seed_array[iproc], 1, MPI_SEED_TYPE,iproc, 1, comm, &status)){
 				fprintf(stderr, "Error %i in %s: Failed to receive seed from process %i.\nExiting...\n\n",
 						CANTRECV, funcname, iproc);
 				MPI_Abort(comm,CANTRECV);
 			}
+#endif
 #ifdef __INTEL_MKL__
 		Complex *u11Write = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
 		Complex *u12Write = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
@@ -379,6 +391,7 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 		//Get correct parts of u11read etc from remote processors
 		for(int iproc=0;iproc<nproc;iproc++)
 			for(int idim=0;idim<ndim;idim++){
+#if(nproc>1)
 				if(iproc){
 					if(MPI_Recv(u1buff, kvol, MPI_C_DOUBLE_COMPLEX, iproc, 2*idim, comm, &status)){
 						fprintf(stderr, "Error %i in %s: Falied to receive u11 from process %i.\nExiting...\n\n",
@@ -392,6 +405,7 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 					}
 				}
 				else{
+#endif
 					//No need to do MPI Send/Receive on the master rank
 					//Array looping is slow so we use memcpy instead
 #if defined USE_BLAS
@@ -413,7 +427,9 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 					fwrite(u1buff,ndim*kvol*sizeof(Complex),1,pdump);
 					fclose(pdump);
 #endif
+#if(nproc>1)
 				}
+#endif
 				int i=0;
 				for(int it=pstart[3][iproc]; it<pstop[3][iproc]; it++)
 					for(int iz=pstart[2][iproc]; iz<pstop[2][iproc]; iz++)
@@ -493,6 +509,7 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 #endif
 		free(seed_array);
 	}
+#if(nproc>1)
 	else{
 		if(MPI_Send(&seed, 1, MPI_SEED_TYPE, masterproc, 1, comm)){
 			fprintf(stderr, "Error %i in %s: Falied to send u11 from process %i.\nExiting...\n\n",
@@ -537,6 +554,7 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 		free(u1buff); free(u2buff);
 #endif
 	}
+#endif
 	return 0;
 }
 //To be lazy, we've got modules to help us do reductions and broadcasts with a single argument

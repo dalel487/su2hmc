@@ -186,6 +186,8 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 			fprintf(stderr,"Warning %i in %s: Gauge fields are not initialised.\n", NOINIT, funcname);
 
 #ifdef __NVCC__
+	int device=-1;
+	cudaGetDevice(&device);
 		cudaMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),device,NULL);
 		cudaMemPrefetchAsync(u12t, ndim*kvol*sizeof(Complex),device,NULL);
 #endif

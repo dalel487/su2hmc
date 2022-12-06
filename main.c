@@ -151,10 +151,12 @@ int main(int argc, char *argv[]){
 		assert(stepl>0);	assert(ntraj>0);	  assert(istart>0);  assert(icheck>0);  assert(iread>=0); 
 	}
 	//Send inputs to other ranks
+#if(nproc>1)
 	Par_fcopy(&dt); Par_fcopy(&beta); Par_fcopy(&akappa); Par_fcopy(&ajq);
 	Par_fcopy(&athq); Par_fcopy(&fmu); Par_fcopy(&delb); //Not used?
 	Par_icopy(&stepl); Par_icopy(&ntraj); Par_icopy(&istart); Par_icopy(&icheck);
 	Par_icopy(&iread); jqq=ajq*cexp(athq*I);
+#endif
 	//End of input
 	//For CUDA code, device only variables are needed
 #ifdef __NVCC__
@@ -591,7 +593,9 @@ int main(int argc, char *argv[]){
 		for(int i=0; i<kmom; i++)
 			vel2+=pp[i]*pp[i];
 #endif
+#if(nproc>1)
 		Par_dsum(&vel2);
+#endif
 		vel2a+=vel2/(ndim*nadj*gvol);
 
 		if(itraj%iprint==0){
@@ -755,7 +759,7 @@ int main(int argc, char *argv[]){
 	if(!rank){
 		FILE *sa3at = fopen("Bench_times.csv", "a");
 		fprintf(sa3at, "%s\nβ%0.3f κ:%0.4f μ:%0.4f j:%0.3f s:%i t:%i kvol:%ld\n"
-					"npx:%i npt:%i nthread:%i ncore:%i time:%f traj_time:%f\n\n",\
+				"npx:%i npt:%i nthread:%i ncore:%i time:%f traj_time:%f\n\n",\
 				__VERSION__,beta,akappa,fmu,ajq,nx,nt,kvol,npx,npt,nthreads,npx*npy*npz*npt*nthreads,elapsed,elapsed/ntraj);
 		fclose(sa3at);
 	}

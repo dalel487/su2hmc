@@ -111,34 +111,34 @@ int Addrc(unsigned int *iu, unsigned int *id){
 						//Else if we're at the "down" edge, the down nearest neighbour is in the halo
 						else{
 							ih[0][0]++;
+#if npx>1
 							if(ih[0][0]>= halo){
 								fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."\
 										"\nExiting...\n\n", HALOLIM, funcname, 0, 0, ih[0][0], halo);
 								MPI_Abort(comm,HALOLIM);
 							}
 							hd[0+ndim*ih[0][0]]=ic;
-#if npx==1
- 						iaddr = ia(jx-1,jy,jz,jt);
-#elif npx>1
- 						iaddr=h1d[0]+ih[0][0];
+							iaddr=h1d[0]+ih[0][0];
+#elif npx==1
+							iaddr = ia(jx-1,jy,jz,jt);
 #endif
 						}
 						id[0+ndim*ic]=iaddr;
-						
+
 						if(jx<ksize-1)
 							iaddr = ia(jx+1,jy,jz,jt);
 						else{
 							ih[1][0]++;
+#if npx>1
 							if(ih[1][0]>= halo){
 								fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."
 										"\nExiting...\n\n", HALOLIM, funcname, 1, 0, ih[1][0], halo);
 								MPI_Abort(comm,HALOLIM);
 							}
 							hu[0+ndim*ih[1][0]]=ic;
-#if npx==1
- 						iaddr = ia(jx+1,jy,jz,jt);
-#elif npx>1
- 						iaddr=ih[1][0]+h1u[0];	
+							iaddr=ih[1][0]+h1u[0];	
+#elif npx==1
+							iaddr = ia(jx+1,jy,jz,jt);
 #endif
 						}
 						iu[0+ndim*ic]=iaddr;
@@ -147,16 +147,16 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							iaddr = ia(jx,jy-1,jz,jt);
 						else{
 							ih[0][1]++;
+#if npy>1
 							if(ih[0][1]>= halo){
 								fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."\
 										"\nExiting...\n\n", HALOLIM, funcname, 0, 1, ih[0][1], halo);
 								MPI_Abort(comm,HALOLIM);
 							}
 							hd[1+ndim*ih[0][1]]=ic;
-#if npy==1
- 						iaddr = ia(jx,jy-1,jz,jt);
-#elif npy>1
- 						iaddr=h1d[1]+ih[0][1];
+							iaddr=h1d[1]+ih[0][1];
+#elif npy==1
+							iaddr = ia(jx,jy-1,jz,jt);
 #endif
 						}
 						id[1+ndim*ic]=iaddr;
@@ -165,16 +165,16 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							iaddr = ia(jx,jy+1,jz,jt);
 						else{
 							ih[1][1]++;
+#if npy>1
 							if(ih[1][1]>= halo){
 								fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."
 										"\nExiting...\n\n", HALOLIM, funcname, 1, 1, ih[1][1], halo);
 								MPI_Abort(comm,HALOLIM);
 							}
 							hu[1+ndim*ih[1][1]]=ic;
-#if npy==1
- 						iaddr = ia(jx,jy+1,jz,jt);
-#elif npy>1
- 						iaddr=ih[1][1]+h1u[1];	
+							iaddr=ih[1][1]+h1u[1];	
+#elif npy==1
+							iaddr = ia(jx,jy+1,jz,jt);
 #endif
 						}
 						iu[1+ndim*ic]=iaddr;
@@ -183,16 +183,16 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							iaddr = ia(jx,jy,jz-1,jt);
 						else{
 							ih[0][2]++;
+#if npz>1
 							if(ih[0][2]>= halo){
 								fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."\
 										"\nExiting...\n\n", HALOLIM, funcname, 0, 2, ih[0][2], halo);
 								MPI_Abort(comm,HALOLIM);
 							}
 							hd[2+ndim*ih[0][2]]=ic;
-#if npz==1
- 						iaddr = ia(jx,jy,jz-1,jt);
-#elif npz>1
- 						iaddr=h1d[2]+ih[0][2];
+							iaddr=h1d[2]+ih[0][2];
+#elif npz==1
+							iaddr = ia(jx,jy,jz-1,jt);
 #endif
 						}
 						id[2+ndim*ic]=iaddr;
@@ -201,16 +201,16 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							iaddr = ia(jx,jy,jz+1,jt);
 						else{
 							ih[1][2]++;
+#if npz>1
 							if(ih[1][2]>= halo){
 								fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."
 										"\nExiting...\n\n", HALOLIM, funcname, 1, 2, ih[1][2], halo);
 								MPI_Abort(comm,HALOLIM);
 							}
 							hu[2+ndim*ih[1][2]]=ic;
-#if npz==1
- 						iaddr = ia(jx,jy,jz+1,jt);
-#elif npz>1
- 						iaddr=ih[1][2]+h1u[2];	
+							iaddr=ih[1][2]+h1u[2];	
+#elif npz==1
+							iaddr = ia(jx,jy,jz+1,jt);
 #endif
 						}
 						iu[2+ndim*ic]=iaddr;
@@ -219,16 +219,16 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							iaddr = ia(jx,jy,jz,jt-1);
 						else{
 							ih[0][3]++;
+#if npt>1
 							if(ih[0][3]>= halo){
 								fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."\
 										"\nExiting...\n\n", HALOLIM, funcname, 0, 3, ih[0][3], halo);
 								MPI_Abort(comm,HALOLIM);
 							}
 							hd[3+ndim*ih[0][3]]=ic;
-#if npt==1
-							iaddr = ia(jx,jy,jz,jt-1);
-#elif npt>1
 							iaddr=h1d[3]+ih[0][3];
+#elif npt==1
+							iaddr = ia(jx,jy,jz,jt-1);
 #endif
 						}
 						id[3+ndim*ic]=iaddr;
@@ -237,16 +237,16 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							iaddr = ia(jx,jy,jz,jt+1);
 						else{
 							ih[1][3]++;
+#if npt>1
 							if(ih[1][3]>= halo){
 								fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."
 										"\nExiting...\n\n", HALOLIM, funcname, 1, 3, ih[1][3], halo);
 								MPI_Abort(comm,HALOLIM);
 							}
 							hu[3+ndim*ih[1][3]]=ic;
-#if npt==1
-							iaddr = ia(jx,jy,jz,jt+1);
-#elif npt>1
 							iaddr=ih[1][3]+h1u[3];	
+#elif npt==1
+							iaddr = ia(jx,jy,jz,jt+1);
 #endif
 						}
 						iu[3+ndim*ic]=iaddr;

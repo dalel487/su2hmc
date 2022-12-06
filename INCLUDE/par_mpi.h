@@ -8,10 +8,16 @@
 #endif
 #include	<random.h>
 #include	<sizes.h>
+#ifdef __cplusplus
+#include	<cstdio>
+#include	<cstdlib>
+#include	<cstring>
+#else
 #include	<stdbool.h>
 #include	<stdio.h>
 #include	<stdlib.h>
 #include	<string.h>
+#endif
 
 //Avoid any accidents with US/UK spelling
 #define MPI_Finalise() MPI_Finalize()
@@ -62,13 +68,13 @@ extern int rank, size;
 extern "C"
 {
 #endif
-//Function Declarations
-//=====================
+	//Function Declarations
+	//=====================
 	int Par_begin(int argc, char *argv[]);
 	int Par_sread(const int iread, const float beta, const float fmu, const float akappa, const Complex_f ajq,\
 			Complex *u11, Complex *u12, Complex *u11t, Complex *u12t);
-	int Par_swrite(const int itraj, const int icheck, const float beta, const float fmu, const float akappa, const Complex_f ajq,\
-			Complex *u11, Complex *u12);
+	int Par_swrite(const int itraj, const int icheck, const float beta, const float fmu, const float akappa,\
+			const Complex_f ajq,	Complex *u11, Complex *u12);
 	int Par_end();
 	//Shortcuts for reductions and broadcasts. These should be inlined
 	int Par_isum(int *ival);

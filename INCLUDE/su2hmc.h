@@ -21,10 +21,17 @@ extern cublasHandle_t cublas_status;
 #define	USE_BLAS
 #include	<cblas.h>
 #endif
+#include	<sizes.h>
+#ifdef __cplusplus
+#include	<cstdio>
+#include	<cstdlib>
+#include	<ctime>
+#else
 #include	<stdio.h>
 #include	<stdlib.h>
 #include	<sizes.h>
 #include	<time.h>
+#endif
 
 //Definitions:
 //###########

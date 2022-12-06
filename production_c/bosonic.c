@@ -201,14 +201,18 @@ double Polyakov(Complex *u11t, Complex *u12t){
 #if (npt>1)
 	//Only send to the accelerator if the time component is parallelised with MPI. Otherwise
 	//it gets sent straight into another loop
+#ifdef _OPENACC
 #pragma acc update self(Sigma11[0:kvol3],Sigma12[0:kvol3])
+#endif
 #ifdef _DEBUG
 	printf("Multiplying with MPI\n");
 #endif
 	//Par_tmul does nothing if there is only a single processor in the time direction. So we only compile
 	//its call if it is required
 	Par_tmul(Sigma11, Sigma12);
+#ifdef _OPENACC
 #pragma acc update device(Sigma11[0:kvol3],Sigma12[0:kvol3])
+#endif
 #endif
 #ifdef _OPENACC
 #pragma acc parallel loop reduction(+:poly)
@@ -217,7 +221,9 @@ double Polyakov(Complex *u11t, Complex *u12t){
 #endif
 	for(int i=0;i<kvol3;i++)
 		poly+=creal(Sigma11[i]);
+#ifdef _OPENACC
 #pragma acc exit data delete(Sigma11[0:kvol3],Sigma12[0:kvol3])
+#endif
 #ifdef __NVCC__
 	cudaFree(Sigma11); cudaFree(Sigma12);
 #elif defined __INTEL_MKL__
