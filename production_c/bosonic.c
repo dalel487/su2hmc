@@ -35,11 +35,13 @@ int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex *u11
 	//	The FORTRAN code used several consecutive loops to get the plaquette
 	//	Instead we'll just make the arrays variables and do everything in one loop
 	//	Should work since in the FORTRAN Sigma11[i] only depends on i components  for example
-	double hgs = 0; double hgt = 0;
 	//Since the ν loop doesn't get called for μ=0 we'll start at μ=1
 #ifdef __NVCC__
-	cuSU2plaq(&hgs, &hgt, u11t, u12t, iu,dimGrid,dimBlock);
+	static double hgs = 0; static double hgt = 0;
+	cuAverage_Plaquette(&hgs, &hgt, u11t, u12t, iu,dimGrid,dimBlock);
+	cudaDeviceSynchronise();
 #else
+	double hgs = 0; double hgt = 0;
 	for(int mu=1;mu<ndim;mu++)
 		for(int nu=0;nu<mu;nu++)
 			//Don't merge into a single loop. Makes vectorisation easier?
@@ -144,11 +146,11 @@ double Polyakov(Complex *u11t, Complex *u12t){
 	Complex *Sigma12 = aligned_alloc(AVX,kvol3*sizeof(Complex));
 #endif
 #ifdef __NVCC__
-	cublasZcopy(cublas_handle,kvol3, (cuDoubleComplex *)&u11t[3], ndim, (cuDoubleComplex *)Sigma11, 1);
-	cublasZcopy(cublas_handle,kvol3, (cuDoubleComplex *)&u12t[3], ndim, (cuDoubleComplex *)Sigma12, 1);
+	cublasZcopy(cublas_handle,kvol3, (cuDoubleComplex *)(u11t+3), ndim, (cuDoubleComplex *)Sigma11, 1);
+	cublasZcopy(cublas_handle,kvol3, (cuDoubleComplex *)(u12t+3), ndim, (cuDoubleComplex *)Sigma12, 1);
 #elif (defined __INTEL_MKL__ || defined USE_BLAS)
-	cblas_zcopy(kvol3, &u11t[3], ndim, Sigma11, 1);
-	cblas_zcopy(kvol3, &u12t[3], ndim, Sigma12, 1);
+	cblas_zcopy(kvol3, u11t+3, ndim, Sigma11, 1);
+	cblas_zcopy(kvol3, u12t+3, ndim, Sigma12, 1);
 #else
 	for(int i=0; i<kvol3; i++){
 		Sigma11[i]=u11t[i*ndim+3];
@@ -173,6 +175,7 @@ double Polyakov(Complex *u11t, Complex *u12t){
 	cudaMemPrefetchAsync(Sigma11,kvol3*sizeof(Complex),device,NULL);
 	cudaMemPrefetchAsync(Sigma12,kvol3*sizeof(Complex),device,NULL);
 	cuPolyakov(Sigma11,Sigma12,u11t,u12t,dimGrid,dimBlock);
+	cudaDeviceSynchronise();
 #else
 #pragma acc enter data copyin(Sigma11[0:kvol3],Sigma12[0:kvol3])
 #pragma unroll

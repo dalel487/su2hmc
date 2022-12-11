@@ -5,7 +5,7 @@
 #endif
 #include <par_mpi.h>
 #include <su2hmc.h>
-#ifdef __cplusplus
+#if (defined __cplusplus)
 extern "C"
 {
 #endif
@@ -31,9 +31,6 @@ extern "C"
 	int New_trial(double dt, double *pp, Complex *u11t, Complex *u12t);
 #ifdef DIAGNOSTIC
 	int Diagnostics(int istart);
-#endif
-#ifdef __cplusplus
-}
 #endif
 #ifdef __NVCC__
 //Calling Functions
@@ -65,6 +62,9 @@ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u1
 //New Trial Fields
 void cuReunitarise(Complex *u11t, Complex *u12t,dim3 dimGrid, dim3 dimBlock);
 void cuNew_trial(double dt, double *pp, Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock);
+#endif
+#if (defined __cplusplus)
+}
 #endif
 #ifdef __CUDACC__
 //Actual CUDA

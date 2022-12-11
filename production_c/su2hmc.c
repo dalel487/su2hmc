@@ -186,8 +186,8 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 			fprintf(stderr,"Warning %i in %s: Gauge fields are not initialised.\n", NOINIT, funcname);
 
 #ifdef __NVCC__
-	int device=-1;
-	cudaGetDevice(&device);
+		int device=-1;
+		cudaGetDevice(&device);
 		cudaMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),device,NULL);
 		cudaMemPrefetchAsync(u12t, ndim*kvol*sizeof(Complex),device,NULL);
 #endif
@@ -295,9 +295,9 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 	free(smallPhi);
 #endif
 	//hg was summed over inside of Average_Plaquette.
-	#if(nproc>1)
+#if(nproc>1)
 	Par_dsum(&hp); Par_dsum(&hf);
-	#endif
+#endif
 	*s=hg+hf; *h=*s+hp;
 #ifdef _DEBUG
 	if(!rank)

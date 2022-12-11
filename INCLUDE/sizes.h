@@ -44,7 +44,7 @@
 #define	FILELEN	64
 // Common block definition for parallel variables
 
-#define	nx 8
+#define	nx 32
 #if(nx<1)
 #error "nx is expected it to be greater than or equal to 1"
 #endif
@@ -61,7 +61,7 @@
 #error "nz is expected it to be greater than or equal to 1"
 #endif
 
-#define	nt	8
+#define	nt	32
 #if(nt<1)
 #error "nt is expected it to be greater than or equal to 1"
 #endif
@@ -103,7 +103,7 @@
 #define	nproc	(npx*npy*npz*npt)
 
 //Number of threads for OpenMP, which can be overwritten at runtime
-#define	nthreads	16
+#define	nthreads	1
 
 //    Existing parameter definitions.
 #define	ksizex	(nx/npx)
@@ -200,7 +200,7 @@
 //usually between 128 and 256
 //Note that from Volta/Turing  each SM (group of processors)
 //is smaller than on previous generations of GPUs
-extern dim3	dimBlock;
-extern dim3	dimGrid;
+extern dim3	dimBlock;//	=dim3(nx,ny,nz);
+extern dim3	dimGrid;//	=dim3(nt,1,1);
 #endif
 #endif

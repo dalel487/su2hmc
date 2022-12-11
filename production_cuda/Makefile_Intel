@@ -1,13 +1,13 @@
 MF=Makefile_Intel
 CC=		mpiicc 
-CXX=		icpc 
+CXX=		mpiicpc 
 NVCC=		nvcc
 
 IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include" -I ./ -I../production_c\
 				-I /opt/nvidia/hpc_sdk/Linux_x86_64/2022/cuda/include/ \
 				-I /opt/nvidia/hpc_sdk/Linux_x86_64/2022/math_libs/include/ \
 
-CFLAGS=  -ipo -qmkl -qopt-zmm-usage=high -MD -D__NVCC__ -static-intel -static-libgcc \
+CFLAGS=  -qmkl -qopt-zmm-usage=high -MD -D__NVCC__ -static-intel -static-libgcc \
 			-xSKYLAKE -ax'SKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE'\
 			-DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__ -qopenmp -qno-openmp-offload\
 			-qopenmp-simd -DSA3AT -use-intel-optimized-headers $(IFLAGS) 
@@ -17,16 +17,16 @@ CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/2022/cuda/lib64/ \
 				-L/opt/nvidia/hpc_sdk/Linux_x86_64/2022/math_libs/lib64/ \
 				-lcuda -lcudart -lcublas #-L${NVSHMEM_HOME}/lib -lnvshmem -lblis 
 
-LFLAGS=		-liomp5 -lpthread -ldl -limf -lgsl  #${CULFLAGS}
+LFLAGS=		-liomp5 -lstdc++ -lpthread -ldl -limf -lgsl  #${CULFLAGS}
 
-NVCCFLAGS=	${IFLAGS}  -err-no -w -expt-relaxed-constexpr 
+NVCCFLAGS=	${IFLAGS}  -std=c++14 -err-no -w -expt-relaxed-constexpr 
 			#Last flag is an experimental one used to call host functions in device code. Not sure
 			#if it does what we want because the error message suggesting it came up when declaring
 			#a11 and a12 in the Dslash routine
 #NVCCFLAGS=	${IFLAGS}  -arch=compute_60 -code=sm_60,sm_61,sm_70,sm_75,sm_80,sm_86 -err-no -w \
 #Replace first line of NVCCFLAGS with above when done. Targets every platform since 2016
 
-EXE=		cuda_su2hmc
+EXE=	su2hmc_CUDA
 
 CSRC_DIR=	../production_c
 CSRC=	\
@@ -43,6 +43,7 @@ CUSRC=	\
 		cubosonic.cu\
 		cumatrices.cu\
 		cuforce.cu\
+		cuInit.cu
 
 #CUSRC= CUDA_Compile.cu
 CINC=	\
@@ -77,7 +78,7 @@ CUEDT=	$(CUSRC:.cu=.cu~)
 TMP=	$(MOD) $(CEDT) $(CUEDT) core
 
 profiler:	CFLAGS += -g
-profiler:	NVCCFLAGS += -O0 -G -g 
+profiler:	NVCCFLAGS += -G -g 
 profiler:	release
 
 release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high 
@@ -85,22 +86,22 @@ release:	NVCCFLAGS += -O3 -gencode arch=compute_75,code=lto_75 -gencode arch=com
 release:	$(EXE)
 
 debug:		CFLAGS += -O0 -g -D_DEBUG -rdynamic # -DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
-debug:		NVCCFLAGS += -O0 -G -g -D_DEBUG -gencode arch=compute_75,code=sm_75 -gencode arch=compute_80,code=sm_80 
+debug:		NVCCFLAGS += -O0 -G -g -D_DEBUG -gencode arch=compute_75,code=lto_75 -gencode arch=compute_80,code=sm_80 
 debug:		$(EXE)
 
 		 
 $(EXE): ../main.c $(OBJ)
-	$(CXX) -D__NVCC__ $(CFLAGS) $(MKLFLAGS) $^ $(LFLAGS) $(CULFLAGS)  -o $@
-$(CULIB2): $(CULIB)
-	ar rc $@ $^ 
-$(CULIB): $(CUOBJ)
-	$(NVCC) -ccbin $(CXX) $(NVCCFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $(NVCCFLAGS)  $(LFLAGS) -dlink $^ -o $@ 
-$(CLIB):	$(COBJ) 
-	ar rc $@  $^
+	$(NVCC) $(NVCCFLAGS) -ccbin $(CC) -Xcompiler "$(CFLAGS) $(MKLFLAGS) -std=gnu11 -ipo" $^ $(LFLAGS) $(CULFLAGS)  -o $@
+#$(CULIB2): $(CULIB)
+#	ar rc $@ $^ 
+#$(CULIB): $(CUOBJ)
+#	$(NVCC) -ccbin $(CXX) $(NVCCFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $(NVCCFLAGS)  $(LFLAGS) -dlink $^ -o $@ 
+#$(CLIB):	$(COBJ) 
+#	ar rc $@  $^
 %.o: $(CUSRC_DIR)/%.cu
 	$(NVCC) $(NVCCFLAGS) -ccbin $(CXX) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $^ -dc $@ 
 %.o: $(CSRC_DIR)%.c
-	$(CC) $(CFLAGS) std=gnu11 -x c++ $(MKLFLAGS) -c $^  
+	$(CC) -std=gnu11 -ipo $(CFLAGS) $(MKLFLAGS) -c $^  
 
 clean:
 	rm -f $(OBJ) $(COBJ) $(CUOBJ) $(CULIB) $(CLIB) $(TMP)

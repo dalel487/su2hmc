@@ -829,11 +829,12 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 #endif
 	//TODO: Get u11t_f and u12t_f sorted
 	//Mass term
-	memcpy(phi, r, kferm2*sizeof(Complex_f));
 	//Spacelike term
 #ifdef __NVCC__
+	memcpy(phi, r, kferm2*sizeof(Complex_f));
 	cuHdslash_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
 #else
+	memcpy(phi, r, kferm2*sizeof(Complex_f));
 #ifdef _OPENACC
 #pragma acc parallel loop copy(phi[0:kferm2]) copyin(r[0:kferm2Halo])
 #elif defined __clang__

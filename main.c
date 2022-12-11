@@ -248,7 +248,8 @@ int main(int argc, char *argv[]){
 	Init(istart,ibound,iread,beta,fmu,akappa,ajq,u11,u12,u11t,u12t,u11t_f,u12t_f,gamval,gamval_f,gamin,dk4m,dk4p,dk4m_f,dk4p_f,iu,id);
 #ifdef __NVCC__
 	//GPU Initialisation stuff
-	Init_CUDA(u11t,u12t,u11t_f,u12t_f,gamval,gamval_f,gamin,gamval_d,gamval_f_d,gamin_d,dk4m,dk4p,dk4m_f,dk4p_f,iu,id,&dimBlock,&dimGrid);
+	Init_CUDA(u11t,u12t,u11t_f,u12t_f,gamval,gamval_f,gamin,gamval_d,gamval_f_d,gamin_d,\
+	dk4m,dk4p,dk4m_f,dk4p_f,iu,id);//&dimBlock,&dimGrid);
 #endif
 	//Send trials to accelerator for reunitarisation
 #pragma omp taskwait
