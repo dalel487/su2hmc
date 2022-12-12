@@ -5,28 +5,39 @@
 #include	<par_mpi.h>
 #include	<su2hmc.h>
 void cuAverage_Plaquette(double *hgs, double *hgt, Complex *u11t, Complex *u12t, unsigned int *iu,dim3 dimGrid, dim3 dimBlock){
+	double *hgs_d, *hgt_d;
+	cudaMalloc(&hgs_d,kvol*sizeof(double));
+	cudaMemset(hgs_d,0,kvol*sizeof(double));
+	cudaMalloc(&hgt_d,kvol*sizeof(double));
+	cudaMemset(hgt_d,0,kvol*sizeof(double));
+
 	cuAverage_Plaquette<<<dimGrid,dimBlock>>>(hgs, hgt, u11t, u12t, iu);
+	*hgs= thrust::reduce(thrust::host,hgs_d,hgt_d+kvol);
+	*hgt= thrust::reduce(thrust::host,hgt_d,hgt_d+kvol);
+	cudaFree(hgs_d); cudaFree(hgt_d);
 }
 void cuPolyakov(Complex *Sigma11, Complex * Sigma12, Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock){
 	cuPolyakov<<<dimGrid,dimBlock>>>(Sigma11,Sigma12,u11t,u12t);
 }
 //CUDA Kernels
-__global__ void cuAverage_Plaquette(double *hgs, double *hgt, Complex *u11t, Complex *u12t, unsigned int *iu){
+__global__ void cuAverage_Plaquette(double *hgs_d, double *hgt_d, Complex *u11t, Complex *u12t, unsigned int *iu){
 	char *funcname = "cuSU2plaq";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	for(int mu=1;mu<ndim;mu++)
-		for(int nu=0;nu<mu;nu++)
-			for(int i=threadId;i<kvol;i+=bsize*gsize){
+	//TODO: Chck if μ and ν loops inside of site loop is faster. I suspect it is due to memory locality.
+	for(int i=threadId;i<kvol;i+=bsize*gsize)
+		for(int mu=1;mu<ndim;mu++)
+			for(int nu=0;nu<mu;nu++){
 				//Save us from typing iu[mu+ndim*i] everywhere
+				//This is threadsafe as the μ and ν loops are not distributed across threads
 				switch(mu){
 					//Time component
-					case(ndim-1):	atomicAdd(hgt, -SU2plaq(u11t,u12t,iu,i,mu,nu));
+					case(ndim-1):	hgt_d[i]-= -SU2plaq(u11t,u12t,iu,i,mu,nu);
 										break;
 										//Space component
-					default:	atomicAdd(hgs,  -SU2plaq(u11t,u12t,iu,i,mu,nu));
+					default:	hgs_d[i] -=SU2plaq(u11t,u12t,iu,i,mu,nu);
 								break;
 				}
 			}
