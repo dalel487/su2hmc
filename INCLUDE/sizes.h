@@ -35,6 +35,7 @@
 #endif
 #ifdef __CUDACC__
 #include	<thrust_complex.h>
+#include <thrust/reduce.h>
 #else
 #include	<complex.h>
 #define	Complex_f	float	complex

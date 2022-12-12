@@ -57,7 +57,7 @@ int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex *u11
 					//Time component
 					case(ndim-1):	hgt -= SU2plaq(u11t,u12t,iu,i,mu,nu);
 										break;
-										//Space component
+					//Space component
 					default:	hgs -= SU2plaq(u11t,u12t,iu,i,mu,nu);
 								break;
 				}

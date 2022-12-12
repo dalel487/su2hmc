@@ -2,7 +2,7 @@
 #ifndef TCMPLX
 #define TCMPLX
 #include <thrust/complex.h>
-using namespace thrust;
+using thrust::complex;
 //#undef	complex
 #define	Complex_f	 complex<float>
 #define	Complex	 complex<double>

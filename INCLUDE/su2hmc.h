@@ -29,7 +29,6 @@ extern cublasHandle_t cublas_status;
 #else
 #include	<stdio.h>
 #include	<stdlib.h>
-#include	<sizes.h>
 #include	<time.h>
 #endif
 

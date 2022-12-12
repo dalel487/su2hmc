@@ -67,12 +67,19 @@ int Par_ranread(char *filename, double *ranval){
 	if(!rank){
 		if(!(dest = fopen(filename, "rb"))){
 			fprintf(stderr, "Error %i in %s: Failed to open %s.\nExiting...\n\n", OPENERROR, funcname, filename);
+#if(nproc>1)
 			MPI_Abort(comm,OPENERROR); 
+#else
+			exit(OPENERROR);
+#endif
+
 		}
 		fread(&ranval, sizeof(ranval), 1, dest);	
 		fclose(dest);
 	}
+#if(nproc>1)
 	Par_dcopy(ranval);
+#endif
 	return 0;
 }
 #if (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))
@@ -146,9 +153,9 @@ double Par_granf(){
 		vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 1, &ran_val, 0,1);
 #endif
 	}
-	#if(nproc>1)
+#if(nproc>1)
 	Par_dcopy(&ran_val);
-	#endif
+#endif
 	return ran_val;
 }
 int Gauss_z(Complex *ps, unsigned int n, const Complex mu, const double sigma){
@@ -178,7 +185,11 @@ int Gauss_z(Complex *ps, unsigned int n, const Complex mu, const double sigma){
 	if(n<=0){
 		fprintf(stderr, "Error %i in %s: Array cannot have length %i.\nExiting...\n\n",
 				ARRAYLEN, funcname, n);
+#if(nproc>1)
 		MPI_Abort(comm,ARRAYLEN);
+#else
+		exit(ARRAYLEN);
+#endif
 	}
 #pragma unroll
 	for(int i=0;i<n;i++){
@@ -230,7 +241,11 @@ int Gauss_c(Complex_f *ps, unsigned int n, const Complex_f mu, const float sigma
 	if(n<=0){
 		fprintf(stderr, "Error %i in %s: Array cannot have length %i.\nExiting...\n\n",
 				ARRAYLEN, funcname, n);
+#if(nproc>1)
 		MPI_Abort(comm,ARRAYLEN);
+#else
+		exit(ARRAYLEN);
+#endif
 	}
 #pragma unroll
 	for(int i=0;i<n;i++){
@@ -285,7 +300,11 @@ int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma){
 	if(n<=0){
 		fprintf(stderr, "Error %i in %s: Array cannot have length %i.\nExiting...\n\n",
 				ARRAYLEN, funcname, n);
+#if(nproc>1)
 		MPI_Abort(comm,ARRAYLEN);
+#else
+		exit(ARRAYLEN);
+#endif
 	}
 	int i;
 	double r, u, v;
@@ -354,7 +373,11 @@ int Gauss_f(float *ps, unsigned int n, const float mu, const float sigma){
 	if(n<=0){
 		fprintf(stderr, "Error %i in %s: Array cannot have length %i.\nExiting...\n\n",
 				ARRAYLEN, funcname, n);
+#if(nproc>1)
 		MPI_Abort(comm,ARRAYLEN);
+#else
+		exit(ARRAYLEN);
+#endif
 	}
 	int i;
 	float r, u, v;
@@ -450,7 +473,7 @@ double ran2(long *idum) {
 }
 
 /*
-int ran_test(){
+	int ran_test(){
 	char *funcname ="ran_test";
 	const double mu = 0.3;
 	const double sigma = 2;
@@ -462,7 +485,7 @@ int ran_test(){
 	FILE *z_out=fopen("z_ran.out","w");
 	Gauss_z(z_arr,1024*1024,mu,sigma);
 	for(int i =0; i<1024*1024;i++)
-		fprintf(z_out, "%f\t%f\n", creal(z_arr[i]), cimag(z_arr[i]));
+	fprintf(z_out, "%f\t%f\n", creal(z_arr[i]), cimag(z_arr[i]));
 	fclose(z_out);
 	free(z_arr);
 	Complex_f *c_arr=(Complex_f *)malloc(1024*1024*sizeof(Complex_f));
@@ -470,22 +493,22 @@ int ran_test(){
 	FILE *c_out=fopen("c_ran.out","w");
 	free(c_arr);
 	for(int i =0; i<1024*1024;i++)
-		fprintf(c_out,"%f\t%f\n", creal(c_arr[i]), cimag(c_arr[i]));
+	fprintf(c_out,"%f\t%f\n", creal(c_arr[i]), cimag(c_arr[i]));
 	fclose(c_out);
 	double *d_arr=(double *)malloc(1024*1024*sizeof(double));
 	Gauss_d(d_arr,1024*1024,mu,sigma);
 	FILE *d_out=fopen("d_ran.out","w");
 	for(int i =0; i<1024*1024;i++)
-		fprintf(d_out,"%f\n", d_arr[i]);
+	fprintf(d_out,"%f\n", d_arr[i]);
 	fclose(d_out);
 	free(d_arr);
 	float *f_arr=(float *)malloc(1024*1024*sizeof(float));
 	Gauss_f(f_arr,1024*1024,mu_f,sigma_f);
 	FILE *f_out=fopen("f_ran.out","w");
 	for(int i =0; i<1024*1024;i++)
-		fprintf(f_out,"%f\n", f_arr[i]);
+	fprintf(f_out,"%f\n", f_arr[i]);
 	fclose(f_out);
 	free(f_arr);
 	return 0;
-}
-*/
+	}
+ */

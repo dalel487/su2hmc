@@ -4,7 +4,9 @@
 //C is case sensitive, so the equivalent C command has the case format MPI_Xyz_abc
 //Non-commands (like MPI_COMM_WORLD) don't always change
 
+#if(nproc>1)
 MPI_Comm comm = MPI_COMM_WORLD;
+#endif
 
 int *pcoord;
 int pstart[ndim][nproc] __attribute__((aligned(AVX)));
@@ -26,8 +28,10 @@ int Par_begin(int argc, char *argv[]){
 	 * Zero on success, integer error code otherwise.
 	 */
 
+	//TODO: Remove as much non-MPI stuff from here as possible
 	char *funcname = "Par_begin";
 	int size, commcart;
+#if(nproc>1)
 	if(MPI_Init(&argc, &argv)){
 		fprintf(stderr, "Error %i in %s: Failed to initialise MPI\nExiting\n\n", NO_MPI_INIT, funcname);
 		MPI_Abort(comm,NO_MPI_INIT);
@@ -42,11 +46,18 @@ int Par_begin(int argc, char *argv[]){
 		fprintf(stderr, "Error %i in %s: Failed to find size\nExiting...\n\n", NO_MPI_SIZE, funcname);
 		MPI_Abort(comm,NO_MPI_SIZE);
 	}
+#else
+	size=1; rank=0;
+#endif
 	//If size isn't the same as the max allowed number of processes, then there's a problem somewhere.
 	if(size!=nproc){
 		fprintf(stderr, "Error %i in %s: For process %i, size %i is not equal to nproc %i.\n"
 				"Exiting...\n\n", SIZEPROC, funcname, rank, size, nproc);
+#if(nproc>1)
 		MPI_Abort(comm,SIZEPROC);
+#else
+		exit(SIZEPROC);
+#endif
 	}
 	//gsize is the size of the system, lsize is the size of each MPI Grid
 	int gsize[4], lsize[4];
@@ -67,18 +78,23 @@ int Par_begin(int argc, char *argv[]){
 	//Not going to change the rank order
 	int reorder = false;
 	//Declare the topology
+#if(nproc>1)
 	MPI_Cart_create(comm, ndim, cartsize, periods, reorder, &commcart);
+#endif
 
 	//Get nearest neighbours of processors
+#if(nproc>1)
 #pragma unroll
 	for(int i= 0; i<ndim; i++)
 		MPI_Cart_shift(commcart, i, 1, &pd[i], &pu[i]);
+#endif
 	//Get coordinates of processors in the grid
 #ifdef __INTEL_MKL__
 	pcoord = (int*)mkl_malloc(ndim*nproc*sizeof(int),AVX);
 #else
 	pcoord = (int*)aligned_alloc(AVX,ndim*nproc*sizeof(int));
 #endif
+#if(nproc>1)
 	for(int iproc = 0; iproc<nproc; iproc++){
 		MPI_Cart_coords(commcart, iproc, ndim, pcoord+iproc*ndim);
 #pragma omp simd aligned(pcoord:AVX)
@@ -87,6 +103,13 @@ int Par_begin(int argc, char *argv[]){
 			pstop[idim][iproc]  = pstart[idim][iproc] + lsize[idim];
 		}
 	}
+#else
+	//Set iproc=0 because we only have one proc
+	for(int idim = 0; idim<ndim; idim++){
+		pstart[idim][0] = 0;
+		pstop[idim][0]  = lsize[idim];
+	}
+#endif
 #ifdef _DEBUG
 	if(!rank)
 		printf("Running on %i processors.\n Grid layout is %ix%ix%ix%i\n",
@@ -230,7 +253,11 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 				if(i!=kvol){
 					fprintf(stderr, "Error %i in %s: Number of elements %i is not equal to\
 							kvol %i.\nExiting...\n\n", NUMELEM, funcname, i, kvol);
+#if(nproc>1)
 					MPI_Abort(comm,NUMELEM);
+#else
+					exit(NUMELEM);
+#endif
 				}
 				if(!iproc){
 #if defined USE_BLAS
@@ -251,12 +278,20 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 					if(MPI_Send(u1buff, kvol, MPI_C_DOUBLE_COMPLEX,iproc, 2*idim, comm)){
 						fprintf(stderr, "Error %i in %s: Failed to send ubuff to process %i.\nExiting...\n\n",
 								CANTSEND, funcname, iproc);
+#if(nproc>1)
 						MPI_Abort(comm,CANTSEND);
+#else
+						exit(CANTSEND);
+#endif
 					}
 					if(MPI_Send(u2buff, kvol, MPI_C_DOUBLE_COMPLEX,iproc, 2*idim+1, comm)){
 						fprintf(stderr, "Error %i in %s: Failed to send ubuff to process %i.\nExiting...\n\n",
 								CANTSEND, funcname, iproc);
+#if(nproc>1)
 						MPI_Abort(comm,CANTSEND);
+#else
+						exit(CANTSEND);
+#endif
 					}
 				}
 #endif
@@ -273,7 +308,11 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 		if(MPI_Recv(&seed, 1, MPI_SEED_TYPE, masterproc, 1, comm, &status)){
 			fprintf(stderr, "Error %i in %s: Falied to receive seed on process %i.\nExiting...\n\n",
 					CANTRECV, funcname, rank);
+#if(nproc>1)
 			MPI_Abort(comm,CANTRECV);
+#else
+			exit(CANTRECV);
+#endif
 		}
 		for(int idim = 0; idim<ndim; idim++){
 			//Receiving the data from the master threads.
@@ -445,7 +484,11 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 				if(i!=kvol){
 					fprintf(stderr, "Error %i in %s: Number of elements %i is not equal to\
 							kvol %i.\nExiting...\n\n", NUMELEM, funcname, i, kvol);
+					#if(nproc>1)
 					MPI_Abort(comm,NUMELEM);
+					#else
+					exit(NUMELEM);
+					#endif
 				}
 			}
 #ifdef __INTEL_MKL__
@@ -491,7 +534,11 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 		if(!(con=fopen(gauge_file, fileop))){
 			fprintf(stderr, "Error %i in %s: Failed to open %s for %s.\
 					\nExiting...\n\n", OPENERROR, funcname, gauge_file, fileop);
+			#if(nproc>1)
 			MPI_Abort(comm,OPENERROR);
+			#else
+			exit(OPENERROR);
+			#endif
 		}
 		//TODO: SAFETY CHECKS FOR EACH WRITE OPERATION
 		//Write the number of processors used in the previous run. This takes the place of the FORTRAN integer rather nicely
@@ -559,6 +606,7 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 }
 //To be lazy, we've got modules to help us do reductions and broadcasts with a single argument
 //rather than type them all every single time
+#if(nproc>1)
 inline int Par_isum(int *ival){
 	/*
 	 * Performs a reduction on a double ival to get a sum which is
@@ -1167,6 +1215,7 @@ int DHalo_swap_dir(double *d, int ncpt, int idir, int layer){
 	MPI_Wait(&request, &status);
 	return 0;
 }
+#endif
 int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f){
 	/*
 	 *	Exchanges the trial fields. I noticed that this halo exchange was happening

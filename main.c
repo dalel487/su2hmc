@@ -109,8 +109,10 @@ int main(int argc, char *argv[]){
 
 	Par_begin(argc, argv);
 	//Add error catching code...
+#if(nproc>1)
 	MPI_Comm_rank(comm, &rank);
 	MPI_Comm_size(comm, &size);
+#endif
 
 	//Input
 	//The default values here are straight from the FORTRAN
@@ -142,7 +144,11 @@ int main(int argc, char *argv[]){
 		if( !(midout = fopen(filename, fileop) ) ){
 			fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n"\
 					, OPENERROR, funcname, filename, fileop);
+#if(nproc>1)
 			MPI_Abort(comm,OPENERROR);
+#else
+			exit(OPENERROR);
+#endif
 		}
 		//See the README for what each entry means
 		fscanf(midout, "%f %f %f %f %f %f %f %d %d %d %d %d", &dt, &beta, &akappa,\
@@ -249,7 +255,7 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 	//GPU Initialisation stuff
 	Init_CUDA(u11t,u12t,u11t_f,u12t_f,gamval,gamval_f,gamin,gamval_d,gamval_f_d,gamin_d,\
-	dk4m,dk4p,dk4m_f,dk4p_f,iu,id);//&dimBlock,&dimGrid);
+			dk4m,dk4p,dk4m_f,dk4p_f,iu,id);//&dimBlock,&dimGrid);
 #endif
 	//Send trials to accelerator for reunitarisation
 #pragma omp taskwait
@@ -311,7 +317,11 @@ int main(int argc, char *argv[]){
 	if(!rank){
 		if(!(output=fopen(outname, outop) )){
 			fprintf(stderr,"Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",OPENERROR,funcname,outname,outop);
+#if(nproc>1)
 			MPI_Abort(comm,OPENERROR);
+#else
+			exit(OPENERROR);
+#endif
 		}
 		printf("hg = %e, <Ps> = %e, <Pt> = %e, <Poly> = %e\n", hg, avplaqs, avplaqt, poly);
 		fprintf(output, "ksize = %i ksizet = %i Nf = %i Halo =%i\nTime step dt = %e Trajectory length = %e\n"\
@@ -384,7 +394,11 @@ int main(int argc, char *argv[]){
 #if (defined SA3AT)
 	double start_time=0;
 	if(!rank)
+#if(nproc>1)
 		start_time = MPI_Wtime();
+#else
+	start_time = omp_get_wtime();
+#endif
 #endif
 	double action;
 	//Conjugate Gradient iteration counters
@@ -655,7 +669,11 @@ int main(int argc, char *argv[]){
 										if(!(fortout=fopen(fortname, fortop) )){
 											fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
 													OPENERROR, funcname, fortname, fortop);
+#if(nproc>1)
 											MPI_Abort(comm,OPENERROR);
+#else
+											exit(OPENERROR);
+#endif
 										}
 										if(itraj==1)
 											fprintf(fortout, "pbp\tendenf\tdenf\n");
@@ -676,7 +694,6 @@ int main(int argc, char *argv[]){
 									if(!(fortout=fopen(fortname, fortop) )){
 										fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
 												OPENERROR, funcname, fortname, fortop);
-										MPI_Abort(comm,OPENERROR);
 									}
 									if(itraj==1)
 										fprintf(fortout, "avplaqs\tavplaqt\tpoly\n");
@@ -694,7 +711,11 @@ int main(int argc, char *argv[]){
 										if(!(fortout=fopen(fortname, fortop) )){
 											fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
 													OPENERROR, funcname, fortname, fortop);
+#if(nproc>1)
 											MPI_Abort(comm,OPENERROR);
+#else
+											exit(OPENERROR);
+#endif
 										}
 										if(itraj==1)
 											fprintf(fortout, "Re(qq)\n");
@@ -715,7 +736,11 @@ int main(int argc, char *argv[]){
 #if (defined SA3AT)
 	double elapsed = 0;
 	if(!rank)
+#if(nproc>1)
 		elapsed = MPI_Wtime()-start_time;
+#else
+	elapsed = omp_get_wtime()-start_time;
+#endif
 #endif
 	//End of main loop
 	//Free arrays
@@ -781,7 +806,9 @@ int main(int argc, char *argv[]){
 				ntraj, naccp, atraj, yav, yyav, totancg, totancgh, pbpa, vel2a, actiona, endenfa, denfa);
 		fclose(output);
 	}
+#if(nproc>1)
 	MPI_Finalise();
+#endif
 	fflush(stdout);
 	return 0;
 }

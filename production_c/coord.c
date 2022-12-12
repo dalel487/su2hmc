@@ -115,7 +115,11 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							if(ih[0][0]>= halo){
 								fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."\
 										"\nExiting...\n\n", HALOLIM, funcname, 0, 0, ih[0][0], halo);
+#if(nproc>1)
 								MPI_Abort(comm,HALOLIM);
+#else
+								exit(HALOLIM);
+#endif
 							}
 							hd[0+ndim*ih[0][0]]=ic;
 							iaddr=h1d[0]+ih[0][0];
@@ -133,7 +137,11 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							if(ih[1][0]>= halo){
 								fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."
 										"\nExiting...\n\n", HALOLIM, funcname, 1, 0, ih[1][0], halo);
+#if(nproc>1)
 								MPI_Abort(comm,HALOLIM);
+#else
+								exit(HALOLIM);
+#endif
 							}
 							hu[0+ndim*ih[1][0]]=ic;
 							iaddr=ih[1][0]+h1u[0];	
@@ -151,7 +159,11 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							if(ih[0][1]>= halo){
 								fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."\
 										"\nExiting...\n\n", HALOLIM, funcname, 0, 1, ih[0][1], halo);
+#if(nproc>1)
 								MPI_Abort(comm,HALOLIM);
+#else
+								exit(HALOLIM);
+#endif
 							}
 							hd[1+ndim*ih[0][1]]=ic;
 							iaddr=h1d[1]+ih[0][1];
@@ -169,7 +181,11 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							if(ih[1][1]>= halo){
 								fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."
 										"\nExiting...\n\n", HALOLIM, funcname, 1, 1, ih[1][1], halo);
+#if(nproc>1)
 								MPI_Abort(comm,HALOLIM);
+#else
+								exit(HALOLIM);
+#endif
 							}
 							hu[1+ndim*ih[1][1]]=ic;
 							iaddr=ih[1][1]+h1u[1];	
@@ -187,7 +203,11 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							if(ih[0][2]>= halo){
 								fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."\
 										"\nExiting...\n\n", HALOLIM, funcname, 0, 2, ih[0][2], halo);
+#if(nproc>1)
 								MPI_Abort(comm,HALOLIM);
+#else
+								exit(HALOLIM);
+#endif
 							}
 							hd[2+ndim*ih[0][2]]=ic;
 							iaddr=h1d[2]+ih[0][2];
@@ -205,7 +225,11 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							if(ih[1][2]>= halo){
 								fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."
 										"\nExiting...\n\n", HALOLIM, funcname, 1, 2, ih[1][2], halo);
+#if(nproc>1)
 								MPI_Abort(comm,HALOLIM);
+#else
+								exit(HALOLIM);
+#endif
 							}
 							hu[2+ndim*ih[1][2]]=ic;
 							iaddr=ih[1][2]+h1u[2];	
@@ -223,7 +247,11 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							if(ih[0][3]>= halo){
 								fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."\
 										"\nExiting...\n\n", HALOLIM, funcname, 0, 3, ih[0][3], halo);
+#if(nproc>1)
 								MPI_Abort(comm,HALOLIM);
+#else
+								exit(HALOLIM);
+#endif
 							}
 							hd[3+ndim*ih[0][3]]=ic;
 							iaddr=h1d[3]+ih[0][3];
@@ -241,7 +269,11 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							if(ih[1][3]>= halo){
 								fprintf(stderr, "Error %i in %s: Index ih[%i][%i]=%i is larger than the halo size %i."
 										"\nExiting...\n\n", HALOLIM, funcname, 1, 3, ih[1][3], halo);
+#if(nproc>1)
 								MPI_Abort(comm,HALOLIM);
+#else
+								exit(HALOLIM);
+#endif
 							}
 							hu[3+ndim*ih[1][3]]=ic;
 							iaddr=ih[1][3]+h1u[3];	
@@ -329,7 +361,11 @@ int Check_addr(unsigned int *table, int lns, int lnt, int imin, int imax){
 			fprintf(stderr, "Error %i in %s: %i is out of the bounds of (%i,%i)\n"\
 					"for a table of size %i^3 *%i.\nExiting...\n\n",\
 					BOUNDERROR,funcname,iaddr,imin,imax,lns,lnt);
+#if(nproc>1)
 			MPI_Abort(comm,BOUNDERROR);
+#else
+			exit(BOUNDERROR);
+#endif
 		}
 	}
 	return 0;
@@ -493,7 +529,11 @@ int Testlcoord(int cap){
 			fprintf(stderr, "Error %i in %s: Converted index %i does not match "
 					"original index %i.\nExiting...\n\n",\
 					INDTOCOORD, funcname, index2, index);
+#if(nproc>1)
 			MPI_Abort(comm,INDTOCOORD);
+#else
+			exit(INDTOCOORD);
+#endif
 		}
 	}
 	return 0;
@@ -534,7 +574,11 @@ int Testgcoord(int cap){
 			fprintf(stderr, "Error %i in %s: Converted index %i does not match "\
 					"original index %i.\nExiting...\n\n",\
 					INDTOCOORD, funcname, index2, index);
+#if(nproc>1)
 			MPI_Abort(comm,INDTOCOORD);
+#else
+			exit(INDTOCOORD);
+#endif
 		}
 	}
 	return 0;
