@@ -37,9 +37,8 @@ int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex *u11
 	//	Should work since in the FORTRAN Sigma11[i] only depends on i components  for example
 	//Since the ν loop doesn't get called for μ=0 we'll start at μ=1
 #ifdef __NVCC__
-	static double hgs = 0; static double hgt = 0;
+	__managed__ double hgs = 0; __managed__ double hgt = 0;
 	cuAverage_Plaquette(&hgs, &hgt, u11t, u12t, iu,dimGrid,dimBlock);
-	cudaDeviceSynchronise();
 #else
 	double hgs = 0; double hgt = 0;
 	for(int mu=1;mu<ndim;mu++)
@@ -136,8 +135,8 @@ double Polyakov(Complex *u11t, Complex *u12t){
 	int device=-1;
 	cudaGetDevice(&device);
 	Complex *Sigma11,*Sigma12;
-	cudaMallocManaged((void **)&Sigma11,kvol3*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&Sigma12,kvol3*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((Complex **)&Sigma11,kvol3*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((Complex **)&Sigma12,kvol3*sizeof(Complex),cudaMemAttachGlobal);
 #elif defined __INTEL_MKL__
 	Complex *Sigma11 = (Complex *)mkl_malloc(kvol3*sizeof(Complex),AVX);
 	Complex *Sigma12 = (Complex *)mkl_malloc(kvol3*sizeof(Complex),AVX);
@@ -145,10 +144,12 @@ double Polyakov(Complex *u11t, Complex *u12t){
 	Complex *Sigma11 = aligned_alloc(AVX,kvol3*sizeof(Complex));
 	Complex *Sigma12 = aligned_alloc(AVX,kvol3*sizeof(Complex));
 #endif
-#ifdef __NVCC__
-	cublasZcopy(cublas_handle,kvol3, (cuDoubleComplex *)(u11t+3), ndim, (cuDoubleComplex *)Sigma11, 1);
-	cublasZcopy(cublas_handle,kvol3, (cuDoubleComplex *)(u12t+3), ndim, (cuDoubleComplex *)Sigma12, 1);
-#elif (defined __INTEL_MKL__ || defined USE_BLAS)
+
+//#ifdef __NVCC__
+//	cublasZcopy(cublas_handle,kvol3, (cuDoubleComplex *)(u11t+3), ndim, (cuDoubleComplex *)Sigma11, 1);
+//	cublasZcopy(cublas_handle,kvol3, (cuDoubleComplex *)(u12t+3), ndim, (cuDoubleComplex *)Sigma12, 1);
+//#elif (defined __INTEL_MKL__ || defined USE_BLAS)
+#if (defined __INTEL_MKL__ || defined USE_BLAS)
 	cblas_zcopy(kvol3, u11t+3, ndim, Sigma11, 1);
 	cblas_zcopy(kvol3, u12t+3, ndim, Sigma12, 1);
 #else
@@ -183,6 +184,7 @@ double Polyakov(Complex *u11t, Complex *u12t){
 		//will be faster for parallel code
 		//#ifdef __clang__
 		//#pragma omp target teams distribute parallel for simd aligned(u11t,u12t,Sigma11,Sigma12:AVX)
+
 #ifdef _OPENACC
 #pragma acc parallel loop
 #else
@@ -201,6 +203,7 @@ double Polyakov(Complex *u11t, Complex *u12t){
 	//Multiply this partial loop with the contributions of the other cores in the
 	//Time-like dimension
 #endif
+	//End of CUDA-CPU pre-processor for evaluating Polyakov
 #if (npt>1)
 	//Only send to the accelerator if the time component is parallelised with MPI. Otherwise
 	//it gets sent straight into another loop
@@ -216,6 +219,7 @@ double Polyakov(Complex *u11t, Complex *u12t){
 #ifdef _OPENACC
 #pragma acc update device(Sigma11[0:kvol3],Sigma12[0:kvol3])
 #endif
+//end of #if(npt>1)
 #endif
 #ifdef _OPENACC
 #pragma acc parallel loop reduction(+:poly)

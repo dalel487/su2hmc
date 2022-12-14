@@ -1,19 +1,19 @@
 #include	<assert.h>
 #include	<coord.h>
-#ifdef	__NVCC__
-#include <cublas_v2.h>
-#include	<cuda.h>
-#include	<cuda_runtime.h>
-cublasHandle_t cublas_handle;
-cublasHandle_t cublas_status;
-//Fix this later
-#endif
 #include	<math.h>
 #include	<matrices.h>
 #include	<par_mpi.h>
 #include	<random.h>
 #include	<string.h>
 #include	<su2hmc.h>
+#ifdef	__NVCC__
+#include <cublas_v2.h>
+#include	<cuda.h>
+#include	<cuda_runtime.h>
+cublasHandle_t cublas_handle;
+cublasStatus_t cublas_status;
+//Fix this later
+#endif
 int
 #ifndef __NVCC__ 
 __attribute__((aligned(AVX)))
@@ -166,6 +166,8 @@ int main(int argc, char *argv[]){
 	//End of input
 	//For CUDA code, device only variables are needed
 #ifdef __NVCC__
+	//CUBLAS Handle
+	cublasCreate(&cublas_handle);
 	Complex *jqq_d, *beta_d, *akappa_d;
 	cudaMalloc(&jqq_d,sizeof(Complex));		cudaMalloc(&beta_d,sizeof(Complex));
 	cudaMalloc(&akappa_d,sizeof(Complex));	
@@ -761,6 +763,7 @@ int main(int argc, char *argv[]){
 	cudaFree(X0); cudaFree(X1); cudaFree(u11); cudaFree(u12);
 	cudaFree(id); cudaFree(iu); cudaFree(hd); cudaFree(hu);
 	cudaFree(dk4m_f); cudaFree(dk4p_f); cudaFree(u11t_f); cudaFree(u12t_f);
+	cublasCreate(&cublas_handle);
 #elif defined __INTEL_MKL__
 	mkl_free_buffers();
 	mkl_free(dk4m); mkl_free(dk4p); mkl_free(R1); mkl_free(dSdpi); mkl_free(pp);

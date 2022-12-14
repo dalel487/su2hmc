@@ -6,14 +6,14 @@
 #include	<su2hmc.h>
 void cuAverage_Plaquette(double *hgs, double *hgt, Complex *u11t, Complex *u12t, unsigned int *iu,dim3 dimGrid, dim3 dimBlock){
 	double *hgs_d, *hgt_d;
-	cudaMalloc(&hgs_d,kvol*sizeof(double));
-	cudaMemset(hgs_d,0,kvol*sizeof(double));
-	cudaMalloc(&hgt_d,kvol*sizeof(double));
-	cudaMemset(hgt_d,0,kvol*sizeof(double));
+	cudaMalloc((void **)&hgs_d,kvol*sizeof(double));
+	cudaMalloc((void **)&hgt_d,kvol*sizeof(double));
 
-	cuAverage_Plaquette<<<dimGrid,dimBlock>>>(hgs, hgt, u11t, u12t, iu);
+	cuAverage_Plaquette<<<dimGrid,dimBlock>>>(hgs_d, hgt_d, u11t, u12t, iu);
+	cudaDeviceSynchronise();
 	*hgs= thrust::reduce(thrust::host,hgs_d,hgt_d+kvol);
 	*hgt= thrust::reduce(thrust::host,hgt_d,hgt_d+kvol);
+
 	cudaFree(hgs_d); cudaFree(hgt_d);
 }
 void cuPolyakov(Complex *Sigma11, Complex * Sigma12, Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock){
@@ -27,22 +27,27 @@ __global__ void cuAverage_Plaquette(double *hgs_d, double *hgt_d, Complex *u11t,
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	//TODO: Chck if μ and ν loops inside of site loop is faster. I suspect it is due to memory locality.
-	for(int i=threadId;i<kvol;i+=bsize*gsize)
+	for(int i=threadId;i<kvol;i+=bsize*gsize){
+		hgt_d[i]=0; hgs_d[i]=0;
+
 		for(int mu=1;mu<ndim;mu++)
 			for(int nu=0;nu<mu;nu++){
 				//Save us from typing iu[mu+ndim*i] everywhere
 				//This is threadsafe as the μ and ν loops are not distributed across threads
 				switch(mu){
 					//Time component
-					case(ndim-1):	hgt_d[i]-= -SU2plaq(u11t,u12t,iu,i,mu,nu);
-										break;
-										//Space component
-					default:	hgs_d[i] -=SU2plaq(u11t,u12t,iu,i,mu,nu);
-								break;
+					case(ndim-1):
+						hgt_d[i] -= SU2plaq(u11t,u12t,iu,i,mu,nu);
+						break;
+						//Space component
+					default:
+						hgs_d[i] -=	SU2plaq(u11t,u12t,iu,i,mu,nu);
+						break;
 				}
 			}
+	}
 }
-__device__ inline double SU2plaq(Complex *u11t, Complex *u12t, unsigned int *iu, int i, int mu, int nu){
+__device__ double SU2plaq(Complex *u11t, Complex *u12t, unsigned int *iu, int i, int mu, int nu){
 	/*
 	 * Calculates the plaquette at site i in the μ-ν direction
 	 *
@@ -80,11 +85,11 @@ __global__ void cuPolyakov(Complex *Sigma11, Complex * Sigma12, Complex * u11t,C
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-#pragma unroll
 	for(int it=1;it<ksizet;it++)
-		for(int i=threadId;i<kvol3;i+=gsize){
-			//Seems a bit more efficient to increment indexu instead of reassigning
-			//it every single loop
+		for(int i=threadId;i<kvol3;i+=gsize*bsize){
+#ifdef _DEBUG
+	printf("kvol3 = %d; threadID = %d; i=%d\n", kvol3, threadId,i);
+#endif
 			int indexu=it*kvol3+i;
 			Complex a11=Sigma11[i]*u11t[indexu*ndim+3]-Sigma12[i]*conj(u12t[indexu*ndim+3]);
 			//Instead of having to store a second buffer just assign it directly

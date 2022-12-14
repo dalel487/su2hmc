@@ -1,6 +1,6 @@
 MF=Makefile_Intel
-CC=		mpiicc 
-CXX=		mpiicpc 
+CC=		icc 
+CXX=		icpc 
 NVCC=		nvcc
 
 IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include" -I ./ -I../production_c\
@@ -78,15 +78,15 @@ CUEDT=	$(CUSRC:.cu=.cu~)
 TMP=	$(MOD) $(CEDT) $(CUEDT) core
 
 profiler:	CFLAGS += -g
-profiler:	NVCCFLAGS += -G -g 
+profiler:	NVCCFLAGS += -g -lineinfo 
 profiler:	release
 
 release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high 
-release:	NVCCFLAGS += -O3 -gencode arch=compute_75,code=lto_75 -gencode arch=compute_80,code=sm_80 
+release:	NVCCFLAGS += -O3 -arch=lto_75 -dlto
 release:	$(EXE)
 
 debug:		CFLAGS += -O0 -g -D_DEBUG -rdynamic # -DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
-debug:		NVCCFLAGS += -O0 -G -g -D_DEBUG -gencode arch=compute_75,code=lto_75 -gencode arch=compute_80,code=sm_80 
+debug:		NVCCFLAGS += -O0 -G -g -D_DEBUG -arch=sm_75 --maxrregcount=255 -keep
 debug:		$(EXE)
 
 		 

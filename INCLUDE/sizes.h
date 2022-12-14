@@ -36,6 +36,7 @@
 #ifdef __CUDACC__
 #include	<thrust_complex.h>
 #include <thrust/reduce.h>
+#include <thrust/device_vector.h>
 #else
 #include	<complex.h>
 #define	Complex_f	float	complex
@@ -45,7 +46,7 @@
 #define	FILELEN	64
 // Common block definition for parallel variables
 
-#define	nx 32
+#define	nx 12
 #if(nx<1)
 #error "nx is expected it to be greater than or equal to 1"
 #endif
