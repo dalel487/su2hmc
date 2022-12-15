@@ -82,7 +82,7 @@ profiler:	NVCCFLAGS += -g -lineinfo
 profiler:	release
 
 release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high 
-release:	NVCCFLAGS += -O3 -arch=lto_75 -dlto
+release:	NVCCFLAGS += -O3 -arch=sm_75 -dlto
 release:	$(EXE)
 
 debug:		CFLAGS += -O0 -g -D_DEBUG -rdynamic # -DDIAGNOSTIC #-DNO_TIME -DNO_SPACE

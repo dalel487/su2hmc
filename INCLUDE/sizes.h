@@ -105,7 +105,7 @@
 #define	nproc	(npx*npy*npz*npt)
 
 //Number of threads for OpenMP, which can be overwritten at runtime
-#define	nthreads	1
+#define	nthreads	16
 
 //    Existing parameter definitions.
 #define	ksizex	(nx/npx)

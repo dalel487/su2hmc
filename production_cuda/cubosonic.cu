@@ -6,13 +6,22 @@
 #include	<su2hmc.h>
 void cuAverage_Plaquette(double *hgs, double *hgt, Complex *u11t, Complex *u12t, unsigned int *iu,dim3 dimGrid, dim3 dimBlock){
 	double *hgs_d, *hgt_d;
-	cudaMalloc((void **)&hgs_d,kvol*sizeof(double));
-	cudaMalloc((void **)&hgt_d,kvol*sizeof(double));
+	cudaMallocManaged((void **)&hgs_d,kvol*sizeof(double),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&hgt_d,kvol*sizeof(double),cudaMemAttachGlobal);
 
 	cuAverage_Plaquette<<<dimGrid,dimBlock>>>(hgs_d, hgt_d, u11t, u12t, iu);
 	cudaDeviceSynchronise();
+	/*
 	*hgs= thrust::reduce(thrust::host,hgs_d,hgt_d+kvol);
 	*hgt= thrust::reduce(thrust::host,hgt_d,hgt_d+kvol);
+	*/
+	//Temporary holders to keep OMP happy.
+	double hgs_t=0; double hgt_t=0;
+#pragma omp parallel for simd reduction(+:hgs_t,hgt_t)
+	for(int i=0;i<kvol;i++){
+		hgs_t+=hgs_d[i]; hgt_t+=hgt_d[i];
+	}
+	*hgs=hgs_t; *hgt=hgt_t;
 
 	cudaFree(hgs_d); cudaFree(hgt_d);
 }
