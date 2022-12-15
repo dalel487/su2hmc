@@ -7,8 +7,9 @@ using thrust::complex;
 #define	Complex_f	 complex<float>
 #define	Complex	 complex<double>
 //Adding the macros for extracting the real, imaginary parts 
-#define	cexp(z)	exp(z)
+#define	cexp(z)	thrust::exp(z)
 #define	cimag(z)	z.imag()
 #define	creal(z)	z.real()
+#define	conj(z)	thrust::conj(z)
 #define	I	Complex(0.0,1.0)	
 #endif

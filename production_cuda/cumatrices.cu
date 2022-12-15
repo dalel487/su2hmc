@@ -9,7 +9,7 @@ __global__ void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	for(int i=threadId;i<kvol;i+=gsize){
+	for(int i=threadId;i<kvol;i+=gsize*bsize){
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork = idirac+4;
 			Complex a_1, a_2;
@@ -98,7 +98,7 @@ __global__ void cuDslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t
 	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	for(int i=threadId;i<kvol;i+=gsize){
+	for(int i=threadId;i<kvol;i+=gsize*bsize){
 		//Diquark Term (antihermitian) The signs of a_1 and a_2 below flip under dagger
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork = idirac+4;
@@ -107,8 +107,8 @@ __global__ void cuDslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t
 			a_1=-conj(jqq)*gamval[4*ndirac+idirac];
 			a_2=jqq*gamval[4*ndirac+idirac];
 			phi[(i*ngorkov+idirac)*nc]+=a_1*r[(i*ngorkov+igork)*nc];
-			phi[(i*ngorkov+idirac)*nc+1]+=a_1*r[(i*ngorkov+igork)*nc+1];
 			phi[(i*ngorkov+igork)*nc]+=a_2*r[(i*ngorkov+idirac)*nc];
+			phi[(i*ngorkov+idirac)*nc+1]+=a_1*r[(i*ngorkov+igork)*nc+1];
 			phi[(i*ngorkov+igork)*nc+1]+=a_2*r[(i*ngorkov+idirac)*nc+1];
 		}
 
@@ -192,7 +192,7 @@ __global__ void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t
 	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	for(int i=threadId;i<kvol;i+=gsize){
+	for(int i=threadId;i<kvol;i+=gsize*bsize){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
@@ -252,7 +252,7 @@ __global__ void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12
 	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	for(int i=threadId;i<kvol;i+=gsize){
+	for(int i=threadId;i<kvol;i+=gsize*bsize){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <ndim-1; mu++){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
@@ -318,7 +318,7 @@ __global__ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Comp
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	for(int i=threadId;i<kvol;i+=gsize){
+	for(int i=threadId;i<kvol;i+=gsize*bsize){
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork = idirac+4;
 			Complex_f a_1, a_2;
@@ -407,7 +407,7 @@ __global__ void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Com
 	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	for(int i=threadId;i<kvol;i+=gsize){
+	for(int i=threadId;i<kvol;i+=gsize*bsize){
 		//Diquark Term (antihermitian) The signs of a_1 and a_2 below flip under dagger
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork = idirac+4;
@@ -501,7 +501,7 @@ __global__ void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Com
 	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	for(int i=threadId;i<kvol;i+=gsize){
+	for(int i=threadId;i<kvol;i+=gsize*bsize){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
@@ -560,7 +560,7 @@ __global__ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Co
 	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	for(int i=threadId;i<kvol;i+=gsize){
+	for(int i=threadId;i<kvol;i+=gsize*bsize){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <ndim-1; mu++){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
@@ -624,7 +624,7 @@ __global__ void cuNew_trial(double dt, double *pp, Complex *u11t, Complex *u12t)
 	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	for(int i=threadId;i<kvol;i+=gsize){
+	for(int i=threadId;i<kvol;i+=gsize*bsize){
 		for(int mu = 0; mu<ndim; mu++){
 			//Sticking to what was in the FORTRAN for variable names.
 			//CCC for cosine SSS for sine AAA for...
@@ -666,7 +666,7 @@ __global__ void cuReunitarise(Complex *u11t, Complex * u12t){
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	for(int i=threadId; i<kvol*ndim; i+=gsize){
+	for(int i=threadId; i<kvol*ndim; i+=gsize*bsize){
 		//Declaring anorm inside the loop will hopefully let the compiler know it
 		//is safe to vectorise aggessively
 		double anorm=sqrt(conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]).real();
