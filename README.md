@@ -68,7 +68,7 @@ Some adaptions from the original are:
 -	GSL ranlux support
 
 Other works in progress include:
--	CUDA implementation. Compiles on my machine but refuses to link.
+-	CUDA implementation. So far bosonic observables can be evaluated on the GPU
 -	OpenACC.
 
 ## Getting started
