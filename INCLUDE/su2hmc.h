@@ -49,7 +49,7 @@ extern "C"
 	int Gauge_force(double *dSdpi,Complex *u11t, Complex *u12t, unsigned int *iu, unsigned int *id, float beta);
 	int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa, Complex_f ajq,\
 			Complex *u11, Complex *u12, Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f,\
-			Complex gamval[5][4], Complex_f gamval_f[5][4], int gamin[4][4], double *dk4m, double *dk4p, float *dk4m_f, float *dk4p_f,\
+			Complex *gamval, Complex_f *gamval_f, int *gamin, double *dk4m, double *dk4p, float *dk4m_f, float *dk4p_f,\
 			unsigned int *iu, unsigned int *id);
 	int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex *X1, Complex *Phi,\
 			Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f, unsigned int * iu, unsigned int *id,\
@@ -90,8 +90,8 @@ extern "C"
 			Complex gamval[5][4],double *dk4m, double *dk4p,unsigned int *iu,int gamin[4][4],\
 			float akappa, dim3 dimGrid, dim3 dimBlock);
 	//cuInit was taken already by CUDA (unsurprisingly)
-	void	Init_CUDA(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f, Complex gamval[5][4],\
-			Complex_f gamval_f[5][4], int gamin[4][4],Complex *gamval_d, Complex_f *gamval_f_d, int *gamin_d,\
+	void	Init_CUDA(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f, Complex *gamval,\
+			Complex_f *gamval_f, int *gamin,\
 			double *dk4m, double *dk4p, float *dk4m_f, float *dk4p_f, unsigned int *iu, unsigned int *id);
 	//			dim3 *dimBlock, dim3 *dimGrid);
 #endif

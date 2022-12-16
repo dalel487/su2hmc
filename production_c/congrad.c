@@ -116,6 +116,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 			//α_d= p* (M^†M+J^2)p
 #ifdef __NVCC__
 			cublasCdotc(cublas_handle,kferm2,(cuComplex *)p_f,1,(cuComplex *)x2_f,1,(cuComplex *)&alphad);
+			cudaDeviceSynchronise();
 #elif defined USE_BLAS
 			cblas_cdotc_sub(kferm2, p_f, 1, x2_f, 1, &alphad);
 #else
@@ -145,8 +146,10 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 #ifdef	__NVCC__
 		alpha*=-1;
 		cublasZaxpy(cublas_handle, kferm2,(cuDoubleComplex *)&alpha,(cuDoubleComplex *)x2,1,(cuDoubleComplex *)r,1);
+			//cudaDeviceSynchronise();
 		alpha*=-1;
 		cublasDznrm2(cublas_handle,kferm2,(cuDoubleComplex *)r,1,&betan);
+			cudaDeviceSynchronise();
 		betan *= betan;
 #elif defined USE_BLAS
 		alpha *= -1;
@@ -324,6 +327,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex *u11t,Complex *u
 			//x*.x
 #ifdef __NVCC__
 			cublasDznrm2(cublas_handle,kferm,(cuDoubleComplex*) x1, 1,&alphad);
+			cudaDeviceSynchronise();
 			alphad *= alphad;
 #elif defined USE_BLAS
 //Was float
@@ -348,6 +352,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex *u11t,Complex *u
 			//cblas_caxpy(kferm, (Complex_f*)&alpha_f,(Complex_f*)p_f, 1, (Complex_f*)xi_f, 1);
 			cblas_zaxpy(kferm, (Complex*)&alpha,(Complex*)p, 1, (Complex*)xi, 1);
 #else
+#pragma omp parallel for simd aligned(xi,p:AVX)
 			for(int i = 0; i<kferm; i++)
 				xi[i]+=alpha*p[i];
 #endif
@@ -363,9 +368,11 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex *u11t,Complex *u
 #ifdef __NVCC__
 		alpha*=-1;
 		cublasZaxpy(cublas_handle,kferm, (cuDoubleComplex *)&alpha,(cuDoubleComplex *) x2, 1,(cuDoubleComplex *) r, 1);
+		//cudaDeviceSynchronise();
 		alpha*=-1;
 		//r*.r
 		cublasDznrm2(cublas_handle,kferm,(cuDoubleComplex *) r,1,&betan);
+		cudaDeviceSynchronise();
 		//Gotta square it to "undo" the norm
 		betan*=betan;
 #elif defined USE_BLAS

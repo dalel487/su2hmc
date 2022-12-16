@@ -13,7 +13,7 @@
 
 int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa, Complex_f ajq,\
 		Complex *u11, Complex *u12, Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f,\
-		Complex gamval[5][4], Complex_f gamval_f[5][4], int gamin[4][4], double *dk4m, double *dk4p, float *dk4m_f, float *dk4p_f,\
+		Complex *gamval, Complex_f *gamval_f, int *gamin, double *dk4m, double *dk4p, float *dk4m_f, float *dk4p_f,\
 		unsigned int *iu, unsigned int *id){
 	/*
 	 * Initialises the system
@@ -120,20 +120,35 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 		dk4p_f[0:kvol+halo],dk4m[0:kvol+halo]) nowait
 #endif
 
+	int
+#ifndef __NVCC__ 
+		__attribute__((aligned(AVX)))
+#endif
+		gamin_t[4][4] =	{{3,2,1,0},{3,2,1,0},{2,3,0,1},{2,3,0,1}};
+	//Gamma Matrices in Chiral Representation
+	//Gattringer and Lang have a nice crash course in appendix A.2 of
+	//Quantum Chromodynamics on the Lattice (530.14 GAT)
+	//_t is for temp. We copy these into the real gamvals later
+	memcpy(gamin,gamin_t,4*4*sizeof(Complex));
+	Complex
+#ifndef __NVCC__ 
+		__attribute__((aligned(AVX)))
+#endif
+		gamval_t[5][4] =	{{-I,-I,I,I},{-1,1,1,-1},{-I,I,I,-I},{1,1,1,1},{1,1,-1,-1}};
 	//Each gamma matrix is rescaled by akappa by flattening the gamval array
+	memcpy(gamval,gamval_t,5*4*sizeof(Complex));
 #if defined USE_BLAS
 	//Don't cuBLAS this. It is small and won't saturate the GPU. Let the CPU handle
 	//it and just copy it later
 	cblas_zdscal(5*4, akappa, gamval, 1);
 #else
-	for(int i=0;i<5;i++)
-		for(int j=0;j<4;j++)
-			gamval[i][j]*=akappa;
+#pragma omp parallel for simd aligned(gamval,gamval_f:AVX)
+	for(int i=0;i<5*4;i++)
+			gamval[i]*=akappa;
 #endif
-#pragma omp parallel for simd collapse(2) aligned(gamval,gamval_f:AVX)
-	for(int i=0;i<5;i++)
-		for(int j=0;j<4;j++)
-			gamval_f[i][j]=(Complex_f)gamval[i][j];
+#pragma omp parallel for simd aligned(gamval,gamval_f:AVX)
+	for(int i=0;i<5*4;i++)
+			gamval_f[i]=(Complex_f)gamval[i];
 #ifdef _OPENACC
 #pragma acc enter data copyin(gamval[0:5][0:4], gamval_f[0:5][0:4], gamin[0:4][0:4])
 #else
