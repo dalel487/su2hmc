@@ -59,7 +59,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 	cudaMemAdvise(p_f,kferm2Halo*sizeof(Complex_f),cudaMemAdviseSetPreferredLocation,device);
 
 	cudaMalloc(&x1_f, kferm2Halo*sizeof(Complex_f));
-	cudaMalloc(&x2_f, kferm2Halo*sizeof(Complex_f));
+	cudaMallocManaged(&x2_f, kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
 
 	cudaMallocManaged(&x2, kferm2*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMemAdvise(x2,kferm2*sizeof(Complex),cudaMemAdviseSetPreferredLocation,device);
