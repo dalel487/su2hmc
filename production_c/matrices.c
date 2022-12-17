@@ -111,7 +111,7 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int 
 #endif
 		for(int igorkov=0; igorkov<4; igorkov++){
 			int igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
-			//the FORTRAN code did it.
+												//the FORTRAN code did it.
 			int igork1 = gamin[3][igorkov];	int igork1PP = igork1+4;
 
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
@@ -618,7 +618,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 #endif
 		for(int igorkov=0; igorkov<4; igorkov++){
 			int igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
-			//the FORTRAN code did it.
+												//the FORTRAN code did it.
 			int igork1 = gamin[3][igorkov];	int igork1PP = igork1+4;
 
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
@@ -831,7 +831,8 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	//Mass term
 	//Spacelike term
 #ifdef __NVCC__
-	cudaMemcpy(phi, r, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
+	//	cudaMemcpy(phi, r, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
+	memcpy(phi, r, kferm2*sizeof(Complex_f));
 	cuHdslash_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
@@ -859,22 +860,22 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 				phi[(i*ndirac+idirac)*nc]+=-akappa*(u11t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]+\
 						u12t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]+\
 						conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]-\
-						u12t_f[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1]);\
-													//Dirac term
-													phi[(i*ndirac+idirac)*nc]+=gamval_f[mu][idirac]*(u11t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]+\
-															u12t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]-\
-															conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]+\
-															u12t_f[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
+						u12t_f[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1]);
+				//Dirac term
+				phi[(i*ndirac+idirac)*nc]+=gamval_f[mu][idirac]*(u11t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]+\
+						u12t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]-\
+						conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]+\
+						u12t_f[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
 
 				phi[(i*ndirac+idirac)*nc+1]+=-akappa*(-conjf(u12t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]+\
 						conjf(u11t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]+\
 						conjf(u12t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]+\
-						u11t_f[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1])+\
-													  //Dirac term
-													  gamval_f[mu][idirac]*(-conjf(u12t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]+\
-															  conjf(u11t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]-\
-															  conjf(u12t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]-\
-															  u11t_f[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
+						u11t_f[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1]);
+				//Dirac term
+				phi[(i*ndirac+idirac)*nc+1]+=gamval_f[mu][idirac]*(-conjf(u12t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]+\
+						conjf(u11t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]-\
+						conjf(u12t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]-\
+						u11t_f[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
 			}
 		}
 #endif
@@ -945,7 +946,8 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_
 
 	//Mass term
 #ifdef __NVCC__
-	cudaMemcpy(phi, r, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
+	//cudaMemcpy(phi, r, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
+	memcpy(phi, r, kferm2*sizeof(Complex_f));
 	cuHdslashd_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
@@ -1042,9 +1044,9 @@ int New_trial(double dt, double *pp, Complex *u11t, Complex *u12t){
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "New_trial"; //
-	//#ifdef __clang__
-	//Double precision bad for offloading
-	//#pragma omp target teams distribute parallel for simd collapse(2)\
+											//#ifdef __clang__
+											//Double precision bad for offloading
+											//#pragma omp target teams distribute parallel for simd collapse(2)\
 	map(to:pp[0:kmom]) aligned(pp,u11t,u12t:AVX) 
 #ifdef __NVCC__
 		cuNew_trial(dt,pp,u11t,u12t,dimGrid,dimBlock);
@@ -1249,18 +1251,18 @@ int Diagnostics(int istart){
 #pragma omp parallel 
 		{
 #pragma omp for simd aligned(R1,Phi,xi:AVX) nowait
-		for(int i=0; i<kferm; i++){
-			R1[i]=0.5; Phi[i]=0.5;xi[i]=0.5;
-		}
+			for(int i=0; i<kferm; i++){
+				R1[i]=0.5; Phi[i]=0.5;xi[i]=0.5;
+			}
 #pragma omp for simd aligned(X0,X1:AVX) nowaite
-		for(int i=0; i<kferm2; i++){
-			X0[i]=0.5;
-			X1[i]=0.5;
-		}
+			for(int i=0; i<kferm2; i++){
+				X0[i]=0.5;
+				X1[i]=0.5;
+			}
 #pragma omp for simd aligned(dSdpi:AVX) nowait
-		for(int i=0; i<kmom; i++)
-			dSdpi[i] = 1/sqrt(kmom);
-	}
+			for(int i=0; i<kmom; i++)
+				dSdpi[i] = 1/sqrt(kmom);
+		}
 #pragma omp target update to(Phi[0:kferm],dSdpi[0:kmom])
 		FILE *output_old, *output;
 		FILE *output_f_old, *output_f;

@@ -304,7 +304,9 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 			hf+= conj(smallPhi[j])*X1[j];
 #endif
 	}
-#ifdef __INTEL_MKL__
+#ifdef __NVCC__
+	cudaFree(smallPhi);
+#elif defined __INTEL_MKL__
 	mkl_free(smallPhi);
 #else
 	free(smallPhi);

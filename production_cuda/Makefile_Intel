@@ -77,7 +77,7 @@ CEDT=	$(CSRC:.c=.c~)
 CUEDT=	$(CUSRC:.cu=.cu~)
 TMP=	$(MOD) $(CEDT) $(CUEDT) core
 
-profiler:	CFLAGS += -g
+profiler:	CFLAGS += -g -D_DEBUG
 profiler:	NVCCFLAGS += -g -lineinfo 
 profiler:	release
 

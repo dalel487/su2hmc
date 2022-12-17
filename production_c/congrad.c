@@ -58,8 +58,10 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 	cudaMallocManaged(&p_f, kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMemAdvise(p_f,kferm2Halo*sizeof(Complex_f),cudaMemAdviseSetPreferredLocation,device);
 
-	cudaMalloc(&x1_f, kferm2Halo*sizeof(Complex_f));
+	cudaMallocManaged(&x1_f, kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged(&x2_f, kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMemAdvise(x1_f,kferm2Halo*sizeof(Complex_f),cudaMemAdviseSetPreferredLocation,device);
+	cudaMemAdvise(x2_f,kferm2Halo*sizeof(Complex_f),cudaMemAdviseSetPreferredLocation,device);
 
 	cudaMallocManaged(&x2, kferm2*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMemAdvise(x2,kferm2*sizeof(Complex),cudaMemAdviseSetPreferredLocation,device);
@@ -81,14 +83,14 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 #endif
 	//Instead of copying element-wise in a loop, use memcpy.
 	memcpy(p, X1, kferm2*sizeof(Complex));
-#ifdef __NVCC__
-	cudaMemPrefetchAsync(p,kferm2*sizeof(Complex),device,NULL);
-#endif
 
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
 	//if statements quicker to type
 	double betan;
 	for(*itercg=0; *itercg<niterc; (*itercg)++){
+#ifdef __NVCC__
+	cudaMemPrefetchAsync(p,kferm2*sizeof(Complex),device,NULL);
+#endif
 #pragma omp parallel for simd aligned(p_f,p:AVX)
 		for(int i=0;i<kferm2;i++)
 			p_f[i]=(Complex_f)p[i];
@@ -146,10 +148,9 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 #ifdef	__NVCC__
 		alpha*=-1;
 		cublasZaxpy(cublas_handle, kferm2,(cuDoubleComplex *)&alpha,(cuDoubleComplex *)x2,1,(cuDoubleComplex *)r,1);
-			//cudaDeviceSynchronise();
-		alpha*=-1;
 		cublasDznrm2(cublas_handle,kferm2,(cuDoubleComplex *)r,1,&betan);
-			cudaDeviceSynchronise();
+		cudaDeviceSynchronise();
+		alpha*=-1;
 		betan *= betan;
 #elif defined USE_BLAS
 		alpha *= -1;

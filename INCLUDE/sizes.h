@@ -46,7 +46,7 @@
 #define	FILELEN	64
 // Common block definition for parallel variables
 
-#define	nx 12
+#define	nx 32
 #if(nx<1)
 #error "nx is expected it to be greater than or equal to 1"
 #endif

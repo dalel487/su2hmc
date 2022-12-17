@@ -2,6 +2,7 @@
 #define SU2HEAD
 #ifdef __NVCC__
 #include <cuda.h>
+extern cudaStream_t stream1;
 #define	USE_BLAS
 #include	<cublas_v2.h>
 extern cublasHandle_t cublas_handle;
