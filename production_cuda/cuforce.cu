@@ -37,7 +37,7 @@ __global__ void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	for(int i=threadId;i<kvol;i+=gsize)
+	for(int i=threadId;i<kvol;i+=gsize*bsize)
 		for(int idirac=0;idirac<ndirac;idirac++){
 			int mu, uid, igork1;
 #ifndef NO_SPACE
@@ -232,7 +232,7 @@ __global__ void Plus_staple(int mu, int nu,unsigned int *iu, Complex *Sigma11, C
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	for(int i=threadId;i<kvol;i+=gsize){
+	for(int i=threadId;i<kvol;i+=gsize*bsize){
 		int uidm = iu[mu+ndim*i];
 		int uidn = iu[nu+ndim*i];
 		Complex	a11=u11t[uidm*ndim+nu]*conj(u11t[uidn*ndim+mu])+\
@@ -250,7 +250,7 @@ __global__ void Minus_staple(int mu,int nu,unsigned int *iu,unsigned int *id, Co
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	for(int i=threadId;i<kvol;i+=gsize){
+	for(int i=threadId;i<kvol;i+=gsize*bsize){
 		int uidm = iu[mu+ndim*i];
 		int didn = id[nu+ndim*i];
 		//uidm is correct here
@@ -268,7 +268,7 @@ __global__ void cuGaugeForce(int mu, Complex *Sigma11, Complex *Sigma12,double*d
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	for(int i=threadId;i<kvol;i+=gsize){
+	for(int i=threadId;i<kvol;i+=gsize*bsize){
 		Complex a11 = u11t[i*ndim+mu]*Sigma12[i]+u12t[i*ndim+mu]*conj(Sigma11[i]);
 		Complex a12 = u11t[i*ndim+mu]*Sigma11[i]+conj(u12t[i*ndim+mu])*Sigma12[i];
 

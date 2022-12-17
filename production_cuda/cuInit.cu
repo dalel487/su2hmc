@@ -4,7 +4,7 @@
 #define MIN(x,y) (x<y?x:y)
 //Worst case scenario, each block contains 256 threads. This should be tuned later
 dim3 dimBlock = dim3(MIN(ksizex,16),MIN(ksizet,16));
-dim3 dimGrid= dim3(ksizez,ksizey);
+dim3 dimGrid= dim3(MIN(ksizez,8),MIN(ksizey,8));
 cudaStream_t stream1;
 void	Init_CUDA(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f,\
 		Complex *gamval, Complex_f *gamval_f, int *gamin,\
