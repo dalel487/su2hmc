@@ -830,12 +830,11 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	//TODO: Get u11t_f and u12t_f sorted
 	//Mass term
 	//Spacelike term
+	memcpy(phi, r, kferm2*sizeof(Complex_f));
 #ifdef __NVCC__
 	//	cudaMemcpy(phi, r, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
-	memcpy(phi, r, kferm2*sizeof(Complex_f));
 	cuHdslash_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
 #else
-	memcpy(phi, r, kferm2*sizeof(Complex_f));
 #ifdef _OPENACC
 #pragma acc parallel loop copy(phi[0:kferm2]) copyin(r[0:kferm2Halo])
 #elif defined __clang__
@@ -945,12 +944,10 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_
 	//anyways so memory access patterns mightn't be as big of an limiting factor here anyway
 
 	//Mass term
-#ifdef __NVCC__
-	//cudaMemcpy(phi, r, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
+#ifdef __NVCC__
 	cuHdslashd_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
 #else
-	memcpy(phi, r, kferm2*sizeof(Complex_f));
 	//Spacelike term
 #ifdef _OPENACC
 #pragma acc parallel loop copy(phi[0:kferm2]) copyin(r[0:kferm2Halo])

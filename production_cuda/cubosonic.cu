@@ -96,9 +96,6 @@ __global__ void cuPolyakov(Complex *Sigma11, Complex * Sigma12, Complex * u11t,C
 	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	for(int it=1;it<ksizet;it++)
 		for(int i=threadId;i<kvol3;i+=gsize*bsize){
-#ifdef _DEBUG
-	printf("kvol3 = %d; threadID = %d; i=%d\n", kvol3, threadId,i);
-#endif
 			int indexu=it*kvol3+i;
 			Complex a11=Sigma11[i]*u11t[indexu*ndim+3]-Sigma12[i]*conj(u12t[indexu*ndim+3]);
 			//Instead of having to store a second buffer just assign it directly
