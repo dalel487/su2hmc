@@ -543,11 +543,12 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 #endif
 
 	//Mass term
-	memcpy(phi, r, kferm*sizeof(Complex_f));
 	//Diquark Term (antihermitian)
 #ifdef __NVCC__
+	cudaMemcpy(phi, r, kferm*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
 	cuDslash_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
 #else
+	memcpy(phi, r, kferm*sizeof(Complex_f));
 #ifdef _OPENACC
 #pragma acc parallel loop copy(phi[0:kferm]) copyin(r[0:kfermHalo])
 #elif defined __clang__
@@ -684,10 +685,11 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 #endif
 
 	//Mass term
-	memcpy(phi, r, kferm*sizeof(Complex_f));
 #ifdef __NVCC__
+	cudaMemcpy(phi, r, kferm*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
 	cuDslashd_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
 #else
+	memcpy(phi, r, kferm*sizeof(Complex_f));
 #ifdef _OPENACC
 #pragma acc parallel loop copy(phi[0:kferm]) copyin(r[0:kfermHalo])
 #elif defined __clang__
@@ -830,11 +832,11 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	//TODO: Get u11t_f and u12t_f sorted
 	//Mass term
 	//Spacelike term
-	memcpy(phi, r, kferm2*sizeof(Complex_f));
 #ifdef __NVCC__
-	//	cudaMemcpy(phi, r, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
+	cudaMemcpy(phi, r, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
 	cuHdslash_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
 #else
+	memcpy(phi, r, kferm2*sizeof(Complex_f));
 #ifdef _OPENACC
 #pragma acc parallel loop copy(phi[0:kferm2]) copyin(r[0:kferm2Halo])
 #elif defined __clang__
@@ -944,10 +946,11 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_
 	//anyways so memory access patterns mightn't be as big of an limiting factor here anyway
 
 	//Mass term
-	memcpy(phi, r, kferm2*sizeof(Complex_f));
 #ifdef __NVCC__
+	cudaMemcpy(phi, r, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
 	cuHdslashd_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
 #else
+	memcpy(phi, r, kferm2*sizeof(Complex_f));
 	//Spacelike term
 #ifdef _OPENACC
 #pragma acc parallel loop copy(phi[0:kferm2]) copyin(r[0:kferm2Halo])

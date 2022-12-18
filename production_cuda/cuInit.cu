@@ -5,7 +5,7 @@
 //Worst case scenario, each block contains 256 threads. This should be tuned later
 dim3 dimBlock = dim3(MIN(ksizex,16),MIN(ksizet,16));
 dim3 dimGrid= dim3(MIN(ksizez,8),MIN(ksizey,8));
-cudaStream_t stream1;
+cudaStream_t streams[ndirac*ndim*nadj];
 void	Init_CUDA(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f,\
 		Complex *gamval, Complex_f *gamval_f, int *gamin,\
 		double *dk4m, double *dk4p, float *dk4m_f, float *dk4p_f, unsigned int *iu, unsigned int *id){
@@ -51,7 +51,8 @@ void	Init_CUDA(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_
 	//Set iu and id to mainly read in CUDA and prefetch them to the GPU
 	int device=-1;
 	cudaGetDevice(&device);
-	cudaStreamCreate(&stream1);
+	for(int i=0;i<(ndirac*nadj*ndim);i++)
+		cudaStreamCreate(&streams[i]);
 	cudaMemAdvise(iu,ndim*kvol*sizeof(int),cudaMemAdviseSetReadMostly,device);
 	cudaMemAdvise(id,ndim*kvol*sizeof(int),cudaMemAdviseSetReadMostly,device);
 	cudaMemPrefetchAsync(iu,ndim*kvol*sizeof(int),device,NULL);

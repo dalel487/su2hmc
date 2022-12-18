@@ -274,22 +274,26 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 	double hf = 0; int itercg = 0;
 #ifdef __NVCC__
 	Complex *smallPhi;
-	cudaMallocManaged(&smallPhi,kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&smallPhi,kferm2*sizeof(Complex),cudaMemAttachGlobal);
 #elif defined __INTEL_MKL__
-	Complex *smallPhi = mkl_malloc(kferm2Halo*sizeof(Complex),AVX);
+	Complex *smallPhi = mkl_malloc(kferm2*sizeof(Complex),AVX);
 #else
-	Complex *smallPhi = aligned_alloc(AVX,kferm2Halo*sizeof(Complex));
+	Complex *smallPhi = aligned_alloc(AVX,kferm2*sizeof(Complex));
 #endif
 	//Iterating over flavours
 	for(int na=0;na<nf;na++){
 		memcpy(X1,X0+na*kferm2,kferm2*sizeof(Complex));
 		Fill_Small_Phi(na, smallPhi, Phi);
+		#ifdef __NVCC__
+		cudaMemPrefetchAsync(smallPhi,kferm2Halo*sizeof(Complex),device,NULL);
+		#endif
 		Congradq(na,res2,X1,smallPhi,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,&itercg);
-		//Congradq(na,res2,smallPhi, &itercg );
 		*ancgh+=itercg;
 		Fill_Small_Phi(na, smallPhi,Phi);
 		memcpy(X0+na*kferm2,X1,kferm2*sizeof(Complex));
 #ifdef __NVCC__
+		cudaMemPrefetchAsync(X1,kferm2*sizeof(Complex),0,NULL);
+		cudaMemPrefetchAsync(smallPhi,kferm2*sizeof(Complex),0,NULL);
 		Complex dot;
 		cublasZdotc(cublas_handle,kferm2,(cuDoubleComplex *)smallPhi,1,(cuDoubleComplex *) X1,1,(cuDoubleComplex *) &dot);
 		hf+=creal(dot);

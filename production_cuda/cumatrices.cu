@@ -993,7 +993,7 @@ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t
 	 */
 	char *funcname = "Dslash_f";
 	cuDslash0_f<<<dimGrid,dimBlock>>>(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq_f,akappa_f);
-	cuDslash1_f<<<dimGrid,dimBlock,0,stream1>>>(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq_f,akappa_f);
+	cuDslash1_f<<<dimGrid,dimBlock,0,streams[0]>>>(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq_f,akappa_f);
 }
 void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
 		Complex_f *gamval_f,int *gamin,	float *dk4m_f, float *dk4p_f, Complex_f jqq_f, float akappa_f,\ 
@@ -1021,7 +1021,7 @@ void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12
 	 */
 	char *funcname = "Dslashd_f";
 	cuDslashd0_f<<<dimGrid,dimBlock>>>(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq_f,akappa_f);
-	cuDslashd1_f<<<dimGrid,dimBlock,0,stream1>>>(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq_f,akappa_f);
+	cuDslashd1_f<<<dimGrid,dimBlock,0,streams[0]>>>(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq_f,akappa_f);
 }
 void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
 		Complex_f *gamval_f,int *gamin,	float *dk4m_f, float *dk4p_f, Complex_f jqq_f, float akappa_f,\ 
@@ -1049,7 +1049,7 @@ void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12
 	 */
 	char *funcname = "Hdslash_f";
 	cuHdslash0_f<<<dimGrid,dimBlock>>>(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq_f,akappa_f);
-	cuHdslash1_f<<<dimGrid,dimBlock,0,stream1>>>(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq_f,akappa_f);
+	cuHdslash1_f<<<dimGrid,dimBlock,0,streams[0]>>>(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq_f,akappa_f);
 	cudaDeviceSynchronise();
 }
 void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
@@ -1078,7 +1078,7 @@ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u1
 	 */
 	char *funcname = "Hdslashd_f";
 	cuHdslashd0_f<<<dimGrid,dimBlock>>>(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq_f,akappa_f);
-	cuHdslashd1_f<<<dimGrid,dimBlock,0,stream1>>>(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq_f,akappa_f);
+	cuHdslashd1_f<<<dimGrid,dimBlock,0,streams[0]>>>(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq_f,akappa_f);
 	cudaDeviceSynchronise();
 }
 

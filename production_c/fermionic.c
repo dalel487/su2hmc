@@ -49,7 +49,15 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	const char *funcname = "Measure";
 	//This x is just a storage container
 
-#ifdef __INTEL_MKL__
+#ifdef __NVCC__
+	int device=-1;
+	cudaGetDevice(&device);
+	Complex	*x, *xi; Complex_f *xi_f, *R1_f;
+	cudaMallocManaged(&x,kfermHalo*sizeof(Complex), cudaMemAttachGlobal);
+	cudaMallocManaged(&xi,kferm*sizeof(Complex), cudaMemAttachGlobal);
+	cudaMallocManaged(&xi_f,kfermHalo*sizeof(Complex_f), cudaMemAttachGlobal);
+	cudaMallocManaged(&R1_f,kfermHalo*sizeof(Complex_f), cudaMemAttachGlobal);
+#elif defined __INTEL_MKL__
 	Complex	*x = (Complex *)mkl_malloc(kfermHalo*sizeof(Complex), AVX);
 	Complex *xi	=(Complex *) mkl_malloc(kferm*sizeof(Complex),AVX);
 	Complex_f	*xi_f = (Complex_f *)mkl_malloc(kfermHalo*sizeof(Complex_f), AVX);
@@ -66,6 +74,9 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #else
 	vsRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, xi_f, 0, 1/sqrt(2));
 #endif
+#ifdef __NVCC__
+	cudaMemPrefetchAsync(xi_f,kferm*sizeof(Complex_f),device,NULL);
+#endif
 
 	//R_1= M^† Ξ 
 	//R1 is local in FORTRAN but since its going to be reset anyway I'm going to recycle the
@@ -73,8 +84,11 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #pragma omp parallel for simd aligned(R1,xi,R1_f,xi_f:AVX)
 	for(int i=0;i<kferm;i++)
 		xi[i]=(Complex)xi_f[i];
-	memcpy(x, xi, kferm*sizeof(Complex));
 	Dslashd_f(R1_f,xi_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
+	memcpy(x, xi, kferm*sizeof(Complex));
+	#ifdef __NVCC__
+	cudaDeviceSynchronise();
+	#endif
 #pragma omp parallel for simd aligned(R1,R1_f:AVX)
 	for(int i=0;i<kferm;i++)
 		R1[i]=(Complex)R1_f[i];
@@ -99,12 +113,18 @@ for(int i=0;i<kferm;i++)
 xi[i]=(Complex)R1_f[i];
 	 */
 	memcpy(xi,R1,kferm*sizeof(Complex));
-#ifdef __INTEL_MKL__
+#ifdef __NVCC__
+	cudaFree(xi_f);	cudaFree(R1_f);
+#elif defined __INTEL_MKL__
 	mkl_free(xi_f);	mkl_free(R1_f);
 #else
-	free(xi_f); free(R1_f);
+	free(xi_f);	free(R1_f);
 #endif
-#if defined USE_BLAS
+#ifdef __NVCC__
+	Complex buff;
+	cublasZdotc(cublas_handle,kferm,(cuDoubleComplex *)x,1,(cuDoubleComplex *)xi,1,(cuDoubleComplex *)&buff);
+	*pbp=creal(buff);
+#elif defined USE_BLAS
 	Complex buff;
 	cblas_zdotc_sub(kferm, x, 1, xi,  1, &buff);
 	*pbp=creal(buff);

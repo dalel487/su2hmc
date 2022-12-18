@@ -65,6 +65,7 @@ int Gauge_force(double *dSdpi,Complex *u11t, Complex *u12t,unsigned int *iu,unsi
 				//The +ν Staple
 #ifdef __NVCC__
 				cuPlus_staple(mu,nu,iu,Sigma11,Sigma12,u11t,u12t,dimGrid,dimBlock);
+				cudaDeviceSynchronise();
 #else
 #ifdef _OPENACC
 #pragma acc parallel loop
@@ -140,6 +141,7 @@ int Gauge_force(double *dSdpi,Complex *u11t, Complex *u12t,unsigned int *iu,unsi
 	}
 #pragma acc exit data delete(Sigma11[0:kvol],Sigma12[0:kvol],u11sh[0:kvol+halo],u12sh[0:kvol+halo])
 #ifdef __NVCC__
+	cudaDeviceSynchronise();
 	cudaFree(Sigma11); cudaFree(Sigma12); cudaFree(u11sh); cudaFree(u12sh);
 #elif defined __INTEL_MKL__
 	mkl_free(u11sh); mkl_free(u12sh); mkl_free(Sigma11); mkl_free(Sigma12);

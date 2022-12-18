@@ -82,11 +82,11 @@ profiler:	NVCCFLAGS += -g -lineinfo
 profiler:	release
 
 release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high 
-release:	NVCCFLAGS += -O3 -arch=sm_75 -dlto
+release:	NVCCFLAGS += -O3 -arch=sm_75 -dlto --maxrregcount=64
 release:	$(EXE)
 
 debug:		CFLAGS += -O0 -g -D_DEBUG -rdynamic # -DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
-debug:		NVCCFLAGS += -O0 -G -g -D_DEBUG -arch=sm_75 --maxrregcount=64  -keep
+debug:		NVCCFLAGS += -O0 -G -g -D_DEBUG -arch=sm_75 --maxrregcount=255  -keep
 debug:		$(EXE)
 
 		 
@@ -104,7 +104,7 @@ $(EXE): ../main.c $(OBJ)
 	$(CC) -std=gnu11 -ipo $(CFLAGS) $(MKLFLAGS) -c $^  
 
 clean:
-	rm -f $(OBJ) $(COBJ) $(CUOBJ) $(CULIB) $(CLIB) $(TMP)
+	rm -f $(OBJ) $(COBJ) $(CUOBJ) $(CULIB) $(CLIB) $(TMP) *.cpp?.ii *.cudafe1.* *.*bin *.fatbin.c *.ptx *.sm_* *.module_id *dlink.*
 
 INP=	\
 	midout \
