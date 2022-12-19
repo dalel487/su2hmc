@@ -53,7 +53,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 	Complex_f *p_f, *x1_f, *x2_f, *r_f, *X1_f;
 	int device=-1; cudaGetDevice(&device);
 
-	cudaMalloc(&p_f, kferm2Halo*sizeof(Complex_f));
+	cudaMallocManaged(&p_f, kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged(&X1_f, kferm2*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMemAdvise(X1_f,kferm2*sizeof(Complex_f),cudaMemAdviseSetPreferredLocation,device);
 
@@ -87,6 +87,8 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 #ifdef __NVCC__
 	cudaMemPrefetchAsync(r_f,kferm2*sizeof(Complex_f),device,NULL);
 	cudaMemcpy(p_f, X1_f, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
+	cudaMemAdvise(p_f,kferm2Halo*sizeof(Complex_f), cudaMemAdviseSetReadMostly,device);
+	cudaMemPrefetchAsync(p_f,kferm2Halo*sizeof(Complex_f),device,NULL);
 #else
 	memcpy(p_f, X1_f, kferm2*sizeof(Complex_f));
 #endif
@@ -98,9 +100,6 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 		//#ifdef __NVCC__
 		//		cudaMemPrefetchAsync(p,kferm2*sizeof(Complex),device,NULL);
 		//#endif
-#ifdef	__NVCC__
-		cudaMemPrefetchAsync(p_f,kferm2Halo*sizeof(Complex_f),device,NULL);
-#endif
 		//x2 =  (M^†M)p 
 		Hdslash_f(x1_f,p_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 		Hdslashd_f(x2_f,x1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
@@ -193,10 +192,10 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 		//Note that beta below is not the global beta and scoping is used to avoid conflict between them
 		Complex beta = (*itercg) ?  betan/betad : 0;
 		betad=betan; alphan=betan;
-#ifdef __NVCC__
-		for(int i=0;i<kferm2;i++)
-			r[i]=(Complex)r_f[i];
-#endif
+//#ifdef __NVCC__
+//		for(int i=0;i<kferm2;i++)
+//			r[i]=(Complex)r_f[i];
+//#endif
 		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multiplying y by
 		//β instead of x.
 #if (defined __INTEL_MKL__)
@@ -208,6 +207,9 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 #else 
 		for(int i=0; i<kferm2; i++)
 			p_f[i]=r_f[i]+beta*p_f[i];
+#endif
+#ifdef __NVCC__
+		cudaMemPrefetchAsync(p_f,kferm2Halo*sizeof(Complex_f),device,NULL);
 #endif
 	}
 	for(int i=0;i<kferm2;i++){
