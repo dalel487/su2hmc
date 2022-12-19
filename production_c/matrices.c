@@ -1031,7 +1031,6 @@ int New_trial(double dt, double *pp, Complex *u11t, Complex *u12t){
 	 *
 	 * Calls:
 	 * =====
-	 * Trial_Exchange
 	 *
 	 * Parameters:
 	 * =========
@@ -1122,7 +1121,10 @@ inline int Reunitarise(Complex *u11t, Complex *u12t){
 	return 0;
 }
 #ifdef DIAGNOSTIC
-int Diagnostics(int istart){
+int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f,\
+		unsigned int *iu, unsigned int *id, int *hu, int *hd, double *dk4m, double *dk4p,\
+		float *dk4m_f, float *dk4p_f, int *gamin, Complex *gamval, Complex_f *gamval_f,\
+		Complex_f jqq,float akappa,float beta, double ancg){
 	/*
 	 * Routine to check if the multiplication routines are working or not
 	 * How I hope this will work is that
@@ -1143,13 +1145,26 @@ int Diagnostics(int istart){
 #include<float.h>
 	printf("FLT_EVAL_METHOD is %i. Check online for what this means\n", FLT_EVAL_METHOD);
 
-#if defined __INTEL_MKL__
-	R1= mkl_malloc(kfermHalo*sizeof(Complex),AVX);
+#ifdef __NVCC__
+	Complex *xi,*R1,*Phi,*X0,*X1;
+	Complex_f *X0_f, *X1_f;
+	double *dSdpi,*pp;
+	cudaMallocManaged(&R1,kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&xi,kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&Phi,kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&X0,kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&X1,kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&X0_f,kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged(&X1_f,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged(&pp,kmomHalo*sizeof(double),cudaMemAttachGlobal);
+	cudaMallocManaged(&dSdpi,kmom*sizeof(double),cudaMemAttachGlobal);
+#elif defined __INTEL_MKL__
+	Complex *R1= mkl_malloc(kfermHalo*sizeof(Complex),AVX);
 	Complex *xi= mkl_malloc(kfermHalo*sizeof(Complex),AVX);
-	Phi= mkl_malloc(nf*kfermHalo*sizeof(Complex),AVX); 
-	X0= mkl_malloc(nf*kferm2Halo*sizeof(Complex),AVX); 
-	X1= mkl_malloc(kferm2Halo*sizeof(Complex),AVX); 
-	pp = mkl_malloc(kmomHalo*sizeof(double), AVX);
+	Complex *Phi= mkl_malloc(nf*kfermHalo*sizeof(Complex),AVX); 
+	Complex *X0= mkl_malloc(nf*kferm2Halo*sizeof(Complex),AVX); 
+	Complex *X1= mkl_malloc(kferm2Halo*sizeof(Complex),AVX); 
+	double *pp = mkl_malloc(kmomHalo*sizeof(double), AVX);
 	Complex_f *X0_f= mkl_malloc(nf*kferm2Halo*sizeof(Complex_f),AVX); 
 	Complex_f *X1_f= mkl_malloc(kferm2Halo*sizeof(Complex_f),AVX); 
 	double *dSdpi = mkl_malloc(kmom*sizeof(double), AVX);
@@ -1168,21 +1183,10 @@ int Diagnostics(int istart){
 
 	//Trial fields don't get modified so I'll set them up outside
 	switch(istart){
-		case(2):
-#pragma omp parallel for simd aligned(u11t,u12t:AVX)
-			for(int i =0; i<ndim*kvol; i+=8){
-				u11t[i+0]=1+I; u12t[i]=1+I;
-				u11t[i+1]=1-I; u12t[i+1]=1+I;
-				u11t[i+2]=1+I; u12t[i+2]=1-I;
-				u11t[i+3]=1-I; u12t[i+3]=1-I;
-				u11t[i+4]=-1+I; u12t[i+4]=1+I;
-				u11t[i+5]=1+I; u12t[i+5]=-1+I;
-				u11t[i+6]=-1+I; u12t[i+6]=-1+I;
-				u11t[i+7]=-1-I; u12t[i+7]=-1-I;
-			}
-			break;
 		case(1):
-			Trial_Exchange();
+#if(nproc>1)
+			Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
+#endif
 #pragma omp parallel sections num_threads(4)
 			{
 #pragma omp section
@@ -1223,23 +1227,27 @@ int Diagnostics(int istart){
 				}
 			}
 			break;
+		case(2):
+#pragma omp parallel for simd aligned(u11t,u12t:AVX)
+			for(int i =0; i<ndim*kvol; i+=8){
+				u11t[i+0]=1+I; u12t[i]=1+I;
+				u11t[i+1]=1-I; u12t[i+1]=1+I;
+				u11t[i+2]=1+I; u12t[i+2]=1-I;
+				u11t[i+3]=1-I; u12t[i+3]=1-I;
+				u11t[i+4]=-1+I; u12t[i+4]=1+I;
+				u11t[i+5]=1+I; u12t[i+5]=-1+I;
+				u11t[i+6]=-1+I; u12t[i+6]=-1+I;
+				u11t[i+7]=-1-I; u12t[i+7]=-1-I;
+			}
+			break;
 		default:
 			//Cold start as a default
-			memcpy(u11t,u11,kvol*ndim*sizeof(complex));
-			memcpy(u12t,u12,kvol*ndim*sizeof(complex));
+			memcpy(u11t,u11,kvol*ndim*sizeof(Complex));
+			memcpy(u12t,u12,kvol*ndim*sizeof(Complex));
 			break;
 	}
-#pragma omp parallel for simd aligned(u11t,u12t:AVX) 
-	for(int i=0; i<kvol*ndim; i++){
-		//Declaring anorm inside the loop will hopefully let the compiler know it
-		//is safe to vectorise aggressively
-		double anorm=sqrt(conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]);
-		assert(anorm!=0);
-		u11t[i]/=anorm;
-		u12t[i]/=anorm;
-	}
-
-	Trial_Exchange();
+	Reunitarise(u11t,u12t);
+	Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
 #ifdef __clang__
 #pragma omp target enter data map(to:u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],gamval[0:5*4],\
 		u11t_f[0:ndim*(kvol+halo)],u12t_f[0:ndim*(kvol+halo)], dk4m[0:kvol+halo],gamval_f[0:5*4],\
@@ -1254,7 +1262,7 @@ int Diagnostics(int istart){
 			for(int i=0; i<kferm; i++){
 				R1[i]=0.5; Phi[i]=0.5;xi[i]=0.5;
 			}
-#pragma omp for simd aligned(X0,X1:AVX) nowaite
+#pragma omp for simd aligned(X0,X1:AVX) nowait
 			for(int i=0; i<kferm2; i++){
 				X0[i]=0.5;
 				X1[i]=0.5;
@@ -1276,7 +1284,7 @@ int Diagnostics(int istart){
 							creal(xi[i+4]),cimag(xi[i+4]),creal(xi[i+5]),cimag(xi[i+5]),
 							creal(xi[i+6]),cimag(xi[i+6]),creal(xi[i+7]),cimag(xi[i+7])	);
 				fclose(output_old);
-				Dslash(xi, R1);
+				Dslash(xi,R1,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 				output = fopen("dslash", "w");
 				for(int i = 0; i< kferm; i+=8)
 					fprintf(output, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
@@ -1295,7 +1303,7 @@ int Diagnostics(int istart){
 							creal(xi[i+4]),cimag(xi[i+4]),creal(xi[i+5]),cimag(xi[i+5]),
 							creal(xi[i+6]),cimag(xi[i+6]),creal(xi[i+7]),cimag(xi[i+7])	);
 				fclose(output_old);
-				Dslashd(xi, R1);
+				Dslashd(xi,R1,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 				output = fopen("dslashd", "w");
 				for(int i = 0; i< kferm; i+=8)
 					fprintf(output, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
@@ -1335,8 +1343,8 @@ int Diagnostics(int istart){
 
 				}
 				fclose(output_f_old);
-				Hdslash(X1, X0);
-				Hdslash_f(X1_f, X0_f);
+				Hdslash(X1,X0,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
+				Hdslash_f(X1_f,X0_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 				output = fopen("hdslash", "w");
 				for(int i = 0; i< kferm2; i+=8)
 					fprintf(output, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
@@ -1363,6 +1371,10 @@ int Diagnostics(int istart){
 				}
 				break;
 			case(3):	
+				for(int i = 0; i< kferm2; i++){
+					X0_f[i]=(float)X0[i];
+					X1_f[i]=(float)X1[i];
+				}
 				output_old = fopen("hdslashd_old", "w");
 				for(int i = 0; i< kferm2; i+=8)
 					fprintf(output_old, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
@@ -1371,7 +1383,23 @@ int Diagnostics(int istart){
 							creal(X1[i+4]),cimag(X1[i+4]),creal(X1[i+5]),cimag(X1[i+5]),
 							creal(X1[i+6]),cimag(X1[i+6]),creal(X1[i+7]),cimag(X1[i+7]));
 				fclose(output_old);
-				Hdslashd(X1, X0);
+				output_f_old = fopen("hdslash_f_old", "w");
+				for(int i = 0; i< kferm2; i+=8){
+					fprintf(output_f_old, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+							creal(X1_f[i]),cimag(X1_f[i]),creal(X1_f[i+1]),cimag(X1_f[i+1]),
+							creal(X1_f[i+2]),cimag(X1_f[i+2]),creal(X1_f[i+3]),cimag(X1_f[i+3]),
+							creal(X1_f[i+4]),cimag(X1_f[i+4]),creal(X1_f[i+5]),cimag(X1_f[i+5]),
+							creal(X1_f[i+6]),cimag(X1_f[i+6]),creal(X1_f[i+7]),cimag(X1_f[i+7]));
+					printf("Difference in double and float X0[%d] to X0[%d+7]:\n",i,i);
+					printf("%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+							creal(X0[i]-X0_f[i]),cimag(X0[i]-X0_f[i]),creal(X0[i+1]-X0_f[i+1]),cimag(X0[i+1]-X0_f[i+1]),
+							creal(X0[i+2]-X0_f[i+2]),cimag(X0[i+2]-X0_f[i+2]),creal(X0[i+3]-X0_f[i+3]),cimag(X0[i+3]-X0_f[i+3]),
+							creal(X0[i+4]-X0_f[i+4]),cimag(X0[i+4]-X0_f[i+4]),creal(X0[i+5]-X0_f[i+5]),cimag(X0[i+5]-X0_f[i+5]),
+							creal(X0[i+6]-X0_f[i+6]),cimag(X0[i+6]-X0_f[i+6]),creal(X0[i+7]-X0_f[i+7]),cimag(X0[i+7]-X0_f[i+7]));
+
+				}
+				Hdslashd(X1,X0,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
+				Hdslashd_f(X1_f,X0_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 				output = fopen("hdslashd", "w");
 				for(int i = 0; i< kferm2; i+=8)
 					fprintf(output, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
@@ -1380,6 +1408,14 @@ int Diagnostics(int istart){
 							creal(X1[i+4]),cimag(X1[i+4]),creal(X1[i+5]),cimag(X1[i+5]),
 							creal(X1[i+6]),cimag(X1[i+6]),creal(X1[i+7]),cimag(X1[i+7]));
 				fclose(output);
+				output_f = fopen("hdslashd_f", "w");
+				for(int i = 0; i< kferm2; i+=8)
+					fprintf(output_f, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+							creal(X1_f[i]),cimag(X1_f[i]),creal(X1_f[i+1]),cimag(X1_f[i+1]),
+							creal(X1_f[i+2]),cimag(X1_f[i+2]),creal(X1_f[i+3]),cimag(X1_f[i+3]),
+							creal(X1_f[i+4]),cimag(X1_f[i+4]),creal(X1_f[i+5]),cimag(X1_f[i+5]),
+							creal(X1_f[i+6]),cimag(X1_f[i+6]),creal(X1_f[i+7]),cimag(X1_f[i+7]));
+				fclose(output_f);
 				break;
 				//Two force cases because of the flag
 			case(4):	
@@ -1387,7 +1423,8 @@ int Diagnostics(int istart){
 				for(int i = 0; i< kmom; i+=4)
 					fprintf(output_old, "%f\t%f\t%f\t%f\n", dSdpi[i], dSdpi[i+1], dSdpi[i+2], dSdpi[i+3]);
 				fclose(output_old);
-				Force(dSdpi, 0, rescgg);	
+				Force(dSdpi, 1, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
+						dk4m_f,dk4p_f,jqq,akappa,beta,&ancg);
 				output = fopen("force_0", "w");
 				for(int i = 0; i< kmom; i+=4)
 					fprintf(output, "%f\t%f\t%f\t%f\n", dSdpi[i], dSdpi[i+1], dSdpi[i+2], dSdpi[i+3]);
@@ -1398,34 +1435,35 @@ int Diagnostics(int istart){
 				for(int i = 0; i< kmom; i+=4)
 					fprintf(output_old, "%f\t%f\t%f\t%f\n", dSdpi[i], dSdpi[i+1], dSdpi[i+2], dSdpi[i+3]);
 				fclose(output_old);
-				Force(dSdpi, 1, rescgg);	
 				output = fopen("force_1", "w");
+				Force(dSdpi, 0, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
+						dk4m_f,dk4p_f,jqq,akappa,beta,&ancg);
 				for(int i = 0; i< kmom; i+=4)
 					fprintf(output, "%f\t%f\t%f\t%f\n", dSdpi[i], dSdpi[i+1], dSdpi[i+2], dSdpi[i+3]);
 				fclose(output);
 				break;
-			case(6):
-				output = fopen("Measure", "w");
-				int itercg=0;
-				double pbp, endenf, denf; complex qq, qbqb;
-				Measure(&pbp, &endenf, &denf, &qq, &qbqb, respbp, &itercg);
-				fprintf(output,"pbp=%f\tendenf=%f\tdenf=%f\nqq=%f+(%f)i\tqbqb=%f+(%f)i\titercg=%i\n\n",
-						pbp,endenf,denf,creal(qq),cimag(qq),creal(qbqb),cimag(qbqb),itercg);
-				//				Congradp(0,respbp,&itercg);
-				for(int i = 0; i< kferm; i+=8)
-					fprintf(output, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
-							creal(xi[i]),cimag(xi[i]),creal(xi[i+1]),cimag(xi[i+1]),
-							creal(xi[i+2]),cimag(xi[i+2]),creal(xi[i+3]),cimag(xi[i+3]),
-							creal(xi[i+4]),cimag(xi[i+4]),creal(xi[i+5]),cimag(xi[i+5]),
-							creal(xi[i+6]),cimag(xi[i+6]),creal(xi[i+7]),cimag(xi[i+7])	);
-				fclose(output);
-				break;
+				//			case(6):
+				//				output = fopen("Measure", "w");
+				//				int itercg=0;
+				//				double pbp, endenf, denf; complex qq, qbqb;
+				//				Measure(&pbp, &endenf, &denf, &qq, &qbqb, respbp, &itercg);
+				//				fprintf(output,"pbp=%f\tendenf=%f\tdenf=%f\nqq=%f+(%f)i\tqbqb=%f+(%f)i\titercg=%i\n\n",
+				//						pbp,endenf,denf,creal(qq),cimag(qq),creal(qbqb),cimag(qbqb),itercg);
+				//				//				Congradp(0,respbp,&itercg);
+				//				for(int i = 0; i< kferm; i+=8)
+				//					fprintf(output, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+				//							creal(xi[i]),cimag(xi[i]),creal(xi[i+1]),cimag(xi[i+1]),
+				//							creal(xi[i+2]),cimag(xi[i+2]),creal(xi[i+3]),cimag(xi[i+3]),
+				//							creal(xi[i+4]),cimag(xi[i+4]),creal(xi[i+5]),cimag(xi[i+5]),
+				//							creal(xi[i+6]),cimag(xi[i+6]),creal(xi[i+7]),cimag(xi[i+7])	);
+				//				fclose(output);
+				//				break;
 			case(7):
 				output_old = fopen("Gauge_Force_old","w");
 				for(int i = 0; i< kmom; i+=4)
 					fprintf(output, "%f\t%f\t%f\t%f\n", dSdpi[i], dSdpi[i+1], dSdpi[i+2], dSdpi[i+3]);
 				fclose(output_old);	
-				Gauge_force(dSdpi);
+				Gauge_force(dSdpi,u11t,u12t,iu,id,beta);
 				output = fopen("Gauge_Force","w");
 				for(int i = 0; i< kmom; i+=4)
 					fprintf(output, "%f\t%f\t%f\t%f\n", dSdpi[i], dSdpi[i+1], dSdpi[i+2], dSdpi[i+3]);
@@ -1441,13 +1479,21 @@ int Diagnostics(int istart){
 		dk4p[0:kvol+halo], dk4m_f[0:kvol+halo],dk4p_f[0:kvol+halo], iu[0:ndim*kvol],id[0:ndim*kvol],\
 		Phi[0:kferm],dSdpi[0:kmom])
 #endif
-#if defined __INTEL_MKL__
+#ifdef __NVCC__
+	//Make a routine that does this for us
+	cudaFree(dk4m); cudaFree(dk4p); cudaFree(R1); cudaFree(dSdpi); cudaFree(pp);
+	cudaFree(Phi); cudaFree(u11t); cudaFree(u12t);
+	cudaFree(X0); cudaFree(X1); cudaFree(u11); cudaFree(u12);
+	cudaFree(X0_f); cudaFree(X1_f); cudaFree(u11t_f); cudaFree(u12t_f);
+	cudaFree(id); cudaFree(iu); cudaFree(hd); cudaFree(hu);
+#elif defined __INTEL_MKL__
 	mkl_free(dk4m); mkl_free(dk4p); mkl_free(R1); mkl_free(dSdpi); mkl_free(pp);
 	mkl_free(Phi); mkl_free(u11t); mkl_free(u12t); mkl_free(xi);
 	mkl_free(X0); mkl_free(X1); mkl_free(u11); mkl_free(u12);
 	mkl_free(X0_f); mkl_free(X1_f); mkl_free(u11t_f); mkl_free(u12t_f);
 	mkl_free(id); mkl_free(iu); mkl_free(hd); mkl_free(hu);
 	mkl_free(pcoord);
+	mkl_free_buffers();
 #else
 	free(dk4m); free(dk4p); free(R1); free(dSdpi); free(pp);
 	free(Phi); free(u11t); free(u12t); free(xi);
@@ -1456,7 +1502,9 @@ int Diagnostics(int istart){
 	free(pcoord);
 #endif
 
+#if(nproc>1)
 	MPI_Finalise();
+#endif
 	exit(0);
 }
 #endif

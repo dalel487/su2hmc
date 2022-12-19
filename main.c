@@ -247,7 +247,9 @@ int main(int argc, char *argv[]){
 	memcpy(u11, u11t, ndim*kvol*sizeof(Complex));
 	memcpy(u12, u12t, ndim*kvol*sizeof(Complex));
 #ifdef DIAGNOSTIC
-	Diagnostics(istart);
+	double ancg_diag=0;
+	Diagnostics(istart, u11, u12, u11t, u12t, u11t_f, u12t_f, iu, id, hu, hd, dk4m, dk4p,\
+			dk4m_f, dk4p_f, gamin, gamval, gamval_f, jqq, akappa, beta, ancg_diag);
 #endif
 
 	//Initial Measurements
@@ -737,7 +739,7 @@ int main(int argc, char *argv[]){
 	cudaFree(X0); cudaFree(X1); cudaFree(u11); cudaFree(u12);
 	cudaFree(id); cudaFree(iu); cudaFree(hd); cudaFree(hu);
 	cudaFree(dk4m_f); cudaFree(dk4p_f); cudaFree(u11t_f); cudaFree(u12t_f);
-	cublasCreate(&cublas_handle);
+	cublasDestroy(&cublas_handle);
 #elif defined __INTEL_MKL__
 	mkl_free_buffers();
 	mkl_free(dk4m); mkl_free(dk4p); mkl_free(R1); mkl_free(dSdpi); mkl_free(pp);
@@ -746,7 +748,7 @@ int main(int argc, char *argv[]){
 	mkl_free(id); mkl_free(iu); mkl_free(hd); mkl_free(hu);
 	mkl_free(dk4m_f); mkl_free(dk4p_f); mkl_free(u11t_f); mkl_free(u12t_f);
 	mkl_free(h1u); mkl_free(h1d); mkl_free(halosize);
-	mkl_free(pcoord);
+	mkl_free(pcoord);	mkl_free_buffers();
 #if (!defined  __RANLUX__&&!defined USE_RAN2)
 	vslDeleteStream(&stream);
 #endif
