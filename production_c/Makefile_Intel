@@ -52,8 +52,10 @@ release:	CFLAGS +=  -O3  -inline-level=2\
 						-DMKL_ILP64  -I"${MKLROOT}/include" #-DUSE_RAN2
 release:	$(EXE)
 
-debug:	CFLAGS += -g -O0 \
-		-D_DEBUG -DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
+diagnostics: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME #-DNO_SPACE
+diagnostics: debug
+
+debug:	CFLAGS += -g -O0 -D_DEBUG
 debug:	$(EXE)
 
 $(EXE):	$(OBJ)
