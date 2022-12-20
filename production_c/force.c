@@ -403,7 +403,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 				//For consistency we'll leave mu in instead of hard coding.
 				mu=3;
 				uid = iu[mu+ndim*i];
-				igork1 = gamin[mu][idirac];
+				igork1 = gamin[mu][idirac];	
 				//We are mutiplying terms by dk4?[i] Also there is no akappa or gamval factor in the time direction	
 				//for the "gamval" terms the sign of d4kp flips
 #ifndef NO_TIME
