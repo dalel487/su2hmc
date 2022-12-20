@@ -1,10 +1,13 @@
 #include	<cuda.h>
 #include	<cuda_runtime.h>
 #include	<su2hmc.h>
-dim3 dimBlock = dim3(ksizex,ksizey);
-dim3 dimGrid= dim3(ksizez,ksizet);
-void	Init_CUDA(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f, Complex gamval[5][4],\
-		Complex_f gamval_f[5][4], int gamin[4][4],Complex *gamval_d, Complex_f *gamval_f_d, int *gamin_d,\
+#define MIN(x,y) (x<y?x:y)
+//Worst case scenario, each block contains 256 threads. This should be tuned later
+dim3 dimBlock = dim3(MIN(ksizex,16),MIN(ksizet,16));
+dim3 dimGrid= dim3(MIN(ksizez,8),MIN(ksizey,8));
+cudaStream_t streams[ndirac*ndim*nadj];
+void	Init_CUDA(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f,\
+		Complex *gamval, Complex_f *gamval_f, int *gamin,\
 		double *dk4m, double *dk4p, float *dk4m_f, float *dk4p_f, unsigned int *iu, unsigned int *id){
 	//		dim3 *dimBlock, dim3 *dimGrid){
 	/*
@@ -48,15 +51,20 @@ void	Init_CUDA(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_
 	//Set iu and id to mainly read in CUDA and prefetch them to the GPU
 	int device=-1;
 	cudaGetDevice(&device);
+	for(int i=0;i<(ndirac*nadj*ndim);i++)
+		cudaStreamCreate(&streams[i]);
 	cudaMemAdvise(iu,ndim*kvol*sizeof(int),cudaMemAdviseSetReadMostly,device);
 	cudaMemAdvise(id,ndim*kvol*sizeof(int),cudaMemAdviseSetReadMostly,device);
 	cudaMemPrefetchAsync(iu,ndim*kvol*sizeof(int),device,NULL);
 	cudaMemPrefetchAsync(id,ndim*kvol*sizeof(int),device,NULL);
 
 	//Gamma matrices and indices on the GPU
-	cudaMemcpy(gamin_d,gamin,4*4*sizeof(int),cudaMemcpyHostToDevice);
-	cudaMemcpy(gamval_d,gamval,5*4*sizeof(Complex),cudaMemcpyHostToDevice);
-	cudaMemcpy(gamval_f_d,gamval_f,5*4*sizeof(Complex_f),cudaMemcpyHostToDevice);
+	//	cudaMemcpy(gamin_d,gamin,4*4*sizeof(int),cudaMemcpyHostToDevice);
+	//	cudaMemcpy(gamval_d,gamval,5*4*sizeof(Complex),cudaMemcpyHostToDevice);
+	//	cudaMemcpy(gamval_f_d,gamval_f,5*4*sizeof(Complex_f),cudaMemcpyHostToDevice);
+	cudaMemAdvise(gamin,4*4*sizeof(int),cudaMemAdviseSetReadMostly,device);
+	cudaMemAdvise(gamval,5*4*sizeof(Complex),cudaMemAdviseSetReadMostly,device);
+	cudaMemAdvise(gamval_f,5*4*sizeof(Complex_f),cudaMemAdviseSetReadMostly,device);
 
 	//More prefetching and marking as read-only (mostly)
 	//Prefetching Momentum Fields and Trial Fields to GPU

@@ -112,7 +112,7 @@ int Par_begin(int argc, char *argv[]){
 #endif
 #ifdef _DEBUG
 	if(!rank)
-		printf("Running on %i processors.\n Grid layout is %ix%ix%ix%i\n",
+		printf("Running on %i processors.\nGrid layout is %ix%ix%ix%i\n",
 				nproc, npx,npy,npz,npt);
 	printf("Rank: %i pu: %i %i %i %i pd: %i %i %i %i\n", rank, pu[0], pu[1], pu[2], pu[3],
 			pd[0], pd[1], pd[2], pd[3]);
@@ -484,11 +484,11 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 				if(i!=kvol){
 					fprintf(stderr, "Error %i in %s: Number of elements %i is not equal to\
 							kvol %i.\nExiting...\n\n", NUMELEM, funcname, i, kvol);
-					#if(nproc>1)
+#if(nproc>1)
 					MPI_Abort(comm,NUMELEM);
-					#else
+#else
 					exit(NUMELEM);
-					#endif
+#endif
 				}
 			}
 #ifdef __INTEL_MKL__
@@ -534,14 +534,17 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 		if(!(con=fopen(gauge_file, fileop))){
 			fprintf(stderr, "Error %i in %s: Failed to open %s for %s.\
 					\nExiting...\n\n", OPENERROR, funcname, gauge_file, fileop);
-			#if(nproc>1)
+#if(nproc>1)
 			MPI_Abort(comm,OPENERROR);
-			#else
+#else
 			exit(OPENERROR);
-			#endif
+#endif
 		}
 		//TODO: SAFETY CHECKS FOR EACH WRITE OPERATION
 		//Write the number of processors used in the previous run. This takes the place of the FORTRAN integer rather nicely
+#if(nproc==1)
+		int size=nproc;
+#endif
 		fwrite(&size,sizeof(int),1,con);
 		fwrite(u11Write, ndim*gvol*sizeof(Complex), 1, con);
 		fwrite(u12Write, ndim*gvol*sizeof(Complex), 1, con);

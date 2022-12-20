@@ -14,35 +14,6 @@ cublasHandle_t cublas_handle;
 cublasStatus_t cublas_status;
 //Fix this later
 #endif
-int
-#ifndef __NVCC__ 
-__attribute__((aligned(AVX)))
-#endif
-	gamin[4][4] =	{{3,2,1,0},
-		{3,2,1,0},
-		{2,3,0,1},
-		{2,3,0,1}};
-//Gamma Matrices in Chiral Representation
-//Gattringer and Lang have a nice crash course in appendix A.2 of
-//Quantum Chromodynamics on the Lattice (530.14 GAT)
-Complex
-#ifndef __NVCC__ 
-__attribute__((aligned(AVX)))
-#endif
-	gamval[5][4] =	{{-I,-I,I,I},
-		{-1,1,1,-1},
-		{-I,I,I,-I},
-		{1,1,1,1},
-		{1,1,-1,-1}};
-Complex_f 
-#ifndef __NVCC__ 
-__attribute__((aligned(AVX)))
-#endif
-	gamval_f[5][4] =	{{-I,-I,I,I},
-		{-1,1,1,-1},
-		{-I,I,I,-I},
-		{1,1,1,1},
-		{1,1,-1,-1}};
 /*
  * For the early phases of this translation, I'm going to try and
  * copy the original format as much as possible and keep things
@@ -204,12 +175,12 @@ int main(int argc, char *argv[]){
 	cudaMallocManaged(&dk4m_f,(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
 	cudaMallocManaged(&dk4p_f,(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
 
-	int	*gamin_d;
-	Complex	*gamval_d;
-	Complex_f *gamval_f_d;
-	cudaMalloc(&gamin_d,4*4*sizeof(Complex));
-	cudaMalloc(&gamval_d,5*4*sizeof(Complex));
-	cudaMalloc(&gamval_f_d,5*4*sizeof(Complex_f));
+	int	*gamin;
+	Complex	*gamval;
+	Complex_f *gamval_f;
+	cudaMallocManaged(&gamin,4*4*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&gamval,5*4*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&gamval_f,5*4*sizeof(Complex_f),cudaMemAttachGlobal);
 
 	cudaMallocManaged(&u11,ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&u12,ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
@@ -221,32 +192,36 @@ int main(int argc, char *argv[]){
 	id = (unsigned int*)mkl_malloc(ndim*kvol*sizeof(int),AVX);
 	iu = (unsigned int*)mkl_malloc(ndim*kvol*sizeof(int),AVX);
 
-	dk4m = mkl_malloc((kvol+halo)*sizeof(double), AVX);
-	dk4p = mkl_malloc((kvol+halo)*sizeof(double), AVX);
-	dk4m_f = mkl_malloc((kvol+halo)*sizeof(float), AVX);
-	dk4p_f = mkl_malloc((kvol+halo)*sizeof(float), AVX);
+	int	*gamin = (int *)mkl_malloc(4*4*sizeof(int),AVX);
+	Complex	*gamval=(Complex *)mkl_malloc(5*4*sizeof(Complex),AVX);
+	Complex_f *gamval_f=(Complex_f *)mkl_malloc(5*4*sizeof(Complex_f),AVX);;
 
-	u11 = mkl_malloc(ndim*kvol*sizeof(Complex),AVX);
-	u12 = mkl_malloc(ndim*kvol*sizeof(Complex),AVX);
-	u11t = mkl_malloc(ndim*(kvol+halo)*sizeof(Complex),AVX);
-	u12t = mkl_malloc(ndim*(kvol+halo)*sizeof(Complex),AVX);
-	u11t_f = mkl_malloc(ndim*(kvol+halo)*sizeof(Complex_f),AVX);
-	u12t_f = mkl_malloc(ndim*(kvol+halo)*sizeof(Complex_f),AVX);
+	dk4m = (double *)mkl_malloc((kvol+halo)*sizeof(double), AVX);
+	dk4p = (double *)mkl_malloc((kvol+halo)*sizeof(double), AVX);
+	dk4m_f = (float *)mkl_malloc((kvol+halo)*sizeof(float), AVX);
+	dk4p_f = (float *)mkl_malloc((kvol+halo)*sizeof(float), AVX);
+
+	u11 = (Complex *)mkl_malloc(ndim*kvol*sizeof(Complex),AVX);
+	u12 = (Complex *)mkl_malloc(ndim*kvol*sizeof(Complex),AVX);
+	u11t = (Complex *)mkl_malloc(ndim*(kvol+halo)*sizeof(Complex),AVX);
+	u12t = (Complex *)mkl_malloc(ndim*(kvol+halo)*sizeof(Complex),AVX);
+	u11t_f = (Complex_f *)mkl_malloc(ndim*(kvol+halo)*sizeof(Complex_f),AVX);
+	u12t_f = (Complex_f *)mkl_malloc(ndim*(kvol+halo)*sizeof(Complex_f),AVX);
 #else
 	id = (unsigned int*)aligned_alloc(AVX,ndim*kvol*sizeof(int));
 	iu = (unsigned int*)aligned_alloc(AVX,ndim*kvol*sizeof(int));
 
-	dk4m = aligned_alloc(AVX,(kvol+halo)*sizeof(double));
-	dk4p = aligned_alloc(AVX,(kvol+halo)*sizeof(double));
-	dk4m_f = aligned_alloc(AVX,(kvol+halo)*sizeof(float));
-	dk4p_f = aligned_alloc(AVX,(kvol+halo)*sizeof(float));
+	dk4m = (double *)aligned_alloc(AVX,(kvol+halo)*sizeof(double));
+	dk4p = (double *)aligned_alloc(AVX,(kvol+halo)*sizeof(double));
+	dk4m_f = (float *)aligned_alloc(AVX,(kvol+halo)*sizeof(float));
+	dk4p_f = (float *)aligned_alloc(AVX,(kvol+halo)*sizeof(float));
 
-	u11 = aligned_alloc(AVX,ndim*kvol*sizeof(Complex));
-	u12 = aligned_alloc(AVX,ndim*kvol*sizeof(Complex));
-	u11t = aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex));
-	u12t = aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex));
-	u11t_f = aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex_f));
-	u12t_f = aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex_f));
+	u11 = (Complex *)aligned_alloc(AVX,ndim*kvol*sizeof(Complex));
+	u12 = (Complex *)aligned_alloc(AVX,ndim*kvol*sizeof(Complex));
+	u11t = (Complex *)aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex));
+	u12t = (Complex *)aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex));
+	u11t_f = (Complex_f *)aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex_f));
+	u12t_f = (Complex_f *)aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex_f));
 #endif
 	//Initialisation
 	//istart < 0: Start from tape in FORTRAN?!? How old was this code?
@@ -256,7 +231,7 @@ int main(int argc, char *argv[]){
 	Init(istart,ibound,iread,beta,fmu,akappa,ajq,u11,u12,u11t,u12t,u11t_f,u12t_f,gamval,gamval_f,gamin,dk4m,dk4p,dk4m_f,dk4p_f,iu,id);
 #ifdef __NVCC__
 	//GPU Initialisation stuff
-	Init_CUDA(u11t,u12t,u11t_f,u12t_f,gamval,gamval_f,gamin,gamval_d,gamval_f_d,gamin_d,\
+	Init_CUDA(u11t,u12t,u11t_f,u12t_f,gamval,gamval_f,gamin,\
 			dk4m,dk4p,dk4m_f,dk4p_f,iu,id);//&dimBlock,&dimGrid);
 #endif
 	//Send trials to accelerator for reunitarisation
@@ -272,7 +247,9 @@ int main(int argc, char *argv[]){
 	memcpy(u11, u11t, ndim*kvol*sizeof(Complex));
 	memcpy(u12, u12t, ndim*kvol*sizeof(Complex));
 #ifdef DIAGNOSTIC
-	Diagnostics(istart);
+	double ancg_diag=0;
+	Diagnostics(istart, u11, u12, u11t, u12t, u11t_f, u12t_f, iu, id, hu, hd, dk4m, dk4p,\
+			dk4m_f, dk4p_f, gamin, gamval, gamval_f, jqq, akappa, beta, ancg_diag);
 #endif
 
 	//Initial Measurements
@@ -334,7 +311,7 @@ int main(int argc, char *argv[]){
 		//Print to terminal during debugging
 		printf("ksize = %i ksizet = %i Nf = %i Halo = %i\nTime step dt = %e Trajectory length = %e\n"\
 				"No. of Trajectories = %i β = %e\nκ = %e μ = %e\nDiquark source = %e Diquark phase angle = %e\n"\
-				"Stopping Residuals: Guidance: %e Acceptance: %e, Estimator: %e\nSeed = %l\n",
+				"Stopping Residuals: Guidance: %e Acceptance: %e, Estimator: %e\nSeed = %ld\n",
 				ksize, ksizet, nf, halo, dt, traj, ntraj, beta, akappa, fmu, ajq, athq, rescgg, rescga, respbp, seed);
 #endif
 	}
@@ -361,7 +338,6 @@ int main(int argc, char *argv[]){
 	int device=-1;
 	cudaGetDevice(&device);
 	//	memcpy(gamin_d,gamin,4*4*sizeof(int));
-	gamval_d=NULL;
 	//	cudaMemcpy(gamval_d,gamval,5*4*sizeof(Complex),cudaMemcpyHostToDevice);
 	//	cudaMemAdvise(gamin_d,16*sizeof(int),cudaMemAdviseSetReadMostly,device);
 	//	cudaMemPrefetchAsync(gamin_d,16*sizeof(int),device,NULL);
@@ -763,7 +739,7 @@ int main(int argc, char *argv[]){
 	cudaFree(X0); cudaFree(X1); cudaFree(u11); cudaFree(u12);
 	cudaFree(id); cudaFree(iu); cudaFree(hd); cudaFree(hu);
 	cudaFree(dk4m_f); cudaFree(dk4p_f); cudaFree(u11t_f); cudaFree(u12t_f);
-	cublasCreate(&cublas_handle);
+	cublasDestroy(&cublas_handle);
 #elif defined __INTEL_MKL__
 	mkl_free_buffers();
 	mkl_free(dk4m); mkl_free(dk4p); mkl_free(R1); mkl_free(dSdpi); mkl_free(pp);
@@ -772,7 +748,7 @@ int main(int argc, char *argv[]){
 	mkl_free(id); mkl_free(iu); mkl_free(hd); mkl_free(hu);
 	mkl_free(dk4m_f); mkl_free(dk4p_f); mkl_free(u11t_f); mkl_free(u12t_f);
 	mkl_free(h1u); mkl_free(h1d); mkl_free(halosize);
-	mkl_free(pcoord);
+	mkl_free(pcoord);	mkl_free_buffers();
 #if (!defined  __RANLUX__&&!defined USE_RAN2)
 	vslDeleteStream(&stream);
 #endif
