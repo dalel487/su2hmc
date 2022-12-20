@@ -509,7 +509,7 @@ int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  in
 //Float Versions
 //int Dslash_f(Complex_f *phi, Complex_f *r){
 int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu, unsigned int *id,\
-		Complex_f gamval_f[5][4],	int gamin[4][4],	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
+		Complex_f *gamval_f,	int *gamin,	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -564,9 +564,9 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork = idirac+4;
 			Complex_f a_1, a_2;
-			a_1=conj(jqq)*gamval_f[4][idirac];
+			a_1=conj(jqq)*gamval_f[idirac];
 			//We subtract a_2, hence the minus
-			a_2=-jqq*gamval_f[4][idirac];
+			a_2=-jqq*gamval_f[idirac];
 			phi[(i*ngorkov+idirac)*nc]+=a_1*r[(i*ngorkov+igork)*nc+0];
 			phi[(i*ngorkov+idirac)*nc+1]+=a_1*r[(i*ngorkov+igork)*nc+1];
 			phi[(i*ngorkov+igork)*nc+0]+=a_2*r[(i*ngorkov+idirac)*nc];
@@ -583,7 +583,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 			for(int igorkov=0; igorkov<ngorkov; igorkov++){
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing in the dirac term.
 				int idirac=igorkov%4;		
-				int igork1 = (igorkov<4) ? gamin[mu][idirac] : gamin[mu][idirac]+4;
+				int igork1 = (igorkov<4) ? gamin[mu*ndirac+idirac] : gamin[mu*ndirac+idirac]+4;
 				//Can manually vectorise with a pragma?
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
@@ -592,7 +592,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 						conj(u11t_f[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]-\
 						u12t_f[did*ndim+mu]*r[(did*ngorkov+igorkov)*nc+1])+\
 													  //Dirac term
-													  gamval_f[mu][idirac]*(u11t_f[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc]+\
+													  gamval_f[mu*ndirac+idirac]*(u11t_f[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc]+\
 															  u12t_f[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc+1]-\
 															  conj(u11t_f[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]+\
 															  u12t_f[did*ndim+mu]*r[(did*ngorkov+igork1)*nc+1]);
@@ -602,7 +602,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 						conj(u12t_f[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]+\
 						u11t_f[did*ndim+mu]*r[(did*ngorkov+igorkov)*nc+1])+\
 														 //Dirac term
-														 gamval_f[mu][idirac]*(-conj(u12t_f[i*ndim+mu])*r[(uid*ngorkov+igork1)*nc]+\
+														 gamval_f[mu*ndirac+idirac]*(-conj(u12t_f[i*ndim+mu])*r[(uid*ngorkov+igork1)*nc]+\
 																 conj(u11t_f[i*ndim+mu])*r[(uid*ngorkov+igork1)*nc+1]-\
 																 conj(u12t_f[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]-\
 																 u11t_f[did*ndim+mu]*r[(did*ngorkov+igork1)*nc+1]);
@@ -635,15 +635,15 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 						+u11t_f[did*ndim+3] *(r[(did*ngorkov+igorkov)*nc+1]+r[(did*ngorkov+igork1)*nc+1]));
 
 			//And the +4 terms. Note that dk4p_f and dk4m_f swap positions compared to the above				
-			phi[(i*ngorkov+igorkovPP)*nc]+=-dk4m_f[i]*(u11t_f[i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc]-r[(uid*ngorkov+igork1PP)*nc])+\
-					u12t_f[i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc+1]-r[(uid*ngorkov+igork1PP)*nc+1]))-\
-													 dk4p_f[did]*(conj(u11t_f[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])-\
-															 u12t_f[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
+			phi[(i*ngorkov+igorkovPP)*nc]+=-dk4m_f[i]*(u11t_f[i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc]-r[(uid*ngorkov+igork1PP)*nc])
+					+u12t_f[i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc+1]-r[(uid*ngorkov+igork1PP)*nc+1]))
+				-dk4p_f[did]*(conj(u11t_f[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])
+						-u12t_f[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
 
-			phi[(i*ngorkov+igorkovPP)*nc+1]+=-dk4m_f[i]*(conj(-u12t_f[i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc]-r[(uid*ngorkov+igork1PP)*nc])+\
-					conj(u11t_f[i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc+1]-r[(uid*ngorkov+igork1PP)*nc+1]))-\
-														dk4p_f[did]*(conj(u12t_f[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])+\
-																u11t_f[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
+			phi[(i*ngorkov+igorkovPP)*nc+1]+=-dk4m_f[i]*(conj(-u12t_f[i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc]-r[(uid*ngorkov+igork1PP)*nc])
+					+conj(u11t_f[i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc+1]-r[(uid*ngorkov+igork1PP)*nc+1]))
+				-dk4p_f[did]*(conj(u12t_f[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])
+						+u11t_f[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
 		}
 #endif
 	}
@@ -651,7 +651,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 	return 0;
 }
 int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
-		Complex_f gamval_f[5][4],		int gamin[4][4],	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
+		Complex_f *gamval_f,		int *gamin,	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -707,8 +707,8 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 			int igork = idirac+4;
 			Complex_f a_1, a_2;
 			//We subtract a_1, hence the minus
-			a_1=-conj(jqq)*gamval_f[4][idirac];
-			a_2=jqq*gamval_f[4][idirac];
+			a_1=-conj(jqq)*gamval_f[idirac];
+			a_2=jqq*gamval_f[idirac];
 			phi[(i*ngorkov+idirac)*nc]+=a_1*r[(i*ngorkov+igork)*nc];
 			phi[(i*ngorkov+idirac)*nc+1]+=a_1*r[(i*ngorkov+igork)*nc+1];
 			phi[(i*ngorkov+igork)*nc]+=a_2*r[(i*ngorkov+idirac)*nc];
@@ -725,7 +725,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 			for(int igorkov=0; igorkov<ngorkov; igorkov++){
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing.
 				int idirac=igorkov%4;		
-				int igork1 = (igorkov<4) ? gamin[mu][idirac] : gamin[mu][idirac]+4;
+				int igork1 = (igorkov<4) ? gamin[mu*ndirac+idirac] : gamin[mu*ndirac+idirac]+4;
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
 				phi[(i*ngorkov+igorkov)*nc]+=
@@ -733,7 +733,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 							+u12t_f[i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc+1]
 							+conj(u11t_f[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]
 							-u12t_f[did*ndim+mu] *r[(did*ngorkov+igorkov)*nc+1])
-					-gamval_f[mu][idirac]*
+					-gamval_f[mu*ndirac+idirac]*
 					(          u11t_f[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc]
 								  +u12t_f[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc+1]
 								  -conj(u11t_f[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]
@@ -744,7 +744,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 							+conj(u11t_f[i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc+1]
 							+conj(u12t_f[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]
 							+u11t_f[did*ndim+mu] *r[(did*ngorkov+igorkov)*nc+1])
-					-gamval_f[mu][idirac]*
+					-gamval_f[mu*ndirac+idirac]*
 					(-conj(u12t_f[i*ndim+mu])*r[(uid*ngorkov+igork1)*nc]
 					 +conj(u11t_f[i*ndim+mu])*r[(uid*ngorkov+igork1)*nc+1]
 					 -conj(u12t_f[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]
@@ -780,15 +780,15 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 			int igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
 			int igork1PP = igork1+4;
 			//And the +4 terms. Note that dk4p_f and dk4m_f swap positions compared to the above				
-			phi[(i*ngorkov+igorkovPP)*nc]+=-dk4p_f[i]*(u11t_f[i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc]+r[(uid*ngorkov+igork1PP)*nc])+\
-					u12t_f[i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc+1]+r[(uid*ngorkov+igork1PP)*nc+1]))-\
-													 dk4m_f[did]*(conj(u11t_f[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]-r[(did*ngorkov+igork1PP)*nc])-\
-															 u12t_f[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]-r[(did*ngorkov+igork1PP)*nc+1]));
+			phi[(i*ngorkov+igorkovPP)*nc]+=-dk4p_f[i]*(u11t_f[i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc]+r[(uid*ngorkov+igork1PP)*nc])
+					+u12t_f[i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc+1]+r[(uid*ngorkov+igork1PP)*nc+1]))
+				-dk4m_f[did]*(conj(u11t_f[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]-r[(did*ngorkov+igork1PP)*nc])
+						-u12t_f[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]-r[(did*ngorkov+igork1PP)*nc+1]));
 
-			phi[(i*ngorkov+igorkovPP)*nc+1]+=dk4p_f[i]*(conj(u12t_f[i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc]+r[(uid*ngorkov+igork1PP)*nc])-\
-					conj(u11t_f[i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc+1]+r[(uid*ngorkov+igork1PP)*nc+1]))-\
-														dk4m_f[did]*(conj(u12t_f[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]-r[(did*ngorkov+igork1PP)*nc])+
-																u11t_f[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]-r[(did*ngorkov+igork1PP)*nc+1]));
+			phi[(i*ngorkov+igorkovPP)*nc+1]+=dk4p_f[i]*(conj(u12t_f[i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc]+r[(uid*ngorkov+igork1PP)*nc])
+					-conj(u11t_f[i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc+1]+r[(uid*ngorkov+igork1PP)*nc+1]))
+				-dk4m_f[did]*(conj(u12t_f[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]-r[(did*ngorkov+igork1PP)*nc])
+						+u11t_f[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]-r[(did*ngorkov+igork1PP)*nc+1]));
 
 		}
 #endif
@@ -1149,10 +1149,12 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 	int device=-1;
 	cudaGetDevice(&device);
 	Complex *xi,*R1,*Phi,*X0,*X1;
-	Complex_f *X0_f, *X1_f;
+	Complex_f *X0_f, *X1_f, *xi_f, *R1_f;
 	double *dSdpi,*pp;
 	cudaMallocManaged(&R1,kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&xi,kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&R1_f,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged(&xi_f,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged(&Phi,kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&X0,kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&X1,kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
@@ -1163,6 +1165,8 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 #elif defined __INTEL_MKL__
 	Complex *R1= mkl_malloc(kfermHalo*sizeof(Complex),AVX);
 	Complex *xi= mkl_malloc(kfermHalo*sizeof(Complex),AVX);
+	Complex_f *R1_f= mkl_malloc(kfermHalo*sizeof(Complex_f),AVX);
+	Complex_f *xi_f= mkl_malloc(kfermHalo*sizeof(Complex_f),AVX);
 	Complex *Phi= mkl_malloc(nf*kfermHalo*sizeof(Complex),AVX); 
 	Complex *X0= mkl_malloc(nf*kferm2Halo*sizeof(Complex),AVX); 
 	Complex *X1= mkl_malloc(kferm2Halo*sizeof(Complex),AVX); 
@@ -1171,12 +1175,14 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 	Complex_f *X1_f= mkl_malloc(kferm2Halo*sizeof(Complex_f),AVX); 
 	double *dSdpi = mkl_malloc(kmom*sizeof(double), AVX);
 #else
-	R1= aligned_alloc(AVX,kfermHalo*sizeof(Complex));
+	Complex *R1= aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 	Complex *xi= aligned_alloc(AVX,kfermHalo*sizeof(Complex));
+	Complex_f *R1_f= aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
+	Complex_f *xi_F= aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 	Phi= aligned_alloc(AVX,nf*kfermHalo*sizeof(Complex)); 
-	X0= aligned_alloc(AVX,nf*kferm2Halo*sizeof(Complex)); 
-	X1= aligned_alloc(AVX,kferm2Halo*sizeof(Complex)); 
-	pp = aligned_alloc(AVX,kmomHalo*sizeof(double));
+	Complex *X0= aligned_alloc(AVX,nf*kferm2Halo*sizeof(Complex)); 
+	Complex *X1= aligned_alloc(AVX,kferm2Halo*sizeof(Complex)); 
+	double *pp = aligned_alloc(AVX,kmomHalo*sizeof(double));
 	Complex_f *X0_f= aligned_alloc(AVX,nf*kferm2Halo*sizeof(Complex_f)); 
 	Complex_f *X1_f= aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f)); 
 	double *dSdpi = aligned_alloc(AVX,kmom*sizeof(double));
@@ -1304,58 +1310,126 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 		FILE *output_f_old, *output_f;
 		switch(test){
 			case(0):
+#pragma omp parallel for simd
+				for(int i = 0; i< kferm; i++){
+					R1_f[i]=(Complex_f)R1[i];
+					xi_f[i]=(Complex_f)xi[i];
+				}
 				//NOTE: Each line corresponds to one lattice direction, in the form of colour 0, colour 1.
 				//Each block to one lattice site
 				output_old = fopen("dslash_old", "w");
-				for(int i = 0; i< kferm; i+=8)
+				output_f_old = fopen("dslash_f_old", "w");
+#ifdef __NVCC__
+				cudaMemPrefetchAsync(R1,kferm*sizeof(Complex),device,NULL);
+				cudaMemPrefetchAsync(xi,kferm*sizeof(Complex),device,NULL);
+				cudaMemPrefetchAsync(R1_f,kferm*sizeof(Complex_f),device,NULL);
+				cudaMemPrefetchAsync(xi_f,kferm*sizeof(Complex_f),device,NULL);
+#endif
+				for(int i = 0; i< kferm; i+=8){
 					fprintf(output_old, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
-							creal(xi[i]),cimag(xi[i]),creal(xi[i+1]),cimag(xi[i+1]),
-							creal(xi[i+2]),cimag(xi[i+2]),creal(xi[i+3]),cimag(xi[i+3]),
-							creal(xi[i+4]),cimag(xi[i+4]),creal(xi[i+5]),cimag(xi[i+5]),
-							creal(xi[i+6]),cimag(xi[i+6]),creal(xi[i+7]),cimag(xi[i+7])	);
-				fclose(output_old);
+							creal(R1[i]),cimag(R1[i]),creal(R1[i+1]),cimag(R1[i+1]),
+							creal(R1[i+2]),cimag(R1[i+2]),creal(R1[i+3]),cimag(R1[i+3]),
+							creal(R1[i+4]),cimag(R1[i+4]),creal(R1[i+5]),cimag(R1[i+5]),
+							creal(R1[i+6]),cimag(R1[i+6]),creal(R1[i+7]),cimag(R1[i+7])	);
+					fprintf(output_f_old, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+							creal(R1_f[i]),cimag(R1_f[i]),creal(R1_f[i+1]),cimag(R1_f[i+1]),
+							creal(R1_f[i+2]),cimag(R1_f[i+2]),creal(R1_f[i+3]),cimag(R1_f[i+3]),
+							creal(R1_f[i+4]),cimag(R1_f[i+4]),creal(R1_f[i+5]),cimag(R1_f[i+5]),
+							creal(R1_f[i+6]),cimag(R1_f[i+6]),creal(R1_f[i+7]),cimag(R1_f[i+7]));
+					printf("Difference in dslash double and float R1[%d] to R1[%d+7]:\n",i,i);
+					printf("%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+							creal(R1[i]-R1_f[i]),cimag(R1[i]-R1_f[i]),creal(R1[i+1]-R1_f[i+1]),cimag(R1[i+1]-R1_f[i+1]),
+							creal(R1[i+2]-R1_f[i+2]),cimag(R1[i+2]-R1_f[i+2]),creal(R1[i+3]-R1_f[i+3]),cimag(R1[i+3]-R1_f[i+3]),
+							creal(R1[i+4]-R1_f[i+4]),cimag(R1[i+4]-R1_f[i+4]),creal(R1[i+5]-R1_f[i+5]),cimag(R1[i+5]-R1_f[i+5]),
+							creal(R1[i+6]-R1_f[i+6]),cimag(R1[i+6]-R1_f[i+6]),creal(R1[i+7]-R1_f[i+7]),cimag(R1[i+7]-R1_f[i+7]));
+				}
+				fclose(output_old); fclose(output_f_old);
 				Dslash(xi,R1,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
+				Dslash_f(xi_f,R1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 				output = fopen("dslash", "w");
-				for(int i = 0; i< kferm; i+=8)
+				output_f = fopen("dslash_f", "w");
+				for(int i = 0; i< kferm; i+=8){
 					fprintf(output, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
 							creal(xi[i]),cimag(xi[i]),creal(xi[i+1]),cimag(xi[i+1]),
 							creal(xi[i+2]),cimag(xi[i+2]),creal(xi[i+3]),cimag(xi[i+3]),
 							creal(xi[i+4]),cimag(xi[i+4]),creal(xi[i+5]),cimag(xi[i+5]),
 							creal(xi[i+6]),cimag(xi[i+6]),creal(xi[i+7]),cimag(xi[i+7])	);
-				fclose(output);
+					fprintf(output_f, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+							creal(xi_f[i]),cimag(xi_f[i]),creal(xi_f[i+1]),cimag(xi_f[i+1]),
+							creal(xi_f[i+2]),cimag(xi_f[i+2]),creal(xi_f[i+3]),cimag(xi_f[i+3]),
+							creal(xi_f[i+4]),cimag(xi_f[i+4]),creal(xi_f[i+5]),cimag(xi_f[i+5]),
+							creal(xi_f[i+6]),cimag(xi_f[i+6]),creal(xi_f[i+7]),cimag(xi_f[i+7]));
+					printf("Difference in dslash double and float xi[%d] to xi[%d+7] after mult:\n",i,i);
+					printf("%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+							creal(xi[i]-xi_f[i]),cimag(xi[i]-xi_f[i]),creal(xi[i+1]-xi_f[i+1]),cimag(xi[i+1]-xi_f[i+1]),
+							creal(xi[i+2]-xi_f[i+2]),cimag(xi[i+2]-xi_f[i+2]),creal(xi[i+3]-xi_f[i+3]),cimag(xi[i+3]-xi_f[i+3]),
+							creal(xi[i+4]-xi_f[i+4]),cimag(xi[i+4]-xi_f[i+4]),creal(xi[i+5]-xi_f[i+5]),cimag(xi[i+5]-xi_f[i+5]),
+							creal(xi[i+6]-xi_f[i+6]),cimag(xi[i+6]-xi_f[i+6]),creal(xi[i+7]-xi_f[i+7]),cimag(xi[i+7]-xi_f[i+7]));
+				}
+				fclose(output);fclose(output_f);
 				break;
 			case(1):
+#pragma omp parallel for simd
+				for(int i = 0; i< kferm; i++){
+					R1_f[i]=(Complex_f)R1[i];
+					xi_f[i]=(Complex_f)xi[i];
+				}
 				//NOTE: Each line corresponds to one lattice direction, in the form of colour 0, colour 1.
 				//Each block to one lattice site
 				output_old = fopen("dslashd_old", "w");
-				for(int i = 0; i< kferm; i+=8)
+				output_f_old = fopen("dslashd_f_old", "w");
+#ifdef __NVCC__
+				cudaMemPrefetchAsync(R1,kferm*sizeof(Complex),device,NULL);
+				cudaMemPrefetchAsync(xi,kferm*sizeof(Complex),device,NULL);
+				cudaMemPrefetchAsync(R1_f,kferm*sizeof(Complex_f),device,NULL);
+				cudaMemPrefetchAsync(xi_f,kferm*sizeof(Complex_f),device,NULL);
+#endif
+				for(int i = 0; i< kferm; i+=8){
 					fprintf(output_old, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
-							creal(xi[i]),cimag(xi[i]),creal(xi[i+1]),cimag(xi[i+1]),
-							creal(xi[i+2]),cimag(xi[i+2]),creal(xi[i+3]),cimag(xi[i+3]),
-							creal(xi[i+4]),cimag(xi[i+4]),creal(xi[i+5]),cimag(xi[i+5]),
-							creal(xi[i+6]),cimag(xi[i+6]),creal(xi[i+7]),cimag(xi[i+7])	);
-				fclose(output_old);
+							creal(R1[i]),cimag(R1[i]),creal(R1[i+1]),cimag(R1[i+1]),
+							creal(R1[i+2]),cimag(R1[i+2]),creal(R1[i+3]),cimag(R1[i+3]),
+							creal(R1[i+4]),cimag(R1[i+4]),creal(R1[i+5]),cimag(R1[i+5]),
+							creal(R1[i+6]),cimag(R1[i+6]),creal(R1[i+7]),cimag(R1[i+7])	);
+					fprintf(output_f_old, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+							creal(R1_f[i]),cimag(R1_f[i]),creal(R1_f[i+1]),cimag(R1_f[i+1]),
+							creal(R1_f[i+2]),cimag(R1_f[i+2]),creal(R1_f[i+3]),cimag(R1_f[i+3]),
+							creal(R1_f[i+4]),cimag(R1_f[i+4]),creal(R1_f[i+5]),cimag(R1_f[i+5]),
+							creal(R1_f[i+6]),cimag(R1_f[i+6]),creal(R1_f[i+7]),cimag(R1_f[i+7]));
+					printf("Difference in dslashd double and float R1[%d] to R1[%d+7]:\n",i,i);
+					printf("%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+							creal(R1[i]-R1_f[i]),cimag(R1[i]-R1_f[i]),creal(R1[i+1]-R1_f[i+1]),cimag(R1[i+1]-R1_f[i+1]),
+							creal(R1[i+2]-R1_f[i+2]),cimag(R1[i+2]-R1_f[i+2]),creal(R1[i+3]-R1_f[i+3]),cimag(R1[i+3]-R1_f[i+3]),
+							creal(R1[i+4]-R1_f[i+4]),cimag(R1[i+4]-R1_f[i+4]),creal(R1[i+5]-R1_f[i+5]),cimag(R1[i+5]-R1_f[i+5]),
+							creal(R1[i+6]-R1_f[i+6]),cimag(R1[i+6]-R1_f[i+6]),creal(R1[i+7]-R1_f[i+7]),cimag(R1[i+7]-R1_f[i+7]));
+				}
+				fclose(output_old); fclose(output_f_old);
 				Dslashd(xi,R1,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
+				Dslashd_f(xi_f,R1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 				output = fopen("dslashd", "w");
-				for(int i = 0; i< kferm; i+=8)
+				output_f = fopen("dslashd_f", "w");
+				for(int i = 0; i< kferm; i+=8){
 					fprintf(output, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
 							creal(xi[i]),cimag(xi[i]),creal(xi[i+1]),cimag(xi[i+1]),
 							creal(xi[i+2]),cimag(xi[i+2]),creal(xi[i+3]),cimag(xi[i+3]),
 							creal(xi[i+4]),cimag(xi[i+4]),creal(xi[i+5]),cimag(xi[i+5]),
 							creal(xi[i+6]),cimag(xi[i+6]),creal(xi[i+7]),cimag(xi[i+7])	);
-				fclose(output);
+					fprintf(output_f, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+							creal(xi_f[i]),cimag(xi_f[i]),creal(xi_f[i+1]),cimag(xi_f[i+1]),
+							creal(xi_f[i+2]),cimag(xi_f[i+2]),creal(xi_f[i+3]),cimag(xi_f[i+3]),
+							creal(xi_f[i+4]),cimag(xi_f[i+4]),creal(xi_f[i+5]),cimag(xi_f[i+5]),
+							creal(xi_f[i+6]),cimag(xi_f[i+6]),creal(xi_f[i+7]),cimag(xi_f[i+7]));
+					printf("Difference in dslashd double and float xi[%d] to xi[%d+7] after mult:\n",i,i);
+					printf("%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+							creal(xi[i]-xi_f[i]),cimag(xi[i]-xi_f[i]),creal(xi[i+1]-xi_f[i+1]),cimag(xi[i+1]-xi_f[i+1]),
+							creal(xi[i+2]-xi_f[i+2]),cimag(xi[i+2]-xi_f[i+2]),creal(xi[i+3]-xi_f[i+3]),cimag(xi[i+3]-xi_f[i+3]),
+							creal(xi[i+4]-xi_f[i+4]),cimag(xi[i+4]-xi_f[i+4]),creal(xi[i+5]-xi_f[i+5]),cimag(xi[i+5]-xi_f[i+5]),
+							creal(xi[i+6]-xi_f[i+6]),cimag(xi[i+6]-xi_f[i+6]),creal(xi[i+7]-xi_f[i+7]),cimag(xi[i+7]-xi_f[i+7]));
+				}
+				fclose(output);fclose(output_f);
 				break;
 			case(2):	
 				//NOTE: Each line corresponds to one lattice direction, in the form of colour 0, colour 1.
 				//Each block to one lattice site
-				output_old = fopen("hdslash_old", "w");
-				for(int i = 0; i< kferm2; i+=8)
-					fprintf(output_old, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
-							creal(X1[i]),cimag(X1[i]),creal(X1[i+1]),cimag(X1[i+1]),
-							creal(X1[i+2]),cimag(X1[i+2]),creal(X1[i+3]),cimag(X1[i+3]),
-							creal(X1[i+4]),cimag(X1[i+4]),creal(X1[i+5]),cimag(X1[i+5]),
-							creal(X1[i+6]),cimag(X1[i+6]),creal(X1[i+7]),cimag(X1[i+7]));
-				fclose(output_old);
 #pragma omp parallel for simd
 				for(int i = 0; i< kferm2; i++){
 					X0_f[i]=(Complex_f)X0[i];
@@ -1367,41 +1441,40 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 				cudaMemPrefetchAsync(X0_f,kferm2*sizeof(Complex_f),device,NULL);
 				cudaMemPrefetchAsync(X1_f,kferm2*sizeof(Complex_f),device,NULL);
 #endif
-				output_f_old = fopen("hdslash_f_old", "w");
+				output_old = fopen("hdslash_old", "w");output_f_old = fopen("hdslash_f_old", "w");
 				for(int i = 0; i< kferm2; i+=8){
+					fprintf(output_old, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+							creal(X0[i]),cimag(X0[i]),creal(X0[i+1]),cimag(X0[i+1]),
+							creal(X0[i+2]),cimag(X0[i+2]),creal(X0[i+3]),cimag(X0[i+3]),
+							creal(X0[i+4]),cimag(X0[i+4]),creal(X0[i+5]),cimag(X0[i+5]),
+							creal(X0[i+6]),cimag(X0[i+6]),creal(X0[i+7]),cimag(X0[i+7]));
 					fprintf(output_f_old, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
-							creal(X1_f[i]),cimag(X1_f[i]),creal(X1_f[i+1]),cimag(X1_f[i+1]),
-							creal(X1_f[i+2]),cimag(X1_f[i+2]),creal(X1_f[i+3]),cimag(X1_f[i+3]),
-							creal(X1_f[i+4]),cimag(X1_f[i+4]),creal(X1_f[i+5]),cimag(X1_f[i+5]),
-							creal(X1_f[i+6]),cimag(X1_f[i+6]),creal(X1_f[i+7]),cimag(X1_f[i+7]));
+							creal(X0_f[i]),cimag(X0_f[i]),creal(X0_f[i+1]),cimag(X0_f[i+1]),
+							creal(X0_f[i+2]),cimag(X0_f[i+2]),creal(X0_f[i+3]),cimag(X0_f[i+3]),
+							creal(X0_f[i+4]),cimag(X0_f[i+4]),creal(X0_f[i+5]),cimag(X0_f[i+5]),
+							creal(X0_f[i+6]),cimag(X0_f[i+6]),creal(X0_f[i+7]),cimag(X0_f[i+7]));
 					printf("Difference in hdslash double and float X0[%d] to X0[%d+7]:\n",i,i);
 					printf("%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
 							creal(X0[i]-X0_f[i]),cimag(X0[i]-X0_f[i]),creal(X0[i+1]-X0_f[i+1]),cimag(X0[i+1]-X0_f[i+1]),
 							creal(X0[i+2]-X0_f[i+2]),cimag(X0[i+2]-X0_f[i+2]),creal(X0[i+3]-X0_f[i+3]),cimag(X0[i+3]-X0_f[i+3]),
 							creal(X0[i+4]-X0_f[i+4]),cimag(X0[i+4]-X0_f[i+4]),creal(X0[i+5]-X0_f[i+5]),cimag(X0[i+5]-X0_f[i+5]),
 							creal(X0[i+6]-X0_f[i+6]),cimag(X0[i+6]-X0_f[i+6]),creal(X0[i+7]-X0_f[i+7]),cimag(X0[i+7]-X0_f[i+7]));
-
 				}
-				fclose(output_f_old);
+				fclose(output_old);fclose(output_f_old);
 				Hdslash(X1,X0,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 				Hdslash_f(X1_f,X0_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
-				output = fopen("hdslash", "w");
-				for(int i = 0; i< kferm2; i+=8)
+				output = fopen("hdslash", "w");	output_f = fopen("hdslash_f", "w");
+				for(int i = 0; i< kferm2; i+=8){
 					fprintf(output, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
 							creal(X1[i]),cimag(X1[i]),creal(X1[i+1]),cimag(X1[i+1]),
 							creal(X1[i+2]),cimag(X1[i+2]),creal(X1[i+3]),cimag(X1[i+3]),
 							creal(X1[i+4]),cimag(X1[i+4]),creal(X1[i+5]),cimag(X1[i+5]),
 							creal(X1[i+6]),cimag(X1[i+6]),creal(X1[i+7]),cimag(X1[i+7]));
-				fclose(output);
-				output_f = fopen("hdslash_f", "w");
-				for(int i = 0; i< kferm2; i+=8)
 					fprintf(output_f, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
 							creal(X1_f[i]),cimag(X1_f[i]),creal(X1_f[i+1]),cimag(X1_f[i+1]),
 							creal(X1_f[i+2]),cimag(X1_f[i+2]),creal(X1_f[i+3]),cimag(X1_f[i+3]),
 							creal(X1_f[i+4]),cimag(X1_f[i+4]),creal(X1_f[i+5]),cimag(X1_f[i+5]),
 							creal(X1_f[i+6]),cimag(X1_f[i+6]),creal(X1_f[i+7]),cimag(X1_f[i+7]));
-				fclose(output_f);
-				for(int i=0; i<kferm2Halo; i+=8){
 					printf("Difference in hdslash double and float X1[%d] to X1[%d+7] after mult.:\n",i,i);
 					printf("%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
 							creal(X1[i]-X1_f[i]),cimag(X1[i]-X1_f[i]),creal(X1[i+1]-X1_f[i+1]),cimag(X1[i+1]-X1_f[i+1]),
@@ -1409,6 +1482,7 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 							creal(X1[i+4]-X1_f[i+4]),cimag(X1[i+4]-X1_f[i+4]),creal(X1[i+5]-X1_f[i+5]),cimag(X1[i+5]-X1_f[i+5]),
 							creal(X1[i+6]-X1_f[i+6]),cimag(X1[i+6]-X1_f[i+6]),creal(X1[i+7]-X1_f[i+7]),cimag(X1[i+7]-X1_f[i+7]));
 				}
+				fclose(output);fclose(output_f);
 				break;
 			case(3):	
 				//NOTE: Each line corresponds to one lattice direction, in the form of colour 0, colour 1.
@@ -1423,55 +1497,48 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 				cudaMemPrefetchAsync(X0_f,kferm2*sizeof(Complex_f),device,NULL);
 				cudaMemPrefetchAsync(X1_f,kferm2*sizeof(Complex_f),device,NULL);
 #endif
-				output_old = fopen("hdslashd_old", "w");
-				for(int i = 0; i< kferm2; i+=8)
-					fprintf(output_old, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
-							creal(X1[i]),cimag(X1[i]),creal(X1[i+1]),cimag(X1[i+1]),
-							creal(X1[i+2]),cimag(X1[i+2]),creal(X1[i+3]),cimag(X1[i+3]),
-							creal(X1[i+4]),cimag(X1[i+4]),creal(X1[i+5]),cimag(X1[i+5]),
-							creal(X1[i+6]),cimag(X1[i+6]),creal(X1[i+7]),cimag(X1[i+7]));
-				fclose(output_old);
-				output_f_old = fopen("hdslashd_f_old", "w");
+				output_old = fopen("hdslash_old", "w");output_f_old = fopen("hdslash_f_old", "w");
 				for(int i = 0; i< kferm2; i+=8){
+					fprintf(output_old, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+							creal(X0[i]),cimag(X0[i]),creal(X0[i+1]),cimag(X0[i+1]),
+							creal(X0[i+2]),cimag(X0[i+2]),creal(X0[i+3]),cimag(X0[i+3]),
+							creal(X0[i+4]),cimag(X0[i+4]),creal(X0[i+5]),cimag(X0[i+5]),
+							creal(X0[i+6]),cimag(X0[i+6]),creal(X0[i+7]),cimag(X0[i+7]));
 					fprintf(output_f_old, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
-							creal(X1_f[i]),cimag(X1_f[i]),creal(X1_f[i+1]),cimag(X1_f[i+1]),
-							creal(X1_f[i+2]),cimag(X1_f[i+2]),creal(X1_f[i+3]),cimag(X1_f[i+3]),
-							creal(X1_f[i+4]),cimag(X1_f[i+4]),creal(X1_f[i+5]),cimag(X1_f[i+5]),
-							creal(X1_f[i+6]),cimag(X1_f[i+6]),creal(X1_f[i+7]),cimag(X1_f[i+7]));
-					printf("Difference in hdslashd double and float X1[%d] to X1[%d+7]:\n",i,i);
+							creal(X0_f[i]),cimag(X0_f[i]),creal(X0_f[i+1]),cimag(X0_f[i+1]),
+							creal(X0_f[i+2]),cimag(X0_f[i+2]),creal(X0_f[i+3]),cimag(X0_f[i+3]),
+							creal(X0_f[i+4]),cimag(X0_f[i+4]),creal(X0_f[i+5]),cimag(X0_f[i+5]),
+							creal(X0_f[i+6]),cimag(X0_f[i+6]),creal(X0_f[i+7]),cimag(X0_f[i+7]));
+					printf("Difference in hdslash double and float X0[%d] to X0[%d+7]:\n",i,i);
 					printf("%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
-							creal(X1[i]-X1_f[i]),cimag(X1[i]-X1_f[i]),creal(X1[i+1]-X1_f[i+1]),cimag(X1[i+1]-X1_f[i+1]),
-							creal(X1[i+2]-X1_f[i+2]),cimag(X1[i+2]-X1_f[i+2]),creal(X1[i+3]-X1_f[i+3]),cimag(X1[i+3]-X1_f[i+3]),
-							creal(X1[i+4]-X1_f[i+4]),cimag(X1[i+4]-X1_f[i+4]),creal(X1[i+5]-X1_f[i+5]),cimag(X1[i+5]-X1_f[i+5]),
-							creal(X1[i+6]-X1_f[i+6]),cimag(X1[i+6]-X1_f[i+6]),creal(X1[i+7]-X1_f[i+7]),cimag(X1[i+7]-X1_f[i+7]));
-
+							creal(X0[i]-X0_f[i]),cimag(X0[i]-X0_f[i]),creal(X0[i+1]-X0_f[i+1]),cimag(X0[i+1]-X0_f[i+1]),
+							creal(X0[i+2]-X0_f[i+2]),cimag(X0[i+2]-X0_f[i+2]),creal(X0[i+3]-X0_f[i+3]),cimag(X0[i+3]-X0_f[i+3]),
+							creal(X0[i+4]-X0_f[i+4]),cimag(X0[i+4]-X0_f[i+4]),creal(X0[i+5]-X0_f[i+5]),cimag(X0[i+5]-X0_f[i+5]),
+							creal(X0[i+6]-X0_f[i+6]),cimag(X0[i+6]-X0_f[i+6]),creal(X0[i+7]-X0_f[i+7]),cimag(X0[i+7]-X0_f[i+7]));
 				}
 				Hdslashd(X1,X0,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 				Hdslashd_f(X1_f,X0_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
-				output = fopen("hdslashd", "w");
-				for(int i = 0; i< kferm2; i+=8)
+				output = fopen("hdslash", "w");	output_f = fopen("hdslash_f", "w");
+				for(int i = 0; i< kferm2; i+=8){
 					fprintf(output, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
 							creal(X1[i]),cimag(X1[i]),creal(X1[i+1]),cimag(X1[i+1]),
 							creal(X1[i+2]),cimag(X1[i+2]),creal(X1[i+3]),cimag(X1[i+3]),
 							creal(X1[i+4]),cimag(X1[i+4]),creal(X1[i+5]),cimag(X1[i+5]),
 							creal(X1[i+6]),cimag(X1[i+6]),creal(X1[i+7]),cimag(X1[i+7]));
-				fclose(output);
-				output_f = fopen("hdslashd_f", "w");
-				for(int i = 0; i< kferm2; i+=8)
 					fprintf(output_f, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
 							creal(X1_f[i]),cimag(X1_f[i]),creal(X1_f[i+1]),cimag(X1_f[i+1]),
 							creal(X1_f[i+2]),cimag(X1_f[i+2]),creal(X1_f[i+3]),cimag(X1_f[i+3]),
 							creal(X1_f[i+4]),cimag(X1_f[i+4]),creal(X1_f[i+5]),cimag(X1_f[i+5]),
 							creal(X1_f[i+6]),cimag(X1_f[i+6]),creal(X1_f[i+7]),cimag(X1_f[i+7]));
-				fclose(output_f);
-				for(int i=0; i<kferm2Halo; i+=8){
-					printf("Difference in hdslashd double and float X1[%d] to X1[%d+7] after mult:\n",i,i);
+					printf("Difference in hdslash double and float X1[%d] to X1[%d+7] after mult.:\n",i,i);
 					printf("%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
 							creal(X1[i]-X1_f[i]),cimag(X1[i]-X1_f[i]),creal(X1[i+1]-X1_f[i+1]),cimag(X1[i+1]-X1_f[i+1]),
 							creal(X1[i+2]-X1_f[i+2]),cimag(X1[i+2]-X1_f[i+2]),creal(X1[i+3]-X1_f[i+3]),cimag(X1[i+3]-X1_f[i+3]),
 							creal(X1[i+4]-X1_f[i+4]),cimag(X1[i+4]-X1_f[i+4]),creal(X1[i+5]-X1_f[i+5]),cimag(X1[i+5]-X1_f[i+5]),
 							creal(X1[i+6]-X1_f[i+6]),cimag(X1[i+6]-X1_f[i+6]),creal(X1[i+7]-X1_f[i+7]),cimag(X1[i+7]-X1_f[i+7]));
-				}break;
+				}
+				fclose(output);fclose(output_f);
+				break;
 				//Two force cases because of the flag
 			case(4):	
 				output_old = fopen("force_0_old", "w");
