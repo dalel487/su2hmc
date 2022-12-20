@@ -5,7 +5,7 @@
 //TO DO: Check and see are there any terms we are evaluating twice in the same loop
 //and use a variable to hold them instead to reduce the number of evaluations.
 int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int *iu,unsigned int *id,\
-		Complex gamval[5][4], int gamin[4][4],		double *dk4m, double *dk4p, Complex_f jqq, float akappa){
+		Complex *gamval, int *gamin,		double *dk4m, double *dk4p, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -56,9 +56,9 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int 
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork = idirac+4;
 			Complex a_1, a_2;
-			a_1=conj(jqq)*gamval[4][idirac];
+			a_1=conj(jqq)*gamval[idirac];
 			//We subtract a_2, hence the minus
-			a_2=-jqq*gamval[4][idirac];
+			a_2=-jqq*gamval[idirac];
 			phi[(i*ngorkov+idirac)*nc]+=a_1*r[(i*ngorkov+igork)*nc+0];
 			phi[(i*ngorkov+idirac)*nc+1]+=a_1*r[(i*ngorkov+igork)*nc+1];
 			phi[(i*ngorkov+igork)*nc+0]+=a_2*r[(i*ngorkov+idirac)*nc];
@@ -75,7 +75,7 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int 
 			for(int igorkov=0; igorkov<ngorkov; igorkov++){
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing in the dirac term.
 				int idirac=igorkov%4;		
-				int igork1 = (igorkov<4) ? gamin[mu][idirac] : gamin[mu][idirac]+4;
+				int igork1 = (igorkov<4) ? gamin[mu*ndirac+idirac] : gamin[mu*ndirac+idirac]+4;
 				//Can manually vectorise with a pragma?
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
@@ -84,7 +84,7 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int 
 						conj(u11t[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]-\
 						u12t[did*ndim+mu]*r[(did*ngorkov+igorkov)*nc+1])+\
 													  //Dirac term
-													  gamval[mu][idirac]*(u11t[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc]+\
+													  gamval[mu*ndirac+idirac]*(u11t[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc]+\
 															  u12t[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc+1]-\
 															  conj(u11t[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]+\
 															  u12t[did*ndim+mu]*r[(did*ngorkov+igork1)*nc+1]);
@@ -94,7 +94,7 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int 
 						conj(u12t[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]+\
 						u11t[did*ndim+mu]*r[(did*ngorkov+igorkov)*nc+1])+\
 														 //Dirac term
-														 gamval[mu][idirac]*(-conj(u12t[i*ndim+mu])*r[(uid*ngorkov+igork1)*nc]+\
+														 gamval[mu*ndirac+idirac]*(-conj(u12t[i*ndim+mu])*r[(uid*ngorkov+igork1)*nc]+\
 																 conj(u11t[i*ndim+mu])*r[(uid*ngorkov+igork1)*nc+1]-\
 																 conj(u12t[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]-\
 																 u11t[did*ndim+mu]*r[(did*ngorkov+igork1)*nc+1]);
@@ -112,7 +112,7 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int 
 		for(int igorkov=0; igorkov<4; igorkov++){
 			int igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
 												//the FORTRAN code did it.
-			int igork1 = gamin[3][igorkov];	int igork1PP = igork1+4;
+			int igork1 = gamin[3*ndirac+igorkov];	int igork1PP = igork1+4;
 
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			phi[(i*ngorkov+igorkov)*nc]+=
@@ -143,7 +143,7 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int 
 	return 0;
 }
 int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
-		Complex gamval[5][4], int gamin[4][4],		double *dk4m, double *dk4p, Complex_f jqq, float akappa){
+		Complex *gamval, int *gamin,		double *dk4m, double *dk4p, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M^†*r
 	 *
@@ -195,8 +195,8 @@ int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int 
 			int igork = idirac+4;
 			Complex a_1, a_2;
 			//We subtract a_1, hence the minus
-			a_1=-conj(jqq)*gamval[4][idirac];
-			a_2=jqq*gamval[4][idirac];
+			a_1=-conj(jqq)*gamval[idirac];
+			a_2=jqq*gamval[idirac];
 			phi[(i*ngorkov+idirac)*nc]+=a_1*r[(i*ngorkov+igork)*nc];
 			phi[(i*ngorkov+idirac)*nc+1]+=a_1*r[(i*ngorkov+igork)*nc+1];
 			phi[(i*ngorkov+igork)*nc]+=a_2*r[(i*ngorkov+idirac)*nc];
@@ -213,7 +213,7 @@ int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int 
 			for(int igorkov=0; igorkov<ngorkov; igorkov++){
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing.
 				int idirac=igorkov%4;		
-				int igork1 = (igorkov<4) ? gamin[mu][idirac] : gamin[mu][idirac]+4;
+				int igork1 = (igorkov<4) ? gamin[mu*ndirac+idirac] : gamin[mu*ndirac+idirac]+4;
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
 				phi[(i*ngorkov+igorkov)*nc]+=
@@ -221,7 +221,7 @@ int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int 
 							+u12t[i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc+1]
 							+conj(u11t[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]
 							-u12t[did*ndim+mu] *r[(did*ngorkov+igorkov)*nc+1])
-					-gamval[mu][idirac]*
+					-gamval[mu*ndirac+idirac]*
 					(          u11t[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc]
 								  +u12t[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc+1]
 								  -conj(u11t[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]
@@ -232,7 +232,7 @@ int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int 
 							+conj(u11t[i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc+1]
 							+conj(u12t[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]
 							+u11t[did*ndim+mu] *r[(did*ngorkov+igorkov)*nc+1])
-					-gamval[mu][idirac]*
+					-gamval[mu*ndirac+idirac]*
 					(-conj(u12t[i*ndim+mu])*r[(uid*ngorkov+igork1)*nc]
 					 +conj(u11t[i*ndim+mu])*r[(uid*ngorkov+igork1)*nc+1]
 					 -conj(u12t[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]
@@ -251,7 +251,7 @@ int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int 
 #endif
 		for(int igorkov=0; igorkov<4; igorkov++){
 			//the FORTRAN code did it.
-			int igork1 = gamin[3][igorkov];	
+			int igork1 = gamin[3*ndirac+igorkov];	
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			phi[(i*ngorkov+igorkov)*nc]+=
 				-dk4m[i]*(u11t[i*ndim+3]*(r[(uid*ngorkov+igorkov)*nc]+r[(uid*ngorkov+igork1)*nc])
@@ -285,7 +285,7 @@ int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int 
 	return 0;
 }
 int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int *iu,unsigned  int *id,\
-		Complex gamval[5][4], int gamin[4][4],		double *dk4m, double *dk4p, Complex_f jqq, float akappa){
+		Complex *gamval, int *gamin,		double *dk4m, double *dk4p, Complex_f jqq, float akappa){
 	//int Hdslash(Complex *phi, Complex *r){
 	/*
 	 * Evaluates phi= M*r
@@ -339,7 +339,7 @@ int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int
 #endif
 			for(int idirac=0; idirac<ndirac; idirac++){
 				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
-				int igork1 = gamin[mu][idirac];
+				int igork1 = gamin[mu*ndirac+idirac];
 				//Can manually vectorise with a pragma?
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
@@ -348,7 +348,7 @@ int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int
 						conj(u11t[did*ndim+mu])*r[(did*ndirac+idirac)*nc]-\
 						u12t[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1])+\
 													//Dirac term
-													gamval[mu][idirac]*(u11t[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]+\
+													gamval[mu*ndirac+idirac]*(u11t[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]+\
 															u12t[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]-\
 															conj(u11t[did*ndim+mu])*r[(did*ndirac+igork1)*nc]+\
 															u12t[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
@@ -358,7 +358,7 @@ int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int
 						conj(u12t[did*ndim+mu])*r[(did*ndirac+idirac)*nc]+\
 						u11t[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1])+\
 													  //Dirac term
-													  gamval[mu][idirac]*(-conj(u12t[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]+\
+													  gamval[mu*ndirac+idirac]*(-conj(u12t[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]+\
 															  conj(u11t[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]-\
 															  conj(u12t[did*ndim+mu])*r[(did*ndirac+igork1)*nc]-\
 															  u11t[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
@@ -372,7 +372,7 @@ int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int
 #pragma omp simd aligned(phi,r,u11t,u12t,dk4m,dk4p:AVX)
 #endif
 		for(int idirac=0; idirac<ndirac; idirac++){
-			int igork1 = gamin[3][idirac];
+			int igork1 = gamin[3*ndirac+idirac];
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			phi[(i*ndirac+idirac)*nc]+=
 				-dk4p[i]*(u11t[i*ndim+3]*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
@@ -391,7 +391,7 @@ int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int
 	return 0;
 }
 int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int *iu,unsigned  int *id,\
-		Complex gamval[5][4], int gamin[4][4],		double *dk4m, double *dk4p, Complex_f jqq, float akappa){
+		Complex *gamval, int *gamin,		double *dk4m, double *dk4p, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M^†*r
 	 *
@@ -450,7 +450,7 @@ int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  in
 #endif
 			for(int idirac=0; idirac<ndirac; idirac++){
 				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
-				int igork1 = gamin[mu][idirac];
+				int igork1 = gamin[mu*ndirac+idirac];
 				//Can manually vectorise with a pragma?
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
@@ -460,7 +460,7 @@ int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  in
 							+u12t[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]
 							+conj(u11t[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
 							-u12t[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
-					-gamval[mu][idirac]*
+					-gamval[mu*ndirac+idirac]*
 					(          u11t[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]
 								  +u12t[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]
 								  -conj(u11t[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
@@ -471,7 +471,7 @@ int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  in
 							+conj(u11t[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]
 							+conj(u12t[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
 							+u11t[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
-					-gamval[mu][idirac]*
+					-gamval[mu*ndirac+idirac]*
 					(-conj(u12t[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]
 					 +conj(u11t[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]
 					 -conj(u12t[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
@@ -486,7 +486,7 @@ int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  in
 #pragma omp simd aligned(phi,r,u11t,u12t,dk4m,dk4p:AVX)
 #endif
 		for(int idirac=0; idirac<ndirac; idirac++){
-			int igork1 = gamin[3][idirac];
+			int igork1 = gamin[3*ndirac+idirac];
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			//dk4m and dk4p swap under dagger
 			phi[(i*ndirac+idirac)*nc]+=
@@ -620,7 +620,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 		for(int igorkov=0; igorkov<4; igorkov++){
 			int igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
 												//the FORTRAN code did it.
-			int igork1 = gamin[3][igorkov];	int igork1PP = igork1+4;
+			int igork1 = gamin[3*ndirac+igorkov];	int igork1PP = igork1+4;
 
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			phi[(i*ngorkov+igorkov)*nc]+=
@@ -763,7 +763,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 #endif
 		for(int igorkov=0; igorkov<4; igorkov++){
 			//the FORTRAN code did it.
-			int igork1 = gamin[3][igorkov];	
+			int igork1 = gamin[3*ndirac+igorkov];	
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			phi[(i*ngorkov+igorkov)*nc]+=
 				-dk4m_f[i]*(u11t_f[i*ndim+3]*(r[(uid*ngorkov+igorkov)*nc]+r[(uid*ngorkov+igork1)*nc])
@@ -797,7 +797,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	return 0;
 }
 int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned  int *iu,unsigned  int *id,\
-		Complex_f gamval_f[5][4],	int gamin[4][4],	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
+		Complex_f *gamval_f,	int *gamin,	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -854,7 +854,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 #endif
 			for(int idirac=0; idirac<ndirac; idirac++){
 				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
-				int igork1 = gamin[mu][idirac];
+				int igork1 = gamin[mu*ndirac+idirac];
 				//Can manually vectorise with a pragma?
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
@@ -863,7 +863,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 						conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]-\
 						u12t_f[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1]);
 				//Dirac term
-				phi[(i*ndirac+idirac)*nc]+=gamval_f[mu][idirac]*(u11t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]+\
+				phi[(i*ndirac+idirac)*nc]+=gamval_f[mu*ndirac+idirac]*(u11t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]+\
 						u12t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]-\
 						conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]+\
 						u12t_f[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
@@ -873,7 +873,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 						conjf(u12t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]+\
 						u11t_f[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1]);
 				//Dirac term
-				phi[(i*ndirac+idirac)*nc+1]+=gamval_f[mu][idirac]*(-conjf(u12t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]+\
+				phi[(i*ndirac+idirac)*nc+1]+=gamval_f[mu*ndirac+idirac]*(-conjf(u12t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]+\
 						conjf(u11t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]-\
 						conjf(u12t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]-\
 						u11t_f[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
@@ -887,7 +887,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 #pragma omp simd aligned(phi,r,u11t_f,u12t_f,dk4m_f,dk4p_f:AVX)
 #endif
 		for(int idirac=0; idirac<ndirac; idirac++){
-			int igork1 = gamin[3][idirac];
+			int igork1 = gamin[3*ndirac+idirac];
 			//Factorising for performance, we get dk4?*(float)u1?*(+/-r_wilson -/+ r_dirac)
 			phi[(i*ndirac+idirac)*nc]+=
 				-dk4p_f[i]*(u11t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
@@ -906,7 +906,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	return 0;
 }
 int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
-		Complex_f gamval_f[5][4],int gamin[4][4],	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
+		Complex_f *gamval_f,int *gamin,	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -969,7 +969,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_
 #endif
 			for(int idirac=0; idirac<ndirac; idirac++){
 				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
-				int igork1 = gamin[mu][idirac];
+				int igork1 = gamin[mu*ndirac+idirac];
 				//Can manually vectorise with a pragma?
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
@@ -979,7 +979,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_
 							+u12t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]
 							+conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
 							-u12t_f[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
-					-gamval_f[mu][idirac]*
+					-gamval_f[mu*ndirac+idirac]*
 					(          u11t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]
 								  +u12t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]
 								  -conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
@@ -990,7 +990,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_
 							+conjf(u11t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]
 							+conjf(u12t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
 							+u11t_f[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
-					-gamval_f[mu][idirac]*
+					-gamval_f[mu*ndirac+idirac]*
 					(-conjf(u12t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]
 					 +conjf(u11t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]
 					 -conjf(u12t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
@@ -1005,7 +1005,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_
 #pragma omp simd aligned(phi,r,u11t_f,u12t_f,gamval_f:AVX)
 #endif
 		for(int idirac=0; idirac<ndirac; idirac++){
-			int igork1 = gamin[3][idirac];
+			int igork1 = gamin[3*ndirac+idirac];
 			//Factorising for performance, we get (float)dk4?*(float)u1?*(+/-r_wilson -/+ r_dirac)
 			//(float)dk4m and dk4p_f swap under dagger
 			phi[(i*ndirac+idirac)*nc]+=
@@ -1146,6 +1146,8 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 	printf("FLT_EVAL_METHOD is %i. Check online for what this means\n", FLT_EVAL_METHOD);
 
 #ifdef __NVCC__
+	int device=-1;
+	cudaGetDevice(&device);
 	Complex *xi,*R1,*Phi,*X0,*X1;
 	Complex_f *X0_f, *X1_f;
 	double *dSdpi,*pp;
@@ -1181,73 +1183,33 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 #endif
 	//pp is the momentum field
 
-	//Trial fields don't get modified so I'll set them up outside
-	switch(istart){
-		case(1):
-#if(nproc>1)
-			Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
-#endif
-#pragma omp parallel sections num_threads(4)
-			{
+#pragma omp parallel sections
+	{
 #pragma omp section
-				{
-					FILE *trial_out = fopen("u11t", "w");
-					for(int i=0;i<ndim*(kvol+halo);i+=4)
-						fprintf(trial_out,"%f+%fI\t%f+%fI\t%f+%fI\t%f+%fI\n",
-								creal(u11t[i]),cimag(u11t[i]),creal(u11t[i+1]),cimag(u11t[i+1]),
-								creal(u11t[2+i]),cimag(u11t[2+i]),creal(u11t[i+3]),cimag(u11t[i+3]));
-					fclose(trial_out);
-				}
+		{
+			FILE *dk4m_File = fopen("dk4m","w");
+			for(int i=0;i<kvol;i+=4)
+				fprintf(dk4m_File,"%f\t%f\t%f\t%f\n",dk4m[i],dk4m[i+1],dk4m[i+2],dk4m[i+3]);
+		}
 #pragma omp section
-				{
-					FILE *trial_out = fopen("u12t", "w");
-					for(int i=0;i<ndim*(kvol+halo);i+=4)
-						fprintf(trial_out,"%f+%fI\t%f+%fI\t%f+%fI\t%f+%fI\n",
-								creal(u12t[i]),cimag(u12t[i]),creal(u12t[i+1]),cimag(u12t[i+1]),
-								creal(u12t[2+i]),cimag(u12t[2+i]),creal(u12t[i+3]),cimag(u12t[i+3]));
-					fclose(trial_out);
-				}
+		{
+			FILE *dk4p_File = fopen("dk4p","w");
+			for(int i=0;i<kvol;i+=4)
+				fprintf(dk4p_File,"%f\t%f\t%f\t%f\n",dk4p[i],dk4p[i+1],dk4p[i+2],dk4p[i+3]);
+		}
 #pragma omp section
-				{
-					FILE *trial_out = fopen("u11t_f", "w");
-					for(int i=0;i<ndim*(kvol+halo);i+=4)
-						fprintf(trial_out,"%f+%fI\t%f+%fI\t%f+%fI\t%f+%fI\n",
-								creal(u11t_f[i]),cimag(u11t_f[i]),creal(u11t_f[i+1]),cimag(u11t_f[i+1]),
-								creal(u11t_f[2+i]),cimag(u11t_f[2+i]),creal(u11t_f[i+3]),cimag(u11t_f[i+3]));
-					fclose(trial_out);
-				}
+		{
+			FILE *dk4m_f_File = fopen("dk4m_f","w");
+			for(int i=0;i<kvol;i+=4)
+				fprintf(dk4m_f_File,"%f\t%f\t%f\t%f\n",dk4m_f[i],dk4m_f[i+1],dk4m_f[i+2],dk4m_f[i+3]);
+		}
 #pragma omp section
-				{
-					FILE *trial_out = fopen("u12t_f", "w");
-					for(int i=0;i<ndim*(kvol+halo);i+=4)
-						fprintf(trial_out,"%f+%fI\t%f+%fI\t%f+%fI\t%f+%fI\n",
-								creal(u12t_f[i]),cimag(u12t_f[i]),creal(u12t_f[i+1]),cimag(u12t_f[i+1]),
-								creal(u12t_f[2+i]),cimag(u12t_f[2+i]),creal(u12t_f[i+3]),cimag(u12t_f[i+3]));
-					fclose(trial_out);
-				}
-			}
-			break;
-		case(2):
-#pragma omp parallel for simd aligned(u11t,u12t:AVX)
-			for(int i =0; i<ndim*kvol; i+=8){
-				u11t[i+0]=1+I; u12t[i]=1+I;
-				u11t[i+1]=1-I; u12t[i+1]=1+I;
-				u11t[i+2]=1+I; u12t[i+2]=1-I;
-				u11t[i+3]=1-I; u12t[i+3]=1-I;
-				u11t[i+4]=-1+I; u12t[i+4]=1+I;
-				u11t[i+5]=1+I; u12t[i+5]=-1+I;
-				u11t[i+6]=-1+I; u12t[i+6]=-1+I;
-				u11t[i+7]=-1-I; u12t[i+7]=-1-I;
-			}
-			break;
-		default:
-			//Cold start as a default
-			memcpy(u11t,u11,kvol*ndim*sizeof(Complex));
-			memcpy(u12t,u12,kvol*ndim*sizeof(Complex));
-			break;
+		{
+			FILE *dk4p_f_File = fopen("dk4p_f","w");
+			for(int i=0;i<kvol;i+=4)
+				fprintf(dk4p_f_File,"%f\t%f\t%f\t%f\n",dk4p_f[i],dk4p_f[i+1],dk4p_f[i+2],dk4p_f[i+3]);
+		}
 	}
-	Reunitarise(u11t,u12t);
-	Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
 #ifdef __clang__
 #pragma omp target enter data map(to:u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],gamval[0:5*4],\
 		u11t_f[0:ndim*(kvol+halo)],u12t_f[0:ndim*(kvol+halo)], dk4m[0:kvol+halo],gamval_f[0:5*4],\
@@ -1255,7 +1217,73 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 		Phi[0:kferm],dSdpi[0:kmom])
 #endif
 	for(int test = 0; test<=7; test++){
-		//Reset between tests
+		//Trial fields shouldn't get modified so were previously set up outside
+		switch(istart){
+			case(1):
+#if(nproc>1)
+				Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
+#endif
+#pragma omp parallel sections num_threads(4)
+				{
+#pragma omp section
+					{
+						FILE *trial_out = fopen("u11t", "w");
+						for(int i=0;i<ndim*(kvol+halo);i+=4)
+							fprintf(trial_out,"%f+%fI\t%f+%fI\t%f+%fI\t%f+%fI\n",
+									creal(u11t[i]),cimag(u11t[i]),creal(u11t[i+1]),cimag(u11t[i+1]),
+									creal(u11t[2+i]),cimag(u11t[2+i]),creal(u11t[i+3]),cimag(u11t[i+3]));
+						fclose(trial_out);
+					}
+#pragma omp section
+					{
+						FILE *trial_out = fopen("u12t", "w");
+						for(int i=0;i<ndim*(kvol+halo);i+=4)
+							fprintf(trial_out,"%f+%fI\t%f+%fI\t%f+%fI\t%f+%fI\n",
+									creal(u12t[i]),cimag(u12t[i]),creal(u12t[i+1]),cimag(u12t[i+1]),
+									creal(u12t[2+i]),cimag(u12t[2+i]),creal(u12t[i+3]),cimag(u12t[i+3]));
+						fclose(trial_out);
+					}
+#pragma omp section
+					{
+						FILE *trial_out = fopen("u11t_f", "w");
+						for(int i=0;i<ndim*(kvol+halo);i+=4)
+							fprintf(trial_out,"%f+%fI\t%f+%fI\t%f+%fI\t%f+%fI\n",
+									creal(u11t_f[i]),cimag(u11t_f[i]),creal(u11t_f[i+1]),cimag(u11t_f[i+1]),
+									creal(u11t_f[2+i]),cimag(u11t_f[2+i]),creal(u11t_f[i+3]),cimag(u11t_f[i+3]));
+						fclose(trial_out);
+					}
+#pragma omp section
+					{
+						FILE *trial_out = fopen("u12t_f", "w");
+						for(int i=0;i<ndim*(kvol+halo);i+=4)
+							fprintf(trial_out,"%f+%fI\t%f+%fI\t%f+%fI\t%f+%fI\n",
+									creal(u12t_f[i]),cimag(u12t_f[i]),creal(u12t_f[i+1]),cimag(u12t_f[i+1]),
+									creal(u12t_f[2+i]),cimag(u12t_f[2+i]),creal(u12t_f[i+3]),cimag(u12t_f[i+3]));
+						fclose(trial_out);
+					}
+				}
+				break;
+			case(2):
+#pragma omp parallel for simd aligned(u11t,u12t:AVX)
+				for(int i =0; i<ndim*kvol; i+=8){
+					u11t[i+0]=1+I; u12t[i]=1+I;
+					u11t[i+1]=1-I; u12t[i+1]=1+I;
+					u11t[i+2]=1+I; u12t[i+2]=1-I;
+					u11t[i+3]=1-I; u12t[i+3]=1-I;
+					u11t[i+4]=-1+I; u12t[i+4]=1+I;
+					u11t[i+5]=1+I; u12t[i+5]=-1+I;
+					u11t[i+6]=-1+I; u12t[i+6]=-1+I;
+					u11t[i+7]=-1-I; u12t[i+7]=-1-I;
+				}
+				break;
+			default:
+				//Cold start as a default
+				memcpy(u11t,u11,kvol*ndim*sizeof(Complex));
+				memcpy(u12t,u12,kvol*ndim*sizeof(Complex));
+				break;
+		}
+		Reunitarise(u11t,u12t);
+		Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
 #pragma omp parallel 
 		{
 #pragma omp for simd aligned(R1,Phi,xi:AVX) nowait
@@ -1276,6 +1304,8 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 		FILE *output_f_old, *output_f;
 		switch(test){
 			case(0):
+				//NOTE: Each line corresponds to one lattice direction, in the form of colour 0, colour 1.
+				//Each block to one lattice site
 				output_old = fopen("dslash_old", "w");
 				for(int i = 0; i< kferm; i+=8)
 					fprintf(output_old, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
@@ -1295,6 +1325,8 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 				fclose(output);
 				break;
 			case(1):
+				//NOTE: Each line corresponds to one lattice direction, in the form of colour 0, colour 1.
+				//Each block to one lattice site
 				output_old = fopen("dslashd_old", "w");
 				for(int i = 0; i< kferm; i+=8)
 					fprintf(output_old, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
@@ -1314,6 +1346,8 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 				fclose(output);
 				break;
 			case(2):	
+				//NOTE: Each line corresponds to one lattice direction, in the form of colour 0, colour 1.
+				//Each block to one lattice site
 				output_old = fopen("hdslash_old", "w");
 				for(int i = 0; i< kferm2; i+=8)
 					fprintf(output_old, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
@@ -1324,9 +1358,15 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 				fclose(output_old);
 #pragma omp parallel for simd
 				for(int i = 0; i< kferm2; i++){
-					X0_f[i]=(float)X0[i];
-					X1_f[i]=(float)X1[i];
+					X0_f[i]=(Complex_f)X0[i];
+					X1_f[i]=(Complex_f)X1[i];
 				}
+#ifdef __NVCC__
+				cudaMemPrefetchAsync(X0,kferm2*sizeof(Complex),device,NULL);
+				cudaMemPrefetchAsync(X1,kferm2*sizeof(Complex),device,NULL);
+				cudaMemPrefetchAsync(X0_f,kferm2*sizeof(Complex_f),device,NULL);
+				cudaMemPrefetchAsync(X1_f,kferm2*sizeof(Complex_f),device,NULL);
+#endif
 				output_f_old = fopen("hdslash_f_old", "w");
 				for(int i = 0; i< kferm2; i+=8){
 					fprintf(output_f_old, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
@@ -1334,7 +1374,7 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 							creal(X1_f[i+2]),cimag(X1_f[i+2]),creal(X1_f[i+3]),cimag(X1_f[i+3]),
 							creal(X1_f[i+4]),cimag(X1_f[i+4]),creal(X1_f[i+5]),cimag(X1_f[i+5]),
 							creal(X1_f[i+6]),cimag(X1_f[i+6]),creal(X1_f[i+7]),cimag(X1_f[i+7]));
-					printf("Difference in double and float X0[%d] to X0[%d+7]:\n",i,i);
+					printf("Difference in hdslash double and float X0[%d] to X0[%d+7]:\n",i,i);
 					printf("%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
 							creal(X0[i]-X0_f[i]),cimag(X0[i]-X0_f[i]),creal(X0[i+1]-X0_f[i+1]),cimag(X0[i+1]-X0_f[i+1]),
 							creal(X0[i+2]-X0_f[i+2]),cimag(X0[i+2]-X0_f[i+2]),creal(X0[i+3]-X0_f[i+3]),cimag(X0[i+3]-X0_f[i+3]),
@@ -1362,19 +1402,27 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 							creal(X1_f[i+6]),cimag(X1_f[i+6]),creal(X1_f[i+7]),cimag(X1_f[i+7]));
 				fclose(output_f);
 				for(int i=0; i<kferm2Halo; i+=8){
-					printf("Difference in double and float X0[%d] to X0[%d+7] after halo exchange:\n",i,i);
+					printf("Difference in hdslash double and float X1[%d] to X1[%d+7] after mult.:\n",i,i);
 					printf("%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
-							creal(X0[i]-X0_f[i]),cimag(X0[i]-X0_f[i]),creal(X0[i+1]-X0_f[i+1]),cimag(X0[i+1]-X0_f[i+1]),
-							creal(X0[i+2]-X0_f[i+2]),cimag(X0[i+2]-X0_f[i+2]),creal(X0[i+3]-X0_f[i+3]),cimag(X0[i+3]-X0_f[i+3]),
-							creal(X0[i+4]-X0_f[i+4]),cimag(X0[i+4]-X0_f[i+4]),creal(X0[i+5]-X0_f[i+5]),cimag(X0[i+5]-X0_f[i+5]),
-							creal(X0[i+6]-X0_f[i+6]),cimag(X0[i+6]-X0_f[i+6]),creal(X0[i+7]-X0_f[i+7]),cimag(X0[i+7]-X0_f[i+7]));
+							creal(X1[i]-X1_f[i]),cimag(X1[i]-X1_f[i]),creal(X1[i+1]-X1_f[i+1]),cimag(X1[i+1]-X1_f[i+1]),
+							creal(X1[i+2]-X1_f[i+2]),cimag(X1[i+2]-X1_f[i+2]),creal(X1[i+3]-X1_f[i+3]),cimag(X1[i+3]-X1_f[i+3]),
+							creal(X1[i+4]-X1_f[i+4]),cimag(X1[i+4]-X1_f[i+4]),creal(X1[i+5]-X1_f[i+5]),cimag(X1[i+5]-X1_f[i+5]),
+							creal(X1[i+6]-X1_f[i+6]),cimag(X1[i+6]-X1_f[i+6]),creal(X1[i+7]-X1_f[i+7]),cimag(X1[i+7]-X1_f[i+7]));
 				}
 				break;
 			case(3):	
+				//NOTE: Each line corresponds to one lattice direction, in the form of colour 0, colour 1.
+				//Each block to one lattice site
 				for(int i = 0; i< kferm2; i++){
 					X0_f[i]=(float)X0[i];
 					X1_f[i]=(float)X1[i];
 				}
+#ifdef __NVCC__
+				cudaMemPrefetchAsync(X0,kferm2*sizeof(Complex),device,NULL);
+				cudaMemPrefetchAsync(X1,kferm2*sizeof(Complex),device,NULL);
+				cudaMemPrefetchAsync(X0_f,kferm2*sizeof(Complex_f),device,NULL);
+				cudaMemPrefetchAsync(X1_f,kferm2*sizeof(Complex_f),device,NULL);
+#endif
 				output_old = fopen("hdslashd_old", "w");
 				for(int i = 0; i< kferm2; i+=8)
 					fprintf(output_old, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
@@ -1383,19 +1431,19 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 							creal(X1[i+4]),cimag(X1[i+4]),creal(X1[i+5]),cimag(X1[i+5]),
 							creal(X1[i+6]),cimag(X1[i+6]),creal(X1[i+7]),cimag(X1[i+7]));
 				fclose(output_old);
-				output_f_old = fopen("hdslash_f_old", "w");
+				output_f_old = fopen("hdslashd_f_old", "w");
 				for(int i = 0; i< kferm2; i+=8){
 					fprintf(output_f_old, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
 							creal(X1_f[i]),cimag(X1_f[i]),creal(X1_f[i+1]),cimag(X1_f[i+1]),
 							creal(X1_f[i+2]),cimag(X1_f[i+2]),creal(X1_f[i+3]),cimag(X1_f[i+3]),
 							creal(X1_f[i+4]),cimag(X1_f[i+4]),creal(X1_f[i+5]),cimag(X1_f[i+5]),
 							creal(X1_f[i+6]),cimag(X1_f[i+6]),creal(X1_f[i+7]),cimag(X1_f[i+7]));
-					printf("Difference in double and float X0[%d] to X0[%d+7]:\n",i,i);
+					printf("Difference in hdslashd double and float X1[%d] to X1[%d+7]:\n",i,i);
 					printf("%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
-							creal(X0[i]-X0_f[i]),cimag(X0[i]-X0_f[i]),creal(X0[i+1]-X0_f[i+1]),cimag(X0[i+1]-X0_f[i+1]),
-							creal(X0[i+2]-X0_f[i+2]),cimag(X0[i+2]-X0_f[i+2]),creal(X0[i+3]-X0_f[i+3]),cimag(X0[i+3]-X0_f[i+3]),
-							creal(X0[i+4]-X0_f[i+4]),cimag(X0[i+4]-X0_f[i+4]),creal(X0[i+5]-X0_f[i+5]),cimag(X0[i+5]-X0_f[i+5]),
-							creal(X0[i+6]-X0_f[i+6]),cimag(X0[i+6]-X0_f[i+6]),creal(X0[i+7]-X0_f[i+7]),cimag(X0[i+7]-X0_f[i+7]));
+							creal(X1[i]-X1_f[i]),cimag(X1[i]-X1_f[i]),creal(X1[i+1]-X1_f[i+1]),cimag(X1[i+1]-X1_f[i+1]),
+							creal(X1[i+2]-X1_f[i+2]),cimag(X1[i+2]-X1_f[i+2]),creal(X1[i+3]-X1_f[i+3]),cimag(X1[i+3]-X1_f[i+3]),
+							creal(X1[i+4]-X1_f[i+4]),cimag(X1[i+4]-X1_f[i+4]),creal(X1[i+5]-X1_f[i+5]),cimag(X1[i+5]-X1_f[i+5]),
+							creal(X1[i+6]-X1_f[i+6]),cimag(X1[i+6]-X1_f[i+6]),creal(X1[i+7]-X1_f[i+7]),cimag(X1[i+7]-X1_f[i+7]));
 
 				}
 				Hdslashd(X1,X0,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
@@ -1416,7 +1464,14 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 							creal(X1_f[i+4]),cimag(X1_f[i+4]),creal(X1_f[i+5]),cimag(X1_f[i+5]),
 							creal(X1_f[i+6]),cimag(X1_f[i+6]),creal(X1_f[i+7]),cimag(X1_f[i+7]));
 				fclose(output_f);
-				break;
+				for(int i=0; i<kferm2Halo; i+=8){
+					printf("Difference in hdslashd double and float X1[%d] to X1[%d+7] after mult:\n",i,i);
+					printf("%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+							creal(X1[i]-X1_f[i]),cimag(X1[i]-X1_f[i]),creal(X1[i+1]-X1_f[i+1]),cimag(X1[i+1]-X1_f[i+1]),
+							creal(X1[i+2]-X1_f[i+2]),cimag(X1[i+2]-X1_f[i+2]),creal(X1[i+3]-X1_f[i+3]),cimag(X1[i+3]-X1_f[i+3]),
+							creal(X1[i+4]-X1_f[i+4]),cimag(X1[i+4]-X1_f[i+4]),creal(X1[i+5]-X1_f[i+5]),cimag(X1[i+5]-X1_f[i+5]),
+							creal(X1[i+6]-X1_f[i+6]),cimag(X1[i+6]-X1_f[i+6]),creal(X1[i+7]-X1_f[i+7]),cimag(X1[i+7]-X1_f[i+7]));
+				}break;
 				//Two force cases because of the flag
 			case(4):	
 				output_old = fopen("force_0_old", "w");
