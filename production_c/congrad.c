@@ -198,18 +198,26 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 //#endif
 		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multiplying y by
 		//β instead of x.
-#if (defined __INTEL_MKL__)
+#ifdef __NVCC__
+		Complex_f beta_f=(Complex_f)beta;
+		cublasCscal(cublas_handle,kferm2,(cuComplex *)&beta_f,(cuComplex *)p_f,1);
+		Complex_f a = 1.0;
+		cublasCaxpy(cublas_handle,kferm2,(cuComplex *)&a,(cuComplex *)r_f,1,(cuComplex *)p_f,1);
+		cudaDeviceSynchronise();
+#elif (defined __INTEL_MKL__ || AMD_BLAS)
 		Complex_f a = 1.0;
 		Complex_f beta_f=(Complex_f)beta;
 		//There is cblas_?axpby in the MKL and AMD though, set a = 1 and b = β.
 		//If we get a small enough β_n before hitting the iteration cap we break
 		cblas_caxpby(kferm2, &a, r_f, 1, &beta_f,  p_f, 1);
+#elif defined USE_BLAS
+		Complex_f beta_f=(Complex_f)beta;
+		cblas_cscal(kferm2,&beta_f,p_f,1);
+		Complex_f a = 1.0;
+		cblas_caxpy(kferm2,&a,r_f,1,p_f,1);
 #else 
 		for(int i=0; i<kferm2; i++)
 			p_f[i]=r_f[i]+beta*p_f[i];
-#endif
-#ifdef __NVCC__
-		cudaMemPrefetchAsync(p_f,kferm2Halo*sizeof(Complex_f),device,NULL);
 #endif
 	}
 	for(int i=0;i<kferm2;i++){
