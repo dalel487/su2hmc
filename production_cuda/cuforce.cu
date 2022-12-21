@@ -10,6 +10,7 @@ void cuGauge_force(int mu, Complex *Sigma11, Complex *Sigma12, Complex *u11t,Com
 		dim3 dimGrid, dim3 dimBlock){
 	const char *funcname = "Gauge_force";
 	cuGaugeForce<<<dimGrid,dimBlock>>>(mu,Sigma11,Sigma12,dSdpi,u11t,u12t,beta);
+		cudaDeviceSynchronise();
 }
 void cuPlus_staple(int mu, int nu, unsigned int *iu, Complex *Sigma11, Complex *Sigma12, Complex *u11t, Complex *u12t,\
 		dim3 dimGrid, dim3 dimBlock){
