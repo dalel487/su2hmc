@@ -52,6 +52,13 @@ int Gauge_force(double *dSdpi,Complex *u11t, Complex *u12t,unsigned int *iu,unsi
 	Complex *u12sh = (Complex *)aligned_alloc(AVX,(kvol+halo)*sizeof(Complex)); 
 #endif
 #pragma acc enter data create(Sigma11[0:kvol],Sigma12[0:kvol],u11sh[0:kvol+halo],u12sh[0:kvol+halo])
+#ifdef DIAGNOSTIC
+	FILE *stapes;
+	stapes = fopen("Plus_staples","w");
+	fclose(stapes);
+	stapes = fopen("Minus_staples","w");
+	fclose(stapes);
+#endif
 	//Holders for directions
 	for(int mu=0; mu<ndim; mu++){
 		memset(Sigma11,0, kvol*sizeof(Complex));
@@ -83,20 +90,36 @@ int Gauge_force(double *dSdpi,Complex *u11t, Complex *u12t,unsigned int *iu,unsi
 					Sigma12[i]+=-a11*u12t[i*ndim+nu]+a12*u11t[i*ndim+nu];
 				}
 #endif
+#ifdef DIAGNOSTIC
+				stapes = fopen("Plus_staples","a");
+				fprintf(stapes,"μ: %d\tν: %d\n",mu,nu);
+				fprintf(stapes,"Sigma11\tSigma12\n");
+				for(int i=0;i<kvol;i++)
+					fprintf(stapes,"%f\t%f\n",Sigma11[i], Sigma12[i]);
+				fclose(stapes);
+#endif
 				Z_gather(u11sh, u11t, kvol, id, nu);
+#ifdef __NVCC__
+				//The first kvol terms dont' change with the halo exchange so send them to the gpu whilst doing the exchange
+				cudaMemPrefetchAsync(u11sh, kvol*sizeof(Complex),device,NULL);
+#endif
 #if(nproc>1)
 				ZHalo_swap_dir(u11sh, 1, mu, DOWN);
-#endif
 #ifdef __NVCC__
-				cudaMemPrefetchAsync(u11sh, (kvol+halo)*sizeof(Complex),device,NULL);
+				/Then we can load the halo onto the GPU seperately
+				cudaMemPrefetchAsync(u11sh+kvol, halo*sizeof(Complex),device,NULL);
+#endif
 #endif
 #pragma acc update device(u11sh[0:kvol+halo])
 				Z_gather(u12sh, u12t, kvol, id, nu);
 #ifdef __NVCC__
-				cudaMemPrefetchAsync(u12sh, (kvol+halo)*sizeof(Complex),device,NULL);
+				cudaMemPrefetchAsync(u12sh, kvol*sizeof(Complex),device,NULL);
 #endif
 #if(nproc>1)
 				ZHalo_swap_dir(u12sh, 1, mu, DOWN);
+#ifdef __NVCC__
+				cudaMemPrefetchAsync(u12sh+kvol, halo*sizeof(Complex),device,NULL);
+#endif
 #endif
 #pragma acc update device(u12sh[0:kvol+halo])
 				//Next up, the -ν staple
@@ -119,6 +142,17 @@ int Gauge_force(double *dSdpi,Complex *u11t, Complex *u12t,unsigned int *iu,unsi
 					Sigma11[i]+=a11*u11t[didn*ndim+nu]-a12*conj(u12t[didn*ndim+nu]);
 					Sigma12[i]+=a11*u12t[didn*ndim+nu]+a12*conj(u11t[didn*ndim+nu]);
 				}
+#endif
+#ifdef DIAGNOSTIC
+#ifdef __NVCC__
+				cudaDeviceSynchronise();
+#endif
+				stapes = fopen("Minus_staples","a");
+				fprintf(stapes,"μ: %d\tν: %d\n",mu,nu);
+				fprintf(stapes,"Sigma11\tSigma12\n");
+				for(int i=0;i<kvol;i++)
+					fprintf(stapes,"%f\t%f\n",Sigma11[i], Sigma12[i]);
+				fclose(stapes);
 #endif
 			}
 #ifdef __NVCC__
@@ -151,8 +185,8 @@ int Gauge_force(double *dSdpi,Complex *u11t, Complex *u12t,unsigned int *iu,unsi
 	return 0;
 }
 int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Complex *Phi,Complex *u11t, Complex *u12t,\
-		Complex_f *u11t_f,Complex_f *u12t_f,unsigned int *iu,unsigned int *id,Complex gamval[5][4],Complex_f gamval_f[5][4],\
-		int gamin[4][4],double *dk4m, double *dk4p, float *dk4m_f,float *dk4p_f,Complex_f jqq,\
+		Complex_f *u11t_f,Complex_f *u12t_f,unsigned int *iu,unsigned int *id,Complex *gamval,Complex_f *gamval_f,\
+		int *gamin,double *dk4m, double *dk4p, float *dk4m_f,float *dk4p_f,Complex_f jqq,\
 		float akappa,float beta,double *ancg){
 	/*
 	 *	Calculates dSdpi at each intermediate time
@@ -232,9 +266,17 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 			*ancg+=itercg;
 			//This is not a general BLAS Routine. BLIS and MKl support it
 			//CUDA and GSL does not support it
-#if (defined __INTEL_MKL__ || defined AMD_BLAS)
+#ifdef __NVCC__
+			Complex blasa=2.0; Complex blasb=-1.0;
+			cublasZdscal(cublas_handle,kferm2,&blasb,(cuDoubleComplex *)(X0+na*kferm2),1);
+			cublasZaxpy(cublas_handle,kferm2,&blasa,(cuDoubleComplex *)X1,1,(cuDoubleComplex *)(X0+na*kferm2),1);
+#elif (defined __INTEL_MKL__ || defined AMD_BLAS)
 			Complex blasa=2.0; Complex blasb=-1.0;
 			cblas_zaxpby(kferm2, &blasa, X1, 1, &blasb, X0+na*kferm2, 1); 
+#elif defined USE_BLAS
+			Complex blasa=2.0; Complex blasb=-1.0;
+			cblas_zdscal(kferm2,&blasb,X0+na*kferm2,1);
+			cblas_zaxpy(kferm2,&blasa,X1,1,X0+na*kferm2,1);
 #else
 #ifdef _OPENACC
 #pragma acc update self(Z1[0:kferm2])
@@ -264,20 +306,20 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 			X2[i]*=2;
 #endif
 #if(npx>1)
-			ZHalo_swap_dir(X1,8,0,DOWN);
-			ZHalo_swap_dir(X2,8,0,DOWN);
+		ZHalo_swap_dir(X1,8,0,DOWN);
+		ZHalo_swap_dir(X2,8,0,DOWN);
 #endif
 #if(npy>1)
-			ZHalo_swap_dir(X1,8,1,DOWN);
-			ZHalo_swap_dir(X2,8,1,DOWN);
+		ZHalo_swap_dir(X1,8,1,DOWN);
+		ZHalo_swap_dir(X2,8,1,DOWN);
 #endif
 #if(npz>1)
-			ZHalo_swap_dir(X1,8,2,DOWN);
-			ZHalo_swap_dir(X2,8,2,DOWN);
+		ZHalo_swap_dir(X1,8,2,DOWN);
+		ZHalo_swap_dir(X2,8,2,DOWN);
 #endif
 #if(npt>1)
-			ZHalo_swap_dir(X1,8,3,DOWN);
-			ZHalo_swap_dir(X2,8,3,DOWN);
+		ZHalo_swap_dir(X1,8,3,DOWN);
+		ZHalo_swap_dir(X2,8,3,DOWN);
 #endif
 #pragma acc update device(X1[kferm2:kferm2Halo])
 
@@ -315,7 +357,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 
 					//Up indices
 					uid = iu[mu+ndim*i];
-					igork1 = gamin[mu][idirac];	
+					igork1 = gamin[mu*ndirac+idirac];	
 					dSdpi[(i*nadj)*ndim+mu]+=akappa*creal(I*
 							(conj(X1[(i*ndirac+idirac)*nc])*
 							 (-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
@@ -329,7 +371,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
 							 (-u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
 							  -conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])));
-					dSdpi[(i*nadj)*ndim+mu]+=creal(I*gamval[mu][idirac]*
+					dSdpi[(i*nadj)*ndim+mu]+=creal(I*gamval[mu*ndirac+idirac]*
 							(conj(X1[(i*ndirac+idirac)*nc])*
 							 (-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
 							  +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1])
@@ -356,7 +398,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
 							 (u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
 							  -conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])));
-					dSdpi[(i*nadj+1)*ndim+mu]+=creal(gamval[mu][idirac]*
+					dSdpi[(i*nadj+1)*ndim+mu]+=creal(gamval[mu*ndirac+idirac]*
 							(conj(X1[(i*ndirac+idirac)*nc])*
 							 (-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
 							  +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1])
@@ -383,7 +425,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
 							 (-conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc]
 							  +u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc+1])));
-					dSdpi[(i*nadj+2)*ndim+mu]+=creal(I*gamval[mu][idirac]*
+					dSdpi[(i*nadj+2)*ndim+mu]+=creal(I*gamval[mu*ndirac+idirac]*
 							(conj(X1[(i*ndirac+idirac)*nc])*
 							 (u11t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
 							  +u12t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1])
@@ -403,7 +445,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 				//For consistency we'll leave mu in instead of hard coding.
 				mu=3;
 				uid = iu[mu+ndim*i];
-				igork1 = gamin[mu][idirac];	
+				igork1 = gamin[mu*ndirac+idirac];	
 				//We are mutiplying terms by dk4?[i] Also there is no akappa or gamval factor in the time direction	
 				//for the "gamval" terms the sign of d4kp flips
 #ifndef NO_TIME

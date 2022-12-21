@@ -1582,13 +1582,25 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 				//				break;
 			case(7):
 				output_old = fopen("Gauge_Force_old","w");
-				for(int i = 0; i< kmom; i+=4)
-					fprintf(output, "%f\t%f\t%f\t%f\n", dSdpi[i], dSdpi[i+1], dSdpi[i+2], dSdpi[i+3]);
+				for(int i = 0; i< kmom; i+=12){
+					fprintf(output_old, "%f\t%f\t%f\t%f\n", dSdpi[i], dSdpi[i+1], dSdpi[i+2], dSdpi[i+3]);
+					fprintf(output_old, "%f\t%f\t%f\t%f\n", dSdpi[i+4], dSdpi[i+5], dSdpi[i+6], dSdpi[i+7]);
+					fprintf(output_old, "%f\t%f\t%f\t%f\n\n", dSdpi[i+8], dSdpi[i+9], dSdpi[i+10], dSdpi[i+11]);
+					}
 				fclose(output_old);	
+				#ifdef __NVCC__
+				cudaMemPrefetchAsync(dSdpi,kmom*sizeof(double),device,NULL);
+				#endif
 				Gauge_force(dSdpi,u11t,u12t,iu,id,beta);
+				#ifdef __NVCC__
+				cudaDeviceSynchronise();
+				#endif
 				output = fopen("Gauge_Force","w");
-				for(int i = 0; i< kmom; i+=4)
+				for(int i = 0; i< kmom; i+=12){
 					fprintf(output, "%f\t%f\t%f\t%f\n", dSdpi[i], dSdpi[i+1], dSdpi[i+2], dSdpi[i+3]);
+					fprintf(output, "%f\t%f\t%f\t%f\n", dSdpi[i+4], dSdpi[i+5], dSdpi[i+6], dSdpi[i+7]);
+					fprintf(output, "%f\t%f\t%f\t%f\n\n", dSdpi[i+8], dSdpi[i+9], dSdpi[i+10], dSdpi[i+11]);
+					}
 				fclose(output);	
 				break;
 
