@@ -275,7 +275,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex *u11t,Complex *u
 	//them Complex and work with the real part (especially for α_d)
 	//Give initial values Will be overwritten if niterx>0
 #ifdef __NVCC__
-	Complex *p, *r, *x2;
+	Complex *p, *r, *x2, *x1;
 	//	Complex_f *p_f, *r_f;
 	int device; cudaGetDevice(&device);
 	cudaMallocManaged(&p, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
@@ -287,7 +287,8 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex *u11t,Complex *u
 	//	cudaMallocManaged(&p_f, kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
 	//	cudaMemAdvise(p_f,kfermHalo*sizeof(Complex_f),cudaMemAdviseSetPreferredLocation,device);
 
-	//	cudaMallocManaged(&x2, kferm*sizeof(Complex),cudaMemAttachGlobal);
+		cudaMalloc(&x1, kfermHalo*sizeof(Complex));
+		cudaMalloc(&x2, kferm*sizeof(Complex));
 	//	cudaMemAdvise(x2,kferm*sizeof(Complex),cudaMemAdviseSetPreferredLocation,device);
 #elif defined __INTEL_MKL__
 	Complex *p  = mkl_malloc(kfermHalo*sizeof(Complex),AVX);
@@ -318,15 +319,8 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex *u11t,Complex *u
 	// This x1 is NOT related to the /common/vectorp/X1 in the FORTRAN code and should not
 	// be confused with X1 the global variable
 #ifdef __NVCC__
-	Complex *x1;
-	//Complex_f *x1, *x2_f;
-	cudaMemPrefetchAsync(p,kfermHalo*sizeof(Complex),device,NULL);
-	//cudaMemPrefetchAsync(r_f,kfermHalo*sizeof(Complex_f),device,NULL);
-	cudaMalloc(&x1, kferm2Halo*sizeof(Complex));
-	//cudaMalloc(&x1, kferm2Halo*sizeof(Complex_f));
-
-	//	cudaMallocManaged(&x2_f, kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
-	//	cudaMemAdvise(x2_f,kfermHalo*sizeof(Complex_f),cudaMemAdviseSetPreferredLocation,device);
+	cudaMemPrefetchAsync(p,kferm*sizeof(Complex),device,NULL);
+	cudaMemPrefetchAsync(r,kferm*sizeof(Complex),device,NULL);
 #endif
 
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
@@ -334,10 +328,6 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex *u11t,Complex *u
 	double betan;
 	for((*itercg)=0; (*itercg)<=niterc; (*itercg)++){
 		//Don't overwrite on first run. 
-#ifdef	__NVCC__
-		cudaMemPrefetchAsync(p,kfermHalo*sizeof(Complex),device,NULL);
-		cudaMemPrefetchAsync(r,kfermHalo*sizeof(Complex),device,NULL);
-#endif
 		//x2=(M^†)x1=(M^†)Mp
 		Dslash(x1,p,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 		Dslashd(x2,x1,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
@@ -385,10 +375,9 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex *u11t,Complex *u
 
 		//r=α(M^†)Mp and β_n=r*.r
 #ifdef __NVCC__
-		alpha*=-1;
-		cublasZaxpy(cublas_handle,kferm, (cuDoubleComplex *)&alpha,(cuDoubleComplex *) x2, 1,(cuDoubleComplex *) r, 1);
+		Complex alpha_m=-alpha;
+		cublasZaxpy(cublas_handle,kferm, (cuDoubleComplex *)&alpha_m,(cuDoubleComplex *) x2, 1,(cuDoubleComplex *) r, 1);
 		//cudaDeviceSynchronise();
-		alpha*=-1;
 		//r*.r
 		cublasDznrm2(cublas_handle,kferm,(cuDoubleComplex *) r,1,&betan);
 		cudaDeviceSynchronise();
@@ -450,7 +439,7 @@ p_f[i]=(Complex_f)p[i];
 		 */
 	}
 #ifdef	__NVCC__
-	cudaFree(p); cudaFree(r);cudaFree(x1); 
+	cudaFree(p); cudaFree(r);cudaFree(x1); cudaFree(x2); 
 	//	cudaFree(x2_f); cudaFree(p_f); cudaFree(x2);
 #elif defined __INTEL_MKL__
 	mkl_free(p); mkl_free(r); mkl_free(x1); mkl_free(x2); 
