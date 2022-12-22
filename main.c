@@ -348,7 +348,7 @@ int main(int argc, char *argv[]){
 	cudaMallocManaged(&X0, nf*kferm2*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&X1, kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&pp, kmom*sizeof(double),cudaMemAttachGlobal);
-	cudaMallocManaged(&dSdpi, kmom*sizeof(double),cudaMemAttachGlobal);
+	cudaMalloc(&dSdpi, kmom*sizeof(double));
 #elif defined __INTEL_MKL__
 	R1= mkl_malloc(kfermHalo*sizeof(Complex),AVX);
 	Phi= mkl_malloc(nf*kferm*sizeof(Complex),AVX); 
@@ -371,12 +371,13 @@ int main(int argc, char *argv[]){
 	//Arabic for hour/watch so probably not defined elsewhere like TIME potentially is
 #if (defined SA3AT)
 	double start_time=0;
-	if(!rank)
+	if(!rank){
 #if(nproc>1)
 		start_time = MPI_Wtime();
 #else
-	start_time = omp_get_wtime();
+		start_time = omp_get_wtime();
 #endif
+	}
 #endif
 	double action;
 	//Conjugate Gradient iteration counters
@@ -395,26 +396,31 @@ int main(int argc, char *argv[]){
 			//How do we optimise this for use in CUDA? Do we use CUDA's PRNG
 			//or stick with MKL and synchronise/copy over the array
 #ifdef __NVCC__
-			Complex *R;
-			cudaMallocManaged(&R,kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
+			Complex_f *R,*R1_f;
+			cudaMallocManaged(&R,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
+			cudaMallocManaged(&R1_f,kferm*sizeof(Complex_f),cudaMemAttachGlobal);
 #elif defined __INTEL_MKL__
-			Complex *R=mkl_malloc(kfermHalo*sizeof(Complex),AVX);
+			Complex_f *R=mkl_malloc(kfermHalo*sizeof(Complex_f),AVX);
+			Complex_f *R1_f=mkl_malloc(kferm*sizeof(Complex_f),AVX);
 #else
-			Complex *R=aligned_alloc(AVX,kfermHalo*sizeof(Complex));
+			Complex *R=aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
+			Complex *R1_f=aligned_alloc(AVX,kferm*sizeof(Complex_f));
 #endif
 			//Multiply the dimension of R by 2 because R is complex
 			//The FORTRAN code had two Gaussian routines.
 			//gaussp was the normal Box-Muller and gauss0 didn't have 2 inside the square root
 			//Using σ=1/sqrt(2) in these routines has the same effect as gauss0
 #if (defined(USE_RAN2)||defined(__RANLUX__)||!defined(__INTEL_MKL__))
-			Gauss_z(R, kferm, 0, 1/sqrt(2));
+			Gauss_c(R, kferm, 0, 1/sqrt(2));
 #else
-			vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, R, 0, 1/sqrt(2));
+			vsRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, R, 0, 1/sqrt(2));
 #endif
 #ifdef __NVCC__
-			cudaMemPrefetchAsync(R,kfermHalo*sizeof(Complex),device,NULL);
+			cudaMemPrefetchAsync(R,kfermHalo*sizeof(Complex_f),device,NULL);
 #endif
-			Dslashd(R1, R,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
+			Dslashd_f(R1_f, R,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
+			for(int i=0;i<kferm;i++)
+				R1[i]=R1_f[i];
 			memcpy(Phi+na*kferm,R1, kferm*sizeof(Complex));
 			//Up/down partitioning (using only pseudofermions of flavour 1)
 #pragma omp parallel for simd collapse(2) aligned(X0,R1:AVX)
@@ -424,11 +430,11 @@ int main(int argc, char *argv[]){
 					X0[((na*kvol+i)*ndirac+idirac)*nc+1]=R1[(i*ngorkov+idirac)*nc+1];
 				}
 #ifdef __NVCC__
-			cudaFree(R);
+			cudaFree(R);cudaFree(R1_f);
 #elif defined __INTEL_MKL__
-			mkl_free(R);
+			mkl_free(R); mkl_free(R1_f);
 #else
-			free(R);
+			free(R); free(R1_f);
 #endif
 		}	
 		//Heatbath
@@ -577,6 +583,7 @@ int main(int argc, char *argv[]){
 		double vel2=0.0;
 #ifdef __NVCC__
 		cublasDnrm2(cublas_handle,kmom, pp, 1,&vel2);
+		cudaDeviceSynchronise();
 		vel2*=vel2;
 #elif defined USE_BLAS
 		vel2 = cblas_dnrm2(kmom, pp, 1);
@@ -713,12 +720,13 @@ int main(int argc, char *argv[]){
 	}
 #if (defined SA3AT)
 	double elapsed = 0;
-	if(!rank)
+	if(!rank){
 #if(nproc>1)
 		elapsed = MPI_Wtime()-start_time;
 #else
-	elapsed = omp_get_wtime()-start_time;
+		elapsed = omp_get_wtime()-start_time;
 #endif
+	}
 #endif
 	//End of main loop
 	//Free arrays
@@ -739,7 +747,7 @@ int main(int argc, char *argv[]){
 	cudaFree(X0); cudaFree(X1); cudaFree(u11); cudaFree(u12);
 	cudaFree(id); cudaFree(iu); cudaFree(hd); cudaFree(hu);
 	cudaFree(dk4m_f); cudaFree(dk4p_f); cudaFree(u11t_f); cudaFree(u12t_f);
-	cublasDestroy(&cublas_handle);
+	cublasDestroy(cublas_handle);
 #elif defined __INTEL_MKL__
 	mkl_free_buffers();
 	mkl_free(dk4m); mkl_free(dk4p); mkl_free(R1); mkl_free(dSdpi); mkl_free(pp);
