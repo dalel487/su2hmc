@@ -53,7 +53,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 	Complex_f *p_f, *x1_f, *x2_f, *r_f, *X1_f;
 	int device=-1; cudaGetDevice(&device);
 
-	cudaMallocManaged(&p_f, kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMalloc(&p_f, kferm2Halo*sizeof(Complex_f));
 	cudaMallocManaged(&X1_f, kferm2*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMemAdvise(X1_f,kferm2*sizeof(Complex_f),cudaMemAdviseSetPreferredLocation,device);
 
@@ -87,8 +87,6 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 #ifdef __NVCC__
 	cudaMemPrefetchAsync(r_f,kferm2*sizeof(Complex_f),device,NULL);
 	cudaMemcpy(p_f, X1_f, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
-	cudaMemAdvise(p_f,kferm2Halo*sizeof(Complex_f), cudaMemAdviseSetReadMostly,device);
-	cudaMemPrefetchAsync(p_f,kferm2Halo*sizeof(Complex_f),device,NULL);
 #else
 	memcpy(p_f, X1_f, kferm2*sizeof(Complex_f));
 #endif

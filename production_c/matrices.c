@@ -39,11 +39,12 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int 
 #endif
 
 	//Mass term
-	memcpy(phi, r, kferm*sizeof(Complex));
 	//Diquark Term (antihermitian)
 #ifdef __NVCC__
+	cudaMemcpy(phi, r, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice);
 	cuDslash(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,dimGrid,dimBlock);
 #else
+	memcpy(phi, r, kferm*sizeof(Complex));
 #ifdef _OPENACC
 #pragma acc parallel loop copy(phi[0:kferm]) copyin(r[0:kfermHalo])
 #else
@@ -177,10 +178,11 @@ int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int 
 #endif
 
 	//Mass term
-	memcpy(phi, r, kferm*sizeof(Complex));
 #ifdef __NVCC__
+	cudaMemcpy(phi, r, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice);
 	cuDslashd(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,dimGrid,dimBlock);
 #else
+	memcpy(phi, r, kferm*sizeof(Complex));
 #ifdef _OPENACC
 #pragma acc parallel loop copy(phi[0:kferm]) copyin(r[0:kfermHalo])
 #else
@@ -320,11 +322,12 @@ int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int
 #endif
 
 	//Mass term
-	memcpy(phi, r, kferm2*sizeof(Complex));
 	//Spacelike term
 #ifdef __NVCC__
+	cudaMemcpy(phi, r, kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice);
 	cuHdslash(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,dimGrid,dimBlock);
 #else
+	memcpy(phi, r, kferm2*sizeof(Complex));
 #ifdef _OPENACC
 #pragma acc parallel loop copy(phi[0:kferm2]) copyin(r[0:kferm2Halo])
 #else
@@ -431,10 +434,11 @@ int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  in
 	//anyways so memory access patterns mightn't be as big of an limiting factor here anyway
 
 	//Mass term
-	memcpy(phi, r, kferm2*sizeof(Complex));
 #ifdef __NVCC__
+	cudaMemcpy(phi, r, kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice);
 	cuHdslashd(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,dimGrid,dimBlock);
 #else
+	memcpy(phi, r, kferm2*sizeof(Complex));
 	//Spacelike term
 #ifdef _OPENACC
 #pragma acc parallel loop copy(phi[0:kferm2]) copyin(r[0:kferm2Halo])

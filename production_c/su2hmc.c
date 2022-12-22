@@ -296,6 +296,7 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 		cudaMemPrefetchAsync(smallPhi,kferm2*sizeof(Complex),0,NULL);
 		Complex dot;
 		cublasZdotc(cublas_handle,kferm2,(cuDoubleComplex *)smallPhi,1,(cuDoubleComplex *) X1,1,(cuDoubleComplex *) &dot);
+		cudaDeviceSynchronise();
 		hf+=creal(dot);
 #elif defined USE_BLAS
 		Complex dot;

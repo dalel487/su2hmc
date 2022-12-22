@@ -6,7 +6,7 @@
 #include	<su2hmc.h>
 int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbqb, double res, int *itercg,\
 		Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f, unsigned int *iu, unsigned int *id,\
-		Complex gamval[5][4], Complex_f gamval_f[5][4],	int gamin[4][4], double *dk4m, double *dk4p,\
+		Complex *gamval, Complex_f *gamval_f,	int *gamin, double *dk4m, double *dk4p,\
 		float *dk4m_f, float *dk4p_f, Complex jqq, double akappa,	Complex *Phi, Complex *R1){
 	/*
 	 * Calculate fermion expectation values via a noisy estimator
@@ -85,10 +85,10 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	for(int i=0;i<kferm;i++)
 		xi[i]=(Complex)xi_f[i];
 	Dslashd_f(R1_f,xi_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
+#ifdef __NVCC__
+	cudaMemPrefetchAsync(R1_f,kferm*sizeof(Complex_f),cudaCpuDeviceId,NULL);
+#endif
 	memcpy(x, xi, kferm*sizeof(Complex));
-	#ifdef __NVCC__
-	cudaDeviceSynchronise();
-	#endif
 #pragma omp parallel for simd aligned(R1,R1_f:AVX)
 	for(int i=0;i<kferm;i++)
 		R1[i]=(Complex)R1_f[i];
@@ -123,6 +123,7 @@ xi[i]=(Complex)R1_f[i];
 #ifdef __NVCC__
 	Complex buff;
 	cublasZdotc(cublas_handle,kferm,(cuDoubleComplex *)x,1,(cuDoubleComplex *)xi,1,(cuDoubleComplex *)&buff);
+	cudaDeviceSynchronise();
 	*pbp=creal(buff);
 #elif defined USE_BLAS
 	Complex buff;
@@ -151,9 +152,9 @@ xi[i]=(Complex)R1_f[i];
 			//step for BLAS to be ngorkov*nc=16. 
 			//Does this make sense to do on the GPU?
 			cblas_zdotc_sub(kvol, &x[idirac*nc+ic], ngorkov*nc, &xi[igork*nc+ic], ngorkov*nc, &dot);
-			*qbqb+=gamval[4][idirac]*dot;
+			*qbqb+=gamval[4*ndirac+idirac]*dot;
 			cblas_zdotc_sub(kvol, &x[igork*nc+ic], ngorkov*nc, &xi[idirac*nc+ic], ngorkov*nc, &dot);
-			*qq-=gamval[4][idirac]*dot;
+			*qq-=gamval[4*ndirac+idirac]*dot;
 		}
 	}
 #else
@@ -162,10 +163,10 @@ xi[i]=(Complex)R1_f[i];
 		//What is the optimal order to evaluate these in?
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork=idirac+4;
-			*qbqb+=gamval[4][idirac]*conj(x[(i*ngorkov+idirac)*nc])*xi[(i*ngorkov+igork)*nc];
-			*qq-=gamval[4][idirac]*conj(x[(i*ngorkov+igork)*nc])*xi[(i*ngorkov+idirac)*nc];
-			*qbqb+=gamval[4][idirac]*conj(x[(i*ngorkov+idirac)*nc+1])*xi[(i*ngorkov+igork)*nc+1];
-			*qq-=gamval[4][idirac]*conj(x[(i*ngorkov+igork)*nc+1])*xi[(i*ngorkov+idirac)*nc+1];
+			*qbqb+=gamval[4*ndirac+idirac]*conj(x[(i*ngorkov+idirac)*nc])*xi[(i*ngorkov+igork)*nc];
+			*qq-=gamval[4*ndirac+idirac]*conj(x[(i*ngorkov+igork)*nc])*xi[(i*ngorkov+idirac)*nc];
+			*qbqb+=gamval[4*ndirac+idirac]*conj(x[(i*ngorkov+idirac)*nc+1])*xi[(i*ngorkov+igork)*nc+1];
+			*qq-=gamval[4*ndirac+idirac]*conj(x[(i*ngorkov+igork)*nc+1])*xi[(i*ngorkov+idirac)*nc+1];
 		}
 #endif
 	//In the FORTRAN Code dsum was used instead despite qq and qbqb being complex
@@ -203,7 +204,7 @@ xi[i]=(Complex)R1_f[i];
 #pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX) reduction(+:xu)
 #endif
 			for(int igorkov=0; igorkov<4; igorkov++){
-				int igork1=gamin[3][igorkov];
+				int igork1=gamin[3*ndirac+igorkov];
 				//For the C Version I'll try and factorise where possible
 				xu+=dk4p[did]*(conj(x[(did*ngorkov+igorkov)*nc])*(\
 							u11t[did*ndim+3]*(xi[(i*ngorkov+igork1)*nc]-xi[(i*ngorkov+igorkov)*nc])+\
@@ -216,7 +217,7 @@ xi[i]=(Complex)R1_f[i];
 #pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX) reduction(+:xd)
 #endif
 			for(int igorkov=0; igorkov<4; igorkov++){
-				int igork1=gamin[3][igorkov];
+				int igork1=gamin[3*ndirac+igorkov];
 				xd+=dk4m[i]*(conj(x[(uid*ngorkov+igorkov)*nc])*(\
 							conj(u11t[i*ndim+3])*(xi[(i*ngorkov+igork1)*nc]+xi[(i*ngorkov+igorkov)*nc])-\
 							u12t[i*ndim+3]*(xi[(i*ngorkov+igork1)*nc+1]+xi[(i*ngorkov+igorkov)*nc+1]) )+\
@@ -228,7 +229,7 @@ xi[i]=(Complex)R1_f[i];
 #pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX) reduction(+:xuu)
 #endif
 			for(int igorkovPP=4; igorkovPP<8; igorkovPP++){
-				int igork1PP=4+gamin[3][igorkovPP-4];
+				int igork1PP=4+gamin[3*ndirac+igorkovPP-4];
 				xuu-=dk4m[did]*(conj(x[(did*ngorkov+igorkovPP)*nc])*(\
 							u11t[did*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc]-xi[(i*ngorkov+igorkovPP)*nc])+\
 							u12t[did*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc+1]-xi[(i*ngorkov+igorkovPP)*nc+1]) )+\
@@ -240,7 +241,7 @@ xi[i]=(Complex)R1_f[i];
 #pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX) reduction(+:xdd)
 #endif
 			for(int igorkovPP=4; igorkovPP<8; igorkovPP++){
-				int igork1PP=4+gamin[3][igorkovPP-4];
+				int igork1PP=4+gamin[3*ndirac+igorkovPP-4];
 				xdd-=dk4p[i]*(conj(x[(uid*ngorkov+igorkovPP)*nc])*(\
 							conj(u11t[i*ndim+3])*(xi[(i*ngorkov+igork1PP)*nc]+xi[(i*ngorkov+igorkovPP)*nc])-\
 							u12t[i*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc+1]+xi[(i*ngorkov+igorkovPP)*nc+1]) )+\
