@@ -223,8 +223,6 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 #ifdef __NVCC__
 	int device=-1;
 	cudaGetDevice(&device);
-	cudaMemPrefetchAsync(u11t,(kvol+halo)*sizeof(Complex),device,NULL);
-	cudaMemPrefetchAsync(u12t,(kvol+halo)*sizeof(Complex),device,NULL);
 	cudaMemPrefetchAsync(X0,nf*kfermHalo*sizeof(Complex),device,NULL);
 	cudaMemPrefetchAsync(Phi,nf*kfermHalo*sizeof(Complex),device,NULL);
 #endif
@@ -243,17 +241,20 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 	Complex *X2= (Complex *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex));
 #endif
 	for(int na = 0; na<nf; na++){
-		memcpy(X1, X0+na*kferm2, kferm2*sizeof(Complex));
+		memcpy(X1,X0+na*kferm2,kferm2*sizeof(Complex));
 		if(!iflag){
 #ifdef __NVCC__
 			Complex *smallPhi;
-			cudaMallocManaged(&smallPhi,kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
+			cudaMallocManaged(&smallPhi,kferm2*sizeof(Complex),cudaMemAttachGlobal);
 #elif defined __INTEL_MKL__
-			Complex *smallPhi =(Complex *)mkl_malloc(kferm2Halo*sizeof(Complex), AVX); 
+			Complex *smallPhi =(Complex *)mkl_malloc(kferm2*sizeof(Complex), AVX); 
 #else
-			Complex *smallPhi = (Complex *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex)); 
+			Complex *smallPhi = (Complex *)aligned_alloc(AVX,kferm2*sizeof(Complex)); 
 #endif
 			Fill_Small_Phi(na, smallPhi, Phi);
+#ifdef __NVCC__
+			cudaMemPrefetchAsync(smallPhi,kferm2*sizeof(Complex),device,NULL);
+#endif
 			//	Congradq(na, res1,smallPhi, &itercg );
 			Congradq(na,res1,X1,smallPhi,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,&itercg);
 #ifdef __NVCC__
@@ -270,6 +271,8 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 			Complex blasa=2.0; Complex blasb=-1.0;
 			cublasZdscal(cublas_handle,kferm2,&blasb,(cuDoubleComplex *)(X0+na*kferm2),1);
 			cublasZaxpy(cublas_handle,kferm2,&blasa,(cuDoubleComplex *)X1,1,(cuDoubleComplex *)(X0+na*kferm2),1);
+			//HDslash launches a different stream!!!
+			cudaDeviceSynchronise();
 #elif (defined __INTEL_MKL__ || defined AMD_BLAS)
 			Complex blasa=2.0; Complex blasb=-1.0;
 			cblas_zaxpby(kferm2, &blasa, X1, 1, &blasb, X0+na*kferm2, 1); 
@@ -332,6 +335,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 		//  both these arrays, each of which has 8 cpts
 		//
 #ifdef __NVCC__
+		cudaDeviceSynchronise();
 		cuForce(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,dimGrid,dimBlock);
 #else
 #ifdef _OPENACC

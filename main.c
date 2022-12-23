@@ -139,13 +139,6 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 	//CUBLAS Handle
 	cublasCreate(&cublas_handle);
-	Complex *jqq_d, *beta_d, *akappa_d;
-	cudaMalloc(&jqq_d,sizeof(Complex));		cudaMalloc(&beta_d,sizeof(Complex));
-	cudaMalloc(&akappa_d,sizeof(Complex));	
-
-	cudaMemcpy(jqq_d,&jqq,sizeof(Complex),cudaMemcpyHostToDevice);
-	cudaMemcpy(beta_d,&beta,sizeof(Complex),cudaMemcpyHostToDevice);
-	cudaMemcpy(akappa_d,&akappa,sizeof(Complex),cudaMemcpyHostToDevice);
 #endif
 #ifdef _DEBUG
 	printf("jqq=%f+(%f)I\n",creal(jqq),cimag(jqq));
@@ -337,12 +330,7 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 	int device=-1;
 	cudaGetDevice(&device);
-	//	memcpy(gamin_d,gamin,4*4*sizeof(int));
-	//	cudaMemcpy(gamval_d,gamval,5*4*sizeof(Complex),cudaMemcpyHostToDevice);
-	//	cudaMemAdvise(gamin_d,16*sizeof(int),cudaMemAdviseSetReadMostly,device);
-	//	cudaMemPrefetchAsync(gamin_d,16*sizeof(int),device,NULL);
 
-	//	cudaMemcpy(gamval_f_d,gamval_f,5*4*sizeof(Complex_f),cudaMemcpyHostToDevice);
 	cudaMallocManaged(&R1, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&Phi, nf*kferm*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&X0, nf*kferm2*sizeof(Complex),cudaMemAttachGlobal);
@@ -485,6 +473,9 @@ int main(int argc, char *argv[]){
 		//Main loop for classical time evolution
 		//======================================
 		for(int step = 1; step<=stepmax; step++){
+#ifdef __NVCC__
+			cudaDeviceSynchronise();
+#endif
 #ifdef _DEBUG
 			if(!rank)
 				printf("Traj: %d\tStep: %d\n", itraj, step);
@@ -492,18 +483,15 @@ int main(int argc, char *argv[]){
 			//The FORTRAN redefines d=dt here, which makes sense if you have a limited line length.
 			//I'll stick to using dt though.
 			//step (i) st(t+dt)=st(t)+p(t+dt/2)*dt;
-			//Replace with a Kernel call and move trial exchange onto CPU for now
+			//Note that we are moving from kernel to kernel within the default streams so don't need a Device_Sync here
 			New_trial(dt,pp,u11t,u12t);
 			Reunitarise(u11t,u12t);
 			//Get trial fields from accelerator for halo exchange
 			//Cancel that until we check for double precision flags. It's really bad on Xe since it isn't natively supported
 #pragma acc update self(u11t[0:ndim*kvol],u12t[0:ndim*kvol])
 			Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
-#ifdef __NVCC__
 			//Mark trial fields as primarily read only here? Can re-enable writing at the end of each trajectory
-			cudaMemPrefetchAsync(u11t, ndim*(kvol+halo)*sizeof(Complex),device,NULL);
-			cudaMemPrefetchAsync(u12t, ndim*(kvol+halo)*sizeof(Complex),device,NULL);
-#endif
+
 			//p(t+3et/2)=p(t+dt/2)-dSds(t+dt)*dt
 			//	Force(dSdpi, 0, rescgg);
 			Force(dSdpi, 0, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
@@ -513,6 +501,7 @@ int main(int argc, char *argv[]){
 			if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
 #ifdef __NVCC__
 				cublasDaxpy(cublas_handle,kmom, &d, dSdpi, 1, pp, 1);
+				cudaDeviceSynchronise();
 #elif defined USE_BLAS
 				cblas_daxpy(kmom, d, dSdpi, 1, pp, 1);
 #else
@@ -550,7 +539,13 @@ int main(int argc, char *argv[]){
 		Hamilton(&H1, &S1, rescga,pp,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval_f,gamin,\
 				dk4m_f,dk4p_f,jqq,akappa,beta,&ancgh);
 		totancgh+=ancgh;
+#ifdef _DEBUG
+		printf("H0-H1=%f-%f",H0,H1);
+#endif
 		double dH = H0 - H1;
+#ifdef _DEBUG
+		printf("=%f\n",dH);
+#endif
 		double dS = S0 - S1;
 		if(!rank){
 			fprintf(output, "dH = %e dS = %e\n", dH, dS);
@@ -641,7 +636,7 @@ int main(int argc, char *argv[]){
 								//It would explain the weird names like fort.1X that looked like they were somehow
 								//FORTRAN related...
 								//Not yet implemented
-								fprintf(output, "Iter (CG) %i ancg %e ancgh %e\n", itercg, ancg, ancgh);
+								fprintf(output, "Iter (CG) %i ancg %.1f ancgh %.1f\n", itercg, ancg, ancgh);
 								fflush(output);
 								break;
 							case(1):

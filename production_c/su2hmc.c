@@ -144,11 +144,11 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 #else
 #pragma omp parallel for simd aligned(gamval,gamval_f:AVX)
 	for(int i=0;i<5*4;i++)
-			gamval[i]*=akappa;
+		gamval[i]*=akappa;
 #endif
 #pragma omp parallel for simd aligned(gamval,gamval_f:AVX)
 	for(int i=0;i<5*4;i++)
-			gamval_f[i]=(Complex_f)gamval[i];
+		gamval_f[i]=(Complex_f)gamval[i];
 #ifdef _OPENACC
 #pragma acc enter data copyin(gamval[0:5][0:4], gamval_f[0:5][0:4], gamin[0:4][0:4])
 #else
@@ -226,7 +226,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 }
 int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex *X1, Complex *Phi,\
 		Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f, unsigned int * iu, unsigned int *id,\
-		Complex_f gamval_f[5][4], int gamin[4][4], float *dk4m_f, float * dk4p_f, Complex_f jqq,\
+		Complex_f *gamval_f, int *gamin, float *dk4m_f, float * dk4p_f, Complex_f jqq,\
 		float akappa, float beta, double *ancgh){
 	/* Evaluates the Hamiltonian function
 	 * 
@@ -271,7 +271,7 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 	//avplaq? isn't seen again here.
 	Average_Plaquette(&hg,&avplaqs,&avplaqt,u11t,u12t,iu,beta);
 
-	double hf = 0; int itercg = 0;
+	Complex hf = 0; int itercg = 0;
 #ifdef __NVCC__
 	Complex *smallPhi;
 	cudaMallocManaged(&smallPhi,kferm2*sizeof(Complex),cudaMemAttachGlobal);
@@ -284,9 +284,9 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 	for(int na=0;na<nf;na++){
 		memcpy(X1,X0+na*kferm2,kferm2*sizeof(Complex));
 		Fill_Small_Phi(na, smallPhi, Phi);
-		#ifdef __NVCC__
-		cudaMemPrefetchAsync(smallPhi,kferm2Halo*sizeof(Complex),device,NULL);
-		#endif
+#ifdef __NVCC__
+		cudaMemPrefetchAsync(smallPhi,kferm2*sizeof(Complex),device,NULL);
+#endif
 		Congradq(na,res2,X1,smallPhi,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,&itercg);
 		*ancgh+=itercg;
 		Fill_Small_Phi(na, smallPhi,Phi);
@@ -294,10 +294,9 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 #ifdef __NVCC__
 		cudaMemPrefetchAsync(X1,kferm2*sizeof(Complex),0,NULL);
 		cudaMemPrefetchAsync(smallPhi,kferm2*sizeof(Complex),0,NULL);
-		Complex dot;
-		cublasZdotc(cublas_handle,kferm2,(cuDoubleComplex *)smallPhi,1,(cuDoubleComplex *) X1,1,(cuDoubleComplex *) &dot);
+		cublasZdotc(cublas_handle,kferm2,(cuDoubleComplex *)smallPhi,1,(cuDoubleComplex *) X1,1,(cuDoubleComplex *) &hf);
 		cudaDeviceSynchronise();
-		hf+=creal(dot);
+//		hf+=creal(dot);
 #elif defined USE_BLAS
 		Complex dot;
 		cblas_zdotc_sub(kferm2, smallPhi, 1, X1, 1, &dot);
@@ -320,12 +319,11 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 #if(nproc>1)
 	Par_dsum(&hp); Par_dsum(&hf);
 #endif
-	*s=hg+hf; *h=*s+hp;
+	*s=hg+creal(hf); *h=*s+hp;
 #ifdef _DEBUG
 	if(!rank)
 		printf("hg=%e; hf=%e; hp=%e; h=%e\n", hg, hf, hp, *h);
 #endif
-
 	return 0;
 }
 inline int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu)

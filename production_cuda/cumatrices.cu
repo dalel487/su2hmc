@@ -1058,9 +1058,9 @@ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t
 
 void cuReunitarise(Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock){
 	cuReunitarise<<<dimGrid,dimBlock>>>(u11t,u12t);
+	cudaDeviceSynchronise();
 }
 void cuNew_trial(double dt, double *pp, Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock){
 	for(int mu=0;mu<ndim;mu++)
 		cuNew_trial<<<dimGrid,dimBlock,0,streams[mu]>>>(dt,pp,u11t,u12t,mu);
-	cudaDeviceSynchronise();
 }
