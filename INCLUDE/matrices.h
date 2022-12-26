@@ -23,7 +23,7 @@ extern "C"
 	int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
 			Complex_f *gamval,int *gamin,	float *dk4m, float *dk4p, Complex_f jqq, float akappa);
 	int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
-			Complex_f **gamval, int **gamin,	float *dk4m, float *dk4p, Complex_f jqq, float akappa);
+			Complex_f *gamval, int *gamin,	float *dk4m, float *dk4p, Complex_f jqq, float akappa);
 	int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
 			Complex_f *gamval,int *gamin,	float *dk4m, float *dk4p, Complex_f jqq, float akappa);
 	//New Trial Fields

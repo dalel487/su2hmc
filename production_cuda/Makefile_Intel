@@ -43,7 +43,7 @@ CUSRC=	\
 		cubosonic.cu\
 		cumatrices.cu\
 		cuforce.cu\
-		cuInit.cu
+		cusu2hmc.cu
 
 #CUSRC= CUDA_Compile.cu
 CINC=	\
@@ -108,7 +108,7 @@ $(EXE): ../main.c $(OBJ)
 	$(CC) -std=gnu11 -ipo $(CFLAGS) $(MKLFLAGS) -c $^  
 
 clean:
-	rm -f $(OBJ) $(COBJ) $(CUOBJ) $(CULIB) $(CLIB) $(TMP) *.cpp?.ii *.cudafe1.* *.*bin *.fatbin.c *.ptx *.sm_* *.module_id *dlink.*
+	rm -f $(OBJ) $(COBJ) $(CUOBJ) $(CULIB) $(CLIB) $(TMP) *.cpp?.ii *.cudafe1.* *.*bin *.fatbin.c *.ptx *.sm_* *.module_id *dlink.* *.ltoir
 
 INP=	\
 	midout \

@@ -18,7 +18,7 @@ void cuPlus_staple(int mu, int nu, unsigned int *iu, Complex *Sigma11, Complex *
 	Plus_staple<<<dimGrid,dimBlock>>>(mu, nu, iu, Sigma11, Sigma12,u11t,u12t);
 }
 void cuMinus_staple(int mu, int nu, unsigned int *iu, unsigned int *id, Complex *Sigma11, Complex *Sigma12,\
-		Complex *u11sh, Complex *u12sh,Complex *u11t, Complex*u12t,dim3 dimGrid, dim3 dimBlock){
+		Complex *u11sh, Complex *u12sh,Complex *u11t, Complex *u12t,dim3 dimGrid, dim3 dimBlock){
 	const char *funcname="Minus_staple";
 	Minus_staple<<<dimGrid,dimBlock>>>(mu, nu, iu, id,Sigma11,Sigma12,u11sh,u12sh,u11t,u12t);
 }
@@ -47,7 +47,7 @@ void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *
 //A stream for each nadj index,dirac index and each μ (ndim) value
 //3*4*4=36 streams total... Pass dirac and μ spatial indices as arguments
 /*
-	__global__ void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
+	__global__ void cuForce(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Complex_f *X1, Complex_f *X2, Complex_f *gamval,\
 	double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa){
 	char *funcname = "cuForce";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;

@@ -179,8 +179,8 @@ int main(int argc, char *argv[]){
 	cudaMallocManaged(&u12,ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&u11t,ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&u12t,ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&u11t_f,ndim*(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged(&u12t_f,ndim*(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMalloc(&u11t_f,ndim*(kvol+halo)*sizeof(Complex_f));
+	cudaMalloc(&u12t_f,ndim*(kvol+halo)*sizeof(Complex_f));
 #elif defined __INTEL_MKL__
 	id = (unsigned int*)mkl_malloc(ndim*kvol*sizeof(int),AVX);
 	iu = (unsigned int*)mkl_malloc(ndim*kvol*sizeof(int),AVX);
@@ -254,7 +254,7 @@ int main(int argc, char *argv[]){
 	double hg, avplaqs, avplaqt;
 	//Halo exchange of the trial fields
 	Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
-	Average_Plaquette(&hg,&avplaqs,&avplaqt,u11t,u12t,iu,beta);
+	Average_Plaquette(&hg,&avplaqs,&avplaqt,u11t_f,u12t_f,iu,beta);
 	//Trajectory length
 	double traj=stepl*dt;
 	//Acceptance probability
@@ -334,7 +334,7 @@ int main(int argc, char *argv[]){
 	cudaMallocManaged(&R1, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&Phi, nf*kferm*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&X0, nf*kferm2*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&X1, kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMalloc(&X1, kferm2Halo*sizeof(Complex));
 	cudaMallocManaged(&pp, kmom*sizeof(double),cudaMemAttachGlobal);
 	cudaMalloc(&dSdpi, kmom*sizeof(double));
 #elif defined __INTEL_MKL__
@@ -386,7 +386,7 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 			Complex_f *R,*R1_f;
 			cudaMallocManaged(&R,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
-			cudaMallocManaged(&R1_f,kferm*sizeof(Complex_f),cudaMemAttachGlobal);
+			cudaMalloc(&R1_f,kferm*sizeof(Complex_f));
 #elif defined __INTEL_MKL__
 			Complex_f *R=mkl_malloc(kfermHalo*sizeof(Complex_f),AVX);
 			Complex_f *R1_f=mkl_malloc(kferm*sizeof(Complex_f),AVX);
@@ -404,25 +404,39 @@ int main(int argc, char *argv[]){
 			vsRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, R, 0, 1/sqrt(2));
 #endif
 #ifdef __NVCC__
-			cudaMemPrefetchAsync(R,kfermHalo*sizeof(Complex_f),device,NULL);
+			cudaMemPrefetchAsync(R,kferm*sizeof(Complex_f),device,NULL);
 #endif
 			Dslashd_f(R1_f, R,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
+#ifdef __NVCC__
+			cuReal_convert(R1_f,R1,kferm,false,dimBlock,dimGrid);
+			cudaDeviceSynchronise();
+#else
 			for(int i=0;i<kferm;i++)
-				R1[i]=R1_f[i];
-			memcpy(Phi+na*kferm,R1, kferm*sizeof(Complex));
-			//Up/down partitioning (using only pseudofermions of flavour 1)
-#pragma omp parallel for simd collapse(2) aligned(X0,R1:AVX)
-			for(int i=0; i<kvol; i++)
-				for(int idirac = 0; idirac < ndirac; idirac++){
-					X0[((na*kvol+i)*ndirac+idirac)*nc]=R1[(i*ngorkov+idirac)*nc];
-					X0[((na*kvol+i)*ndirac+idirac)*nc+1]=R1[(i*ngorkov+idirac)*nc+1];
-				}
+				R1[i]=(Complex)R1_f[i];
+#endif
 #ifdef __NVCC__
 			cudaFree(R);cudaFree(R1_f);
 #elif defined __INTEL_MKL__
 			mkl_free(R); mkl_free(R1_f);
 #else
 			free(R); free(R1_f);
+#endif
+#ifdef __NVCC__
+			cudaMemcpy(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice);
+#else
+			memcpy(Phi+na*kferm,R1, kferm*sizeof(Complex));
+#endif
+			//Up/down partitioning (using only pseudofermions of flavour 1)
+#ifdef __NVCC__
+			cuUpDownPart(na,X0,R1,dimBlock,dimGrid);
+			cudaDeviceSynchronise();
+#else
+#pragma omp parallel for simd collapse(2) aligned(X0,R1:AVX)
+			for(int i=0; i<kvol; i++)
+				for(int idirac = 0; idirac < ndirac; idirac++){
+					X0[((na*kvol+i)*ndirac+idirac)*nc]=R1[(i*ngorkov+idirac)*nc];
+					X0[((na*kvol+i)*ndirac+idirac)*nc+1]=R1[(i*ngorkov+idirac)*nc+1];
+				}
 #endif
 		}	
 		//Heatbath
@@ -437,14 +451,15 @@ int main(int argc, char *argv[]){
 #pragma acc update device(pp[0:kmom])
 		//Initialise Trial Fields
 		memcpy(u11t, u11, ndim*kvol*sizeof(Complex));
-		memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
-		Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
 #ifdef __NVCC__
-		cudaMemPrefetchAsync(u11t, ndim*(kvol+halo)*sizeof(Complex),device,NULL);
-		cudaMemPrefetchAsync(u12t, ndim*(kvol+halo)*sizeof(Complex),device,NULL);
-		cudaMemPrefetchAsync(u11t_f, ndim*(kvol+halo)*sizeof(Complex_f),device,NULL);
-		cudaMemPrefetchAsync(u12t_f, ndim*(kvol+halo)*sizeof(Complex_f),device,NULL);
+		//This is a little clunky
+		cudaMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),device,NULL);
 #endif
+		memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
+#ifdef __NVCC__
+		cudaMemPrefetchAsync(u12t, ndim*kvol*sizeof(Complex),device,NULL);
+#endif
+		Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
 		double H0, S0;
 		Hamilton(&H0, &S0, rescga,pp,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval_f,gamin,\
 				dk4m_f,dk4p_f,jqq,akappa,beta,&ancgh);
@@ -487,7 +502,6 @@ int main(int argc, char *argv[]){
 			New_trial(dt,pp,u11t,u12t);
 			Reunitarise(u11t,u12t);
 			//Get trial fields from accelerator for halo exchange
-			//Cancel that until we check for double precision flags. It's really bad on Xe since it isn't natively supported
 #pragma acc update self(u11t[0:ndim*kvol],u12t[0:ndim*kvol])
 			Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
 			//Mark trial fields as primarily read only here? Can re-enable writing at the end of each trajectory
@@ -512,9 +526,9 @@ int main(int argc, char *argv[]){
 #endif
 #pragma acc update device(pp[0:kmom]) 
 				itot+=step;
-				break;
 				ancg/=step;
 				totancg+=ancg;
+				break;
 			}
 			else{
 #ifdef __NVCC__
@@ -596,7 +610,14 @@ int main(int argc, char *argv[]){
 		if(itraj%iprint==0){
 			//If rejected, copy the previously accepted field in for measurements
 			memcpy(u11t, u11, ndim*kvol*sizeof(Complex));
+#ifdef __NVCC__
+			//This is a little clunky
+			cudaMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),device,NULL);
+#endif
 			memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
+#ifdef __NVCC__
+			cudaMemPrefetchAsync(u12t, ndim*kvol*sizeof(Complex),device,NULL);
+#endif
 			Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
 #ifdef _DEBUG
 			if(!rank)
@@ -616,7 +637,7 @@ int main(int argc, char *argv[]){
 				printf("Finished measurements\n");
 #endif
 			pbpa+=pbp; endenfa+=endenf; denfa+=denf; ipbp++;
-			Average_Plaquette(&hg,&avplaqs,&avplaqt,u11t,u12t,iu,beta);
+			Average_Plaquette(&hg,&avplaqs,&avplaqt,u11t_f,u12t_f,iu,beta);
 			poly = Polyakov(u11t,u12t);
 			//We have four output files, so may as well get the other ranks to help out
 			//and abuse scoping rules while we're at it.
@@ -636,7 +657,7 @@ int main(int argc, char *argv[]){
 								//It would explain the weird names like fort.1X that looked like they were somehow
 								//FORTRAN related...
 								//Not yet implemented
-								fprintf(output, "Iter (CG) %i ancg %.1f ancgh %.1f\n", itercg, ancg, ancgh);
+								fprintf(output, "Iter (CG) %i ancg %.3f ancgh %.3f\n", itercg, ancg, ancgh);
 								fflush(output);
 								break;
 							case(1):
@@ -781,7 +802,7 @@ int main(int argc, char *argv[]){
 		fprintf(output, "Averages for the last %i trajectories\n"\
 				"Number of acceptances: %i Average Trajectory Length = %e\n"\
 				"<exp(dh)> = %e +/- %e\n"\
-				"Average number of congrad iter guidance: %f acceptance %f\n"\
+				"Average number of congrad iter guidance: %.3f acceptance %.3f\n"\
 				"psibarpsi = %e\n"\
 				"Mean Square Velocity = %e Action Per Site = %e\n"\
 				"Energy Density = %e Number Density %e\n",\
