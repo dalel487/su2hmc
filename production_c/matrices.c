@@ -5,7 +5,7 @@
 //TO DO: Check and see are there any terms we are evaluating twice in the same loop
 //and use a variable to hold them instead to reduce the number of evaluations.
 int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int *iu,unsigned int *id,\
-		Complex *gamval, int *gamin,		double *dk4m, double *dk4p, Complex_f jqq, float akappa){
+		Complex *gamval, int *gamin, double *dk4m, double *dk4p, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -144,7 +144,7 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int 
 	return 0;
 }
 int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
-		Complex *gamval, int *gamin,		double *dk4m, double *dk4p, Complex_f jqq, float akappa){
+		Complex *gamval, int *gamin, double *dk4m, double *dk4p, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M^†*r
 	 *
@@ -287,7 +287,7 @@ int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int 
 	return 0;
 }
 int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int *iu,unsigned  int *id,\
-		Complex *gamval, int *gamin,		double *dk4m, double *dk4p, float akappa){
+		Complex *gamval, int *gamin, double *dk4m, double *dk4p, float akappa){
 	//int Hdslash(Complex *phi, Complex *r){
 	/*
 	 * Evaluates phi= M*r
@@ -394,7 +394,7 @@ int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int
 	return 0;
 }
 int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int *iu,unsigned  int *id,\
-		Complex *gamval, int *gamin,		double *dk4m, double *dk4p, float akappa){
+		Complex *gamval, int *gamin, double *dk4m, double *dk4p, float akappa){
 	/*
 	 * Evaluates phi= M^†*r
 	 *
@@ -655,7 +655,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 	return 0;
 }
 int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
-		Complex_f *gamval_f,		int *gamin,	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
+		Complex_f *gamval_f, int *gamin, float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -801,7 +801,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	return 0;
 }
 int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned  int *iu,unsigned  int *id,\
-		Complex_f *gamval_f,	int *gamin,	float *dk4m_f, float *dk4p_f, float akappa){
+		Complex_f *gamval_f, int *gamin, float *dk4m_f, float *dk4p_f, float akappa){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -910,7 +910,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	return 0;
 }
 int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
-		Complex_f *gamval_f,int *gamin,	float *dk4m_f, float *dk4p_f, float akappa){
+		Complex_f *gamval_f, int *gamin, float *dk4m_f, float *dk4p_f, float akappa){
 	/*
 	 * Evaluates phi= M*r
 	 *
