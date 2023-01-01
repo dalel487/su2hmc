@@ -139,6 +139,8 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 	//CUBLAS Handle
 	cublasCreate(&cublas_handle);
+	int device=-1;
+	cudaGetDevice(&device);
 #endif
 #ifdef _DEBUG
 	printf("jqq=%f+(%f)I\n",creal(jqq),cimag(jqq));
@@ -165,15 +167,15 @@ int main(int argc, char *argv[]){
 
 	cudaMallocManaged(&dk4m,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
 	cudaMallocManaged(&dk4p,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
-	cudaMallocManaged(&dk4m_f,(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
-	cudaMallocManaged(&dk4p_f,(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
+	cudaMalloc(&dk4m_f,(kvol+halo)*sizeof(float));
+	cudaMalloc(&dk4p_f,(kvol+halo)*sizeof(float));
 
 	int	*gamin;
 	Complex	*gamval;
 	Complex_f *gamval_f;
 	cudaMallocManaged(&gamin,4*4*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&gamval,5*4*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&gamval_f,5*4*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMalloc(&gamval_f,5*4*sizeof(Complex_f));
 
 	cudaMallocManaged(&u11,ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&u12,ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
@@ -328,11 +330,8 @@ int main(int argc, char *argv[]){
 	//Initialise Arrays. Leaving it late for scoping
 	//check the sizes in sizes.h
 #ifdef __NVCC__
-	int device=-1;
-	cudaGetDevice(&device);
-
 	cudaMallocManaged(&R1, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&Phi, nf*kferm*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMalloc(&Phi, nf*kferm*sizeof(Complex));
 	cudaMallocManaged(&X0, nf*kferm2*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMalloc(&X1, kferm2Halo*sizeof(Complex));
 	cudaMallocManaged(&pp, kmom*sizeof(double),cudaMemAttachGlobal);
@@ -409,7 +408,7 @@ int main(int argc, char *argv[]){
 			Dslashd_f(R1_f, R,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 #ifdef __NVCC__
 			cuReal_convert(R1_f,R1,kferm,false,dimBlock,dimGrid);
-			cudaDeviceSynchronise();
+			//cudaFree is blocking so don't need cudaDeviceSynchronise()
 #else
 			for(int i=0;i<kferm;i++)
 				R1[i]=(Complex)R1_f[i];
@@ -422,15 +421,12 @@ int main(int argc, char *argv[]){
 			free(R); free(R1_f);
 #endif
 #ifdef __NVCC__
-			cudaMemcpy(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice);
+			cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice,streams[0]);
+			cuUpDownPart(na,X0,R1,dimBlock,dimGrid);
+			//Up/down partitioning (using only pseudofermions of flavour 1)
 #else
 			memcpy(Phi+na*kferm,R1, kferm*sizeof(Complex));
-#endif
 			//Up/down partitioning (using only pseudofermions of flavour 1)
-#ifdef __NVCC__
-			cuUpDownPart(na,X0,R1,dimBlock,dimGrid);
-			cudaDeviceSynchronise();
-#else
 #pragma omp parallel for simd collapse(2) aligned(X0,R1:AVX)
 			for(int i=0; i<kvol; i++)
 				for(int idirac = 0; idirac < ndirac; idirac++){
@@ -450,14 +446,13 @@ int main(int argc, char *argv[]){
 #endif
 #pragma acc update device(pp[0:kmom])
 		//Initialise Trial Fields
+#ifdef __NVCC__
+		cudaMemPrefetchAsync(pp,kmom*sizeof(double),device,streams[1]);
+		cudaMemcpy(u11t, u11, ndim*kvol*sizeof(Complex),cudaMemcpyHostToDevice);
+		cudaMemcpy(u12t, u12, ndim*kvol*sizeof(Complex),cudaMemcpyHostToDevice);
+#else
 		memcpy(u11t, u11, ndim*kvol*sizeof(Complex));
-#ifdef __NVCC__
-		//This is a little clunky
-		cudaMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),device,NULL);
-#endif
 		memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
-#ifdef __NVCC__
-		cudaMemPrefetchAsync(u12t, ndim*kvol*sizeof(Complex),device,NULL);
 #endif
 		Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
 		double H0, S0;

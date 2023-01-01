@@ -5,6 +5,8 @@
 //Worst case scenario, each block contains 256 threads. This should be tuned later
 dim3 dimBlock = dim3(MIN(ksizex,16),MIN(ksizet,16));
 dim3 dimGrid= dim3(MIN(ksizez,8),MIN(ksizey,8));
+dim3 dimBlockOne = dim3(4,4,1);
+dim3 dimGridOne= dim3(1,1,1);
 cudaStream_t streams[ndirac*ndim*nadj];
 void	Init_CUDA(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f,\
 		Complex *gamval, Complex_f *gamval_f, int *gamin,\
@@ -53,10 +55,10 @@ void	Init_CUDA(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_
 	cudaGetDevice(&device);
 	for(int i=0;i<(ndirac*nadj*ndim);i++)
 		cudaStreamCreate(&streams[i]);
-	cudaMemAdvise(iu,ndim*kvol*sizeof(int),cudaMemAdviseSetReadMostly,device);
-	cudaMemAdvise(id,ndim*kvol*sizeof(int),cudaMemAdviseSetReadMostly,device);
 	cudaMemPrefetchAsync(iu,ndim*kvol*sizeof(int),device,NULL);
 	cudaMemPrefetchAsync(id,ndim*kvol*sizeof(int),device,NULL);
+	cudaMemAdvise(iu,ndim*kvol*sizeof(int),cudaMemAdviseSetReadMostly,device);
+	cudaMemAdvise(id,ndim*kvol*sizeof(int),cudaMemAdviseSetReadMostly,device);
 
 	//Gamma matrices and indices on the GPU
 	//	cudaMemcpy(gamin_d,gamin,4*4*sizeof(int),cudaMemcpyHostToDevice);
@@ -64,19 +66,14 @@ void	Init_CUDA(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_
 	//	cudaMemcpy(gamval_f_d,gamval_f,5*4*sizeof(Complex_f),cudaMemcpyHostToDevice);
 	cudaMemAdvise(gamin,4*4*sizeof(int),cudaMemAdviseSetReadMostly,device);
 	cudaMemAdvise(gamval,5*4*sizeof(Complex),cudaMemAdviseSetReadMostly,device);
-	cudaMemAdvise(gamval_f,5*4*sizeof(Complex_f),cudaMemAdviseSetReadMostly,device);
 
 	//More prefetching and marking as read-only (mostly)
 	//Prefetching Momentum Fields and Trial Fields to GPU
 	cudaMemAdvise(dk4p,(kvol+halo)*sizeof(double),cudaMemAdviseSetReadMostly,device);
 	cudaMemAdvise(dk4m,(kvol+halo)*sizeof(double),cudaMemAdviseSetReadMostly,device);
-	cudaMemAdvise(dk4p_f,(kvol+halo)*sizeof(float),cudaMemAdviseSetReadMostly,device);
-	cudaMemAdvise(dk4m_f,(kvol+halo)*sizeof(float),cudaMemAdviseSetReadMostly,device);
 
 	cudaMemPrefetchAsync(dk4p,(kvol+halo)*sizeof(double),device,NULL);
 	cudaMemPrefetchAsync(dk4m,(kvol+halo)*sizeof(double),device,NULL);
-	cudaMemPrefetchAsync(dk4p_f,(kvol+halo)*sizeof(float),device,NULL);
-	cudaMemPrefetchAsync(dk4m_f,(kvol+halo)*sizeof(float),device,NULL);
 
 	cudaMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),device,NULL);
 	cudaMemPrefetchAsync(u12t, ndim*kvol*sizeof(Complex),device,NULL);
@@ -97,7 +94,11 @@ void cuComplex_convert(Complex_f *a, Complex *b, int len, bool dtof, dim3 dimBlo
 }
 void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi, dim3 dimBlock, dim3 dimGrid){
 	cuFill_Small_Phi<<<dimBlock,dimGrid>>>(na,smallPhi,Phi);
-	cudaDeviceSynchronise();
+}
+void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu,dim3 dimBlock, dim3 dimGrid)
+{
+	char *funcname = "cuZ_gather";
+	cuC_gather<<<dimBlock,dimGrid>>>(x,y,n,table,mu);
 }
 void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu,dim3 dimBlock, dim3 dimGrid)
 {
@@ -167,6 +168,18 @@ __global__ void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
 			for(int ic= 0; ic<nc; ic++)
 				//	  PHI_index=i*16+j*2+k;
 				smallPhi[(i*ndirac+idirac)*nc+ic]=Phi[((na*kvol+i)*ngorkov+idirac)*nc+ic];
+}
+__global__ void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu)
+{
+	char *funcname = "cuZ_gather";
+	//FORTRAN had a second parameter m giving the size of y (kvol+halo) normally
+	//Pointers mean that's not an issue for us so I'm leaving it out
+	const int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	for(int i = threadId; i<n;i+=gsize*bsize)
+		x[i]=y[table[i*ndim+mu]*ndim+mu];
 }
 __global__ void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu)
 {

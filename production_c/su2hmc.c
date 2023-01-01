@@ -107,11 +107,16 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 	DHalo_swap_dir(dk4m, 1, 3, UP);
 #endif
 	//Float versions
+#ifdef __NVCC__
+	cuReal_convert(dk4p_f,dk4p,kvol+halo,true,dimBlock,dimGrid);
+	cuReal_convert(dk4m_f,dk4m,kvol+halo,true,dimBlock,dimGrid);
+#else
 #pragma omp parallel for simd aligned(dk4m,dk4p,dk4m_f,dk4p_f:AVX)
 	for(int i=0;i<kvol+halo;i++){
 		dk4p_f[i]=(float)dk4p[i];
 		dk4m_f[i]=(float)dk4m[i];
 	}
+#endif
 #ifdef _OPENACC
 #pragma acc data copyin(dk4p[0:kvol+halo], dk4m_f[0:kvol+halo],\
 		dk4p_f[0:kvol+halo],dk4m[0:kvol+halo])
@@ -120,35 +125,37 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 		dk4p_f[0:kvol+halo],dk4m[0:kvol+halo]) nowait
 #endif
 
-	int
-#ifndef __NVCC__ 
-		__attribute__((aligned(AVX)))
-#endif
-		gamin_t[4][4] =	{{3,2,1,0},{3,2,1,0},{2,3,0,1},{2,3,0,1}};
+	int __attribute__((aligned(AVX))) gamin_t[4][4] =	{{3,2,1,0},{3,2,1,0},{2,3,0,1},{2,3,0,1}};
 	//Gamma Matrices in Chiral Representation
 	//Gattringer and Lang have a nice crash course in appendix A.2 of
 	//Quantum Chromodynamics on the Lattice (530.14 GAT)
 	//_t is for temp. We copy these into the real gamvals later
+#ifdef __NVCC__
+	cudaMemcpy(gamin,gamin_t,4*4*sizeof(int),cudaMemcpyHostToDevice);
+#else
 	memcpy(gamin,gamin_t,4*4*sizeof(Complex));
-	Complex
-#ifndef __NVCC__ 
-		__attribute__((aligned(AVX)))
 #endif
-		gamval_t[5][4] =	{{-I,-I,I,I},{-1,1,1,-1},{-I,I,I,-I},{1,1,1,1},{1,1,-1,-1}};
+	Complex	__attribute__((aligned(AVX)))	gamval_t[5][4] =	{{-I,-I,I,I},{-1,1,1,-1},{-I,I,I,-I},{1,1,1,1},{1,1,-1,-1}};
 	//Each gamma matrix is rescaled by akappa by flattening the gamval array
-	memcpy(gamval,gamval_t,5*4*sizeof(Complex));
 #if defined USE_BLAS
 	//Don't cuBLAS this. It is small and won't saturate the GPU. Let the CPU handle
 	//it and just copy it later
-	cblas_zdscal(5*4, akappa, gamval, 1);
+	cblas_zdscal(5*4, akappa, gamval_t, 1);
 #else
-#pragma omp parallel for simd aligned(gamval,gamval_f:AVX)
-	for(int i=0;i<5*4;i++)
-		gamval[i]*=akappa;
+#pragma omp parallel for simd collapse(2) aligned(gamval,gamval_f:AVX)
+	for(int i=0;i<5;i++)
+		for(int j=0;j<4;j++)
+		gamval_t[i]*=akappa;
 #endif
-#pragma omp parallel for simd aligned(gamval,gamval_f:AVX)
+
+#ifdef __NVCC__
+	cudaMemcpy(gamval,gamval_t,5*4*sizeof(Complex),cudaMemcpyHostToDevice);
+	cuComplex_convert(gamval_f,gamval,20,true,dimBlockOne,dimGridOne);	
+#else
+	memcpy(gamval,gamval_t,5*4*sizeof(Complex));
 	for(int i=0;i<5*4;i++)
 		gamval_f[i]=(Complex_f)gamval[i];
+#endif
 #ifdef _OPENACC
 #pragma acc enter data copyin(gamval[0:5][0:4], gamval_f[0:5][0:4], gamin[0:4][0:4])
 #else
@@ -274,7 +281,7 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 	double hf = 0; int itercg = 0;
 #ifdef __NVCC__
 	Complex *smallPhi;
-	cudaMalloc(&smallPhi,kferm2*sizeof(Complex));
+	cudaMalloc((void **)&smallPhi,kferm2*sizeof(Complex));
 #elif defined __INTEL_MKL__
 	Complex *smallPhi = mkl_malloc(kferm2*sizeof(Complex),AVX);
 #else
@@ -282,16 +289,11 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 #endif
 	//Iterating over flavours
 	for(int na=0;na<nf;na++){
+		Fill_Small_Phi(na, smallPhi, Phi);
 #ifdef __NVCC__
 		cudaMemcpy(X1,X0+na*kferm2,kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice);
 #else
 		memcpy(X1,X0+na*kferm2,kferm2*sizeof(Complex));
-#endif
-		Fill_Small_Phi(na, smallPhi, Phi);
-#ifdef _DEBUG
-		printf("Pre Congradq\n");
-		printf("Phi[0]=%e+%ei\n",creal(Phi[0]),cimag(Phi[0]));
-		printf("X0[0]=%e+%ei\n",creal(X0[0]),cimag(X0[0]));
 #endif
 		Congradq(na,res2,X1,smallPhi,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,&itercg);
 		*ancgh+=itercg;
@@ -300,11 +302,6 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 		cudaMemcpy(X0+na*kferm2,X1,kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice);
 #else
 		memcpy(X0+na*kferm2,X1,kferm2*sizeof(Complex));
-#endif
-#ifdef _DEBUG
-		printf("Post Congradq\n");
-		printf("Phi[0]=%e+%ei\n",creal(Phi[0]),cimag(Phi[0]));
-		printf("X0[0]=%e+%ei\n",creal(X0[0]),cimag(X0[0]));
 #endif
 #ifdef __NVCC__
 		Complex dot;
@@ -338,6 +335,20 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 #ifdef _DEBUG
 	if(!rank)
 		printf("hg=%.5e; hf=%.5e; hp=%.5e; h=%.5e\n", hg, hf, hp, *h);
+#endif
+	return 0;
+}
+inline int C_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu)
+{
+	char *funcname = "C_gather";
+	//FORTRAN had a second parameter m giving the size of y (kvol+halo) normally
+	//Pointers mean that's not an issue for us so I'm leaving it out
+#ifdef __NVCC__
+	cuC_gather(x,y,n,table,mu,dimBlock,dimGrid);
+#else
+#pragma omp parallel for simd aligned (x,y,table:AVX)
+	for(int i=0; i<n; i++)
+		x[i]=y[table[i*ndim+mu]*ndim+mu];
 #endif
 	return 0;
 }

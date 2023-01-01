@@ -135,8 +135,8 @@ double Polyakov(Complex *u11t, Complex *u12t){
 	int device=-1;
 	cudaGetDevice(&device);
 	Complex *Sigma11,*Sigma12;
-	cudaMallocManaged((Complex **)&Sigma11,kvol3*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged((Complex **)&Sigma12,kvol3*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&Sigma11,kvol3*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&Sigma12,kvol3*sizeof(Complex),cudaMemAttachGlobal);
 #elif defined __INTEL_MKL__
 	Complex *Sigma11 = (Complex *)mkl_malloc(kvol3*sizeof(Complex),AVX);
 	Complex *Sigma12 = (Complex *)mkl_malloc(kvol3*sizeof(Complex),AVX);

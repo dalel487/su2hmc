@@ -1,13 +1,5 @@
 #ifndef SU2HEAD
 #define SU2HEAD
-#ifdef __NVCC__
-#include <cuda.h>
-#include	<cublas_v2.h>
-extern cublasHandle_t cublas_handle;
-extern cublasStatus_t cublas_status;
-//Get rid of that dirty yankee English
-#define cudaDeviceSynchronise() cudaDeviceSynchronize()
-#endif 
 //ARM Based machines. BLAS routines should work with other libraries, so we can set a compiler
 //flag to sort them out. But the PRNG routines etc. are MKL exclusive
 #ifdef	__INTEL_MKL__
@@ -45,7 +37,7 @@ extern "C"
 			int *gamin,double *dk4m, double *dk4p, float *dk4m_f,float *dk4p_f,Complex_f jqq,\
 			float akappa,float beta,double *ancg);
 	//	int Gauge_force(double *dSdpi);
-	int Gauge_force(double *dSdpi,Complex *u11t, Complex *u12t, unsigned int *iu, unsigned int *id, float beta);
+	int Gauge_force(double *dSdpi,Complex_f *u11t, Complex_f *u12t, unsigned int *iu, unsigned int *id, float beta);
 	int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa, Complex_f ajq,\
 			Complex *u11, Complex *u12, Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f,\
 			Complex *gamval, Complex_f *gamval_f, int *gamin, double *dk4m, double *dk4p, float *dk4m_f, float *dk4p_f,\
@@ -66,10 +58,11 @@ extern "C"
 			Complex *gamval, Complex_f *gamval_f,	int *gamin, double *dk4m, double *dk4p,\
 			float *dk4m_f, float *dk4p_f, Complex jqq, double akappa,	Complex *Phi, Complex *R1);
 	int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u11t, Complex_f *u12t,\
-	unsigned int *iu, float beta);
+			unsigned int *iu, float beta);
 	float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int i, int mu, int nu);
 	double Polyakov(Complex *u11t, Complex *u12t);
 	//Inline Stuff
+	extern int C_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu);
 	extern int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu);
 	extern int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi);
 
@@ -82,12 +75,12 @@ extern "C"
 	//=================
 	void cuAverage_Plaquette(double *hgs, double *hgt, Complex_f *u11t, Complex_f *u12t, unsigned int *iu,dim3 dimGrid, dim3 dimBlock);
 	void cuPolyakov(Complex *Sigma11, Complex * Sigma12, Complex *u11t, Complex *u12t,dim3 dimGrid, dim3 dimBlock);
-	void cuGauge_force(int mu,Complex *Sigma11, Complex *Sigma12, Complex *u11t,Complex *u12t,double *dSdpi,float beta,\
+	void cuGauge_force(int mu,Complex_f *Sigma11, Complex_f *Sigma12, Complex_f *u11t,Complex_f *u12t,double *dSdpi,float beta,\
 			dim3 dimGrid, dim3 dimBlock);
-	void cuPlus_staple(int mu, int nu, unsigned int *iu, Complex *Sigma11, Complex *Sigma12, Complex *u11t, Complex *u12t,\
+	void cuPlus_staple(int mu, int nu, unsigned int *iu, Complex_f *Sigma11, Complex_f *Sigma12, Complex_f *u11t, Complex_f *u12t,\
 			dim3 dimGrid, dim3 dimBlock);
-	void cuMinus_staple(int mu, int nu, unsigned int *iu, unsigned int *id, Complex *Sigma11, Complex *Sigma12,\
-			Complex *u11sh, Complex *u12sh,Complex *u11t, Complex*u12t,	dim3 dimGrid, dim3 dimBlock);
+	void cuMinus_staple(int mu, int nu, unsigned int *iu, unsigned int *id, Complex_f *Sigma11, Complex_f *Sigma12,\
+			Complex_f *u11sh, Complex_f *u12sh,Complex_f *u11t, Complex_f*u12t,	dim3 dimGrid, dim3 dimBlock);
 	void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, \
 			Complex *gamval,double *dk4m, double *dk4p,unsigned int *iu,int *gamin,\
 			float akappa, dim3 dimGrid, dim3 dimBlock);
@@ -97,10 +90,11 @@ extern "C"
 			double *dk4m, double *dk4p, float *dk4m_f, float *dk4p_f, unsigned int *iu, unsigned int *id);
 	//			dim3 *dimBlock, dim3 *dimGrid);
 	void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi,dim3 dimBlock, dim3 dimGrid);
+	void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu,dim3 dimBlock, dim3 dimGrid);
 	void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu,dim3 dimBlock, dim3 dimGrid);
 	void cuComplex_convert(Complex_f *a, Complex *b, int len, bool ftod, dim3 dimBlock, dim3 dimGrid);
 	void cuReal_convert(float *a, double *b, int len, bool ftod, dim3 dimBlock, dim3 dimGrid);
-void cuUpDownPart(int na, Complex *X0, Complex *R1,dim3 dimBlock, dim3 dimGrid);
+	void cuUpDownPart(int na, Complex *X0, Complex *R1,dim3 dimBlock, dim3 dimGrid);
 #endif
 #if (defined __cplusplus)
 }
@@ -110,10 +104,12 @@ void cuUpDownPart(int na, Complex *X0, Complex *R1,dim3 dimBlock, dim3 dimGrid);
 #ifdef __CUDACC__
 //__global__ void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
 //		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa);
-__global__ void Plus_staple(int mu, int nu,unsigned int *iu, Complex *Sigma11, Complex *Sigma12, Complex *u11t, Complex *u12t);
-__global__ void Minus_staple(int mu, int nu,unsigned int *iu,unsigned int *id, Complex *Sigma11, Complex *Sigma12,\
-		Complex *u11sh, Complex *u12sh, Complex *u11t, Complex *u12t);
-__global__ void cuGaugeForce(int mu, Complex *Sigma11, Complex *Sigma12,double* dSdpi,Complex *u11t, Complex *u12t, float beta);
+__global__ void Plus_staple(int mu, int nu,unsigned int *iu, Complex_f *Sigma11, Complex_f *Sigma12,\
+		Complex_f *u11t, Complex_f *u12t);
+__global__ void Minus_staple(int mu, int nu,unsigned int *iu,unsigned int *id, Complex_f *Sigma11, Complex_f *Sigma12,\
+		Complex_f *u11sh, Complex_f *u12sh, Complex_f *u11t, Complex_f *u12t);
+__global__ void cuGaugeForce(int mu, Complex_f *Sigma11, Complex_f *Sigma12,double* dSdpi,Complex_f *u11t, Complex_f *u12t,\
+		float beta);
 __global__ void cuAverage_Plaquette(float *hgs_d, float *hgt_d, Complex_f *u11t, Complex_f *u12t, unsigned int *iu);
 __global__ void cuPolyakov(Complex *Sigma11, Complex * Sigma12, Complex *u11t, Complex *u12t);
 __device__ float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int i, int mu, int nu);
@@ -133,6 +129,7 @@ __global__ void cuForce_t1(double *dSdpi, Complex *u11t, Complex *u12t, Complex 
 __global__ void cuForce_t2(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
 		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac);
 __global__ void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi);
+__global__ void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu);
 __global__ void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu);
 __global__ void cuComplex_convert(Complex_f *a, Complex *b, int len, bool dtof);
 __global__ void cuReal_convert(float *a, double *b, int len, bool dtof);

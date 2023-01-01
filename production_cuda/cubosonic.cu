@@ -6,10 +6,15 @@
 #include	<su2hmc.h>
 void cuAverage_Plaquette(double *hgs, double *hgt, Complex_f *u11t, Complex_f *u12t, unsigned int *iu,dim3 dimGrid, dim3 dimBlock){
 	float *hgs_d, *hgt_d;
+	int device=-1;
+	cudaGetDevice(&device);
 	cudaMallocManaged((void **)&hgs_d,kvol*sizeof(float),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&hgt_d,kvol*sizeof(float),cudaMemAttachGlobal);
 
 	cuAverage_Plaquette<<<dimGrid,dimBlock>>>(hgs_d, hgt_d, u11t, u12t, iu);
+	cudaDeviceSynchronise();
+	cudaMemPrefetchAsync(hgs_d,kvol*sizeof(float),device,streams[0]);
+	cudaMemPrefetchAsync(hgt_d,kvol*sizeof(float),device,streams[1]);
 	cudaDeviceSynchronise();
 	/*
 	*hgs= thrust::reduce(thrust::host,hgs_d,hgt_d+kvol);
