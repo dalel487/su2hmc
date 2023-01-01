@@ -40,7 +40,7 @@ The code produces the following outputs:
 |File Name| Data type|
 |---------|:---------|
 |config.bβββkκκκmuμμμμjJJJsNXtNT.XXXXXX| Lattice configuration for given parameters. Last digits are the configuration number|
-|Output|	Number of conjugate gradient steps for each trajectory. Also contains general simulation details upon completion|
+|Output.bβββkκκκmuμμμμjJJJsNXtNT|	Number of conjugate gradient steps for each trajectory. Also contains general simulation details upon completion|
 |bose.bβββkκκκmuμμμμjJJJsNXtNT|		spatial plaquette, temporal plaquette, Polyakov line|
 |fermi.bβββkκκκmuμμμμjJJJsNXtNT|				psibarpsi, energy density, baryon density|
 |diq.bβββkκκκmuμμμμjJJJsNXtNT|					real<qq>|
