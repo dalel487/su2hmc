@@ -53,10 +53,10 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	int device=-1;
 	cudaGetDevice(&device);
 	Complex	*x, *xi; Complex_f *xi_f, *R1_f;
-	cudaMallocManaged(&x,kfermHalo*sizeof(Complex), cudaMemAttachGlobal);
-	cudaMallocManaged(&xi,kferm*sizeof(Complex), cudaMemAttachGlobal);
-	cudaMallocManaged(&xi_f,kfermHalo*sizeof(Complex_f), cudaMemAttachGlobal);
-	cudaMallocManaged(&R1_f,kfermHalo*sizeof(Complex_f), cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&x,kfermHalo*sizeof(Complex), cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&xi,kferm*sizeof(Complex), cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&xi_f,kfermHalo*sizeof(Complex_f), cudaMemAttachGlobal);
+	cudaMalloc((void **)&R1_f,kfermHalo*sizeof(Complex_f));
 #elif defined __INTEL_MKL__
 	Complex	*x = (Complex *)mkl_malloc(kfermHalo*sizeof(Complex), AVX);
 	Complex *xi	=(Complex *) mkl_malloc(kferm*sizeof(Complex),AVX);
@@ -76,7 +76,8 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #endif
 #ifdef __NVCC__
 	cudaMemPrefetchAsync(xi_f,kferm*sizeof(Complex_f),device,NULL);
-#endif
+	cuComplex_convert(xi_f,xi,kferm,true,dimBlock,dimGrid);
+#else
 
 	//R_1= M^† Ξ 
 	//R1 is local in FORTRAN but since its going to be reset anyway I'm going to recycle the
@@ -84,18 +85,25 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #pragma omp parallel for simd aligned(R1,xi,R1_f,xi_f:AVX)
 	for(int i=0;i<kferm;i++)
 		xi[i]=(Complex)xi_f[i];
+		#endif
 	Dslashd_f(R1_f,xi_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 #ifdef __NVCC__
-	cudaMemPrefetchAsync(R1_f,kferm*sizeof(Complex_f),cudaCpuDeviceId,NULL);
-#endif
+	cudaMemcpy(x, xi, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice);
+	cuComplex_convert(R1_f,R1,kferm,true,dimBlock,dimGrid);
+#else
 	memcpy(x, xi, kferm*sizeof(Complex));
 #pragma omp parallel for simd aligned(R1,R1_f:AVX)
 	for(int i=0;i<kferm;i++)
 		R1[i]=(Complex)R1_f[i];
+#endif
 	//Copying R1 to the first (zeroth) flavour index of Phi
 	//This should be safe with memcpy since the pointer name
 	//references the first block of memory for that pointer
+#ifdef __NVCC__
+	cudaMemcpy(Phi, R1, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice);
+#else
 	memcpy(Phi, R1, kferm*sizeof(Complex));
+#endif
 	//Evaluate xi = (M^† M)^-1 R_1 
 	//	Congradp(0, res, R1_f, itercg);
 	//If the conjugate gradient fails to converge for some reason, restart it.
@@ -112,7 +120,11 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 for(int i=0;i<kferm;i++)
 xi[i]=(Complex)R1_f[i];
 	 */
+#ifdef __NVCC__
+	cudaMemcpy(xi,R1,kferm*sizeof(Complex),cudaMemcpyDeviceToDevice);
+#else
 	memcpy(xi,R1,kferm*sizeof(Complex));
+#endif
 #ifdef __NVCC__
 	cudaFree(xi_f);	cudaFree(R1_f);
 #elif defined __INTEL_MKL__

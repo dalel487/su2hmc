@@ -1,4 +1,5 @@
 #include <par_mpi.h>
+#include <su2hmc.h>
 
 //NOTE: In FORTRAN code everything was capitalised (despite being case insensitive)
 //C is case sensitive, so the equivalent C command has the case format MPI_Xyz_abc
@@ -1227,7 +1228,14 @@ int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u
 	 *	the trial fields get updated.
 	 */
 	char *funchame = "Trial_Exchange";
+	//Prefetch the trial fields from the GPU, halos come later
 #if(nproc>1)
+#ifdef __NVCC__
+	int device=-1;
+	cudaGetDevice(&device);
+	cudaMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),cudaCpuDeviceId,NULL);
+	cudaMemPrefetchAsync(u12t, ndim*kvol*sizeof(Complex),cudaCpuDeviceId,NULL);
+#endif
 #ifdef __INTEL_MKL__
 	Complex *z = (Complex *)mkl_malloc((kvol+halo)*sizeof(Complex),AVX);
 #else
@@ -1267,13 +1275,23 @@ int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u
 #else
 	free(z);
 #endif
+	//Now we prefetch the halo
+#ifdef __NVCC__
+	cudaMemPrefetchAsync(u11t+ndim*kvol, ndim*halo*sizeof(Complex),device,NULL);
+	cudaMemPrefetchAsync(u12t+ndim*kvol, ndim*halo*sizeof(Complex),device,NULL);
 #endif
+#endif
+#ifdef __NVCC__
+	cuComplex_convert(u11t_f,u11t,ndim*(kvol+halo),true,dimBlock,dimGrid);
+	cuComplex_convert(u12t_f,u12t,ndim*(kvol+halo),true,dimBlock,dimGrid);
+	cudaDeviceSynchronise();
+#else
 #pragma omp parallel for simd
 	for(int i=0;i<ndim*(kvol+halo);i++){
 		u11t_f[i]=(Complex_f)u11t[i];
 		u12t_f[i]=(Complex_f)u12t[i];
 	}
-	//Only upload the halo of the trial field, but the full single precision field
+#endif
 #pragma acc update device(u11t[ndim*kvol:ndim*(kvol+halo)],u12t[ndim*kvol:ndim*(kvol+halo)],\
 		u11t_f[0:ndim*(kvol+halo)],u12t_f[0:ndim*(kvol+halo)])
 	return 0;

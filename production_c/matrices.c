@@ -5,7 +5,7 @@
 //TO DO: Check and see are there any terms we are evaluating twice in the same loop
 //and use a variable to hold them instead to reduce the number of evaluations.
 int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int *iu,unsigned int *id,\
-		Complex *gamval, int *gamin,		double *dk4m, double *dk4p, Complex_f jqq, float akappa){
+		Complex *gamval, int *gamin, double *dk4m, double *dk4p, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -144,7 +144,7 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int 
 	return 0;
 }
 int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
-		Complex *gamval, int *gamin,		double *dk4m, double *dk4p, Complex_f jqq, float akappa){
+		Complex *gamval, int *gamin, double *dk4m, double *dk4p, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M^†*r
 	 *
@@ -287,7 +287,7 @@ int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int 
 	return 0;
 }
 int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int *iu,unsigned  int *id,\
-		Complex *gamval, int *gamin,		double *dk4m, double *dk4p, Complex_f jqq, float akappa){
+		Complex *gamval, int *gamin, double *dk4m, double *dk4p, float akappa){
 	//int Hdslash(Complex *phi, Complex *r){
 	/*
 	 * Evaluates phi= M*r
@@ -325,7 +325,7 @@ int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int
 	//Spacelike term
 #ifdef __NVCC__
 	cudaMemcpy(phi, r, kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice);
-	cuHdslash(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,dimGrid,dimBlock);
+	cuHdslash(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm2*sizeof(Complex));
 #ifdef _OPENACC
@@ -394,7 +394,7 @@ int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int
 	return 0;
 }
 int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int *iu,unsigned  int *id,\
-		Complex *gamval, int *gamin,		double *dk4m, double *dk4p, Complex_f jqq, float akappa){
+		Complex *gamval, int *gamin, double *dk4m, double *dk4p, float akappa){
 	/*
 	 * Evaluates phi= M^†*r
 	 *
@@ -436,7 +436,7 @@ int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  in
 	//Mass term
 #ifdef __NVCC__
 	cudaMemcpy(phi, r, kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice);
-	cuHdslashd(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,dimGrid,dimBlock);
+	cuHdslashd(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm2*sizeof(Complex));
 	//Spacelike term
@@ -655,7 +655,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 	return 0;
 }
 int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
-		Complex_f *gamval_f,		int *gamin,	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
+		Complex_f *gamval_f, int *gamin, float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -801,7 +801,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	return 0;
 }
 int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned  int *iu,unsigned  int *id,\
-		Complex_f *gamval_f,	int *gamin,	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
+		Complex_f *gamval_f, int *gamin, float *dk4m_f, float *dk4p_f, float akappa){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -838,7 +838,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	//Spacelike term
 #ifdef __NVCC__
 	cudaMemcpy(phi, r, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
-	cuHdslash_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
+	cuHdslash_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
 #ifdef _OPENACC
@@ -910,7 +910,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	return 0;
 }
 int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
-		Complex_f *gamval_f,int *gamin,	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
+		Complex_f *gamval_f, int *gamin, float *dk4m_f, float *dk4p_f, float akappa){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -952,7 +952,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_
 	//Mass term
 #ifdef __NVCC__
 	cudaMemcpy(phi, r, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
-	cuHdslashd_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
+	cuHdslashd_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
 	//Spacelike term
@@ -1207,18 +1207,6 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 			for(int i=0;i<kvol;i+=4)
 				fprintf(dk4p_File,"%f\t%f\t%f\t%f\n",dk4p[i],dk4p[i+1],dk4p[i+2],dk4p[i+3]);
 		}
-#pragma omp section
-		{
-			FILE *dk4m_f_File = fopen("dk4m_f","w");
-			for(int i=0;i<kvol;i+=4)
-				fprintf(dk4m_f_File,"%f\t%f\t%f\t%f\n",dk4m_f[i],dk4m_f[i+1],dk4m_f[i+2],dk4m_f[i+3]);
-		}
-#pragma omp section
-		{
-			FILE *dk4p_f_File = fopen("dk4p_f","w");
-			for(int i=0;i<kvol;i+=4)
-				fprintf(dk4p_f_File,"%f\t%f\t%f\t%f\n",dk4p_f[i],dk4p_f[i+1],dk4p_f[i+2],dk4p_f[i+3]);
-		}
 	}
 #ifdef __clang__
 #pragma omp target enter data map(to:u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],gamval[0:5*4],\
@@ -1251,24 +1239,6 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 							fprintf(trial_out,"%f+%fI\t%f+%fI\t%f+%fI\t%f+%fI\n",
 									creal(u12t[i]),cimag(u12t[i]),creal(u12t[i+1]),cimag(u12t[i+1]),
 									creal(u12t[2+i]),cimag(u12t[2+i]),creal(u12t[i+3]),cimag(u12t[i+3]));
-						fclose(trial_out);
-					}
-#pragma omp section
-					{
-						FILE *trial_out = fopen("u11t_f", "w");
-						for(int i=0;i<ndim*(kvol+halo);i+=4)
-							fprintf(trial_out,"%f+%fI\t%f+%fI\t%f+%fI\t%f+%fI\n",
-									creal(u11t_f[i]),cimag(u11t_f[i]),creal(u11t_f[i+1]),cimag(u11t_f[i+1]),
-									creal(u11t_f[2+i]),cimag(u11t_f[2+i]),creal(u11t_f[i+3]),cimag(u11t_f[i+3]));
-						fclose(trial_out);
-					}
-#pragma omp section
-					{
-						FILE *trial_out = fopen("u12t_f", "w");
-						for(int i=0;i<ndim*(kvol+halo);i+=4)
-							fprintf(trial_out,"%f+%fI\t%f+%fI\t%f+%fI\t%f+%fI\n",
-									creal(u12t_f[i]),cimag(u12t_f[i]),creal(u12t_f[i+1]),cimag(u12t_f[i+1]),
-									creal(u12t_f[2+i]),cimag(u12t_f[2+i]),creal(u12t_f[i+3]),cimag(u12t_f[i+3]));
 						fclose(trial_out);
 					}
 				}
@@ -1447,40 +1417,43 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 #endif
 				output_old = fopen("hdslash_old", "w");output_f_old = fopen("hdslash_f_old", "w");
 				for(int i = 0; i< kferm2; i+=8){
-					fprintf(output_old, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+					fprintf(output_old, "%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n\n",
 							creal(X0[i]),cimag(X0[i]),creal(X0[i+1]),cimag(X0[i+1]),
 							creal(X0[i+2]),cimag(X0[i+2]),creal(X0[i+3]),cimag(X0[i+3]),
 							creal(X0[i+4]),cimag(X0[i+4]),creal(X0[i+5]),cimag(X0[i+5]),
 							creal(X0[i+6]),cimag(X0[i+6]),creal(X0[i+7]),cimag(X0[i+7]));
-					fprintf(output_f_old, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+					fprintf(output_f_old, "%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n\n",
 							creal(X0_f[i]),cimag(X0_f[i]),creal(X0_f[i+1]),cimag(X0_f[i+1]),
 							creal(X0_f[i+2]),cimag(X0_f[i+2]),creal(X0_f[i+3]),cimag(X0_f[i+3]),
 							creal(X0_f[i+4]),cimag(X0_f[i+4]),creal(X0_f[i+5]),cimag(X0_f[i+5]),
 							creal(X0_f[i+6]),cimag(X0_f[i+6]),creal(X0_f[i+7]),cimag(X0_f[i+7]));
 					printf("Difference in hdslash double and float X0[%d] to X0[%d+7]:\n",i,i);
-					printf("%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+					printf("%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n\n",
 							creal(X0[i]-X0_f[i]),cimag(X0[i]-X0_f[i]),creal(X0[i+1]-X0_f[i+1]),cimag(X0[i+1]-X0_f[i+1]),
 							creal(X0[i+2]-X0_f[i+2]),cimag(X0[i+2]-X0_f[i+2]),creal(X0[i+3]-X0_f[i+3]),cimag(X0[i+3]-X0_f[i+3]),
 							creal(X0[i+4]-X0_f[i+4]),cimag(X0[i+4]-X0_f[i+4]),creal(X0[i+5]-X0_f[i+5]),cimag(X0[i+5]-X0_f[i+5]),
 							creal(X0[i+6]-X0_f[i+6]),cimag(X0[i+6]-X0_f[i+6]),creal(X0[i+7]-X0_f[i+7]),cimag(X0[i+7]-X0_f[i+7]));
 				}
 				fclose(output_old);fclose(output_f_old);
-				Hdslash(X1,X0,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
-				Hdslash_f(X1_f,X0_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
+				Hdslash(X1,X0,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
+				Hdslash_f(X1_f,X0_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,akappa);
+				#ifdef __NVCC__
+				cudaDeviceSynchronise();
+				#endif
 				output = fopen("hdslash", "w");	output_f = fopen("hdslash_f", "w");
 				for(int i = 0; i< kferm2; i+=8){
-					fprintf(output, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+					fprintf(output, "%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n\n",
 							creal(X1[i]),cimag(X1[i]),creal(X1[i+1]),cimag(X1[i+1]),
 							creal(X1[i+2]),cimag(X1[i+2]),creal(X1[i+3]),cimag(X1[i+3]),
 							creal(X1[i+4]),cimag(X1[i+4]),creal(X1[i+5]),cimag(X1[i+5]),
 							creal(X1[i+6]),cimag(X1[i+6]),creal(X1[i+7]),cimag(X1[i+7]));
-					fprintf(output_f, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+					fprintf(output_f, "%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n\n",
 							creal(X1_f[i]),cimag(X1_f[i]),creal(X1_f[i+1]),cimag(X1_f[i+1]),
 							creal(X1_f[i+2]),cimag(X1_f[i+2]),creal(X1_f[i+3]),cimag(X1_f[i+3]),
 							creal(X1_f[i+4]),cimag(X1_f[i+4]),creal(X1_f[i+5]),cimag(X1_f[i+5]),
 							creal(X1_f[i+6]),cimag(X1_f[i+6]),creal(X1_f[i+7]),cimag(X1_f[i+7]));
 					printf("Difference in hdslash double and float X1[%d] to X1[%d+7] after mult.:\n",i,i);
-					printf("%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+					printf("%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n\n",
 							creal(X1[i]-X1_f[i]),cimag(X1[i]-X1_f[i]),creal(X1[i+1]-X1_f[i+1]),cimag(X1[i+1]-X1_f[i+1]),
 							creal(X1[i+2]-X1_f[i+2]),cimag(X1[i+2]-X1_f[i+2]),creal(X1[i+3]-X1_f[i+3]),cimag(X1[i+3]-X1_f[i+3]),
 							creal(X1[i+4]-X1_f[i+4]),cimag(X1[i+4]-X1_f[i+4]),creal(X1[i+5]-X1_f[i+5]),cimag(X1[i+5]-X1_f[i+5]),
@@ -1501,41 +1474,44 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 				cudaMemPrefetchAsync(X0_f,kferm2*sizeof(Complex_f),device,NULL);
 				cudaMemPrefetchAsync(X1_f,kferm2*sizeof(Complex_f),device,NULL);
 #endif
-				output_old = fopen("hdslash_old", "w");output_f_old = fopen("hdslash_f_old", "w");
+				output_old = fopen("hdslashd_old", "w");output_f_old = fopen("hdslashd_f_old", "w");
 				for(int i = 0; i< kferm2; i+=8){
-					fprintf(output_old, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+					fprintf(output_old, "%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n\n",
 							creal(X0[i]),cimag(X0[i]),creal(X0[i+1]),cimag(X0[i+1]),
 							creal(X0[i+2]),cimag(X0[i+2]),creal(X0[i+3]),cimag(X0[i+3]),
 							creal(X0[i+4]),cimag(X0[i+4]),creal(X0[i+5]),cimag(X0[i+5]),
 							creal(X0[i+6]),cimag(X0[i+6]),creal(X0[i+7]),cimag(X0[i+7]));
-					fprintf(output_f_old, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+					fprintf(output_f_old, "%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n\n",
 							creal(X0_f[i]),cimag(X0_f[i]),creal(X0_f[i+1]),cimag(X0_f[i+1]),
 							creal(X0_f[i+2]),cimag(X0_f[i+2]),creal(X0_f[i+3]),cimag(X0_f[i+3]),
 							creal(X0_f[i+4]),cimag(X0_f[i+4]),creal(X0_f[i+5]),cimag(X0_f[i+5]),
 							creal(X0_f[i+6]),cimag(X0_f[i+6]),creal(X0_f[i+7]),cimag(X0_f[i+7]));
-					printf("Difference in hdslash double and float X0[%d] to X0[%d+7]:\n",i,i);
-					printf("%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+					printf("Difference in hdslashd double and float X0[%d] to X0[%d+7]:\n",i,i);
+					printf("%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n\n",
 							creal(X0[i]-X0_f[i]),cimag(X0[i]-X0_f[i]),creal(X0[i+1]-X0_f[i+1]),cimag(X0[i+1]-X0_f[i+1]),
 							creal(X0[i+2]-X0_f[i+2]),cimag(X0[i+2]-X0_f[i+2]),creal(X0[i+3]-X0_f[i+3]),cimag(X0[i+3]-X0_f[i+3]),
 							creal(X0[i+4]-X0_f[i+4]),cimag(X0[i+4]-X0_f[i+4]),creal(X0[i+5]-X0_f[i+5]),cimag(X0[i+5]-X0_f[i+5]),
 							creal(X0[i+6]-X0_f[i+6]),cimag(X0[i+6]-X0_f[i+6]),creal(X0[i+7]-X0_f[i+7]),cimag(X0[i+7]-X0_f[i+7]));
 				}
-				Hdslashd(X1,X0,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
-				Hdslashd_f(X1_f,X0_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
-				output = fopen("hdslash", "w");	output_f = fopen("hdslash_f", "w");
+				Hdslashd(X1,X0,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
+				Hdslashd_f(X1_f,X0_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,akappa);
+				#ifdef __NVCC__
+				cudaDeviceSynchronise();
+				#endif
+				output = fopen("hdslashd", "w");	output_f = fopen("hdslashd_f", "w");
 				for(int i = 0; i< kferm2; i+=8){
-					fprintf(output, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+					fprintf(output, "%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n\n",
 							creal(X1[i]),cimag(X1[i]),creal(X1[i+1]),cimag(X1[i+1]),
 							creal(X1[i+2]),cimag(X1[i+2]),creal(X1[i+3]),cimag(X1[i+3]),
 							creal(X1[i+4]),cimag(X1[i+4]),creal(X1[i+5]),cimag(X1[i+5]),
 							creal(X1[i+6]),cimag(X1[i+6]),creal(X1[i+7]),cimag(X1[i+7]));
-					fprintf(output_f, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+					fprintf(output_f, "%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n\n",
 							creal(X1_f[i]),cimag(X1_f[i]),creal(X1_f[i+1]),cimag(X1_f[i+1]),
 							creal(X1_f[i+2]),cimag(X1_f[i+2]),creal(X1_f[i+3]),cimag(X1_f[i+3]),
 							creal(X1_f[i+4]),cimag(X1_f[i+4]),creal(X1_f[i+5]),cimag(X1_f[i+5]),
 							creal(X1_f[i+6]),cimag(X1_f[i+6]),creal(X1_f[i+7]),cimag(X1_f[i+7]));
-					printf("Difference in hdslash double and float X1[%d] to X1[%d+7] after mult.:\n",i,i);
-					printf("%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+					printf("Difference in hdslashd double and float X1[%d] to X1[%d+7] after mult.:\n",i,i);
+					printf("%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n\n",
 							creal(X1[i]-X1_f[i]),cimag(X1[i]-X1_f[i]),creal(X1[i+1]-X1_f[i+1]),cimag(X1[i+1]-X1_f[i+1]),
 							creal(X1[i+2]-X1_f[i+2]),cimag(X1[i+2]-X1_f[i+2]),creal(X1[i+3]-X1_f[i+3]),cimag(X1[i+3]-X1_f[i+3]),
 							creal(X1[i+4]-X1_f[i+4]),cimag(X1[i+4]-X1_f[i+4]),creal(X1[i+5]-X1_f[i+5]),cimag(X1[i+5]-X1_f[i+5]),

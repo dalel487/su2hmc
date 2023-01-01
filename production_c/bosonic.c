@@ -4,7 +4,7 @@
  */
 #include	<par_mpi.h>
 #include	<su2hmc.h>
-int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex *u11t, Complex *u12t, unsigned int *iu, float beta){
+int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u11t, Complex_f *u12t, unsigned int *iu, float beta){
 	/* 
 	 * Calculates the gauge action using new (how new?) lookup table
 	 * Follows a routine called qedplaq in some QED3 code
@@ -74,7 +74,7 @@ int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex *u11
 	return 0;
 }
 #pragma omp declare simd
-inline double SU2plaq(Complex *u11t, Complex *u12t, unsigned int *iu, int i, int mu, int nu){
+inline float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int i, int mu, int nu){
 	/*
 	 * Calculates the plaquette at site i in the μ-ν direction
 	 *
@@ -94,12 +94,12 @@ inline double SU2plaq(Complex *u11t, Complex *u12t, unsigned int *iu, int i, int
 	const char *funcname = "SU2plaq";
 	int uidm = iu[mu+ndim*i]; 
 
-	Complex Sigma11=u11t[i*ndim+mu]*u11t[uidm*ndim+nu]-u12t[i*ndim+mu]*conj(u12t[uidm*ndim+nu]);
-	Complex Sigma12=u11t[i*ndim+mu]*u12t[uidm*ndim+nu]+u12t[i*ndim+mu]*conj(u11t[uidm*ndim+nu]);
+	Complex_f Sigma11=u11t[i*ndim+mu]*u11t[uidm*ndim+nu]-u12t[i*ndim+mu]*conj(u12t[uidm*ndim+nu]);
+	Complex_f Sigma12=u11t[i*ndim+mu]*u12t[uidm*ndim+nu]+u12t[i*ndim+mu]*conj(u11t[uidm*ndim+nu]);
 
 	int uidn = iu[nu+ndim*i]; 
-	Complex a11=Sigma11*conj(u11t[uidn*ndim+mu])+Sigma12*conj(u12t[uidn*ndim+mu]);
-	Complex a12=-Sigma11*u12t[uidn*ndim+mu]+Sigma12*u11t[uidn*ndim+mu];
+	Complex_f a11=Sigma11*conj(u11t[uidn*ndim+mu])+Sigma12*conj(u12t[uidn*ndim+mu]);
+	Complex_f a12=-Sigma11*u12t[uidn*ndim+mu]+Sigma12*u11t[uidn*ndim+mu];
 
 	Sigma11=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
 	//				Sigma12[i]=-a11[i]*u12t[i*ndim+nu]+a12*u11t[i*ndim+mu];
@@ -135,8 +135,8 @@ double Polyakov(Complex *u11t, Complex *u12t){
 	int device=-1;
 	cudaGetDevice(&device);
 	Complex *Sigma11,*Sigma12;
-	cudaMallocManaged((Complex **)&Sigma11,kvol3*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged((Complex **)&Sigma12,kvol3*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&Sigma11,kvol3*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&Sigma12,kvol3*sizeof(Complex),cudaMemAttachGlobal);
 #elif defined __INTEL_MKL__
 	Complex *Sigma11 = (Complex *)mkl_malloc(kvol3*sizeof(Complex),AVX);
 	Complex *Sigma12 = (Complex *)mkl_malloc(kvol3*sizeof(Complex),AVX);

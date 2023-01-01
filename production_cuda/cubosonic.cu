@@ -4,12 +4,17 @@
  */
 #include	<par_mpi.h>
 #include	<su2hmc.h>
-void cuAverage_Plaquette(double *hgs, double *hgt, Complex *u11t, Complex *u12t, unsigned int *iu,dim3 dimGrid, dim3 dimBlock){
-	double *hgs_d, *hgt_d;
-	cudaMallocManaged((void **)&hgs_d,kvol*sizeof(double),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&hgt_d,kvol*sizeof(double),cudaMemAttachGlobal);
+void cuAverage_Plaquette(double *hgs, double *hgt, Complex_f *u11t, Complex_f *u12t, unsigned int *iu,dim3 dimGrid, dim3 dimBlock){
+	float *hgs_d, *hgt_d;
+	int device=-1;
+	cudaGetDevice(&device);
+	cudaMallocManaged((void **)&hgs_d,kvol*sizeof(float),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&hgt_d,kvol*sizeof(float),cudaMemAttachGlobal);
 
 	cuAverage_Plaquette<<<dimGrid,dimBlock>>>(hgs_d, hgt_d, u11t, u12t, iu);
+	cudaDeviceSynchronise();
+	cudaMemPrefetchAsync(hgs_d,kvol*sizeof(float),device,streams[0]);
+	cudaMemPrefetchAsync(hgt_d,kvol*sizeof(float),device,streams[1]);
 	cudaDeviceSynchronise();
 	/*
 	*hgs= thrust::reduce(thrust::host,hgs_d,hgt_d+kvol);
@@ -29,7 +34,7 @@ void cuPolyakov(Complex *Sigma11, Complex * Sigma12, Complex *u11t, Complex *u12
 	cuPolyakov<<<dimGrid,dimBlock>>>(Sigma11,Sigma12,u11t,u12t);
 }
 //CUDA Kernels
-__global__ void cuAverage_Plaquette(double *hgs_d, double *hgt_d, Complex *u11t, Complex *u12t, unsigned int *iu){
+__global__ void cuAverage_Plaquette(float *hgs_d, float *hgt_d, Complex_f *u11t, Complex_f *u12t, unsigned int *iu){
 	char *funcname = "cuSU2plaq";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -56,7 +61,7 @@ __global__ void cuAverage_Plaquette(double *hgs_d, double *hgt_d, Complex *u11t,
 			}
 	}
 }
-__device__ double SU2plaq(Complex *u11t, Complex *u12t, unsigned int *iu, int i, int mu, int nu){
+__device__ float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int i, int mu, int nu){
 	/*
 	 * Calculates the plaquette at site i in the μ-ν direction
 	 *
@@ -76,12 +81,12 @@ __device__ double SU2plaq(Complex *u11t, Complex *u12t, unsigned int *iu, int i,
 	const char *funcname = "SU2plaq";
 	int uidm = iu[mu+ndim*i]; 
 
-	Complex Sigma11=u11t[i*ndim+mu]*u11t[uidm*ndim+nu]-u12t[i*ndim+mu]*conj(u12t[uidm*ndim+nu]);
-	Complex Sigma12=u11t[i*ndim+mu]*u12t[uidm*ndim+nu]+u12t[i*ndim+mu]*conj(u11t[uidm*ndim+nu]);
+	Complex_f Sigma11=u11t[i*ndim+mu]*u11t[uidm*ndim+nu]-u12t[i*ndim+mu]*conj(u12t[uidm*ndim+nu]);
+	Complex_f Sigma12=u11t[i*ndim+mu]*u12t[uidm*ndim+nu]+u12t[i*ndim+mu]*conj(u11t[uidm*ndim+nu]);
 
 	int uidn = iu[nu+ndim*i]; 
-	Complex a11=Sigma11*conj(u11t[uidn*ndim+mu])+Sigma12*conj(u12t[uidn*ndim+mu]);
-	Complex a12=-Sigma11*u12t[uidn*ndim+mu]+Sigma12*u11t[uidn*ndim+mu];
+	Complex_f a11=Sigma11*conj(u11t[uidn*ndim+mu])+Sigma12*conj(u12t[uidn*ndim+mu]);
+	Complex_f a12=-Sigma11*u12t[uidn*ndim+mu]+Sigma12*u11t[uidn*ndim+mu];
 
 	Sigma11=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
 	//				Sigma12[i]=-a11[i]*u12t[i*ndim+nu]+a12*u11t[i*ndim+mu];
