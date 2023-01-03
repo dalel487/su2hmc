@@ -76,7 +76,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #endif
 #ifdef __NVCC__
 	cudaMemPrefetchAsync(xi_f,kferm*sizeof(Complex_f),device,NULL);
-	cuComplex_convert(xi_f,xi,kferm,true,dimBlock,dimGrid);
+	cuComplex_convert(xi_f,xi,kferm,false,dimBlock,dimGrid);
 #else
 #pragma omp parallel for simd aligned(R1,xi,R1_f,xi_f:AVX)
 	for(int i=0;i<kferm;i++)
@@ -88,7 +88,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	Dslashd_f(R1_f,xi_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 #ifdef __NVCC__
 	cudaMemcpy(x, xi, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice);
-	cuComplex_convert(R1_f,R1,kferm,true,dimBlock,dimGrid);
+	cuComplex_convert(R1_f,R1,kferm,false,dimBlock,dimGrid);
 #else
 	memcpy(x, xi, kferm*sizeof(Complex));
 #pragma omp parallel for simd aligned(R1,R1_f:AVX)
