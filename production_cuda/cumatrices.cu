@@ -589,11 +589,11 @@ __global__ void cuHdslash0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comp
 	 * Half Dslash float precision acting on colour index zero
 	 */
 	char *funcname = "cuHdslash0_f";
-	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	for(int i=threadId;i<kvol;i+=gsize*bsize){
+	const int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	for(int i=threadId;i<kvol;i+=bsize*gsize){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
@@ -629,10 +629,10 @@ __global__ void cuHdslash0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comp
 __global__ void cuHdslashd0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
 		Complex_f *gamval,	int *gamin_d,	float *dk4m, float *dk4p, float akappa,int idirac){
 	char *funcname = "cuHdslashd0_f";
-	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	for(int i=threadId;i<kvol;i+=gsize*bsize){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <ndim-1; mu++){
@@ -674,10 +674,10 @@ __global__ void cuHdslashd0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Com
 __global__ void cuHdslash1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
 		Complex_f *gamval,	int *gamin_d,	float *dk4m, float *dk4p, float akappa,int idirac){
 	char *funcname = "cuHdslash1_f";
-	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	for(int i=threadId;i<kvol;i+=gsize*bsize){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
@@ -714,10 +714,10 @@ __global__ void cuHdslash1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comp
 __global__ void cuHdslashd1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
 		Complex_f *gamval,	int *gamin_d,	float *dk4m, float *dk4p, float akappa,int idirac){
 	char *funcname = "cuHdslashd1_f";
-	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	for(int i=threadId;i<kvol;i+=gsize*bsize){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <ndim-1; mu++){

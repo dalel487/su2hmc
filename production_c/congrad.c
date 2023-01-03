@@ -1,8 +1,8 @@
 #include	<matrices.h>
 #include	<par_mpi.h>
 #include	<su2hmc.h>
-int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
-		Complex_f *gamval_f,int *gamin,float *dk4m_f,float *dk4p_f,Complex_f jqq,float akappa,int *itercg){
+int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f *u12t,unsigned int *iu,unsigned int *id,\
+		Complex_f *gamval_f,int *gamin,float *dk4m,float *dk4p,Complex_f jqq,float akappa,int *itercg){
 	/*
 	 * Matrix Inversion via Mixed Precision Conjugate Gradient
 	 * Solves (M^†)Mx=Phi
@@ -19,14 +19,14 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 	 * double		res:			Limit for conjugate gradient
 	 * Complex		*X1:			Phi initially, returned as (M†M)^{1} Phi
 	 * Complex		*r:			Partition of Phi being used. Gets recycled as the residual vector
-	 * Complex		*u11t_f:		First colour's trial field
-	 * Complex		*u12t_f:		Second colour's trial field
+	 * Complex_f	*u11t:		First colour's trial field
+	 * Complex_f	*u12t:		Second colour's trial field
 	 * int			*iu:			Upper halo indices
 	 * int			*id:			Lower halo indices
 	 * Complex_f	*gamval_f:	Gamma matrices
 	 * int			*gamin:		Dirac indices
-	 * float			*dk4m_f:
-	 * float			*dk4p_f:
+	 * float			*dk4m:
+	 * float			*dk4p:
 	 * Complex_f	jqq:			Diquark source
 	 * float			akappa:		Hopping Parameter
 	 * int 			*itercg:		Counts the iterations of the conjugate gradient
@@ -100,27 +100,47 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
 	//if statements quicker to type
 	double betan;
+#ifdef _DEBUG
+#ifdef __NVCC__
+	cudaDeviceSynchronise();
+#endif
+	for(int i=0;i<5;i++)
+		printf("gamval row %d= %e+I*%e\t %e+I*%e\t %e+I*%e\t %e+I*%e\n",i,
+				creal(gamval_f[i*ndim+0]),cimag(gamval_f[i*ndim+0]),creal(gamval_f[i*ndim+1]),cimag(gamval_f[i*ndim+1]),
+				creal(gamval_f[i*ndim+2]),cimag(gamval_f[i*ndim+2]),creal(gamval_f[i*ndim+3]),cimag(gamval_f[i*ndim+3]));
+	for(int i=0;i<4;i++)
+		printf("gamin row %d=%d\t%d\t%d\t%d\n",
+				i,gamin[i*ndim+0],gamin[i*ndim+1],gamin[i*ndim+2],gamin[i*ndim+3]);
+	printf("κ=%.5e\n",akappa);
+#endif
 	for(*itercg=0; *itercg<niterc; (*itercg)++){
 		//#ifdef __NVCC__
 		//		cudaMemPrefetchAsync(p,kferm2*sizeof(Complex),device,NULL);
 		//#endif
 		//x2 =  (M^†M)p 
 #ifdef _DEBUG
-		printf("Pre mult:\tp_f[0]=%.5e\tx1_f[0]=%.5e\tx2_f[0]=%.5e\n",creal(p_f[0]),creal(x1_f[0]),creal(x2_f[0]));
+#ifdef __NVCC__
+		cudaDeviceSynchronise();
 #endif
-		Hdslash_f(x1_f,p_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,akappa);
+		printf("Pre mult:\tp_f[0]=%.5e\tx1_f[0]=%.5e\tx2_f[0]=%.5e\tdk4m=%.5e\tdk4p=%.5e\n",\
+				creal(p_f[0]),creal(x1_f[0]),creal(x2_f[0]),dk4m[0],dk4p[0]);
+		printf("κ=%.5e\n",akappa);
+#endif
+		Hdslash_f(x1_f,p_f,u11t,u12t,iu,id,gamval_f,gamin,dk4m,dk4p,akappa);
 #ifdef _DEBUG
 #ifdef __NVCC__
 		cudaDeviceSynchronise();
 #endif
-		printf("Hdslash: \tp_f[0]=%.5e\tx1_f[0]=%.5e\tx2_f[0]=%.5e\n",creal(p_f[0]),creal(x1_f[0]),creal(x2_f[0]));
+		printf("Hdslash: \tp_f[0]=%.5e\tx1_f[0]=%.5e\tx2_f[0]=%.5e\tdk4m=%.5e\tdk4p=%.5e\n",\
+				creal(p_f[0]),creal(x1_f[0]),creal(x2_f[0]),dk4m[0],dk4p[0]);
 #endif
-		Hdslashd_f(x2_f,x1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,akappa);
+		Hdslashd_f(x2_f,x1_f,u11t,u12t,iu,id,gamval_f,gamin,dk4m,dk4p,akappa);
 #ifdef _DEBUG
 #ifdef __NVCC__
 		cudaDeviceSynchronise();
 #endif
-		printf("Hdslashd:\tp_f[0]=%.5e\tx1_f[0]=%.5e\tx2_f[0]=%.5e\n",creal(p_f[0]),creal(x1_f[0]),creal(x2_f[0]));
+		printf("Hdslashd:\tp_f[0]=%.5e\tx1_f[0]=%.5e\tx2_f[0]=%.5e\tdk4m=%.5e\tdk4p=%.5e\n",\
+				creal(p_f[0]),creal(x1_f[0]),creal(x2_f[0]),dk4m[0],dk4p[0]);
 #endif
 		//x2 =  (M^†M+J^2)p 
 #ifdef	__NVCC__

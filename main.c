@@ -167,22 +167,36 @@ int main(int argc, char *argv[]){
 
 	cudaMallocManaged(&dk4m,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
 	cudaMallocManaged(&dk4p,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
+#ifdef _DEBUG
+	cudaMallocManaged(&dk4m_f,(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
+	cudaMallocManaged(&dk4p_f,(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
+#else
 	cudaMalloc(&dk4m_f,(kvol+halo)*sizeof(float));
 	cudaMalloc(&dk4p_f,(kvol+halo)*sizeof(float));
+#endif
 
 	int	*gamin;
 	Complex	*gamval;
 	Complex_f *gamval_f;
 	cudaMallocManaged(&gamin,4*4*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&gamval,5*4*sizeof(Complex),cudaMemAttachGlobal);
+#if _DEBUG
+	cudaMallocManaged(&gamval_f,5*4*sizeof(Complex_f),cudaMemAttachGlobal);
+#else
 	cudaMalloc(&gamval_f,5*4*sizeof(Complex_f));
+#endif
 
 	cudaMallocManaged(&u11,ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&u12,ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&u11t,ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&u12t,ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
+#ifdef _DEBUG
+	cudaMallocManaged(&u11t_f,ndim*(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged(&u12t_f,ndim*(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
+#else
 	cudaMalloc(&u11t_f,ndim*(kvol+halo)*sizeof(Complex_f));
 	cudaMalloc(&u12t_f,ndim*(kvol+halo)*sizeof(Complex_f));
+#endif
 #elif defined __INTEL_MKL__
 	id = (unsigned int*)mkl_malloc(ndim*kvol*sizeof(int),AVX);
 	iu = (unsigned int*)mkl_malloc(ndim*kvol*sizeof(int),AVX);

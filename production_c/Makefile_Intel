@@ -3,7 +3,7 @@ CC=	mpiicc
 
 IFLAGS=	-I../INCLUDE 
 
-CFLAGS=     $(IFLAGS) -qmkl -std=gnu11 -ipo -qopt-zmm-usage=high -MD -static\
+CFLAGS=     $(IFLAGS) -qmkl -std=gnu11 -ipo -qopt-zmm-usage=high -MD \
 			-xSKYLAKE -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE\
 			-static-intel -static-libgcc -DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
 			-qopenmp -qno-openmp-offload -qopenmp-simd -DSA3AT
@@ -45,7 +45,7 @@ TMP=	$(MOD) $(EDT) core
 -include $(DEPS)
 all:	$(EXE)
 
-profiler:	CFLAGS += -g -D_DEBUG
+profiler:	CFLAGS += -g #-D_DEBUG
 profiler:	release
 
 release:	CFLAGS +=  -O3  -inline-level=2\

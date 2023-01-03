@@ -40,13 +40,12 @@ __global__ void cuAverage_Plaquette(float *hgs_d, float *hgt_d, Complex_f *u11t,
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	//TODO: Chck if μ and ν loops inside of site loop is faster. I suspect it is due to memory locality.
+	//TODO: Check if μ and ν loops inside of site loop is faster. I suspect it is due to memory locality.
 	for(int i=threadId;i<kvol;i+=bsize*gsize){
 		hgt_d[i]=0; hgs_d[i]=0;
 
 		for(int mu=1;mu<ndim;mu++)
 			for(int nu=0;nu<mu;nu++){
-				//Save us from typing iu[mu+ndim*i] everywhere
 				//This is threadsafe as the μ and ν loops are not distributed across threads
 				switch(mu){
 					//Time component
@@ -89,8 +88,8 @@ __device__ float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int
 	Complex_f a12=-Sigma11*u12t[uidn*ndim+mu]+Sigma12*u11t[uidn*ndim+mu];
 
 	Sigma11=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
-	//				Sigma12[i]=-a11[i]*u12t[i*ndim+nu]+a12*u11t[i*ndim+mu];
-	//				Not needed in final result as it traces out
+	//Not needed in final result as it traces out
+	//Sigma12[i]=-a11[i]*u12t[i*ndim+nu]+a12*u11t[i*ndim+mu];
 	return Sigma11.real();
 }
 __global__ void cuPolyakov(Complex *Sigma11, Complex * Sigma12, Complex * u11t,Complex *u12t){
