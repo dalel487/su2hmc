@@ -7,7 +7,7 @@
 int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbqb, double res, int *itercg,\
 		Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f, unsigned int *iu, unsigned int *id,\
 		Complex *gamval, Complex_f *gamval_f,	int *gamin, double *dk4m, double *dk4p,\
-		float *dk4m_f, float *dk4p_f, Complex jqq, double akappa,	Complex *Phi, Complex *R1){
+		float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa,	Complex *Phi, Complex *R1){
 	/*
 	 * Calculate fermion expectation values via a noisy estimator
 	 * -matrix inversion via conjugate gradient algorithm
@@ -78,14 +78,13 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	cudaMemPrefetchAsync(xi_f,kferm*sizeof(Complex_f),device,NULL);
 	cuComplex_convert(xi_f,xi,kferm,true,dimBlock,dimGrid);
 #else
-
-	//R_1= M^† Ξ 
-	//R1 is local in FORTRAN but since its going to be reset anyway I'm going to recycle the
-	//global
 #pragma omp parallel for simd aligned(R1,xi,R1_f,xi_f:AVX)
 	for(int i=0;i<kferm;i++)
 		xi[i]=(Complex)xi_f[i];
-		#endif
+#endif
+	//R_1= M^† Ξ 
+	//R1 is local in FORTRAN but since its going to be reset anyway I'm going to recycle the
+	//global
 	Dslashd_f(R1_f,xi_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 #ifdef __NVCC__
 	cudaMemcpy(x, xi, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice);
@@ -108,7 +107,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	//	Congradp(0, res, R1_f, itercg);
 	//If the conjugate gradient fails to converge for some reason, restart it.
 	//That's causing issues with NaN's. Plan B is to not record the measurements.
-	if(Congradp(0, res, Phi, R1,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,itercg)==ITERLIM){
+	if(Congradp(0, res, Phi, R1,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,itercg)==ITERLIM){
 		return ITERLIM;
 		//itercg=0;
 		//if(!rank) fprintf(stderr, "Restarting conjugate gradient from %s\n", funcname);
