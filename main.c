@@ -206,6 +206,10 @@ int main(int argc, char *argv[]){
 	id = (unsigned int*)aligned_alloc(AVX,ndim*kvol*sizeof(int));
 	iu = (unsigned int*)aligned_alloc(AVX,ndim*kvol*sizeof(int));
 
+	int	*gamin = (int *)aligned_alloc(AVX,4*4*sizeof(int));
+	Complex	*gamval=(Complex *)aligned_alloc(AVX,5*4*sizeof(Complex));
+	Complex_f *gamval_f=(Complex_f *)aligned_alloc(AVX,5*4*sizeof(Complex_f));;
+
 	dk4m = (double *)aligned_alloc(AVX,(kvol+halo)*sizeof(double));
 	dk4p = (double *)aligned_alloc(AVX,(kvol+halo)*sizeof(double));
 	dk4m_f = (float *)aligned_alloc(AVX,(kvol+halo)*sizeof(float));
@@ -390,8 +394,8 @@ int main(int argc, char *argv[]){
 			Complex_f *R=mkl_malloc(kfermHalo*sizeof(Complex_f),AVX);
 			Complex_f *R1_f=mkl_malloc(kferm*sizeof(Complex_f),AVX);
 #else
-			Complex *R=aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
-			Complex *R1_f=aligned_alloc(AVX,kferm*sizeof(Complex_f));
+			Complex_f *R=aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
+			Complex_f *R1_f=aligned_alloc(AVX,kferm*sizeof(Complex_f));
 #endif
 			//Multiply the dimension of R by 2 because R is complex
 			//The FORTRAN code had two Gaussian routines.

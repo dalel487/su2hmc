@@ -81,7 +81,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 	Complex_f *x1_f=aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
 	Complex_f *x2_f=aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
 	Complex_f *X1_f=aligned_alloc(AVX,kferm2*sizeof(Complex_f));
-	Complex_f *r_f=mkl_malloc(AVX,kferm2*sizeof(Complex_f));
+	Complex_f *r_f=aligned_alloc(AVX,kferm2*sizeof(Complex_f));
 #endif
 	//Instead of copying element-wise in a loop, use memcpy.
 #ifdef __NVCC__
