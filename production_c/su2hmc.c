@@ -133,7 +133,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 #ifdef __NVCC__
 	cudaMemcpy(gamin,gamin_t,4*4*sizeof(int),cudaMemcpyHostToDevice);
 #else
-	memcpy(gamin,gamin_t,4*4*sizeof(Complex));
+	memcpy(gamin,gamin_t,4*4*sizeof(int));
 #endif
 	Complex	__attribute__((aligned(AVX)))	gamval_t[5][4] =	{{-I,-I,I,I},{-1,1,1,-1},{-I,I,I,-I},{1,1,1,1},{1,1,-1,-1}};
 	//Each gamma matrix is rescaled by akappa by flattening the gamval array
