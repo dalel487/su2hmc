@@ -107,7 +107,7 @@ extern cublasStatus_t cublas_status;
 #error "npz should be a divisor of nz"
 #endif
 
-#define	npt	1
+#define	npt	2
 #if(npt<1)
 #error "npt is expected it to be greater than or equal to 1"
 #elif(nt%npt!=0)
@@ -117,7 +117,7 @@ extern cublasStatus_t cublas_status;
 #define	nproc	(npx*npy*npz*npt)
 
 //Number of threads for OpenMP, which can be overwritten at runtime
-#define	nthreads	16
+#define	nthreads	8
 
 //    Existing parameter definitions.
 #define	ksizex	(nx/npx)

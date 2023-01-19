@@ -45,7 +45,7 @@ TMP=	$(MOD) $(EDT) core
 -include $(DEPS)
 all:	$(EXE)
 
-profiler:	CFLAGS += -g -D_DEBUG
+profiler:	CFLAGS += -g #-D_DEBUG
 profiler:	release
 
 release:	CFLAGS +=  -O3  -inline-level=2\
