@@ -1153,13 +1153,14 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 	int device=-1;
 	cudaGetDevice(&device);
 	Complex *xi,*R1,*Phi,*X0,*X1;
-	Complex_f *X0_f, *X1_f, *xi_f, *R1_f;
+	Complex_f *X0_f, *X1_f, *xi_f, *R1_f, *Phi_f;
 	double *dSdpi,*pp;
 	cudaMallocManaged(&R1,kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&xi,kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&R1_f,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged(&xi_f,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged(&Phi,kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&Phi_f,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged(&X0,kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&X1,kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&X0_f,kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
@@ -1172,6 +1173,7 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 	Complex_f *R1_f= mkl_malloc(kfermHalo*sizeof(Complex_f),AVX);
 	Complex_f *xi_f= mkl_malloc(kfermHalo*sizeof(Complex_f),AVX);
 	Complex *Phi= mkl_malloc(nf*kfermHalo*sizeof(Complex),AVX); 
+	Complex_f *Phi_f= mkl_malloc(nf*kfermHalo*sizeof(Complex_f),AVX); 
 	Complex *X0= mkl_malloc(nf*kferm2Halo*sizeof(Complex),AVX); 
 	Complex *X1= mkl_malloc(kferm2Halo*sizeof(Complex),AVX); 
 	double *pp = mkl_malloc(kmomHalo*sizeof(double), AVX);
@@ -1182,8 +1184,9 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 	Complex *R1= aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 	Complex *xi= aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 	Complex_f *R1_f= aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
-	Complex_f *xi_F= aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
-	Phi= aligned_alloc(AVX,nf*kfermHalo*sizeof(Complex)); 
+	Complex_f *xi_f= aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
+	Complex Phi= aligned_alloc(AVX,nf*kfermHalo*sizeof(Complex)); 
+	Complex_f Phi_f= aligned_alloc(AVX,nf*kfermHalo*sizeof(Complex_f)); 
 	Complex *X0= aligned_alloc(AVX,nf*kferm2Halo*sizeof(Complex)); 
 	Complex *X1= aligned_alloc(AVX,kferm2Halo*sizeof(Complex)); 
 	double *pp = aligned_alloc(AVX,kmomHalo*sizeof(double));
@@ -1264,16 +1267,39 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 		}
 		Reunitarise(u11t,u12t);
 		Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
-#pragma omp parallel 
+#if (defined(USE_RAN2)||defined(__RANLUX__)||!defined(__INTEL_MKL__))
+		Gauss_z(R1, kferm, 0, 1/sqrt(2));
+		Gauss_z(Phi, kferm, 0, 1/sqrt(2));
+		Gauss_z(xi, kferm, 0, 1/sqrt(2));
+		Gauss_c(R1_f, kferm, 0, 1/sqrt(2));
+		Gauss_c(Phi_f, kferm, 0, 1/sqrt(2));
+		Gauss_c(xi_f, kferm, 0, 1/sqrt(2));
+#else
+		vsRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, R1_f, 0, 1/sqrt(2));
+		vsRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, Phi_f, 0, 1/sqrt(2));
+		vsRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, xi_f, 0, 1/sqrt(2));
+		vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, R1, 0, 1/sqrt(2));
+		vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, Phi, 0, 1/sqrt(2));
+		vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, xi, 0, 1/sqrt(2));
+#endif
+#pragma omp parallel
 		{
-#pragma omp for simd aligned(R1,Phi,xi:AVX) nowait
-			for(int i=0; i<kferm; i++){
-				R1[i]=0.5; Phi[i]=0.5;xi[i]=0.5;
-			}
-#pragma omp for simd aligned(X0,X1:AVX) nowait
-			for(int i=0; i<kferm2; i++){
-				X0[i]=0.5;
-				X1[i]=0.5;
+#pragma omp sections
+			{
+#pragma omp section
+				{
+#if (defined(USE_RAN2)||defined(__RANLUX__)||!defined(__INTEL_MKL__))
+					Gauss_z(X0, kferm2, 0, 1/sqrt(2));
+					Gauss_z(X1, kferm2, 0, 1/sqrt(2));
+					Gauss_c(X0_f, kferm2, 0, 1/sqrt(2));
+					Gauss_c(X1_f, kferm2, 0, 1/sqrt(2));
+#else
+					vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm2, X0, 0, 1/sqrt(2));
+					vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm2, X1, 0, 1/sqrt(2));
+					vsRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm2, X0_f, 0, 1/sqrt(2));
+					vsRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm2, X1_f, 0, 1/sqrt(2));
+#endif
+				}
 			}
 #pragma omp for simd aligned(dSdpi:AVX) nowait
 			for(int i=0; i<kmom; i++)
@@ -1437,9 +1463,9 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 				fclose(output_old);fclose(output_f_old);
 				Hdslash(X1,X0,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
 				Hdslash_f(X1_f,X0_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,akappa);
-				#ifdef __NVCC__
+#ifdef __NVCC__
 				cudaDeviceSynchronise();
-				#endif
+#endif
 				output = fopen("hdslash", "w");	output_f = fopen("hdslash_f", "w");
 				for(int i = 0; i< kferm2; i+=8){
 					fprintf(output, "%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n\n",
@@ -1495,9 +1521,9 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 				}
 				Hdslashd(X1,X0,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
 				Hdslashd_f(X1_f,X0_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,akappa);
-				#ifdef __NVCC__
+#ifdef __NVCC__
 				cudaDeviceSynchronise();
-				#endif
+#endif
 				output = fopen("hdslashd", "w");	output_f = fopen("hdslashd_f", "w");
 				for(int i = 0; i< kferm2; i+=8){
 					fprintf(output, "%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n\n",
@@ -1566,21 +1592,21 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 					fprintf(output_old, "%f\t%f\t%f\t%f\n", dSdpi[i], dSdpi[i+1], dSdpi[i+2], dSdpi[i+3]);
 					fprintf(output_old, "%f\t%f\t%f\t%f\n", dSdpi[i+4], dSdpi[i+5], dSdpi[i+6], dSdpi[i+7]);
 					fprintf(output_old, "%f\t%f\t%f\t%f\n\n", dSdpi[i+8], dSdpi[i+9], dSdpi[i+10], dSdpi[i+11]);
-					}
+				}
 				fclose(output_old);	
-				#ifdef __NVCC__
+#ifdef __NVCC__
 				cudaMemPrefetchAsync(dSdpi,kmom*sizeof(double),device,NULL);
-				#endif
+#endif
 				Gauge_force(dSdpi,u11t,u12t,iu,id,beta);
-				#ifdef __NVCC__
+#ifdef __NVCC__
 				cudaDeviceSynchronise();
-				#endif
+#endif
 				output = fopen("Gauge_Force","w");
 				for(int i = 0; i< kmom; i+=12){
 					fprintf(output, "%f\t%f\t%f\t%f\n", dSdpi[i], dSdpi[i+1], dSdpi[i+2], dSdpi[i+3]);
 					fprintf(output, "%f\t%f\t%f\t%f\n", dSdpi[i+4], dSdpi[i+5], dSdpi[i+6], dSdpi[i+7]);
 					fprintf(output, "%f\t%f\t%f\t%f\n\n", dSdpi[i+8], dSdpi[i+9], dSdpi[i+10], dSdpi[i+11]);
-					}
+				}
 				fclose(output);	
 				break;
 
