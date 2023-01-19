@@ -44,7 +44,7 @@ extern int pd[ndim] __attribute__((aligned(AVX)));
 
 //MPI Stuff
 extern MPI_Comm comm ;
-extern int request;
+extern MPI_Request request;
 
 extern int *pcoord;
 extern int pstart[ndim][nproc] __attribute__((aligned(AVX)));

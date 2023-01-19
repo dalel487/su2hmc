@@ -247,14 +247,14 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 			cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&blasa,(cuDoubleComplex *)X1,1,(cuDoubleComplex *)(X0+na*kferm2),1);
 			//HDslash launches a different stream so we need a barrieer
 			cudaDeviceSynchronise();
-#elif (defined __INTEL_MKL__ || defined AMD_BLAS)
+#elif (defined __INTEL_MKL__)
 			Complex blasa=2.0; Complex blasb=-1.0;
 			//This is not a general BLAS Routine. BLIS and MKl support it
 			//CUDA and GSL does not support it
 			cblas_zaxpby(kferm2, &blasa, X1, 1, &blasb, X0+na*kferm2, 1); 
 #elif defined USE_BLAS
-			Complex blasa=2.0; Complex blasb=-1.0;
-			cblas_zdscal(kferm2,&blasb,X0+na*kferm2,1);
+			Complex blasa=2.0; double blasb=-1.0;
+			cblas_zdscal(kferm2,blasb,X0+na*kferm2,1);
 			cblas_zaxpy(kferm2,&blasa,X1,1,X0+na*kferm2,1);
 #else
 #ifdef _OPENACC

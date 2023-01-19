@@ -108,7 +108,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	//If the conjugate gradient fails to converge for some reason, restart it.
 	//That's causing issues with NaN's. Plan B is to not record the measurements.
 	if(Congradp(0, res, Phi, R1,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,itercg)==ITERLIM){
-		return ITERLIM;
+		//return ITERLIM;
 		//itercg=0;
 		//if(!rank) fprintf(stderr, "Restarting conjugate gradient from %s\n", funcname);
 		//Congradp(0, res, Phi, R1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,itercg);

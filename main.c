@@ -220,6 +220,10 @@ int main(int argc, char *argv[]){
 	id = (unsigned int*)aligned_alloc(AVX,ndim*kvol*sizeof(int));
 	iu = (unsigned int*)aligned_alloc(AVX,ndim*kvol*sizeof(int));
 
+	int	*gamin = (int *)aligned_alloc(AVX,4*4*sizeof(int));
+	Complex	*gamval=(Complex *)aligned_alloc(AVX,5*4*sizeof(Complex));
+	Complex_f *gamval_f=(Complex_f *)aligned_alloc(AVX,5*4*sizeof(Complex_f));;
+
 	dk4m = (double *)aligned_alloc(AVX,(kvol+halo)*sizeof(double));
 	dk4p = (double *)aligned_alloc(AVX,(kvol+halo)*sizeof(double));
 	dk4m_f = (float *)aligned_alloc(AVX,(kvol+halo)*sizeof(float));
@@ -404,8 +408,8 @@ int main(int argc, char *argv[]){
 			Complex_f *R=mkl_malloc(kfermHalo*sizeof(Complex_f),AVX);
 			Complex_f *R1_f=mkl_malloc(kferm*sizeof(Complex_f),AVX);
 #else
-			Complex *R=aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
-			Complex *R1_f=aligned_alloc(AVX,kferm*sizeof(Complex_f));
+			Complex_f *R=aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
+			Complex_f *R1_f=aligned_alloc(AVX,kferm*sizeof(Complex_f));
 #endif
 			//Multiply the dimension of R by 2 because R is complex
 			//The FORTRAN code had two Gaussian routines.
@@ -772,6 +776,9 @@ int main(int argc, char *argv[]){
 	cudaFree(X0); cudaFree(X1); cudaFree(u11); cudaFree(u12);
 	cudaFree(id); cudaFree(iu); cudaFree(hd); cudaFree(hu);
 	cudaFree(dk4m_f); cudaFree(dk4p_f); cudaFree(u11t_f); cudaFree(u12t_f);
+	cudaFree(h1u); cudaFree(h1d); cudaFree(halosize);
+	cudaFree(gamin); cudaFree(gamval); cudaFree(gamval_f);
+	cudaFree(pcoord);
 	cublasDestroy(cublas_handle);
 #elif defined __INTEL_MKL__
 	mkl_free_buffers();
@@ -781,17 +788,23 @@ int main(int argc, char *argv[]){
 	mkl_free(id); mkl_free(iu); mkl_free(hd); mkl_free(hu);
 	mkl_free(dk4m_f); mkl_free(dk4p_f); mkl_free(u11t_f); mkl_free(u12t_f);
 	mkl_free(h1u); mkl_free(h1d); mkl_free(halosize);
-	mkl_free(pcoord);	mkl_free_buffers();
+	mkl_free(gamin); mkl_free(gamval); mkl_free(gamval_f);
+	mkl_free(pcoord);
 #if (!defined  __RANLUX__&&!defined USE_RAN2)
 	vslDeleteStream(&stream);
 #endif
 #else
-	free(dk4m); free(dk4p); free(R1); free(dSdpi); free(pp); free(Phi);
-	free(u11t); free(u12t); free(X0); free(X1);
-	free(u11); free(u12); free(id); free(iu); free(hd); free(hu);
+	free(dk4m); free(dk4p); free(R1); free(dSdpi); free(pp);
+	free(Phi); free(u11t); free(u12t);
+	free(X0); free(X1); free(u11); free(u12);
+	free(id); free(iu); free(hd); free(hu);
 	free(dk4m_f); free(dk4p_f); free(u11t_f); free(u12t_f);
 	free(h1u); free(h1d); free(halosize);
+	free(gamin); free(gamval); free(gamval_f);
 	free(pcoord);
+#endif
+#ifdef __RANLUX__
+	gsl_rng_free(ranlux_instd);
 #endif
 #if (defined SA3AT)
 	if(!rank){
@@ -819,6 +832,8 @@ int main(int argc, char *argv[]){
 		fclose(output);
 	}
 #if(nproc>1)
+	//Ensure writing is done before finalising just in case finalise segfaults and crashes the other ranks mid-write
+	MPI_Barrier(comm);
 	MPI_Finalise();
 #endif
 	fflush(stdout);

@@ -133,7 +133,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 #ifdef __NVCC__
 	cudaMemcpy(gamin,gamin_t,4*4*sizeof(int),cudaMemcpyHostToDevice);
 #else
-	memcpy(gamin,gamin_t,4*4*sizeof(Complex));
+	memcpy(gamin,gamin_t,4*4*sizeof(int));
 #endif
 	Complex	__attribute__((aligned(AVX)))	gamval_t[5][4] =	{{-I,-I,I,I},{-1,1,1,-1},{-I,I,I,-I},{1,1,1,1},{1,1,-1,-1}};
 	//Each gamma matrix is rescaled by akappa by flattening the gamval array
@@ -157,9 +157,9 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 		gamval_f[i]=(Complex_f)gamval[i];
 #endif
 #ifdef _OPENACC
-#pragma acc enter data copyin(gamval[0:5][0:4], gamval_f[0:5][0:4], gamin[0:4][0:4])
+#pragma acc enter data copyin(gamval[0:20], gamval_f[0:20], gamin[0:16])
 #else
-#pragma omp target enter data map(to:gamval[0:5][0:4], gamval_f[0:5][0:4], gamin[0:4][0:4]) nowait
+#pragma omp target enter data map(to:gamval[0:20], gamval_f[0:20], gamin[0:16]) nowait
 #endif
 	if(iread){
 		if(!rank) printf("Calling Par_sread() for configuration: %i\n", iread);

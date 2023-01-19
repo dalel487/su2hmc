@@ -81,7 +81,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 	Complex_f *x1_f=aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
 	Complex_f *x2_f=aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
 	Complex_f *X1_f=aligned_alloc(AVX,kferm2*sizeof(Complex_f));
-	Complex_f *r_f=mkl_malloc(AVX,kferm2*sizeof(Complex_f));
+	Complex_f *r_f=aligned_alloc(AVX,kferm2*sizeof(Complex_f));
 #endif
 	//Instead of copying element-wise in a loop, use memcpy.
 #ifdef __NVCC__
@@ -244,7 +244,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 		cublasCaxpy(cublas_handle,kferm2,(cuComplex *)&a,(cuComplex *)r_f,1,(cuComplex *)p_f,1);
 		//p_f gets fed into hdslash_f so syncronise is a must
 		cudaDeviceSynchronise();
-#elif (defined __INTEL_MKL__ || AMD_BLAS)
+#elif (defined __INTEL_MKL__)
 		Complex_f a = 1.0;
 		Complex_f beta_f=(Complex_f)beta;
 		//There is cblas_?axpby in the MKL and AMD though, set a = 1 and b = β.
@@ -482,15 +482,15 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 		Complex_f a = 1.0;
 		cublasCaxpy(cublas_handle,kferm,(cuComplex *)&a,(cuComplex *)r_f,1,(cuComplex *)p_f,1);
 		cudaDeviceSynchronise();
-#elif (defined __INTEL_MKL__|| defined AMD_BLAS)
+#elif (defined __INTEL_MKL__)
 		Complex_f beta_f = (Complex_f)beta;
 		Complex_f a = 1;
 		cblas_caxpby(kferm, &a, r_f, 1, &beta_f,  p_f, 1);
 #elif	defined USE_BLAS
 		Complex_f beta_f = (Complex_f)beta;
-		cblas_cscal(cublas_handle,kferm,&beta_f,p_f,1);
-		Complex a = 1.0;
-		cblas_caxpy(cublas_handle,kferm,&a,r_f,1,p_f,1);
+		cblas_cscal(kferm,&beta_f,p_f,1);
+		Complex_f a = 1.0;
+		cblas_caxpy(kferm,&a,r_f,1,p_f,1);
 #else
 #pragma omp parallel for simd aligned(r_f,p_f:AVX)
 		for(int i=0; i<kferm; i++)

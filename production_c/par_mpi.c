@@ -7,13 +7,13 @@
 
 #if(nproc>1)
 MPI_Comm comm = MPI_COMM_WORLD;
+MPI_Request request;
 #endif
 
 int *pcoord;
 int pstart[ndim][nproc] __attribute__((aligned(AVX)));
 int pstop [ndim][nproc] __attribute__((aligned(AVX)));
 int rank, size;
-int request;
 int pu[ndim] __attribute__((aligned(AVX)));
 int pd[ndim] __attribute__((aligned(AVX))); 
 int Par_begin(int argc, char *argv[]){
@@ -31,7 +31,7 @@ int Par_begin(int argc, char *argv[]){
 
 	//TODO: Remove as much non-MPI stuff from here as possible
 	char *funcname = "Par_begin";
-	int size, commcart;
+	int size;
 #if(nproc>1)
 	if(MPI_Init(&argc, &argv)){
 		fprintf(stderr, "Error %i in %s: Failed to initialise MPI\nExiting\n\n", NO_MPI_INIT, funcname);
@@ -80,6 +80,7 @@ int Par_begin(int argc, char *argv[]){
 	int reorder = false;
 	//Declare the topology
 #if(nproc>1)
+	MPI_Comm commcart;
 	MPI_Cart_create(comm, ndim, cartsize, periods, reorder, &commcart);
 #endif
 
