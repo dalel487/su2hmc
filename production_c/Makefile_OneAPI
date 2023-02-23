@@ -5,10 +5,10 @@ IFLAGS=	-I../INCLUDE
 
 CFLAGS=     $(IFLAGS) -qmkl -std=gnu11 -ipo -qopt-zmm-usage=high -MD\
 			-xSKYLAKE -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE\
-			-static-intel -static-libgcc -DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
+			 -DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
 			-qopenmp -qopenmp-simd -DSA3AT 
 
-LFLAGS=	-L${MKLROOT}/lib/intel64 -limf -Bstatic -lgsl
+LFLAGS=	-L${MKLROOT}/lib/intel64 -limf -lgsl
 
 EXE=	su2hmc_OneAPI
 

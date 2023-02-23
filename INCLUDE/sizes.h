@@ -58,7 +58,7 @@ extern cublasStatus_t cublas_status;
 #define	FILELEN	64
 // Common block definition for parallel variables
 
-#define	nx 8
+#define	nx 16
 #if(nx<1)
 #error "nx is expected it to be greater than or equal to 1"
 #endif
@@ -75,7 +75,7 @@ extern cublasStatus_t cublas_status;
 #error "nz is expected it to be greater than or equal to 1"
 #endif
 
-#define	nt	16
+#define	nt	32
 #if(nt<1)
 #error "nt is expected it to be greater than or equal to 1"
 #endif
@@ -83,7 +83,7 @@ extern cublasStatus_t cublas_status;
 #define	gvol    (nx*ny*nz*nt)
 #define	gvol3   (nx*ny*nz)
 
-#define	npx	1
+#define	npx	4
 #if(npx<1)
 #error "npx is expected it to be greater than or equal to 1"
 #elif(nx%npx!=0)
@@ -107,7 +107,7 @@ extern cublasStatus_t cublas_status;
 #error "npz should be a divisor of nz"
 #endif
 
-#define	npt	2
+#define	npt	8
 #if(npt<1)
 #error "npt is expected it to be greater than or equal to 1"
 #elif(nt%npt!=0)
@@ -117,7 +117,7 @@ extern cublasStatus_t cublas_status;
 #define	nproc	(npx*npy*npz*npt)
 
 //Number of threads for OpenMP, which can be overwritten at runtime
-#define	nthreads	8
+#define	nthreads	1
 
 //    Existing parameter definitions.
 #define	ksizex	(nx/npx)
