@@ -124,7 +124,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 #pragma omp target enter data map(to:dk4p[0:kvol+halo], dk4m_f[0:kvol+halo],\
 		dk4p_f[0:kvol+halo],dk4m[0:kvol+halo]) nowait
 #endif
-
+//TODO: Change gamin[4] to gamin[11] and gamval[5] to gamval[11]
 	int __attribute__((aligned(AVX))) gamin_t[4][4] =	{{3,2,1,0},{3,2,1,0},{2,3,0,1},{2,3,0,1}};
 	//Gamma Matrices in Chiral Representation
 	//Gattringer and Lang have a nice crash course in appendix A.2 of

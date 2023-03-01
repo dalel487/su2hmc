@@ -1268,6 +1268,7 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 		Reunitarise(u11t,u12t);
 		Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
 #if (defined(USE_RAN2)||defined(__RANLUX__)||!defined(__INTEL_MKL__))
+		Gauss_d(pp,kmomHalo,0,1);
 		Gauss_z(R1, kferm, 0, 1/sqrt(2));
 		Gauss_z(Phi, kferm, 0, 1/sqrt(2));
 		Gauss_z(xi, kferm, 0, 1/sqrt(2));
@@ -1491,8 +1492,8 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 				//NOTE: Each line corresponds to one lattice direction, in the form of colour 0, colour 1.
 				//Each block to one lattice site
 				for(int i = 0; i< kferm2; i++){
-					X0_f[i]=(float)X0[i];
-					X1_f[i]=(float)X1[i];
+					X0_f[i]=(Complex_f)X0[i];
+					X1_f[i]=(Complex_f)X1[i];
 				}
 #ifdef __NVCC__
 				cudaMemPrefetchAsync(X0,kferm2*sizeof(Complex),device,NULL);
@@ -1545,8 +1546,31 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 				}
 				fclose(output);fclose(output_f);
 				break;
-				//Two force cases because of the flag
 			case(4):	
+				output_old = fopen("hamiltonian_old", "w");
+				for(int i = 0; i< kferm2; i+=8){
+					fprintf(output_old, "%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n\n",
+							creal(X1[i]),cimag(X1[i]),creal(X1[i+1]),cimag(X1[i+1]),
+							creal(X1[i+2]),cimag(X1[i+2]),creal(X1[i+3]),cimag(X1[i+3]),
+							creal(X1[i+4]),cimag(X1[i+4]),creal(X1[i+5]),cimag(X1[i+5]),
+							creal(X1[i+6]),cimag(X1[i+6]),creal(X1[i+7]),cimag(X1[i+7]));
+				}
+				fclose(output_old);
+				output = fopen("hamiltonian", "w");
+				double h,s,ancgh;  h=s=ancgh=0;
+				Hamilton(&h,&s,rescgg,pp,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,\
+						akappa,beta,&ancgh);
+				for(int i = 0; i< kferm2; i+=8){
+					fprintf(output, "%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n\n",
+							creal(X1[i]),cimag(X1[i]),creal(X1[i+1]),cimag(X1[i+1]),
+							creal(X1[i+2]),cimag(X1[i+2]),creal(X1[i+3]),cimag(X1[i+3]),
+							creal(X1[i+4]),cimag(X1[i+4]),creal(X1[i+5]),cimag(X1[i+5]),
+							creal(X1[i+6]),cimag(X1[i+6]),creal(X1[i+7]),cimag(X1[i+7]));
+				}
+				fclose(output);
+				break;
+				//Two force cases because of the flag
+			case(5):	
 				output_old = fopen("force_0_old", "w");
 				for(int i = 0; i< kmom; i+=4)
 					fprintf(output_old, "%f\t%f\t%f\t%f\n", dSdpi[i], dSdpi[i+1], dSdpi[i+2], dSdpi[i+3]);
@@ -1558,7 +1582,7 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 					fprintf(output, "%f\t%f\t%f\t%f\n", dSdpi[i], dSdpi[i+1], dSdpi[i+2], dSdpi[i+3]);
 				fclose(output);
 				break;
-			case(5):	
+			case(6):	
 				output_old = fopen("force_1_old", "w");
 				for(int i = 0; i< kmom; i+=4)
 					fprintf(output_old, "%f\t%f\t%f\t%f\n", dSdpi[i], dSdpi[i+1], dSdpi[i+2], dSdpi[i+3]);
