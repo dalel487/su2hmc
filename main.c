@@ -350,8 +350,8 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 	cudaMallocManaged(&R1, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMalloc(&Phi, nf*kferm*sizeof(Complex));
-	cudaMallocManaged(&X0, nf*kferm2*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMalloc(&X1, kferm2Halo*sizeof(Complex));
+	cudaMalloc(&X0, nf*kferm2*sizeof(Complex));
+	cudaMallocManaged(&X1, kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&pp, kmom*sizeof(double),cudaMemAttachGlobal);
 	cudaMalloc(&dSdpi, kmom*sizeof(double));
 #elif defined __INTEL_MKL__

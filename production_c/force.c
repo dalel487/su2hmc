@@ -198,8 +198,6 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 #ifdef __NVCC__
 	int device=-1;
 	cudaGetDevice(&device);
-	cudaMemPrefetchAsync(Phi,nf*kferm*sizeof(Complex),device,NULL);
-	cudaMemPrefetchAsync(X0,nf*kferm2Halo*sizeof(Complex),device,NULL);
 #endif
 #pragma acc update device(dSdpi[0:kmom])
 #ifndef NO_GAUGE
@@ -217,7 +215,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 #endif
 	for(int na = 0; na<nf; na++){
 		#ifdef __NVCC__
-		cudaMemcpy(X1,X0+na*kferm2,kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice);
+		cudaMemcpyAsync(X1,X0+na*kferm2,kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice,NULL);
 		#else
 		memcpy(X1,X0+na*kferm2,kferm2*sizeof(Complex));
 		#endif

@@ -63,6 +63,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 	cudaMallocManaged((void **)&x1_f, kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&x2_f, kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
 #else
+//First two have halo exchanges, so getting NCCL working is important
 	cudaMalloc((void **)&p_f, kferm2Halo*sizeof(Complex_f));
 	cudaMalloc((void **)&x1_f, kferm2Halo*sizeof(Complex_f));
 	cudaMalloc((void **)&x2_f, kferm2Halo*sizeof(Complex_f));
