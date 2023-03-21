@@ -40,10 +40,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 	const double resid = kferm2*res*res;
 	//The κ^2 factor is needed to normalise the fields correctly
 	//jqq is the diquark condensate and is global scope.
-#ifdef __NVCC__
-	__managed__
-#endif
-		Complex_f fac_f = conj(jqq)*jqq*akappa*akappa;
+	const Complex_f fac_f = conj(jqq)*jqq*akappa*akappa;
 	//These were evaluated only in the first loop of niterx so we'll just do it outside of the loop.
 	//n suffix is numerator, d is denominator
 	double alphan=1;
@@ -63,7 +60,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 	cudaMallocManaged((void **)&x1_f, kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&x2_f, kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
 #else
-//First two have halo exchanges, so getting NCCL working is important
+	//First two have halo exchanges, so getting NCCL working is important
 	cudaMalloc((void **)&p_f, kferm2Halo*sizeof(Complex_f));
 	cudaMalloc((void **)&x1_f, kferm2Halo*sizeof(Complex_f));
 	cudaMalloc((void **)&x2_f, kferm2Halo*sizeof(Complex_f));
@@ -86,8 +83,9 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 #endif
 	//Instead of copying element-wise in a loop, use memcpy.
 #ifdef __NVCC__
-	cuComplex_convert(r_f,r,kferm2,true,dimBlock,dimGrid);
 	cuComplex_convert(X1_f,X1,kferm2,true,dimBlock,dimGrid);
+	cuComplex_convert(r_f,r,kferm2,true,dimBlock,dimGrid);
+	cudaMemcpy(p_f, X1_f, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
 #else
 #pragma omp parallel for simd
 	for(int i=0;i<kferm2;i++){
@@ -101,10 +99,6 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 	//if statements quicker to type
 	double betan;
 #ifdef _DEBUG
-#ifdef __NVCC__
-	cudaDeviceSynchronise();
-	cudaMemcpy(p_f, X1_f, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
-#endif
 	for(int i=0;i<5;i++)
 		printf("gamval row %d= %e+I*%e\t %e+I*%e\t %e+I*%e\t %e+I*%e\n",i,
 				creal(gamval_f[i*ndim+0]),cimag(gamval_f[i*ndim+0]),creal(gamval_f[i*ndim+1]),cimag(gamval_f[i*ndim+1]),
@@ -407,9 +401,8 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 			cudaDeviceSynchronise();
 			alphad = alphad_f*alphad_f;
 #elif defined USE_BLAS
-			//Was float
-			float alphad_f = cblas_scnrm2(kferm, x1_f, 1);
-			alphad = alphad_f*alphad_f;
+			alphad = (double)cblas_scnrm2(kferm, x1_f, 1);
+			alphad = alphad*alphad;
 #else
 			alphad=0;
 			for(int i = 0; i<kferm; i++)
@@ -458,7 +451,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 		Complex_f alpha_m=-alpha;
 		cblas_caxpy(kferm,(Complex_f*) &alpha_m,(Complex_f*) x2_f, 1,(Complex_f*) r_f, 1);
 		//r*.r
-		betan = cblas_scnrm2(kferm, (Complex_f*)r_f,1);
+		betan = (double)cblas_scnrm2(kferm, (Complex_f*)r_f,1);
 		//Gotta square it to "undo" the norm
 		betan*=betan;
 #else
