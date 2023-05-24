@@ -92,9 +92,10 @@ int Par_begin(int argc, char *argv[]){
 #endif
 	//Get coordinates of processors in the grid
 #ifdef __INTEL_MKL__
-	pcoord = (int*)mkl_malloc(ndim*nproc*sizeof(int),AVX);
+	pcoord = (int*)mkl_calloc(ndim*nproc,sizeof(int),AVX);
 #else
 	pcoord = (int*)aligned_alloc(AVX,ndim*nproc*sizeof(int));
+	memset(pcoord,0,sizeof(int)*ndim*nproc);
 #endif
 #if(nproc>1)
 	for(int iproc = 0; iproc<nproc; iproc++){
