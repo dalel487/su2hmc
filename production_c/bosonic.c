@@ -137,19 +137,16 @@ double Polyakov(Complex *u11t, Complex *u12t){
 	Complex *Sigma11,*Sigma12;
 	cudaMallocManaged((void **)&Sigma11,kvol3*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&Sigma12,kvol3*sizeof(Complex),cudaMemAttachGlobal);
-#elif defined __INTEL_MKL__
-	Complex *Sigma11 = (Complex *)mkl_malloc(kvol3*sizeof(Complex),AVX);
-	Complex *Sigma12 = (Complex *)mkl_malloc(kvol3*sizeof(Complex),AVX);
 #else
 	Complex *Sigma11 = aligned_alloc(AVX,kvol3*sizeof(Complex));
 	Complex *Sigma12 = aligned_alloc(AVX,kvol3*sizeof(Complex));
 #endif
 
-//#ifdef __NVCC__
-//	cublasZcopy(cublas_handle,kvol3, (cuDoubleComplex *)(u11t+3), ndim, (cuDoubleComplex *)Sigma11, 1);
-//	cublasZcopy(cublas_handle,kvol3, (cuDoubleComplex *)(u12t+3), ndim, (cuDoubleComplex *)Sigma12, 1);
-//#elif (defined __INTEL_MKL__ || defined USE_BLAS)
-#if (defined __INTEL_MKL__ || defined USE_BLAS)
+#ifdef __NVCC__
+	cublasZcopy(cublas_handle,kvol3, (cuDoubleComplex *)(u11t+3), ndim, (cuDoubleComplex *)Sigma11, 1);
+	cublasZcopy(cublas_handle,kvol3, (cuDoubleComplex *)(u12t+3), ndim, (cuDoubleComplex *)Sigma12, 1);
+#elif defined USE_BLAS
+//#if (defined USE_BLAS)
 	cblas_zcopy(kvol3, u11t+3, ndim, Sigma11, 1);
 	cblas_zcopy(kvol3, u12t+3, ndim, Sigma12, 1);
 #else
@@ -233,8 +230,6 @@ double Polyakov(Complex *u11t, Complex *u12t){
 #endif
 #ifdef __NVCC__
 	cudaFree(Sigma11); cudaFree(Sigma12);
-#elif defined __INTEL_MKL__
-	mkl_free(Sigma11); mkl_free(Sigma12);
 #else
 	free(Sigma11); free(Sigma12);
 #endif

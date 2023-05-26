@@ -99,6 +99,7 @@ __global__ void cuPolyakov(Complex *Sigma11, Complex * Sigma12, Complex * u11t,C
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	for(int it=1;it<ksizet;it++)
+	//RACE CONDITION? gsize*bsize?
 		for(int i=threadId;i<kvol3;i+=gsize*bsize){
 			int indexu=it*kvol3+i;
 			Complex a11=Sigma11[i]*u11t[indexu*ndim+3]-Sigma12[i]*conj(u12t[indexu*ndim+3]);
