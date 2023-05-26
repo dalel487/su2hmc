@@ -39,7 +39,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 	 * Complex *u11:			First colour field
 	 * Complex *u12:			Second colour field
 	 * Complex *u11t:			First colour trial field
-	 * Complex *u11t:			Second colour trial field
+	 * Complex *u12t:			Second colour trial field
 	 * Complex_f *u11t_f:	First float trial field
 	 * Complex_f *u12t_f:	Second float trial field
 	 * double	*dk4m:
@@ -282,8 +282,6 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 #ifdef __NVCC__
 	Complex *smallPhi;
 	cudaMalloc((void **)&smallPhi,kferm2*sizeof(Complex));
-#elif defined __INTEL_MKL__
-	Complex *smallPhi = mkl_malloc(kferm2*sizeof(Complex),AVX);
 #else
 	Complex *smallPhi = aligned_alloc(AVX,kferm2*sizeof(Complex));
 #endif
@@ -320,18 +318,16 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 			hf+=creal(conj(smallPhi[j])*X1[j]);
 #endif
 	}
-#ifdef __NVCC__
-	cudaFree(smallPhi);
-#elif defined __INTEL_MKL__
-	mkl_free(smallPhi);
-#else
-	free(smallPhi);
-#endif
 	//hg was summed over inside of Average_Plaquette.
 #if(nproc>1)
 	Par_dsum(&hp); Par_dsum(&hf);
 #endif
 	*s=hg+hf; *h=(*s)+hp;
+#ifdef __NVCC__
+	cudaFree(smallPhi);
+#else
+	free(smallPhi);
+#endif
 #ifdef _DEBUG
 	if(!rank)
 		printf("hg=%.5e; hf=%.5e; hp=%.5e; h=%.5e\n", hg, hf, hp, *h);

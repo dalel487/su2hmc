@@ -68,12 +68,6 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 	//	cudaMallocManaged(&x2, kferm2*sizeof(Complex),cudaMemAttachGlobal);
 	//	cudaMemAdvise(x2,kferm2*sizeof(Complex),cudaMemAdviseSetPreferredLocation,device);
 	//	cudaMemPrefetchAsync(x2,kferm2*sizeof(Complex),device,NULL);
-#elif defined __INTEL_MKL__
-	Complex_f *p_f  = mkl_calloc(kferm2Halo,sizeof(Complex_f),AVX);
-	Complex_f *x2_f=mkl_calloc(kferm2Halo, sizeof(Complex_f), AVX);
-	Complex_f *x1_f=mkl_calloc(kferm2Halo, sizeof(Complex_f), AVX);
-	Complex_f *X1_f=mkl_malloc(kferm2*sizeof(Complex_f), AVX);
-	Complex_f *r_f=mkl_malloc(kferm2*sizeof(Complex_f), AVX);
 #else
 	Complex_f *p_f=aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
 	Complex_f *x1_f=aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
@@ -98,7 +92,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
 	//if statements quicker to type
 	double betan;
-#ifdef _DEBUG
+#ifdef _DEBUGCG
 	for(int i=0;i<5;i++)
 		printf("gamval row %d= %e+I*%e\t %e+I*%e\t %e+I*%e\t %e+I*%e\n",i,
 				creal(gamval_f[i*ndim+0]),cimag(gamval_f[i*ndim+0]),creal(gamval_f[i*ndim+1]),cimag(gamval_f[i*ndim+1]),
@@ -113,7 +107,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 		//		cudaMemPrefetchAsync(p,kferm2*sizeof(Complex),device,NULL);
 		//#endif
 		//x2 =  (M^†M)p 
-#ifdef _DEBUG
+#ifdef _DEBUGCG
 #ifdef __NVCC__
 		cudaDeviceSynchronise();
 #endif
@@ -121,7 +115,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 				creal(p_f[0]),creal(x1_f[0]),creal(x2_f[0]),creal(u11t[0]), creal(u12t[0]),dk4m[0],dk4p[0],creal(gamval_f[0]),cimag(gamval_f[0]));
 #endif
 		Hdslash_f(x1_f,p_f,u11t,u12t,iu,id,gamval_f,gamin,dk4m,dk4p,akappa);
-#ifdef _DEBUG
+#ifdef _DEBUGCG
 #ifdef __NVCC__
 		cudaDeviceSynchronise();
 #endif
@@ -129,7 +123,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 				creal(p_f[0]),creal(x1_f[0]),creal(x2_f[0]),creal(u11t[0]), creal(u12t[0]),dk4m[0],dk4p[0],creal(gamval_f[0]),cimag(gamval_f[0]));
 #endif
 		Hdslashd_f(x2_f,x1_f,u11t,u12t,iu,id,gamval_f,gamin,dk4m,dk4p,akappa);
-#ifdef _DEBUG
+#ifdef _DEBUGCG
 #ifdef __NVCC__
 		cudaDeviceSynchronise();
 #endif
@@ -257,7 +251,6 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 #ifdef __NVCC__
 	cuComplex_convert(X1_f,X1,kferm2,false,dimBlock,dimGrid);
 	cuComplex_convert(r_f,r,kferm2,false,dimBlock,dimGrid);
-	cudaDeviceSynchronise();
 #else
 	for(int i=0;i<kferm2;i++){
 		X1[i]=(Complex)X1_f[i];
@@ -265,9 +258,9 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 	}
 #endif
 #ifdef __NVCC__
-	cudaFree(x1_f);cudaFree(x2_f); cudaFree(p_f);cudaFree(r_f);cudaFree(X1_f);
-#elif defined __INTEL_MKL__
-	mkl_free(x1_f);mkl_free(x2_f); mkl_free(p_f);  mkl_free(r_f); mkl_free(X1_f);
+	cudaFree(x1_f);cudaFree(x2_f); cudaFree(p_f);
+	cudaDeviceSynchronise();
+	cudaFree(r_f);cudaFree(X1_f);
 #else
 	free(x1_f);free(x2_f); free(p_f);  free(r_f); free(X1_f);
 #endif
@@ -330,12 +323,6 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 	cudaMalloc((void **)&x2_f, kferm*sizeof(Complex_f));
 	cudaMalloc((void **)&xi_f, kferm*sizeof(Complex_f));
 #endif
-#elif defined __INTEL_MKL__
-	Complex_f *p_f  = mkl_malloc(kfermHalo*sizeof(Complex_f),AVX);
-	Complex_f *r_f  = mkl_malloc(kferm*sizeof(Complex_f),AVX);
-	Complex_f *x1_f	= mkl_malloc(kfermHalo*sizeof(Complex_f), AVX);
-	Complex_f *x2_f	= mkl_malloc(kferm*sizeof(Complex_f), AVX);
-	Complex_f *xi_f	= mkl_malloc(kferm*sizeof(Complex_f), AVX);
 #else
 	Complex_f *p_f  =	aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 	Complex_f *r_f  =	aligned_alloc(AVX,kferm*sizeof(Complex_f));
@@ -368,7 +355,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 	for((*itercg)=0; (*itercg)<=niterc; (*itercg)++){
 		//Don't overwrite on first run. 
 		//x2=(M^†)x1=(M^†)Mp
-#ifdef _DEBUG
+#ifdef _DEBUGCG
 #ifdef __NVCC__
 		cudaDeviceSynchronise();
 #endif
@@ -377,7 +364,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 		printf("κ=%.5e\n",akappa);
 #endif
 		Dslash_f(x1_f,p_f,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
-#ifdef _DEBUG
+#ifdef _DEBUGCG
 #ifdef __NVCC__
 		cudaDeviceSynchronise();
 #endif
@@ -385,7 +372,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 				creal(p_f[0]),creal(x1_f[0]),creal(x2_f[0]),dk4m[0],dk4p[0]);
 #endif
 		Dslashd_f(x2_f,x1_f,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
-#ifdef _DEBUG
+#ifdef _DEBUGCG
 #ifdef __NVCC__
 		cudaDeviceSynchronise();
 #endif
@@ -526,8 +513,6 @@ p_f[i]=(Complex_f)p[i];
 #endif
 #ifdef	__NVCC__
 	cudaFree(p_f); cudaFree(r_f);cudaFree(x1_f); cudaFree(x2_f); cudaFree(xi_f); 
-#elif defined __INTEL_MKL__
-	mkl_free(p_f); mkl_free(r_f); mkl_free(x1_f); mkl_free(x2_f); mkl_free(xi_f);
 #else
 	free(p_f); free(r_f); free(x1_f); free(x2_f); free(xi_f); 
 #endif

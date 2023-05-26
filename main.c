@@ -774,22 +774,18 @@ int main(int argc, char *argv[]){
 	cudaFree(dk4m); cudaFree(dk4p); cudaFree(R1); cudaFree(dSdpi); cudaFree(pp);
 	cudaFree(Phi); cudaFree(u11t); cudaFree(u12t);
 	cudaFree(X0); cudaFree(X1); cudaFree(u11); cudaFree(u12);
-	cudaFree(id); cudaFree(iu); cudaFree(hd); cudaFree(hu);
+	cudaFree(id); cudaFree(iu); 
 	cudaFree(dk4m_f); cudaFree(dk4p_f); cudaFree(u11t_f); cudaFree(u12t_f);
-	cudaFree(h1u); cudaFree(h1d); cudaFree(halosize);
 	cudaFree(gamin); cudaFree(gamval); cudaFree(gamval_f);
-	cudaFree(pcoord);
 	cublasDestroy(cublas_handle);
 #elif defined __INTEL_MKL__
 	mkl_free_buffers();
 	mkl_free(dk4m); mkl_free(dk4p); mkl_free(R1); mkl_free(dSdpi); mkl_free(pp);
 	mkl_free(Phi); mkl_free(u11t); mkl_free(u12t);
 	mkl_free(X0); mkl_free(X1); mkl_free(u11); mkl_free(u12);
-	mkl_free(id); mkl_free(iu); mkl_free(hd); mkl_free(hu);
+	mkl_free(id); mkl_free(iu);
 	mkl_free(dk4m_f); mkl_free(dk4p_f); mkl_free(u11t_f); mkl_free(u12t_f);
-	mkl_free(h1u); mkl_free(h1d); mkl_free(halosize);
 	mkl_free(gamin); mkl_free(gamval); mkl_free(gamval_f);
-	mkl_free(pcoord);
 #if (!defined  __RANLUX__&&!defined USE_RAN2)
 	vslDeleteStream(&stream);
 #endif
@@ -797,12 +793,17 @@ int main(int argc, char *argv[]){
 	free(dk4m); free(dk4p); free(R1); free(dSdpi); free(pp);
 	free(Phi); free(u11t); free(u12t);
 	free(X0); free(X1); free(u11); free(u12);
-	free(id); free(iu); free(hd); free(hu);
+	free(id); free(iu);
 	free(dk4m_f); free(dk4p_f); free(u11t_f); free(u12t_f);
-	free(h1u); free(h1d); free(halosize);
 	free(gamin); free(gamval); free(gamval_f);
-	free(pcoord);
 #endif
+
+#if defined __INTEL_MKL__
+	mkl_free(pcoord);	 mkl_free(hd); mkl_free(hu); mkl_free(h1u); mkl_free(h1d); mkl_free(halosize);
+#else
+	free(hd); free(hu);free(h1u); free(h1d); free(halosize); free(pcoord);
+#endif
+
 #ifdef __RANLUX__
 	gsl_rng_free(ranlux_instd);
 #endif

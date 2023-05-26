@@ -176,7 +176,7 @@ double Polyakov(Complex *u11t, Complex *u12t){
 	cudaMemPrefetchAsync(Sigma11,kvol3*sizeof(Complex),device,NULL);
 	cudaMemPrefetchAsync(Sigma12,kvol3*sizeof(Complex),device,NULL);
 	cuPolyakov(Sigma11,Sigma12,u11t,u12t,dimGrid,dimBlock);
-	cudaDeviceSynchronise();
+	cudaMemPrefetchAsync(Sigma11,kvol3*sizeof(Complex),device,NULL);
 #else
 #pragma acc enter data copyin(Sigma11[0:kvol3],Sigma12[0:kvol3])
 #pragma unroll
