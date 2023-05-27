@@ -677,7 +677,7 @@ int main(int argc, char *argv[]){
 									if(itraj==1)
 										fprintf(fortout, "pbp\tendenf\tdenf\n");
 									if(measure_check)
-										fprintf(fortout, "%e\t%e\t%e\n", nan(), nan(), nan());
+										fprintf(fortout, "%e\t%e\t%e\n", NAN, NAN, NAN);
 									else
 										fprintf(fortout, "%e\t%e\t%e\n", pbp, endenf, denf);
 									fclose(fortout);
@@ -720,7 +720,7 @@ int main(int argc, char *argv[]){
 									if(itraj==1)
 										fprintf(fortout, "Re(qq)\n");
 									if(measure_check)
-										fprintf(fortout, "%e\n", nan());
+										fprintf(fortout, "%e\n", NAN);
 									else
 										fprintf(fortout, "%e\n", creal(qq));
 									fclose(fortout);
