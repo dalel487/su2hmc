@@ -31,11 +31,12 @@ int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u
 	 * Zero on success, integer error code otherwise
 	 */
 	const char *funcname = "Average_Plaquette";
-	//Was a halo exchange here but moved it outside
-	//	The FORTRAN code used several consecutive loops to get the plaquette
-	//	Instead we'll just make the arrays variables and do everything in one loop
-	//	Should work since in the FORTRAN Sigma11[i] only depends on i components  for example
-	//Since the ν loop doesn't get called for μ=0 we'll start at μ=1
+	/*Was a halo exchange here but moved it outside
+	  The FORTRAN code used several consecutive loops to get the plaquette
+	  Instead we'll just make the arrays variables and do everything in one loop
+	  Should work since in the FORTRAN Sigma11[i] only depends on i components  for example
+	  Since the ν loop doesn't get called for μ=0 we'll start at μ=1
+	 */
 #ifdef __NVCC__
 	__managed__ double hgs = 0; __managed__ double hgt = 0;
 	cuAverage_Plaquette(&hgs, &hgt, u11t, u12t, iu,dimGrid,dimBlock);
@@ -45,18 +46,14 @@ int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u
 		for(int nu=0;nu<mu;nu++)
 			//Don't merge into a single loop. Makes vectorisation easier?
 			//Or merge into a single loop and dispense with the a arrays?
-#ifdef _OPENACC
-#pragma acc parallel loop reduction(+:hgs,hgt)
-#else
 #pragma omp parallel for simd aligned(u11t,u12t,iu:AVX) reduction(+:hgs,hgt)
-#endif
 			for(int i=0;i<kvol;i++){
 				//Save us from typing iu[mu+ndim*i] everywhere
 				switch(mu){
 					//Time component
 					case(ndim-1):	hgt -= SU2plaq(u11t,u12t,iu,i,mu,nu);
 										break;
-					//Space component
+										//Space component
 					default:	hgs -= SU2plaq(u11t,u12t,iu,i,mu,nu);
 								break;
 				}
@@ -124,13 +121,14 @@ double Polyakov(Complex *u11t, Complex *u12t){
 	 */
 	const char *funcname = "Polyakov";
 	double poly = 0;
-	//Originally at the very end before Par_dsum
-	//Now all cores have the value for the complete Polyakov line at all spacial sites
-	//We need to globally sum over spacial processors but not across time as these
-	//are duplicates. So we zero the value for all but t=0
-	//This is (according to the FORTRAN code) a bit of a hack
-	//I will expand on this hack and completely avoid any work
-	//for this case rather than calculating everything just to set it to zero
+	/*Originally at the very end before Par_dsum
+	  Now all cores have the value for the complete Polyakov line at all spacial sites
+	  We need to globally sum over spacial processors but not across time as these
+	  are duplicates. So we zero the value for all but t=0
+	  This is (according to the FORTRAN code) a bit of a hack
+	  I will expand on this hack and completely avoid any work
+	  for this case rather than calculating everything just to set it to zero
+	 */
 #ifdef __NVCC__
 	int device=-1;
 	cudaGetDevice(&device);
@@ -142,11 +140,11 @@ double Polyakov(Complex *u11t, Complex *u12t){
 	Complex *Sigma12 = aligned_alloc(AVX,kvol3*sizeof(Complex));
 #endif
 
+	//Extract the time component from each site and save in corresponding Sigma
 #ifdef __NVCC__
 	cublasZcopy(cublas_handle,kvol3, (cuDoubleComplex *)(u11t+3), ndim, (cuDoubleComplex *)Sigma11, 1);
 	cublasZcopy(cublas_handle,kvol3, (cuDoubleComplex *)(u12t+3), ndim, (cuDoubleComplex *)Sigma12, 1);
 #elif defined USE_BLAS
-//#if (defined USE_BLAS)
 	cblas_zcopy(kvol3, u11t+3, ndim, Sigma11, 1);
 	cblas_zcopy(kvol3, u12t+3, ndim, Sigma12, 1);
 #else
@@ -155,38 +153,29 @@ double Polyakov(Complex *u11t, Complex *u12t){
 		Sigma12[i]=u12t[i*ndim+3];
 	}
 #endif
-	//	Some Fortran commentary
-	//	Changed this routine.
-	//	u11t and u12t now defined as normal ie (kvol+halo,4).
-	//	Copy of Sigma11 and Sigma12 is changed so that it copies
-	//	in blocks of ksizet.
-	//	Variable indexu also used to select correct element of u11t and u12t 
-	//	in loop 10 below.
-	//
-	//	Change the order of multiplication so that it can
-	//	be done in parallel. Start at t=1 and go up to t=T:
-	//	previously started at t+T and looped back to 1, 2, ... T-1
-	//Buffers
-	//There is a dependency. Can only parallelise the inner loop
-	//#pragma omp target enter data map(to:Sigma11[0:kvol3],Sigma12[0:kvol3])
+	/*	Some Fortran commentary
+		Changed this routine.
+		u11t and u12t now defined as normal ie (kvol+halo,4).
+		Copy of Sigma11 and Sigma12 is changed so that it copies
+		in blocks of ksizet.
+		Variable indexu also used to select correct element of u11t and u12t 
+		in loop 10 below.
+
+		Change the order of multiplication so that it can
+		be done in parallel. Start at t=1 and go up to t=T:
+		previously started at t+T and looped back to 1, 2, ... T-1
+		Buffers
+		There is a dependency. Can only parallelise the inner loop
+	 */
 #ifdef __NVCC__
 	cudaMemPrefetchAsync(Sigma11,kvol3*sizeof(Complex),device,NULL);
 	cudaMemPrefetchAsync(Sigma12,kvol3*sizeof(Complex),device,NULL);
 	cuPolyakov(Sigma11,Sigma12,u11t,u12t,dimGrid,dimBlock);
 	cudaMemPrefetchAsync(Sigma11,kvol3*sizeof(Complex),device,NULL);
 #else
-#pragma acc enter data copyin(Sigma11[0:kvol3],Sigma12[0:kvol3])
 #pragma unroll
 	for(int it=1;it<ksizet;it++)
-		//will be faster for parallel code
-		//#ifdef __clang__
-		//#pragma omp target teams distribute parallel for simd aligned(u11t,u12t,Sigma11,Sigma12:AVX)
-
-#ifdef _OPENACC
-#pragma acc parallel loop
-#else
 #pragma omp parallel for simd aligned(u11t,u12t,Sigma11,Sigma12:AVX)
-#endif
 		for(int i=0;i<kvol3;i++){
 			//Seems a bit more efficient to increment indexu instead of reassigning
 			//it every single loop
@@ -201,33 +190,24 @@ double Polyakov(Complex *u11t, Complex *u12t){
 	//Time-like dimension
 #endif
 	//End of CUDA-CPU pre-processor for evaluating Polyakov
+	//
+	//Par_tmul does nothing if there is only a single processor in the time direction. So we only compile
+	//its call if it is required
 #if (npt>1)
-	//Only send to the accelerator if the time component is parallelised with MPI. Otherwise
-	//it gets sent straight into another loop
-#ifdef _OPENACC
-#pragma acc update self(Sigma11[0:kvol3],Sigma12[0:kvol3])
-#endif
 #ifdef _DEBUG
 	printf("Multiplying with MPI\n");
 #endif
-	//Par_tmul does nothing if there is only a single processor in the time direction. So we only compile
-	//its call if it is required
 	Par_tmul(Sigma11, Sigma12);
-#ifdef _OPENACC
-#pragma acc update device(Sigma11[0:kvol3],Sigma12[0:kvol3])
+	//end of #if(npt>1)
 #endif
-//end of #if(npt>1)
-#endif
-#ifdef _OPENACC
-#pragma acc parallel loop reduction(+:poly)
+
+#ifdef __NVCC__
+#pragma omp parallel for simd reduction(+:poly)
 #else
 #pragma omp parallel for simd reduction(+:poly) aligned(Sigma11:AVX)
 #endif
 	for(int i=0;i<kvol3;i++)
 		poly+=creal(Sigma11[i]);
-#ifdef _OPENACC
-#pragma acc exit data delete(Sigma11[0:kvol3],Sigma12[0:kvol3])
-#endif
 #ifdef __NVCC__
 	cudaFree(Sigma11); cudaFree(Sigma12);
 #else
