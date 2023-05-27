@@ -136,7 +136,11 @@ extern cublasStatus_t cublas_status;
 //     integer, parameter :: niterc=2*gvol  
 //      #define niterc 2*gvol
 //    jis: hard limit to avoid runaway trajectories
+#if(nx>=nt)
 #define	niterc	gvol3
+#else
+#define	niterc	(gvol3/4)
+#endif
 //    Constants for dimensions.
 #define	nc	2
 #define	nadj	3
