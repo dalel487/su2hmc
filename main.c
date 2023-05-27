@@ -799,9 +799,7 @@ int main(int argc, char *argv[]){
 	free(dk4m_f); free(dk4p_f); free(u11t_f); free(u12t_f);
 	free(gamin); free(gamval); free(gamval_f);
 #endif
-
 	free(hd); free(hu);free(h1u); free(h1d); free(halosize); free(pcoord);
-
 #ifdef __RANLUX__
 	gsl_rng_free(ranlux_instd);
 #endif
