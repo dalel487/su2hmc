@@ -800,11 +800,7 @@ int main(int argc, char *argv[]){
 	free(gamin); free(gamval); free(gamval_f);
 #endif
 
-#if defined __INTEL_MKL__
-	mkl_free(pcoord);	 mkl_free(hd); mkl_free(hu); mkl_free(h1u); mkl_free(h1d); mkl_free(halosize);
-#else
 	free(hd); free(hu);free(h1u); free(h1d); free(halosize); free(pcoord);
-#endif
 
 #ifdef __RANLUX__
 	gsl_rng_free(ranlux_instd);

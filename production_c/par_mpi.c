@@ -91,12 +91,8 @@ int Par_begin(int argc, char *argv[]){
 		MPI_Cart_shift(commcart, i, 1, &pd[i], &pu[i]);
 #endif
 	//Get coordinates of processors in the grid
-#ifdef __INTEL_MKL__
-	pcoord = (int*)mkl_calloc(ndim*nproc,sizeof(int),AVX);
-#else
 	pcoord = (int*)aligned_alloc(AVX,ndim*nproc*sizeof(int));
 	memset(pcoord,0,sizeof(int)*ndim*nproc);
-#endif
 #if(nproc>1)
 	for(int iproc = 0; iproc<nproc; iproc++){
 		MPI_Cart_coords(commcart, iproc, ndim, pcoord+iproc*ndim);
@@ -142,22 +138,12 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 	MPI_Datatype MPI_SEED_TYPE = (sizeof(seed)==sizeof(int)) ? MPI_INT:MPI_LONG;
 #endif
 	//We shall allow the almighty master thread to open the file
-#ifdef __INTEL_MKL__
-	Complex *u1buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
-	Complex *u2buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
-#else
 	Complex *u1buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
 	Complex *u2buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
-#endif
 	if(!rank){
 		//Containers for input. Only needed by the master rank
-#ifdef __INTEL_MKL__
-		Complex *u11Read = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
-		Complex *u12Read = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
-#else
 		Complex *u11Read = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
 		Complex *u12Read = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
-#endif
 		static char gauge_file[FILELEN]="config.";
 		int buffer; char buff2[7];
 		//Add script for extracting correct mu, j etc.
@@ -299,11 +285,7 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 				}
 #endif
 			}
-#ifdef __INTEL_MKL__
-		mkl_free(u11Read); mkl_free(u12Read);
-#else
 		free(u11Read); free(u12Read);
-#endif
 		free(seed_array);
 	}
 #if(nproc>1)
@@ -342,11 +324,7 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 		}
 	}
 #endif
-#ifdef __INTEL_MKL__
-	mkl_free(u1buff); mkl_free(u2buff);
-#else
 	free(u1buff); free(u2buff);
-#endif
 	memcpy(u11t, u11, ndim*kvol*sizeof(Complex));
 	memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
 	return 0;
@@ -384,13 +362,8 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 	MPI_Status status;
 	//Used for seed array later on
 	MPI_Datatype MPI_SEED_TYPE = (sizeof(seed)==sizeof(int)) ? MPI_INT:MPI_LONG;
-#ifdef __INTEL_MKL__
-	Complex *u1buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
-	Complex *u2buff = (Complex *)mkl_malloc(kvol*sizeof(Complex),AVX);
-#else
 	Complex *u1buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
 	Complex *u2buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
-#endif
 #if _DEBUG
 	char dump_prefix[FILELEN]="u11.";
 	char dump_buff[32];
@@ -423,13 +396,8 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 				MPI_Abort(comm,CANTRECV);
 			}
 #endif
-#ifdef __INTEL_MKL__
-		Complex *u11Write = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
-		Complex *u12Write = (Complex *)mkl_malloc(ndim*gvol*sizeof(Complex),AVX);
-#else
 		Complex *u11Write = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
 		Complex *u12Write = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
-#endif
 		//Get correct parts of u11read etc from remote processors
 		for(int iproc=0;iproc<nproc;iproc++)
 			for(int idim=0;idim<ndim;idim++){
@@ -494,11 +462,7 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 #endif
 				}
 			}
-#ifdef __INTEL_MKL__
-		mkl_free(u1buff); mkl_free(u2buff);
-#else
 		free(u1buff); free(u2buff);
-#endif
 
 		char gauge_title[FILELEN]="config.";
 		int buffer; char buff2[7];
@@ -555,11 +519,7 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 		//Make a seed array, where the nth component is the seed on the nth rank for continuation runs.
 		fwrite(seed_array, nproc*sizeof(seed), 1, con);
 		fclose(con);
-#ifdef __INTEL_MKL__
-		mkl_free(u11Write); mkl_free(u12Write);
-#else
 		free(u11Write); free(u12Write);
-#endif
 		free(seed_array);
 	}
 #if(nproc>1)
@@ -601,11 +561,7 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 				MPI_Abort(comm,CANTSEND);
 			}
 		}
-#ifdef __INTEL_MKL__
-		mkl_free(u1buff); mkl_free(u2buff); 
-#else
 		free(u1buff); free(u2buff);
-#endif
 	}
 #endif
 	return 0;
@@ -901,11 +857,7 @@ int ZHalo_swap_dir(Complex *z, int ncpt, int idir, int layer){
 				LAYERROR, funcname, layer);
 		MPI_Abort(comm,BROADERR);
 	}
-#ifdef __INTEL_MKL__
-	Complex *sendbuf = (Complex *)mkl_malloc(halo*ncpt*sizeof(Complex), AVX);
-#else
 	Complex *sendbuf = (Complex *)aligned_alloc(AVX,halo*ncpt*sizeof(Complex));
-#endif
 	//How big is the data being sent and received
 	int msg_size=ncpt*halosize[idir];
 	//In each case we set up the data being sent then do the exchange
@@ -959,11 +911,7 @@ int ZHalo_swap_dir(Complex *z, int ncpt, int idir, int layer){
 			}
 			break;
 	}
-#ifdef __INTEL_MKL__
-	mkl_free(sendbuf);
-#else
 	free(sendbuf);
-#endif
 	MPI_Wait(&request, &status);
 	return 0;
 }
@@ -1029,11 +977,7 @@ int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer){
 				LAYERROR, funcname, layer);
 		MPI_Abort(comm,LAYERROR);
 	}
-#ifdef __INTEL_MKL__
-	Complex_f *sendbuf = (Complex_f *)mkl_malloc(halo*ncpt*sizeof(Complex_f), AVX);
-#else
 	Complex_f *sendbuf = (Complex_f *)aligned_alloc(AVX,halo*ncpt*sizeof(Complex));
-#endif
 	//How big is the data being sent and received
 	int msg_size=ncpt*halosize[idir];
 	//In each case we set up the data being sent then do the exchange
@@ -1087,11 +1031,7 @@ int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer){
 			}
 			break;
 	}
-#ifdef __INTEL_MKL__
-	mkl_free(sendbuf);
-#else
 	free(sendbuf);
-#endif
 	MPI_Wait(&request, &status);
 	return 0;
 }
@@ -1152,11 +1092,7 @@ int DHalo_swap_dir(double *d, int ncpt, int idir, int layer){
 	 */
 	char *funcname = "ZHalo_swap_dir";
 	MPI_Status status;
-#ifdef __INTEL_MKL__
-	double *sendbuf =(double *) mkl_malloc(halo*ncpt*sizeof(double), AVX);
-#else
 	double *sendbuf = (double *)aligned_alloc(AVX,halo*ncpt*sizeof(double));
-#endif
 	if(layer!=DOWN && layer!=UP){
 		fprintf(stderr, "Error %i in %s: Cannot swap in the direction given by %i.\nExiting...\n\n",
 				LAYERROR, funcname, layer);
@@ -1213,11 +1149,7 @@ int DHalo_swap_dir(double *d, int ncpt, int idir, int layer){
 				MPI_Abort(comm,CANTRECV);
 			}
 	}	
-#ifdef __INTEL_MKL__
-	mkl_free(sendbuf);
-#else
 	free(sendbuf);
-#endif
 	MPI_Wait(&request, &status);
 	return 0;
 }
@@ -1238,11 +1170,7 @@ int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u
 	cudaMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),cudaCpuDeviceId,NULL);
 	cudaMemPrefetchAsync(u12t, ndim*kvol*sizeof(Complex),cudaCpuDeviceId,NULL);
 #endif
-#ifdef __INTEL_MKL__
-	Complex *z = (Complex *)mkl_malloc((kvol+halo)*sizeof(Complex),AVX);
-#else
 	Complex *z = (Complex *)aligned_alloc(AVX,(kvol+halo)*sizeof(Complex));
-#endif
 	for(int mu=0;mu<ndim;mu++){
 		//Copy the column from u11t
 #ifdef USE_BLAS
@@ -1272,11 +1200,7 @@ int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u
 			u12t[i*ndim+mu]=z[i];
 #endif
 	}
-#ifdef __INTEL_MKL__
-	mkl_free(z);
-#else
 	free(z);
-#endif
 	//Now we prefetch the halo
 #ifdef __NVCC__
 	cudaMemPrefetchAsync(u11t+ndim*kvol, ndim*halo*sizeof(Complex),device,NULL);
@@ -1288,7 +1212,7 @@ int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u
 	cuComplex_convert(u12t_f,u12t,ndim*(kvol+halo),true,dimBlock,dimGrid);
 	cudaDeviceSynchronise();
 #else
-#pragma omp parallel for simd
+#pragma omp parallel for simd aligned(u11t_f,u12t_f,u11t,u12t:AVX)
 	for(int i=0;i<ndim*(kvol+halo);i++){
 		u11t_f[i]=(Complex_f)u11t[i];
 		u12t_f[i]=(Complex_f)u12t[i];
@@ -1310,24 +1234,18 @@ int Par_tmul(Complex *z11, Complex *z12){
 	 * =======
 	 * Zero on success, integer error code otherwise.
 	 */
+#ifdef __NVCC_
+#error Par_tmul is not yet implimented in CUDA as Sigma12 in Polyakov is device only memory
+#endif
 	MPI_Status status;
 	char *funcname = "Par_tmul";
 	Complex *a11, *a12, *t11, *t12;
 	int i, itime;
-	//If we're using mkl, the mkl_malloc helps ensure arrays align with 64-bit
-	//byte boundaries to improve performance and enable AVX-512 instructions.
-	//Otherwise, malloc is pretty useful
-#ifdef __INTEL_MKL__
-	a11=(Complex *)mkl_malloc(kvol3*sizeof(Complex), AVX);
-	a12=(Complex *)mkl_malloc(kvol3*sizeof(Complex), AVX);
-	t11=(Complex *)mkl_malloc(kvol3*sizeof(Complex), AVX);
-	t12=(Complex *)mkl_malloc(kvol3*sizeof(Complex), AVX);
-#else
+
 	a11=(Complex *)aligned_alloc(AVX,kvol3*sizeof(Complex));
 	a12=(Complex *)aligned_alloc(AVX,kvol3*sizeof(Complex));
 	t11=(Complex *)aligned_alloc(AVX,kvol3*sizeof(Complex));
 	t12=(Complex *)aligned_alloc(AVX,kvol3*sizeof(Complex));
-#endif
 	//Initialise for the first loop
 	memcpy(a11, z11, kvol3*sizeof(Complex));
 	memcpy(a12, z12, kvol3*sizeof(Complex));
@@ -1382,11 +1300,7 @@ int Par_tmul(Complex *z11, Complex *z12){
 
 		//Post-multiply current loop by incoming one.
 		//This is begging to be done in CUDA or BLAS
-#ifdef _OPENACC
-#pragma acc parallel loop copy(t11[0:kvol3],t12[0:kvol3]) copyin(a11[0:kvol],a12[0:kvol])
-#else
-#pragma omp parallel for simd
-#endif
+#pragma omp parallel for simd aligned(a11,a12,t11,t12,z11,z12:AVX)
 		for(i=0;i<kvol3;i++){
 			t11[i]=z11[i]*a11[i]-z12[i]*conj(a12[i]);
 			t12[i]=z11[i]*a12[i]+z12[i]*conj(a11[i]);
@@ -1394,12 +1308,7 @@ int Par_tmul(Complex *z11, Complex *z12){
 		memcpy(z11, t11, kvol3*sizeof(Complex));
 		memcpy(z12, t12, kvol3*sizeof(Complex));
 	}
-#ifdef __INTEL_MKL__
-	mkl_free(a11); mkl_free(a12);
-	mkl_free(t11); mkl_free(t12);
-#else
 	free(a11); free(a12); free(t11); free(t12);
-#endif
 	return 0;
 }
 #endif

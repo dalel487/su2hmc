@@ -201,7 +201,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 		Par_dsum(&betan);
 #endif
 #ifdef _DEBUG
-		if(!rank) printf("Iter (CG) = %i β_n= %e α= %e\n", *itercg, betan, alpha);
+		if(!rank) printf("Iter (CG) = %i β_n= %e α= %e\r", *itercg, betan, alpha);
 #endif
 		if(betan<resid){ 
 			(*itercg)++;
@@ -457,7 +457,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 		Par_dsum(&betan);
 #endif
 #ifdef _DEBUG
-		if(!rank) printf("Iter (CG) = %i β_n= %e α= %e\n", *itercg, betan, alpha);
+		if(!rank) printf("Iter (CG) = %i β_n= %e α= %e\r", *itercg, betan, alpha);
 #endif
 		if(betan<resid){
 			//Started counting from zero so add one to make it accurate

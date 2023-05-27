@@ -134,7 +134,11 @@ double Polyakov(Complex *u11t, Complex *u12t){
 	cudaGetDevice(&device);
 	Complex *Sigma11,*Sigma12;
 	cudaMallocManaged((void **)&Sigma11,kvol3*sizeof(Complex),cudaMemAttachGlobal);
+#ifdef _DEBUG
 	cudaMallocManaged((void **)&Sigma12,kvol3*sizeof(Complex),cudaMemAttachGlobal);
+#else
+	cudaMalloc((void **)&Sigma12,kvol3*sizeof(Complex));
+#endif
 #else
 	Complex *Sigma11 = aligned_alloc(AVX,kvol3*sizeof(Complex));
 	Complex *Sigma12 = aligned_alloc(AVX,kvol3*sizeof(Complex));
@@ -168,10 +172,8 @@ double Polyakov(Complex *u11t, Complex *u12t){
 		There is a dependency. Can only parallelise the inner loop
 	 */
 #ifdef __NVCC__
-	cudaMemPrefetchAsync(Sigma11,kvol3*sizeof(Complex),device,NULL);
-	cudaMemPrefetchAsync(Sigma12,kvol3*sizeof(Complex),device,NULL);
 	cuPolyakov(Sigma11,Sigma12,u11t,u12t,dimGrid,dimBlock);
-	cudaMemPrefetchAsync(Sigma11,kvol3*sizeof(Complex),device,NULL);
+	cudaMemPrefetchAsync(Sigma11,kvol3*sizeof(Complex),cudaCpuDeviceId,NULL);
 #else
 #pragma unroll
 	for(int it=1;it<ksizet;it++)
@@ -194,6 +196,9 @@ double Polyakov(Complex *u11t, Complex *u12t){
 	//Par_tmul does nothing if there is only a single processor in the time direction. So we only compile
 	//its call if it is required
 #if (npt>1)
+#ifdef __NVCC_
+#error Par_tmul is not yet implimented in CUDA as Sigma12 is device only memory
+#endif
 #ifdef _DEBUG
 	printf("Multiplying with MPI\n");
 #endif
