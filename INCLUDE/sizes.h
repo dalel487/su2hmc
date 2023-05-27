@@ -58,7 +58,7 @@ extern cublasStatus_t cublas_status;
 #define	FILELEN	64
 // Common block definition for parallel variables
 
-#define	nx 16
+#define	nx 20
 #if(nx<1)
 #error "nx is expected it to be greater than or equal to 1"
 #endif
@@ -83,7 +83,7 @@ extern cublasStatus_t cublas_status;
 #define	gvol    (nx*ny*nz*nt)
 #define	gvol3   (nx*ny*nz)
 
-#define	npx	4
+#define	npx	5
 #if(npx<1)
 #error "npx is expected it to be greater than or equal to 1"
 #elif(nx%npx!=0)
@@ -136,7 +136,7 @@ extern cublasStatus_t cublas_status;
 //     integer, parameter :: niterc=2*gvol  
 //      #define niterc 2*gvol
 //    jis: hard limit to avoid runaway trajectories
-#define	niterc	gvol	
+#define	niterc	gvol3
 //    Constants for dimensions.
 #define	nc	2
 #define	nadj	3

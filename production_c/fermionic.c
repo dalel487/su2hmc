@@ -57,11 +57,6 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	cudaMallocManaged((void **)&xi,kferm*sizeof(Complex), cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&xi_f,kfermHalo*sizeof(Complex_f), cudaMemAttachGlobal);
 	cudaMalloc((void **)&R1_f,kfermHalo*sizeof(Complex_f));
-#elif defined __INTEL_MKL__
-	Complex	*x = (Complex *)mkl_malloc(kfermHalo*sizeof(Complex), AVX);
-	Complex *xi	=(Complex *) mkl_malloc(kferm*sizeof(Complex),AVX);
-	Complex_f	*xi_f = (Complex_f *)mkl_malloc(kfermHalo*sizeof(Complex_f), AVX);
-	Complex_f	*R1_f = (Complex_f *)mkl_malloc(kfermHalo*sizeof(Complex_f), AVX);
 #else
 	Complex *x =(Complex *)aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 	Complex *xi =(Complex *)aligned_alloc(AVX,kferm*sizeof(Complex));
@@ -107,7 +102,9 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	//	Congradp(0, res, R1_f, itercg);
 	//If the conjugate gradient fails to converge for some reason, restart it.
 	//That's causing issues with NaN's. Plan B is to not record the measurements.
+	int cgrd_rtn=0;
 	if(Congradp(0, res, Phi, R1,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,itercg)==ITERLIM){
+		int cgrd_rtn=ITERLIM;
 		//return ITERLIM;
 		//itercg=0;
 		//if(!rank) fprintf(stderr, "Restarting conjugate gradient from %s\n", funcname);
@@ -126,8 +123,6 @@ xi[i]=(Complex)R1_f[i];
 #endif
 #ifdef __NVCC__
 	cudaFree(xi_f);	cudaFree(R1_f);
-#elif defined __INTEL_MKL__
-	mkl_free(xi_f);	mkl_free(R1_f);
 #else
 	free(xi_f);	free(R1_f);
 #endif
@@ -276,10 +271,8 @@ xi[i]=(Complex)R1_f[i];
 	//Future task. Chiral susceptibility measurements
 #ifdef __NVCC__
 	cudaFree(x); cudaFree(xi);
-#elif defined __INTEL_MKL__
-	mkl_free(x); mkl_free(xi);
 #else
 	free(x); free(xi);
 #endif
-	return 0;
+	return cgrd_rtn;
 }
