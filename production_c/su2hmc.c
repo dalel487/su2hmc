@@ -124,7 +124,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 #pragma omp target enter data map(to:dk4p[0:kvol+halo], dk4m_f[0:kvol+halo],\
 		dk4p_f[0:kvol+halo],dk4m[0:kvol+halo]) nowait
 #endif
-
+	//TODO: Change gamin[4] to gamin[11] and gamval[5] to gamval[11]
 	int __attribute__((aligned(AVX))) gamin_t[4][4] =	{{3,2,1,0},{3,2,1,0},{2,3,0,1},{2,3,0,1}};
 	//Gamma Matrices in Chiral Representation
 	//Gattringer and Lang have a nice crash course in appendix A.2 of
@@ -145,7 +145,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 #pragma omp parallel for simd collapse(2) aligned(gamval,gamval_f:AVX)
 	for(int i=0;i<5;i++)
 		for(int j=0;j<4;j++)
-		gamval_t[i]*=akappa;
+			gamval_t[i]*=akappa;
 #endif
 
 #ifdef __NVCC__
@@ -305,9 +305,9 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 #endif
 #ifdef __NVCC__
 		Complex dot;
-		cublasZdotc(cublas_handle,kferm2,(cuDoubleComplex *)smallPhi,1,(cuDoubleComplex *) X1,1,(cuDoubleComplex *) &hf);
-		hf+=creal(dot);
+		cublasZdotc(cublas_handle,kferm2,(cuDoubleComplex *)smallPhi,1,(cuDoubleComplex *) X1,1,(cuDoubleComplex *) &dot);
 		cudaDeviceSynchronise();
+		hf+=creal(dot);
 		//		hf+=creal(dot);
 #elif defined USE_BLAS
 		Complex dot;

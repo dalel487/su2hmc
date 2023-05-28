@@ -139,7 +139,7 @@ extern cublasStatus_t cublas_status;
 #if(nx>=nt)
 #define	niterc	gvol3
 #else
-#define	niterc	(gvol3/4)
+#define	niterc	(gvol/4)
 #endif
 //    Constants for dimensions.
 #define	nc	2
