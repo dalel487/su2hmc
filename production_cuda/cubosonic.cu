@@ -30,7 +30,7 @@ void cuAverage_Plaquette(double *hgs, double *hgt, Complex_f *u11t, Complex_f *u
 
 	cudaFree(hgs_d); cudaFree(hgt_d);
 }
-void cuPolyakov(Complex *Sigma11, Complex * Sigma12, Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock){
+void cuPolyakov(Complex_f *Sigma11, Complex_f * Sigma12, Complex_f *u11t, Complex_f *u12t, dim3 dimGrid, dim3 dimBlock){
 	cuPolyakov<<<dimGrid,dimBlock>>>(Sigma11,Sigma12,u11t,u12t);
 }
 //CUDA Kernels
@@ -92,7 +92,7 @@ __device__ float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int
 	//Sigma12[i]=-a11[i]*u12t[i*ndim+nu]+a12*u11t[i*ndim+mu];
 	return Sigma11.real();
 }
-__global__ void cuPolyakov(Complex *Sigma11, Complex * Sigma12, Complex * u11t,Complex *u12t){
+__global__ void cuPolyakov(Complex_f *Sigma11, Complex_f * Sigma12, Complex_f * u11t,Complex_f *u12t){
 	char * funcname = "cuPolyakov";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -102,7 +102,7 @@ __global__ void cuPolyakov(Complex *Sigma11, Complex * Sigma12, Complex * u11t,C
 	//RACE CONDITION? gsize*bsize?
 		for(int i=threadId;i<kvol3;i+=gsize*bsize){
 			int indexu=it*kvol3+i;
-			Complex a11=Sigma11[i]*u11t[indexu*ndim+3]-Sigma12[i]*conj(u12t[indexu*ndim+3]);
+			Complex_f a11=Sigma11[i]*u11t[indexu*ndim+3]-Sigma12[i]*conj(u12t[indexu*ndim+3]);
 			//Instead of having to store a second buffer just assign it directly
 			Sigma12[i]=Sigma11[i]*u12t[indexu*ndim+3]+Sigma12[i]*conj(u11t[indexu*ndim+3]);
 			Sigma11[i]=a11;

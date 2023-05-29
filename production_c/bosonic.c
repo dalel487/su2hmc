@@ -103,7 +103,7 @@ inline float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int i, 
 	//				Not needed in final result as it traces out
 	return creal(Sigma11);
 }
-double Polyakov(Complex *u11t, Complex *u12t){
+double Polyakov(Complex_f *u11t, Complex_f *u12t){
 	/*
 	 * Calculate the Polyakov loop (no prizes for guessing that one...)
 	 *
@@ -121,36 +121,28 @@ double Polyakov(Complex *u11t, Complex *u12t){
 	 */
 	const char *funcname = "Polyakov";
 	double poly = 0;
-	/*Originally at the very end before Par_dsum
-	  Now all cores have the value for the complete Polyakov line at all spacial sites
-	  We need to globally sum over spacial processors but not across time as these
-	  are duplicates. So we zero the value for all but t=0
-	  This is (according to the FORTRAN code) a bit of a hack
-	  I will expand on this hack and completely avoid any work
-	  for this case rather than calculating everything just to set it to zero
-	 */
 #ifdef __NVCC__
 	int device=-1;
 	cudaGetDevice(&device);
-	Complex *Sigma11,*Sigma12;
-	cudaMallocManaged((void **)&Sigma11,kvol3*sizeof(Complex),cudaMemAttachGlobal);
+	Complex_f *Sigma11,*Sigma12;
+	cudaMallocManaged((void **)&Sigma11,kvol3*sizeof(Complex_f),cudaMemAttachGlobal);
 #ifdef _DEBUG
-	cudaMallocManaged((void **)&Sigma12,kvol3*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&Sigma12,kvol3*sizeof(Complex_f),cudaMemAttachGlobal);
 #else
-	cudaMalloc((void **)&Sigma12,kvol3*sizeof(Complex));
+	cudaMalloc((void **)&Sigma12,kvol3*sizeof(Complex_f));
 #endif
 #else
-	Complex *Sigma11 = aligned_alloc(AVX,kvol3*sizeof(Complex));
-	Complex *Sigma12 = aligned_alloc(AVX,kvol3*sizeof(Complex));
+	Complex_f *Sigma11 = aligned_alloc(AVX,kvol3*sizeof(Complex_f));
+	Complex_f *Sigma12 = aligned_alloc(AVX,kvol3*sizeof(Complex_f));
 #endif
 
 	//Extract the time component from each site and save in corresponding Sigma
 #ifdef __NVCC__
-	cublasZcopy(cublas_handle,kvol3, (cuDoubleComplex *)(u11t+3), ndim, (cuDoubleComplex *)Sigma11, 1);
-	cublasZcopy(cublas_handle,kvol3, (cuDoubleComplex *)(u12t+3), ndim, (cuDoubleComplex *)Sigma12, 1);
+	cublasCcopy(cublas_handle,kvol3, (cuComplex *)(u11t+3), ndim, (cuComplex *)Sigma11, 1);
+	cublasCcopy(cublas_handle,kvol3, (cuComplex *)(u12t+3), ndim, (cuComplex *)Sigma12, 1);
 #elif defined USE_BLAS
-	cblas_zcopy(kvol3, u11t+3, ndim, Sigma11, 1);
-	cblas_zcopy(kvol3, u12t+3, ndim, Sigma12, 1);
+	cblas_ccopy(kvol3, u11t+3, ndim, Sigma11, 1);
+	cblas_ccopy(kvol3, u12t+3, ndim, Sigma12, 1);
 #else
 	for(int i=0; i<kvol3; i++){
 		Sigma11[i]=u11t[i*ndim+3];
@@ -173,7 +165,7 @@ double Polyakov(Complex *u11t, Complex *u12t){
 	 */
 #ifdef __NVCC__
 	cuPolyakov(Sigma11,Sigma12,u11t,u12t,dimGrid,dimBlock);
-	cudaMemPrefetchAsync(Sigma11,kvol3*sizeof(Complex),cudaCpuDeviceId,NULL);
+	cudaMemPrefetchAsync(Sigma11,kvol3*sizeof(Complex_f),cudaCpuDeviceId,NULL);
 #else
 #pragma unroll
 	for(int it=1;it<ksizet;it++)
@@ -182,7 +174,7 @@ double Polyakov(Complex *u11t, Complex *u12t){
 			//Seems a bit more efficient to increment indexu instead of reassigning
 			//it every single loop
 			int indexu=it*kvol3+i;
-			Complex	a11=Sigma11[i]*u11t[indexu*ndim+3]-Sigma12[i]*conj(u12t[indexu*ndim+3]);
+			Complex_f	a11=Sigma11[i]*u11t[indexu*ndim+3]-Sigma12[i]*conj(u12t[indexu*ndim+3]);
 			//Instead of having to store a second buffer just assign it directly
 			Sigma12[i]=Sigma11[i]*u12t[indexu*ndim+3]+Sigma12[i]*conj(u11t[indexu*ndim+3]);
 			Sigma11[i]=a11;
@@ -204,21 +196,27 @@ double Polyakov(Complex *u11t, Complex *u12t){
 	Par_tmul(Sigma11, Sigma12);
 	//end of #if(npt>1)
 #endif
-
+	/*Now all cores have the value for the complete Polyakov line at all spacial sites
+	  We need to globally sum over spacial processors but not across time as these
+	  are duplicates. So we zero the value for all but t=0
+	  This is (according to the FORTRAN code) a bit of a hack
+	  I will expand on this hack and completely avoid any work
+	  for this case rather than calculating everything just to set it to zero
+	 */
+	if(!pcoord[3+rank*ndim])
 #ifdef __NVCC__
 #pragma omp parallel for simd reduction(+:poly)
 #else
 #pragma omp parallel for simd reduction(+:poly) aligned(Sigma11:AVX)
 #endif
-	for(int i=0;i<kvol3;i++)
-		poly+=creal(Sigma11[i]);
+		for(int i=0;i<kvol3;i++)
+			poly+=creal(Sigma11[i]);
 #ifdef __NVCC__
 	cudaFree(Sigma11); cudaFree(Sigma12);
 #else
 	free(Sigma11); free(Sigma12);
 #endif
 
-	if(pcoord[3+rank*ndim]) poly = 0;
 #if(nproc>1)
 	Par_dsum(&poly);
 #endif
