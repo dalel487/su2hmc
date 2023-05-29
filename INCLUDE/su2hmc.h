@@ -60,7 +60,7 @@ extern "C"
 	int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u11t, Complex_f *u12t,\
 			unsigned int *iu, float beta);
 	float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int i, int mu, int nu);
-	double Polyakov(Complex *u11t, Complex *u12t);
+	double Polyakov(Complex_f *u11t, Complex_f *u12t);
 	//Inline Stuff
 	extern int C_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu);
 	extern int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu);
@@ -74,7 +74,7 @@ extern "C"
 	//Calling Functions:
 	//=================
 	void cuAverage_Plaquette(double *hgs, double *hgt, Complex_f *u11t, Complex_f *u12t, unsigned int *iu,dim3 dimGrid, dim3 dimBlock);
-	void cuPolyakov(Complex *Sigma11, Complex * Sigma12, Complex *u11t, Complex *u12t,dim3 dimGrid, dim3 dimBlock);
+	void cuPolyakov(Complex_f *Sigma11, Complex_f * Sigma12, Complex_f *u11t, Complex_f *u12t,dim3 dimGrid, dim3 dimBlock);
 	void cuGauge_force(int mu,Complex_f *Sigma11, Complex_f *Sigma12, Complex_f *u11t,Complex_f *u12t,double *dSdpi,float beta,\
 			dim3 dimGrid, dim3 dimBlock);
 	void cuPlus_staple(int mu, int nu, unsigned int *iu, Complex_f *Sigma11, Complex_f *Sigma12, Complex_f *u11t, Complex_f *u12t,\
@@ -111,7 +111,7 @@ __global__ void Minus_staple(int mu, int nu,unsigned int *iu,unsigned int *id, C
 __global__ void cuGaugeForce(int mu, Complex_f *Sigma11, Complex_f *Sigma12,double* dSdpi,Complex_f *u11t, Complex_f *u12t,\
 		float beta);
 __global__ void cuAverage_Plaquette(float *hgs_d, float *hgt_d, Complex_f *u11t, Complex_f *u12t, unsigned int *iu);
-__global__ void cuPolyakov(Complex *Sigma11, Complex * Sigma12, Complex *u11t, Complex *u12t);
+__global__ void cuPolyakov(Complex_f *Sigma11, Complex_f * Sigma12, Complex_f *u11t, Complex_f *u12t);
 __device__ float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int i, int mu, int nu);
 //Force Kernels. We've taken each nadj index and the spatial/temporal components and created a separate kernel for each
 //CPU code just has these as a huge blob that the vectoriser can't handle. May be worth splitting it there too?

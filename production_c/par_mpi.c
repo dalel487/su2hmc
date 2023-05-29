@@ -1184,6 +1184,10 @@ int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u
 		//And the swap back
 #ifdef USE_BLAS
 		cblas_zcopy(kvol+halo, z, 1, &u11t[mu], ndim);
+		//Now we prefetch the halo
+#ifdef __NVCC__
+		cudaMemPrefetchAsync(u11t+ndim*kvol, ndim*halo*sizeof(Complex),device,NULL);
+#endif
 		//Repeat for u12t
 		cblas_zcopy(kvol, &u12t[mu], ndim, z, 1);
 #else
@@ -1200,12 +1204,11 @@ int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u
 			u12t[i*ndim+mu]=z[i];
 #endif
 	}
-	free(z);
 	//Now we prefetch the halo
 #ifdef __NVCC__
-	cudaMemPrefetchAsync(u11t+ndim*kvol, ndim*halo*sizeof(Complex),device,NULL);
 	cudaMemPrefetchAsync(u12t+ndim*kvol, ndim*halo*sizeof(Complex),device,NULL);
 #endif
+	free(z);
 #endif
 #ifdef __NVCC__
 	cuComplex_convert(u11t_f,u11t,ndim*(kvol+halo),true,dimBlock,dimGrid);
@@ -1221,7 +1224,7 @@ int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u
 	return 0;
 }
 #if(npt>1)
-int Par_tmul(Complex *z11, Complex *z12){
+int Par_tmul(Complex_f *z11, Complex_f *z12){
 	/*
 	 * Parameters:
 	 * ===========
@@ -1237,16 +1240,16 @@ int Par_tmul(Complex *z11, Complex *z12){
 #endif
 	MPI_Status status;
 	char *funcname = "Par_tmul";
-	Complex *a11, *a12, *t11, *t12;
+	Complex_f *a11, *a12, *t11, *t12;
 	int i, itime;
 
-	a11=(Complex *)aligned_alloc(AVX,kvol3*sizeof(Complex));
-	a12=(Complex *)aligned_alloc(AVX,kvol3*sizeof(Complex));
-	t11=(Complex *)aligned_alloc(AVX,kvol3*sizeof(Complex));
-	t12=(Complex *)aligned_alloc(AVX,kvol3*sizeof(Complex));
+	a11=(Complex_f *)aligned_alloc(AVX,kvol3*sizeof(Complex_f));
+	a12=(Complex_f *)aligned_alloc(AVX,kvol3*sizeof(Complex_f));
+	t11=(Complex_f *)aligned_alloc(AVX,kvol3*sizeof(Complex_f));
+	t12=(Complex_f *)aligned_alloc(AVX,kvol3*sizeof(Complex_f));
 	//Initialise for the first loop
-	memcpy(a11, z11, kvol3*sizeof(Complex));
-	memcpy(a12, z12, kvol3*sizeof(Complex));
+	memcpy(a11, z11, kvol3*sizeof(Complex_f));
+	memcpy(a12, z12, kvol3*sizeof(Complex_f));
 
 	//Since the index of the outer loop isn't used as an array index anywhere
 	//I'm going format it exactly like the original FORTRAN
@@ -1255,8 +1258,8 @@ int Par_tmul(Complex *z11, Complex *z12){
 			rank, pu[3], pd[3]);
 #endif
 	for(itime=1;itime<npt; itime++){
-		memcpy(t11, a11, kvol3*sizeof(Complex));	
-		memcpy(t12, a12, kvol3*sizeof(Complex));	
+		memcpy(t11, a11, kvol3*sizeof(Complex_f));	
+		memcpy(t12, a12, kvol3*sizeof(Complex_f));	
 #ifdef _DEBUG
 		if(!rank) printf("t11 and t12 assigned. Getting ready to send to other processes.\n");
 #endif
@@ -1264,7 +1267,7 @@ int Par_tmul(Complex *z11, Complex *z12){
 		//What I don't quite get (except possibly avoiding race conditions) is
 		//why we send t11 and not a11. Surely by eliminating the assignment of a11 to t11 
 		//and using a blocking send we would have one fewer loop to worry about and improve performance?
-		if(MPI_Isend(t11, kvol3, MPI_C_DOUBLE_COMPLEX, pd[3], tag, comm, &request)){
+		if(MPI_Isend(t11, kvol3, MPI_C_FLOAT_COMPLEX, pd[3], tag, comm, &request)){
 			fprintf(stderr, "Error %i in %s: Failed to send t11 to process %i.\nExiting...\n\n",
 					CANTSEND, funcname, pd[3]);
 			MPI_Abort(comm,CANTSEND);
@@ -1272,7 +1275,7 @@ int Par_tmul(Complex *z11, Complex *z12){
 #ifdef _DEBUG
 		printf("Sent t11 from rank %i to the down halo on rank %i\n", rank, pd[3]);
 #endif
-		if(MPI_Recv(a11, kvol3, MPI_C_DOUBLE_COMPLEX, pu[3], tag, comm, &status)){
+		if(MPI_Recv(a11, kvol3, MPI_C_FLOAT_COMPLEX, pu[3], tag, comm, &status)){
 			fprintf(stderr, "Error %i in %s: Failed to receive a11 from process %i.\nExiting...\n\n",
 					CANTSEND, funcname, pu[3]);
 			MPI_Abort(comm,CANTSEND);
@@ -1281,12 +1284,12 @@ int Par_tmul(Complex *z11, Complex *z12){
 		printf("Received t11 from rank %i in the up halo on rank %i\n",  pu[3], rank);
 #endif
 		MPI_Wait(&request, &status);
-		if(MPI_Isend(t12, kvol3, MPI_C_DOUBLE_COMPLEX, pd[3], tag, comm, &request)){
+		if(MPI_Isend(t12, kvol3, MPI_C_FLOAT_COMPLEX, pd[3], tag, comm, &request)){
 			fprintf(stderr, "Error %i in %s: Failed to send t12 to process %i.\nExiting...\n\n",
 					CANTSEND, funcname, pd[3]);
 			MPI_Abort(comm,CANTSEND);
 		}
-		if(MPI_Recv(a12, kvol3, MPI_C_DOUBLE_COMPLEX, pu[3], tag, comm, &status)){
+		if(MPI_Recv(a12, kvol3, MPI_C_FLOAT_COMPLEX, pu[3], tag, comm, &status)){
 			fprintf(stderr, "Error %i in %s: Failed to receive a12 from process %i.\nExiting...\n\n",
 					CANTSEND, funcname, pu[3]);
 			MPI_Abort(comm,CANTSEND);
@@ -1303,8 +1306,8 @@ int Par_tmul(Complex *z11, Complex *z12){
 			t11[i]=z11[i]*a11[i]-z12[i]*conj(a12[i]);
 			t12[i]=z11[i]*a12[i]+z12[i]*conj(a11[i]);
 		}
-		memcpy(z11, t11, kvol3*sizeof(Complex));
-		memcpy(z12, t12, kvol3*sizeof(Complex));
+		memcpy(z11, t11, kvol3*sizeof(Complex_f));
+		memcpy(z12, t12, kvol3*sizeof(Complex_f));
 	}
 	free(a11); free(a12); free(t11); free(t12);
 	return 0;

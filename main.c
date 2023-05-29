@@ -241,13 +241,13 @@ int main(int argc, char *argv[]){
 
 	//Initial Measurements
 	//====================
-	double poly = Polyakov(u11t,u12t);
+	Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
+	double poly = Polyakov(u11t_f,u12t_f);
 #ifdef _DEBUG
 	if(!rank) printf("Initial Polyakov loop evaluated as %e\n", poly);
 #endif
 	double hg, avplaqs, avplaqt;
 	//Halo exchange of the trial fields
-	Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
 	Average_Plaquette(&hg,&avplaqs,&avplaqt,u11t_f,u12t_f,iu,beta);
 	//Trajectory length
 	double traj=stepl*dt;
@@ -605,7 +605,7 @@ int main(int argc, char *argv[]){
 #endif
 			pbpa+=pbp; endenfa+=endenf; denfa+=denf; ipbp++;
 			Average_Plaquette(&hg,&avplaqs,&avplaqt,u11t_f,u12t_f,iu,beta);
-			poly = Polyakov(u11t,u12t);
+			poly = Polyakov(u11t_f,u12t_f);
 			//We have four output files, so may as well get the other ranks to help out
 			//and abuse scoping rules while we're at it.
 			//Can use either OpenMP or MPI to do this
