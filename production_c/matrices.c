@@ -45,11 +45,7 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int 
 	cuDslash(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm*sizeof(Complex));
-#ifdef _OPENACC
-#pragma acc parallel loop copy(phi[0:kferm]) copyin(r[0:kfermHalo])
-#else
 #pragma omp parallel for
-#endif
 	for(int i=0;i<kvol;i++){
 #ifndef _OPENACC
 #pragma omp simd aligned(phi,r,gamval:AVX)
@@ -183,11 +179,7 @@ int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int 
 	cuDslashd(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm*sizeof(Complex));
-#ifdef _OPENACC
-#pragma acc parallel loop copy(phi[0:kferm]) copyin(r[0:kfermHalo])
-#else
 #pragma omp parallel for
-#endif
 	for(int i=0;i<kvol;i++){
 #ifndef _OPENACC
 #pragma omp simd aligned(phi,r,gamval:AVX)
@@ -328,11 +320,7 @@ int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int
 	cuHdslash(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm2*sizeof(Complex));
-#ifdef _OPENACC
-#pragma acc parallel loop copy(phi[0:kferm2]) copyin(r[0:kferm2Halo])
-#else
 #pragma omp parallel for
-#endif
 	for(int i=0;i<kvol;i++){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
@@ -440,11 +428,7 @@ int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  in
 #else
 	memcpy(phi, r, kferm2*sizeof(Complex));
 	//Spacelike term
-#ifdef _OPENACC
-#pragma acc parallel loop copy(phi[0:kferm2]) copyin(r[0:kferm2Halo])
-#else
 #pragma omp parallel for
-#endif
 	for(int i=0;i<kvol;i++){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <ndim-1; mu++){
@@ -553,14 +537,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 	cuDslash_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm*sizeof(Complex_f));
-#ifdef _OPENACC
-#pragma acc parallel loop copy(phi[0:kferm]) copyin(r[0:kfermHalo])
-#elif defined __clang__
-#pragma omp target teams distribute parallel for\
-	map(to:r[0:kfermHalo]) map(tofrom:phi[0:kferm])
-#else
 #pragma omp parallel for
-#endif
 	for(int i=0;i<kvol;i++){
 #ifndef _OPENACC
 #pragma omp simd aligned(phi,r,gamval_f:AVX)
@@ -694,14 +671,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	cuDslashd_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm*sizeof(Complex_f));
-#ifdef _OPENACC
-#pragma acc parallel loop copy(phi[0:kferm]) copyin(r[0:kfermHalo])
-#elif defined __clang__
-#pragma omp target teams distribute parallel for\
-	map(to:r[0:kfermHalo]) map(tofrom:phi[0:kferm])
-#else 
 #pragma omp parallel for
-#endif
 	for(int i=0;i<kvol;i++){
 #ifndef _OPENACC
 #pragma omp simd aligned(phi,r,gamval_f:AVX)
@@ -841,14 +811,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	cuHdslash_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
-#ifdef _OPENACC
-#pragma acc parallel loop copy(phi[0:kferm2]) copyin(r[0:kferm2Halo])
-#elif defined __clang__
-#pragma omp target teams distribute parallel for\
-	map(to:r[0:kferm2Halo]) map(tofrom:phi[0:kferm2])
-#else
 #pragma omp parallel for
-#endif
 	for(int i=0;i<kvol;i++){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
@@ -956,14 +919,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_
 #else
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
 	//Spacelike term
-#ifdef _OPENACC
-#pragma acc parallel loop copy(phi[0:kferm2]) copyin(r[0:kferm2Halo])
-#elif defined __clang__
-#pragma omp target teams distribute parallel for\
-	map(to:r[0:kferm2Halo])	map(tofrom:phi[0:kferm2])
-#else
 #pragma omp parallel for
-#endif
 	for(int i=0;i<kvol;i++){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <ndim-1; mu++){
@@ -1049,16 +1005,10 @@ int New_trial(double dt, double *pp, Complex *u11t, Complex *u12t){
 	char *funcname = "New_trial"; //
 											//#ifdef __clang__
 											//Double precision bad for offloading
-											//#pragma omp target teams distribute parallel for simd collapse(2)\
-	map(to:pp[0:kmom]) aligned(pp,u11t,u12t:AVX) 
 #ifdef __NVCC__
 		cuNew_trial(dt,pp,u11t,u12t,dimGrid,dimBlock);
 #else
-#ifdef _OPENACC
-#pragma acc parallel loop collapse(2)
-#else
 #pragma omp parallel for simd collapse(2) aligned(pp,u11t,u12t:AVX) 
-#endif
 	for(int i=0;i<kvol;i++)
 		for(int mu = 0; mu<ndim; mu++){
 			//Sticking to what was in the FORTRAN for variable names.
@@ -1102,11 +1052,7 @@ inline int Reunitarise(Complex *u11t, Complex *u12t){
 #ifdef __NVCC__
 	cuReunitarise(u11t,u12t,dimGrid,dimBlock);
 #else
-#ifdef _OPENACC
-#pragma acc parallel loop
-#else
 #pragma omp parallel for simd aligned(u11t,u12t:AVX)
-#endif
 	for(int i=0; i<kvol*ndim; i++){
 		//Declaring anorm inside the loop will hopefully let the compiler know it
 		//is safe to vectorise aggressively
@@ -1167,19 +1113,6 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 	cudaMallocManaged(&X1_f,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged(&pp,kmomHalo*sizeof(double),cudaMemAttachGlobal);
 	cudaMallocManaged(&dSdpi,kmom*sizeof(double),cudaMemAttachGlobal);
-#elif defined __INTEL_MKL__
-	Complex *R1= mkl_malloc(kfermHalo*sizeof(Complex),AVX);
-	Complex *xi= mkl_malloc(kfermHalo*sizeof(Complex),AVX);
-	Complex_f *R1_f= mkl_malloc(kfermHalo*sizeof(Complex_f),AVX);
-	Complex_f *xi_f= mkl_malloc(kfermHalo*sizeof(Complex_f),AVX);
-	Complex *Phi= mkl_malloc(nf*kfermHalo*sizeof(Complex),AVX); 
-	Complex_f *Phi_f= mkl_malloc(nf*kfermHalo*sizeof(Complex_f),AVX); 
-	Complex *X0= mkl_malloc(nf*kferm2Halo*sizeof(Complex),AVX); 
-	Complex *X1= mkl_malloc(kferm2Halo*sizeof(Complex),AVX); 
-	double *pp = mkl_malloc(kmomHalo*sizeof(double), AVX);
-	Complex_f *X0_f= mkl_malloc(nf*kferm2Halo*sizeof(Complex_f),AVX); 
-	Complex_f *X1_f= mkl_malloc(kferm2Halo*sizeof(Complex_f),AVX); 
-	double *dSdpi = mkl_malloc(kmom*sizeof(double), AVX);
 #else
 	Complex *R1= aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 	Complex *xi= aligned_alloc(AVX,kfermHalo*sizeof(Complex));
@@ -1211,12 +1144,6 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 				fprintf(dk4p_File,"%f\t%f\t%f\t%f\n",dk4p[i],dk4p[i+1],dk4p[i+2],dk4p[i+3]);
 		}
 	}
-#ifdef __clang__
-#pragma omp target enter data map(to:u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],gamval[0:5*4],\
-		u11t_f[0:ndim*(kvol+halo)],u12t_f[0:ndim*(kvol+halo)], dk4m[0:kvol+halo],gamval_f[0:5*4],\
-		dk4p[0:kvol+halo], dk4m_f[0:kvol+halo],dk4p_f[0:kvol+halo], iu[0:ndim*kvol],id[0:ndim*kvol],\
-		Phi[0:kferm],dSdpi[0:kmom])
-#endif
 	for(int test = 0; test<=7; test++){
 		//Trial fields shouldn't get modified so were previously set up outside
 		switch(istart){
@@ -1306,7 +1233,6 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 			for(int i=0; i<kmom; i++)
 				dSdpi[i] = 1/sqrt(kmom);
 		}
-#pragma omp target update to(Phi[0:kferm],dSdpi[0:kmom])
 		FILE *output_old, *output;
 		FILE *output_f_old, *output_f;
 		switch(test){
@@ -1637,12 +1563,6 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 		}
 	}
 	//George Michael's favourite bit of the code
-#ifdef __clang__
-#pragma omp target exit data map(delete:u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],gamval[0:5*4],\
-		u11t_f[0:ndim*(kvol+halo)],u12t_f[0:ndim*(kvol+halo)], dk4m[0:kvol+halo],gamval_f[0:5*4],\
-		dk4p[0:kvol+halo], dk4m_f[0:kvol+halo],dk4p_f[0:kvol+halo], iu[0:ndim*kvol],id[0:ndim*kvol],\
-		Phi[0:kferm],dSdpi[0:kmom])
-#endif
 #ifdef __NVCC__
 	//Make a routine that does this for us
 	cudaFree(dk4m); cudaFree(dk4p); cudaFree(R1); cudaFree(dSdpi); cudaFree(pp);
@@ -1650,14 +1570,6 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 	cudaFree(X0); cudaFree(X1); cudaFree(u11); cudaFree(u12);
 	cudaFree(X0_f); cudaFree(X1_f); cudaFree(u11t_f); cudaFree(u12t_f);
 	cudaFree(id); cudaFree(iu); cudaFree(hd); cudaFree(hu);
-#elif defined __INTEL_MKL__
-	mkl_free(dk4m); mkl_free(dk4p); mkl_free(R1); mkl_free(dSdpi); mkl_free(pp);
-	mkl_free(Phi); mkl_free(u11t); mkl_free(u12t); mkl_free(xi);
-	mkl_free(X0); mkl_free(X1); mkl_free(u11); mkl_free(u12);
-	mkl_free(X0_f); mkl_free(X1_f); mkl_free(u11t_f); mkl_free(u12t_f);
-	mkl_free(id); mkl_free(iu); mkl_free(hd); mkl_free(hu);
-	mkl_free(pcoord);
-	mkl_free_buffers();
 #else
 	free(dk4m); free(dk4p); free(R1); free(dSdpi); free(pp);
 	free(Phi); free(u11t); free(u12t); free(xi);

@@ -187,7 +187,6 @@ double Polyakov(Complex *u11t, Complex *u12t){
 			Sigma12[i]=Sigma11[i]*u12t[indexu*ndim+3]+Sigma12[i]*conj(u11t[indexu*ndim+3]);
 			Sigma11[i]=a11;
 		}
-	//#pragma omp target update from(Sigma11[0:kvol3],Sigma12[0:kvol3])
 	//Multiply this partial loop with the contributions of the other cores in the
 	//Time-like dimension
 #endif

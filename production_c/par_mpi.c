@@ -1218,8 +1218,6 @@ int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u
 		u12t_f[i]=(Complex_f)u12t[i];
 	}
 #endif
-#pragma acc update device(u11t[ndim*kvol:ndim*(kvol+halo)],u12t[ndim*kvol:ndim*(kvol+halo)],\
-		u11t_f[0:ndim*(kvol+halo)],u12t_f[0:ndim*(kvol+halo)])
 	return 0;
 }
 #if(npt>1)

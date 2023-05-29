@@ -71,11 +71,6 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 	//And confirm they're legit
 	Check_addr(iu, ksize, ksizet, 0, kvol+halo);
 	Check_addr(id, ksize, ksizet, 0, kvol+halo);
-#ifdef _OPENACC
-#pragma acc enter data copyin(iu[0:ndim*kvol],id[0:ndim*kvol])
-#else
-#pragma omp target enter data map(to:iu[0:ndim*kvol],id[0:ndim*kvol]) nowait
-#endif
 #ifdef _DEBUG
 	printf("Checked addresses\n");
 #endif
@@ -117,13 +112,6 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 		dk4m_f[i]=(float)dk4m[i];
 	}
 #endif
-#ifdef _OPENACC
-#pragma acc data copyin(dk4p[0:kvol+halo], dk4m_f[0:kvol+halo],\
-		dk4p_f[0:kvol+halo],dk4m[0:kvol+halo])
-#else
-#pragma omp target enter data map(to:dk4p[0:kvol+halo], dk4m_f[0:kvol+halo],\
-		dk4p_f[0:kvol+halo],dk4m[0:kvol+halo]) nowait
-#endif
 //TODO: Change gamin[4] to gamin[11] and gamval[5] to gamval[11]
 	int __attribute__((aligned(AVX))) gamin_t[4][4] =	{{3,2,1,0},{3,2,1,0},{2,3,0,1},{2,3,0,1}};
 	//Gamma Matrices in Chiral Representation
@@ -156,11 +144,6 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 	for(int i=0;i<5*4;i++)
 		gamval_f[i]=(Complex_f)gamval[i];
 #endif
-#ifdef _OPENACC
-#pragma acc enter data copyin(gamval[0:20], gamval_f[0:20], gamin[0:16])
-#else
-#pragma omp target enter data map(to:gamval[0:20], gamval_f[0:20], gamin[0:16]) nowait
-#endif
 	if(iread){
 		if(!rank) printf("Calling Par_sread() for configuration: %i\n", iread);
 		Par_sread(iread, beta, fmu, akappa, ajq,u11,u12,u11t,u12t);
@@ -168,13 +151,6 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 	}
 	else{
 		Par_ranset(&seed,iread);
-#ifdef _OPENACC
-#pragma acc enter data create(u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],\
-		u11t_f[0:ndim*(kvol+halo)],u12t_f[0:ndim*(kvol+halo)])
-#else
-#pragma omp target enter data map(alloc:u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],\
-		u11t_f[0:ndim*(kvol+halo)],u12t_f[0:ndim*(kvol+halo)]) nowait
-#endif
 		if(istart==0){
 			//Initialise a cold start to zero
 			//memset is safe to use here because zero is zero 
@@ -214,15 +190,8 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 		cudaMemPrefetchAsync(u12t, ndim*kvol*sizeof(Complex),device,NULL);
 #endif
 		//Send trials to accelerator for reunitarisation
-#pragma omp taskwait
-#ifdef _OPENACC
-#pragma acc update device(u11t[0:ndim*kvol],u12t[0:ndim*kvol])
-#else
-#pragma omp target update to(u11t[0:ndim*kvol],u12t[0:ndim*kvol])
-#endif
 		Reunitarise(u11t,u12t);
 		//Get trials back
-		//#pragma omp target update from(u11t[0:ndim*kvol],u12t[0:ndim*kvol]) 
 		memcpy(u11, u11t, ndim*kvol*sizeof(Complex));
 		memcpy(u12, u12t, ndim*kvol*sizeof(Complex));
 	}

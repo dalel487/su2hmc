@@ -40,24 +40,18 @@ int Gauge_force(double *dSdpi, Complex_f *u11t, Complex_f *u12t,unsigned int *iu
 	cudaMalloc((void **)&Sigma12,kvol*sizeof(Complex_f));
 	cudaMallocManaged((void **)&u11sh,(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&u12sh,(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
-#elif defined __INTEL_MKL__
-	Complex_f *Sigma11 = (Complex_f *)mkl_malloc(kvol*sizeof(Complex_f),AVX); 
-	Complex_f *Sigma12= (Complex_f *)mkl_malloc(kvol*sizeof(Complex_f),AVX); 
-	Complex_f *u11sh = (Complex_f *)mkl_malloc((kvol+halo)*sizeof(Complex_f),AVX); 
-	Complex_f *u12sh = (Complex_f *)mkl_malloc((kvol+halo)*sizeof(Complex_f),AVX); 
 #else
 	Complex_f *Sigma11 = (Complex_f *)aligned_alloc(AVX,kvol*sizeof(Complex_f)); 
 	Complex_f *Sigma12= (Complex_f *)aligned_alloc(AVX,kvol*sizeof(Complex_f)); 
 	Complex_f *u11sh = (Complex_f *)aligned_alloc(AVX,(kvol+halo)*sizeof(Complex_f)); 
 	Complex_f *u12sh = (Complex_f *)aligned_alloc(AVX,(kvol+halo)*sizeof(Complex_f)); 
 #endif
-#pragma acc enter data create(Sigma11[0:kvol],Sigma12[0:kvol],u11sh[0:kvol+halo],u12sh[0:kvol+halo])
 	//Holders for directions
 	for(int mu=0; mu<ndim; mu++){
 #ifdef __NVCC__
 		cudaMemset(Sigma11,0, kvol*sizeof(Complex_f));
 		cudaMemset(Sigma12,0, kvol*sizeof(Complex_f));
-		#else
+#else
 		memset(Sigma11,0, kvol*sizeof(Complex_f));
 		memset(Sigma12,0, kvol*sizeof(Complex_f));
 #endif
@@ -68,18 +62,14 @@ int Gauge_force(double *dSdpi, Complex_f *u11t, Complex_f *u12t,unsigned int *iu
 				cuPlus_staple(mu,nu,iu,Sigma11,Sigma12,u11t,u12t,dimGrid,dimBlock);
 				cudaDeviceSynchronise();
 #else
-#ifdef _OPENACC
-#pragma acc parallel loop
-#else
 #pragma omp parallel for simd aligned(u11t,u12t,Sigma11,Sigma12,iu:AVX)
-#endif
 				for(int i=0;i<kvol;i++){
 					int uidm = iu[mu+ndim*i];
 					int uidn = iu[nu+ndim*i];
 					Complex_f	a11=u11t[uidm*ndim+nu]*conj(u11t[uidn*ndim+mu])+\
-									 u12t[uidm*ndim+nu]*conj(u12t[uidn*ndim+mu]);
+										 u12t[uidm*ndim+nu]*conj(u12t[uidn*ndim+mu]);
 					Complex_f	a12=-u11t[uidm*ndim+nu]*u12t[uidn*ndim+mu]+\
-									 u12t[uidm*ndim+nu]*u11t[uidn*ndim+mu];
+										 u12t[uidm*ndim+nu]*u11t[uidn*ndim+mu];
 					Sigma11[i]+=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
 					Sigma12[i]+=-a11*u12t[i*ndim+nu]+a12*u11t[i*ndim+nu];
 				}
@@ -96,7 +86,6 @@ int Gauge_force(double *dSdpi, Complex_f *u11t, Complex_f *u12t,unsigned int *iu
 				cudaMemPrefetchAsync(u11sh+kvol, halo*sizeof(Complex_f),device,NULL);
 #endif
 #endif
-#pragma acc update device(u11sh[0:kvol+halo])
 				C_gather(u12sh, u12t, kvol, id, nu);
 #if(nproc>1)
 #ifdef __NVCC__
@@ -107,24 +96,19 @@ int Gauge_force(double *dSdpi, Complex_f *u11t, Complex_f *u12t,unsigned int *iu
 				cudaMemPrefetchAsync(u12sh+kvol, halo*sizeof(Complex_f),device,NULL);
 #endif
 #endif
-#pragma acc update device(u12sh[0:kvol+halo])
 				//Next up, the -ν staple
 #ifdef __NVCC__
 				cuMinus_staple(mu,nu,iu,id,Sigma11,Sigma12,u11sh,u12sh,u11t,u12t,dimGrid,dimBlock);
 #else
-#ifdef _OPENACC
-#pragma acc parallel loop
-#else
 #pragma omp parallel for simd aligned(u11t,u12t,u11sh,u12sh,Sigma11,Sigma12,iu,id:AVX)
-#endif
 				for(int i=0;i<kvol;i++){
 					int uidm = iu[mu+ndim*i];
 					int didn = id[nu+ndim*i];
 					//uidm is correct here
 					Complex_f a11=conj(u11sh[uidm])*conj(u11t[didn*ndim+mu])-\
-									u12sh[uidm]*conj(u12t[didn*ndim+mu]);
+									  u12sh[uidm]*conj(u12t[didn*ndim+mu]);
 					Complex_f a12=-conj(u11sh[uidm])*u12t[didn*ndim+mu]-\
-									u12sh[uidm]*u11t[didn*ndim+mu];
+									  u12sh[uidm]*u11t[didn*ndim+mu];
 					Sigma11[i]+=a11*u11t[didn*ndim+nu]-a12*conj(u12t[didn*ndim+nu]);
 					Sigma12[i]+=a11*u12t[didn*ndim+nu]+a12*conj(u11t[didn*ndim+nu]);
 				}
@@ -133,11 +117,7 @@ int Gauge_force(double *dSdpi, Complex_f *u11t, Complex_f *u12t,unsigned int *iu
 #ifdef __NVCC__
 		cuGauge_force(mu,Sigma11,Sigma12,u11t,u12t,dSdpi,beta,dimGrid,dimBlock);
 #else
-#ifdef _OPENACC
-#pragma acc parallel loop
-#else
 #pragma omp parallel for simd aligned(u11t,u12t,Sigma11,Sigma12,dSdpi:AVX)
-#endif
 		for(int i=0;i<kvol;i++){
 			Complex_f a11 = u11t[i*ndim+mu]*Sigma12[i]+u12t[i*ndim+mu]*conj(Sigma11[i]);
 			Complex_f a12 = u11t[i*ndim+mu]*Sigma11[i]+conj(u12t[i*ndim+mu])*Sigma12[i];
@@ -148,12 +128,9 @@ int Gauge_force(double *dSdpi, Complex_f *u11t, Complex_f *u12t,unsigned int *iu
 		}
 #endif
 	}
-#pragma acc exit data delete(Sigma11[0:kvol],Sigma12[0:kvol],u11sh[0:kvol+halo],u12sh[0:kvol+halo])
 #ifdef __NVCC__
 	cudaDeviceSynchronise();
 	cudaFree(Sigma11); cudaFree(Sigma12); cudaFree(u11sh); cudaFree(u12sh);
-#elif defined __INTEL_MKL__
-	mkl_free(u11sh); mkl_free(u12sh); mkl_free(Sigma11); mkl_free(Sigma12);
 #else
 	free(u11sh); free(u12sh); free(Sigma11); free(Sigma12);
 #endif
@@ -199,7 +176,6 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 	int device=-1;
 	cudaGetDevice(&device);
 #endif
-#pragma acc update device(dSdpi[0:kmom])
 #ifndef NO_GAUGE
 	Gauge_force(dSdpi,u11t_f,u12t_f,iu,id,beta);
 #endif
@@ -208,23 +184,19 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 #ifdef __NVCC__
 	Complex *X2;
 	cudaMallocManaged((void **)&X2,kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
-#elif defined __INTEL_MKL__
-	Complex *X2= (Complex *)mkl_malloc(kferm2Halo*sizeof(Complex), AVX);
 #else
 	Complex *X2= (Complex *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex));
 #endif
 	for(int na = 0; na<nf; na++){
-		#ifdef __NVCC__
+#ifdef __NVCC__
 		cudaMemcpyAsync(X1,X0+na*kferm2,kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice,NULL);
-		#else
+#else
 		memcpy(X1,X0+na*kferm2,kferm2*sizeof(Complex));
-		#endif
+#endif
 		if(!iflag){
 #ifdef __NVCC__
 			Complex *smallPhi;
 			cudaMalloc((void **)&smallPhi,kferm2*sizeof(Complex));
-#elif defined __INTEL_MKL__
-			Complex *smallPhi =(Complex *)mkl_malloc(kferm2*sizeof(Complex), AVX); 
 #else
 			Complex *smallPhi = (Complex *)aligned_alloc(AVX,kferm2*sizeof(Complex)); 
 #endif
@@ -233,8 +205,6 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 			Congradq(na,res1,X1,smallPhi,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,&itercg);
 #ifdef __NVCC__
 			cudaFree(smallPhi);
-#elif defined __INTEL_MKL__
-			mkl_free(smallPhi);
 #else
 			free(smallPhi);
 #endif
@@ -255,12 +225,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 			cblas_zdscal(kferm2,blasb,X0+na*kferm2,1);
 			cblas_zaxpy(kferm2,&blasa,X1,1,X0+na*kferm2,1);
 #else
-#ifdef _OPENACC
-#pragma acc update self(Z1[0:kferm2])
-#pragma acc loop copy(X0[0:kferm2])
-#else
 #pragma omp parallel for simd collapse(2)
-#endif
 			for(int i=0;i<kvol;i++)
 				for(int idirac=0;idirac<ndirac;idirac++){
 					X0[((na*kvol+i)*ndirac+idirac)*nc]=
@@ -298,7 +263,6 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 		ZHalo_swap_dir(X1,8,3,DOWN);
 		ZHalo_swap_dir(X2,8,3,DOWN);
 #endif
-#pragma acc update device(X1[kferm2:kferm2Halo])
 
 		//	The original FORTRAN Comment:
 		//    dSdpi=dSdpi-Re(X1*(d(Mdagger)dp)*X2) -- Yikes!
@@ -312,19 +276,12 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 		cudaDeviceSynchronise();
 		cuForce(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,dimGrid,dimBlock);
 #else
-#ifdef _OPENACC
-#pragma acc parallel loop copyin(X2[na*kferm2Halo:(na+1)*kferm2Halo])
-#else
-		//#pragma omp target teams distribute parallel for map(to:X1[0:kferm2Halo],X2[0:kferm2Halo]) map(tofrom:dSdpi[0:kmom])
 #pragma omp parallel for
-#endif
 		for(int i=0;i<kvol;i++)
 			for(int idirac=0;idirac<ndirac;idirac++){
 				int mu, uid, igork1;
 #ifndef NO_SPACE
-#ifndef _OPENACC
 #pragma omp simd aligned(dSdpi,X1,X2,u11t,u12t,iu:AVX)
-#endif
 				for(mu=0; mu<3; mu++){
 					//Long term ambition. I used the diff command on the different
 					//spacial components of dSdpi and saw a lot of the values required
@@ -512,11 +469,8 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 			}
 #endif
 	}
-#pragma acc update self(dSdpi[0:kmom])
 #ifdef __NVCC__
 	cudaFree(X2);
-#elif defined __INTEL_MKL__
-	mkl_free(X2);
 #else
 	free(X2); 
 #endif

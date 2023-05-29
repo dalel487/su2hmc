@@ -194,13 +194,8 @@ xi[i]=(Complex)R1_f[i];
 
 	//Instead of typing id[i*ndim+3] a lot, we'll just assign them to variables.
 	//Idea. One loop instead of two loops but for xuu and xdd just use ngorkov-(igorkov+1) instead
-	//#ifdef __clang__
-	//#pragma omp target teams distribute parallel for reduction(+:xd,xu,xdd,xuu)\
-	map(tofrom:xu,xd,xuu,xdd)
-#ifdef _OPENACC
-#pragma acc parallel loop reduction(+:xd,xu,xdd,xuu) copyin(xi[0:kferm],x[0:kfermHalo])
 		//Dirty CUDA work around since it won't convert thrust<complex> to double
-#elif !defined __NVCC__
+#ifndef __NVCC__
 #pragma omp parallel for reduction(+:xd,xu,xdd,xuu) 
 #endif
 		for(int i = 0; i<kvol; i++){
@@ -256,13 +251,8 @@ xi[i]=(Complex)R1_f[i];
 							conj(u12t[i*ndim+3])*(xi[(i*ngorkov+igorkovPP)*nc]+xi[(i*ngorkov+igork1PP)*nc]) ) );
 			}
 		}
-#ifdef __CUDACC__
-	*endenf=(xu-xd-xuu+xdd).real();
-	*denf=(xu+xd+xuu+xdd).real();
-#else
 	*endenf=creal(xu-xd-xuu+xdd);
 	*denf=creal(xu+xd+xuu+xdd);
-#endif
 
 #if(nproc>1)
 	Par_dsum(endenf); Par_dsum(denf);
