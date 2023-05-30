@@ -25,6 +25,9 @@
 
 //Definitions:
 //###########
+#ifdef _DEBUGCG
+#define _DEBUG
+#endif
 //Function Declarations:
 //#####################
 #if (defined __cplusplus)

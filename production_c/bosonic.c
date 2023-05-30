@@ -164,6 +164,7 @@ double Polyakov(Complex_f *u11t, Complex_f *u12t){
 		There is a dependency. Can only parallelise the inner loop
 	 */
 #ifdef __NVCC__
+	cudaDeviceSynchronise();
 	cuPolyakov(Sigma11,Sigma12,u11t,u12t,dimGrid,dimBlock);
 	cudaMemPrefetchAsync(Sigma11,kvol3*sizeof(Complex_f),cudaCpuDeviceId,NULL);
 #else

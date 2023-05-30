@@ -152,8 +152,8 @@ int main(int argc, char *argv[]){
 #endif
 
 	//Gauge, trial and momentum fields 
-	//You'll notice that there are three different allocation/free statements
-	//One for CUDA, one for MKL and one for everything else depending on what's
+	//You'll notice that there are two different allocation/free statements
+	//One for CUDA and one for everything else depending on what's
 	//being used
 	Complex *u11, *u12, *u11t, *u12t;
 	Complex_f *u11t_f, *u12t_f;
@@ -180,7 +180,7 @@ int main(int argc, char *argv[]){
 	Complex_f *gamval_f;
 	cudaMallocManaged(&gamin,4*4*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&gamval,5*4*sizeof(Complex),cudaMemAttachGlobal);
-#if _DEBUG
+#ifdef _DEBUG
 	cudaMallocManaged(&gamval_f,5*4*sizeof(Complex_f),cudaMemAttachGlobal);
 #else
 	cudaMalloc(&gamval_f,5*4*sizeof(Complex_f));
@@ -388,20 +388,15 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 			cuReal_convert(R1_f,R1,kferm,false,dimBlock,dimGrid);
 			//cudaFree is blocking so don't need cudaDeviceSynchronise()
-#else
-			for(int i=0;i<kferm;i++)
-				R1[i]=(Complex)R1_f[i];
-#endif
-#ifdef __NVCC__
 			cudaFree(R);cudaFree(R1_f);
-#else
-			free(R); free(R1_f);
-#endif
-#ifdef __NVCC__
 			cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice,streams[0]);
 			cuUpDownPart(na,X0,R1,dimBlock,dimGrid);
 			//Up/down partitioning (using only pseudofermions of flavour 1)
 #else
+#pragma omp simd aligned(R1_f,R1:AVX)
+			for(int i=0;i<kferm;i++)
+				R1[i]=(Complex)R1_f[i];
+			free(R); free(R1_f);
 			memcpy(Phi+na*kferm,R1, kferm*sizeof(Complex));
 			//Up/down partitioning (using only pseudofermions of flavour 1)
 #pragma omp parallel for simd collapse(2) aligned(X0,R1:AVX)

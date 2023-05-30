@@ -4,31 +4,35 @@
  */
 #include	<par_mpi.h>
 #include	<su2hmc.h>
+#include <thrust/reduce.h>
+//#include <thrust/execution_policy.h>
+
 void cuAverage_Plaquette(double *hgs, double *hgt, Complex_f *u11t, Complex_f *u12t, unsigned int *iu,dim3 dimGrid, dim3 dimBlock){
-	float *hgs_d, *hgt_d;
+//	float *hgs_d, *hgt_d;
 	int device=-1;
 	cudaGetDevice(&device);
-	cudaMallocManaged((void **)&hgs_d,kvol*sizeof(float),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&hgt_d,kvol*sizeof(float),cudaMemAttachGlobal);
+//	cudaMalloc((void **)&hgs_d,kvol*sizeof(float));
+//	cudaMalloc((void **)&hgt_d,kvol*sizeof(float));
+	thrust::device_vector<float> hgs_d(kvol);
+	thrust::device_vector<float> hgt_d(kvol);
 
-	cuAverage_Plaquette<<<dimGrid,dimBlock>>>(hgs_d, hgt_d, u11t, u12t, iu);
+	cuAverage_Plaquette<<<dimGrid,dimBlock>>>(&hgs_d[0], &hgt_d[0], u11t, u12t, iu);
 	cudaDeviceSynchronise();
-	cudaMemPrefetchAsync(hgs_d,kvol*sizeof(float),device,streams[0]);
-	cudaMemPrefetchAsync(hgt_d,kvol*sizeof(float),device,streams[1]);
-	cudaDeviceSynchronise();
-	/*
-	*hgs= thrust::reduce(thrust::host,hgs_d,hgt_d+kvol);
-	*hgt= thrust::reduce(thrust::host,hgt_d,hgt_d+kvol);
-	*/
+//	cudaMemPrefetchAsync(hgs_d,kvol*sizeof(float),device,streams[0]);
+//	cudaMemPrefetchAsync(hgt_d,kvol*sizeof(float),device,streams[1]);
+//	cudaDeviceSynchronise();
+	*hgs= (double)thrust::reduce(hgs_d.begin(),hgs_d.end(),(float)0);
+	*hgt= (double)thrust::reduce(hgt_d.begin(),hgt_d.end(),(float)0);
 	//Temporary holders to keep OMP happy.
+	/*
 	double hgs_t=0; double hgt_t=0;
 #pragma omp parallel for simd reduction(+:hgs_t,hgt_t)
 	for(int i=0;i<kvol;i++){
 		hgs_t+=hgs_d[i]; hgt_t+=hgt_d[i];
 	}
 	*hgs=hgs_t; *hgt=hgt_t;
-
 	cudaFree(hgs_d); cudaFree(hgt_d);
+	*/
 }
 void cuPolyakov(Complex_f *Sigma11, Complex_f * Sigma12, Complex_f *u11t, Complex_f *u12t, dim3 dimGrid, dim3 dimBlock){
 	cuPolyakov<<<dimGrid,dimBlock>>>(Sigma11,Sigma12,u11t,u12t);
@@ -90,7 +94,7 @@ __device__ float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int
 	Sigma11=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
 	//Not needed in final result as it traces out
 	//Sigma12[i]=-a11[i]*u12t[i*ndim+nu]+a12*u11t[i*ndim+mu];
-	return Sigma11.real();
+	return creal(Sigma11);
 }
 __global__ void cuPolyakov(Complex_f *Sigma11, Complex_f * Sigma12, Complex_f * u11t,Complex_f *u12t){
 	char * funcname = "cuPolyakov";

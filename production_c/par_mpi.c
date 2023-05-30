@@ -364,7 +364,7 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 	MPI_Datatype MPI_SEED_TYPE = (sizeof(seed)==sizeof(int)) ? MPI_INT:MPI_LONG;
 	Complex *u1buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
 	Complex *u2buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
-#if _DEBUG
+#ifdef _DEBUG
 	char dump_prefix[FILELEN]="u11.";
 	char dump_buff[32];
 	sprintf(dump_buff,"r%01d_c%06d",rank,itraj);
@@ -428,7 +428,7 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 						u2buff[i]=u12[i*ndim+idim];
 					}
 #endif
-#if _DEBUG
+#ifdef _DEBUG
 					char part_dump[FILELEN]="";
 					strcat(part_dump,dump_prefix);
 					sprintf(dump_buff,"_d%d",idim);

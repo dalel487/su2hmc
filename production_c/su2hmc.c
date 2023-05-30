@@ -256,26 +256,25 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 #endif
 	//Iterating over flavours
 	for(int na=0;na<nf;na++){
-		Fill_Small_Phi(na, smallPhi, Phi);
 #ifdef __NVCC__
-		cudaMemcpy(X1,X0+na*kferm2,kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice);
+		cudaMemcpyAsync(X1,X0+na*kferm2,kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice,streams[0]);
 #else
 		memcpy(X1,X0+na*kferm2,kferm2*sizeof(Complex));
 #endif
+		Fill_Small_Phi(na, smallPhi, Phi);
 		Congradq(na,res2,X1,smallPhi,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,&itercg);
 		*ancgh+=itercg;
-		Fill_Small_Phi(na, smallPhi,Phi);
 #ifdef __NVCC__
-		cudaMemcpy(X0+na*kferm2,X1,kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice);
+		cudaMemcpyAsync(X0+na*kferm2,X1,kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice,streams[0]);
 #else
 		memcpy(X0+na*kferm2,X1,kferm2*sizeof(Complex));
 #endif
+		Fill_Small_Phi(na, smallPhi,Phi);
 #ifdef __NVCC__
 		Complex dot;
 		cublasZdotc(cublas_handle,kferm2,(cuDoubleComplex *)smallPhi,1,(cuDoubleComplex *) X1,1,(cuDoubleComplex *) &hf);
 		hf+=creal(dot);
 		cudaDeviceSynchronise();
-		//		hf+=creal(dot);
 #elif defined USE_BLAS
 		Complex dot;
 		cblas_zdotc_sub(kferm2, smallPhi, 1, X1, 1, &dot);
@@ -287,20 +286,20 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 			hf+=creal(conj(smallPhi[j])*X1[j]);
 #endif
 	}
-	//hg was summed over inside of Average_Plaquette.
-#if(nproc>1)
-	Par_dsum(&hp); Par_dsum(&hf);
-#endif
-	*s=hg+hf; *h=(*s)+hp;
 #ifdef __NVCC__
 	cudaFree(smallPhi);
 #else
 	free(smallPhi);
 #endif
-#ifdef _DEBUG
+	//hg was summed over inside of Average_Plaquette.
+#if(nproc>1)
+	Par_dsum(&hp); Par_dsum(&hf);
+#endif
+	*s=hg+hf; *h=(*s)+hp;
+//#ifdef _DEBUG
 	if(!rank)
 		printf("hg=%.5e; hf=%.5e; hp=%.5e; h=%.5e\n", hg, hf, hp, *h);
-#endif
+//#endif
 	return 0;
 }
 inline int C_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu)
