@@ -387,11 +387,11 @@ int main(int argc, char *argv[]){
 			Dslashd_f(R1_f, R,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 #ifdef __NVCC__
 			cuReal_convert(R1_f,R1,kferm,false,dimBlock,dimGrid);
+			cudaMemcpy(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice);
+			//Up/down partitioning (using only pseudofermions of flavour 1)
+			cuUpDownPart(na,X0,R1,dimBlock,dimGrid);
 			//cudaFree is blocking so don't need cudaDeviceSynchronise()
 			cudaFree(R);cudaFree(R1_f);
-			cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice,streams[0]);
-			cuUpDownPart(na,X0,R1,dimBlock,dimGrid);
-			//Up/down partitioning (using only pseudofermions of flavour 1)
 #else
 #pragma omp simd aligned(R1_f,R1:AVX)
 			for(int i=0;i<kferm;i++)

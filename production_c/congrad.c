@@ -53,17 +53,17 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 	Complex_f *p_f, *x1_f, *x2_f, *r_f, *X1_f;
 	int device=-1; cudaGetDevice(&device);
 
-	cudaMalloc((void **)&X1_f, kferm2*sizeof(Complex_f));
-	cudaMalloc((void **)&r_f, kferm2*sizeof(Complex_f));
+	cudaMallocAsync((void **)&X1_f, kferm2*sizeof(Complex_f),streams[0]);
+	cudaMallocAsync((void **)&r_f, kferm2*sizeof(Complex_f),streams[1]);
 #ifdef _DEBUG
 	cudaMallocManaged((void **)&p_f, kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&x1_f, kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&x2_f, kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
 #else
 	//First two have halo exchanges, so getting NCCL working is important
-	cudaMalloc((void **)&p_f, kferm2Halo*sizeof(Complex_f));
-	cudaMalloc((void **)&x1_f, kferm2Halo*sizeof(Complex_f));
-	cudaMalloc((void **)&x2_f, kferm2Halo*sizeof(Complex_f));
+	cudaMallocAsync((void **)&p_f, kferm2Halo*sizeof(Complex_f),streams[2]);
+	cudaMallocAsync((void **)&x1_f, kferm2Halo*sizeof(Complex_f),streams[3]);
+	cudaMallocAsync((void **)&x2_f, kferm2Halo*sizeof(Complex_f),streams[4]);
 #endif
 	//	cudaMallocManaged(&x2, kferm2*sizeof(Complex),cudaMemAttachGlobal);
 	//	cudaMemAdvise(x2,kferm2*sizeof(Complex),cudaMemAdviseSetPreferredLocation,device);
@@ -257,9 +257,15 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 	}
 #endif
 #ifdef __NVCC__
+#ifdef _DEBUG
 	cudaFree(x1_f);cudaFree(x2_f); cudaFree(p_f);
-	cudaDeviceSynchronise();
 	cudaFree(r_f);cudaFree(X1_f);
+	#else
+	//streamss match the ones that allocated them.
+	cudaFreeAsync(x1_f,streams[3]);cudaFreeAsync(x2_f,streams[4]); cudaFreeAsync(p_f,streams[2]);
+	cudaDeviceSynchronise();
+	cudaFreeAsync(r_f,streams[1]);cudaFreeAsync(X1_f,streams[0]);
+	#endif
 #else
 	free(x1_f);free(x2_f); free(p_f);  free(r_f); free(X1_f);
 #endif

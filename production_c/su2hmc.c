@@ -296,10 +296,10 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 	Par_dsum(&hp); Par_dsum(&hf);
 #endif
 	*s=hg+hf; *h=(*s)+hp;
-//#ifdef _DEBUG
+#ifdef _DEBUG
 	if(!rank)
 		printf("hg=%.5e; hf=%.5e; hp=%.5e; h=%.5e\n", hg, hf, hp, *h);
-//#endif
+#endif
 	return 0;
 }
 inline int C_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu)

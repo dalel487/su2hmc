@@ -129,7 +129,7 @@ double Polyakov(Complex_f *u11t, Complex_f *u12t){
 #ifdef _DEBUG
 	cudaMallocManaged((void **)&Sigma12,kvol3*sizeof(Complex_f),cudaMemAttachGlobal);
 #else
-	cudaMalloc((void **)&Sigma12,kvol3*sizeof(Complex_f));
+	cudaMallocAsync((void **)&Sigma12,kvol3*sizeof(Complex_f),streams[0]);
 #endif
 #else
 	Complex_f *Sigma11 = aligned_alloc(AVX,kvol3*sizeof(Complex_f));
@@ -213,7 +213,12 @@ double Polyakov(Complex_f *u11t, Complex_f *u12t){
 		for(int i=0;i<kvol3;i++)
 			poly+=creal(Sigma11[i]);
 #ifdef __NVCC__
-	cudaFree(Sigma11); cudaFree(Sigma12);
+	cudaFree(Sigma11);
+#ifdef _DEBUG
+	cudaFree(Sigma12);
+#else
+	cudaFreeAsync(Sigma12,streams[0]);
+#endif
 #else
 	free(Sigma11); free(Sigma12);
 #endif

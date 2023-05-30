@@ -7,22 +7,22 @@
 #include <thrust/reduce.h>
 //#include <thrust/execution_policy.h>
 
-void cuAverage_Plaquette(double *hgs, double *hgt, Complex_f *u11t, Complex_f *u12t, unsigned int *iu,dim3 dimGrid, dim3 dimBlock){
+__host__ void cuAverage_Plaquette(double *hgs, double *hgt, Complex_f *u11t, Complex_f *u12t, unsigned int *iu,dim3 dimGrid, dim3 dimBlock){
 //	float *hgs_d, *hgt_d;
 	int device=-1;
 	cudaGetDevice(&device);
-//	cudaMalloc((void **)&hgs_d,kvol*sizeof(float));
-//	cudaMalloc((void **)&hgt_d,kvol*sizeof(float));
-	thrust::device_vector<float> hgs_d(kvol);
-	thrust::device_vector<float> hgt_d(kvol);
+	float *hgs_d, *hgt_d;
+	//Thrust want things in a weird format for the reduction, thus we oblige
+	cudaMallocAsync((void **)&hgs_d,kvol*sizeof(float),streams[0]);
+	thrust::device_ptr<float> hgs_T = thrust::device_pointer_cast(hgs_d);
+	cudaMallocAsync((void **)&hgt_d,kvol*sizeof(float),streams[1]);
+	thrust::device_ptr<float> hgt_T = thrust::device_pointer_cast(hgt_d);
 
-	cuAverage_Plaquette<<<dimGrid,dimBlock>>>(&hgs_d[0], &hgt_d[0], u11t, u12t, iu);
+	cuAverage_Plaquette<<<dimGrid,dimBlock>>>(hgs_d, hgt_d, u11t, u12t, iu);
 	cudaDeviceSynchronise();
-//	cudaMemPrefetchAsync(hgs_d,kvol*sizeof(float),device,streams[0]);
-//	cudaMemPrefetchAsync(hgt_d,kvol*sizeof(float),device,streams[1]);
-//	cudaDeviceSynchronise();
-	*hgs= (double)thrust::reduce(hgs_d.begin(),hgs_d.end(),(float)0);
-	*hgt= (double)thrust::reduce(hgt_d.begin(),hgt_d.end(),(float)0);
+
+	*hgs= (double)thrust::reduce(hgs_T,hgs_T+kvol,(float)0);
+	*hgt= (double)thrust::reduce(hgt_T,hgt_T+kvol,(float)0);
 	//Temporary holders to keep OMP happy.
 	/*
 	double hgs_t=0; double hgt_t=0;
@@ -31,8 +31,8 @@ void cuAverage_Plaquette(double *hgs, double *hgt, Complex_f *u11t, Complex_f *u
 		hgs_t+=hgs_d[i]; hgt_t+=hgt_d[i];
 	}
 	*hgs=hgs_t; *hgt=hgt_t;
-	cudaFree(hgs_d); cudaFree(hgt_d);
 	*/
+	cudaFreeAsync(hgs_d,streams[0]); cudaFreeAsync(hgt_d,streams[1]);
 }
 void cuPolyakov(Complex_f *Sigma11, Complex_f * Sigma12, Complex_f *u11t, Complex_f *u12t, dim3 dimGrid, dim3 dimBlock){
 	cuPolyakov<<<dimGrid,dimBlock>>>(Sigma11,Sigma12,u11t,u12t);
