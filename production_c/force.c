@@ -36,8 +36,8 @@ int Gauge_force(double *dSdpi, Complex_f *u11t, Complex_f *u12t,unsigned int *iu
 	int device=-1;
 	cudaGetDevice(&device);
 	Complex_f *Sigma11, *Sigma12, *u11sh, *u12sh;
-	cudaMalloc((void **)&Sigma11,kvol*sizeof(Complex_f));
-	cudaMalloc((void **)&Sigma12,kvol*sizeof(Complex_f));
+	cudaMallocAsync((void **)&Sigma11,kvol*sizeof(Complex_f),streams[0]);
+	cudaMallocAsync((void **)&Sigma12,kvol*sizeof(Complex_f),streams[1]);
 	cudaMallocManaged((void **)&u11sh,(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&u12sh,(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
 #else
@@ -130,7 +130,7 @@ int Gauge_force(double *dSdpi, Complex_f *u11t, Complex_f *u12t,unsigned int *iu
 	}
 #ifdef __NVCC__
 	cudaDeviceSynchronise();
-	cudaFree(Sigma11); cudaFree(Sigma12); cudaFree(u11sh); cudaFree(u12sh);
+	cudaFreeAsync(Sigma11,streams[0]); cudaFreeAsync(Sigma12,streams[1]); cudaFree(u11sh); cudaFree(u12sh);
 #else
 	free(u11sh); free(u12sh); free(Sigma11); free(Sigma12);
 #endif
@@ -196,7 +196,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 		if(!iflag){
 #ifdef __NVCC__
 			Complex *smallPhi;
-			cudaMalloc((void **)&smallPhi,kferm2*sizeof(Complex));
+			cudaMallocAsync((void **)&smallPhi,kferm2*sizeof(Complex),stream[0]);
 #else
 			Complex *smallPhi = (Complex *)aligned_alloc(AVX,kferm2*sizeof(Complex)); 
 #endif
@@ -204,7 +204,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 			//	Congradq(na, res1,smallPhi, &itercg );
 			Congradq(na,res1,X1,smallPhi,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,&itercg);
 #ifdef __NVCC__
-			cudaFree(smallPhi);
+			cudaFreeAsync(smallPhi,streams[0]);
 #else
 			free(smallPhi);
 #endif

@@ -12,6 +12,7 @@
 #include	<cuda_runtime.h>
 cublasHandle_t cublas_handle;
 cublasStatus_t cublas_status;
+cudaMemPool_t mempool;
 //Fix this later
 #endif
 /*
@@ -135,12 +136,17 @@ int main(int argc, char *argv[]){
 	Par_icopy(&iread); jqq=ajq*cexp(athq*I);
 #endif
 	//End of input
-	//For CUDA code, device only variables are needed
 #ifdef __NVCC__
 	//CUBLAS Handle
 	cublasCreate(&cublas_handle);
+	//CUDA device
 	int device=-1;
 	cudaGetDevice(&device);
+	//For asynchronous memory, when CUDA syncs any unused memory in the pool is released back to the OS
+	//unless a threshold is given. We'll base our threshold off of Congradq
+	cudaDeviceGetDefaultMemPool(&mempool, device);
+	int threshold=2*kferm2*sizeof(Complex_f);
+	cudaMemPoolSetAttribute(mempool, cudaMemPoolAttrReleaseThreshold, &threshold);
 #endif
 #ifdef _DEBUG
 	printf("jqq=%f+(%f)I\n",creal(jqq),cimag(jqq));
