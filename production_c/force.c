@@ -60,7 +60,6 @@ int Gauge_force(double *dSdpi, Complex_f *u11t, Complex_f *u12t,unsigned int *iu
 				//The +ν Staple
 #ifdef __NVCC__
 				cuPlus_staple(mu,nu,iu,Sigma11,Sigma12,u11t,u12t,dimGrid,dimBlock);
-				cudaDeviceSynchronise();
 #else
 #pragma omp parallel for simd aligned(u11t,u12t,Sigma11,Sigma12,iu:AVX)
 				for(int i=0;i<kvol;i++){
@@ -75,29 +74,22 @@ int Gauge_force(double *dSdpi, Complex_f *u11t, Complex_f *u12t,unsigned int *iu
 				}
 #endif
 				C_gather(u11sh, u11t, kvol, id, nu);
-#if(nproc>1)
-#ifdef __NVCC__
-				//Prefetch to the CPU for until we get NCCL working
-				cudaMemPrefetchAsync(u11sh, kvol*sizeof(Complex_f),cudaCpuDeviceId,NULL);
-#endif
-				CHalo_swap_dir(u11sh, 1, mu, DOWN);
-#ifdef __NVCC__
-				//Then we can load the halo onto the GPU seperately
-				cudaMemPrefetchAsync(u11sh+kvol, halo*sizeof(Complex_f),device,NULL);
-#endif
-#endif
 				C_gather(u12sh, u12t, kvol, id, nu);
 #if(nproc>1)
 #ifdef __NVCC__
-				cudaMemPrefetchAsync(u12sh, kvol*sizeof(Complex_f),cudaCpuDeviceId,NULL);
+				//Prefetch to the CPU for until we get NCCL working
+				cudaMemPrefetchAsync(u11sh, kvol*sizeof(Complex_f),cudaCpuDeviceId,streams[0]);
+				cudaMemPrefetchAsync(u12sh, kvol*sizeof(Complex_f),cudaCpuDeviceId,streams[1]);
 #endif
-				CHalo_swap_dir(u12sh, 1, mu, DOWN);
+				CHalo_swap_dir(u12sh, 1, mu, DOWN); CHalo_swap_dir(u12sh, 1, mu, DOWN);
 #ifdef __NVCC__
-				cudaMemPrefetchAsync(u12sh+kvol, halo*sizeof(Complex_f),device,NULL);
+				cudaMemPrefetchAsync(u11sh+kvol, halo*sizeof(Complex_f),device,streams[0]);
+				cudaMemPrefetchAsync(u12sh+kvol, halo*sizeof(Complex_f),device,streams[1]);
 #endif
 #endif
 				//Next up, the -ν staple
 #ifdef __NVCC__
+				cudaDeviceSynchronise();
 				cuMinus_staple(mu,nu,iu,id,Sigma11,Sigma12,u11sh,u12sh,u11t,u12t,dimGrid,dimBlock);
 #else
 #pragma omp parallel for simd aligned(u11t,u12t,u11sh,u12sh,Sigma11,Sigma12,iu,id:AVX)
