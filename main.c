@@ -372,8 +372,8 @@ int main(int argc, char *argv[]){
 			//or stick with MKL and synchronise/copy over the array
 #ifdef __NVCC__
 			Complex_f *R,*R1_f;
+			cudaMallocAsync(&R1_f,kferm*sizeof(Complex_f),streams[0]);
 			cudaMallocManaged(&R,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
-			cudaMalloc(&R1_f,kferm*sizeof(Complex_f));
 #else
 			Complex_f *R=aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 			Complex_f *R1_f=aligned_alloc(AVX,kferm*sizeof(Complex_f));
@@ -388,21 +388,23 @@ int main(int argc, char *argv[]){
 			vsRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, R, 0, 1/sqrt(2));
 #endif
 #ifdef __NVCC__
-			cudaMemPrefetchAsync(R,kferm*sizeof(Complex_f),device,NULL);
+	cudaMemPrefetchAsync(R,kferm*sizeof(Complex_f),device,NULL);
 #endif
 			Dslashd_f(R1_f, R,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 #ifdef __NVCC__
+			cudaFree(R);
 			cuReal_convert(R1_f,R1,kferm,false,dimBlock,dimGrid);
+			cudaFreeAsync(R1_f,streams[0]);
 			cudaMemcpy(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice);
 			//Up/down partitioning (using only pseudofermions of flavour 1)
 			cuUpDownPart(na,X0,R1,dimBlock,dimGrid);
 			//cudaFree is blocking so don't need cudaDeviceSynchronise()
-			cudaFree(R);cudaFree(R1_f);
 #else
 #pragma omp simd aligned(R1_f,R1:AVX)
+			free(R); 
 			for(int i=0;i<kferm;i++)
 				R1[i]=(Complex)R1_f[i];
-			free(R); free(R1_f);
+			free(R1_f);
 			memcpy(Phi+na*kferm,R1, kferm*sizeof(Complex));
 			//Up/down partitioning (using only pseudofermions of flavour 1)
 #pragma omp parallel for simd collapse(2) aligned(X0,R1:AVX)

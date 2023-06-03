@@ -103,6 +103,9 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 				i,gamin[i*ndim+0],gamin[i*ndim+1],gamin[i*ndim+2],gamin[i*ndim+3]);
 	printf("κ=%.5e\n",akappa);
 #endif
+#ifdef __NVCC__
+		cudaDeviceSynchronise();
+#endif
 	for(*itercg=0; *itercg<niterc; (*itercg)++){
 		//x2 =  (M^†M)p 
 #ifdef _DEBUGCG

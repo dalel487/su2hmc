@@ -188,7 +188,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 		if(!iflag){
 #ifdef __NVCC__
 			Complex *smallPhi;
-			cudaMallocAsync((void **)&smallPhi,kferm2*sizeof(Complex),stream[0]);
+			cudaMallocAsync((void **)&smallPhi,kferm2*sizeof(Complex),streams[0]);
 #else
 			Complex *smallPhi = (Complex *)aligned_alloc(AVX,kferm2*sizeof(Complex)); 
 #endif
