@@ -381,6 +381,17 @@ int Gauss_f(float *ps, unsigned int n, const float mu, const float sigma){
 	}
 	int i;
 	float r, u, v;
+	//If n is odd we calculate the last index seperately and the rest in pairs
+	if(n%2==1){
+		n--;
+#ifdef __RANLUX__
+		r=2.0*M_PI*gsl_rng_uniform(ranlux_instd);
+		ps[n]=sqrt(-2*log(gsl_rng_uniform(ranlux_instd)))*cos(r);
+#else
+		r=2.0*M_PI*ran2(&seed);
+		ps[n]=sqrt(-2*log(ran2(&seed)))*cos(r);
+#endif
+	}
 #ifdef __RANLUX__
 	r=2.0*M_PI*gsl_rng_uniform(ranlux_instd);
 	ps[n]=sqrt(-2*log(gsl_rng_uniform(ranlux_instd)))*cos(r);
@@ -409,7 +420,6 @@ int Gauss_f(float *ps, unsigned int n, const float mu, const float sigma){
 #endif
 		ps[i]=u*cos(r)+mu;
 		ps[i+1]=u*sin(r)+mu;
-		//If n is odd we calculate the last index seperately and the rest in pairs
 	}
 	return 0;
 }
