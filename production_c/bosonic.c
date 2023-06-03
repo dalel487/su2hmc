@@ -206,6 +206,7 @@ double Polyakov(Complex_f *u11t, Complex_f *u12t){
 	 */
 	if(!pcoord[3+rank*ndim])
 #ifdef __NVCC__
+	cudaDeviceSynchronise();
 #pragma omp parallel for simd reduction(+:poly)
 #else
 #pragma omp parallel for simd reduction(+:poly) aligned(Sigma11:AVX)

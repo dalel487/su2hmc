@@ -19,7 +19,6 @@ __host__ void cuAverage_Plaquette(double *hgs, double *hgt, Complex_f *u11t, Com
 	thrust::device_ptr<float> hgt_T = thrust::device_pointer_cast(hgt_d);
 
 	cuAverage_Plaquette<<<dimGrid,dimBlock>>>(hgs_d, hgt_d, u11t, u12t, iu);
-	cudaDeviceSynchronise();
 
 	*hgs= (double)thrust::reduce(hgs_T,hgs_T+kvol,(float)0);
 	*hgt= (double)thrust::reduce(hgt_T,hgt_T+kvol,(float)0);
