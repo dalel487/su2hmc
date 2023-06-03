@@ -641,7 +641,12 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 
 	//Mass term
 #ifdef __NVCC__
-	cudaMemcpy(phi, r, kferm*sizeof(Complex_f),cudaMemcpyDefault);
+	int cuCpyStat=0;
+	if((cuCpyStat=cudaMemcpy(phi, r, kferm*sizeof(Complex_f),cudaMemcpyDefault))){
+		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
+		CPYERROR,funcname,cuCpyStat);
+		exit(cuCpyStat);
+	}
 	cuDslashd_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm*sizeof(Complex_f));
