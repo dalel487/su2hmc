@@ -665,22 +665,23 @@ int main(int argc, char *argv[]){
 									char fortname[FILELEN] = "fermi.";
 									strcat(fortname,suffix);
 									const char *fortop= (itraj==1) ? "w" : "a";
-									if(!measure_check){
-										if(!(fortout=fopen(fortname, fortop) )){
-											fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
-													OPENERROR, funcname, fortname, fortop);
+									if(!(fortout=fopen(fortname, fortop) )){
+										fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
+												OPENERROR, funcname, fortname, fortop);
 #if(nproc>1)
-											MPI_Abort(comm,OPENERROR);
+										MPI_Abort(comm,OPENERROR);
 #else
-											exit(OPENERROR);
+										exit(OPENERROR);
 #endif
-										}
-										if(itraj==1)
-											fprintf(fortout, "pbp\tendenf\tdenf\n");
-										fprintf(fortout, "%e\t%e\t%e\n", pbp, endenf, denf);
-										fclose(fortout);
-										break;
 									}
+									if(itraj==1)
+										fprintf(fortout, "pbp\tendenf\tdenf\n");
+									if(measure_check)
+										fprintf(fortout, "%e\t%e\t%e\n", NAN, NAN, NAN);
+									else
+										fprintf(fortout, "%e\t%e\t%e\n", pbp, endenf, denf);
+									fclose(fortout);
+									break;
 								}
 							case(2):
 								//The original code implicitly created these files with the name
@@ -703,26 +704,27 @@ int main(int argc, char *argv[]){
 								}
 							case(3):
 								{
-									if(!measure_check){
-										FILE *fortout;
-										char fortname[FILELEN] = "diq.";
-										strcat(fortname,suffix);
-										const char *fortop= (itraj==1) ? "w" : "a";
-										if(!(fortout=fopen(fortname, fortop) )){
-											fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
-													OPENERROR, funcname, fortname, fortop);
+									FILE *fortout;
+									char fortname[FILELEN] = "diq.";
+									strcat(fortname,suffix);
+									const char *fortop= (itraj==1) ? "w" : "a";
+									if(!(fortout=fopen(fortname, fortop) )){
+										fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
+												OPENERROR, funcname, fortname, fortop);
 #if(nproc>1)
-											MPI_Abort(comm,OPENERROR);
+										MPI_Abort(comm,OPENERROR);
 #else
-											exit(OPENERROR);
+										exit(OPENERROR);
 #endif
-										}
-										if(itraj==1)
-											fprintf(fortout, "Re(qq)\n");
-										fprintf(fortout, "%e\n", creal(qq));
-										fclose(fortout);
-										break;
 									}
+									if(itraj==1)
+										fprintf(fortout, "Re(qq)\n");
+									if(measure_check)
+										fprintf(fortout, "%e\n", NAN);
+									else
+										fprintf(fortout, "%e\n", creal(qq));
+									fclose(fortout);
+									break;
 								}
 							default: break;
 						}
