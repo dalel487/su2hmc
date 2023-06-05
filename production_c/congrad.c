@@ -65,9 +65,6 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 	cudaMallocAsync((void **)&x1_f, kferm2Halo*sizeof(Complex_f),streams[3]);
 	cudaMallocAsync((void **)&x2_f, kferm2Halo*sizeof(Complex_f),streams[4]);
 #endif
-	//	cudaMallocManaged(&x2, kferm2*sizeof(Complex),cudaMemAttachGlobal);
-	//	cudaMemAdvise(x2,kferm2*sizeof(Complex),cudaMemAdviseSetPreferredLocation,device);
-	//	cudaMemPrefetchAsync(x2,kferm2*sizeof(Complex),device,NULL);
 #else
 	Complex_f *p_f=aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
 	Complex_f *x1_f=aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
@@ -103,23 +100,20 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 				i,gamin[i*ndim+0],gamin[i*ndim+1],gamin[i*ndim+2],gamin[i*ndim+3]);
 	printf("κ=%.5e\n",akappa);
 #endif
-#ifdef __NVCC__
-		cudaDeviceSynchronise();
-#endif
 	for(*itercg=0; *itercg<niterc; (*itercg)++){
 		//x2 =  (M^†M)p 
-#ifdef _DEBUGCG
 #ifdef __NVCC__
 		cudaDeviceSynchronise();
 #endif
+#ifdef _DEBUGCG
 		printf("\nPre mult:\tp_f[0]=%.5e\tx1_f[0]=%.5e\tx2_f[0]=%.5e\tu11t[0]=%e\tu12t[0]=%e\tdk4m=%.5e\tdk4p=%.5e\tΓ[0]=%e+i%e\n",\
 				creal(p_f[0]),creal(x1_f[0]),creal(x2_f[0]),creal(u11t[0]), creal(u12t[0]),dk4m[0],dk4p[0],creal(gamval_f[0]),cimag(gamval_f[0]));
 #endif
 		Hdslash_f(x1_f,p_f,u11t,u12t,iu,id,gamval_f,gamin,dk4m,dk4p,akappa);
-#ifdef _DEBUGCG
 #ifdef __NVCC__
 		cudaDeviceSynchronise();
 #endif
+#ifdef _DEBUGCG
 		printf("Hdslash: \tp_f[0]=%.5e\tx1_f[0]=%.5e\tx2_f[0]=%.5e\tu11t[0]=%e\tu12t[0]=%e\tdk4m=%.5e\tdk4p=%.5e\tΓ[0]=%e+i%e\n",\
 				creal(p_f[0]),creal(x1_f[0]),creal(x2_f[0]),creal(u11t[0]), creal(u12t[0]),dk4m[0],dk4p[0],creal(gamval_f[0]),cimag(gamval_f[0]));
 #endif
@@ -147,8 +141,6 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 			//α_d= p* (M^†M+J^2)p
 #ifdef __NVCC__
 			cublasCdotc(cublas_handle,kferm2,(cuComplex *)p_f,1,(cuComplex *)x2_f,1,(cuComplex *)&alphad);
-			//This may not be necessary if cublas?Dot is blocking
-			cudaDeviceSynchronise();
 #elif defined USE_BLAS
 			cblas_cdotc_sub(kferm2, p_f, 1, x2_f, 1, &alphad);
 #else
@@ -232,8 +224,6 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 		__managed__ Complex_f a = 1.0;
 		cublasCscal(cublas_handle,kferm2,(cuComplex *)&beta_f,(cuComplex *)p_f,1);
 		cublasCaxpy(cublas_handle,kferm2,(cuComplex *)&a,(cuComplex *)r_f,1,(cuComplex *)p_f,1);
-		//p_f gets fed into hdslash_f so syncronise is a must
-		cudaDeviceSynchronise();
 #elif (defined __INTEL_MKL__)
 		Complex_f a = 1.0;
 		Complex_f beta_f=(Complex_f)beta;
@@ -263,12 +253,12 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 #ifdef _DEBUG
 	cudaFree(x1_f);cudaFree(x2_f); cudaFree(p_f);
 	cudaFree(r_f);cudaFree(X1_f);
-	#else
-	//streamss match the ones that allocated them.
+#else
+	//streams match the ones that allocated them.
 	cudaFreeAsync(x1_f,streams[3]);cudaFreeAsync(x2_f,streams[4]); cudaFreeAsync(p_f,streams[2]);
 	cudaDeviceSynchronise();
 	cudaFreeAsync(r_f,streams[1]);cudaFreeAsync(X1_f,streams[0]);
-	#endif
+#endif
 #else
 	free(x1_f);free(x2_f); free(p_f);  free(r_f); free(X1_f);
 #endif

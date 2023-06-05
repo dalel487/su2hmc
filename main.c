@@ -393,6 +393,7 @@ int main(int argc, char *argv[]){
 #endif
 			Dslashd_f(R1_f, R,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 #ifdef __NVCC__
+			cudaDeviceSynchronise();
 			cudaFree(R);
 			cuReal_convert(R1_f,R1,kferm,false,dimBlock,dimGrid);
 			cudaFreeAsync(R1_f,streams[0]);

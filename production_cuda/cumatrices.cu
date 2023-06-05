@@ -1021,7 +1021,6 @@ void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,
 		cuHdslash0_f<<<dimGrid,dimBlock,0,streams[idirac*nc]>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa,idirac);
 		cuHdslash1_f<<<dimGrid,dimBlock,0,streams[idirac*nc+1]>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa,idirac);
 	}
-//	cudaDeviceSynchronise();
 }
 void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
 		Complex_f *gamval,int *gamin,	float *dk4m, float *dk4p, float akappa,\
@@ -1052,7 +1051,6 @@ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t
 		cuHdslashd0_f<<<dimGrid,dimBlock,0,streams[idirac*nc]>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa,idirac);
 		cuHdslashd1_f<<<dimGrid,dimBlock,0,streams[idirac*nc+1]>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa,idirac);
 	}
-//	cudaDeviceSynchronise();
 }
 
 void cuReunitarise(Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock){

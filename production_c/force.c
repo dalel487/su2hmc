@@ -230,6 +230,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 		Hdslash(X2,X1,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
 #ifdef __NVCC__
 		double blasd=2.0;
+		cudaDeviceSynchronise();
 		cublasZdscal(cublas_handle,kferm2, &blasd, (cuDoubleComplex *)X2, 1);
 #elif defined USE_BLAS
 		double blasd=2.0;
