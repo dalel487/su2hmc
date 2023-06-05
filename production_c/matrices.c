@@ -41,7 +41,6 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int 
 	//Mass term
 	//Diquark Term (antihermitian)
 #ifdef __NVCC__
-	cudaMemcpy(phi, r, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice);
 	cuDslash(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm*sizeof(Complex));
@@ -169,7 +168,6 @@ int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int 
 
 	//Mass term
 #ifdef __NVCC__
-	cudaMemcpy(phi, r, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice);
 	cuDslashd(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm*sizeof(Complex));
@@ -304,7 +302,6 @@ int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int
 	//Mass term
 	//Spacelike term
 #ifdef __NVCC__
-	cudaMemcpy(phi, r, kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice);
 	cuHdslash(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm2*sizeof(Complex));
@@ -407,7 +404,6 @@ int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  in
 
 	//Mass term
 #ifdef __NVCC__
-	cudaMemcpy(phi, r, kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice);
 	cuHdslashd(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm2*sizeof(Complex));
@@ -513,7 +509,6 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 	//Mass term
 	//Diquark Term (antihermitian)
 #ifdef __NVCC__
-	cudaMemcpy(phi, r, kferm*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
 	cuDslash_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm*sizeof(Complex_f));
@@ -641,12 +636,6 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 
 	//Mass term
 #ifdef __NVCC__
-	int cuCpyStat=0;
-	if((cuCpyStat=cudaMemcpy(phi, r, kferm*sizeof(Complex_f),cudaMemcpyDefault))){
-		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
-		CPYERROR,funcname,cuCpyStat);
-		exit(cuCpyStat);
-	}
 	cuDslashd_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm*sizeof(Complex_f));
@@ -780,7 +769,6 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	//Mass term
 	//Spacelike term
 #ifdef __NVCC__
-	cudaMemcpy(phi, r, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
 	cuHdslash_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
@@ -883,7 +871,6 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_
 
 	//Mass term
 #ifdef __NVCC__
-	cudaMemcpy(phi, r, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
 	cuHdslashd_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm2*sizeof(Complex_f));

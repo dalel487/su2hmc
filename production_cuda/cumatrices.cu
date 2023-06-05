@@ -842,9 +842,8 @@ void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned in
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Dslash";
-	//	cudaMemPrefetchAsync(u11t,kvol+halo,0
+	cudaMemcpy(phi, r, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice);
 	cuDslash<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
-	cudaDeviceSynchronise();
 }
 void cuDslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
 		Complex *gamval, int *gamin,	double *dk4m, double *dk4p, Complex_f jqq, float akappa,\ 
@@ -871,9 +870,8 @@ void cuDslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned i
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Dslashd";
-	//	cudaMemPrefetchAsync(u11t,kvol+halo,0
+	cudaMemcpy(phi, r, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice);
 	cuDslashd<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
-	cudaDeviceSynchronise();
 }
 void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
 		Complex *gamval, int *gamin,	double *dk4m, double *dk4p, float akappa,\ 
@@ -900,8 +898,8 @@ void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned i
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Hdslash";
+	cudaMemcpy(phi, r, kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice);
 	cuHdslash<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
-	cudaDeviceSynchronise();
 }
 void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
 		Complex *gamval, int *gamin,double *dk4m, double *dk4p, float akappa,\ 
@@ -929,8 +927,8 @@ void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned 
 	 */
 	char *funcname = "Hdslashd";
 	//Spacelike term
+	cudaMemcpy(phi, r, kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice);
 	cuHdslashd<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
-	cudaDeviceSynchronise();
 }
 
 //Float editions
@@ -959,9 +957,14 @@ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,u
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Dslash_f";
+	int cuCpyStat=0;
+	if((cuCpyStat=cudaMemcpy(phi, r, kferm*sizeof(Complex_f),cudaMemcpyDefault))){
+		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
+		CPYERROR,funcname,cuCpyStat);
+		exit(cuCpyStat);
+	}
 	cuDslash0_f<<<dimGrid,dimBlock,0,streams[0]>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 	cuDslash1_f<<<dimGrid,dimBlock,0,streams[1]>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
-	cudaDeviceSynchronise();
 }
 void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
 		Complex_f *gamval,int *gamin,	float *dk4m, float *dk4p, Complex_f jqq, float akappa,\ 
@@ -988,9 +991,14 @@ void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Dslashd_f";
+	int cuCpyStat=0;
+	if((cuCpyStat=cudaMemcpy(phi, r, kferm*sizeof(Complex_f),cudaMemcpyDefault))){
+		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
+		CPYERROR,funcname,cuCpyStat);
+		exit(cuCpyStat);
+	}
 	cuDslashd0_f<<<dimGrid,dimBlock,0,streams[0]>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 	cuDslashd1_f<<<dimGrid,dimBlock,0,streams[1]>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
-	cudaDeviceSynchronise();
 }
 void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
 		Complex_f *gamval,int *gamin,	float *dk4m, float *dk4p, float akappa,\ 
@@ -1017,6 +1025,12 @@ void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Hdslash_f";
+	int cuCpyStat=0;
+	if((cuCpyStat=cudaMemcpy(phi, r, kferm2*sizeof(Complex_f),cudaMemcpyDefault))){
+		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
+		CPYERROR,funcname,cuCpyStat);
+		exit(cuCpyStat);
+	}
 	for(int idirac=0; idirac<ndirac; idirac++){
 		cuHdslash0_f<<<dimGrid,dimBlock,0,streams[idirac*nc]>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa,idirac);
 		cuHdslash1_f<<<dimGrid,dimBlock,0,streams[idirac*nc+1]>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa,idirac);
@@ -1047,6 +1061,12 @@ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Hdslashd_f";
+	int cuCpyStat=0;
+	if((cuCpyStat=cudaMemcpy(phi, r, kferm2*sizeof(Complex_f),cudaMemcpyDefault))){
+		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
+		CPYERROR,funcname,cuCpyStat);
+		exit(cuCpyStat);
+	}
 	for(int idirac=0; idirac<ndirac; idirac++){
 		cuHdslashd0_f<<<dimGrid,dimBlock,0,streams[idirac*nc]>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa,idirac);
 		cuHdslashd1_f<<<dimGrid,dimBlock,0,streams[idirac*nc+1]>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa,idirac);

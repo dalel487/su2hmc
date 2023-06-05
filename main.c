@@ -372,8 +372,7 @@ int main(int argc, char *argv[]){
 			//or stick with MKL and synchronise/copy over the array
 #ifdef __NVCC__
 			Complex_f *R,*R1_f;
-			//cudaMallocAsync(&R1_f,kferm*sizeof(Complex_f),streams[0]);
-			cudaMallocManaged(&R1_f,kferm*sizeof(Complex_f),cudaMemAttachHost);
+			cudaMallocAsync(&R1_f,kferm*sizeof(Complex_f),streams[0]);
 			cudaMallocManaged(&R,kfermHalo*sizeof(Complex_f),cudaMemAttachHost);
 #else
 			Complex_f *R=aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));

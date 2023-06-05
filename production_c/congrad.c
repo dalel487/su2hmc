@@ -350,13 +350,13 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
 	//if statements quicker to type
 	double betan;
+#ifdef __NVCC__
+		cudaDeviceSynchronise();
+#endif
 	for((*itercg)=0; (*itercg)<=niterc; (*itercg)++){
 		//Don't overwrite on first run. 
 		//x2=(M^†)x1=(M^†)Mp
 #ifdef _DEBUGCG
-#ifdef __NVCC__
-		cudaDeviceSynchronise();
-#endif
 		printf("Pre mult:\tp_f[0]=%.5e\tx1_f[0]=%.5e\tx2_f[0]=%.5e\tdk4m=%.5e\tdk4p=%.5e\n",\
 				creal(p_f[0]),creal(x1_f[0]),creal(x2_f[0]),dk4m[0],dk4p[0]);
 		printf("κ=%.5e\n",akappa);
@@ -414,12 +414,6 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 				xi_f[i]+=alpha*p_f[i];
 #endif
 		}
-		/*
-			for(int i=0;i<kferm;i++){
-			p[i]=(Complex)p_f[i];
-			x2[i]=(Complex)x2_f[i];
-			}
-		 */
 
 		//r=α(M^†)Mp and β_n=r*.r
 #ifdef __NVCC__
@@ -429,7 +423,6 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 		//r*.r
 		float betan_f;
 		cublasScnrm2(cublas_handle,kferm,(cuComplex *) r_f,1,(float *)&betan_f);
-		cudaDeviceSynchronise();
 		//Gotta square it to "undo" the norm
 		betan=betan_f*betan_f;
 #elif defined USE_BLAS
@@ -496,11 +489,6 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 		for(int i=0; i<kferm; i++)
 			p_f[i]=r_f[i]+beta*p_f[i];
 #endif
-		/*
-#pragma omp parallel for simd aligned(p_f,p:AVX)
-for(int i=0;i<kferm;i++)
-p_f[i]=(Complex_f)p[i];
-		 */
 	}
 #ifdef __NVCC__
 	cuComplex_convert(xi_f,xi,kferm,false,dimBlock,dimGrid);
