@@ -1,7 +1,7 @@
-OMPI_CC=gcc
+OMPI_CC=gcc-12
 CC=mpicc 
 
-IFLAGS=     -I../INCLUDE/ -I ${AOCL_ROOT}/include
+IFLAGS=     -I../INCLUDE/ -I ${AOCL_ROOT}/include $(gsl-config --cflags)
 
 CFLAGS=	$(IFLAGS) -std=gnu11 -DAMD_BLAS -fcommon \
 		-march=znver2 -mtune=znver3 -D__RANLUX__ \
@@ -9,7 +9,7 @@ CFLAGS=	$(IFLAGS) -std=gnu11 -DAMD_BLAS -fcommon \
 		-foffload=disable #amdgcn-amdhsa="-march=gfx902" #-fopenacc\
 #		-pg -fprofile-arcs-foffload=amdgcn-amdhsa="-march=gfx90c"
 
-LFLAGS=	-L ${AOCL_ROOT}/lib/ -lm -lalm  -lblis -lgsl -lamdalloc
+LFLAGS=	-L ${AOCL_ROOT}/lib/ -lalm -lm -lblis -lamdalloc -lgsl
 
 EXE=	su2hmc_GCC
 
@@ -52,8 +52,7 @@ profiler:	release
 release:	CFLAGS +=  -Ofast -funroll-all-loops -fcf-protection=none #-fprofile-use=./gcc_pgo
 release:	$(EXE)
 
-debug:	CFLAGS += -g -O0  \
-		-D_DEBUG #-DDIAGNOSTIC -DNO_TIME -DNO_SPACE
+debug:	CFLAGS += -g -O0 -D_DEBUG #-DDIAGNOSTIC -DNO_TIME -DNO_SPACE
 debug:	$(EXE)
 
 $(EXE):	$(OBJ)
