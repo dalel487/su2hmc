@@ -373,7 +373,7 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 			Complex_f *R,*R1_f;
 			cudaMallocAsync(&R1_f,kferm*sizeof(Complex_f),streams[0]);
-			cudaMallocManaged(&R,kfermHalo*sizeof(Complex_f),cudaMemAttachHost);
+			cudaMallocManaged(&R,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
 #else
 			Complex_f *R=aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 			Complex_f *R1_f=aligned_alloc(AVX,kferm*sizeof(Complex_f));
@@ -390,13 +390,13 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 			cudaMemPrefetchAsync(R,kferm*sizeof(Complex_f),device,NULL);
 #endif
-			Dslashd_f(R1_f, R,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
+			Dslashd_f(R1_f,R,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 #ifdef __NVCC__
-			cudaDeviceSynchronise();
+//cudaFree is blocking so don't need to synchronise
 			cudaFree(R);
 			cuReal_convert(R1_f,R1,kferm,false,dimBlock,dimGrid);
 			cudaFreeAsync(R1_f,streams[0]);
-			cudaMemcpy(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault);
+			cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,streams[1]);
 			//Up/down partitioning (using only pseudofermions of flavour 1)
 			cuUpDownPart(na,X0,R1,dimBlock,dimGrid);
 			//cudaFree is blocking so don't need cudaDeviceSynchronise()

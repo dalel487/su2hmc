@@ -82,7 +82,7 @@ profiler:	NVCCFLAGS += -G -g -lineinfo  -keep
 profiler:	release
 
 release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high 
-release:	NVCCFLAGS += -O3 -arch=sm_75 -dlto --maxrregcount=64
+release:	NVCCFLAGS += -O3 -arch=sm_75 --maxrregcount=64
 release:	$(EXE)
 
 diagnostics: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME #-DNO_SPACE
