@@ -75,7 +75,7 @@ extern cublasStatus_t cublas_status;
 #error "nz is expected it to be greater than or equal to 1"
 #endif
 
-#define	nt	16
+#define	nt	8
 #if(nt<1)
 #error "nt is expected it to be greater than or equal to 1"
 #endif
@@ -136,7 +136,7 @@ extern cublasStatus_t cublas_status;
 //     integer, parameter :: niterc=2*gvol  
 //      #define niterc 2*gvol
 //    jis: hard limit to avoid runaway trajectories
-#if(nx>=nt)
+#if(nx>=(3*nt)/2)
 #define	niterc	gvol3
 #else
 #define	niterc	(gvol/4)
