@@ -1,15 +1,19 @@
-OMPI_CC=gcc-12
-CC=mpicc 
+OMPI_CC=gcc
+ifeq '$(which mpicc | grep -c mpich)' '0' 
+CC=mpicc
+else
+CC=mpicc -cc=gcc
+endif
 
-IFLAGS=     -I../INCLUDE/ -I ${AOCL_ROOT}/include $(gsl-config --cflags)
+IFLAGS=     -I../INCLUDE/ -I ${AOCL_ROOT}/include $(shell gsl-config --cflags)
 
-CFLAGS=	$(IFLAGS) -std=gnu11 -DAMD_BLAS -fcommon \
+CFLAGS=	$(IFLAGS) -std=gnu11 -DAMD_BLAS -fcommon\
 		-march=znver2 -mtune=znver3 -D__RANLUX__ \
 		-fopenmp -fopenmp-simd -static-libgcc -DSA3AT -flto\
 		-foffload=disable #amdgcn-amdhsa="-march=gfx902" #-fopenacc\
 #		-pg -fprofile-arcs-foffload=amdgcn-amdhsa="-march=gfx90c"
 
-LFLAGS=	-L ${AOCL_ROOT}/lib/ -lalm -lm -lblis -lamdalloc -lgsl
+LFLAGS=	-L ${AOCL_ROOT}/lib/ -lalm -lm -lblis -lamdalloc $(shell gsl-config --libs-without-cblas)
 
 EXE=	su2hmc_GCC
 

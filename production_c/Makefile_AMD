@@ -1,14 +1,19 @@
 OMPI_CC=clang
+MPICH_C_COMPILER=clang
+ifeq '$(which mpicc | grep -c mpich)' '0' 
 CC=mpicc
+else
+CC=mpicc -cc=clang
+endif
 export OMP_NUM_THREADS=16
-IFLAGS=     -I../INCLUDE/ -I ${AOCL_ROOT}/include $(gsl-config --cflags)
+IFLAGS=     -I../INCLUDE/ -I ${AOCL_ROOT}/include $(shell gsl-config --cflags)
 
 CFLAGS=	-Wall $(IFLAGS) -std=gnu11 -DAMD_BLAS -fcommon -DSA3AT -flto\
 			-fveclib=AMDLIBM -march=znver2 -mtune=znver3 -D__RANLUX__  \
 			-fopenmp=libomp -fopenmp-simd -static-libgcc
 		  #-fprofile-instr-use
 
-LFLAGS=	-Wl -L${AOCL_ROOT}/lib -L/usr/local/lib64 -ldl -lalm -lm -lblis -lamdalloc -lgsl
+LFLAGS=	-Wl -L${AOCL_ROOT}/lib -L/usr/local/lib64 -ldl -lalm -lm -lblis -lamdalloc $(shell gsl-config --libs-without-cblas)
 
 EXE=	su2hmc_AMD
 
