@@ -1,8 +1,17 @@
+#Test if we are NOT using cray
+ifeq ($(shell which cc | grep -c cray),0)
+#Test if we are NOT using mpich
+ifeq ($(shell which mpicc | grep -c mpich), 0) 
+#Setup for OpenMPI
 OMPI_CC=gcc
-ifeq '$(which mpicc | grep -c mpich)' '0' 
 CC=mpicc
 else
+#Setup for MPICH
 CC=mpicc -cc=gcc
+endif
+else
+#Setup for Cray
+CC=cc
 endif
 
 IFLAGS=     -I../INCLUDE/ -I ${AOCL_ROOT}/include $(shell gsl-config --cflags)
