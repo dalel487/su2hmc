@@ -145,7 +145,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 #pragma omp parallel for simd collapse(2) aligned(gamval,gamval_f:AVX)
 	for(int i=0;i<5;i++)
 		for(int j=0;j<4;j++)
-			gamval_t[i]*=akappa;
+			gamval_t[i][j]*=akappa;
 #endif
 
 #ifdef __NVCC__

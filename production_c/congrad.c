@@ -389,7 +389,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 			Complex_f alpha_f=(float)alpha;
 			cblas_caxpy(kferm, (Complex_f*)&alpha_f,(Complex_f*)p_f, 1, (Complex_f*)xi_f, 1);
 #else
-#pragma omp parallel for simd aligned(xi,p:AVX)
+#pragma omp parallel for simd aligned(xi,p_f:AVX)
 			for(int i = 0; i<kferm; i++)
 				xi_f[i]+=alpha*p_f[i];
 #endif
@@ -424,9 +424,9 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 		//addition.
 		betan = 0;
 		//If we get a small enough β_n before hitting the iteration cap we break
-#pragma omp parallel for simd aligned(x2,r:AVX) reduction(+:betan)
+#pragma omp parallel for simd aligned(x2_f,r_f:AVX) reduction(+:betan)
 		for(int i = 0; i<kferm;i++){
-			r[i]_f-=alpha*x2_f[i];
+			r_f[i]-=alpha*x2_f[i];
 			betan+=conj(r_f[i])*r_f[i];
 		}
 #endif
