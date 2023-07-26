@@ -12,6 +12,7 @@
 #include	<cuda_runtime.h>
 cublasHandle_t cublas_handle;
 cublasStatus_t cublas_status;
+cudaMemPool_t mempool;
 //Fix this later
 #endif
 /*
@@ -125,7 +126,7 @@ int main(int argc, char *argv[]){
 		fscanf(midout, "%f %f %f %f %f %f %f %d %d %d %d %d", &dt, &beta, &akappa,\
 				&ajq, &athq, &fmu, &delb, &stepl, &ntraj, &istart, &icheck, &iread);
 		fclose(midout);
-		assert(stepl>0);	assert(ntraj>0);	  assert(istart>0);  assert(icheck>0);  assert(iread>=0); 
+		assert(stepl>0);	assert(ntraj>0);	  assert(istart>=0);  assert(icheck>0);  assert(iread>=0); 
 	}
 	//Send inputs to other ranks
 #if(nproc>1)
@@ -135,12 +136,17 @@ int main(int argc, char *argv[]){
 	Par_icopy(&iread); jqq=ajq*cexp(athq*I);
 #endif
 	//End of input
-	//For CUDA code, device only variables are needed
 #ifdef __NVCC__
 	//CUBLAS Handle
 	cublasCreate(&cublas_handle);
+	//CUDA device
 	int device=-1;
 	cudaGetDevice(&device);
+	//For asynchronous memory, when CUDA syncs any unused memory in the pool is released back to the OS
+	//unless a threshold is given. We'll base our threshold off of Congradq
+	cudaDeviceGetDefaultMemPool(&mempool, device);
+	int threshold=2*kferm2*sizeof(Complex_f);
+	cudaMemPoolSetAttribute(mempool, cudaMemPoolAttrReleaseThreshold, &threshold);
 #endif
 #ifdef _DEBUG
 	printf("jqq=%f+(%f)I\n",creal(jqq),cimag(jqq));
@@ -152,8 +158,8 @@ int main(int argc, char *argv[]){
 #endif
 
 	//Gauge, trial and momentum fields 
-	//You'll notice that there are three different allocation/free statements
-	//One for CUDA, one for MKL and one for everything else depending on what's
+	//You'll notice that there are two different allocation/free statements
+	//One for CUDA and one for everything else depending on what's
 	//being used
 	Complex *u11, *u12, *u11t, *u12t;
 	Complex_f *u11t_f, *u12t_f;
@@ -167,41 +173,36 @@ int main(int argc, char *argv[]){
 
 	cudaMallocManaged(&dk4m,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
 	cudaMallocManaged(&dk4p,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
+#ifdef _DEBUG
+	cudaMallocManaged(&dk4m_f,(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
+	cudaMallocManaged(&dk4p_f,(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
+#else
 	cudaMalloc(&dk4m_f,(kvol+halo)*sizeof(float));
 	cudaMalloc(&dk4p_f,(kvol+halo)*sizeof(float));
+#endif
 
 	int	*gamin;
 	Complex	*gamval;
 	Complex_f *gamval_f;
 	cudaMallocManaged(&gamin,4*4*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&gamval,5*4*sizeof(Complex),cudaMemAttachGlobal);
+#ifdef _DEBUG
+	cudaMallocManaged(&gamval_f,5*4*sizeof(Complex_f),cudaMemAttachGlobal);
+#else
 	cudaMalloc(&gamval_f,5*4*sizeof(Complex_f));
+#endif
 
 	cudaMallocManaged(&u11,ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&u12,ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&u11t,ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&u12t,ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
+#ifdef _DEBUG
+	cudaMallocManaged(&u11t_f,ndim*(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged(&u12t_f,ndim*(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
+#else
 	cudaMalloc(&u11t_f,ndim*(kvol+halo)*sizeof(Complex_f));
 	cudaMalloc(&u12t_f,ndim*(kvol+halo)*sizeof(Complex_f));
-#elif defined __INTEL_MKL__
-	id = (unsigned int*)mkl_malloc(ndim*kvol*sizeof(int),AVX);
-	iu = (unsigned int*)mkl_malloc(ndim*kvol*sizeof(int),AVX);
-
-	int	*gamin = (int *)mkl_malloc(4*4*sizeof(int),AVX);
-	Complex	*gamval=(Complex *)mkl_malloc(5*4*sizeof(Complex),AVX);
-	Complex_f *gamval_f=(Complex_f *)mkl_malloc(5*4*sizeof(Complex_f),AVX);;
-
-	dk4m = (double *)mkl_malloc((kvol+halo)*sizeof(double), AVX);
-	dk4p = (double *)mkl_malloc((kvol+halo)*sizeof(double), AVX);
-	dk4m_f = (float *)mkl_malloc((kvol+halo)*sizeof(float), AVX);
-	dk4p_f = (float *)mkl_malloc((kvol+halo)*sizeof(float), AVX);
-
-	u11 = (Complex *)mkl_malloc(ndim*kvol*sizeof(Complex),AVX);
-	u12 = (Complex *)mkl_malloc(ndim*kvol*sizeof(Complex),AVX);
-	u11t = (Complex *)mkl_malloc(ndim*(kvol+halo)*sizeof(Complex),AVX);
-	u12t = (Complex *)mkl_malloc(ndim*(kvol+halo)*sizeof(Complex),AVX);
-	u11t_f = (Complex_f *)mkl_malloc(ndim*(kvol+halo)*sizeof(Complex_f),AVX);
-	u12t_f = (Complex_f *)mkl_malloc(ndim*(kvol+halo)*sizeof(Complex_f),AVX);
+#endif
 #else
 	id = (unsigned int*)aligned_alloc(AVX,ndim*kvol*sizeof(int));
 	iu = (unsigned int*)aligned_alloc(AVX,ndim*kvol*sizeof(int));
@@ -234,15 +235,8 @@ int main(int argc, char *argv[]){
 			dk4m,dk4p,dk4m_f,dk4p_f,iu,id);//&dimBlock,&dimGrid);
 #endif
 	//Send trials to accelerator for reunitarisation
-#pragma omp taskwait
-#ifdef _OPENACC
-#pragma acc update device(u11t[0:ndim*kvol],u12t[0:ndim*kvol])
-#else
-#pragma omp target update to(u11t[0:ndim*kvol],u12t[0:ndim*kvol])
-#endif
 	Reunitarise(u11t,u12t);
 	//Get trials back
-	//#pragma omp target update from(u11t[0:ndim*kvol],u12t[0:ndim*kvol]) 
 	memcpy(u11, u11t, ndim*kvol*sizeof(Complex));
 	memcpy(u12, u12t, ndim*kvol*sizeof(Complex));
 #ifdef DIAGNOSTIC
@@ -253,13 +247,13 @@ int main(int argc, char *argv[]){
 
 	//Initial Measurements
 	//====================
-	double poly = Polyakov(u11t,u12t);
+	Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
+	double poly = Polyakov(u11t_f,u12t_f);
 #ifdef _DEBUG
 	if(!rank) printf("Initial Polyakov loop evaluated as %e\n", poly);
 #endif
 	double hg, avplaqs, avplaqt;
 	//Halo exchange of the trial fields
-	Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
 	Average_Plaquette(&hg,&avplaqs,&avplaqt,u11t_f,u12t_f,iu,beta);
 	//Trajectory length
 	double traj=stepl*dt;
@@ -336,29 +330,19 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 	cudaMallocManaged(&R1, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMalloc(&Phi, nf*kferm*sizeof(Complex));
-	cudaMallocManaged(&X0, nf*kferm2*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMalloc(&X1, kferm2Halo*sizeof(Complex));
+	cudaMalloc(&X0, nf*kferm2*sizeof(Complex));
+	cudaMallocManaged(&X1, kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&pp, kmom*sizeof(double),cudaMemAttachGlobal);
 	cudaMalloc(&dSdpi, kmom*sizeof(double));
-#elif defined __INTEL_MKL__
-	R1= mkl_malloc(kfermHalo*sizeof(Complex),AVX);
-	Phi= mkl_malloc(nf*kferm*sizeof(Complex),AVX); 
-	X0= mkl_malloc(nf*kferm2*sizeof(Complex),AVX); 
-	X1= mkl_malloc(kferm2Halo*sizeof(Complex),AVX); 
-	dSdpi = mkl_malloc(kmom*sizeof(double), AVX);
-	//pp is the momentum field
-	pp = mkl_malloc(kmom*sizeof(double), AVX);
 #else
 	R1= aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 	Phi= aligned_alloc(AVX,nf*kferm*sizeof(Complex)); 
 	X0= aligned_alloc(AVX,nf*kferm2*sizeof(Complex)); 
 	X1= aligned_alloc(AVX,kferm2Halo*sizeof(Complex)); 
 	dSdpi = aligned_alloc(AVX,kmom*sizeof(double));
+	//pp is the momentum field
 	pp = aligned_alloc(AVX,kmom*sizeof(double));
 #endif
-	//#pragma omp target enter data map(alloc:pp[0:kmom],dSdpi[0:kmom],X1[0:kferm2Halo]) nowait
-	//For offloaded OpenACC Code, make device versions of arrays
-#pragma acc enter data create(pp[0:kmom],dSdpi[0:kmom],X1[0:kferm2Halo])
 	//Arabic for hour/watch so probably not defined elsewhere like TIME potentially is
 #if (defined SA3AT)
 	double start_time=0;
@@ -388,11 +372,8 @@ int main(int argc, char *argv[]){
 			//or stick with MKL and synchronise/copy over the array
 #ifdef __NVCC__
 			Complex_f *R,*R1_f;
+			cudaMallocAsync(&R1_f,kferm*sizeof(Complex_f),streams[0]);
 			cudaMallocManaged(&R,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
-			cudaMalloc(&R1_f,kferm*sizeof(Complex_f));
-#elif defined __INTEL_MKL__
-			Complex_f *R=mkl_malloc(kfermHalo*sizeof(Complex_f),AVX);
-			Complex_f *R1_f=mkl_malloc(kferm*sizeof(Complex_f),AVX);
 #else
 			Complex_f *R=aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 			Complex_f *R1_f=aligned_alloc(AVX,kferm*sizeof(Complex_f));
@@ -409,26 +390,22 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 			cudaMemPrefetchAsync(R,kferm*sizeof(Complex_f),device,NULL);
 #endif
-			Dslashd_f(R1_f, R,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
+			Dslashd_f(R1_f,R,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 #ifdef __NVCC__
+//cudaFree is blocking so don't need to synchronise
+			cudaFree(R);
 			cuReal_convert(R1_f,R1,kferm,false,dimBlock,dimGrid);
+			cudaFreeAsync(R1_f,streams[0]);
+			cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,streams[1]);
+			//Up/down partitioning (using only pseudofermions of flavour 1)
+			cuUpDownPart(na,X0,R1,dimBlock,dimGrid);
 			//cudaFree is blocking so don't need cudaDeviceSynchronise()
 #else
+			free(R); 
+#pragma omp simd aligned(R1_f,R1:AVX)
 			for(int i=0;i<kferm;i++)
 				R1[i]=(Complex)R1_f[i];
-#endif
-#ifdef __NVCC__
-			cudaFree(R);cudaFree(R1_f);
-#elif defined __INTEL_MKL__
-			mkl_free(R); mkl_free(R1_f);
-#else
-			free(R); free(R1_f);
-#endif
-#ifdef __NVCC__
-			cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice,streams[0]);
-			cuUpDownPart(na,X0,R1,dimBlock,dimGrid);
-			//Up/down partitioning (using only pseudofermions of flavour 1)
-#else
+			free(R1_f);
 			memcpy(Phi+na*kferm,R1, kferm*sizeof(Complex));
 			//Up/down partitioning (using only pseudofermions of flavour 1)
 #pragma omp parallel for simd collapse(2) aligned(X0,R1:AVX)
@@ -448,7 +425,6 @@ int main(int argc, char *argv[]){
 #else
 		vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, kmom, pp, 0, 1);
 #endif
-#pragma acc update device(pp[0:kmom])
 		//Initialise Trial Fields
 #ifdef __NVCC__
 		cudaMemPrefetchAsync(pp,kmom*sizeof(double),device,streams[1]);
@@ -501,7 +477,6 @@ int main(int argc, char *argv[]){
 			New_trial(dt,pp,u11t,u12t);
 			Reunitarise(u11t,u12t);
 			//Get trial fields from accelerator for halo exchange
-#pragma acc update self(u11t[0:ndim*kvol],u12t[0:ndim*kvol])
 			Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
 			//Mark trial fields as primarily read only here? Can re-enable writing at the end of each trajectory
 
@@ -523,7 +498,6 @@ int main(int argc, char *argv[]){
 					//d negated above
 					pp[i]+=d*dSdpi[i];
 #endif
-#pragma acc update device(pp[0:kmom]) 
 				itot+=step;
 				ancg/=step;
 				totancg+=ancg;
@@ -541,13 +515,11 @@ int main(int argc, char *argv[]){
 				for(int i = 0; i<kmom; i++)
 					pp[i]-=dt*dSdpi[i];
 #endif
-#pragma acc update device(pp[0:kmom]) 
 			}
 		}
 		//Monte Carlo step: Accept new fields with the probability of min(1,exp(H0-X0))
 		//Kernel Call needed here?
 		Reunitarise(u11t,u12t);
-#pragma acc update self(u11t[0:kvol*ndim],u12t[0:kvol*ndim])
 		double H1, S1;
 		Hamilton(&H1, &S1, rescga,pp,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval_f,gamin,\
 				dk4m_f,dk4p_f,jqq,akappa,beta,&ancgh);
@@ -637,7 +609,7 @@ int main(int argc, char *argv[]){
 #endif
 			pbpa+=pbp; endenfa+=endenf; denfa+=denf; ipbp++;
 			Average_Plaquette(&hg,&avplaqs,&avplaqt,u11t_f,u12t_f,iu,beta);
-			poly = Polyakov(u11t,u12t);
+			poly = Polyakov(u11t_f,u12t_f);
 			//We have four output files, so may as well get the other ranks to help out
 			//and abuse scoping rules while we're at it.
 			//Can use either OpenMP or MPI to do this
@@ -747,52 +719,28 @@ int main(int argc, char *argv[]){
 #endif
 	//End of main loop
 	//Free arrays
-#ifdef _OPENACC
-#pragma acc exit data delete(u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],\
-		u11t_f[0:ndim*(kvol+halo)],u12t_f[0:ndim*(kvol+halo)], dk4m[0:kvol*halo],\
-		dk4p[0:kvol+halo], dk4m_f[0:kvol+halo],dk4p_f[0:kvol+halo], iu[0:ndim*kvol],id[0:ndim*kvol],\
-		pp[0:kmom],dSdpi[0:kmom],X1[0:kferm2Halo])
-#else
-#pragma omp target exit data map(delete:u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],\
-		u11t_f[0:ndim*(kvol+halo)],u12t_f[0:ndim*(kvol+halo)], dk4m[0:kvol*halo],\
-		dk4p[0:kvol+halo], dk4m_f[0:kvol+halo],dk4p_f[0:kvol+halo], iu[0:ndim*kvol],id[0:ndim*kvol])
-#endif
 #ifdef __NVCC__
 	//Make a routine that does this for us
 	cudaFree(dk4m); cudaFree(dk4p); cudaFree(R1); cudaFree(dSdpi); cudaFree(pp);
 	cudaFree(Phi); cudaFree(u11t); cudaFree(u12t);
 	cudaFree(X0); cudaFree(X1); cudaFree(u11); cudaFree(u12);
-	cudaFree(id); cudaFree(iu); cudaFree(hd); cudaFree(hu);
+	cudaFree(id); cudaFree(iu); 
 	cudaFree(dk4m_f); cudaFree(dk4p_f); cudaFree(u11t_f); cudaFree(u12t_f);
-	cudaFree(h1u); cudaFree(h1d); cudaFree(halosize);
 	cudaFree(gamin); cudaFree(gamval); cudaFree(gamval_f);
-	cudaFree(pcoord);
 	cublasDestroy(cublas_handle);
-#elif defined __INTEL_MKL__
-	mkl_free_buffers();
-	mkl_free(dk4m); mkl_free(dk4p); mkl_free(R1); mkl_free(dSdpi); mkl_free(pp);
-	mkl_free(Phi); mkl_free(u11t); mkl_free(u12t);
-	mkl_free(X0); mkl_free(X1); mkl_free(u11); mkl_free(u12);
-	mkl_free(id); mkl_free(iu); mkl_free(hd); mkl_free(hu);
-	mkl_free(dk4m_f); mkl_free(dk4p_f); mkl_free(u11t_f); mkl_free(u12t_f);
-	mkl_free(h1u); mkl_free(h1d); mkl_free(halosize);
-	mkl_free(gamin); mkl_free(gamval); mkl_free(gamval_f);
-	mkl_free(pcoord);
-#if (!defined  __RANLUX__&&!defined USE_RAN2)
-	vslDeleteStream(&stream);
-#endif
 #else
 	free(dk4m); free(dk4p); free(R1); free(dSdpi); free(pp);
 	free(Phi); free(u11t); free(u12t);
 	free(X0); free(X1); free(u11); free(u12);
-	free(id); free(iu); free(hd); free(hu);
+	free(id); free(iu);
 	free(dk4m_f); free(dk4p_f); free(u11t_f); free(u12t_f);
-	free(h1u); free(h1d); free(halosize);
 	free(gamin); free(gamval); free(gamval_f);
-	free(pcoord);
 #endif
+	free(hd); free(hu);free(h1u); free(h1d); free(halosize); free(pcoord);
 #ifdef __RANLUX__
 	gsl_rng_free(ranlux_instd);
+#elif (defined __INTEL_MKL__ &&!defined USE_RAN2)
+	vslDeleteStream(&stream);
 #endif
 #if (defined SA3AT)
 	if(!rank){

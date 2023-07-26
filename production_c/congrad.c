@@ -1,8 +1,8 @@
 #include	<matrices.h>
 #include	<par_mpi.h>
 #include	<su2hmc.h>
-int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
-		Complex_f *gamval_f,int *gamin,float *dk4m_f,float *dk4p_f,Complex_f jqq,float akappa,int *itercg){
+int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f *u12t,unsigned int *iu,unsigned int *id,\
+		Complex_f *gamval_f,int *gamin,float *dk4m,float *dk4p,Complex_f jqq,float akappa,int *itercg){
 	/*
 	 * Matrix Inversion via Mixed Precision Conjugate Gradient
 	 * Solves (M^†)Mx=Phi
@@ -19,14 +19,14 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 	 * double		res:			Limit for conjugate gradient
 	 * Complex		*X1:			Phi initially, returned as (M†M)^{1} Phi
 	 * Complex		*r:			Partition of Phi being used. Gets recycled as the residual vector
-	 * Complex		*u11t_f:		First colour's trial field
-	 * Complex		*u12t_f:		Second colour's trial field
+	 * Complex_f	*u11t:		First colour's trial field
+	 * Complex_f	*u12t:		Second colour's trial field
 	 * int			*iu:			Upper halo indices
 	 * int			*id:			Lower halo indices
 	 * Complex_f	*gamval_f:	Gamma matrices
 	 * int			*gamin:		Dirac indices
-	 * float			*dk4m_f:
-	 * float			*dk4p_f:
+	 * float			*dk4m:
+	 * float			*dk4p:
 	 * Complex_f	jqq:			Diquark source
 	 * float			akappa:		Hopping Parameter
 	 * int 			*itercg:		Counts the iterations of the conjugate gradient
@@ -40,10 +40,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 	const double resid = kferm2*res*res;
 	//The κ^2 factor is needed to normalise the fields correctly
 	//jqq is the diquark condensate and is global scope.
-#ifdef __NVCC__
-	__managed__
-#endif
-		Complex_f fac_f = conj(jqq)*jqq*akappa*akappa;
+	const Complex_f fac_f = conj(jqq)*jqq*akappa*akappa;
 	//These were evaluated only in the first loop of niterx so we'll just do it outside of the loop.
 	//n suffix is numerator, d is denominator
 	double alphan=1;
@@ -56,26 +53,18 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 	Complex_f *p_f, *x1_f, *x2_f, *r_f, *X1_f;
 	int device=-1; cudaGetDevice(&device);
 
-	cudaMalloc((void **)&X1_f, kferm2*sizeof(Complex_f));
-	cudaMalloc((void **)&r_f, kferm2*sizeof(Complex_f));
+	cudaMallocAsync((void **)&X1_f, kferm2*sizeof(Complex_f),streams[0]);
+	cudaMallocAsync((void **)&r_f, kferm2*sizeof(Complex_f),streams[1]);
 #ifdef _DEBUG
 	cudaMallocManaged((void **)&p_f, kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&x1_f, kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&x2_f, kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
 #else
-	cudaMalloc((void **)&p_f, kferm2Halo*sizeof(Complex_f));
-	cudaMalloc((void **)&x1_f, kferm2Halo*sizeof(Complex_f));
-	cudaMalloc((void **)&x2_f, kferm2Halo*sizeof(Complex_f));
+	//First two have halo exchanges, so getting NCCL working is important
+	cudaMallocAsync((void **)&p_f, kferm2Halo*sizeof(Complex_f),streams[2]);
+	cudaMallocAsync((void **)&x1_f, kferm2Halo*sizeof(Complex_f),streams[3]);
+	cudaMallocAsync((void **)&x2_f, kferm2Halo*sizeof(Complex_f),streams[4]);
 #endif
-	//	cudaMallocManaged(&x2, kferm2*sizeof(Complex),cudaMemAttachGlobal);
-	//	cudaMemAdvise(x2,kferm2*sizeof(Complex),cudaMemAdviseSetPreferredLocation,device);
-	//	cudaMemPrefetchAsync(x2,kferm2*sizeof(Complex),device,NULL);
-#elif defined __INTEL_MKL__
-	Complex_f *p_f  = mkl_calloc(kferm2Halo,sizeof(Complex_f),AVX);
-	Complex_f *x2_f=mkl_calloc(kferm2Halo, sizeof(Complex_f), AVX);
-	Complex_f *x1_f=mkl_calloc(kferm2Halo, sizeof(Complex_f), AVX);
-	Complex_f *X1_f=mkl_malloc(kferm2*sizeof(Complex_f), AVX);
-	Complex_f *r_f=mkl_malloc(kferm2*sizeof(Complex_f), AVX);
 #else
 	Complex_f *p_f=aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
 	Complex_f *x1_f=aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
@@ -85,9 +74,10 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 #endif
 	//Instead of copying element-wise in a loop, use memcpy.
 #ifdef __NVCC__
-	cuComplex_convert(r_f,r,kferm2,true,dimBlock,dimGrid);
 	cuComplex_convert(X1_f,X1,kferm2,true,dimBlock,dimGrid);
-	cudaMemcpy(p_f, X1_f, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
+	//cudaMemcpy is blocking, so use async instead
+	cudaMemcpyAsync(p_f, X1_f, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice,streams[0]);
+	cuComplex_convert(r_f,r,kferm2,true,dimBlock,dimGrid);
 #else
 #pragma omp parallel for simd
 	for(int i=0;i<kferm2;i++){
@@ -100,27 +90,41 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
 	//if statements quicker to type
 	double betan;
+#ifdef _DEBUGCG
+	for(int i=0;i<5;i++)
+		printf("gamval row %d= %e+I*%e\t %e+I*%e\t %e+I*%e\t %e+I*%e\n",i,
+				creal(gamval_f[i*ndim+0]),cimag(gamval_f[i*ndim+0]),creal(gamval_f[i*ndim+1]),cimag(gamval_f[i*ndim+1]),
+				creal(gamval_f[i*ndim+2]),cimag(gamval_f[i*ndim+2]),creal(gamval_f[i*ndim+3]),cimag(gamval_f[i*ndim+3]));
+	for(int i=0;i<4;i++)
+		printf("gamin row %d=%d\t%d\t%d\t%d\n",
+				i,gamin[i*ndim+0],gamin[i*ndim+1],gamin[i*ndim+2],gamin[i*ndim+3]);
+	printf("κ=%.5e\n",akappa);
+#endif
 	for(*itercg=0; *itercg<niterc; (*itercg)++){
-		//#ifdef __NVCC__
-		//		cudaMemPrefetchAsync(p,kferm2*sizeof(Complex),device,NULL);
-		//#endif
 		//x2 =  (M^†M)p 
-#ifdef _DEBUG
-		printf("Pre mult:\tp_f[0]=%.5e\tx1_f[0]=%.5e\tx2_f[0]=%.5e\n",creal(p_f[0]),creal(x1_f[0]),creal(x2_f[0]));
-#endif
-		Hdslash_f(x1_f,p_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,akappa);
-#ifdef _DEBUG
+		//No need to synchronoise here. The memcpy in Hdslash is blocking
+#ifdef _DEBUGCG
 #ifdef __NVCC__
 		cudaDeviceSynchronise();
 #endif
-		printf("Hdslash: \tp_f[0]=%.5e\tx1_f[0]=%.5e\tx2_f[0]=%.5e\n",creal(p_f[0]),creal(x1_f[0]),creal(x2_f[0]));
+		printf("\nPre mult:\tp_f[0]=%.5e\tx1_f[0]=%.5e\tx2_f[0]=%.5e\tu11t[0]=%e\tu12t[0]=%e\tdk4m=%.5e\tdk4p=%.5e\tΓ[0]=%e+i%e\n",\
+				creal(p_f[0]),creal(x1_f[0]),creal(x2_f[0]),creal(u11t[0]), creal(u12t[0]),dk4m[0],dk4p[0],creal(gamval_f[0]),cimag(gamval_f[0]));
 #endif
-		Hdslashd_f(x2_f,x1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,akappa);
-#ifdef _DEBUG
+		Hdslash_f(x1_f,p_f,u11t,u12t,iu,id,gamval_f,gamin,dk4m,dk4p,akappa);
+#ifdef _DEBUGCG
 #ifdef __NVCC__
 		cudaDeviceSynchronise();
 #endif
-		printf("Hdslashd:\tp_f[0]=%.5e\tx1_f[0]=%.5e\tx2_f[0]=%.5e\n",creal(p_f[0]),creal(x1_f[0]),creal(x2_f[0]));
+		printf("Hdslash: \tp_f[0]=%.5e\tx1_f[0]=%.5e\tx2_f[0]=%.5e\tu11t[0]=%e\tu12t[0]=%e\tdk4m=%.5e\tdk4p=%.5e\tΓ[0]=%e+i%e\n",\
+				creal(p_f[0]),creal(x1_f[0]),creal(x2_f[0]),creal(u11t[0]), creal(u12t[0]),dk4m[0],dk4p[0],creal(gamval_f[0]),cimag(gamval_f[0]));
+#endif
+		Hdslashd_f(x2_f,x1_f,u11t,u12t,iu,id,gamval_f,gamin,dk4m,dk4p,akappa);
+#ifdef _DEBUGCG
+#ifdef __NVCC__
+		cudaDeviceSynchronise();
+#endif
+		printf("Hdslashd:\tp_f[0]=%.5e\tx1_f[0]=%.5e\tx2_f[0]=%.5e\tu11t[0]=%e\tu12t[0]=%e\tdk4m=%.5e\tdk4p=%.5e\tΓ[0]=%e+i%e\n",\
+				creal(p_f[0]),creal(x1_f[0]),creal(x2_f[0]),creal(u11t[0]), creal(u12t[0]),dk4m[0],dk4p[0],creal(gamval_f[0]),cimag(gamval_f[0]));
 #endif
 		//x2 =  (M^†M+J^2)p 
 #ifdef	__NVCC__
@@ -138,7 +142,6 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 			//α_d= p* (M^†M+J^2)p
 #ifdef __NVCC__
 			cublasCdotc(cublas_handle,kferm2,(cuComplex *)p_f,1,(cuComplex *)x2_f,1,(cuComplex *)&alphad);
-			cudaDeviceSynchronise();
 #elif defined USE_BLAS
 			cblas_cdotc_sub(kferm2, p_f, 1, x2_f, 1, &alphad);
 #else
@@ -193,12 +196,12 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 		Par_dsum(&betan);
 #endif
 #ifdef _DEBUG
-		if(!rank) printf("Iter (CG) = %i β_n= %e α= %e\n", *itercg, betan, alpha);
+		if(!rank) printf("Iter(CG)=%i\tβ_n=%e\tα=%e\r", *itercg, betan, alpha);
 #endif
 		if(betan<resid){ 
 			(*itercg)++;
 #ifdef _DEBUG
-			if(!rank) printf("Iter (CG) = %i resid = %e toler = %e\n", *itercg, betan, resid);
+			if(!rank) printf("Iter(CG)=%i\tresid=%e\ttoler=%e\n", *itercg, betan, resid);
 #endif
 			ret_val=0;	break;
 		}
@@ -222,8 +225,6 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 		__managed__ Complex_f a = 1.0;
 		cublasCscal(cublas_handle,kferm2,(cuComplex *)&beta_f,(cuComplex *)p_f,1);
 		cublasCaxpy(cublas_handle,kferm2,(cuComplex *)&a,(cuComplex *)r_f,1,(cuComplex *)p_f,1);
-		//p_f gets fed into hdslash_f so syncronise is a must
-		cudaDeviceSynchronise();
 #elif (defined __INTEL_MKL__)
 		Complex_f a = 1.0;
 		Complex_f beta_f=(Complex_f)beta;
@@ -243,7 +244,6 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 #ifdef __NVCC__
 	cuComplex_convert(X1_f,X1,kferm2,false,dimBlock,dimGrid);
 	cuComplex_convert(r_f,r,kferm2,false,dimBlock,dimGrid);
-	cudaDeviceSynchronise();
 #else
 	for(int i=0;i<kferm2;i++){
 		X1[i]=(Complex)X1_f[i];
@@ -251,9 +251,15 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t_f,Complex_
 	}
 #endif
 #ifdef __NVCC__
-	cudaFree(x1_f);cudaFree(x2_f); cudaFree(p_f);cudaFree(r_f);cudaFree(X1_f);
-#elif defined __INTEL_MKL__
-	mkl_free(x1_f);mkl_free(x2_f); mkl_free(p_f);  mkl_free(r_f); mkl_free(X1_f);
+#ifdef _DEBUG
+	cudaFree(x1_f);cudaFree(x2_f); cudaFree(p_f);
+	cudaFree(r_f);cudaFree(X1_f);
+#else
+	//streams match the ones that allocated them.
+	cudaFreeAsync(x1_f,streams[3]);cudaFreeAsync(x2_f,streams[4]); cudaFreeAsync(p_f,streams[2]);
+	cudaDeviceSynchronise();
+	cudaFreeAsync(r_f,streams[1]);cudaFreeAsync(X1_f,streams[0]);
+#endif
 #else
 	free(x1_f);free(x2_f); free(p_f);  free(r_f); free(X1_f);
 #endif
@@ -345,11 +351,33 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
 	//if statements quicker to type
 	double betan;
+#ifdef __NVCC__
+		cudaDeviceSynchronise();
+#endif
 	for((*itercg)=0; (*itercg)<=niterc; (*itercg)++){
 		//Don't overwrite on first run. 
 		//x2=(M^†)x1=(M^†)Mp
+#ifdef _DEBUGCG
+		printf("Pre mult:\tp_f[0]=%.5e\tx1_f[0]=%.5e\tx2_f[0]=%.5e\tdk4m=%.5e\tdk4p=%.5e\n",\
+				creal(p_f[0]),creal(x1_f[0]),creal(x2_f[0]),dk4m[0],dk4p[0]);
+		printf("κ=%.5e\n",akappa);
+#endif
 		Dslash_f(x1_f,p_f,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
+#ifdef _DEBUGCG
+#ifdef __NVCC__
+		cudaDeviceSynchronise();
+#endif
+		printf("Dslash: \tp_f[0]=%.5e\tx1_f[0]=%.5e\tx2_f[0]=%.5e\tdk4m=%.5e\tdk4p=%.5e\n",\
+				creal(p_f[0]),creal(x1_f[0]),creal(x2_f[0]),dk4m[0],dk4p[0]);
+#endif
 		Dslashd_f(x2_f,x1_f,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
+#ifdef _DEBUGCG
+#ifdef __NVCC__
+		cudaDeviceSynchronise();
+#endif
+		printf("Dslash: \tp_f[0]=%.5e\tx1_f[0]=%.5e\tx2_f[0]=%.5e\tdk4m=%.5e\tdk4p=%.5e\n",\
+				creal(p_f[0]),creal(x1_f[0]),creal(x2_f[0]),dk4m[0],dk4p[0]);
+#endif
 		//We can't evaluate α on the first niterx because we need to get β_n.
 		if(*itercg){
 			//x*.x
@@ -359,9 +387,8 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 			cudaDeviceSynchronise();
 			alphad = alphad_f*alphad_f;
 #elif defined USE_BLAS
-			//Was float
-			float alphad_f = cblas_scnrm2(kferm, x1_f, 1);
-			alphad = alphad_f*alphad_f;
+			alphad = (double)cblas_scnrm2(kferm, x1_f, 1);
+			alphad = alphad*alphad;
 #else
 			alphad=0;
 			for(int i = 0; i<kferm; i++)
@@ -388,12 +415,6 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 				xi_f[i]+=alpha*p_f[i];
 #endif
 		}
-		/*
-			for(int i=0;i<kferm;i++){
-			p[i]=(Complex)p_f[i];
-			x2[i]=(Complex)x2_f[i];
-			}
-		 */
 
 		//r=α(M^†)Mp and β_n=r*.r
 #ifdef __NVCC__
@@ -403,14 +424,13 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 		//r*.r
 		float betan_f;
 		cublasScnrm2(cublas_handle,kferm,(cuComplex *) r_f,1,(float *)&betan_f);
-		cudaDeviceSynchronise();
 		//Gotta square it to "undo" the norm
 		betan=betan_f*betan_f;
 #elif defined USE_BLAS
 		Complex_f alpha_m=-alpha;
 		cblas_caxpy(kferm,(Complex_f*) &alpha_m,(Complex_f*) x2_f, 1,(Complex_f*) r_f, 1);
 		//r*.r
-		betan = cblas_scnrm2(kferm, (Complex_f*)r_f,1);
+		betan = (double)cblas_scnrm2(kferm, (Complex_f*)r_f,1);
 		//Gotta square it to "undo" the norm
 		betan*=betan;
 #else
@@ -429,7 +449,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 		Par_dsum(&betan);
 #endif
 #ifdef _DEBUG
-		if(!rank) printf("Iter (CG) = %i β_n= %e α= %e\n", *itercg, betan, alpha);
+		if(!rank) printf("Iter (CG) = %i β_n= %e α= %e\r", *itercg, betan, alpha);
 #endif
 		if(betan<resid){
 			//Started counting from zero so add one to make it accurate
@@ -470,11 +490,6 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 		for(int i=0; i<kferm; i++)
 			p_f[i]=r_f[i]+beta*p_f[i];
 #endif
-		/*
-#pragma omp parallel for simd aligned(p_f,p:AVX)
-for(int i=0;i<kferm;i++)
-p_f[i]=(Complex_f)p[i];
-		 */
 	}
 #ifdef __NVCC__
 	cuComplex_convert(xi_f,xi,kferm,false,dimBlock,dimGrid);

@@ -42,6 +42,7 @@
 #include	<cublas_v2.h>
 extern cublasHandle_t cublas_handle;
 extern cublasStatus_t cublas_status;
+extern cudaMemPool_t mempool;
 //Get rid of that dirty yankee English
 #define cudaDeviceSynchronise() cudaDeviceSynchronize()
 #endif

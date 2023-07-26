@@ -4,33 +4,36 @@
  */
 #include	<par_mpi.h>
 #include	<su2hmc.h>
-void cuAverage_Plaquette(double *hgs, double *hgt, Complex_f *u11t, Complex_f *u12t, unsigned int *iu,dim3 dimGrid, dim3 dimBlock){
-	float *hgs_d, *hgt_d;
+#include <thrust/reduce.h>
+//#include <thrust/execution_policy.h>
+
+__host__ void cuAverage_Plaquette(double *hgs, double *hgt, Complex_f *u11t, Complex_f *u12t, unsigned int *iu,dim3 dimGrid, dim3 dimBlock){
+//	float *hgs_d, *hgt_d;
 	int device=-1;
 	cudaGetDevice(&device);
-	cudaMallocManaged((void **)&hgs_d,kvol*sizeof(float),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&hgt_d,kvol*sizeof(float),cudaMemAttachGlobal);
+	float *hgs_d, *hgt_d;
+	//Thrust want things in a weird format for the reduction, thus we oblige
+	cudaMallocAsync((void **)&hgs_d,kvol*sizeof(float),streams[0]);
+	thrust::device_ptr<float> hgs_T = thrust::device_pointer_cast(hgs_d);
+	cudaMallocAsync((void **)&hgt_d,kvol*sizeof(float),streams[1]);
+	thrust::device_ptr<float> hgt_T = thrust::device_pointer_cast(hgt_d);
 
 	cuAverage_Plaquette<<<dimGrid,dimBlock>>>(hgs_d, hgt_d, u11t, u12t, iu);
-	cudaDeviceSynchronise();
-	cudaMemPrefetchAsync(hgs_d,kvol*sizeof(float),device,streams[0]);
-	cudaMemPrefetchAsync(hgt_d,kvol*sizeof(float),device,streams[1]);
-	cudaDeviceSynchronise();
-	/*
-	*hgs= thrust::reduce(thrust::host,hgs_d,hgt_d+kvol);
-	*hgt= thrust::reduce(thrust::host,hgt_d,hgt_d+kvol);
-	*/
+
+	*hgs= (double)thrust::reduce(hgs_T,hgs_T+kvol,(float)0);
+	*hgt= (double)thrust::reduce(hgt_T,hgt_T+kvol,(float)0);
 	//Temporary holders to keep OMP happy.
+	/*
 	double hgs_t=0; double hgt_t=0;
 #pragma omp parallel for simd reduction(+:hgs_t,hgt_t)
 	for(int i=0;i<kvol;i++){
 		hgs_t+=hgs_d[i]; hgt_t+=hgt_d[i];
 	}
 	*hgs=hgs_t; *hgt=hgt_t;
-
-	cudaFree(hgs_d); cudaFree(hgt_d);
+	*/
+	cudaFreeAsync(hgs_d,streams[0]); cudaFreeAsync(hgt_d,streams[1]);
 }
-void cuPolyakov(Complex *Sigma11, Complex * Sigma12, Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock){
+void cuPolyakov(Complex_f *Sigma11, Complex_f * Sigma12, Complex_f *u11t, Complex_f *u12t, dim3 dimGrid, dim3 dimBlock){
 	cuPolyakov<<<dimGrid,dimBlock>>>(Sigma11,Sigma12,u11t,u12t);
 }
 //CUDA Kernels
@@ -40,13 +43,12 @@ __global__ void cuAverage_Plaquette(float *hgs_d, float *hgt_d, Complex_f *u11t,
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	//TODO: Chck if μ and ν loops inside of site loop is faster. I suspect it is due to memory locality.
+	//TODO: Check if μ and ν loops inside of site loop is faster. I suspect it is due to memory locality.
 	for(int i=threadId;i<kvol;i+=bsize*gsize){
 		hgt_d[i]=0; hgs_d[i]=0;
 
 		for(int mu=1;mu<ndim;mu++)
 			for(int nu=0;nu<mu;nu++){
-				//Save us from typing iu[mu+ndim*i] everywhere
 				//This is threadsafe as the μ and ν loops are not distributed across threads
 				switch(mu){
 					//Time component
@@ -89,20 +91,21 @@ __device__ float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int
 	Complex_f a12=-Sigma11*u12t[uidn*ndim+mu]+Sigma12*u11t[uidn*ndim+mu];
 
 	Sigma11=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
-	//				Sigma12[i]=-a11[i]*u12t[i*ndim+nu]+a12*u11t[i*ndim+mu];
-	//				Not needed in final result as it traces out
-	return Sigma11.real();
+	//Not needed in final result as it traces out
+	//Sigma12[i]=-a11[i]*u12t[i*ndim+nu]+a12*u11t[i*ndim+mu];
+	return creal(Sigma11);
 }
-__global__ void cuPolyakov(Complex *Sigma11, Complex * Sigma12, Complex * u11t,Complex *u12t){
+__global__ void cuPolyakov(Complex_f *Sigma11, Complex_f * Sigma12, Complex_f * u11t,Complex_f *u12t){
 	char * funcname = "cuPolyakov";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	for(int it=1;it<ksizet;it++)
+	//RACE CONDITION? gsize*bsize?
 		for(int i=threadId;i<kvol3;i+=gsize*bsize){
 			int indexu=it*kvol3+i;
-			Complex a11=Sigma11[i]*u11t[indexu*ndim+3]-Sigma12[i]*conj(u12t[indexu*ndim+3]);
+			Complex_f a11=Sigma11[i]*u11t[indexu*ndim+3]-Sigma12[i]*conj(u12t[indexu*ndim+3]);
 			//Instead of having to store a second buffer just assign it directly
 			Sigma12[i]=Sigma11[i]*u12t[indexu*ndim+3]+Sigma12[i]*conj(u11t[indexu*ndim+3]);
 			Sigma11[i]=a11;

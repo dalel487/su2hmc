@@ -36,7 +36,7 @@
 #define	WRITEWARN	10103
 #define	ARGWARN		10104
 
-//Indexing Errors. Leading digits are 11
+//Memory Errors. Leading digits are 11
 //======================================
 //Errors:
 //-------
@@ -44,10 +44,12 @@
 #define	COORDTOIND	11002	//Issues converting coordinate to index
 #define	BOUNDERROR	11003	//Accessing out of bounds element
 #define	ARRAYLEN		11004 //Impossible value for array length
+#define	CPYERROR		11005 //Copy failed
 //Warnings:
 //---------
 #define	BOUNDWARN	11103	//Accessing an out of bounds element, but not a big enough problem to crash the programme.
 #define	LIMWARN		11104	//Order of limits (x_min and x_max for example) is reversed.
+#define	CPYWARN		11105 //Copy failed
 
 //MPI Errors. Leading digits are 12
 //================================
