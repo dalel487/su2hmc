@@ -316,12 +316,6 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 	cudaMalloc((void **)&x2_f, kferm*sizeof(Complex_f));
 	cudaMalloc((void **)&xi_f, kferm*sizeof(Complex_f));
 #endif
-#elif defined __INTEL_MKL__
-	Complex_f *p_f  = mkl_malloc(kfermHalo*sizeof(Complex_f),AVX);
-	Complex_f *r_f  = mkl_malloc(kferm*sizeof(Complex_f),AVX);
-	Complex_f *x1_f	= mkl_malloc(kfermHalo*sizeof(Complex_f), AVX);
-	Complex_f *x2_f	= mkl_malloc(kferm*sizeof(Complex_f), AVX);
-	Complex_f *xi_f	= mkl_malloc(kferm*sizeof(Complex_f), AVX);
 #else
 	Complex_f *p_f  =	aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 	Complex_f *r_f  =	aligned_alloc(AVX,kferm*sizeof(Complex_f));
@@ -485,14 +479,13 @@ p_f[i]=(Complex_f)p[i];
 #ifdef __NVCC__
 	cuComplex_convert(xi_f,xi,kferm,false,dimBlock,dimGrid);
 #else
+#pragma omp simd
 	for(int i = 0; i <kferm;i++){
 		xi[i]=(Complex)xi_f[i];
 	}
 #endif
 #ifdef	__NVCC__
 	cudaFree(p_f); cudaFree(r_f);cudaFree(x1_f); cudaFree(x2_f); cudaFree(xi_f); 
-#elif defined __INTEL_MKL__
-	mkl_free(p_f); mkl_free(r_f); mkl_free(x1_f); mkl_free(x2_f); mkl_free(xi_f);
 #else
 	free(p_f); free(r_f); free(x1_f); free(x2_f); free(xi_f); 
 #endif

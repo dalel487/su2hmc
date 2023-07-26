@@ -549,7 +549,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 	//Mass term
 	//Diquark Term (antihermitian)
 #ifdef __NVCC__
-	cudaMemcpy(phi, r, kferm*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
+	cudaMemcpy(phi, r, kferm*sizeof(Complex_f),cudaMemcpyDefault);
 	cuDslash_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm*sizeof(Complex_f));
@@ -690,7 +690,14 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 
 	//Mass term
 #ifdef __NVCC__
-	cudaMemcpy(phi, r, kferm*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
+#ifdef _DEBUG
+	int errc=
+#endif
+	cudaMemcpy(phi, r, kferm*sizeof(Complex_f),cudaMemcpyDefault);
+	#ifdef _DEBUG
+	printf("cudaMemcpy returned %d\n");
+	#endif
+
 	cuDslashd_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm*sizeof(Complex_f));
