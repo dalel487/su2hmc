@@ -977,7 +977,7 @@ int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer){
 				LAYERROR, funcname, layer);
 		MPI_Abort(comm,LAYERROR);
 	}
-	Complex_f *sendbuf = (Complex_f *)aligned_alloc(AVX,halo*ncpt*sizeof(Complex));
+	Complex_f *sendbuf = (Complex_f *)aligned_alloc(AVX,halo*ncpt*sizeof(Complex_f));
 	//How big is the data being sent and received
 	int msg_size=ncpt*halosize[idir];
 	//In each case we set up the data being sent then do the exchange
@@ -1048,7 +1048,7 @@ inline int DHalo_swap_all(double *d, int ncpt){
 	 * -------
 	 * Zero on success, integer error code otherwise
 	 */
-	char *funcname = "ZHalo_swap_all";
+	char *funcname = "DHalo_swap_all";
 
 	//FORTRAN called zdnhaloswapall and zuphaloswapall here
 	//Those functions looped over the directions and called zXXhaloswapdir
@@ -1090,7 +1090,7 @@ int DHalo_swap_dir(double *d, int ncpt, int idir, int layer){
 	 *  -------
 	 *  Zero on success, Integer Error code otherwise
 	 */
-	char *funcname = "ZHalo_swap_dir";
+	char *funcname = "DHalo_swap_dir";
 	MPI_Status status;
 	double *sendbuf = (double *)aligned_alloc(AVX,halo*ncpt*sizeof(double));
 	if(layer!=DOWN && layer!=UP){

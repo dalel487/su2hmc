@@ -59,7 +59,7 @@ extern cudaMemPool_t mempool;
 #define	FILELEN	64
 // Common block definition for parallel variables
 
-#define	nx 16
+#define	nx 4
 #if(nx<1)
 #error "nx is expected it to be greater than or equal to 1"
 #endif
@@ -76,7 +76,7 @@ extern cudaMemPool_t mempool;
 #error "nz is expected it to be greater than or equal to 1"
 #endif
 
-#define	nt	32
+#define	nt	8
 #if(nt<1)
 #error "nt is expected it to be greater than or equal to 1"
 #endif
@@ -84,7 +84,7 @@ extern cudaMemPool_t mempool;
 #define	gvol    (nx*ny*nz*nt)
 #define	gvol3   (nx*ny*nz)
 
-#define	npx	4
+#define	npx	1
 #if(npx<1)
 #error "npx is expected it to be greater than or equal to 1"
 #elif(nx%npx!=0)
@@ -118,7 +118,7 @@ extern cudaMemPool_t mempool;
 #define	nproc	(npx*npy*npz*npt)
 
 //Number of threads for OpenMP, which can be overwritten at runtime
-#define	nthreads	4
+#define	nthreads	1
 
 //    Existing parameter definitions.
 #define	ksizex	(nx/npx)
@@ -153,10 +153,9 @@ extern cudaMemPool_t mempool;
 #define	kferm	(nc*ngorkov*kvol)
 #define	kferm2	(nc*ndirac*kvol)
 //    For those who may not have used MPI Before, halos are just a bit 
-//    of padding we put on the outside of the sub-arrays we're using in MPI
-//    so we can look at terms outside the sub-array we're actively working
+//    of padding we put outside of the sublattices we're using in MPI
+//    so we can look at terms outside the sublattice we're actively working
 //    on with that process.
-//TODO: Sort out coord.h so we can run without halos
 #if(npx>1)
 #define	halox	(ksizey*ksizez*ksizet)
 #else

@@ -80,6 +80,7 @@ extern "C"
 	int Par_isum(int *ival);
 	int Par_dsum(double *dval);
 	int Par_fsum(float *dval);
+	int Par_csum(Complex_f *cval);
 	int Par_zsum(Complex *zval);
 	int Par_icopy(int *ival);
 	int Par_dcopy(double *dval);
