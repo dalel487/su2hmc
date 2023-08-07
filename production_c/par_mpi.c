@@ -857,9 +857,9 @@ int ZHalo_swap_dir(Complex *z, int ncpt, int idir, int layer){
 				LAYERROR, funcname, layer);
 		MPI_Abort(comm,BROADERR);
 	}
-	Complex *sendbuf = (Complex *)aligned_alloc(AVX,halo*ncpt*sizeof(Complex));
 	//How big is the data being sent and received
 	int msg_size=ncpt*halosize[idir];
+	Complex *sendbuf = (Complex *)aligned_alloc(AVX,msg_size*sizeof(Complex));
 	//In each case we set up the data being sent then do the exchange
 	switch(layer){
 		case(DOWN):
@@ -977,9 +977,9 @@ int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer){
 				LAYERROR, funcname, layer);
 		MPI_Abort(comm,LAYERROR);
 	}
-	Complex_f *sendbuf = (Complex_f *)aligned_alloc(AVX,halo*ncpt*sizeof(Complex_f));
 	//How big is the data being sent and received
 	int msg_size=ncpt*halosize[idir];
+	Complex_f *sendbuf = (Complex_f *)aligned_alloc(AVX,msg_size*sizeof(Complex_f));
 	//In each case we set up the data being sent then do the exchange
 	switch(layer){
 		case(DOWN):
@@ -1092,14 +1092,14 @@ int DHalo_swap_dir(double *d, int ncpt, int idir, int layer){
 	 */
 	char *funcname = "DHalo_swap_dir";
 	MPI_Status status;
-	double *sendbuf = (double *)aligned_alloc(AVX,halo*ncpt*sizeof(double));
+	//How big is the data being sent and received
+	int msg_size=ncpt*halosize[idir];
+	double *sendbuf = (double *)aligned_alloc(AVX,msg_size*sizeof(double));
 	if(layer!=DOWN && layer!=UP){
 		fprintf(stderr, "Error %i in %s: Cannot swap in the direction given by %i.\nExiting...\n\n",
 				LAYERROR, funcname, layer);
 		MPI_Abort(comm,LAYERROR);
 	}
-	//How big is the data being sent and received
-	int msg_size=ncpt*halosize[idir];
 	//Impliment the switch. The code is taken from the end of the dedicated functions in the FORTRAN code.
 	switch(layer){
 		case(DOWN):

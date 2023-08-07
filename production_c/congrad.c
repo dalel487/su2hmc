@@ -90,16 +90,6 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
 	//if statements quicker to type
 	double betan;
-#ifdef _DEBUGCG
-	for(int i=0;i<5;i++)
-		printf("gamval row %d= %e+I*%e\t %e+I*%e\t %e+I*%e\t %e+I*%e\n",i,
-				creal(gamval_f[i*ndim+0]),cimag(gamval_f[i*ndim+0]),creal(gamval_f[i*ndim+1]),cimag(gamval_f[i*ndim+1]),
-				creal(gamval_f[i*ndim+2]),cimag(gamval_f[i*ndim+2]),creal(gamval_f[i*ndim+3]),cimag(gamval_f[i*ndim+3]));
-	for(int i=0;i<4;i++)
-		printf("gamin row %d=%d\t%d\t%d\t%d\n",
-				i,gamin[i*ndim+0],gamin[i*ndim+1],gamin[i*ndim+2],gamin[i*ndim+3]);
-	printf("κ=%.5e\n",akappa);
-#endif
 	for(*itercg=0; *itercg<niterc; (*itercg)++){
 		//x2 =  (M^†M)p 
 		//No need to synchronoise here. The memcpy in Hdslash is blocking
@@ -107,24 +97,30 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 #ifdef __NVCC__
 		cudaDeviceSynchronise();
 #endif
-		printf("\nPre mult:\tp_f[0]=%.5e\tx1_f[0]=%.5e\tx2_f[0]=%.5e\tu11t[0]=%e\tu12t[0]=%e\tdk4m=%.5e\tdk4p=%.5e\tΓ[0]=%e+i%e\n",\
-				creal(p_f[0]),creal(x1_f[0]),creal(x2_f[0]),creal(u11t[0]), creal(u12t[0]),dk4m[0],dk4p[0],creal(gamval_f[0]),cimag(gamval_f[0]));
+		printf("\nPre mult:\tp_f[0]=%.5e+%.5ei\tx1_f[0]=%.5e+%.5ei\tx2_f[0]=%.5e+%.5ei\t"\
+				"u11t[0]=%e+%.5ei\tu12t[0]=%e+%.5ei\tdk4m=%.5e\tdk4p=%.5e\t\n",\
+				creal(p_f[0]),cimag(p_f[0]),creal(x1_f[0]),cimag(x1_f[0]),creal(x2_f[0]),cimag(x2_f[0]),creal(u11t[0]),\
+				cimag(u11t[0]),creal(u12t[0]),cimag(u12t[0]),dk4m[0],dk4p[0]);
 #endif
 		Hdslash_f(x1_f,p_f,u11t,u12t,iu,id,gamval_f,gamin,dk4m,dk4p,akappa);
 #ifdef _DEBUGCG
 #ifdef __NVCC__
 		cudaDeviceSynchronise();
 #endif
-		printf("Hdslash: \tp_f[0]=%.5e\tx1_f[0]=%.5e\tx2_f[0]=%.5e\tu11t[0]=%e\tu12t[0]=%e\tdk4m=%.5e\tdk4p=%.5e\tΓ[0]=%e+i%e\n",\
-				creal(p_f[0]),creal(x1_f[0]),creal(x2_f[0]),creal(u11t[0]), creal(u12t[0]),dk4m[0],dk4p[0],creal(gamval_f[0]),cimag(gamval_f[0]));
+		printf("\nHdslash_f:\tp_f[0]=%.5e+%.5ei\tx1_f[0]=%.5e+%.5ei\tx2_f[0]=%.5e+%.5ei\t"\
+				"u11t[0]=%e+%.5ei\tu12t[0]=%e+%.5ei\tdk4m=%.5e\tdk4p=%.5e\t\n",\
+				creal(p_f[0]),cimag(p_f[0]),creal(x1_f[0]),cimag(x1_f[0]),creal(x2_f[0]),cimag(x2_f[0]),creal(u11t[0]),\
+				cimag(u11t[0]),creal(u12t[0]),cimag(u12t[0]),dk4m[0],dk4p[0]);
 #endif
 		Hdslashd_f(x2_f,x1_f,u11t,u12t,iu,id,gamval_f,gamin,dk4m,dk4p,akappa);
 #ifdef _DEBUGCG
 #ifdef __NVCC__
 		cudaDeviceSynchronise();
 #endif
-		printf("Hdslashd:\tp_f[0]=%.5e\tx1_f[0]=%.5e\tx2_f[0]=%.5e\tu11t[0]=%e\tu12t[0]=%e\tdk4m=%.5e\tdk4p=%.5e\tΓ[0]=%e+i%e\n",\
-				creal(p_f[0]),creal(x1_f[0]),creal(x2_f[0]),creal(u11t[0]), creal(u12t[0]),dk4m[0],dk4p[0],creal(gamval_f[0]),cimag(gamval_f[0]));
+		printf("\nHdslashd_f:\tp_f[0]=%.5e+%.5ei\tx1_f[0]=%.5e+%.5ei\tx2_f[0]=%.5e+%.5ei\t"\
+				"u11t[0]=%e+%.5ei\tu12t[0]=%e+%.5ei\tdk4m=%.5e\tdk4p=%.5e\t\n",\
+				creal(p_f[0]),cimag(p_f[0]),creal(x1_f[0]),cimag(x1_f[0]),creal(x2_f[0]),cimag(x2_f[0]),creal(u11t[0]),\
+				cimag(u11t[0]),creal(u12t[0]),cimag(u12t[0]),dk4m[0],dk4p[0]);
 #endif
 		//x2 =  (M^†M+J^2)p 
 #ifdef	__NVCC__

@@ -59,7 +59,7 @@ extern cudaMemPool_t mempool;
 #define	FILELEN	64
 // Common block definition for parallel variables
 
-#define	nx 4
+#define	nx 8
 #if(nx<1)
 #error "nx is expected it to be greater than or equal to 1"
 #endif
@@ -84,7 +84,7 @@ extern cudaMemPool_t mempool;
 #define	gvol    (nx*ny*nz*nt)
 #define	gvol3   (nx*ny*nz)
 
-#define	npx	1
+#define	npx	2
 #if(npx<1)
 #error "npx is expected it to be greater than or equal to 1"
 #elif(nx%npx!=0)

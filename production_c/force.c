@@ -81,7 +81,7 @@ int Gauge_force(double *dSdpi, Complex_f *u11t, Complex_f *u12t,unsigned int *iu
 				cudaMemPrefetchAsync(u11sh, kvol*sizeof(Complex_f),cudaCpuDeviceId,streams[0]);
 				cudaMemPrefetchAsync(u12sh, kvol*sizeof(Complex_f),cudaCpuDeviceId,streams[1]);
 #endif
-				CHalo_swap_dir(u12sh, 1, mu, DOWN); CHalo_swap_dir(u12sh, 1, mu, DOWN);
+				CHalo_swap_dir(u11sh, 1, mu, DOWN); CHalo_swap_dir(u12sh, 1, mu, DOWN);
 #ifdef __NVCC__
 				cudaMemPrefetchAsync(u11sh+kvol, halo*sizeof(Complex_f),device,streams[0]);
 				cudaMemPrefetchAsync(u12sh+kvol, halo*sizeof(Complex_f),device,streams[1]);
