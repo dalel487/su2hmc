@@ -182,6 +182,7 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 #if(nproc>1)
 			MPI_Abort(comm,OPENERROR);
 #endif
+			exit(OPENERROR);
 		}
 		//TODO: SAFETY CHECKS FOR EACH READ OPERATION
 		int old_nproc;
