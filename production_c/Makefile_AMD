@@ -20,7 +20,7 @@ CFLAGS=	-Wall $(IFLAGS) -std=gnu11 -DAMD_BLAS -fcommon -DSA3AT -flto\
 			-fopenmp=libomp -fopenmp-simd -static-libgcc
 		  #-fprofile-instr-use
 
-LFLAGS=	-Wl -L${AOCL_ROOT}/lib -L/usr/local/lib64 -ldl -lalm -lm -lblis -lamdalloc $(shell gsl-config --libs-without-cblas)
+LFLAGS=	-Wl -L${AOCL_ROOT}/lib -L/usr/local/lib64 -ldl -lalm -lm -lblis -lamdalloc -latomic $(shell gsl-config --libs-without-cblas)
 
 EXE=	su2hmc_AMD
 

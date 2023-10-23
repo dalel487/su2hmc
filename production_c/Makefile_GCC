@@ -31,7 +31,7 @@ CFLAGS += -DUSE_BLAS
 #Automatic on LUMI?
 #LFLAGS = ‐L${LIBSCI_BASE_DIR}/gnu/91/x86_64/lib/ -lsci_comp
 endif
-LFLAGS	+=	-lalm -lm -lamdalloc $(shell gsl-config --libs-without-cblas)
+LFLAGS	+=	-lalm -lm $(shell gsl-config --libs-without-cblas)
 
 EXE=	su2hmc_GCC
 
