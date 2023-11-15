@@ -1,6 +1,5 @@
 //Complex Header for CUDA. Sets macros for C compatability
 #ifndef TCMPLX
-#define TCMPLX
 #include <thrust/complex.h>
 using thrust::complex;
 //#undef	complex
