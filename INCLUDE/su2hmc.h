@@ -88,10 +88,8 @@ extern "C"
 			Complex *gamval,double *dk4m, double *dk4p,unsigned int *iu,int *gamin,\
 			float akappa, dim3 dimGrid, dim3 dimBlock);
 	//cuInit was taken already by CUDA (unsurprisingly)
-	void	Init_CUDA(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f, Complex *gamval,\
-			Complex_f *gamval_f, int *gamin,\
-			double *dk4m, double *dk4p, float *dk4m_f, float *dk4p_f, unsigned int *iu, unsigned int *id);
-	//			dim3 *dimBlock, dim3 *dimGrid);
+	void Init_CUDA(Complex *u11t, Complex *u12t,Complex *gamval, Complex_f *gamval_f, int *gamin, double*dk4m,\
+			double *dk4p, unsigned int *iu, unsigned int *id);
 	void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi,dim3 dimBlock, dim3 dimGrid);
 	void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu,dim3 dimBlock, dim3 dimGrid);
 	void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu,dim3 dimBlock, dim3 dimGrid);

@@ -773,15 +773,14 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 #if(nproc>1)
 	CHalo_swap_all(r, 8);
 #endif
-	//TODO: Get u11t_f and u12t_f sorted
-	//Mass term
-	//Spacelike term
 #ifdef __NVCC__
 	cuHdslash_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,akappa,dimGrid,dimBlock);
 #else
+	//Mass term
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
 #pragma omp parallel for
 	for(int i=0;i<kvol;i++){
+	//Spacelike term
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];

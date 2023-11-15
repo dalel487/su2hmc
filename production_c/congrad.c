@@ -53,22 +53,24 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 	Complex_f *p_f, *x1_f, *x2_f, *r_f, *X1_f;
 	int device=-1; cudaGetDevice(&device);
 
-	cudaMallocAsync((void **)&X1_f, kferm2*sizeof(Complex_f),streams[0]);
-	cudaMallocAsync((void **)&r_f, kferm2*sizeof(Complex_f),streams[1]);
 #ifdef _DEBUG
 	cudaMallocManaged((void **)&p_f, kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&x1_f, kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&x2_f, kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&x2_f, kferm2*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&r_f, kferm2*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&X1_f, kferm2*sizeof(Complex_f),cudaMemAttachGlobal);
 #else
 	//First two have halo exchanges, so getting NCCL working is important
-	cudaMallocAsync((void **)&p_f, kferm2Halo*sizeof(Complex_f),streams[2]);
-	cudaMallocAsync((void **)&x1_f, kferm2Halo*sizeof(Complex_f),streams[3]);
-	cudaMallocAsync((void **)&x2_f, kferm2Halo*sizeof(Complex_f),streams[4]);
+	cudaMallocAsync((void **)&p_f, kferm2Halo*sizeof(Complex_f),streams[0]);
+	cudaMallocAsync((void **)&x1_f, kferm2Halo*sizeof(Complex_f),streams[1]);
+	cudaMallocAsync((void **)&x2_f, kferm2*sizeof(Complex_f),streams[2]);
+	cudaMallocAsync((void **)&r_f, kferm2*sizeof(Complex_f),streams[3]);
+	cudaMallocAsync((void **)&X1_f, kferm2*sizeof(Complex_f),streams[4]);
 #endif
 #else
 	Complex_f *p_f=aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
 	Complex_f *x1_f=aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
-	Complex_f *x2_f=aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
+	Complex_f *x2_f=aligned_alloc(AVX,kferm2*sizeof(Complex_f));
 	Complex_f *X1_f=aligned_alloc(AVX,kferm2*sizeof(Complex_f));
 	Complex_f *r_f=aligned_alloc(AVX,kferm2*sizeof(Complex_f));
 #endif
@@ -92,7 +94,8 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 	double betan;
 	for(*itercg=0; *itercg<niterc; (*itercg)++){
 		//x2 =  (M^†M)p 
-		//No need to synchronoise here. The memcpy in Hdslash is blocking
+		//No need to synchronise here. The memcpy in Hdslash is blocking
+		//But one hits the halo exchange first...
 #ifdef _DEBUGCG
 #ifdef __NVCC__
 		cudaDeviceSynchronise();
@@ -123,16 +126,19 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 				cimag(u11t[0]),creal(u12t[0]),cimag(u12t[0]),dk4m[0],dk4p[0]);
 #endif
 		//x2 =  (M^†M+J^2)p 
+		//No point adding zero a couple of hundred times if the diquark source is zero
+		if(fac_f!=0){
 #ifdef	__NVCC__
-		cudaDeviceSynchronise();
-		cublasCaxpy(cublas_handle,kferm2,(cuComplex *)&fac_f,(cuComplex *)p_f,1,(cuComplex *)x2_f,1);
+			cudaDeviceSynchronise();
+			cublasCaxpy(cublas_handle,kferm2,(cuComplex *)&fac_f,(cuComplex *)p_f,1,(cuComplex *)x2_f,1);
 #elif defined USE_BLAS
-		cblas_caxpy(kferm2, &fac_f, p_f, 1, x2_f, 1);
+			cblas_caxpy(kferm2, &fac_f, p_f, 1, x2_f, 1);
 #else
 #pragma omp parallel for simd aligned(p_f,x2_f:AVX)
-		for(int i=0; i<kferm2; i++)
-			x2_f[i]+=fac_f*p_f[i];
+			for(int i=0; i<kferm2; i++)
+				x2_f[i]+=fac_f*p_f[i];
 #endif
+		}
 		//We can't evaluate α on the first *itercg because we need to get β_n.
 		if(*itercg){
 			//α_d= p* (M^†M+J^2)p
@@ -210,10 +216,6 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 		//Note that beta below is not the global beta and scoping is used to avoid conflict between them
 		Complex beta = (*itercg) ?  betan/betad : 0;
 		betad=betan; alphan=betan;
-		//#ifdef __NVCC__
-		//		for(int i=0;i<kferm2;i++)
-		//			r[i]=(Complex)r_f[i];
-		//#endif
 		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multiplying y by
 		//β instead of x.
 #ifdef __NVCC__
@@ -252,9 +254,9 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 	cudaFree(r_f);cudaFree(X1_f);
 #else
 	//streams match the ones that allocated them.
-	cudaFreeAsync(x1_f,streams[3]);cudaFreeAsync(x2_f,streams[4]); cudaFreeAsync(p_f,streams[2]);
+	cudaFreeAsync(p_f,streams[0]);cudaFreeAsync(x1_f,streams[1]);cudaFreeAsync(x2_f,streams[2]);
 	cudaDeviceSynchronise();
-	cudaFreeAsync(r_f,streams[1]);cudaFreeAsync(X1_f,streams[0]);
+	cudaFreeAsync(r_f,streams[3]);cudaFreeAsync(X1_f,streams[4]);
 #endif
 #else
 	free(x1_f);free(x2_f); free(p_f);  free(r_f); free(X1_f);
@@ -348,7 +350,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 	//if statements quicker to type
 	double betan;
 #ifdef __NVCC__
-		cudaDeviceSynchronise();
+	cudaDeviceSynchronise();
 #endif
 	for((*itercg)=0; (*itercg)<=niterc; (*itercg)++){
 		//Don't overwrite on first run. 

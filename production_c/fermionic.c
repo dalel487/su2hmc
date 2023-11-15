@@ -56,7 +56,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	cudaMallocManaged((void **)&x,kfermHalo*sizeof(Complex), cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&xi,kferm*sizeof(Complex), cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&xi_f,kfermHalo*sizeof(Complex_f), cudaMemAttachGlobal);
-	cudaMalloc((void **)&R1_f,kfermHalo*sizeof(Complex_f));
+	cudaMallocAsync((void **)&R1_f,kfermHalo*sizeof(Complex_f),streams[1]);
 #else
 	Complex *x =(Complex *)aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 	Complex *xi =(Complex *)aligned_alloc(AVX,kferm*sizeof(Complex));
@@ -70,10 +70,10 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	vsRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, xi_f, 0, 1/sqrt(2));
 #endif
 #ifdef __NVCC__
-	cudaMemPrefetchAsync(xi_f,kferm*sizeof(Complex_f),device,NULL);
+	cudaMemPrefetchAsync(xi_f,kferm*sizeof(Complex_f),device,streams[0]);
 	cuComplex_convert(xi_f,xi,kferm,false,dimBlock,dimGrid);
 #else
-#pragma omp parallel for simd aligned(R1,xi,R1_f,xi_f:AVX)
+#pragma omp parallel for simd aligned(xi,xi_f:AVX)
 	for(int i=0;i<kferm;i++)
 		xi[i]=(Complex)xi_f[i];
 #endif
@@ -82,7 +82,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	//global
 	Dslashd_f(R1_f,xi_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 #ifdef __NVCC__
-	cudaMemcpy(x, xi, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice);
+	cudaMemcpyAsync(x, xi, kferm*sizeof(Complex),cudaMemcpyDefault,streams[0]);
 	cuComplex_convert(R1_f,R1,kferm,false,dimBlock,dimGrid);
 #else
 	memcpy(x, xi, kferm*sizeof(Complex));
@@ -94,7 +94,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	//This should be safe with memcpy since the pointer name
 	//references the first block of memory for that pointer
 #ifdef __NVCC__
-	cudaMemcpy(Phi, R1, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice);
+	cudaMemcpy(Phi, R1, kferm*sizeof(Complex),cudaMemcpyDefault);
 #else
 	memcpy(Phi, R1, kferm*sizeof(Complex));
 #endif
@@ -102,27 +102,24 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	//	Congradp(0, res, R1_f, itercg);
 	//If the conjugate gradient fails to converge for some reason, restart it.
 	//That's causing issues with NaN's. Plan B is to not record the measurements.
-	int cgrd_rtn=0;
-	if(Congradp(0, res, Phi, R1,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,itercg)==ITERLIM){
-		int cgrd_rtn=ITERLIM;
-		//return ITERLIM;
-		//itercg=0;
-		//if(!rank) fprintf(stderr, "Restarting conjugate gradient from %s\n", funcname);
-		//Congradp(0, res, Phi, R1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,itercg);
-		//itercg+=niterc;
-	}
+	if(Congradp(0, res, Phi, R1,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,itercg)==ITERLIM)
+		return ITERLIM;
+	//itercg=0;
+	//if(!rank) fprintf(stderr, "Restarting conjugate gradient from %s\n", funcname);
+	//Congradp(0, res, Phi, R1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,itercg);
+	//itercg+=niterc;
 	/*
 #pragma omp parallel for simd aligned(R1,R1_f:AVX)
 for(int i=0;i<kferm;i++)
 xi[i]=(Complex)R1_f[i];
 	 */
 #ifdef __NVCC__
-	cudaMemcpy(xi,R1,kferm*sizeof(Complex),cudaMemcpyDeviceToDevice);
+	cudaMemcpyAsync(xi,R1,kferm*sizeof(Complex),cudaMemcpyDefault,streams[0]);
 #else
 	memcpy(xi,R1,kferm*sizeof(Complex));
 #endif
 #ifdef __NVCC__
-	cudaFree(xi_f);	cudaFree(R1_f);
+	cudaFreeAsync(R1_f,streams[1]);	cudaFree(xi_f);	
 #else
 	free(xi_f);	free(R1_f);
 #endif
@@ -194,63 +191,63 @@ xi[i]=(Complex)R1_f[i];
 
 	//Instead of typing id[i*ndim+3] a lot, we'll just assign them to variables.
 	//Idea. One loop instead of two loops but for xuu and xdd just use ngorkov-(igorkov+1) instead
-		//Dirty CUDA work around since it won't convert thrust<complex> to double
+	//Dirty CUDA work around since it won't convert thrust<complex> to double
 #ifndef __NVCC__
 #pragma omp parallel for reduction(+:xd,xu,xdd,xuu) 
 #endif
-		for(int i = 0; i<kvol; i++){
-			int did=id[3+ndim*i];
-			int uid=iu[3+ndim*i];
-#if (!defined _OPENACC && !defined __NVCC__)
+	for(int i = 0; i<kvol; i++){
+		int did=id[3+ndim*i];
+		int uid=iu[3+ndim*i];
+#ifndef __NVCC__
 #pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX) reduction(+:xu)
 #endif
-			for(int igorkov=0; igorkov<4; igorkov++){
-				int igork1=gamin[3*ndirac+igorkov];
-				//For the C Version I'll try and factorise where possible
-				xu+=dk4p[did]*(conj(x[(did*ngorkov+igorkov)*nc])*(\
-							u11t[did*ndim+3]*(xi[(i*ngorkov+igork1)*nc]-xi[(i*ngorkov+igorkov)*nc])+\
-							u12t[did*ndim+3]*(xi[(i*ngorkov+igork1)*nc+1]-xi[(i*ngorkov+igorkov)*nc+1]) )+\
-						conj(x[(did*ngorkov+igorkov)*nc+1])*(\
-							conj(u11t[did*ndim+3])*(xi[(i*ngorkov+igork1)*nc+1]-xi[(i*ngorkov+igorkov)*nc+1])+\
-							conj(u12t[did*ndim+3])*(xi[(i*ngorkov+igorkov)*nc]-xi[(i*ngorkov+igork1)*nc])));
-			}
-#if (!defined _OPENACC && !defined __NVCC__)
+		for(int igorkov=0; igorkov<4; igorkov++){
+			int igork1=gamin[3*ndirac+igorkov];
+			//For the C Version I'll try and factorise where possible
+			xu+=dk4p[did]*(conj(x[(did*ngorkov+igorkov)*nc])*(\
+						u11t[did*ndim+3]*(xi[(i*ngorkov+igork1)*nc]-xi[(i*ngorkov+igorkov)*nc])+\
+						u12t[did*ndim+3]*(xi[(i*ngorkov+igork1)*nc+1]-xi[(i*ngorkov+igorkov)*nc+1]) )+\
+					conj(x[(did*ngorkov+igorkov)*nc+1])*(\
+						conj(u11t[did*ndim+3])*(xi[(i*ngorkov+igork1)*nc+1]-xi[(i*ngorkov+igorkov)*nc+1])+\
+						conj(u12t[did*ndim+3])*(xi[(i*ngorkov+igorkov)*nc]-xi[(i*ngorkov+igork1)*nc])));
+		}
+#ifndef __NVCC__
 #pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX) reduction(+:xd)
 #endif
-			for(int igorkov=0; igorkov<4; igorkov++){
-				int igork1=gamin[3*ndirac+igorkov];
-				xd+=dk4m[i]*(conj(x[(uid*ngorkov+igorkov)*nc])*(\
-							conj(u11t[i*ndim+3])*(xi[(i*ngorkov+igork1)*nc]+xi[(i*ngorkov+igorkov)*nc])-\
-							u12t[i*ndim+3]*(xi[(i*ngorkov+igork1)*nc+1]+xi[(i*ngorkov+igorkov)*nc+1]) )+\
-						conj(x[(uid*ngorkov+igorkov)*nc+1])*(\
-							u11t[i*ndim+3]*(xi[(i*ngorkov+igork1)*nc+1]+xi[(i*ngorkov+igorkov)*nc+1])+\
-							conj(u12t[i*ndim+3])*(xi[(i*ngorkov+igorkov)*nc]+xi[(i*ngorkov+igork1)*nc]) ) );
-			}
-#if (!defined _OPENACC && !defined __NVCC__)
+		for(int igorkov=0; igorkov<4; igorkov++){
+			int igork1=gamin[3*ndirac+igorkov];
+			xd+=dk4m[i]*(conj(x[(uid*ngorkov+igorkov)*nc])*(\
+						conj(u11t[i*ndim+3])*(xi[(i*ngorkov+igork1)*nc]+xi[(i*ngorkov+igorkov)*nc])-\
+						u12t[i*ndim+3]*(xi[(i*ngorkov+igork1)*nc+1]+xi[(i*ngorkov+igorkov)*nc+1]) )+\
+					conj(x[(uid*ngorkov+igorkov)*nc+1])*(\
+						u11t[i*ndim+3]*(xi[(i*ngorkov+igork1)*nc+1]+xi[(i*ngorkov+igorkov)*nc+1])+\
+						conj(u12t[i*ndim+3])*(xi[(i*ngorkov+igorkov)*nc]+xi[(i*ngorkov+igork1)*nc]) ) );
+		}
+#ifndef __NVCC__
 #pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX) reduction(+:xuu)
 #endif
-			for(int igorkovPP=4; igorkovPP<8; igorkovPP++){
-				int igork1PP=4+gamin[3*ndirac+igorkovPP-4];
-				xuu-=dk4m[did]*(conj(x[(did*ngorkov+igorkovPP)*nc])*(\
-							u11t[did*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc]-xi[(i*ngorkov+igorkovPP)*nc])+\
-							u12t[did*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc+1]-xi[(i*ngorkov+igorkovPP)*nc+1]) )+\
-						conj(x[(did*ngorkov+igorkovPP)*nc+1])*(\
-							conj(u11t[did*ndim+3])*(xi[(i*ngorkov+igork1PP)*nc+1]-xi[(i*ngorkov+igorkovPP)*nc+1])+\
-							conj(u12t[did*ndim+3])*(xi[(i*ngorkov+igorkovPP)*nc]-xi[(i*ngorkov+igork1PP)*nc]) ) );
-			}
-#if (!defined _OPENACC && !defined __NVCC__)
+		for(int igorkovPP=4; igorkovPP<8; igorkovPP++){
+			int igork1PP=4+gamin[3*ndirac+igorkovPP-4];
+			xuu-=dk4m[did]*(conj(x[(did*ngorkov+igorkovPP)*nc])*(\
+						u11t[did*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc]-xi[(i*ngorkov+igorkovPP)*nc])+\
+						u12t[did*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc+1]-xi[(i*ngorkov+igorkovPP)*nc+1]) )+\
+					conj(x[(did*ngorkov+igorkovPP)*nc+1])*(\
+						conj(u11t[did*ndim+3])*(xi[(i*ngorkov+igork1PP)*nc+1]-xi[(i*ngorkov+igorkovPP)*nc+1])+\
+						conj(u12t[did*ndim+3])*(xi[(i*ngorkov+igorkovPP)*nc]-xi[(i*ngorkov+igork1PP)*nc]) ) );
+		}
+#ifndef __NVCC__
 #pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX) reduction(+:xdd)
 #endif
-			for(int igorkovPP=4; igorkovPP<8; igorkovPP++){
-				int igork1PP=4+gamin[3*ndirac+igorkovPP-4];
-				xdd-=dk4p[i]*(conj(x[(uid*ngorkov+igorkovPP)*nc])*(\
-							conj(u11t[i*ndim+3])*(xi[(i*ngorkov+igork1PP)*nc]+xi[(i*ngorkov+igorkovPP)*nc])-\
-							u12t[i*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc+1]+xi[(i*ngorkov+igorkovPP)*nc+1]) )+\
-						conj(x[(uid*ngorkov+igorkovPP)*nc+1])*(\
-							u11t[i*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc+1]+xi[(i*ngorkov+igorkovPP)*nc+1])+\
-							conj(u12t[i*ndim+3])*(xi[(i*ngorkov+igorkovPP)*nc]+xi[(i*ngorkov+igork1PP)*nc]) ) );
-			}
+		for(int igorkovPP=4; igorkovPP<8; igorkovPP++){
+			int igork1PP=4+gamin[3*ndirac+igorkovPP-4];
+			xdd-=dk4p[i]*(conj(x[(uid*ngorkov+igorkovPP)*nc])*(\
+						conj(u11t[i*ndim+3])*(xi[(i*ngorkov+igork1PP)*nc]+xi[(i*ngorkov+igorkovPP)*nc])-\
+						u12t[i*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc+1]+xi[(i*ngorkov+igorkovPP)*nc+1]) )+\
+					conj(x[(uid*ngorkov+igorkovPP)*nc+1])*(\
+						u11t[i*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc+1]+xi[(i*ngorkov+igorkovPP)*nc+1])+\
+						conj(u12t[i*ndim+3])*(xi[(i*ngorkov+igorkovPP)*nc]+xi[(i*ngorkov+igork1PP)*nc]) ) );
 		}
+	}
 	*endenf=creal(xu-xd-xuu+xdd);
 	*denf=creal(xu+xd+xuu+xdd);
 
@@ -264,5 +261,5 @@ xi[i]=(Complex)R1_f[i];
 #else
 	free(x); free(xi);
 #endif
-	return cgrd_rtn;
+	return 0;
 }

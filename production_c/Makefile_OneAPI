@@ -1,12 +1,12 @@
 MF=Makefile_OneAPI
-CC=	mpiicc -cc=icx
+CC=	mpiicx -v
 
 IFLAGS=	-I../INCLUDE 
 
 CFLAGS=     $(IFLAGS) -qmkl -std=gnu11 -ipo -qopt-zmm-usage=high -MD\
 			-xSKYLAKE -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE,RAPTORLAKE\
 			-DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
-			-qopenmp -qopenmp-simd -DSA3AT
+			-qopenmp -qopenmp-simd -DSA3AT -MMD -MP 
 
 LFLAGS=	-L${MKLROOT}/lib/intel64 -limf -lgsl
 
@@ -59,7 +59,10 @@ debug:	CFLAGS += -g -O0 -D_DEBUG
 debug:	$(EXE)
 
 $(EXE):	$(OBJ)
-		$(CC) ../main.c -MMD -MP $(CFLAGS) -o $@ $(OBJ) $(LFLAGS)  
+		$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)  ../main.c 
+
+%.o: %.c
+	$(CC) $(CFLAGS) $(MKLFLAGS) -c $?  
 
 clean:
 		rm -f $(OBJ) $(TMP) $(DEPS)

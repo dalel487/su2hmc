@@ -8,9 +8,8 @@ dim3 dimGrid= dim3(MIN(ksizez,8),MIN(ksizey,8));
 dim3 dimBlockOne = dim3(4,4,1);
 dim3 dimGridOne= dim3(1,1,1);
 cudaStream_t streams[ndirac*ndim*nadj];
-void	Init_CUDA(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f,\
-		Complex *gamval, Complex_f *gamval_f, int *gamin,\
-		double *dk4m, double *dk4p, float *dk4m_f, float *dk4p_f, unsigned int *iu, unsigned int *id){
+void	Init_CUDA(Complex *u11t, Complex *u12t,Complex *gamval, Complex_f *gamval_f, int *gamin, double*dk4m,\
+					double *dk4p, unsigned int *iu, unsigned int *id){
 	/*
 	 * Initialises the GPU Components of the system
 	 *
@@ -49,14 +48,15 @@ void	Init_CUDA(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_
 	 * =======
 	 * Zero on success, integer error code otherwise
 	 */
-	//Set iu and id to mainly read in CUDA and prefetch them to the GPU
 	char *funcname = "Init_CUDA";
 	int device=-1;
 	cudaGetDevice(&device);
+	//Initialise streams for concurrent kernels
 	for(int i=0;i<(ndirac*nadj*ndim);i++)
 		cudaStreamCreate(&streams[i]);
-	cudaMemPrefetchAsync(iu,ndim*kvol*sizeof(int),device,NULL);
-	cudaMemPrefetchAsync(id,ndim*kvol*sizeof(int),device,NULL);
+	//Set iu and id to mainly read in CUDA and prefetch them to the GPU
+	cudaMemPrefetchAsync(iu,ndim*kvol*sizeof(int),device,streams[0]);
+	cudaMemPrefetchAsync(id,ndim*kvol*sizeof(int),device,streams[1]);
 	cudaMemAdvise(iu,ndim*kvol*sizeof(int),cudaMemAdviseSetReadMostly,device);
 	cudaMemAdvise(id,ndim*kvol*sizeof(int),cudaMemAdviseSetReadMostly,device);
 
@@ -72,11 +72,11 @@ void	Init_CUDA(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_
 	cudaMemAdvise(dk4p,(kvol+halo)*sizeof(double),cudaMemAdviseSetReadMostly,device);
 	cudaMemAdvise(dk4m,(kvol+halo)*sizeof(double),cudaMemAdviseSetReadMostly,device);
 
-	cudaMemPrefetchAsync(dk4p,(kvol+halo)*sizeof(double),device,NULL);
-	cudaMemPrefetchAsync(dk4m,(kvol+halo)*sizeof(double),device,NULL);
+	cudaMemPrefetchAsync(dk4p,(kvol+halo)*sizeof(double),device,streams[2]);
+	cudaMemPrefetchAsync(dk4m,(kvol+halo)*sizeof(double),device,streams[3]);
 
-	cudaMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),device,NULL);
-	cudaMemPrefetchAsync(u12t, ndim*kvol*sizeof(Complex),device,NULL);
+	cudaMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),device,streams[4]);
+	cudaMemPrefetchAsync(u12t, ndim*kvol*sizeof(Complex),device,streams[5]);
 }
 void cuReal_convert(float *a, double *b, int len, bool dtof, dim3 dimBlock, dim3 dimGrid){
 	/* 
@@ -90,7 +90,7 @@ void cuComplex_convert(Complex_f *a, Complex *b, int len, bool dtof, dim3 dimBlo
 	 * Kernel wrapper for conversion between sp and dp complex on the GPU.
 	 */
 	char *funcname = "cuComplex_convert";
-	cuComplex_convert<<<dimBlock,dimGrid>>>(a,b,len,dtof);
+	cuReal_convert<<<dimBlock,dimGrid>>>((float *)a,(double *)b,2*len,dtof);
 }
 void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi, dim3 dimBlock, dim3 dimGrid){
 	cuFill_Small_Phi<<<dimBlock,dimGrid>>>(na,smallPhi,Phi);
@@ -109,7 +109,6 @@ void cuUpDownPart(int na, Complex *X0, Complex *R1,dim3 dimBlock, dim3 dimGrid){
 	cuUpDownPart<<<dimBlock,dimGrid>>>(na,X0,R1);	
 }
 //CUDA Kernels
-//IDEA: Replace cuComplex_convert with this, only with double the length?
 __global__ void cuReal_convert(float *a, double *b, int len, bool dtof){
 	char *funcname = "cuReal_convert";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
@@ -124,21 +123,6 @@ __global__ void cuReal_convert(float *a, double *b, int len, bool dtof){
 	else
 		for(int i = threadId; i<len;i+=gsize*bsize)
 			b[i]=(double)a[i];
-}
-__global__ void cuComplex_convert(Complex_f *a, Complex *b, int len, bool dtof){
-	char *funcname = "cuComplex_convert";
-	const int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	//Double to float
-	if(dtof)
-		for(int i = threadId; i<len;i+=gsize*bsize)
-			a[i]=(Complex_f)b[i];
-	//Float to double
-	else
-		for(int i = threadId; i<len;i+=gsize*bsize)
-			b[i]=(Complex)a[i];
 }
 __global__ void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
 {

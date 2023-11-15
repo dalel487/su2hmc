@@ -89,10 +89,10 @@ int main(int argc, char *argv[]){
 	//Input
 	//The default values here are straight from the FORTRAN
 	//=====================================================
-	float beta = 1.7;
+	float beta = 1.7f;
 	float akappa = 0.1780f;
 	Complex_f jqq = 0;
-	float fmu = 0.0;
+	float fmu = 0.0f;
 	int iread = 0;
 	int istart = 1;
 	int ibound = -1;
@@ -114,8 +114,8 @@ int main(int argc, char *argv[]){
 		const char *filename = (argc!=2) ?"midout":argv[1];
 		char *fileop = "r";
 		if( !(midout = fopen(filename, fileop) ) ){
-			fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n"\
-					, OPENERROR, funcname, filename, fileop);
+			fprintf(stderr, "Error %i in %s: Failed to open file %s for %s.\nExiting\n\n",\
+					OPENERROR, funcname, filename, fileop);
 #if(nproc>1)
 			MPI_Abort(comm,OPENERROR);
 #else
@@ -191,7 +191,6 @@ int main(int argc, char *argv[]){
 #else
 	cudaMalloc(&gamval_f,5*4*sizeof(Complex_f));
 #endif
-
 	cudaMallocManaged(&u11,ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&u12,ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&u11t,ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
@@ -231,8 +230,7 @@ int main(int argc, char *argv[]){
 	Init(istart,ibound,iread,beta,fmu,akappa,ajq,u11,u12,u11t,u12t,u11t_f,u12t_f,gamval,gamval_f,gamin,dk4m,dk4p,dk4m_f,dk4p_f,iu,id);
 #ifdef __NVCC__
 	//GPU Initialisation stuff
-	Init_CUDA(u11t,u12t,u11t_f,u12t_f,gamval,gamval_f,gamin,\
-			dk4m,dk4p,dk4m_f,dk4p_f,iu,id);//&dimBlock,&dimGrid);
+	Init_CUDA(u11t,u12t,gamval,gamval_f,gamin,dk4m,dk4p,iu,id);//&dimBlock,&dimGrid);
 #endif
 	//Send trials to accelerator for reunitarisation
 	Reunitarise(u11t,u12t);
@@ -392,9 +390,9 @@ int main(int argc, char *argv[]){
 #endif
 			Dslashd_f(R1_f,R,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 #ifdef __NVCC__
-//cudaFree is blocking so don't need to synchronise
+			//cudaFree is blocking so don't need to synchronise
 			cudaFree(R);
-			cuReal_convert(R1_f,R1,kferm,false,dimBlock,dimGrid);
+			cuComplex_convert(R1_f,R1,kferm,false,dimBlock,dimGrid);
 			cudaFreeAsync(R1_f,streams[0]);
 			cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,streams[1]);
 			//Up/down partitioning (using only pseudofermions of flavour 1)
@@ -428,8 +426,8 @@ int main(int argc, char *argv[]){
 		//Initialise Trial Fields
 #ifdef __NVCC__
 		cudaMemPrefetchAsync(pp,kmom*sizeof(double),device,streams[1]);
-		cudaMemcpy(u11t, u11, ndim*kvol*sizeof(Complex),cudaMemcpyHostToDevice);
-		cudaMemcpy(u12t, u12, ndim*kvol*sizeof(Complex),cudaMemcpyHostToDevice);
+		cudaMemcpy(u11t, u11, ndim*kvol*sizeof(Complex),cudaMemcpyDefault);
+		cudaMemcpy(u12t, u12, ndim*kvol*sizeof(Complex),cudaMemcpyDefault);
 #else
 		memcpy(u11t, u11, ndim*kvol*sizeof(Complex));
 		memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
@@ -463,9 +461,6 @@ int main(int argc, char *argv[]){
 		//Main loop for classical time evolution
 		//======================================
 		for(int step = 1; step<=stepmax; step++){
-#ifdef __NVCC__
-			cudaDeviceSynchronise();
-#endif
 #ifdef _DEBUG
 			if(!rank)
 				printf("Traj: %d\tStep: %d\n", itraj, step);
@@ -476,6 +471,9 @@ int main(int argc, char *argv[]){
 			//Note that we are moving from kernel to kernel within the default streams so don't need a Device_Sync here
 			New_trial(dt,pp,u11t,u12t);
 			Reunitarise(u11t,u12t);
+#ifdef __NVCC__
+			cudaDeviceSynchronise();
+#endif
 			//Get trial fields from accelerator for halo exchange
 			Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
 			//Mark trial fields as primarily read only here? Can re-enable writing at the end of each trajectory
@@ -489,7 +487,6 @@ int main(int argc, char *argv[]){
 			if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
 #ifdef __NVCC__
 				cublasDaxpy(cublas_handle,kmom, &d, dSdpi, 1, pp, 1);
-				cudaDeviceSynchronise();
 #elif defined USE_BLAS
 				cblas_daxpy(kmom, d, dSdpi, 1, pp, 1);
 #else
@@ -544,6 +541,7 @@ int main(int argc, char *argv[]){
 		yyav+=y*y;
 		//The Monte-Carlo
 		//Always update  dH is positive (gone from higher to lower energy)
+		bool acc;
 		if(dH>0 || Par_granf()<=y){
 			//Step is accepted. Set s=st
 			if(!rank)
@@ -556,15 +554,17 @@ int main(int argc, char *argv[]){
 			naccp++;
 			//Divide by gvol since we've summed over all lattice sites
 			action=S1/gvol;
+			acc=true;
 		}
-		else
+		else{
 			if(!rank)
 				printf("New configuration rejected on trajectory %i.\n", itraj);
+			acc=false;
+		}
 		actiona+=action; 
 		double vel2=0.0;
 #ifdef __NVCC__
 		cublasDnrm2(cublas_handle,kmom, pp, 1,&vel2);
-		cudaDeviceSynchronise();
 		vel2*=vel2;
 #elif defined USE_BLAS
 		vel2 = cblas_dnrm2(kmom, pp, 1);
@@ -581,16 +581,16 @@ int main(int argc, char *argv[]){
 
 		if(itraj%iprint==0){
 			//If rejected, copy the previously accepted field in for measurements
-			memcpy(u11t, u11, ndim*kvol*sizeof(Complex));
+			if(!acc){
 #ifdef __NVCC__
-			//This is a little clunky
-			cudaMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),device,NULL);
+				cudaMemcpyAsync(u11t, u11, ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[0]);
+				cudaMemcpyAsync(u12t, u12, ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[1]);
+#else
+				memcpy(u11t, u11, ndim*kvol*sizeof(Complex));
+				memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
 #endif
-			memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
-#ifdef __NVCC__
-			cudaMemPrefetchAsync(u12t, ndim*kvol*sizeof(Complex),device,NULL);
-#endif
-			Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
+				Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
+			}
 #ifdef _DEBUG
 			if(!rank)
 				printf("Starting measurements\n");

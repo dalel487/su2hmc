@@ -57,11 +57,6 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 
 #ifdef _OPENMP
 	omp_set_num_threads(nthreads);
-	omp_get_default_device();
-	//Comment out to keep the threads spinning even when there's no work to do
-	//Commenting out decrease runtime but increases total CPU time dramatically
-	//This can throw of some profilers
-	//kmp_set_defaults("KMP_BLOCKTIME=0");
 #ifdef __INTEL_MKL__
 	mkl_set_num_threads(nthreads);
 #endif
@@ -83,14 +78,13 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 	}
 	//Anti periodic Boundary Conditions. Flip the terms at the edge of the time
 	//direction
-	if(ibound == -1 && pcoord[3+ndim*rank]==npt -1){
+	if(ibound == -1 && pcoord[3+ndim*rank]==npt-1){
 #ifdef _DEBUG
 		printf("Implimenting antiperiodic boundary conditions on rank %i\n", rank);
 #endif
-		//Also CUDA this? By the looks of it it should saturate the GPU as is
 #pragma omp parallel for simd aligned(dk4m,dk4p:AVX)
-		for(int i= 0; i<kvol3; i++){
-			int k = kvol - kvol3 + i;
+		for(int k= kvol-1; k>=kvol-kvol3; k--){
+			//int k = kvol - kvol3 + i;
 			dk4p[k]*=-1;
 			dk4m[k]*=-1;
 		}
@@ -118,7 +112,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 	//Quantum Chromodynamics on the Lattice (530.14 GAT)
 	//_t is for temp. We copy these into the real gamvals later
 #ifdef __NVCC__
-	cudaMemcpy(gamin,gamin_t,4*4*sizeof(int),cudaMemcpyHostToDevice);
+	cudaMemcpy(gamin,gamin_t,4*4*sizeof(int),cudaMemcpyDefault);
 #else
 	memcpy(gamin,gamin_t,4*4*sizeof(int));
 #endif
@@ -136,7 +130,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 #endif
 
 #ifdef __NVCC__
-	cudaMemcpy(gamval,gamval_t,5*4*sizeof(Complex),cudaMemcpyHostToDevice);
+	cudaMemcpy(gamval,gamval_t,5*4*sizeof(Complex),cudaMemcpyDefault);
 	cuComplex_convert(gamval_f,gamval,20,true,dimBlockOne,dimGridOne);	
 #else
 	memcpy(gamval,gamval_t,5*4*sizeof(Complex));
@@ -185,14 +179,21 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 #ifdef __NVCC__
 		int device=-1;
 		cudaGetDevice(&device);
-		cudaMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),device,NULL);
-		cudaMemPrefetchAsync(u12t, ndim*kvol*sizeof(Complex),device,NULL);
+		cudaMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),device,streams[0]);
+		cudaMemPrefetchAsync(u12t, ndim*kvol*sizeof(Complex),device,streams[1]);
 #endif
 		//Send trials to accelerator for reunitarisation
 		Reunitarise(u11t,u12t);
 		//Get trials back
+#ifdef __NVCC__
+		cudaMemcpyAsync(u11,u11t,ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[0]);
+		cudaMemPrefetchAsync(u11, ndim*kvol*sizeof(Complex),device,streams[0]);
+		cudaMemcpyAsync(u12,u12t,ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[1]);
+		cudaMemPrefetchAsync(u12, ndim*kvol*sizeof(Complex),device,streams[1]);
+#else
 		memcpy(u11, u11t, ndim*kvol*sizeof(Complex));
 		memcpy(u12, u12t, ndim*kvol*sizeof(Complex));
+#endif
 	}
 #ifdef _DEBUG
 	printf("Initialisation Complete\n");
@@ -249,7 +250,7 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 	double hf = 0; int itercg = 0;
 #ifdef __NVCC__
 	Complex *smallPhi;
-	cudaMalloc((void **)&smallPhi,kferm2*sizeof(Complex));
+	cudaMallocAsync((void **)&smallPhi,kferm2*sizeof(Complex),NULL);
 #else
 	Complex *smallPhi = aligned_alloc(AVX,kferm2*sizeof(Complex));
 #endif
@@ -285,7 +286,7 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 #endif
 	}
 #ifdef __NVCC__
-	cudaFree(smallPhi);
+	cudaFreeAsync(smallPhi,NULL);
 #else
 	free(smallPhi);
 #endif
