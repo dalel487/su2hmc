@@ -46,7 +46,7 @@ extern cudaMemPool_t mempool;
 ///@brief	Get rid of that bastardised yankee English
 #define cudaDeviceSynchronise() cudaDeviceSynchronize()
 #endif
-#ifdef __CUDACC__
+#if (defined __CUDACC__|| defined __HIPCC__)
 #include	<thrust_complex.h>
 #include <thrust/reduce.h>
 #include <thrust/device_vector.h>

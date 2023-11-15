@@ -7,7 +7,6 @@
  * This way they match the C standard library calles
  */
 #ifndef TCMPLX
-#define TCMPLX
 #include <thrust/complex.h>
 using thrust::complex;
 //#undef	complex
