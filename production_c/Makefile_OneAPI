@@ -1,12 +1,12 @@
-MF=Makefile_OneAPI
-CC=	mpiicx -v
+MF=	Makefile_OneAPI
+CC=	mpiicx -save-temps -v
 
 IFLAGS=	-I../INCLUDE 
 
-CFLAGS=     $(IFLAGS) -qmkl -std=gnu11 -ipo -qopt-zmm-usage=high -MD\
+CFLAGS=     $(IFLAGS) -qmkl -std=gnu11 -qopt-zmm-usage=high \
 			-xSKYLAKE -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE,RAPTORLAKE\
 			-DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
-			-qopenmp -qopenmp-simd -DSA3AT -MMD -MP 
+			-fiopenmp -DSA3AT -MMD -MP 
 
 LFLAGS=	-L${MKLROOT}/lib/intel64 -limf -lgsl
 
