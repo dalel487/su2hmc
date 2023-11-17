@@ -36,7 +36,7 @@ cudaMemPool_t mempool;
  * explanation and lastly what is returned by the function (on success or failure)
  */
 int main(int argc, char *argv[]){
-	/*******************************************************************
+	/*******************************************************************//*!
 	 *    Hybrid Monte Carlo algorithm for Two Colour QCD with Wilson-Gor'kov fermions
 	 *    based on the algorithm of Duane et al. Phys. Lett. B195 (1987) 216. 
 	 *
@@ -86,19 +86,36 @@ int main(int argc, char *argv[]){
 	MPI_Comm_size(comm, &size);
 #endif
 
-	//Input
-	//The default values here are straight from the FORTRAN
-	//=====================================================
+	/*!
+	 * Inputs Parameters.
+	 * The input file format is 
+	 *
+	 * 0.0100 	1.7	0.1780	0.00	0.000		0.0	0.0	100	4		1			5			1
+	 * dt			beta	akappa	jqq	thetaq	fmu	aNf	stepl	ntraj	istart	icheck	iread
+	 *	The default values here are straight from the FORTRAN. Note that the bottom line is ignored
+	 *
+	 *	dt			Step length for HMC	
+	 * beta 		Inverse Gauge Coupling
+	 * akappa	Hopping Parameter
+	 * jqq		Diquark Source
+	 * thetaq	Depericiated.
+	 * fmu		Chemical Potential
+	 * aNf		Depreciated
+	 * stepl		Number of steps per HMC trajectory
+	 * istart 	If 0, start from cold start. If one, start from hot start
+	 * iprint	How often are measurements made (every iprint trajectories)
+	 * icheck	How often are configurations saved (every icheck trajectories)
+	 * iread  	Config to read in. If zero, the start based on value of istart
+	 */
 	float beta = 1.7f;
 	float akappa = 0.1780f;
 	Complex_f jqq = 0;
 	float fmu = 0.0f;
 	int iread = 0;
 	int istart = 1;
-	int ibound = -1;
-	int iwrite = 1;
 	int iprint = 1; //How often are measurements made
 	int icheck = 5; //How often are configurations saved
+	int ibound = -1;
 #ifdef USE_MATH_DEFINES
 	const double tpi = 2*M_PI;
 #else
