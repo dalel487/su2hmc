@@ -280,8 +280,8 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 	 * double		res:			Limit for conjugate gradient
 	 * Complex		*Phi:			Phi initially, 
 	 * Complex	*r:			Returned as (M†M)^{1} Phi
-	 * Complex		*u11t:		First colour's trial field
-	 * Complex		*u12t:		Second colour's trial field
+	 * Complex_f		*u11t:		First colour's trial field
+	 * Complex_f		*u12t:		Second colour's trial field
 	 * int			*iu:			Upper halo indices
 	 * int			*id:			Lower halo indices
 	 * Complex	*gamval:	Gamma matrices
@@ -327,7 +327,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 	Complex_f *x2_f	=	aligned_alloc(AVX,kferm*sizeof(Complex_f));
 	Complex_f *xi_f	=	aligned_alloc(AVX,kferm*sizeof(Complex_f));
 #endif
-	double betad = 1.0; double alphad=0; Complex alpha = 1;
+	double betad = 1.0; Complex_f alphad=0; Complex alpha = 1;
 	double alphan=0.0;
 	//Instead of copying element-wise in a loop, use memcpy.
 #ifdef __NVCC__
@@ -382,10 +382,9 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 #ifdef __NVCC__
 			float alphad_f;
 			cublasScnrm2(cublas_handle,kferm,(cuComplex*) x1_f, 1,(float *)&alphad_f);
-			cudaDeviceSynchronise();
 			alphad = alphad_f*alphad_f;
 #elif defined USE_BLAS
-			alphad = (double)cblas_scnrm2(kferm, x1_f, 1);
+			alphad = cblas_scnrm2(kferm, x1_f, 1);
 			alphad = alphad*alphad;
 #else
 			alphad=0;
@@ -393,10 +392,10 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 				alphad+=conj(x1_f[i])*x1_f[i];
 #endif
 #if(nproc>1)
-			Par_dsum((double *)&alphad);
+			Par_fsum((float *)&alphad);
 #endif
 			//α=(r.r)/p(M^†)Mp
-			alpha=alphan/alphad;
+			alpha=alphan/creal(alphad);
 			//			Complex_f alpha_f = (Complex_f)alpha;
 			//x+αp
 #ifdef __NVCC__
@@ -425,12 +424,12 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 		//Gotta square it to "undo" the norm
 		betan=betan_f*betan_f;
 #elif defined USE_BLAS
-		Complex_f alpha_m=-alpha;
+		Complex_f alpha_m=(Complex_f)(-alpha);
 		cblas_caxpy(kferm,(Complex_f*) &alpha_m,(Complex_f*) x2_f, 1,(Complex_f*) r_f, 1);
 		//r*.r
-		betan = (double)cblas_scnrm2(kferm, (Complex_f*)r_f,1);
+float		betan_f = cblas_scnrm2(kferm, (Complex_f*)r_f,1);
 		//Gotta square it to "undo" the norm
-		betan*=betan;
+		betan=betan_f*betan_f;
 #else
 		//Just like Congradq, this loop could be unrolled but will need a reduction to deal with the betan 
 		//addition.
