@@ -69,8 +69,9 @@ Some adaptions from the original are:
 
 Other works in progress include:
 -	CUDA implementation. So far bosonic observables can be evaluated on the GPU
--	OpenACC.
+-	Improved action
 
+  
 ## Getting started
 This code is written for MPI on Linux, thus has a few caveats to get up and running
 1.	In sizes.h, set the lattice size. By default we assume the spatial components
