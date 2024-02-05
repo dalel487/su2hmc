@@ -62,7 +62,7 @@ extern "C"
 			float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa,	Complex *Phi, Complex *R1);
 	int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u11t, Complex_f *u12t,\
 			unsigned int *iu, float beta);
-	int SU2plaq(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11, Complex_f *Sigma12, unsigned int *iu, int i, int mu, int nu);
+	int SU2plaq(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11, Complex_f *Sigma12, unsigned int *iu, unsigned int *id, int i, int mu, int nu,short leaf);
 	double Polyakov(Complex_f *u11t, Complex_f *u12t);
 	//Inline Stuff
 	extern int C_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu);

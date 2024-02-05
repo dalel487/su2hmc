@@ -1,6 +1,12 @@
-/*
- * Code for bosonic observables
- * Basically polyakov loop and Plaquette routines
+/** @file
+ *
+ * @brief Code for bosonic observables
+ * 
+ * Routines for polyakov loop, plaquettes and clovers.
+ *
+ * @author S J Hands (Original Fortran, March 2005)
+ * @author P. Giudice (Hybrid Code, May 2013)
+ * @author D. Lawlor (C version March 2021, CUDA/Mixed Precision/Clover Feb 2024 and beyond...)
  */
 #include	<par_mpi.h>
 #include	<su2hmc.h>
@@ -73,17 +79,18 @@ int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u
 	return 0;
 }
 #pragma omp declare simd
-inline int SU2plaq(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11, Complex_f *Sigma12, unsigned int *iu, int i, int mu, int nu){
-	/*
+inline int SU2plaq(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11, Complex_f *Sigma12, unsigned int *iu,  int i, int mu, int nu){
+	/**
 	 * Calculates the trace of the plaquette at site i in the μ-ν direction
 	 *
 	 * Parameters:
 	 * ==========
-	 * Complex u11t, u12t:	Trial fields
-	 * unsignedi int *iu:	Upper halo indices
-	 * int mu, nu:				Plaquette direction. Note that mu and nu can be negative
-	 * 							to facilitate calculating plaquettes for Clover terms. No
-	 * 							sanity checks are conducted on them in this routine.
+	 * Complex_f u11t, u12t:			Trial fields
+	 * Complex_f Sigma11, Sigma12:	Trial fields
+	 * unsignedi int *iu:				Upper halo indices
+	 * int mu, nu:							Plaquette direction. Note that mu and nu can be negative
+	 * 										to facilitate calculating plaquettes for Clover terms. No
+	 * 										sanity checks are conducted on them in this routine.
 	 *
 	 * Returns:
 	 * ========
@@ -91,8 +98,7 @@ inline int SU2plaq(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11, Complex
 	 *
 	 */
 	const char *funcname = "SU2plaq";
-	int uidm = iu[mu+ndim*i]; 
-	/***
+	/**
 	 *	Let's take a quick moment to compare this to the analysis code.
 	 *	The analysis code stores the gauge field as a 4 component real valued vector, whereas the produciton code
 	 *	used two complex numbers.
@@ -103,16 +109,75 @@ inline int SU2plaq(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11, Complex
 	 *	This applies to the Sigmas and a's below too
 	 */
 
+	int uidm = iu[mu+ndim*i]; int uidn = iu[nu+ndim*i]; 
+	//U_μ(x)*U_ν(x+μ)
 	*Sigma11=u11t[i*ndim+mu]*u11t[uidm*ndim+nu]-u12t[i*ndim+mu]*conj(u12t[uidm*ndim+nu]);
 	*Sigma12=u11t[i*ndim+mu]*u12t[uidm*ndim+nu]+u12t[i*ndim+mu]*conj(u11t[uidm*ndim+nu]);
 
-	int uidn = iu[nu+ndim*i]; 
+	//(U_μ(x)*U_ν(x+μ))*(U_-μ(x+μ+ν))
 	Complex_f a11=*Sigma11*conj(u11t[uidn*ndim+mu])+*Sigma12*conj(u12t[uidn*ndim+mu]);
 	Complex_f a12=-*Sigma11*u12t[uidn*ndim+mu]+*Sigma12*u11t[uidn*ndim+mu];
 
+	//[(U_μ(x)*U_ν(x+μ))*(U_-μ(x+μ+ν))]*U_-ν(x+ν)
 	*Sigma11=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
 	*Sigma12=-a11*u12t[i*ndim+nu]+a12*u11t[i*ndim+mu];
 	return 0;
+}
+inline int Leaf(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11, Complex_f *Sigma12, unsigned int *iu, unsigned int *id, int i, int mu, int nu, short leaf){
+
+	switch(leaf){
+		case(0):
+			//Both positive is just a standard plaquette
+			return SU2plaq(u11t,u12t,&Sigma11,&Sigma12,iu,i,mu,nu);
+		case(1):
+			//μ<0 and ν>=0
+			int didm = id[mu+ndim*i]; int uidn = iu[nu+ndim*i]; 
+			//U_ν(x)*U_-μ(x+ν)=U_ν(x)*U^†_μ(x-μ_ν)
+			//Awkward index here unfortunately. Seems safer than trying to find -μ
+			int uin_didm=id[mu+ndim*uidn];
+			*Sigma11=u11t[i*ndim+nu]*conj(u11t[uin_didm*ndim+mu])+u12t[i*ndim+nu]*conj(u12t[uin_didm*ndim+mu]);
+			*Sigma12=-u11t[i*ndim+nu]*conj(u12t[uin_didm*ndim+mu])+u12t[i*ndim+nu]*u11t[uin_didm*ndim+mu];
+
+			//(U_ν(x)*U_-μ(x+ν))*U_-ν(x-μ+ν)=(U_ν(x)*U^†_μ(x-μ_ν))*U^†_ν(x-μ)
+			Complex_f a11=*Sigma11*conj(u11t[didm*ndim+nu])+*Sigma12*conj(u12t[didm*ndim+nu]);
+			Complex_f a12=-*Sigma11*u12t[didm*ndim+nu]+*Sigma12*u11t[didm*ndim+nu];
+
+			//((U_ν(x)*U_-μ(x+ν))*U_-ν(x-μ+ν))*U_μ(x-μ)=((U_ν(x)*U^†_μ(x-μ_ν))*U^†_ν(x-μ))*U_μ(x-μ)
+			*Sigma11=a11*u11t[didm*ndim+mu]-a12*conj(u12t[didm*ndim+mu]);
+			*Sigma12=a11*u12t[didm*ndim+mu]+a12*conj(u11t[didm*ndim+mu]);
+			return 0;
+		case(2):
+			//μ>=0 and ν<0
+			//TODO: Figure out down site index
+			int uidm = iu[mu+ndim*i]; int didn = id[nu+ndim*i]; 
+			//U_-ν(x)*U_μ(x-ν)=U^†_ν(x-ν)*U_μ(x-ν)
+			*Sigma11=conj(u11t[didn*ndim+nu])*u11t[didn*ndim+mu]+conj(u12t[didn*ndim+nu])*u12t[didn*ndim+mu];
+			*Sigma12=conj(u11t[didn*ndim+nu]*u12t[didn*ndim+mu]-u12t[didn*ndim+mu]*conj(u11t[didn*ndim+nu]);
+			
+			//(U_-ν(x)*U_μ(x-ν))*U_ν(x+μ-ν)=(U^†_ν(x-ν)*U_μ(x-ν))*U_ν(x+μ-ν)
+			//Another awkward index
+			int uim_didn=id[nu+ndim*uidm];
+			Complex_f a11=*Sigma11*u11t[uim_didn*ndim+nu]-*Sigma12*conj(u12t[uim_didn*ndim+nu]);
+			Complex_f a12=*Sigma11*u12t[uim_didn*ndim+nu]+*Sigma12*conj(u11t[uim_didn*ndim+nu]);
+
+			//((U_-ν(x)*U_μ(x-ν))*U_ν(x+μ-ν))*U_-μ(x+μ)=(U^†_ν(x-ν)*U_μ(x-ν))*U_ν(x+μ-ν)
+			*Sigma11=a11*conj(u11t[i*ndim+mu])+a12*conj(u12t[i*ndim+mu]);
+			*Sigma12=-a11*u12t[i*ndim+mu]+a12*u11t[i*ndim+mu];
+			return 0;
+		case(3):
+			//μ<0 and ν<0
+			int didm = id[mu+ndim*i]; int didn = id[nu+ndim*i]; 
+			//U_-μ(x)*U_-ν(x-μ)
+			
+			//(U_-μ(x)*U_-ν(x-μ))*(U_μ(x-μ-ν))
+			Complex_f a11=*Sigma11*u11t[didn*ndim+mu]-*Sigma12*conj(u12t[didn*ndim+mu]);
+			Complex_f a12=*Sigma11*u12t[didn*ndim+mu]+*Sigma12*conj(u11t[didn*ndim+mu]);
+
+			//[(U_-μ(x)*U_-ν(x-μ))*(U_μ(x-μ-ν))]*U_ν(x-ν)
+			*Sigma11=a11*u11t[i*ndim+nu]-a12*conj(u12t[i*ndim+nu]);
+			*Sigma12=a11*u12t[i*ndim+nu]+a12*conj(u11t[i*ndim+mu]);
+			Show	return 0;
+	}
 }
 double Polyakov(Complex_f *u11t, Complex_f *u12t){
 	/*
