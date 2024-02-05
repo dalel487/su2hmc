@@ -101,6 +101,16 @@ inline int SU2plaq(Complex_f *ut[2], Complex_f Sigma[2], unsigned int *iu,  int 
 	 */
 	const char *funcname = "SU2plaq";
 	int uidm = iu[mu+ndim*i]; 
+	/***
+	 *	Let's take a quick moment to compare this to the analysis code.
+	 *	The analysis code stores the gauge field as a 4 component real valued vector, whereas the produciton code
+	 *	used two complex numbers.
+	 *
+	 *	Analysis code: u=(Re(u11),Im(u12),Re(u12),Im(u11))
+	 *	Production code: u11=u[0]+I*u[3]	u12=u[2]+I*u[1]
+	 *
+	 *	This applies to the Sigmas and a's below too
+	 */
 
 	Sigma[0]=ut[0][i*ndim+mu]*ut[0][uidm*ndim+nu]-ut[1][i*ndim+mu]*conj(ut[1][uidm*ndim+nu]);
 	Sigma[1]=ut[0][i*ndim+mu]*ut[1][uidm*ndim+nu]+ut[1][i*ndim+mu]*conj(ut[0][uidm*ndim+nu]);
