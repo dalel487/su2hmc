@@ -5,7 +5,7 @@
 //TO DO: Check and see are there any terms we are evaluating twice in the same loop
 //and use a variable to hold them instead to reduce the number of evaluations.
 int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int *iu,unsigned int *id,\
-		Complex *gamval, int *gamin,		double *dk4m, double *dk4p, Complex_f jqq, float akappa){
+		Complex *gamval, int *gamin, double *dk4m, double *dk4p, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -41,19 +41,12 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int 
 	//Mass term
 	//Diquark Term (antihermitian)
 #ifdef __NVCC__
-	cudaMemcpy(phi, r, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice);
 	cuDslash(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm*sizeof(Complex));
-#ifdef _OPENACC
-#pragma acc parallel loop copy(phi[0:kferm]) copyin(r[0:kfermHalo])
-#else
 #pragma omp parallel for
-#endif
 	for(int i=0;i<kvol;i++){
-#ifndef _OPENACC
 #pragma omp simd aligned(phi,r,gamval:AVX)
-#endif
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork = idirac+4;
 			Complex a_1, a_2;
@@ -70,9 +63,7 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int 
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
-#ifndef _OPENACC
 #pragma omp simd aligned(phi,r,u11t,u12t,gamval:AVX)
-#endif
 			for(int igorkov=0; igorkov<ngorkov; igorkov++){
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing in the dirac term.
 				int idirac=igorkov%4;		
@@ -107,9 +98,7 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int 
 #endif
 		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
 #ifndef NO_TIME
-#ifndef _OPENACC
 #pragma omp simd aligned(phi,r,u11t,u12t,dk4m,dk4p:AVX)
-#endif
 		for(int igorkov=0; igorkov<4; igorkov++){
 			int igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
 												//the FORTRAN code did it.
@@ -144,7 +133,7 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int 
 	return 0;
 }
 int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
-		Complex *gamval, int *gamin,		double *dk4m, double *dk4p, Complex_f jqq, float akappa){
+		Complex *gamval, int *gamin, double *dk4m, double *dk4p, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M^†*r
 	 *
@@ -179,19 +168,12 @@ int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int 
 
 	//Mass term
 #ifdef __NVCC__
-	cudaMemcpy(phi, r, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice);
 	cuDslashd(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm*sizeof(Complex));
-#ifdef _OPENACC
-#pragma acc parallel loop copy(phi[0:kferm]) copyin(r[0:kfermHalo])
-#else
 #pragma omp parallel for
-#endif
 	for(int i=0;i<kvol;i++){
-#ifndef _OPENACC
 #pragma omp simd aligned(phi,r,gamval:AVX)
-#endif
 		//Diquark Term (antihermitian) The signs of a_1 and a_2 below flip under dagger
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork = idirac+4;
@@ -209,9 +191,7 @@ int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int 
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
-#ifndef _OPENACC
 #pragma omp simd aligned(phi,r,u11t,u12t,gamval:AVX)
-#endif
 			for(int igorkov=0; igorkov<ngorkov; igorkov++){
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing.
 				int idirac=igorkov%4;		
@@ -248,9 +228,7 @@ int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int 
 		//Under dagger, dk4p and dk4m get swapped and the dirac component flips sign.
 		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
 #ifndef NO_TIME
-#ifndef _OPENACC
 #pragma omp simd aligned(phi,r,u11t,u12t,dk4m,dk4p:AVX)
-#endif
 		for(int igorkov=0; igorkov<4; igorkov++){
 			//the FORTRAN code did it.
 			int igork1 = gamin[3*ndirac+igorkov];	
@@ -287,7 +265,7 @@ int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int 
 	return 0;
 }
 int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int *iu,unsigned  int *id,\
-		Complex *gamval, int *gamin,		double *dk4m, double *dk4p, Complex_f jqq, float akappa){
+		Complex *gamval, int *gamin, double *dk4m, double *dk4p, float akappa){
 	//int Hdslash(Complex *phi, Complex *r){
 	/*
 	 * Evaluates phi= M*r
@@ -324,22 +302,15 @@ int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int
 	//Mass term
 	//Spacelike term
 #ifdef __NVCC__
-	cudaMemcpy(phi, r, kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice);
-	cuHdslash(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,dimGrid,dimBlock);
+	cuHdslash(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm2*sizeof(Complex));
-#ifdef _OPENACC
-#pragma acc parallel loop copy(phi[0:kferm2]) copyin(r[0:kferm2Halo])
-#else
 #pragma omp parallel for
-#endif
 	for(int i=0;i<kvol;i++){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
-#ifndef _OPENACC
 #pragma omp simd aligned(phi,r,u11t,u12t,gamval:AVX)
-#endif
 			for(int idirac=0; idirac<ndirac; idirac++){
 				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
 				int igork1 = gamin[mu*ndirac+idirac];
@@ -371,9 +342,7 @@ int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int
 		//Timelike terms
 		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
 #ifndef NO_TIME
-#ifndef _OPENACC
 #pragma omp simd aligned(phi,r,u11t,u12t,dk4m,dk4p:AVX)
-#endif
 		for(int idirac=0; idirac<ndirac; idirac++){
 			int igork1 = gamin[3*ndirac+idirac];
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
@@ -394,7 +363,7 @@ int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int
 	return 0;
 }
 int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int *iu,unsigned  int *id,\
-		Complex *gamval, int *gamin,		double *dk4m, double *dk4p, Complex_f jqq, float akappa){
+		Complex *gamval, int *gamin, double *dk4m, double *dk4p, float akappa){
 	/*
 	 * Evaluates phi= M^†*r
 	 *
@@ -435,23 +404,16 @@ int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  in
 
 	//Mass term
 #ifdef __NVCC__
-	cudaMemcpy(phi, r, kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice);
-	cuHdslashd(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,dimGrid,dimBlock);
+	cuHdslashd(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm2*sizeof(Complex));
 	//Spacelike term
-#ifdef _OPENACC
-#pragma acc parallel loop copy(phi[0:kferm2]) copyin(r[0:kferm2Halo])
-#else
 #pragma omp parallel for
-#endif
 	for(int i=0;i<kvol;i++){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <ndim-1; mu++){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
-#ifndef _OPENACC
 #pragma omp simd aligned(phi,r,u11t,u12t,gamval:AVX)
-#endif
 			for(int idirac=0; idirac<ndirac; idirac++){
 				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
 				int igork1 = gamin[mu*ndirac+idirac];
@@ -486,9 +448,7 @@ int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  in
 		//Timelike terms
 		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
 #ifndef NO_TIME
-#ifndef _OPENACC
 #pragma omp simd aligned(phi,r,u11t,u12t,dk4m,dk4p:AVX)
-#endif
 		for(int idirac=0; idirac<ndirac; idirac++){
 			int igork1 = gamin[3*ndirac+idirac];
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
@@ -549,22 +509,13 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 	//Mass term
 	//Diquark Term (antihermitian)
 #ifdef __NVCC__
-	cudaMemcpy(phi, r, kferm*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
+	cudaMemcpy(phi, r, kferm*sizeof(Complex_f),cudaMemcpyDefault);
 	cuDslash_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm*sizeof(Complex_f));
-#ifdef _OPENACC
-#pragma acc parallel loop copy(phi[0:kferm]) copyin(r[0:kfermHalo])
-#elif defined __clang__
-#pragma omp target teams distribute parallel for\
-	map(to:r[0:kfermHalo]) map(tofrom:phi[0:kferm])
-#else
 #pragma omp parallel for
-#endif
 	for(int i=0;i<kvol;i++){
-#ifndef _OPENACC
 #pragma omp simd aligned(phi,r,gamval_f:AVX)
-#endif
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork = idirac+4;
 			Complex_f a_1, a_2;
@@ -581,9 +532,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
-#ifndef _OPENACC
 #pragma omp simd aligned(phi,r,u11t_f,u12t_f,gamval_f,gamin:AVX)
-#endif
 			for(int igorkov=0; igorkov<ngorkov; igorkov++){
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing in the dirac term.
 				int idirac=igorkov%4;		
@@ -618,9 +567,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 #endif
 		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
 #ifndef NO_TIME
-#ifndef _OPENACC
 #pragma omp simd aligned(phi,r,u11t_f,u12t_f,dk4m_f,dk4p_f,gamin:AVX)
-#endif
 		for(int igorkov=0; igorkov<4; igorkov++){
 			int igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
 												//the FORTRAN code did it.
@@ -655,7 +602,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 	return 0;
 }
 int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
-		Complex_f *gamval_f,		int *gamin,	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
+		Complex_f *gamval_f, int *gamin, float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -690,22 +637,19 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 
 	//Mass term
 #ifdef __NVCC__
-	cudaMemcpy(phi, r, kferm*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
+#ifdef _DEBUG
+	int errc=
+#endif
+	cudaMemcpy(phi, r, kferm*sizeof(Complex_f),cudaMemcpyDefault);
+	#ifdef _DEBUG
+	printf("cudaMemcpy returned %d\n");
+	#endif
 	cuDslashd_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm*sizeof(Complex_f));
-#ifdef _OPENACC
-#pragma acc parallel loop copy(phi[0:kferm]) copyin(r[0:kfermHalo])
-#elif defined __clang__
-#pragma omp target teams distribute parallel for\
-	map(to:r[0:kfermHalo]) map(tofrom:phi[0:kferm])
-#else 
 #pragma omp parallel for
-#endif
 	for(int i=0;i<kvol;i++){
-#ifndef _OPENACC
 #pragma omp simd aligned(phi,r,gamval_f:AVX)
-#endif
 		//Diquark Term (antihermitian) The signs of a_1 and a_2 below flip under dagger
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork = idirac+4;
@@ -723,9 +667,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
-#ifndef _OPENACC
 #pragma omp simd aligned(phi,r,u11t_f,u12t_f,gamval_f:AVX)
-#endif
 			for(int igorkov=0; igorkov<ngorkov; igorkov++){
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing.
 				int idirac=igorkov%4;		
@@ -762,9 +704,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 		//Under dagger, dk4p_f and dk4m_f get swapped and the dirac component flips sign.
 		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
 #ifndef NO_TIME
-#ifndef _OPENACC
 #pragma omp simd aligned(phi,r,u11t_f,u12t_f,dk4m_f,dk4p_f:AVX)
-#endif
 		for(int igorkov=0; igorkov<4; igorkov++){
 			//the FORTRAN code did it.
 			int igork1 = gamin[3*ndirac+igorkov];	
@@ -801,7 +741,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	return 0;
 }
 int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned  int *iu,unsigned  int *id,\
-		Complex_f *gamval_f,	int *gamin,	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
+		Complex_f *gamval_f, int *gamin, float *dk4m_f, float *dk4p_f, float akappa){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -833,29 +773,18 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 #if(nproc>1)
 	CHalo_swap_all(r, 8);
 #endif
-	//TODO: Get u11t_f and u12t_f sorted
-	//Mass term
-	//Spacelike term
 #ifdef __NVCC__
-	cudaMemcpy(phi, r, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
-	cuHdslash_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
+	cuHdslash_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,akappa,dimGrid,dimBlock);
 #else
+	//Mass term
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
-#ifdef _OPENACC
-#pragma acc parallel loop copy(phi[0:kferm2]) copyin(r[0:kferm2Halo])
-#elif defined __clang__
-#pragma omp target teams distribute parallel for\
-	map(to:r[0:kferm2Halo]) map(tofrom:phi[0:kferm2])
-#else
 #pragma omp parallel for
-#endif
 	for(int i=0;i<kvol;i++){
+	//Spacelike term
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
-#ifndef _OPENACC
 #pragma omp simd aligned(phi,r,u11t_f,u12t_f,gamval_f:AVX)
-#endif
 			for(int idirac=0; idirac<ndirac; idirac++){
 				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
 				int igork1 = gamin[mu*ndirac+idirac];
@@ -887,9 +816,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 		//Timelike terms
 		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
 #ifndef NO_TIME
-#ifndef _OPENACC
 #pragma omp simd aligned(phi,r,u11t_f,u12t_f,dk4m_f,dk4p_f:AVX)
-#endif
 		for(int idirac=0; idirac<ndirac; idirac++){
 			int igork1 = gamin[3*ndirac+idirac];
 			//Factorising for performance, we get dk4?*(float)u1?*(+/-r_wilson -/+ r_dirac)
@@ -910,7 +837,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	return 0;
 }
 int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
-		Complex_f *gamval_f,int *gamin,	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
+		Complex_f *gamval_f, int *gamin, float *dk4m_f, float *dk4p_f, float akappa){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -951,26 +878,16 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_
 
 	//Mass term
 #ifdef __NVCC__
-	cudaMemcpy(phi, r, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
-	cuHdslashd_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
+	cuHdslashd_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
 	//Spacelike term
-#ifdef _OPENACC
-#pragma acc parallel loop copy(phi[0:kferm2]) copyin(r[0:kferm2Halo])
-#elif defined __clang__
-#pragma omp target teams distribute parallel for\
-	map(to:r[0:kferm2Halo])	map(tofrom:phi[0:kferm2])
-#else
 #pragma omp parallel for
-#endif
 	for(int i=0;i<kvol;i++){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <ndim-1; mu++){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
-#ifndef _OPENACC
 #pragma omp simd aligned(phi,r,u11t_f,u12t_f,gamval_f:AVX)
-#endif
 			for(int idirac=0; idirac<ndirac; idirac++){
 				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
 				int igork1 = gamin[mu*ndirac+idirac];
@@ -1005,9 +922,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_
 		//Timelike terms
 		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
 #ifndef NO_TIME
-#ifndef _OPENACC
 #pragma omp simd aligned(phi,r,u11t_f,u12t_f,gamval_f:AVX)
-#endif
 		for(int idirac=0; idirac<ndirac; idirac++){
 			int igork1 = gamin[3*ndirac+idirac];
 			//Factorising for performance, we get (float)dk4?*(float)u1?*(+/-r_wilson -/+ r_dirac)
@@ -1049,16 +964,10 @@ int New_trial(double dt, double *pp, Complex *u11t, Complex *u12t){
 	char *funcname = "New_trial"; //
 											//#ifdef __clang__
 											//Double precision bad for offloading
-											//#pragma omp target teams distribute parallel for simd collapse(2)\
-	map(to:pp[0:kmom]) aligned(pp,u11t,u12t:AVX) 
 #ifdef __NVCC__
-		cuNew_trial(dt,pp,u11t,u12t,dimGrid,dimBlock);
-#else
-#ifdef _OPENACC
-#pragma acc parallel loop collapse(2)
+	cuNew_trial(dt,pp,u11t,u12t,dimGrid,dimBlock);
 #else
 #pragma omp parallel for simd collapse(2) aligned(pp,u11t,u12t:AVX) 
-#endif
 	for(int i=0;i<kvol;i++)
 		for(int mu = 0; mu<ndim; mu++){
 			//Sticking to what was in the FORTRAN for variable names.
@@ -1102,11 +1011,7 @@ inline int Reunitarise(Complex *u11t, Complex *u12t){
 #ifdef __NVCC__
 	cuReunitarise(u11t,u12t,dimGrid,dimBlock);
 #else
-#ifdef _OPENACC
-#pragma acc parallel loop
-#else
 #pragma omp parallel for simd aligned(u11t,u12t:AVX)
-#endif
 	for(int i=0; i<kvol*ndim; i++){
 		//Declaring anorm inside the loop will hopefully let the compiler know it
 		//is safe to vectorise aggressively
@@ -1153,37 +1058,27 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 	int device=-1;
 	cudaGetDevice(&device);
 	Complex *xi,*R1,*Phi,*X0,*X1;
-	Complex_f *X0_f, *X1_f, *xi_f, *R1_f;
+	Complex_f *X0_f, *X1_f, *xi_f, *R1_f, *Phi_f;
 	double *dSdpi,*pp;
 	cudaMallocManaged(&R1,kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&xi,kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&R1_f,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged(&xi_f,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged(&Phi,kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&Phi_f,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged(&X0,kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&X1,kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&X0_f,kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged(&X1_f,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged(&pp,kmomHalo*sizeof(double),cudaMemAttachGlobal);
 	cudaMallocManaged(&dSdpi,kmom*sizeof(double),cudaMemAttachGlobal);
-#elif defined __INTEL_MKL__
-	Complex *R1= mkl_malloc(kfermHalo*sizeof(Complex),AVX);
-	Complex *xi= mkl_malloc(kfermHalo*sizeof(Complex),AVX);
-	Complex_f *R1_f= mkl_malloc(kfermHalo*sizeof(Complex_f),AVX);
-	Complex_f *xi_f= mkl_malloc(kfermHalo*sizeof(Complex_f),AVX);
-	Complex *Phi= mkl_malloc(nf*kfermHalo*sizeof(Complex),AVX); 
-	Complex *X0= mkl_malloc(nf*kferm2Halo*sizeof(Complex),AVX); 
-	Complex *X1= mkl_malloc(kferm2Halo*sizeof(Complex),AVX); 
-	double *pp = mkl_malloc(kmomHalo*sizeof(double), AVX);
-	Complex_f *X0_f= mkl_malloc(nf*kferm2Halo*sizeof(Complex_f),AVX); 
-	Complex_f *X1_f= mkl_malloc(kferm2Halo*sizeof(Complex_f),AVX); 
-	double *dSdpi = mkl_malloc(kmom*sizeof(double), AVX);
 #else
 	Complex *R1= aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 	Complex *xi= aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 	Complex_f *R1_f= aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
-	Complex_f *xi_F= aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
-	Phi= aligned_alloc(AVX,nf*kfermHalo*sizeof(Complex)); 
+	Complex_f *xi_f= aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
+	Complex Phi= aligned_alloc(AVX,nf*kfermHalo*sizeof(Complex)); 
+	Complex_f Phi_f= aligned_alloc(AVX,nf*kfermHalo*sizeof(Complex_f)); 
 	Complex *X0= aligned_alloc(AVX,nf*kferm2Halo*sizeof(Complex)); 
 	Complex *X1= aligned_alloc(AVX,kferm2Halo*sizeof(Complex)); 
 	double *pp = aligned_alloc(AVX,kmomHalo*sizeof(double));
@@ -1207,25 +1102,7 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 			for(int i=0;i<kvol;i+=4)
 				fprintf(dk4p_File,"%f\t%f\t%f\t%f\n",dk4p[i],dk4p[i+1],dk4p[i+2],dk4p[i+3]);
 		}
-#pragma omp section
-		{
-			FILE *dk4m_f_File = fopen("dk4m_f","w");
-			for(int i=0;i<kvol;i+=4)
-				fprintf(dk4m_f_File,"%f\t%f\t%f\t%f\n",dk4m_f[i],dk4m_f[i+1],dk4m_f[i+2],dk4m_f[i+3]);
-		}
-#pragma omp section
-		{
-			FILE *dk4p_f_File = fopen("dk4p_f","w");
-			for(int i=0;i<kvol;i+=4)
-				fprintf(dk4p_f_File,"%f\t%f\t%f\t%f\n",dk4p_f[i],dk4p_f[i+1],dk4p_f[i+2],dk4p_f[i+3]);
-		}
 	}
-#ifdef __clang__
-#pragma omp target enter data map(to:u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],gamval[0:5*4],\
-		u11t_f[0:ndim*(kvol+halo)],u12t_f[0:ndim*(kvol+halo)], dk4m[0:kvol+halo],gamval_f[0:5*4],\
-		dk4p[0:kvol+halo], dk4m_f[0:kvol+halo],dk4p_f[0:kvol+halo], iu[0:ndim*kvol],id[0:ndim*kvol],\
-		Phi[0:kferm],dSdpi[0:kmom])
-#endif
 	for(int test = 0; test<=7; test++){
 		//Trial fields shouldn't get modified so were previously set up outside
 		switch(istart){
@@ -1253,24 +1130,6 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 									creal(u12t[2+i]),cimag(u12t[2+i]),creal(u12t[i+3]),cimag(u12t[i+3]));
 						fclose(trial_out);
 					}
-#pragma omp section
-					{
-						FILE *trial_out = fopen("u11t_f", "w");
-						for(int i=0;i<ndim*(kvol+halo);i+=4)
-							fprintf(trial_out,"%f+%fI\t%f+%fI\t%f+%fI\t%f+%fI\n",
-									creal(u11t_f[i]),cimag(u11t_f[i]),creal(u11t_f[i+1]),cimag(u11t_f[i+1]),
-									creal(u11t_f[2+i]),cimag(u11t_f[2+i]),creal(u11t_f[i+3]),cimag(u11t_f[i+3]));
-						fclose(trial_out);
-					}
-#pragma omp section
-					{
-						FILE *trial_out = fopen("u12t_f", "w");
-						for(int i=0;i<ndim*(kvol+halo);i+=4)
-							fprintf(trial_out,"%f+%fI\t%f+%fI\t%f+%fI\t%f+%fI\n",
-									creal(u12t_f[i]),cimag(u12t_f[i]),creal(u12t_f[i+1]),cimag(u12t_f[i+1]),
-									creal(u12t_f[2+i]),cimag(u12t_f[2+i]),creal(u12t_f[i+3]),cimag(u12t_f[i+3]));
-						fclose(trial_out);
-					}
 				}
 				break;
 			case(2):
@@ -1294,22 +1153,45 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 		}
 		Reunitarise(u11t,u12t);
 		Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
-#pragma omp parallel 
+#if (defined(USE_RAN2)||defined(__RANLUX__)||!defined(__INTEL_MKL__))
+		Gauss_d(pp,kmomHalo,0,1);
+		Gauss_z(R1, kferm, 0, 1/sqrt(2));
+		Gauss_z(Phi, kferm, 0, 1/sqrt(2));
+		Gauss_z(xi, kferm, 0, 1/sqrt(2));
+		Gauss_c(R1_f, kferm, 0, 1/sqrt(2));
+		Gauss_c(Phi_f, kferm, 0, 1/sqrt(2));
+		Gauss_c(xi_f, kferm, 0, 1/sqrt(2));
+#else
+		vsRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, R1_f, 0, 1/sqrt(2));
+		vsRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, Phi_f, 0, 1/sqrt(2));
+		vsRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, xi_f, 0, 1/sqrt(2));
+		vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, R1, 0, 1/sqrt(2));
+		vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, Phi, 0, 1/sqrt(2));
+		vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, xi, 0, 1/sqrt(2));
+#endif
+#pragma omp parallel
 		{
-#pragma omp for simd aligned(R1,Phi,xi:AVX) nowait
-			for(int i=0; i<kferm; i++){
-				R1[i]=0.5; Phi[i]=0.5;xi[i]=0.5;
-			}
-#pragma omp for simd aligned(X0,X1:AVX) nowait
-			for(int i=0; i<kferm2; i++){
-				X0[i]=0.5;
-				X1[i]=0.5;
+#pragma omp sections
+			{
+#pragma omp section
+				{
+#if (defined(USE_RAN2)||defined(__RANLUX__)||!defined(__INTEL_MKL__))
+					Gauss_z(X0, kferm2, 0, 1/sqrt(2));
+					Gauss_z(X1, kferm2, 0, 1/sqrt(2));
+					Gauss_c(X0_f, kferm2, 0, 1/sqrt(2));
+					Gauss_c(X1_f, kferm2, 0, 1/sqrt(2));
+#else
+					vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm2, X0, 0, 1/sqrt(2));
+					vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm2, X1, 0, 1/sqrt(2));
+					vsRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm2, X0_f, 0, 1/sqrt(2));
+					vsRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm2, X1_f, 0, 1/sqrt(2));
+#endif
+				}
 			}
 #pragma omp for simd aligned(dSdpi:AVX) nowait
 			for(int i=0; i<kmom; i++)
 				dSdpi[i] = 1/sqrt(kmom);
 		}
-#pragma omp target update to(Phi[0:kferm],dSdpi[0:kmom])
 		FILE *output_old, *output;
 		FILE *output_f_old, *output_f;
 		switch(test){
@@ -1447,40 +1329,43 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 #endif
 				output_old = fopen("hdslash_old", "w");output_f_old = fopen("hdslash_f_old", "w");
 				for(int i = 0; i< kferm2; i+=8){
-					fprintf(output_old, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+					fprintf(output_old, "%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n\n",
 							creal(X0[i]),cimag(X0[i]),creal(X0[i+1]),cimag(X0[i+1]),
 							creal(X0[i+2]),cimag(X0[i+2]),creal(X0[i+3]),cimag(X0[i+3]),
 							creal(X0[i+4]),cimag(X0[i+4]),creal(X0[i+5]),cimag(X0[i+5]),
 							creal(X0[i+6]),cimag(X0[i+6]),creal(X0[i+7]),cimag(X0[i+7]));
-					fprintf(output_f_old, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+					fprintf(output_f_old, "%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n\n",
 							creal(X0_f[i]),cimag(X0_f[i]),creal(X0_f[i+1]),cimag(X0_f[i+1]),
 							creal(X0_f[i+2]),cimag(X0_f[i+2]),creal(X0_f[i+3]),cimag(X0_f[i+3]),
 							creal(X0_f[i+4]),cimag(X0_f[i+4]),creal(X0_f[i+5]),cimag(X0_f[i+5]),
 							creal(X0_f[i+6]),cimag(X0_f[i+6]),creal(X0_f[i+7]),cimag(X0_f[i+7]));
 					printf("Difference in hdslash double and float X0[%d] to X0[%d+7]:\n",i,i);
-					printf("%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+					printf("%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n\n",
 							creal(X0[i]-X0_f[i]),cimag(X0[i]-X0_f[i]),creal(X0[i+1]-X0_f[i+1]),cimag(X0[i+1]-X0_f[i+1]),
 							creal(X0[i+2]-X0_f[i+2]),cimag(X0[i+2]-X0_f[i+2]),creal(X0[i+3]-X0_f[i+3]),cimag(X0[i+3]-X0_f[i+3]),
 							creal(X0[i+4]-X0_f[i+4]),cimag(X0[i+4]-X0_f[i+4]),creal(X0[i+5]-X0_f[i+5]),cimag(X0[i+5]-X0_f[i+5]),
 							creal(X0[i+6]-X0_f[i+6]),cimag(X0[i+6]-X0_f[i+6]),creal(X0[i+7]-X0_f[i+7]),cimag(X0[i+7]-X0_f[i+7]));
 				}
 				fclose(output_old);fclose(output_f_old);
-				Hdslash(X1,X0,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
-				Hdslash_f(X1_f,X0_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
+				Hdslash(X1,X0,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
+				Hdslash_f(X1_f,X0_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,akappa);
+#ifdef __NVCC__
+				cudaDeviceSynchronise();
+#endif
 				output = fopen("hdslash", "w");	output_f = fopen("hdslash_f", "w");
 				for(int i = 0; i< kferm2; i+=8){
-					fprintf(output, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+					fprintf(output, "%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n\n",
 							creal(X1[i]),cimag(X1[i]),creal(X1[i+1]),cimag(X1[i+1]),
 							creal(X1[i+2]),cimag(X1[i+2]),creal(X1[i+3]),cimag(X1[i+3]),
 							creal(X1[i+4]),cimag(X1[i+4]),creal(X1[i+5]),cimag(X1[i+5]),
 							creal(X1[i+6]),cimag(X1[i+6]),creal(X1[i+7]),cimag(X1[i+7]));
-					fprintf(output_f, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+					fprintf(output_f, "%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n\n",
 							creal(X1_f[i]),cimag(X1_f[i]),creal(X1_f[i+1]),cimag(X1_f[i+1]),
 							creal(X1_f[i+2]),cimag(X1_f[i+2]),creal(X1_f[i+3]),cimag(X1_f[i+3]),
 							creal(X1_f[i+4]),cimag(X1_f[i+4]),creal(X1_f[i+5]),cimag(X1_f[i+5]),
 							creal(X1_f[i+6]),cimag(X1_f[i+6]),creal(X1_f[i+7]),cimag(X1_f[i+7]));
 					printf("Difference in hdslash double and float X1[%d] to X1[%d+7] after mult.:\n",i,i);
-					printf("%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+					printf("%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n\n",
 							creal(X1[i]-X1_f[i]),cimag(X1[i]-X1_f[i]),creal(X1[i+1]-X1_f[i+1]),cimag(X1[i+1]-X1_f[i+1]),
 							creal(X1[i+2]-X1_f[i+2]),cimag(X1[i+2]-X1_f[i+2]),creal(X1[i+3]-X1_f[i+3]),cimag(X1[i+3]-X1_f[i+3]),
 							creal(X1[i+4]-X1_f[i+4]),cimag(X1[i+4]-X1_f[i+4]),creal(X1[i+5]-X1_f[i+5]),cimag(X1[i+5]-X1_f[i+5]),
@@ -1492,8 +1377,8 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 				//NOTE: Each line corresponds to one lattice direction, in the form of colour 0, colour 1.
 				//Each block to one lattice site
 				for(int i = 0; i< kferm2; i++){
-					X0_f[i]=(float)X0[i];
-					X1_f[i]=(float)X1[i];
+					X0_f[i]=(Complex_f)X0[i];
+					X1_f[i]=(Complex_f)X1[i];
 				}
 #ifdef __NVCC__
 				cudaMemPrefetchAsync(X0,kferm2*sizeof(Complex),device,NULL);
@@ -1501,41 +1386,44 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 				cudaMemPrefetchAsync(X0_f,kferm2*sizeof(Complex_f),device,NULL);
 				cudaMemPrefetchAsync(X1_f,kferm2*sizeof(Complex_f),device,NULL);
 #endif
-				output_old = fopen("hdslash_old", "w");output_f_old = fopen("hdslash_f_old", "w");
+				output_old = fopen("hdslashd_old", "w");output_f_old = fopen("hdslashd_f_old", "w");
 				for(int i = 0; i< kferm2; i+=8){
-					fprintf(output_old, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+					fprintf(output_old, "%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n\n",
 							creal(X0[i]),cimag(X0[i]),creal(X0[i+1]),cimag(X0[i+1]),
 							creal(X0[i+2]),cimag(X0[i+2]),creal(X0[i+3]),cimag(X0[i+3]),
 							creal(X0[i+4]),cimag(X0[i+4]),creal(X0[i+5]),cimag(X0[i+5]),
 							creal(X0[i+6]),cimag(X0[i+6]),creal(X0[i+7]),cimag(X0[i+7]));
-					fprintf(output_f_old, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+					fprintf(output_f_old, "%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n\n",
 							creal(X0_f[i]),cimag(X0_f[i]),creal(X0_f[i+1]),cimag(X0_f[i+1]),
 							creal(X0_f[i+2]),cimag(X0_f[i+2]),creal(X0_f[i+3]),cimag(X0_f[i+3]),
 							creal(X0_f[i+4]),cimag(X0_f[i+4]),creal(X0_f[i+5]),cimag(X0_f[i+5]),
 							creal(X0_f[i+6]),cimag(X0_f[i+6]),creal(X0_f[i+7]),cimag(X0_f[i+7]));
-					printf("Difference in hdslash double and float X0[%d] to X0[%d+7]:\n",i,i);
-					printf("%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+					printf("Difference in hdslashd double and float X0[%d] to X0[%d+7]:\n",i,i);
+					printf("%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n\n",
 							creal(X0[i]-X0_f[i]),cimag(X0[i]-X0_f[i]),creal(X0[i+1]-X0_f[i+1]),cimag(X0[i+1]-X0_f[i+1]),
 							creal(X0[i+2]-X0_f[i+2]),cimag(X0[i+2]-X0_f[i+2]),creal(X0[i+3]-X0_f[i+3]),cimag(X0[i+3]-X0_f[i+3]),
 							creal(X0[i+4]-X0_f[i+4]),cimag(X0[i+4]-X0_f[i+4]),creal(X0[i+5]-X0_f[i+5]),cimag(X0[i+5]-X0_f[i+5]),
 							creal(X0[i+6]-X0_f[i+6]),cimag(X0[i+6]-X0_f[i+6]),creal(X0[i+7]-X0_f[i+7]),cimag(X0[i+7]-X0_f[i+7]));
 				}
-				Hdslashd(X1,X0,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
-				Hdslashd_f(X1_f,X0_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
-				output = fopen("hdslash", "w");	output_f = fopen("hdslash_f", "w");
+				Hdslashd(X1,X0,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
+				Hdslashd_f(X1_f,X0_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,akappa);
+#ifdef __NVCC__
+				cudaDeviceSynchronise();
+#endif
+				output = fopen("hdslashd", "w");	output_f = fopen("hdslashd_f", "w");
 				for(int i = 0; i< kferm2; i+=8){
-					fprintf(output, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+					fprintf(output, "%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n\n",
 							creal(X1[i]),cimag(X1[i]),creal(X1[i+1]),cimag(X1[i+1]),
 							creal(X1[i+2]),cimag(X1[i+2]),creal(X1[i+3]),cimag(X1[i+3]),
 							creal(X1[i+4]),cimag(X1[i+4]),creal(X1[i+5]),cimag(X1[i+5]),
 							creal(X1[i+6]),cimag(X1[i+6]),creal(X1[i+7]),cimag(X1[i+7]));
-					fprintf(output_f, "%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+					fprintf(output_f, "%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n\n",
 							creal(X1_f[i]),cimag(X1_f[i]),creal(X1_f[i+1]),cimag(X1_f[i+1]),
 							creal(X1_f[i+2]),cimag(X1_f[i+2]),creal(X1_f[i+3]),cimag(X1_f[i+3]),
 							creal(X1_f[i+4]),cimag(X1_f[i+4]),creal(X1_f[i+5]),cimag(X1_f[i+5]),
 							creal(X1_f[i+6]),cimag(X1_f[i+6]),creal(X1_f[i+7]),cimag(X1_f[i+7]));
-					printf("Difference in hdslash double and float X1[%d] to X1[%d+7] after mult.:\n",i,i);
-					printf("%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n%f+%fI\t%f+%fI\n\n",
+					printf("Difference in hdslashd double and float X1[%d] to X1[%d+7] after mult.:\n",i,i);
+					printf("%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n\n",
 							creal(X1[i]-X1_f[i]),cimag(X1[i]-X1_f[i]),creal(X1[i+1]-X1_f[i+1]),cimag(X1[i+1]-X1_f[i+1]),
 							creal(X1[i+2]-X1_f[i+2]),cimag(X1[i+2]-X1_f[i+2]),creal(X1[i+3]-X1_f[i+3]),cimag(X1[i+3]-X1_f[i+3]),
 							creal(X1[i+4]-X1_f[i+4]),cimag(X1[i+4]-X1_f[i+4]),creal(X1[i+5]-X1_f[i+5]),cimag(X1[i+5]-X1_f[i+5]),
@@ -1543,8 +1431,31 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 				}
 				fclose(output);fclose(output_f);
 				break;
-				//Two force cases because of the flag
 			case(4):	
+				output_old = fopen("hamiltonian_old", "w");
+				for(int i = 0; i< kferm2; i+=8){
+					fprintf(output_old, "%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n\n",
+							creal(X1[i]),cimag(X1[i]),creal(X1[i+1]),cimag(X1[i+1]),
+							creal(X1[i+2]),cimag(X1[i+2]),creal(X1[i+3]),cimag(X1[i+3]),
+							creal(X1[i+4]),cimag(X1[i+4]),creal(X1[i+5]),cimag(X1[i+5]),
+							creal(X1[i+6]),cimag(X1[i+6]),creal(X1[i+7]),cimag(X1[i+7]));
+				}
+				fclose(output_old);
+				output = fopen("hamiltonian", "w");
+				double h,s,ancgh;  h=s=ancgh=0;
+				Hamilton(&h,&s,rescgg,pp,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,\
+						akappa,beta,&ancgh);
+				for(int i = 0; i< kferm2; i+=8){
+					fprintf(output, "%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n%.9f+%.9fI\t%.9f+%.9fI\n\n",
+							creal(X1[i]),cimag(X1[i]),creal(X1[i+1]),cimag(X1[i+1]),
+							creal(X1[i+2]),cimag(X1[i+2]),creal(X1[i+3]),cimag(X1[i+3]),
+							creal(X1[i+4]),cimag(X1[i+4]),creal(X1[i+5]),cimag(X1[i+5]),
+							creal(X1[i+6]),cimag(X1[i+6]),creal(X1[i+7]),cimag(X1[i+7]));
+				}
+				fclose(output);
+				break;
+				//Two force cases because of the flag
+			case(5):	
 				output_old = fopen("force_0_old", "w");
 				for(int i = 0; i< kmom; i+=4)
 					fprintf(output_old, "%f\t%f\t%f\t%f\n", dSdpi[i], dSdpi[i+1], dSdpi[i+2], dSdpi[i+3]);
@@ -1556,7 +1467,7 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 					fprintf(output, "%f\t%f\t%f\t%f\n", dSdpi[i], dSdpi[i+1], dSdpi[i+2], dSdpi[i+3]);
 				fclose(output);
 				break;
-			case(5):	
+			case(6):	
 				output_old = fopen("force_1_old", "w");
 				for(int i = 0; i< kmom; i+=4)
 					fprintf(output_old, "%f\t%f\t%f\t%f\n", dSdpi[i], dSdpi[i+1], dSdpi[i+2], dSdpi[i+3]);
@@ -1590,33 +1501,27 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 					fprintf(output_old, "%f\t%f\t%f\t%f\n", dSdpi[i], dSdpi[i+1], dSdpi[i+2], dSdpi[i+3]);
 					fprintf(output_old, "%f\t%f\t%f\t%f\n", dSdpi[i+4], dSdpi[i+5], dSdpi[i+6], dSdpi[i+7]);
 					fprintf(output_old, "%f\t%f\t%f\t%f\n\n", dSdpi[i+8], dSdpi[i+9], dSdpi[i+10], dSdpi[i+11]);
-					}
+				}
 				fclose(output_old);	
-				#ifdef __NVCC__
+#ifdef __NVCC__
 				cudaMemPrefetchAsync(dSdpi,kmom*sizeof(double),device,NULL);
-				#endif
+#endif
 				Gauge_force(dSdpi,u11t,u12t,iu,id,beta);
-				#ifdef __NVCC__
+#ifdef __NVCC__
 				cudaDeviceSynchronise();
-				#endif
+#endif
 				output = fopen("Gauge_Force","w");
 				for(int i = 0; i< kmom; i+=12){
 					fprintf(output, "%f\t%f\t%f\t%f\n", dSdpi[i], dSdpi[i+1], dSdpi[i+2], dSdpi[i+3]);
 					fprintf(output, "%f\t%f\t%f\t%f\n", dSdpi[i+4], dSdpi[i+5], dSdpi[i+6], dSdpi[i+7]);
 					fprintf(output, "%f\t%f\t%f\t%f\n\n", dSdpi[i+8], dSdpi[i+9], dSdpi[i+10], dSdpi[i+11]);
-					}
+				}
 				fclose(output);	
 				break;
 
 		}
 	}
 	//George Michael's favourite bit of the code
-#ifdef __clang__
-#pragma omp target exit data map(delete:u11t[0:ndim*(kvol+halo)],u12t[0:ndim*(kvol+halo)],gamval[0:5*4],\
-		u11t_f[0:ndim*(kvol+halo)],u12t_f[0:ndim*(kvol+halo)], dk4m[0:kvol+halo],gamval_f[0:5*4],\
-		dk4p[0:kvol+halo], dk4m_f[0:kvol+halo],dk4p_f[0:kvol+halo], iu[0:ndim*kvol],id[0:ndim*kvol],\
-		Phi[0:kferm],dSdpi[0:kmom])
-#endif
 #ifdef __NVCC__
 	//Make a routine that does this for us
 	cudaFree(dk4m); cudaFree(dk4p); cudaFree(R1); cudaFree(dSdpi); cudaFree(pp);
@@ -1624,14 +1529,6 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 	cudaFree(X0); cudaFree(X1); cudaFree(u11); cudaFree(u12);
 	cudaFree(X0_f); cudaFree(X1_f); cudaFree(u11t_f); cudaFree(u12t_f);
 	cudaFree(id); cudaFree(iu); cudaFree(hd); cudaFree(hu);
-#elif defined __INTEL_MKL__
-	mkl_free(dk4m); mkl_free(dk4p); mkl_free(R1); mkl_free(dSdpi); mkl_free(pp);
-	mkl_free(Phi); mkl_free(u11t); mkl_free(u12t); mkl_free(xi);
-	mkl_free(X0); mkl_free(X1); mkl_free(u11); mkl_free(u12);
-	mkl_free(X0_f); mkl_free(X1_f); mkl_free(u11t_f); mkl_free(u12t_f);
-	mkl_free(id); mkl_free(iu); mkl_free(hd); mkl_free(hu);
-	mkl_free(pcoord);
-	mkl_free_buffers();
 #else
 	free(dk4m); free(dk4p); free(R1); free(dSdpi); free(pp);
 	free(Phi); free(u11t); free(u12t); free(xi);

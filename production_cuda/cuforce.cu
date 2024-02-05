@@ -6,19 +6,18 @@
 #include	<par_mpi.h>
 #include	<su2hmc.h>
 //Calling functions
-void cuGauge_force(int mu, Complex *Sigma11, Complex *Sigma12, Complex *u11t,Complex *u12t,double *dSdpi,float beta,\
+void cuGauge_force(int mu, Complex_f *Sigma11, Complex_f *Sigma12, Complex_f *u11t,Complex_f *u12t,double *dSdpi,float beta,\
 		dim3 dimGrid, dim3 dimBlock){
 	const char *funcname = "Gauge_force";
 	cuGaugeForce<<<dimGrid,dimBlock>>>(mu,Sigma11,Sigma12,dSdpi,u11t,u12t,beta);
-		cudaDeviceSynchronise();
 }
-void cuPlus_staple(int mu, int nu, unsigned int *iu, Complex *Sigma11, Complex *Sigma12, Complex *u11t, Complex *u12t,\
+void cuPlus_staple(int mu, int nu, unsigned int *iu, Complex_f *Sigma11, Complex_f *Sigma12, Complex_f *u11t, Complex_f *u12t,\
 		dim3 dimGrid, dim3 dimBlock){
 	const char *funcname="Plus_staple";
 	Plus_staple<<<dimGrid,dimBlock>>>(mu, nu, iu, Sigma11, Sigma12,u11t,u12t);
 }
-void cuMinus_staple(int mu, int nu, unsigned int *iu, unsigned int *id, Complex *Sigma11, Complex *Sigma12,\
-		Complex *u11sh, Complex *u12sh,Complex *u11t, Complex*u12t,dim3 dimGrid, dim3 dimBlock){
+void cuMinus_staple(int mu, int nu, unsigned int *iu, unsigned int *id, Complex_f *Sigma11, Complex_f *Sigma12,\
+		Complex_f *u11sh, Complex_f *u12sh,Complex_f *u11t, Complex_f *u12t,dim3 dimGrid, dim3 dimBlock){
 	const char *funcname="Minus_staple";
 	Minus_staple<<<dimGrid,dimBlock>>>(mu, nu, iu, id,Sigma11,Sigma12,u11sh,u12sh,u11t,u12t);
 }
@@ -47,7 +46,7 @@ void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *
 //A stream for each nadj index,dirac index and each μ (ndim) value
 //3*4*4=36 streams total... Pass dirac and μ spatial indices as arguments
 /*
-	__global__ void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
+	__global__ void cuForce(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Complex_f *X1, Complex_f *X2, Complex_f *gamval,\
 	double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa){
 	char *funcname = "cuForce";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
@@ -85,7 +84,7 @@ uid = iu[mu+ndim*i];
 }
 }
  */
-__global__ void Plus_staple(int mu, int nu,unsigned int *iu, Complex *Sigma11, Complex *Sigma12, Complex *u11t, Complex *u12t){
+__global__ void Plus_staple(int mu, int nu,unsigned int *iu, Complex_f *Sigma11, Complex_f *Sigma12, Complex_f *u11t, Complex_f *u12t){
 	char *funcname = "Plus_staple";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -94,16 +93,16 @@ __global__ void Plus_staple(int mu, int nu,unsigned int *iu, Complex *Sigma11, C
 	for(int i=threadId;i<kvol;i+=gsize*bsize){
 		int uidm = iu[mu+ndim*i];
 		int uidn = iu[nu+ndim*i];
-		Complex	a11=u11t[uidm*ndim+nu]*conj(u11t[uidn*ndim+mu])+\
+		Complex_f	a11=u11t[uidm*ndim+nu]*conj(u11t[uidn*ndim+mu])+\
 						 u12t[uidm*ndim+nu]*conj(u12t[uidn*ndim+mu]);
-		Complex	a12=-u11t[uidm*ndim+nu]*u12t[uidn*ndim+mu]+\
+		Complex_f	a12=-u11t[uidm*ndim+nu]*u12t[uidn*ndim+mu]+\
 						 u12t[uidm*ndim+nu]*u11t[uidn*ndim+mu];
 		Sigma11[i]+=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
 		Sigma12[i]+=-a11*u12t[i*ndim+nu]+a12*u11t[i*ndim+nu];
 	}
 }
-__global__ void Minus_staple(int mu,int nu,unsigned int *iu,unsigned int *id, Complex *Sigma11, Complex *Sigma12,\
-		Complex *u11sh, Complex *u12sh, Complex *u11t, Complex *u12t){
+__global__ void Minus_staple(int mu,int nu,unsigned int *iu,unsigned int *id, Complex_f *Sigma11, Complex_f *Sigma12,\
+		Complex_f *u11sh, Complex_f *u12sh, Complex_f *u11t, Complex_f *u12t){
 	char *funcname = "Minus_staple";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -113,23 +112,23 @@ __global__ void Minus_staple(int mu,int nu,unsigned int *iu,unsigned int *id, Co
 		int uidm = iu[mu+ndim*i];
 		int didn = id[nu+ndim*i];
 		//uidm is correct here
-		Complex a11=conj(u11sh[uidm])*conj(u11t[didn*ndim+mu])-\
+		Complex_f a11=conj(u11sh[uidm])*conj(u11t[didn*ndim+mu])-\
 						u12sh[uidm]*conj(u12t[didn*ndim+mu]);
-		Complex a12=-conj(u11sh[uidm])*u12t[didn*ndim+mu]-\
+		Complex_f a12=-conj(u11sh[uidm])*u12t[didn*ndim+mu]-\
 						u12sh[uidm]*u11t[didn*ndim+mu];
 		Sigma11[i]+=a11*u11t[didn*ndim+nu]-a12*conj(u12t[didn*ndim+nu]);
 		Sigma12[i]+=a11*u12t[didn*ndim+nu]+a12*conj(u11t[didn*ndim+nu]);
 	}
 }
-__global__ void cuGaugeForce(int mu, Complex *Sigma11, Complex *Sigma12,double*dSdpi,Complex *u11t, Complex *u12t, float beta){
+__global__ void cuGaugeForce(int mu, Complex_f *Sigma11, Complex_f *Sigma12,double* dSdpi,Complex_f *u11t, Complex_f *u12t, float beta){
 	char *funcname = "cuGaugeForce";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	for(int i=threadId;i<kvol;i+=gsize*bsize){
-		Complex a11 = u11t[i*ndim+mu]*Sigma12[i]+u12t[i*ndim+mu]*conj(Sigma11[i]);
-		Complex a12 = u11t[i*ndim+mu]*Sigma11[i]+conj(u12t[i*ndim+mu])*Sigma12[i];
+		Complex_f a11 = u11t[i*ndim+mu]*Sigma12[i]+u12t[i*ndim+mu]*conj(Sigma11[i]);
+		Complex_f a12 = u11t[i*ndim+mu]*Sigma11[i]+conj(u12t[i*ndim+mu])*Sigma12[i];
 		//Not worth splitting into different streams, before we get ideas...
 		dSdpi[(i*nadj)*ndim+mu]=beta*a11.imag();
 		dSdpi[(i*nadj+1)*ndim+mu]=beta*a11.real();

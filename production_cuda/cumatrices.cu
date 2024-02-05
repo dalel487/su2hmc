@@ -186,7 +186,7 @@ __global__ void cuDslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t
 	}
 }
 __global__ void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
-		Complex *gamval_d, int *gamin_d,	double *dk4m, double *dk4p, Complex_f jqq, float akappa){
+		Complex *gamval_d, int *gamin_d,	double *dk4m, double *dk4p, float akappa){
 	char *funcname = "cuHdslash";
 	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -245,9 +245,8 @@ __global__ void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t
 	}
 }
 __global__ void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
-		Complex *gamval_d, int *gamin_d,	double *dk4m, double *dk4p, Complex_f jqq, float akappa){
+		Complex *gamval_d, int *gamin_d,	double *dk4m, double *dk4p, float akappa){
 	char *funcname = "cuHdslashd";
-	cudaDeviceSynchronise();
 	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -584,16 +583,16 @@ __global__ void cuDslashd1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comp
 //There are no race contitions.
 //HDslash_f Index 0
 __global__ void cuHdslash0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		Complex_f *gamval,	int *gamin_d,	float *dk4m, float *dk4p, Complex_f jqq, float akappa,int idirac){
+		Complex_f *gamval,	int *gamin_d,	float *dk4m, float *dk4p, float akappa,int idirac){
 	/*
 	 * Half Dslash float precision acting on colour index zero
 	 */
 	char *funcname = "cuHdslash0_f";
-	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	for(int i=threadId;i<kvol;i+=gsize*bsize){
+	const int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	for(int i=threadId;i<kvol;i+=bsize*gsize){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
@@ -602,15 +601,15 @@ __global__ void cuHdslash0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comp
 			//Can manually vectorise with a pragma?
 			//Wilson + Dirac term in that order. Definitely easier
 			//to read when split into different loops, but should be faster this way
-			phi[(i*ndirac+idirac)*nc]+=-akappa*(u11t[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]+\
-					u12t[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]+\
-					conj(u11t[did*ndim+mu])*r[(did*ndirac+idirac)*nc]-\
-					u12t[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1]);
-			//Dirac term
-			phi[(i*ndirac+idirac)*nc]+=gamval[mu*ndirac+idirac]*(u11t[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]+\
-					u12t[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]-\
-					conj(u11t[did*ndim+mu])*r[(did*ndirac+igork1)*nc]+\
-					u12t[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
+				phi[(i*ndirac+idirac)*nc]+=-akappa*(u11t[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]+\
+						u12t[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]+\
+						conj(u11t[did*ndim+mu])*r[(did*ndirac+idirac)*nc]-\
+						u12t[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1]);
+				//Dirac term
+				phi[(i*ndirac+idirac)*nc]+=gamval[mu*ndirac+idirac]*(u11t[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]+\
+						u12t[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]-\
+						conj(u11t[did*ndim+mu])*r[(did*ndirac+igork1)*nc]+\
+						u12t[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
 		}
 #endif
 		//Timelike terms
@@ -618,21 +617,21 @@ __global__ void cuHdslash0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comp
 #ifndef NO_TIME
 		int igork1 = gamin_d[3*ndirac+idirac];
 		//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
-		phi[(i*ndirac+idirac)*nc]+=
-			-dk4p[i]*(u11t[i*ndim+3]*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
-					+u12t[i*ndim+3]*(r[(uid*ndirac+idirac)*nc+1]-r[(uid*ndirac+igork1)*nc+1]))
-			-dk4m[did]*(conj(u11t[did*ndim+3])*(r[(did*ndirac+idirac)*nc]+r[(did*ndirac+igork1)*nc])
-					-u12t[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]+r[(did*ndirac+igork1)*nc+1]));
+			phi[(i*ndirac+idirac)*nc]+=
+				-dk4p[i]*(u11t[i*ndim+3]*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
+						+u12t[i*ndim+3]*(r[(uid*ndirac+idirac)*nc+1]-r[(uid*ndirac+igork1)*nc+1]))
+				-dk4m[did]*(conj(u11t[did*ndim+3])*(r[(did*ndirac+idirac)*nc]+r[(did*ndirac+igork1)*nc])
+						-u12t[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]+r[(did*ndirac+igork1)*nc+1]));
 #endif
 	}
 }
 __global__ void cuHdslashd0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		Complex_f *gamval,	int *gamin_d,	float *dk4m, float *dk4p, Complex_f jqq, float akappa,int idirac){
+		Complex_f *gamval,	int *gamin_d,	float *dk4m, float *dk4p, float akappa,int idirac){
 	char *funcname = "cuHdslashd0_f";
-	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	for(int i=threadId;i<kvol;i+=gsize*bsize){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <ndim-1; mu++){
@@ -672,12 +671,12 @@ __global__ void cuHdslashd0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Com
 }
 //HDslash_f Index 1
 __global__ void cuHdslash1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		Complex_f *gamval,	int *gamin_d,	float *dk4m, float *dk4p, Complex_f jqq, float akappa,int idirac){
+		Complex_f *gamval,	int *gamin_d,	float *dk4m, float *dk4p, float akappa,int idirac){
 	char *funcname = "cuHdslash1_f";
-	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	for(int i=threadId;i<kvol;i+=gsize*bsize){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
@@ -712,12 +711,12 @@ __global__ void cuHdslash1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comp
 	}
 }
 __global__ void cuHdslashd1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		Complex_f *gamval,	int *gamin_d,	float *dk4m, float *dk4p, Complex_f jqq, float akappa,int idirac){
+		Complex_f *gamval,	int *gamin_d,	float *dk4m, float *dk4p, float akappa,int idirac){
 	char *funcname = "cuHdslashd1_f";
-	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	for(int i=threadId;i<kvol;i+=gsize*bsize){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <ndim-1; mu++){
@@ -843,9 +842,8 @@ void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned in
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Dslash";
-	//	cudaMemPrefetchAsync(u11t,kvol+halo,0
+	cudaMemcpy(phi, r, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice);
 	cuDslash<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
-	cudaDeviceSynchronise();
 }
 void cuDslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
 		Complex *gamval, int *gamin,	double *dk4m, double *dk4p, Complex_f jqq, float akappa,\ 
@@ -872,12 +870,11 @@ void cuDslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned i
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Dslashd";
-	//	cudaMemPrefetchAsync(u11t,kvol+halo,0
+	cudaMemcpy(phi, r, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice);
 	cuDslashd<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
-	cudaDeviceSynchronise();
 }
 void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
-		Complex *gamval, int *gamin,	double *dk4m, double *dk4p, Complex_f jqq, float akappa,\ 
+		Complex *gamval, int *gamin,	double *dk4m, double *dk4p, float akappa,\ 
 		dim3 dimGrid, dim3 dimBlock){
 	/*
 	 * Evaluates phi= M*r
@@ -901,11 +898,11 @@ void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned i
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Hdslash";
-	cuHdslash<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
-	cudaDeviceSynchronise();
+	cudaMemcpy(phi, r, kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice);
+	cuHdslash<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
 }
 void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
-		Complex *gamval, int *gamin,double *dk4m, double *dk4p, Complex_f jqq, float akappa,\ 
+		Complex *gamval, int *gamin,double *dk4m, double *dk4p, float akappa,\ 
 		dim3 dimGrid, dim3 dimBlock){
 	/*
 	 * Evaluates phi= M*r
@@ -930,8 +927,8 @@ void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned 
 	 */
 	char *funcname = "Hdslashd";
 	//Spacelike term
-	cuHdslashd<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
-	cudaDeviceSynchronise();
+	cudaMemcpy(phi, r, kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice);
+	cuHdslashd<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
 }
 
 //Float editions
@@ -960,9 +957,14 @@ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,u
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Dslash_f";
+	int cuCpyStat=0;
+	if((cuCpyStat=cudaMemcpy(phi, r, kferm*sizeof(Complex_f),cudaMemcpyDefault))){
+		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
+		CPYERROR,funcname,cuCpyStat);
+		exit(cuCpyStat);
+	}
 	cuDslash0_f<<<dimGrid,dimBlock,0,streams[0]>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 	cuDslash1_f<<<dimGrid,dimBlock,0,streams[1]>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
-	cudaDeviceSynchronise();
 }
 void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
 		Complex_f *gamval,int *gamin,	float *dk4m, float *dk4p, Complex_f jqq, float akappa,\ 
@@ -989,12 +991,17 @@ void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Dslashd_f";
+	int cuCpyStat=0;
+	if((cuCpyStat=cudaMemcpy(phi, r, kferm*sizeof(Complex_f),cudaMemcpyDefault))){
+		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
+		CPYERROR,funcname,cuCpyStat);
+		exit(cuCpyStat);
+	}
 	cuDslashd0_f<<<dimGrid,dimBlock,0,streams[0]>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 	cuDslashd1_f<<<dimGrid,dimBlock,0,streams[1]>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
-	cudaDeviceSynchronise();
 }
 void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
-		Complex_f *gamval,int *gamin,	float *dk4m, float *dk4p, Complex_f jqq, float akappa,\ 
+		Complex_f *gamval,int *gamin,	float *dk4m, float *dk4p, float akappa,\ 
 		dim3 dimGrid, dim3 dimBlock){
 	/*
 	 * Evaluates phi= M*r
@@ -1018,14 +1025,19 @@ void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Hdslash_f";
-	for(int idirac=0; idirac<ndirac; idirac++){
-		cuHdslash0_f<<<dimGrid,dimBlock,0,streams[idirac*nc]>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,idirac);
-		cuHdslash1_f<<<dimGrid,dimBlock,0,streams[idirac*nc+1]>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,idirac);
+	int cuCpyStat=0;
+	if((cuCpyStat=cudaMemcpy(phi, r, kferm2*sizeof(Complex_f),cudaMemcpyDefault))){
+		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
+		CPYERROR,funcname,cuCpyStat);
+		exit(cuCpyStat);
 	}
-	cudaDeviceSynchronise();
+	for(int idirac=0; idirac<ndirac; idirac++){
+		cuHdslash0_f<<<dimGrid,dimBlock,0,streams[idirac*nc]>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa,idirac);
+		cuHdslash1_f<<<dimGrid,dimBlock,0,streams[idirac*nc+1]>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa,idirac);
+	}
 }
 void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
-		Complex_f *gamval,int *gamin,	float *dk4m, float *dk4p, Complex_f jqq, float akappa,\
+		Complex_f *gamval,int *gamin,	float *dk4m, float *dk4p, float akappa,\
 		dim3 dimGrid, dim3 dimBlock){
 	/*
 	 * Evaluates phi= M*r
@@ -1049,18 +1061,23 @@ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Hdslashd_f";
-	for(int idirac=0; idirac<ndirac; idirac++){
-		cuHdslashd0_f<<<dimGrid,dimBlock,0,streams[idirac*nc]>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,idirac);
-		cuHdslashd1_f<<<dimGrid,dimBlock,0,streams[idirac*nc+1]>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,idirac);
+	int cuCpyStat=0;
+	if((cuCpyStat=cudaMemcpy(phi, r, kferm2*sizeof(Complex_f),cudaMemcpyDefault))){
+		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
+		CPYERROR,funcname,cuCpyStat);
+		exit(cuCpyStat);
 	}
-	cudaDeviceSynchronise();
+	for(int idirac=0; idirac<ndirac; idirac++){
+		cuHdslashd0_f<<<dimGrid,dimBlock,0,streams[idirac*nc]>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa,idirac);
+		cuHdslashd1_f<<<dimGrid,dimBlock,0,streams[idirac*nc+1]>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa,idirac);
+	}
 }
 
 void cuReunitarise(Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock){
 	cuReunitarise<<<dimGrid,dimBlock>>>(u11t,u12t);
+	cudaDeviceSynchronise();
 }
 void cuNew_trial(double dt, double *pp, Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock){
 	for(int mu=0;mu<ndim;mu++)
 		cuNew_trial<<<dimGrid,dimBlock,0,streams[mu]>>>(dt,pp,u11t,u12t,mu);
-	cudaDeviceSynchronise();
 }

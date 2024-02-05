@@ -1,14 +1,14 @@
-MF=	Makefile_Clang
-CC=	mpiicc -cc=icx
+MF=Makefile_OneAPI
+CC=	mpiicx -v
 
 IFLAGS=	-I../INCLUDE 
 
 CFLAGS=     $(IFLAGS) -qmkl -std=gnu11 -ipo -qopt-zmm-usage=high -MD\
-			-xSKYLAKE -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE\
-			-static-intel -static-libgcc -DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
-			-qopenmp -qopenmp-simd -DSA3AT 
+			-xSKYLAKE -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE,RAPTORLAKE\
+			-DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
+			-qopenmp -qopenmp-simd -DSA3AT -MMD -MP 
 
-LFLAGS=	-L${MKLROOT}/lib/intel64 -limf -Bstatic -lgsl
+LFLAGS=	-L${MKLROOT}/lib/intel64 -limf -lgsl
 
 EXE=	su2hmc_OneAPI
 
@@ -45,19 +45,24 @@ TMP=	$(MOD) $(EDT) core
 -include $(DEPS)
 all:	$(EXE)
 
-profiler:	CFLAGS += -g -D_DEBUG
+profiler:	CFLAGS += -g #-D_DEBUG
 profiler:	release
 
 release:	CFLAGS +=  -O3  -inline-level=2\
 						-DMKL_ILP64  -I"${MKLROOT}/include" #-DUSE_RAN2
 release:	$(EXE)
 
-debug:	CFLAGS += -g -O0 \
-		-D_DEBUG #-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
+diagnostics: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME #-DNO_SPACE
+diagnostics: debug
+
+debug:	CFLAGS += -g -O0 -D_DEBUG
 debug:	$(EXE)
 
 $(EXE):	$(OBJ)
-		$(CC) ../main.c -MMD -MP $(CFLAGS) -o $@ $(OBJ) $(LFLAGS)  
+		$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)  ../main.c 
+
+%.o: %.c
+	$(CC) $(CFLAGS) $(MKLFLAGS) -c $?  
 
 clean:
 		rm -f $(OBJ) $(TMP) $(DEPS)

@@ -1,15 +1,37 @@
-OMPI_MPICC=gcc
-CC=mpicc 
+#Test if we are NOT using cray
+ifeq ($(shell which cc | grep -c cray),0)
+#Test if we are NOT using mpich
+ifeq ($(shell which mpicc | grep -c mpich), 0) 
+#Setup for OpenMPI
+OMPI_CC=gcc
+CC=mpicc
+else
+#Setup for MPICH
+CC=mpicc -cc=gcc
+endif
+else
+#Setup for Cray
+CC=cc
+endif
 
-IFLAGS=     -I../INCLUDE/ -I ${AOCL_ROOT}/include
+IFLAGS=     -I../INCLUDE/ -I ${AOCL_ROOT}/include $(shell gsl-config --cflags)
 
-CFLAGS=	$(IFLAGS) -std=gnu11 -DAMD_BLAS -fcommon\
-		-march=znver2 -mtune=znver3 -static -D__RANLUX__ -static\
+CFLAGS=	$(IFLAGS) -std=gnu11 -fcommon \
+		-march=znver2 -mtune=znver3 -D__RANLUX__ \
 		-fopenmp -fopenmp-simd -static-libgcc -DSA3AT -flto\
 		-foffload=disable #amdgcn-amdhsa="-march=gfx902" #-fopenacc\
 #		-pg -fprofile-arcs-foffload=amdgcn-amdhsa="-march=gfx90c"
 
-LFLAGS=	-L ${AOCL_ROOT}/lib/ -lalm -lblis -lgsl
+
+ifdef AOCL_ROOT
+CFLAGS += -DAMD_BLAS
+LFLAGS = -L${AOCL_ROOT}/lib/ -lblis 
+else ifdef LIBSCI_BASE_DIR
+CFLAGS += -DUSE_BLAS
+#Automatic on LUMI?
+#LFLAGS = ‐L${LIBSCI_BASE_DIR}/gnu/91/x86_64/lib/ -lsci_comp
+endif
+LFLAGS	+=	-lalm -lm $(shell gsl-config --libs-without-cblas)
 
 EXE=	su2hmc_GCC
 
@@ -52,8 +74,7 @@ profiler:	release
 release:	CFLAGS +=  -Ofast -funroll-all-loops -fcf-protection=none #-fprofile-use=./gcc_pgo
 release:	$(EXE)
 
-debug:	CFLAGS += -g -O0  \
-		-D_DEBUG #-DDIAGNOSTIC -DNO_TIME -DNO_SPACE
+debug:	CFLAGS += -g -O0 -D_DEBUG #-DDIAGNOSTIC -DNO_TIME -DNO_SPACE
 debug:	$(EXE)
 
 $(EXE):	$(OBJ)

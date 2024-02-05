@@ -30,19 +30,11 @@ int Addrc(unsigned int *iu, unsigned int *id){
 		//Rather than having 8 ih variables I'm going to use a 2x4 array
 		//down is 0, up is 1
 		int ih[2][4] = {{-1,-1,-1,-1},{-1,-1,-1,-1}};
-#ifdef __INTEL_MKL__
-		hd = (unsigned int*)mkl_malloc(ndim*halo*sizeof(int),AVX);
-		hu = (unsigned int*)mkl_malloc(ndim*halo*sizeof(int),AVX);
-		h1u = (unsigned int*)mkl_malloc(ndim*sizeof(int),AVX);
-		h1d = (unsigned int*)mkl_malloc(ndim*sizeof(int),AVX);
-		halosize= (unsigned int*)mkl_malloc(ndim*sizeof(int),AVX);
-#else
 		hd = (unsigned int*)aligned_alloc(AVX,ndim*halo*sizeof(int));
 		hu = (unsigned int*)aligned_alloc(AVX,ndim*halo*sizeof(int));
 		h1u = (unsigned int*)aligned_alloc(AVX,ndim*sizeof(int));
 		h1d = (unsigned int*)aligned_alloc(AVX,ndim*sizeof(int));
 		halosize= (unsigned int*)aligned_alloc(AVX,ndim*sizeof(int));
-#endif
 
 		//Do the lookups appropriate for over indexing into halos
 		//order is down, up for each x y z t

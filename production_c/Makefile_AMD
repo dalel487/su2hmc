@@ -1,14 +1,26 @@
-OMPI_MPICC=clang
+#Test if we are NOT using cray
+ifeq ($(shell which cc | grep -c cray),0)
+#Test if we are NOT using mpich
+ifeq ($(shell which mpicc | grep -c mpich), 0) 
+#Setup for OpenMPI
+OMPI_CC=clang
+CC=mpicc
+else
+#Setup for MPICH
 CC=mpicc -cc=clang
+endif
+else
+#Setup for Cray
+CC=cc
+endif
+IFLAGS=     -I../INCLUDE/ -I ${AOCL_ROOT}/include $(shell gsl-config --cflags)
 
-IFLAGS=     -I../INCLUDE/ -I ${AOCL_ROOT}/include
-
-CFLAGS=	$(IFLAGS) -std=gnu11 -DAMD_BLAS -fcommon -DSA3AT\
-			-fveclib=AMDLIBM -march=znver2 -mtune=znver3 -D__RANLUX__ -static\
-			-fopenmp=libgomp -fopenmp-simd -static-openmp -static-libgcc -fremap-arrays \
+CFLAGS=	-Wall $(IFLAGS) -std=gnu11 -DAMD_BLAS -fcommon -DSA3AT -flto\
+			-fveclib=AMDLIBM -march=znver2 -mtune=znver3 -D__RANLUX__  \
+			-fopenmp=libomp -fopenmp-simd -static-libgcc
 		  #-fprofile-instr-use
 
-LFLAGS=	-Wl -L${AOCL_ROOT}/lib -lgsl -lpthread -ldl -lalm -lm -lblis  -lamdalloc
+LFLAGS=	-Wl -L${AOCL_ROOT}/lib -L/usr/local/lib64 -ldl -lalm -lm -lblis -lamdalloc -latomic $(shell gsl-config --libs-without-cblas)
 
 EXE=	su2hmc_AMD
 
@@ -50,8 +62,7 @@ profiler:	CFLAGS += -g #-D_DEBUG #-fprofile-generate
 
 profiler:	release
 
-release:	CFLAGS +=  -Ofast -zopt -finline-aggressive -finline-recursion=4 -funroll-loops -flto=full -fnt-store\
-							-mfma -fvectorize -mfma -mavx2 -m3dnow -floop-unswitch-aggressive -fuse-ld=lld
+release:	CFLAGS +=  -Ofast -zopt -flto=full
 
 release:	$(EXE)
 
