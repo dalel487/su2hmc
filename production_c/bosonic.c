@@ -46,12 +46,14 @@ int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u
 #pragma omp parallel for simd aligned(u11t,u12t,iu:AVX) reduction(+:hgs,hgt)
 			for(int i=0;i<kvol;i++){
 				//Save us from typing iu[mu+ndim*i] everywhere
+				Complex Sigma11, Sigma12;
+				SU2plaq(u11t,u12t,Sigma11,Sigma12,u11t,u12t,iu,i,mu,nu);
 				switch(mu){
 					//Time component
-					case(ndim-1):	hgt -= SU2plaq(u11t,u12t,iu,i,mu,nu);
+					case(ndim-1):	hgt -= creal(Sigma11);
 										break;
 										//Space component
-					default:	hgs -= SU2plaq(u11t,u12t,iu,i,mu,nu);
+					default:	hgs -= creal(Sigma11);
 								break;
 				}
 			}
@@ -69,6 +71,7 @@ int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u
 }
 #if (!defined __NVCC__ && !defined __HIPCC__)
 #pragma omp declare simd
+<<<<<<< HEAD
 inline float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int i, int mu, int nu){
 	/*
 	 * Calculates the plaquette at site i in the μ-ν direction
@@ -78,6 +81,17 @@ inline float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int i, 
 	 * u11t, u12t:	Trial fields
 	 * int *iu:	Upper halo indices
 	 * mu, nu:				Plaquette direction. Note that mu and nu can be negative
+=======
+inline int SU2plaq(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigmas11, Complex_f *Sigma12, unsigned int *iu, int i, int mu, int nu){
+	/*
+	 * Calculates the trace of the plaquette at site i in the μ-ν direction
+	 *
+	 * Parameters:
+	 * ==========
+	 * Complex u11t, u12t:	Trial fields
+	 * unsignedi int *iu:	Upper halo indices
+	 * int mu, nu:				Plaquette direction. Note that mu and nu can be negative
+>>>>>>> dd3e6c1 (Changes made, let's see if it works)
 	 * 							to facilitate calculating plaquettes for Clover terms. No
 	 * 							sanity checks are conducted on them in this routine.
 	 *
@@ -88,18 +102,32 @@ inline float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int i, 
 	 */
 	const char *funcname = "SU2plaq";
 	int uidm = iu[mu+ndim*i]; 
+	/***
+	 *	Let's take a quick moment to compare this to the analysis code.
+	 *	The analysis code stores the gauge field as a 4 component real valued vector, whereas the produciton code
+	 *	used two complex numbers.
+	 *
+	 *	Analysis code: u=(Re(u11),Im(u12),Re(u12),Im(u11))
+	 *	Production code: u11=u[0]+I*u[3]	u12=u[2]+I*u[1]
+	 *
+	 *	This applies to the Sigmas and a's below too
+	 */
 
+<<<<<<< HEAD
 	Complex_f Sigma11=u11t[i*ndim+mu]*u11t[uidm*ndim+nu]-u12t[i*ndim+mu]*conj(u12t[uidm*ndim+nu]);
 	Complex_f Sigma12=u11t[i*ndim+mu]*u12t[uidm*ndim+nu]+u12t[i*ndim+mu]*conj(u11t[uidm*ndim+nu]);
+=======
+	*Sigma11=u11t[i*ndim+mu]*u11t[uidm*ndim+nu]-u12t[i*ndim+mu]*conj(u12t[uidm*ndim+nu]);
+	*Sigma12=u11t[i*ndim+mu]*u12t[uidm*ndim+nu]+u12t[i*ndim+mu]*conj(u11t[uidm*ndim+nu]);
+>>>>>>> dd3e6c1 (Changes made, let's see if it works)
 
 	int uidn = iu[nu+ndim*i]; 
 	Complex_f a11=Sigma11*conj(u11t[uidn*ndim+mu])+Sigma12*conj(u12t[uidn*ndim+mu]);
 	Complex_f a12=-Sigma11*u12t[uidn*ndim+mu]+Sigma12*u11t[uidn*ndim+mu];
 
-	Sigma11=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
-	//				Sigma12[i]=-a11[i]*u12t[i*ndim+nu]+a12*u11t[i*ndim+mu];
-	//				Not needed in final result as it traces out
-	return creal(Sigma11);
+	*Sigma11=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
+	*Sigma12=-a11[i]*u12t[i*ndim+nu]+a12*u11t[i*ndim+mu];
+	return 0;
 }
 #endif
 double Polyakov(Complex_f *u11t, Complex_f *u12t){
