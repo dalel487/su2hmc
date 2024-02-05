@@ -27,11 +27,24 @@
 #ifndef	SIZES
 #define	SIZES
 #ifdef	__INTEL_MKL__
+#define	USE_BLAS
 #include	<mkl.h>
+#elif defined GSL_BLAS
+#define	USE_BLAS
+#include <gsl/gsl_cblas.h>
+#elif defined AMD_BLAS
+#define	USE_BLAS
+#include	<cblas.h>
 #endif
 #ifdef	__NVCC__
 #include	<cuda.h>
 #include	<cuda_runtime_api.h>
+#include	<cublas_v2.h>
+extern cublasHandle_t cublas_handle;
+extern cublasStatus_t cublas_status;
+extern cudaMemPool_t mempool;
+//Get rid of that dirty yankee English
+#define cudaDeviceSynchronise() cudaDeviceSynchronize()
 #endif
 #ifdef __CUDACC__
 #include	<thrust_complex.h>
@@ -46,7 +59,7 @@
 #define	FILELEN	64
 // Common block definition for parallel variables
 
-#define	nx 32
+#define	nx 12
 #if(nx<1)
 #error "nx is expected it to be greater than or equal to 1"
 #endif
@@ -63,7 +76,7 @@
 #error "nz is expected it to be greater than or equal to 1"
 #endif
 
-#define	nt	32
+#define	nt	16
 #if(nt<1)
 #error "nt is expected it to be greater than or equal to 1"
 #endif
@@ -124,7 +137,11 @@
 //     integer, parameter :: niterc=2*gvol  
 //      #define niterc 2*gvol
 //    jis: hard limit to avoid runaway trajectories
-#define	niterc	gvol	
+#if(nx>=(3*nt)/2)
+#define	niterc	gvol3
+#else
+#define	niterc	(gvol/4)
+#endif
 //    Constants for dimensions.
 #define	nc	2
 #define	nadj	3
@@ -136,10 +153,9 @@
 #define	kferm	(nc*ngorkov*kvol)
 #define	kferm2	(nc*ndirac*kvol)
 //    For those who may not have used MPI Before, halos are just a bit 
-//    of padding we put on the outside of the sub-arrays we're using in MPI
-//    so we can look at terms outside the sub-array we're actively working
+//    of padding we put outside of the sublattices we're using in MPI
+//    so we can look at terms outside the sublattice we're actively working
 //    on with that process.
-//TODO: Sort out coord.h so we can run without halos
 #if(npx>1)
 #define	halox	(ksizey*ksizez*ksizet)
 #else
@@ -204,6 +220,9 @@
 //is smaller than on previous generations of GPUs
 extern dim3	dimBlock;//	=dim3(nx,ny,nz);
 extern dim3	dimGrid;//	=dim3(nt,1,1);
+//For copying over gamval
+extern dim3	dimBlockOne;//	=dim3(nx,ny,nz);
+extern dim3	dimGridOne;//	=dim3(nt,1,1);
 #define	USE_BLAS
 #endif
 #endif

@@ -44,7 +44,7 @@ extern int pd[ndim] __attribute__((aligned(AVX)));
 
 //MPI Stuff
 extern MPI_Comm comm ;
-extern int request;
+extern MPI_Request request;
 
 extern int *pcoord;
 extern int pstart[ndim][nproc] __attribute__((aligned(AVX)));
@@ -80,6 +80,7 @@ extern "C"
 	int Par_isum(int *ival);
 	int Par_dsum(double *dval);
 	int Par_fsum(float *dval);
+	int Par_csum(Complex_f *cval);
 	int Par_zsum(Complex *zval);
 	int Par_icopy(int *ival);
 	int Par_dcopy(double *dval);
@@ -95,7 +96,7 @@ extern "C"
 	int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f);
 	//If we have more than two processors on the time axis, there's an extra step in the Polyakov loop calculation
 #if(npt>1)
-	int Par_tmul(Complex *z11, Complex *z12);
+	int Par_tmul(Complex_f *z11, Complex_f *z12);
 #endif
 #ifdef __cplusplus
 }

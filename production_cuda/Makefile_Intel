@@ -4,8 +4,8 @@ CXX=		icpc
 NVCC=		nvcc
 
 IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include" -I ./ -I../production_c\
-				-I /opt/nvidia/hpc_sdk/Linux_x86_64/2022/cuda/include/ \
-				-I /opt/nvidia/hpc_sdk/Linux_x86_64/2022/math_libs/include/ \
+				-I /opt/nvidia/hpc_sdk/Linux_x86_64/2023/cuda/include/ \
+				-I /opt/nvidia/hpc_sdk/Linux_x86_64/2023/math_libs/include/ \
 
 CFLAGS=  -qmkl -qopt-zmm-usage=high -MD -D__NVCC__ -static-intel -static-libgcc \
 			-xSKYLAKE -ax'SKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE'\
@@ -13,8 +13,8 @@ CFLAGS=  -qmkl -qopt-zmm-usage=high -MD -D__NVCC__ -static-intel -static-libgcc 
 			-qopenmp-simd -DSA3AT -use-intel-optimized-headers $(IFLAGS) 
 
 MKLFLAGS=	-qmkl -L${MKLROOT}/lib/intel64 -limf #-DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
-CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/2022/cuda/lib64/ \
-				-L/opt/nvidia/hpc_sdk/Linux_x86_64/2022/math_libs/lib64/ \
+CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/2023/cuda/lib64/ \
+				-L/opt/nvidia/hpc_sdk/Linux_x86_64/2023/math_libs/lib64/ \
 				-lcuda -lcudart -lcublas #-L${NVSHMEM_HOME}/lib -lnvshmem -lblis 
 
 LFLAGS=		-liomp5 -lstdc++ -lpthread -ldl -limf -lgsl  #${CULFLAGS}
@@ -43,7 +43,7 @@ CUSRC=	\
 		cubosonic.cu\
 		cumatrices.cu\
 		cuforce.cu\
-		cuInit.cu
+		cusu2hmc.cu
 
 #CUSRC= CUDA_Compile.cu
 CINC=	\
@@ -78,19 +78,19 @@ CUEDT=	$(CUSRC:.cu=.cu~)
 TMP=	$(MOD) $(CEDT) $(CUEDT) core
 
 profiler:	CFLAGS += -g #-D_DEBUG
-profiler:	NVCCFLAGS += -g -lineinfo  -keep
+profiler:	NVCCFLAGS += -G -g -lineinfo  -keep
 profiler:	release
 
 release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high 
-release:	NVCCFLAGS += -O3 -arch=sm_75 -dlto --maxrregcount=64
+release:	NVCCFLAGS += -O3 -arch=sm_75 --maxrregcount=64
 release:	$(EXE)
 
 diagnostics: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME #-DNO_SPACE
 diagnostics: NVCCFLAGS+=-DDIAGNOSTIC #-DNO_TIME #-DNO_SPACE
 diagnostics: debug
 
-debug:		CFLAGS += -O0 -g -D_DEBUG -rdynamic 
-debug:		NVCCFLAGS += -O0 -G -g -D_DEBUG  -arch=sm_75 --maxrregcount=255  -keep 
+debug:		CFLAGS += -O0 -g -D_DEBUGCG -rdynamic 
+debug:		NVCCFLAGS += -O0 -G -g -D_DEBUGCG  -arch=sm_75 --maxrregcount=255  -keep 
 debug:		$(EXE)
 
 		 
@@ -108,7 +108,8 @@ $(EXE): ../main.c $(OBJ)
 	$(CC) -std=gnu11 -ipo $(CFLAGS) $(MKLFLAGS) -c $^  
 
 clean:
-	rm -f $(OBJ) $(COBJ) $(CUOBJ) $(CULIB) $(CLIB) $(TMP) *.cpp?.ii *.cudafe1.* *.*bin *.fatbin.c *.ptx *.sm_* *.module_id *dlink.*
+	rm -f $(OBJ) $(COBJ) $(CUOBJ) $(CULIB) $(CLIB) $(TMP) *.cpp?.ii *.cudafe1.* *.*bin *.fatbin.c *.ptx *.sm_* *.module_id\
+	*dlink.* *.ltoir *.d i?_out
 
 INP=	\
 	midout \

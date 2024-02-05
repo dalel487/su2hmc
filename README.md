@@ -40,7 +40,7 @@ The code produces the following outputs:
 |File Name| Data type|
 |---------|:---------|
 |config.bβββkκκκmuμμμμjJJJsNXtNT.XXXXXX| Lattice configuration for given parameters. Last digits are the configuration number|
-|Output|	Number of conjugate gradient steps for each trajectory. Also contains general simulation details upon completion|
+|Output.bβββkκκκmuμμμμjJJJsNXtNT|	Number of conjugate gradient steps for each trajectory. Also contains general simulation details upon completion|
 |bose.bβββkκκκmuμμμμjJJJsNXtNT|		spatial plaquette, temporal plaquette, Polyakov line|
 |fermi.bβββkκκκmuμμμμjJJJsNXtNT|				psibarpsi, energy density, baryon density|
 |diq.bβββkκκκmuμμμμjJJJsNXtNT|					real<qq>|
@@ -68,9 +68,10 @@ Some adaptions from the original are:
 -	GSL ranlux support
 
 Other works in progress include:
--	CUDA implementation. So far bosonic observables can be evaluated on the GPU
--	OpenACC.
+-	CUDA implementation. So far bosonic observables can be evaluated on the GPU. The conjugate gradient currently disagrees with the CPU version.
+-	Improved action
 
+  
 ## Getting started
 This code is written for MPI on Linux, thus has a few caveats to get up and running
 1.	In sizes.h, set the lattice size. By default we assume the spatial components
