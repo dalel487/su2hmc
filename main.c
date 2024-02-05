@@ -160,6 +160,14 @@ int main(int argc, char *argv[]){
 	//You'll notice that there are three different allocation/free statements
 	//One for CUDA, one for MKL and one for everything else depending on what's
 	//being used
+	/***	Let's take a quick moment to compare this to the analysis code.
+	 *	The analysis code stores the gauge field as a 4 component real valued vector, whereas the produciton code
+	 *	used two complex numbers.
+	 *
+	 *	Analysis code: u=(Re(u11),Im(u12),Re(u12),Im(u11))
+	 *	Production code: u11=u[0]+I*u[3]	u12=u[2]+I*u[1]
+	 *
+	 */
 	Complex *u11, *u12, *u11t, *u12t;
 	Complex_f *u11t_f, *u12t_f;
 	double *dk4m, *dk4p, *pp;
