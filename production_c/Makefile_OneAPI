@@ -3,7 +3,7 @@ CC=	mpiicx -save-temps -v
 
 IFLAGS=	-I../INCLUDE 
 
-CFLAGS=     $(IFLAGS) -qmkl -std=gnu11 -qopt-zmm-usage=high \
+CFLAGS=     $(IFLAGS) -qmkl -std=gnu11 -flto -qopt-zmm-usage=high \
 			-xSKYLAKE -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE,RAPTORLAKE\
 			-DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
 			-fiopenmp -DSA3AT -MMD -MP 
