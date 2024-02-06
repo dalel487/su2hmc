@@ -1,43 +1,5 @@
-#include	<assert.h>
-#include	<coord.h>
-#include	<math.h>
-#include	<matrices.h>
-#include	<par_mpi.h>
-#include	<random.h>
-#include	<string.h>
-#include	<su2hmc.h>
-#ifdef	__NVCC__
-#include <cublas_v2.h>
-#include	<cuda.h>
-#include	<cuda_runtime.h>
-cublasHandle_t cublas_handle;
-cublasStatus_t cublas_status;
-cudaMemPool_t mempool;
-//Fix this later
-#endif
-/*
- * For the early phases of this translation, I'm going to try and
- * copy the original format as much as possible and keep things
- * in one file. Hopefully this will change as we move through
- * the methods so we can get a more logical structure.
- *
- * Another vestige of the Fortran code that will be implemented here is
- * the frequent flattening of arrays. But while FORTRAN Allows you to write
- * array(i,j) as array(i+M*j) where M is the number of rows, C resorts to 
- * pointers
- *
- * One change I will try and make is the introduction of error-codes (nothing
- * to do with the Irish postal service)
- * These can be found in the file errorcode.h and can help with debugging
- *
- * Lastly, the comment style for the start of a function is based off of 
- * Niall Moran's python style (which may have come from numpy?) It should
- * consist of a description of the function, a list of parameters with a brief
- * explanation and lastly what is returned by the function (on success or failure)
- */
-int main(int argc, char *argv[]){
-	/*******************************************************************//*!
-	 *    Hybrid Monte Carlo algorithm for Two Colour QCD with Wilson-Gor'kov fermions
+	/** 
+	 *   @brief Hybrid Monte Carlo algorithm for Two Colour QCD with Wilson-Gor'kov fermions
 	 *    based on the algorithm of Duane et al. Phys. Lett. B195 (1987) 216. 
 	 *
 	 *    There is "up/down partitioning": each update requires
@@ -50,7 +12,7 @@ int main(int argc, char *argv[]){
 	 *
 	 *    Hence, the number of lattice flavors Nf is related to the
 	 *    number of continuum flavors N_f by
-	 *                  N_f = 2 * Nf
+	 *                 @f$ N_f = 2 N_f@f$
 	 *
 	 *    Fermion expectation values are measured using a noisy estimator.
 	 *    on the Wilson-Gor'kov matrix, which has dimension 8*kvol*nc*Nf
@@ -76,6 +38,45 @@ int main(int argc, char *argv[]){
 	 *     Hybrid code, P.Giudice, May 2013
 	 *     Converted from Fortran to C by D. Lawlor March 2021
 	 ******************************************************************/
+#include	<assert.h>
+#include	<coord.h>
+#include	<math.h>
+#include	<matrices.h>
+#include	<par_mpi.h>
+#include	<random.h>
+#include	<string.h>
+#include	<su2hmc.h>
+#ifdef	__NVCC__
+#include <cublas_v2.h>
+#include	<cuda.h>
+#include	<cuda_runtime.h>
+cublasHandle_t cublas_handle;
+cublasStatus_t cublas_status;
+cudaMemPool_t mempool;
+//Fix this later
+#endif
+/**
+ * For the early phases of this translation, I'm going to try and
+ * copy the original format as much as possible and keep things
+ * in one file. Hopefully this will change as we move through
+ * the methods so we can get a more logical structure.
+ *
+ * Another vestige of the Fortran code that will be implemented here is
+ * the frequent flattening of arrays. But while FORTRAN Allows you to write
+ * array(i,j) as array(i+M*j) where M is the number of rows, C resorts to 
+ * pointers
+ *
+ * One change I will try and make is the introduction of error-codes (nothing
+ * to do with the Irish postal service)
+ * These can be found in the file errorcode.h and can help with debugging
+ *
+ * Lastly, the comment style for the start of a function is based off of 
+ * numpy's style It should consist of a description of the function, a list of parameters with a brief
+ * explanation and lastly what is returned by the function (on success or failure).
+ *
+ * This will be supplimented with doxygen
+ */
+int main(int argc, char *argv[]){
 	//Instead of hard coding the function name so the error messages are easier to implement
 	const char *funcname = "main";
 
@@ -86,7 +87,7 @@ int main(int argc, char *argv[]){
 	MPI_Comm_size(comm, &size);
 #endif
 
-	/*!
+	/**
 	 * Inputs Parameters.
 	 * The input file format is 
 	 *
@@ -94,18 +95,18 @@ int main(int argc, char *argv[]){
 	 * dt			beta	akappa	jqq	thetaq	fmu	aNf	stepl	ntraj	istart	icheck	iread
 	 *	The default values here are straight from the FORTRAN. Note that the bottom line is ignored
 	 *
-	 *	dt			Step length for HMC	
-	 * beta 		Inverse Gauge Coupling
-	 * akappa	Hopping Parameter
-	 * jqq		Diquark Source
-	 * thetaq	Depericiated.
-	 * fmu		Chemical Potential
-	 * aNf		Depreciated
-	 * stepl		Number of steps per HMC trajectory
-	 * istart 	If 0, start from cold start. If one, start from hot start
-	 * iprint	How often are measurements made (every iprint trajectories)
-	 * icheck	How often are configurations saved (every icheck trajectories)
-	 * iread  	Config to read in. If zero, the start based on value of istart
+	 *	@param dt		Step length for HMC	
+	 *	@param beta 	Inverse Gauge Coupling
+	 *	@param akappa	Hopping Parameter
+	 *	@param jqq		Diquark Source
+	 *	@param thetaq	Depericiated/Legacy.
+	 *	@param fmu		Chemical Potential
+	 *	@param aNf		Depreciated/Legacy
+	 *	@param stepl	Mean number of steps per HMC trajectory
+	 *	@param istart 	If 0, start from cold start. If one, start from hot start
+	 *	@param iprint	How often are measurements made (every iprint trajectories)
+	 *	@param icheck	How often are configurations saved (every icheck trajectories)
+	 *	@param iread  	Config to read in. If zero, the start based on value of istart
 	 */
 	float beta = 1.7f;
 	float akappa = 0.1780f;
@@ -358,7 +359,7 @@ int main(int argc, char *argv[]){
 	//pp is the momentum field
 	pp = aligned_alloc(AVX,kmom*sizeof(double));
 #endif
-	//Arabic for hour/watch so probably not defined elsewhere like TIME potentially is
+	////Arabic for hour/watch so probably not defined elsewhere like TIME potentially is
 #if (defined SA3AT)
 	double start_time=0;
 	if(!rank){
