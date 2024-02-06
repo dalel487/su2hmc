@@ -1,3 +1,6 @@
+#include	<par_mpi.h>
+#include	<su2hmc.h>
+
 /** @file
  *
  * @brief Code for bosonic observables
@@ -8,8 +11,7 @@
  * @author P. Giudice (Hybrid Code, May 2013)
  * @author D. Lawlor (C version March 2021, CUDA/Mixed Precision/Clover Feb 2024 and beyond...)
  */
-#include	<par_mpi.h>
-#include	<su2hmc.h>
+
 int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u11t, Complex_f *u12t, unsigned int *iu, float beta){
 	/* 
 	 * Calculates the gauge action using new (how new?) lookup table
@@ -19,29 +21,25 @@ int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u
 	 * =======
 	 * rank
 	 *
-	 * Parameters:
-	 * ===========
-	 * double	hg				Gauge component of Hamilton
-	 * double	avplaqs		Average spacial Plaquette
-	 * double	avplaqt		Average Temporal Plaquette
-	 * Complex*	u11t,u12t	The trial fields
-	 * int*		iu				Upper halo indices
-	 * double	beta
+	 * @param double	hg					Gauge component of Hamilton
+	 * @param double	avplaqs			Average spacial Plaquette
+	 * @param double	avplaqt			Average Temporal Plaquette
+	 * @param Complex_f*	u11t,u12t	The trial fields
+	 * @param int*		iu					Upper halo indices
+	 * @param double	beta				Inverse gauge coupling
 	 *
 	 * Calls:
-	 * =====
+	 * ======
 	 * Par_dsum
 	 *
-	 * Returns:
-	 * =======
-	 * Zero on success, integer error code otherwise
+	 * @return: Zero on success, integer error code otherwise
 	 */
 	const char *funcname = "Average_Plaquette";
 	/*Was a halo exchange here but moved it outside
 	  The FORTRAN code used several consecutive loops to get the plaquette
 	  Instead we'll just make the arrays variables and do everything in one loop
 	  Should work since in the FORTRAN Sigma11[i] only depends on i components  for example
-	  Since the ν loop doesn't get called for μ=0 we'll start at μ=1
+	  Since the Î½ loop doesn't get called for Î¼=0 we'll start at Î¼=1
 	 */
 #ifdef __NVCC__
 	__managed__ double hgs = 0; __managed__ double hgt = 0;
@@ -81,24 +79,21 @@ int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u
 #pragma omp declare simd
 inline int SU2plaq(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11, Complex_f *Sigma12, unsigned int *iu,  int i, int mu, int nu){
 	/**
-	 * Calculates the trace of the plaquette at site i in the μ-ν direction
+	 * @brief Calculates the trace of the plaquette at site i in the Î¼-Î½ direction
 	 *
-	 * Parameters:
-	 * ==========
-	 * Complex_f u11t, u12t:			Trial fields
-	 * Complex_f Sigma11, Sigma12:	Trial fields
-	 * unsignedi int *iu:				Upper halo indices
-	 * int mu, nu:							Plaquette direction. Note that mu and nu can be negative
-	 * 										to facilitate calculating plaquettes for Clover terms. No
-	 * 										sanity checks are conducted on them in this routine.
+	 * @param u11t, u12t:			Trial fields
+	 * @param Sigma11, Sigma12:	Trial fields
+	 * @param *iu:						Upper halo indices
+	 * @param i:						site index
+	 * @param mu, nu:					Plaquette direction. Note that mu and nu can be negative
+	 * 									to facilitate calculating plaquettes for Clover terms. No
+	 * 									sanity checks are conducted on them in this routine.
 	 *
-	 * Returns:
-	 * ========
-	 * double corresponding to the plaquette value
+	 * @return Zero on success, integer error code otherwise
 	 *
 	 */
 	const char *funcname = "SU2plaq";
-	/**
+	/*
 	 *	Let's take a quick moment to compare this to the analysis code.
 	 *	The analysis code stores the gauge field as a 4 component real valued vector, whereas the produciton code
 	 *	used two complex numbers.
@@ -123,77 +118,145 @@ inline int SU2plaq(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11, Complex
 	*Sigma12=-a11*u12t[i*ndim+nu]+a12*u11t[i*ndim+mu];
 	return 0;
 }
-inline int Leaf(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11, Complex_f *Sigma12, unsigned int *iu, unsigned int *id, int i, int mu, int nu, short leaf){
-
+inline int Leaf(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11, Complex_f *Sigma12,
+		unsigned int *iu, unsigned int *id, int i, int mu, int nu, short leaf){
+	/** @brief Evaluates the required clover leaf
+	 *
+	 * @param u11t, u12t:			Trial fields
+	 * @param Sigma11, Sigma12:	Plaquette terms
+	 * @param iu, id:					Upper/lower haloindices
+	 * @param mu, nu:					Plaquette direction. Note that mu and nu can be negative
+	 *										to facilitate calculating plaquettes for Clover terms. No
+	 *										sanity checks are conducted on them in this routine.
+	 *	@param i:						Centre of plaquette
+	 * @param leaf:					Which leaf of the halo are we looking for. Based on the
+	 * 									signs of Î¼ and Î½
+	 *
+	 * Calls:
+	 * ======
+	 * SU2plaq()
+	 *
+	 * @return Zero on success, integer error code otherwise
+	 */
+	char *funcname="Leaf";
 	switch(leaf){
 		case(0):
 			//Both positive is just a standard plaquette
 			return SU2plaq(u11t,u12t,&Sigma11,&Sigma12,iu,i,mu,nu);
 		case(1):
-			//μ<0 and ν>=0
+			//Î¼<0 and Î½>=0
 			int didm = id[mu+ndim*i]; int uidn = iu[nu+ndim*i]; 
-			//U_ν(x)*U_-μ(x+ν)=U_ν(x)*U^†_μ(x-μ_ν)
-			//Awkward index here unfortunately. Seems safer than trying to find -μ
+			//U_Î½(x)*U_-Î¼(x+Î½)=U_Î½(x)*U^â _Î¼(x-Î¼_Î½)
+			//Awkward index here unfortunately. Seems safer than trying to find -Î¼
 			int uin_didm=id[mu+ndim*uidn];
 			*Sigma11=u11t[i*ndim+nu]*conj(u11t[uin_didm*ndim+mu])+u12t[i*ndim+nu]*conj(u12t[uin_didm*ndim+mu]);
 			*Sigma12=-u11t[i*ndim+nu]*conj(u12t[uin_didm*ndim+mu])+u12t[i*ndim+nu]*u11t[uin_didm*ndim+mu];
 
-			//(U_ν(x)*U_-μ(x+ν))*U_-ν(x-μ+ν)=(U_ν(x)*U^†_μ(x-μ_ν))*U^†_ν(x-μ)
+			//(U_Î½(x)*U_-Î¼(x+Î½))*U_-Î½(x-Î¼+Î½)=(U_Î½(x)*U^â _Î¼(x-Î¼_Î½))*U^â _Î½(x-Î¼)
 			Complex_f a11=*Sigma11*conj(u11t[didm*ndim+nu])+*Sigma12*conj(u12t[didm*ndim+nu]);
 			Complex_f a12=-*Sigma11*u12t[didm*ndim+nu]+*Sigma12*u11t[didm*ndim+nu];
 
-			//((U_ν(x)*U_-μ(x+ν))*U_-ν(x-μ+ν))*U_μ(x-μ)=((U_ν(x)*U^†_μ(x-μ_ν))*U^†_ν(x-μ))*U_μ(x-μ)
+			//((U_Î½(x)*U_-Î¼(x+Î½))*U_-Î½(x-Î¼+Î½))*U_Î¼(x-Î¼)=((U_Î½(x)*U^â _Î¼(x-Î¼_Î½))*U^â _Î½(x-Î¼))*U_Î¼(x-Î¼)
 			*Sigma11=a11*u11t[didm*ndim+mu]-a12*conj(u12t[didm*ndim+mu]);
 			*Sigma12=a11*u12t[didm*ndim+mu]+a12*conj(u11t[didm*ndim+mu]);
 			return 0;
 		case(2):
-			//μ>=0 and ν<0
+			//Î¼>=0 and Î½<0
 			//TODO: Figure out down site index
 			int uidm = iu[mu+ndim*i]; int didn = id[nu+ndim*i]; 
-			//U_-ν(x)*U_μ(x-ν)=U^†_ν(x-ν)*U_μ(x-ν)
+			//U_-Î½(x)*U_Î¼(x-Î½)=U^â _Î½(x-Î½)*U_Î¼(x-Î½)
 			*Sigma11=conj(u11t[didn*ndim+nu])*u11t[didn*ndim+mu]+conj(u12t[didn*ndim+nu])*u12t[didn*ndim+mu];
-			*Sigma12=conj(u11t[didn*ndim+nu]*u12t[didn*ndim+mu]-u12t[didn*ndim+mu]*conj(u11t[didn*ndim+nu]);
-			
-			//(U_-ν(x)*U_μ(x-ν))*U_ν(x+μ-ν)=(U^†_ν(x-ν)*U_μ(x-ν))*U_ν(x+μ-ν)
+			*Sigma12=conj(u11t[didn*ndim+nu])*u12t[didn*ndim+mu]-u12t[didn*ndim+mu]*conj(u11t[didn*ndim+nu]);
+
+			//(U_-Î½(x)*U_Î¼(x-Î½))*U_Î½(x+Î¼-Î½)=(U^â _Î½(x-Î½)*U_Î¼(x-Î½))*U_Î½(x+Î¼-Î½)
 			//Another awkward index
 			int uim_didn=id[nu+ndim*uidm];
 			Complex_f a11=*Sigma11*u11t[uim_didn*ndim+nu]-*Sigma12*conj(u12t[uim_didn*ndim+nu]);
 			Complex_f a12=*Sigma11*u12t[uim_didn*ndim+nu]+*Sigma12*conj(u11t[uim_didn*ndim+nu]);
 
-			//((U_-ν(x)*U_μ(x-ν))*U_ν(x+μ-ν))*U_-μ(x+μ)=(U^†_ν(x-ν)*U_μ(x-ν))*U_ν(x+μ-ν)
+			//((U_-Î½(x)*U_Î¼(x-Î½))*U_Î½(x+Î¼-Î½))*U_-Î¼(x+Î¼)=(U^â _Î½(x-Î½)*U_Î¼(x-Î½))*U_Î½(x+Î¼-Î½)
 			*Sigma11=a11*conj(u11t[i*ndim+mu])+a12*conj(u12t[i*ndim+mu]);
 			*Sigma12=-a11*u12t[i*ndim+mu]+a12*u11t[i*ndim+mu];
 			return 0;
 		case(3):
-			//μ<0 and ν<0
+			//Î¼<0 and Î½<0
 			int didm = id[mu+ndim*i]; int didn = id[nu+ndim*i]; 
-			//U_-μ(x)*U_-ν(x-μ)
-			
-			//(U_-μ(x)*U_-ν(x-μ))*(U_μ(x-μ-ν))
+			//U_-Î¼(x)*U_-Î½(x-Î¼)
+
+			//(U_-Î¼(x)*U_-Î½(x-Î¼))*(U_Î¼(x-Î¼-Î½))
 			Complex_f a11=*Sigma11*u11t[didn*ndim+mu]-*Sigma12*conj(u12t[didn*ndim+mu]);
 			Complex_f a12=*Sigma11*u12t[didn*ndim+mu]+*Sigma12*conj(u11t[didn*ndim+mu]);
 
-			//[(U_-μ(x)*U_-ν(x-μ))*(U_μ(x-μ-ν))]*U_ν(x-ν)
+			//[(U_-Î¼(x)*U_-Î½(x-Î¼))*(U_Î¼(x-Î¼-Î½))]*U_Î½(x-Î½)
 			*Sigma11=a11*u11t[i*ndim+nu]-a12*conj(u12t[i*ndim+nu]);
 			*Sigma12=a11*u12t[i*ndim+nu]+a12*conj(u11t[i*ndim+mu]);
-			Show	return 0;
+			return 0;
 	}
+}
+inline int Half_Clover(Complex_f *u11t, Complex_f *u12t, Complex_f *clover11, Complex_f *clover12,
+		unsigned int *iu, unsigned int *id, int i, int mu, int nu){
+	/** @brief Calculate one clover leaf \f(Q_{μν}\f), which is half the full clover term
+	 *
+	 * @param u11t, u12t:			Trial fields
+	 * @param clover11, clover12:	Clover fields
+	 * @param *iu, *id:				Upper/lower haloindices
+	 *	@param i:						Centre of plaquette
+	 * @param mu, nu:					Plaquette direction. Note that mu and nu can be negative
+	 * 									to facilitate calculating plaquettes for Clover terms. No
+	 * 									sanity checks are conducted on them in this routine.
+	 *
+	 * Calls:
+	 * ======
+	 * Leaf()
+	 *
+	 * @return Zero on success, integer error code otherwise
+	 */
+	char *funcname ="Half_Clover";
+#pragma omp simd reduction(+:clover11,clover12)
+	for(int i=0;i<ndim;i++)
+	{
+		Complex_f Sigma11, Sigma12;
+		Leaf(u11t,u12t,Sigma11,Sigma12,iu,id,i,mu,nu);
+		*clover11+=Sigma11; *clover12+=Sigma12;
+	}
+	return 0;
+}
+inline int Clover(Complex_f *u11t, Complex_f *u12t, Complex_f *clover11, Complex_f *clover12,
+		unsigned int *iu, unsigned int *id, int i, int mu, int nu){
+	/** @brief Calculate the clover term in the μ-ν direction
+	 *	\f$F_{μν}(n)=\frac{-i}{8a^2}\left(Q_{μν}(n)-{Q_{νμ}(n)\right)\f$
+	 *	
+	 * @param u11t, u12t:			Trial fields
+	 * @param clover11, clover12:	Clover fields
+	 * @param *iu, *id:				Upper/lower haloindices
+	 *	@param i:						Centre of plaquette
+	 * @param mu, nu:					Plaquette direction. Note that mu and nu can be negative
+	 * 									to facilitate calculating plaquettes for Clover terms. No
+	 * 									sanity checks are conducted on them in this routine.
+	 *
+	 * Calls:
+	 * =====
+	 * Half_Clover()
+	 *
+	 * @return Zero on success, integer error code otherwise
+	 */
+	char *funcname="Clover";
+	Half_Clover(u11t,u12t,clover11,clover12,iu,id,i,mu,nu);	
+	//Hmm, creal(Clover11) drops out then?
+	clover11-=conj(clover11); clover12-=-clover12;
+	clover11*=(-I/8.0); clover12*=(-I/8.0);
 }
 double Polyakov(Complex_f *u11t, Complex_f *u12t){
 	/*
 	 * Calculate the Polyakov loop (no prizes for guessing that one...)
 	 *
+	 * @param u11t, u12t	The trial fields
+	 * 
 	 * Calls:
 	 * ======
 	 * Par_tmul, Par_dsum
 	 * 
-	 * Parameters:
-	 * ==========
-	 * Complex*	u11t, u12t	The trial fields
-	 * 
-	 * Returns:
-	 * =======
-	 * Double corresponding to the polyakov loop
+	 * @return Double corresponding to the polyakov loop
 	 */
 	const char *funcname = "Polyakov";
 	double poly = 0;
