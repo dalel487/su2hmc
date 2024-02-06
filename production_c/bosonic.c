@@ -13,7 +13,7 @@
  */
 
 int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u11t, Complex_f *u12t, unsigned int *iu, float beta){
-	/* 
+	/**
 	 * @brief Calculates the gauge action using new (how new?) lookup table
 	 * Follows a routine called qedplaq in some QED3 code
 	 *
@@ -164,7 +164,7 @@ inline int Leaf(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11, Complex_f 
 			//μ>=0 and ν<0
 			//TODO: Figure out down site index
 			int uidm = iu[mu+ndim*i]; int didn = id[nu+ndim*i]; 
-			//U_-ν(x)*U_μ(x-ν)=U^† _ν(x-ν)*U_μ(x-ν)
+			//U_-ν(x)*U_μ(x-ν)=U^†_ν(x-ν)*U_μ(x-ν)
 			*Sigma11=conj(u11t[didn*ndim+nu])*u11t[didn*ndim+mu]+conj(u12t[didn*ndim+nu])*u12t[didn*ndim+mu];
 			*Sigma12=conj(u11t[didn*ndim+nu])*u12t[didn*ndim+mu]-u12t[didn*ndim+mu]*conj(u11t[didn*ndim+nu]);
 
@@ -183,6 +183,7 @@ inline int Leaf(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11, Complex_f 
 			int didm = id[mu+ndim*i]; int didn = id[nu+ndim*i]; 
 			//U_-μ(x)*U_-ν(x-μ)=U^†_μ(x-μ)*U^†_ν(x-μ-ν)
 			int dim_didn=id[nu+ndim*didm];
+			*Sigma11=conj(u11t[didm*ndim+mu])*conj(u11t[didm_didn*ndim+nu])+conj(u12t[didm*ndim+mu])*conj(u12t[dim_didn*ndim+nu]);
 
 			//(U_-μ(x)*U_-ν(x-μ))*(U_μ(x-μ-ν))
 			Complex_f a11=*Sigma11*u11t[dim_didn*ndim+mu]-*Sigma12*conj(u12t[dim_didn*ndim+mu]);
@@ -248,14 +249,14 @@ inline int Clover(Complex_f *u11t, Complex_f *u12t, Complex_f *clover11, Complex
 	clover11*=(-I/8.0); clover12*=(-I/8.0);
 }
 double Polyakov(Complex_f *u11t, Complex_f *u12t){
-	/*
-	 * Calculate the Polyakov loop (no prizes for guessing that one...)
+	/**
+	 * @brief Calculate the Polyakov loop (no prizes for guessing that one...)
 	 *
 	 * @param u11t, u12t	The trial fields
 	 * 
 	 * Calls:
 	 * ======
-	 * Par_tmul, Par_dsum
+	 * Par_tmul(), Par_dsum()
 	 * 
 	 * @return Double corresponding to the polyakov loop
 	 */
