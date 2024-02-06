@@ -4,36 +4,34 @@
 int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f *u12t,unsigned int *iu,unsigned int *id,\
 		Complex_f *gamval_f,int *gamin,float *dk4m,float *dk4p,Complex_f jqq,float akappa,int *itercg){
 	/*
-	 * Matrix Inversion via Mixed Precision Conjugate Gradient
-	 * Solves (M^†)Mx=Phi
+	 * @brief Matrix Inversion via Mixed Precision Conjugate Gradient
+	 * Solves @f$ (M^†)Mx=\Phi@f$
 	 * Implements up/down partitioning
 	 * The matrix multiplication step is done at single precision, while the update is done at double
-	 * 
-	 * Calls:
-	 * =====
-	 * Hdslash_f, Hdslashd_f, Par_fsum, Par_dsum
 	 *
 	 * Parameters:
 	 * ==========
-	 * int			na:			Flavour index
-	 * double		res:			Limit for conjugate gradient
-	 * Complex		*X1:			Phi initially, returned as (M†M)^{1} Phi
-	 * Complex		*r:			Partition of Phi being used. Gets recycled as the residual vector
-	 * Complex_f	*u11t:		First colour's trial field
-	 * Complex_f	*u12t:		Second colour's trial field
-	 * int			*iu:			Upper halo indices
-	 * int			*id:			Lower halo indices
-	 * Complex_f	*gamval_f:	Gamma matrices
-	 * int			*gamin:		Dirac indices
-	 * float			*dk4m:
-	 * float			*dk4p:
-	 * Complex_f	jqq:			Diquark source
-	 * float			akappa:		Hopping Parameter
-	 * int 			*itercg:		Counts the iterations of the conjugate gradient
+	 * @param  na:				Flavour index
+	 * @param  res:			Limit for conjugate gradient
+	 * @param  *X1:			Phi initially, returned as (M†M)^{1} Phi
+	 * @param  *r:				Partition of Phi being used. Gets recycled as the residual vector
+	 * @param  *u11t:			First colour's trial field
+	 * @param  *u12t:			Second colour's trial field
+	 * @param  *iu:			Upper halo indices
+	 * @param  *id:			Lower halo indices
+	 * @param  *gamval_f:	Gamma matrices
+	 * @param  *gamin:		Dirac indices
+	 * @param  *dk4m:
+	 * @param  *dk4p:
+	 * @param  jqq:			Diquark source
+	 * @param  akappa:		Hopping Parameter
+	 * @param  *itercg:		Counts the iterations of the conjugate gradient
+	 * 
+	 * Calls:
+	 * =====
+	 * Hdslash_f(), Hdslashd_f(), Par_fsum(), Par_dsum()
 	 *
-	 * Returns:
-	 * =======
-	 * 0 on success, integer error code otherwise
+	 * @return 0 on success, integer error code otherwise
 	 */
 	const char *funcname = "Congradq";
 	int ret_val=0;
@@ -266,35 +264,33 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_f *u12t,unsigned int *iu,unsigned int *id,\
 		Complex_f *gamval,int *gamin, float *dk4m,float *dk4p,Complex_f jqq,float akappa,int *itercg){
 	/*
-	 * Matrix Inversion via Conjugate Gradient
-	 * Solves (M^†)Mx=Phi
+	 * @brief Matrix Inversion via Conjugate Gradient
+	 * Solves @f$(M^†)Mx=\Phi@f$
 	 * No even/odd partitioning
-	 *
-	 * Calls:
-	 * =====
-	 * Dslash, Dslashd, Parsum, Par_dsum
 	 *
 	 * Parameters:
 	 * ==========
-	 * int			na:			Flavour index
-	 * double		res:			Limit for conjugate gradient
-	 * Complex		*Phi:			Phi initially, 
-	 * Complex	*r:			Returned as (M†M)^{1} Phi
-	 * Complex_f		*u11t:		First colour's trial field
-	 * Complex_f		*u12t:		Second colour's trial field
-	 * int			*iu:			Upper halo indices
-	 * int			*id:			Lower halo indices
-	 * Complex	*gamval:	Gamma matrices
-	 * int			*gamin:		Dirac indices
-	 * double			*dk4m:
-	 * double			*dk4p:
-	 * Complex	jqq:			Diquark source
-	 * double			akappa:		Hopping Parameter
-	 * int 			*itercg:		Counts the iterations of the conjugate gradient
+	 * @param 	na:			Flavour index
+	 * @param 	res:			Limit for conjugate gradient
+	 * @param 	*Phi:			Phi initially, 
+	 * @param 	*r:			Returned as (M†M)^{1} Phi
+	 * @param 	*u11t:		First colour's trial field
+	 * @param 	*u12t:		Second colour's trial field
+	 * @param 	*iu:			Upper halo indices
+	 * @param 	*id:			Lower halo indices
+	 * @param 	*gamval:		Gamma matrices
+	 * @param 	*gamin:		Dirac indices
+	 * @param 	*dk4m:
+	 * @param 	*dk4p:
+	 * @param 	jqq:			Diquark source
+	 * @param 	akappa:		Hopping Parameter
+	 * @param 	*itercg:		Counts the iterations of the conjugate gradient
+	 * 
+	 * Calls:
+	 * =====
+	 * Dslash(), Dslashd(), Par_fsum(), Par_dsum()
 	 *
-	 * Returns:
-	 * =======
-	 * 0 on success, integer error code otherwise
+	 * @return 0 on success, integer error code otherwise
 	 */
 	const char *funcname = "Congradp";
 	//Return value
@@ -427,7 +423,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 		Complex_f alpha_m=(Complex_f)(-alpha);
 		cblas_caxpy(kferm,(Complex_f*) &alpha_m,(Complex_f*) x2_f, 1,(Complex_f*) r_f, 1);
 		//r*.r
-float		betan_f = cblas_scnrm2(kferm, (Complex_f*)r_f,1);
+		float		betan_f = cblas_scnrm2(kferm, (Complex_f*)r_f,1);
 		//Gotta square it to "undo" the norm
 		betan=betan_f*betan_f;
 #else
