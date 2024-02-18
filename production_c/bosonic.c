@@ -124,7 +124,7 @@ inline int Leaf(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11, Complex_f 
 	 *
 	 * @param u11t, u12t:			Trial fields
 	 * @param Sigma11, Sigma12:	Plaquette terms
-	 * @param iu, id:					Upper/lower haloindices
+	 * @param iu, id:					Upper/lower halo indices
 	 * @param mu, nu:					Plaquette direction. Note that mu and nu can be negative
 	 *										to facilitate calculating plaquettes for Clover terms. No
 	 *										sanity checks are conducted on them in this routine.
@@ -201,7 +201,7 @@ inline int Half_Clover(Complex_f *u11t, Complex_f *u12t, Complex_f *clover11, Co
 	 *
 	 * @param u11t, u12t:			Trial fields
 	 * @param clover11, clover12:	Clover fields
-	 * @param *iu, *id:				Upper/lower haloindices
+	 * @param *iu, *id:				Upper/lower halo indices
 	 *	@param i:						Centre of plaquette
 	 * @param mu, nu:					Plaquette direction. Note that mu and nu can be negative
 	 * 									to facilitate calculating plaquettes for Clover terms. No
@@ -230,7 +230,7 @@ inline int Clover(Complex_f *u11t, Complex_f *u12t, Complex_f *clover11, Complex
 	 *	
 	 * @param u11t, u12t:			Trial fields
 	 * @param clover11, clover12:	Clover fields
-	 * @param *iu, *id:				Upper/lower haloindices
+	 * @param *iu, *id:				Upper/lower halo indices
 	 *	@param i:						Centre of plaquette
 	 * @param mu, nu:					Plaquette direction. Note that mu and nu can be negative
 	 * 									to facilitate calculating plaquettes for Clover terms. No
