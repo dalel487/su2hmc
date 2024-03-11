@@ -608,6 +608,16 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 
 	//Mass term
 #ifdef __NVCC__
+<<<<<<< HEAD
+=======
+#ifdef _DEBUG
+	int errc=
+#endif
+		cudaMemcpy(phi, r, kferm*sizeof(Complex_f),cudaMemcpyDefault);
+#ifdef _DEBUG
+	printf("cudaMemcpy returned %d\n");
+#endif
+>>>>>>> 392e052 (Fixed an issue in the Diagnostics routine. Gauge_force was still using)
 	cuDslashd_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm*sizeof(Complex_f));
