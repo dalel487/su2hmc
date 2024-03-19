@@ -89,38 +89,44 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
 	//if statements quicker to type
 	double betan;
+#ifdef _DEBUGCG
+	printf("Gammas:\n");
+	for(int i=0;i<5;i++){
+		for(int j=0;j<4;j++)
+			printf("%.5e+%.5ei\t",creal(gamval_f[i*4+j]),cimag(gamval_f[i*4+j]));
+		printf("\n");
+	}
+	printf("\nConstants (index %d):\nu11t[kvol-1]=%e+%.5ei\tu12t[kvol-1]=%e+%.5ei\tdk4m=%.5e\tdk4p=%.5e\tjqq=%.5e+I%.5f\tkappa=%.5f\n",\
+			kvol-1,creal(u11t[kvol-1]),cimag(u11t[kvol-1]),creal(u12t[kvol-1]),cimag(u12t[kvol-1]),dk4m[kvol-1],dk4p[kvol-1],creal(jqq),cimag(jqq),akappa);
+#endif
 	for(*itercg=0; *itercg<niterc; (*itercg)++){
 		//x2 =  (M^†M)p 
 		//No need to synchronise here. The memcpy in Hdslash is blocking
 		//But one hits the halo exchange first...
 #ifdef _DEBUGCG
+		memset(x1_f,0,kferm2Halo*sizeof(Complex_f));
 #ifdef __NVCC__
+		cudaMemPrefetchAsync(x1_f,kferm2*sizeof(Complex_f),device,NULL);
 		cudaDeviceSynchronise();
 #endif
-		printf("\nPre mult:\tp_f[0]=%.5e+%.5ei\tx1_f[0]=%.5e+%.5ei\tx2_f[0]=%.5e+%.5ei\t"\
-				"u11t[0]=%e+%.5ei\tu12t[0]=%e+%.5ei\tdk4m=%.5e\tdk4p=%.5e\t\n",\
-				creal(p_f[0]),cimag(p_f[0]),creal(x1_f[0]),cimag(x1_f[0]),creal(x2_f[0]),cimag(x2_f[0]),creal(u11t[0]),\
-				cimag(u11t[0]),creal(u12t[0]),cimag(u12t[0]),dk4m[0],dk4p[0]);
+		printf("\nPre mult:\tp_f[kferm2-1]=%.5e+%.5ei\tx1_f[kferm2-1]=%.5e+%.5ei\tx2_f[kferm2-1]=%.5e+%.5ei\t",\
+				creal(p_f[kferm2-1]),cimag(p_f[kferm2-1]),creal(x1_f[kferm2-1]),cimag(x1_f[kferm2-1]),creal(x2_f[kferm2-1]),cimag(x2_f[kferm2-1]));
 #endif
 		Hdslash_f(x1_f,p_f,u11t,u12t,iu,id,gamval_f,gamin,dk4m,dk4p,akappa);
 #ifdef _DEBUGCG
 #ifdef __NVCC__
 		cudaDeviceSynchronise();
 #endif
-		printf("\nHdslash_f:\tp_f[0]=%.5e+%.5ei\tx1_f[0]=%.5e+%.5ei\tx2_f[0]=%.5e+%.5ei\t"\
-				"u11t[0]=%e+%.5ei\tu12t[0]=%e+%.5ei\tdk4m=%.5e\tdk4p=%.5e\t\n",\
-				creal(p_f[0]),cimag(p_f[0]),creal(x1_f[0]),cimag(x1_f[0]),creal(x2_f[0]),cimag(x2_f[0]),creal(u11t[0]),\
-				cimag(u11t[0]),creal(u12t[0]),cimag(u12t[0]),dk4m[0],dk4p[0]);
+		printf("\nHdslash_f:\tp_f[kferm2-1]=%.5e+%.5ei\tx1_f[kferm2-1]=%.5e+%.5ei\tx2_f[kferm2-1]=%.5e+%.5ei",\
+				creal(p_f[kferm2-1]),cimag(p_f[kferm2-1]),creal(x1_f[kferm2-1]),cimag(x1_f[kferm2-1]),creal(x2_f[kferm2-1]),cimag(x2_f[kferm2-1]));
 #endif
 		Hdslashd_f(x2_f,x1_f,u11t,u12t,iu,id,gamval_f,gamin,dk4m,dk4p,akappa);
 #ifdef _DEBUGCG
 #ifdef __NVCC__
 		cudaDeviceSynchronise();
 #endif
-		printf("\nHdslashd_f:\tp_f[0]=%.5e+%.5ei\tx1_f[0]=%.5e+%.5ei\tx2_f[0]=%.5e+%.5ei\t"\
-				"u11t[0]=%e+%.5ei\tu12t[0]=%e+%.5ei\tdk4m=%.5e\tdk4p=%.5e\t\n",\
-				creal(p_f[0]),cimag(p_f[0]),creal(x1_f[0]),cimag(x1_f[0]),creal(x2_f[0]),cimag(x2_f[0]),creal(u11t[0]),\
-				cimag(u11t[0]),creal(u12t[0]),cimag(u12t[0]),dk4m[0],dk4p[0]);
+		printf("\nHdslashd_f:\tp_f[kferm2-1]=%.5e+%.5ei\tx1_f[kferm2-1]=%.5e+%.5ei\tx2_f[kferm2-1]=%.5e+%.5ei\n",\
+				creal(p_f[kferm2-1]),cimag(p_f[kferm2-1]),creal(x1_f[kferm2-1]),cimag(x1_f[kferm2-1]),creal(x2_f[kferm2-1]),cimag(x2_f[kferm2-1]));
 #endif
 		//x2 =  (M^†M+J^2)p 
 		//No point adding zero a couple of hundred times if the diquark source is zero
@@ -200,7 +206,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 		if(betan<resid){ 
 			(*itercg)++;
 #ifdef _DEBUG
-			if(!rank) printf("Iter(CG)=%i\tresid=%e\ttoler=%e\n", *itercg, betan, resid);
+			if(!rank) printf("\nIter(CG)=%i\tResidue: %e\tTolerance: %e\n", *itercg, betan, resid);
 #endif
 			ret_val=0;	break;
 		}
@@ -442,7 +448,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 			//Started counting from zero so add one to make it accurate
 			(*itercg)++;
 #ifdef _DEBUG
-			if(!rank) printf("Iter (CG) = %i resid = %e toler = %e\n", *itercg, betan, resid);
+			if(!rank) printf("\nIter (CG) = %i resid = %e toler = %e\n", *itercg, betan, resid);
 #endif
 			ret_val=0;	break;
 		}

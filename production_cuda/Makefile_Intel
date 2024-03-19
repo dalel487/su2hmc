@@ -10,7 +10,7 @@ IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include" -I ./ -I../production_c\
 CFLAGS=  -qmkl -qopt-zmm-usage=high -MD -D__NVCC__ -static-intel -static-libgcc \
 			-xSKYLAKE -ax'SKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE'\
 			-DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__ -qopenmp -qno-openmp-offload\
-			-qopenmp-simd -DSA3AT -use-intel-optimized-headers $(IFLAGS) 
+			-qopenmp-simd -DSA3AT -use-intel-optimized-headers -diag-disable=10441 $(IFLAGS) 
 
 MKLFLAGS=	-qmkl -L${MKLROOT}/lib/intel64 -limf #-DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
 CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/2024/cuda/lib64/ \
@@ -77,7 +77,7 @@ CEDT=	$(CSRC:.c=.c~)
 CUEDT=	$(CUSRC:.cu=.cu~)
 TMP=	$(MOD) $(CEDT) $(CUEDT) core
 
-profiler:	CFLAGS += -g #-D_DEBUG
+profiler:	CFLAGS += -g -D_DEBUG
 profiler:	NVCCFLAGS += -G -g -lineinfo  -keep
 profiler:	release
 
@@ -85,12 +85,12 @@ release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high
 release:	NVCCFLAGS += -O3 -arch=sm_75 --maxrregcount=64
 release:	$(EXE)
 
-diagnostics: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME #-DNO_SPACE
-diagnostics: NVCCFLAGS+=-DDIAGNOSTIC #-DNO_TIME #-DNO_SPACE
+diagnostics: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
+diagnostics: NVCCFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 diagnostics: debug
 
-debug:		CFLAGS += -O0 -g -D_DEBUGCG -rdynamic 
-debug:		NVCCFLAGS += -O0 -G -g -D_DEBUGCG  -arch=sm_75 --maxrregcount=255  -keep 
+debug:		CFLAGS += -O0 -g -D_DEBUG -rdynamic 
+debug:		NVCCFLAGS += -O0 -G -g -D_DEBUG -arch=sm_75 --maxrregcount=255  -keep 
 debug:		$(EXE)
 
 		 

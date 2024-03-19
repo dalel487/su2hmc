@@ -266,7 +266,13 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 	//Iterating over flavours
 	for(int na=0;na<nf;na++){
 #ifdef __NVCC__
+#ifdef _DEBUG
+		cudaDeviceSynchronise();
+#endif
 		cudaMemcpyAsync(X1,X0+na*kferm2,kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice,streams[0]);
+#ifdef _DEBUG
+		cudaDeviceSynchronise();
+#endif
 #else
 		memcpy(X1,X0+na*kferm2,kferm2*sizeof(Complex));
 #endif
@@ -366,6 +372,21 @@ inline int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
 			for(int ic= 0; ic<nc; ic++)
 				//	  PHI_index=i*16+j*2+k;
 				smallPhi[(i*ndirac+idirac)*nc+ic]=Phi[((na*kvol+i)*ngorkov+idirac)*nc+ic];
+#endif
+	return 0;
+}
+inline int UpDownPart(const int na, Complex *X0, Complex *R1){
+#ifdef __NVCC__
+	cuUpDownPart(na,X0,R1,dimBlock,dimGrid);
+	cudaDeviceSynchronise();
+#else
+	//The only reason this was removed from the original function is for diagnostics
+#pragma omp parallel for simd collapse(2) aligned(X0,R1:AVX)
+	for(int i=0; i<kvol; i++)
+		for(int idirac = 0; idirac < ndirac; idirac++){
+			X0[((na*kvol+i)*ndirac+idirac)*nc]=R1[(i*ngorkov+idirac)*nc];
+			X0[((na*kvol+i)*ndirac+idirac)*nc+1]=R1[(i*ngorkov+idirac)*nc+1];
+		}
 #endif
 	return 0;
 }
