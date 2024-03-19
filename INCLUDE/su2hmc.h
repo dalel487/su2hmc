@@ -68,6 +68,7 @@ extern "C"
 	extern int C_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu);
 	extern int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu);
 	extern int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi);
+	extern int UpDownPart(const int na, Complex *X0, Complex *R1);
 
 	//CUDA Declarations:
 	//#################

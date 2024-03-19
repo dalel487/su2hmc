@@ -330,7 +330,12 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 	cudaMallocManaged(&R1, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMalloc(&Phi, nf*kferm*sizeof(Complex));
+#ifdef _DEBUG
+	cudaMallocManaged(&X0, nf*kferm2*sizeof(Complex),cudaMemAttachGlobal);
+#else
 	cudaMalloc(&X0, nf*kferm2*sizeof(Complex));
+#endif
+
 	cudaMallocManaged(&X1, kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&pp, kmom*sizeof(double),cudaMemAttachGlobal);
 	cudaMalloc(&dSdpi, kmom*sizeof(double));
@@ -372,13 +377,16 @@ int main(int argc, char *argv[]){
 			//or stick with MKL and synchronise/copy over the array
 #ifdef __NVCC__
 			Complex_f *R,*R1_f;
+#ifdef _DEBUG
+			cudaMallocManaged(&R1_f,kferm*sizeof(Complex_f),cudaMemAttachGlobal);
+#else
 			cudaMallocAsync(&R1_f,kferm*sizeof(Complex_f),streams[0]);
+#endif
 			cudaMallocManaged(&R,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
 #else
 			Complex_f *R=aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 			Complex_f *R1_f=aligned_alloc(AVX,kferm*sizeof(Complex_f));
 #endif
-			//Multiply the dimension of R by 2 because R is complex
 			//The FORTRAN code had two Gaussian routines.
 			//gaussp was the normal Box-Muller and gauss0 didn't have 2 inside the square root
 			//Using σ=1/sqrt(2) in these routines has the same effect as gauss0
@@ -389,16 +397,29 @@ int main(int argc, char *argv[]){
 #endif
 #ifdef __NVCC__
 			cudaMemPrefetchAsync(R,kferm*sizeof(Complex_f),device,NULL);
+			cudaDeviceSynchronise();
 #endif
 			Dslashd_f(R1_f,R,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
+#ifdef _DEBUG
 #ifdef __NVCC__
-//cudaFree is blocking so don't need to synchronise
+			cudaDeviceSynchronise();
+			cudaMemPrefetchAsync(R1_f,kferm*sizeof(Complex_f),device,NULL);
+#endif
+			if(!rank)
+				printf("na=%d\tR1_f[kferm-1]=%.5e+%.5ei\n", na, creal(R1_f[kferm-1]), cimag(R1_f[kferm-1]));
+#endif
+#ifdef __NVCC__
+			//Make sure the multiplication is finished before freeing its input!!
+			cudaDeviceSynchronise();
+			//cudaFree is blocking so don't need to synchronise
 			cudaFree(R);
 			cuReal_convert(R1_f,R1,kferm,false,dimBlock,dimGrid);
-			cudaFreeAsync(R1_f,streams[0]);
-			cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,streams[1]);
-			//Up/down partitioning (using only pseudofermions of flavour 1)
-			cuUpDownPart(na,X0,R1,dimBlock,dimGrid);
+			//cudaDeviceSynchronise();
+			//cudaFreeAsync(R1_f,NULL);
+			cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,NULL);
+			//			cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,streams[1]);
+			cudaDeviceSynchronise();
+			cudaFreeAsync(R1_f,NULL);
 			//cudaFree is blocking so don't need cudaDeviceSynchronise()
 #else
 			free(R); 
@@ -408,12 +429,21 @@ int main(int argc, char *argv[]){
 			free(R1_f);
 			memcpy(Phi+na*kferm,R1, kferm*sizeof(Complex));
 			//Up/down partitioning (using only pseudofermions of flavour 1)
-#pragma omp parallel for simd collapse(2) aligned(X0,R1:AVX)
-			for(int i=0; i<kvol; i++)
-				for(int idirac = 0; idirac < ndirac; idirac++){
-					X0[((na*kvol+i)*ndirac+idirac)*nc]=R1[(i*ngorkov+idirac)*nc];
-					X0[((na*kvol+i)*ndirac+idirac)*nc+1]=R1[(i*ngorkov+idirac)*nc+1];
-				}
+#endif
+			UpDownPart(na, X0, R1);
+#ifdef _DEBUG
+			if(!rank){
+				FILE *UpDownDebug = fopen("UpDownDebug","w");
+				for(int i=0; i<kvol; i++)
+					for(int idirac = 0; idirac < ndirac; idirac++){
+						fprintf(UpDownDebug,"X0[%d]:\t%.5e+%.5ei\tX0[%d]:\t%.5e+%.5ei\n",((na*kvol+i)*ndirac+idirac)*nc,
+								creal(X0[((na*kvol+i)*ndirac+idirac)*nc]),cimag(X0[((na*kvol+i)*ndirac+idirac)*nc]),
+								((na*kvol+i)*ndirac+idirac)*nc+1,
+								creal(X0[((na*kvol+i)*ndirac+idirac)*nc+1]),cimag(X0[((na*kvol+i)*ndirac+idirac)*nc+1]));
+					}
+
+				fclose(UpDownDebug);
+			}
 #endif
 		}	
 		//Heatbath
@@ -746,9 +776,15 @@ int main(int argc, char *argv[]){
 #if (defined SA3AT)
 	if(!rank){
 		FILE *sa3at = fopen("Bench_times.csv", "a");
+#ifdef __NVCC__
+		char *version[256];
+		sprintf(version,"%s\n%s",cudaRuntimeGetVersion,__VERSION__);
+#else
+		char *version=__VERSION__;
+#endif
 		fprintf(sa3at, "%s\nβ%0.3f κ:%0.4f μ:%0.4f j:%0.3f s:%i t:%i kvol:%ld\n"
 				"npx:%i npt:%i nthread:%i ncore:%i time:%f traj_time:%f\n\n",\
-				__VERSION__,beta,akappa,fmu,ajq,nx,nt,kvol,npx,npt,nthreads,npx*npy*npz*npt*nthreads,elapsed,elapsed/ntraj);
+				version,beta,akappa,fmu,ajq,nx,nt,kvol,npx,npt,nthreads,npx*npy*npz*npt*nthreads,elapsed,elapsed/ntraj);
 		fclose(sa3at);
 	}
 #endif

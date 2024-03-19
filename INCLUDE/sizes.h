@@ -59,7 +59,7 @@ extern cudaMemPool_t mempool;
 #define	FILELEN	64
 // Common block definition for parallel variables
 
-#define	nx 8
+#define	nx 4
 #if(nx<1)
 #error "nx is expected it to be greater than or equal to 1"
 #endif
@@ -76,7 +76,7 @@ extern cudaMemPool_t mempool;
 #error "nz is expected it to be greater than or equal to 1"
 #endif
 
-#define	nt	8
+#define	nt	4
 #if(nt<1)
 #error "nt is expected it to be greater than or equal to 1"
 #endif
@@ -84,7 +84,7 @@ extern cudaMemPool_t mempool;
 #define	gvol    (nx*ny*nz*nt)
 #define	gvol3   (nx*ny*nz)
 
-#define	npx	2
+#define	npx	1
 #if(npx<1)
 #error "npx is expected it to be greater than or equal to 1"
 #elif(nx%npx!=0)
@@ -108,7 +108,7 @@ extern cudaMemPool_t mempool;
 #error "npz should be a divisor of nz"
 #endif
 
-#define	npt	2
+#define	npt	1
 #if(npt<1)
 #error "npt is expected it to be greater than or equal to 1"
 #elif(nt%npt!=0)
@@ -118,7 +118,7 @@ extern cudaMemPool_t mempool;
 #define	nproc	(npx*npy*npz*npt)
 
 //Number of threads for OpenMP, which can be overwritten at runtime
-#define	nthreads	1
+#define	nthreads	16
 
 //    Existing parameter definitions.
 #define	ksizex	(nx/npx)
@@ -140,7 +140,7 @@ extern cudaMemPool_t mempool;
 #if(nx>=(3*nt)/2)
 #define	niterc	gvol3
 #else
-#define	niterc	(gvol/4)
+#define	niterc	gvol
 #endif
 //    Constants for dimensions.
 #define	nc	2
