@@ -83,7 +83,7 @@ extern cudaMemPool_t mempool;
 #endif
 
 ///	@brief	Lattice temporal extent. This also corresponds to the inverse temperature
-#define	nt	4
+#define	nt	16
 #if(nt<1)
 #error "nt is expected it to be greater than or equal to 1"
 #endif
