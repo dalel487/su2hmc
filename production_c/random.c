@@ -37,7 +37,7 @@ VSLStreamStatePtr stream;
 #endif
 
 #ifdef __RANLUX__
-/**
+/*
  * @brief Seed the ranlux generator from GSL
  *
  * @param *seed pointer to seed
@@ -48,7 +48,7 @@ VSLStreamStatePtr stream;
  */
 inline int ranset(unsigned long *seed)
 #elif (defined __INTEL_MKL__&&!defined USE_RAN2)
-/**
+/*
  * @brief Seed the Intel Mersenne twister generator
  *
  * @param *seed pointer to seed
@@ -59,7 +59,7 @@ inline int ranset(unsigned long *seed)
  */
 inline int ranset(unsigned int *seed)
 #else
-/**
+/*
  * @brief Dummy seed the ran2 generator
  *
  * @param seed pointer to seed
@@ -112,7 +112,7 @@ int Par_ranread(char *filename, double *ranval){
 	return 0;
 }
 #if (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))
-	/**
+	/*
 	 * @brief Uses the rank to get a new seed.
 	 * Copying from the FORTRAN description here 
 	 * c     create new seeds in range seed to 9*seed
@@ -129,7 +129,7 @@ int Par_ranread(char *filename, double *ranval){
 	 */
 int Par_ranset(long *seed,int iread)
 #elif defined __RANLUX__
-	/**
+	/*
 	 * @brief Uses the rank to get a new seed.
 	 * Copying from the FORTRAN description here 
 	 * c     create new seeds in range seed to 9*seed
@@ -146,7 +146,7 @@ int Par_ranset(long *seed,int iread)
 	 */
 int Par_ranset(unsigned long *seed,int iread)
 #elif (defined __INTEL_MKL__||defined __RANLUX__)
-	/**
+	/*
 	 * @brief Uses the rank to get a new seed.
 	 * Copying from the FORTRAN description here 
 	 * c     create new seeds in range seed to 9*seed
@@ -183,7 +183,7 @@ int Par_ranset(unsigned int *seed,int iread)
 #endif
 }
 double Par_granf(){
-	/**
+	/*
 	 * @brief Generates a random double which is then sent to the other ranks
 	 *
 	 * @see ran2(), par_dcopy(), gsl_rng_uniform(), vdRngUniform()
@@ -207,7 +207,7 @@ double Par_granf(){
 	return ran_val;
 }
 int Gauss_z(Complex *ps, unsigned int n, const Complex mu, const double sigma){
-	/**
+	/*
 	 * @brief	Generates a vector of normally distributed random double precision complex numbers using the Box-Muller Method
 	 * 
 	 * @param	ps:		The output array
@@ -253,7 +253,7 @@ int Gauss_z(Complex *ps, unsigned int n, const Complex mu, const double sigma){
 	return 0;
 }
 int Gauss_c(Complex_f *ps, unsigned int n, const Complex_f mu, const float sigma){
-	/**
+	/*
 	 * @brief	Generates a vector of normally distributed random single precision complex numbers using the Box-Muller Method
 	 * 
 	 * @param	ps:		The output array
@@ -299,7 +299,7 @@ int Gauss_c(Complex_f *ps, unsigned int n, const Complex_f mu, const float sigma
 	return 0;
 }
 int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma){
-	/**
+	/*
 	 * @brief	Generates a vector of normally distributed random double precision numbers using the Box-Muller Method
 	 * 
 	 * @param	ps:		The output array
@@ -362,7 +362,7 @@ int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma){
 	return 0;
 }
 int Gauss_f(float *ps, unsigned int n, const float mu, const float sigma){
-	/**
+	/*
 	 * @brief	Generates a vector of normally distributed random single precision numbers using the Box-Muller Method
 	 * 
 	 * @param	ps:		The output array
@@ -432,7 +432,7 @@ int Gauss_f(float *ps, unsigned int n, const float mu, const float sigma){
 	return 0;
 }
 double ran2(long *idum) {
-	/**
+	/*
 	 * @brief	Generates uniformly distributed random double between zero and one as
 	 * 			described in numerical recipes. It's also thread-safe for different seeds.
 	 *

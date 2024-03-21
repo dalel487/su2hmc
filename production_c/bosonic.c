@@ -6,20 +6,26 @@
 #include	<par_mpi.h>
 #include	<su2hmc.h>
 int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u11t, Complex_f *u12t, unsigned int *iu, float beta){
-	/** 
-	 * @brief	Calculates the gauge action using new (how new?) lookup table
-	 * @brief	Follows a routine called qedplaq in some QED3 code
+	/* 
+	 *	Calculates the gauge action using new (how new?) lookup table
+	 *	Follows a routine called qedplaq in some QED3 code
+	 * 
+	 * Parameters:
+	 * =========
+	 * hg				Gauge component of Hamilton
+	 * avplaqs		Average spacial Plaquette
+	 * avplaqt		Average Temporal Plaquette
+	 * u11t,u12t	The trial fields
+	 * iu				Upper halo indices
+	 * beta			Inverse gauge coupling
 	 *
-	 * @param	hg				Gauge component of Hamilton
-	 * @param	avplaqs		Average spacial Plaquette
-	 * @param	avplaqt		Average Temporal Plaquette
-	 * @param	u11t,u12t	The trial fields
-	 * @param	iu				Upper halo indices
-	 * @param	beta			Inverse gauge coupling
+	 * Calls:
+	 * =====
+	 * Par_dsum
 	 *
-	 * @see Par_dsum
-	 *
-	 * @return Zero on success, integer error code otherwise
+	 * Return:
+	 * ======
+	 * Zero on success, integer error code otherwise
 	 */
 	const char *funcname = "Average_Plaquette";
 	/*There was a halo exchange here but moved it outside
@@ -63,16 +69,20 @@ int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u
 }
 #pragma omp declare simd
 inline float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int i, int mu, int nu){
-	/**
-	 * @brief Calculates the plaquette at site i in the μ-ν direction
-	 *
-	 * @param u11t, u12t:	Trial fields
-	 * @param int *iu:	Upper halo indices
-	 * @param mu, nu:				Plaquette direction. Note that mu and nu can be negative
+	/*
+	 * Calculates the plaquette at site i in the μ-ν direction
+	 *	
+	 *	Parameters:
+	 *	==========
+	 * u11t, u12t:	Trial fields
+	 * int *iu:	Upper halo indices
+	 * mu, nu:				Plaquette direction. Note that mu and nu can be negative
 	 * 							to facilitate calculating plaquettes for Clover terms. No
 	 * 							sanity checks are conducted on them in this routine.
 	 *
-	 * @return double corresponding to the plaquette value
+	 * Return:
+	 * =======
+	 * double corresponding to the plaquette value
 	 *
 	 */
 	const char *funcname = "SU2plaq";
@@ -91,14 +101,20 @@ inline float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int i, 
 	return creal(Sigma11);
 }
 double Polyakov(Complex_f *u11t, Complex_f *u12t){
-	/**
-	 * @brief Calculate the Polyakov loop (no prizes for guessing that one...)
+	/*
+	 * Calculate the Polyakov loop (no prizes for guessing that one...)
 	 * 
-	 * @param	u11t, u12t	The gauge fields
+	 * Parameters:
+	 * =========
+	 * u11t, u12t	The gauge fields
 	 *
-	 * @see Par_tmul, Par_dsum
+	 * Calls:
+	 * ======
+	 * Par_tmul, Par_dsum
 	 * 
-	 * @return Double corresponding to the polyakov loop
+	 * Return:
+	 * ======
+	 * Double corresponding to the polyakov loop
 	 */
 	const char *funcname = "Polyakov";
 	double poly = 0;

@@ -2,6 +2,12 @@
  * @file matrices.c
  *
  * @brief Matrix multiplication and related routines
+ *
+ * There are two four matrix mutiplication routines, and each had a double and single (_f) version
+ * The Hdslash? routines are called when acting on half of the fermions (up/down flavour partitioning)
+ * The Dslash routines act on everything
+ *
+ * Any routine ending in a d is the daggered multiplication
  */
 #include <assert.h>
 #include <complex.h>
@@ -11,7 +17,7 @@
 //and use a variable to hold them instead to reduce the number of evaluations.
 int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int *iu,unsigned int *id,\
 		Complex *gamval, int *gamin, double *dk4m, double *dk4p, Complex_f jqq, float akappa){
-	/**
+	/*
 	 * @brief Evaluates @f(\Phi=M r@f) in double precision.
 	 *
 	 * @param	phi:			The product
@@ -133,7 +139,7 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int 
 }
 int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
 		Complex *gamval, int *gamin, double *dk4m, double *dk4p, Complex_f jqq, float akappa){
-	/**
+	/*
 	 * @brief Evaluates @f(\Phi=M^\dagger r@f) in double precision.
 	 *
 	 * @param	phi:			The product
@@ -259,7 +265,7 @@ int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int 
 }
 int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int *iu,unsigned  int *id,\
 		Complex *gamval, int *gamin, double *dk4m, double *dk4p, float akappa){
-	/**
+	/*
 	 * @brief Evaluates @f(\Phi=M r@f) in double precision
 	 *
 	 * @param	phi:		The product
@@ -349,7 +355,7 @@ int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int
 }
 int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int *iu,unsigned  int *id,\
 		Complex *gamval, int *gamin, double *dk4m, double *dk4p, float akappa){
-	/**
+	/*
 	 * @brief Evaluates @f(\Phi=M^\dagger r@f) in double precision
 	 *
 	 * @param	phi:		The product
@@ -452,7 +458,7 @@ int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  in
 //int Dslash_f(Complex_f *phi, Complex_f *r){
 int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu, unsigned int *id,\
 		Complex_f *gamval_f,	int *gamin,	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
-	/**
+	/*
 	 * @brief Evaluates @f(\Phi=M r@f) in single precision.
 	 *
 	 * @param	phi:			The product
@@ -575,7 +581,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 }
 int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
 		Complex_f *gamval_f, int *gamin, float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
-	/**
+	/*
 	 * @brief Evaluates @f(\Phi=M^\dagger r@f) in single precision.
 	 *
 	 * @param	phi:			The product
@@ -708,7 +714,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 }
 int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned  int *iu,unsigned  int *id,\
 		Complex_f *gamval_f, int *gamin, float *dk4m_f, float *dk4p_f, float akappa){
-	/**
+	/*
 	 * @brief Evaluates @f(\Phi=M r@f) in single precision.
 	 *
 	 * @param	phi:		The product
@@ -797,7 +803,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 }
 int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
 		Complex_f *gamval_f, int *gamin, float *dk4m_f, float *dk4p_f, float akappa){
-	/**
+	/*
 	 * @brief Evaluates @f(\Phi=M^\dagger r@f) in single precision
 	 *
 	 * @param	phi:		The product
@@ -897,7 +903,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_
 	return 0;
 }
 int New_trial(double dt, double *pp, Complex *u11t, Complex *u12t){
-	/**
+	/*
 	 * @brief Generates new trial fields
 	 *
 	 * @see cuNew_trial (CUDA Wrapper)
@@ -916,7 +922,7 @@ int New_trial(double dt, double *pp, Complex *u11t, Complex *u12t){
 #pragma omp parallel for simd collapse(2) aligned(pp,u11t,u12t:AVX) 
 	for(int i=0;i<kvol;i++)
 		for(int mu = 0; mu<ndim; mu++){
-			/**
+			/*
 			 * Sticking to what was in the FORTRAN for variable names.
 			 * CCC for cosine SSS for sine AAA for...
 			 * Re-exponentiating the force field. Can be done analytically in SU(2)
@@ -940,7 +946,7 @@ int New_trial(double dt, double *pp, Complex *u11t, Complex *u12t){
 	return 0;
 }
 inline int Reunitarise(Complex *u11t, Complex *u12t){
-	/**
+	/*
 	 * @brief Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1
 	 *
 	 * If you're looking at the FORTRAN code be careful. There are two header files
@@ -981,7 +987,7 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 		float *dk4m_f, float *dk4p_f, int *gamin, Complex *gamval, Complex_f *gamval_f,\
 		Complex_f jqq,float akappa,float beta, double ancg){
 	//TODO: Give this it's own file
-	/**
+	/*
 	 * @brief Routine to check if the varous routines are working or not
 	 * 
 	 * How I hope this will work is that

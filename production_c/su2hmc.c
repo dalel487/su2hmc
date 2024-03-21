@@ -204,25 +204,29 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 		Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f, unsigned int * iu, unsigned int *id,\
 		Complex_f *gamval_f, int *gamin, float *dk4m_f, float * dk4p_f, Complex_f jqq,\
 		float akappa, float beta, double *ancgh){
-	/* Evaluates the Hamiltonian function
+	/*
+	 * @brief Calculate the Hamiltonian
 	 * 
-	 * Calls:
-	 * =====
-	 * Average_Plaquette, Par_dsum, Congradq, Fill_Small_Phi
 	 *
-	 * Globals:
-	 * =======
-	 * pp, rank, ancgh, X0, X1, Phi
+	 * @param	h:						Hamiltonian
+	 * @param	s:						Action
+	 * @param	res2:					Limit for conjugate gradient
+	 * @param	X0:
+	 * @param	X1:
+	 * @param	Phi:
+	 * @param	u11t,u12t:			Gauge fields
+	 * @param	u11t_f,u12t_f:		Gauge fields
+	 * @param	iu,id:				Lattice indices
+	 * @param	gamval_f:			Gamma matrices
+	 * @param	gamin:				Gamma indices
+	 * @param	dk4m_f:				Î exp(-Î) float	
+	 * @param	dk4p_f:				Î exp(Î¼) float 	
+	 * @param	jqq:					Diquark source
+	 * @param	akappa:				Hopping parameter
+	 * @param	beta:					Inverse gauge coupling
+	 * @param	ancgh:				Conjugate gradient iterations counter 
 	 *
-	 * Parameters:
-	 * ===========
-	 * double *h: Hamiltonian
-	 * double *s: Action
-	 * double res2: Limit for conjugate gradient
-	 *
-	 * Returns:
-	 * =======
-	 * Zero on success. Integer Error code otherwise.
+	 * @return	Zero on success. Integer Error code otherwise.
 	 */	
 	const char *funcname = "Hamilton";
 	//Iterate over momentum terms.

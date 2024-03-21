@@ -1,6 +1,6 @@
-/*
- * Code for force calculations.
- * Requires multiply.cu to work
+/**
+ * @file force.c
+ * @brief Code for force calculations.
  */
 #include	<matrices.h>
 int Gauge_force(double *dSdpi, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id, float beta){

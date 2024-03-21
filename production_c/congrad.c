@@ -8,7 +8,7 @@
 #include	<su2hmc.h>
 int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f *u12t,unsigned int *iu,unsigned int *id,\
 		Complex_f *gamval_f,int *gamin,float *dk4m,float *dk4p,Complex_f jqq,float akappa,int *itercg){
-	/**
+	/*
 	 * @brief Matrix Inversion via Mixed Precision Conjugate Gradient
 	 * Solves @f$(M^\dagger)Mx=\Phi@f$
 	 * Implements up/down partitioning
@@ -264,7 +264,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 }
 int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_f *u12t,unsigned int *iu,unsigned int *id,\
 		Complex_f *gamval,int *gamin, float *dk4m,float *dk4p,Complex_f jqq,float akappa,int *itercg){
-	/**
+	/*
 	 * @brief Matrix Inversion via Conjugate Gradient
 	 * Solves @f$(M^\dagger)Mx=\Phi@f$
 	 * No even/odd partitioning.

@@ -1,5 +1,6 @@
-/*
- *Code for fermionic observables
+/**
+ *	@file fermionic.c
+ *	@brief Code for fermionic observables
  */
 #include	<matrices.h>
 #include	<random.h>
@@ -9,42 +10,37 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 		Complex *gamval, Complex_f *gamval_f,	int *gamin, double *dk4m, double *dk4p,\
 		float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa,	Complex *Phi, Complex *R1){
 	/*
-	 * Calculate fermion expectation values via a noisy estimator
-	 * -matrix inversion via conjugate gradient algorithm
-	 * solves Mx=x1
+	 * @brief	Calculate fermion expectation values via a noisy estimator
+	 * 
+	 * Matrix inversion via conjugate gradient algorithm
+	 * Solves @f(Mx=x_1@f)
 	 * (Numerical Recipes section 2.10 pp.70-73)   
 	 * uses NEW lookup tables **
-	 * Implemented in CongradX
+	 * Implemented in Congradq
 	 *
-	 * Calls:
-	 * =====
-	 * Gauss_z, Par_dsum, ZHalo_swap_dir, Congradp, Dslashd
 	 *
 	 * Parameters:
 	 * ==========
-	 * double		*pbp:			Pointer to Ïˆ-bar Ïˆ
-	 * double		*endenf:		Energy density
-	 * double		*denf:		Number Density
-	 * Complex 		*qq:			Diquark
-	 * Complex		*qbqb:		Antidiquark
-	 * double		res:			Conjugate Gradient Residue
-	 * int			itercg:		Iterations of Conjugate Gradient
-	 * Complex		*u11t:		First colour trial field
-	 * Complex		*u12t:		Second colour trial field
-	 * Complex_f	*u11t_f:		First colour trial field
-	 * Complex_f	*u12t_f:		Second colour trial field
-	 *	int			*iu:			Upper halo indices
-	 *	int			*id:			Lower halo indices
-	 *	Complex_f	*gamval_f:	Gamma matrices
-	 *	int			*gamin:		Indices for Dirac terms
-	 *	float			*dk4m_f:	
-	 *	float			*dk4p_f:	
-	 *	Complex_f	jqq:			Diquark source
-	 *	float			akappa:		Hopping parameter
+	 * @param	pbp:				@f(\langle\bar{\Psi}\Psi\rangle@f)
+	 *	@param	endenf:			Energy density
+	 *	@param	denf:				Number Density
+	 *	@param	qq:				Diquark condensate
+	 *	@param	qbqb:				Antidiquark condensate
+	 *	@param	res:				Conjugate Gradient Residue
+	 *	@param	itercg:			Iterations of Conjugate Gradient
+	 * @param	u11t,u12t		Double precisiongauge field
+	 * @param	u11t_f,u12t_f:	Single precision gauge fields
+	 *	@param	iu,id				Lattice indices
+	 *	@param	gamval_f:		Gamma matrices
+	 *	@param	gamin:			Indices for Dirac terms
+	 * @param	dk4m_f:			Î exp(-Î) float	
+	 * @param	dk4p_f:			Î exp(Î¼) float 	
+	 *	@param	jqq:				Diquark source
+	 *	@param	akappa:			Hopping parameter
+	 *	@param	Phi:			
+	 *	@param	R1:
 	 *
-	 * Returns:
-	 * =======
-	 * Zero on success, integer error code otherwise
+	 * @return Zero on success, integer error code otherwise
 	 */
 	const char *funcname = "Measure";
 	//This x is just a storage container
