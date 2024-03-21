@@ -1,35 +1,36 @@
+/**
+ * @file congrad.c
+ *
+ * @brief Conjugate gradients. Congradq for the solver and Congradp for the inversion
+ */
 #include	<matrices.h>
 #include	<par_mpi.h>
 #include	<su2hmc.h>
 int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f *u12t,unsigned int *iu,unsigned int *id,\
 		Complex_f *gamval_f,int *gamin,float *dk4m,float *dk4p,Complex_f jqq,float akappa,int *itercg){
-	/*
+	/**
 	 * @brief Matrix Inversion via Mixed Precision Conjugate Gradient
-	 * Solves @f$ (M^†)Mx=\Phi@f$
+	 * Solves @f$(M^\dagger)Mx=\Phi@f$
 	 * Implements up/down partitioning
 	 * The matrix multiplication step is done at single precision, while the update is done at double
 	 *
-	 * Parameters:
-	 * ==========
 	 * @param  na:				Flavour index
 	 * @param  res:			Limit for conjugate gradient
-	 * @param  *X1:			Phi initially, returned as (M†M)^{1} Phi
-	 * @param  *r:				Partition of Phi being used. Gets recycled as the residual vector
-	 * @param  *u11t:			First colour's trial field
-	 * @param  *u12t:			Second colour's trial field
-	 * @param  *iu:			Upper halo indices
-	 * @param  *id:			Lower halo indices
-	 * @param  *gamval_f:	Gamma matrices
-	 * @param  *gamin:		Dirac indices
-	 * @param  *dk4m:
-	 * @param  *dk4p:
+	 * @param  X1:				@f(\Phi@f) initially, returned as @f((M^\dagger M)^{-1} \Phi@f)
+	 * @param  r:				Partition of @f(\Phi@f) being used. Gets recycled as the residual vector
+	 * @param  u11t:			First colour's trial field
+	 * @param  u12t:			Second colour's trial field
+	 * @param  iu:				Upper halo indices
+	 * @param  id:				Lower halo indices
+	 * @param  gamval_f:		Gamma matrices
+	 * @param  gamin:			Dirac indices
+	 * @param  dk4m:
+	 * @param  dk4p:
 	 * @param  jqq:			Diquark source
 	 * @param  akappa:		Hopping Parameter
-	 * @param  *itercg:		Counts the iterations of the conjugate gradient
+	 * @param  itercg:		Counts the iterations of the conjugate gradient
 	 * 
-	 * Calls:
-	 * =====
-	 * Hdslash_f(), Hdslashd_f(), Par_fsum(), Par_dsum()
+	 * @see Hdslash_f(), Hdslashd_f(), Par_fsum(), Par_dsum()
 	 *
 	 * @return 0 on success, integer error code otherwise
 	 */
@@ -263,32 +264,29 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 }
 int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_f *u12t,unsigned int *iu,unsigned int *id,\
 		Complex_f *gamval,int *gamin, float *dk4m,float *dk4p,Complex_f jqq,float akappa,int *itercg){
-	/*
+	/**
 	 * @brief Matrix Inversion via Conjugate Gradient
-	 * Solves @f$(M^†)Mx=\Phi@f$
-	 * No even/odd partitioning
+	 * Solves @f$(M^\dagger)Mx=\Phi@f$
+	 * No even/odd partitioning.
+	 * The matrix multiplication step is done at single precision, while the update is done at double
 	 *
-	 * Parameters:
-	 * ==========
 	 * @param 	na:			Flavour index
 	 * @param 	res:			Limit for conjugate gradient
-	 * @param 	*Phi:			Phi initially, 
-	 * @param 	*r:			Returned as (M†M)^{1} Phi
-	 * @param 	*u11t:		First colour's trial field
-	 * @param 	*u12t:		Second colour's trial field
-	 * @param 	*iu:			Upper halo indices
-	 * @param 	*id:			Lower halo indices
-	 * @param 	*gamval:		Gamma matrices
-	 * @param 	*gamin:		Dirac indices
-	 * @param 	*dk4m:
-	 * @param 	*dk4p:
+	 * @param 	Phi:			@f(\Phi@f) initially, 
+	 * @param 	xi:			Returned as @f((M^\dagger M)^{-1} \Phi@f)
+	 * @param 	u11t:			First colour's trial field
+	 * @param 	u12t:			Second colour's trial field
+	 * @param 	iu:			Upper halo indices
+	 * @param 	id:			Lower halo indices
+	 * @param 	gamval:		Gamma matrices
+	 * @param 	gamin:		Dirac indices
+	 * @param 	dk4m:
+	 * @param 	dk4p:
 	 * @param 	jqq:			Diquark source
 	 * @param 	akappa:		Hopping Parameter
-	 * @param 	*itercg:		Counts the iterations of the conjugate gradient
+	 * @param 	itercg:		Counts the iterations of the conjugate gradient
 	 * 
-	 * Calls:
-	 * =====
-	 * Dslash(), Dslashd(), Par_fsum(), Par_dsum()
+	 * @see Dslash(), Dslashd(), Par_fsum(), Par_dsum()
 	 *
 	 * @return 0 on success, integer error code otherwise
 	 */

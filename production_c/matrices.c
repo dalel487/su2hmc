@@ -1,3 +1,8 @@
+/**
+ * @file matrices.c
+ *
+ * @brief Matrix multiplication and related routines
+ */
 #include <assert.h>
 #include <complex.h>
 #include <matrices.h>
@@ -6,31 +11,25 @@
 //and use a variable to hold them instead to reduce the number of evaluations.
 int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int *iu,unsigned int *id,\
 		Complex *gamval, int *gamin, double *dk4m, double *dk4p, Complex_f jqq, float akappa){
-	/*
-	 * Evaluates phi= M*r
+	/**
+	 * @brief Evaluates @f(\Phi=M r@f) in double precision.
 	 *
-	 * Calls:
-	 * ======
-	 * ZHalo_swap_all (Non-mpi version could do without these)
+	 * @param	phi:			The product
+	 * @param	r:				The array being acted on by M
+	 * @param	u11t:		First colour trial field
+	 * @param	u12t:		Second colour trial field
+	 *	@param	iu:			Upper halo indices
+	 *	@param	id:			Lower halo indices
+	 *	@param	gamval:	Gamma matrices
+	 *	@param	gamin:		Indices for dirac terms
+	 *	@param	dk4m:		
+	 *	@param	dk4p:		
+	 *	@param	jqq:			Diquark source
+	 *	@param	akappa:		Hopping parameter
 	 *
-	 * Parameter:
-	 * ==========
-	 * Complex	*phi:		The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
-	 * 						for consistency with the FORTRAN code I'll keep the name here
-	 * Complex	*r:		The array being acted on by M
-	 * Complex	*u11t:	First colour trial field
-	 * Complex	*u12t:	Second colour trial field
-	 *	int		*iu:		Upper halo indices
-	 *	int		*id:		Lower halo indices
-	 *	Complex	*gamval:	Gamma matrices
-	 *	int		*gamin:	Indices for dirac terms
-	 *	double	*dk4m:	
-	 *	double	*dk4p:	
-	 *	Complex	jqq:		Diquark source
-	 *	double	akappa:	Hopping parameter
+	 * @see ZHalo_swap_all (MPI only)
 	 *
-	 * Returns:
-	 * Zero on success, integer error code otherwise
+	 * @return Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Dslash";
 	//Get the halos in order
@@ -134,31 +133,25 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int 
 }
 int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
 		Complex *gamval, int *gamin, double *dk4m, double *dk4p, Complex_f jqq, float akappa){
-	/*
-	 * Evaluates phi= M^†*r
+	/**
+	 * @brief Evaluates @f(\Phi=M^\dagger r@f) in double precision.
 	 *
-	 * Calls:
-	 * ======
-	 * ZHalo_swap_all (Non-mpi version could do without these)
+	 * @param	phi:			The product
+	 * @param	r:				The array being acted on by M
+	 * @param	u11t:		First colour trial field
+	 * @param	u12t:		Second colour trial field
+	 *	@param	iu:			Upper halo indices
+	 *	@param	id:			Lower halo indices
+	 *	@param	gamval:	Gamma matrices
+	 *	@param	gamin:		Indices for dirac terms
+	 *	@param	dk4m:		
+	 *	@param	dk4p:		
+	 *	@param	jqq:			Diquark source
+	 *	@param	akappa:		Hopping parameter
 	 *
-	 * Parameter:
-	 * ==========
-	 * Complex	*phi:		The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
-	 * 						for consistency with the FORTRAN code I'll keep the name here
-	 * Complex	*r:		The array being acted on by M
-	 * Complex	*u11t:	First colour trial field
-	 * Complex	*u12t:	Second colour trial field
-	 *	int		*iu:		Upper halo indices
-	 *	int		*id:		Lower halo indices
-	 *	Complex	*gamval:	Gamma matrices
-	 *	int		*gamin:	Indices for dirac terms
-	 *	double	*dk4m:	
-	 *	double	*dk4p:	
-	 *	Complex	jqq:		Diquark source
-	 *	double	akappa:	Hopping parameter
+	 * @see ZHalo_swap_all (MPI only)
 	 *
-	 * Returns:
-	 * Zero on success, integer error code otherwise
+	 * @return Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Dslashd";
 	//Get the halos in order
@@ -266,32 +259,24 @@ int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int 
 }
 int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int *iu,unsigned  int *id,\
 		Complex *gamval, int *gamin, double *dk4m, double *dk4p, float akappa){
-	//int Hdslash(Complex *phi, Complex *r){
-	/*
-	 * Evaluates phi= M*r
+	/**
+	 * @brief Evaluates @f(\Phi=M r@f) in double precision
 	 *
-	 * Calls:
-	 * ======
-	 * ZHalo_swap_all (Non-mpi version could do without these)
+	 * @param	phi:		The product
+	 * @param	r:			The array being acted on by M
+	 * @param	u11t:	First colour trial field
+	 * @param	u12t:	Second colour trial field
+	 *	@param	iu:		Upper halo indices
+	 *	@param	id:		Lower halo indices
+	 *	@param	gamval:	Gamma matrices
+	 *	@param	gamin:	Indices for dirac terms
+	 *	@param	dk4m:	
+	 *	@param	dk4p:	
+	 *	@param	akappa:	Hopping parameter
 	 *
-	 * Parameter:
-	 * ==========
-	 * Complex	*phi:		The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
-	 * 						for consistency with the FORTRAN code I'll keep the name here
-	 * Complex	*r:		The array being acted on by M
-	 * Complex	*u11t:	First colour trial field
-	 * Complex	*u12t:	Second colour trial field
-	 *	int		*iu:		Upper halo indices
-	 *	int		*id:		Lower halo indices
-	 *	Complex	*gamval:	Gamma matrices
-	 *	int		*gamin:	Indices for dirac terms
-	 *	double	*dk4m:	
-	 *	double	*dk4p:	
-	 *	Complex	jqq:		Diquark source
-	 *	double	akappa:	Hopping parameter
+	 * @see ZHalo_swap_all (MPI only)
 	 *
-	 * Returns:
-	 * Zero on success, integer error code otherwise
+	 * @return Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Hdslash";
 	//Get the halos in order
@@ -364,31 +349,24 @@ int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int
 }
 int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int *iu,unsigned  int *id,\
 		Complex *gamval, int *gamin, double *dk4m, double *dk4p, float akappa){
-	/*
-	 * Evaluates phi= M^†*r
+	/**
+	 * @brief Evaluates @f(\Phi=M^\dagger r@f) in double precision
 	 *
-	 * Calls:
-	 * ======
-	 * ZHalo_swap_all (Non-mpi version could do without these)
+	 * @param	phi:		The product
+	 * @param	r:			The array being acted on by M
+	 * @param	u11t:	First colour trial field
+	 * @param	u12t:	Second colour trial field
+	 *	@param	iu:		Upper halo indices
+	 *	@param	id:		Lower halo indices
+	 *	@param	gamval:	Gamma matrices
+	 *	@param	gamin:	Indices for dirac terms
+	 *	@param	dk4m:	
+	 *	@param	dk4p:	
+	 *	@param	akappa:	Hopping parameter
 	 *
-	 * Parameter:
-	 * ==========
-	 * Complex	*phi:		The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
-	 * 						for consistency with the FORTRAN code I'll keep the name here
-	 * Complex	*r:		The array being acted on by M
-	 * Complex	*u11t:	First colour trial field
-	 * Complex	*u12t:	Second colour trial field
-	 *	int		*iu:		Upper halo indices
-	 *	int		*id:		Lower halo indices
-	 *	Complex	*gamval:	Gamma matrices
-	 *	int		*gamin:	Indices for dirac terms
-	 *	double	*dk4m:	
-	 *	double	*dk4p:	
-	 *	Complex	jqq:		Diquark source
-	 *	double	akappa:	Hopping parameter
+	 * @see ZHalo_swap_all (MPI only)
 	 *
-	 * Returns:
-	 * Zero on success, integer error code otherwise
+	 * @return Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Hdslashd";
 	//Get the halos in order. Because C is row major, we need to extract the correct
@@ -474,31 +452,25 @@ int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  in
 //int Dslash_f(Complex_f *phi, Complex_f *r){
 int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu, unsigned int *id,\
 		Complex_f *gamval_f,	int *gamin,	float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
-	/*
-	 * Evaluates phi= M*r
+	/**
+	 * @brief Evaluates @f(\Phi=M r@f) in single precision.
 	 *
-	 * Calls:
-	 * ======
-	 * CHalo_swap_all (Non-mpi version could do without these)
+	 * @param	phi:			The product
+	 * @param	r:				The array being acted on by M
+	 * @param	u11t_f:		First colour trial field
+	 * @param	u12t_f:		Second colour trial field
+	 *	@param	iu:			Upper halo indices
+	 *	@param	id:			Lower halo indices
+	 *	@param	gamval_f:	Gamma matrices
+	 *	@param	gamin:		Indices for dirac terms
+	 *	@param	dk4m_f:		
+	 *	@param	dk4p_f:		
+	 *	@param	jqq:			Diquark source
+	 *	@param	akappa:		Hopping parameter
 	 *
-	 * Parameter:
-	 * ==========
-	 * Complex_f	*phi:			The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
-	 * 								for consistency with the FORTRAN code I'll keep the name here
-	 * Complex_f	*r:			The array being acted on by M
-	 * Complex_f	*u11t_f:		First colour trial field
-	 * Complex_f	*u12t_f:		Second colour trial field
-	 *	int			*iu:			Upper halo indices
-	 *	int			*id:			Lower halo indices
-	 *	Complex_f	*gamval_f:	Gamma matrices
-	 *	int			*gamin:		Indices for dirac terms
-	 *	float			*dk4m_f:	
-	 *	float			*dk4p_f:	
-	 *	Complex_f	jqq:		Diquark source
-	 *	float			akappa:	Hopping parameter
+	 * @see CHalo_swap_all (MPI only)
 	 *
-	 * Returns:
-	 * Zero on success, integer error code otherwise
+	 * @return Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Dslash_f";
 	//Get the halos in order
@@ -603,31 +575,25 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 }
 int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
 		Complex_f *gamval_f, int *gamin, float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa){
-	/*
-	 * Evaluates phi= M*r
+	/**
+	 * @brief Evaluates @f(\Phi=M^\dagger r@f) in single precision.
 	 *
-	 * Calls:
-	 * ======
-	 * CHalo_swap_all (Non-mpi version could do without these)
+	 * @param	phi:			The product
+	 * @param	r:				The array being acted on by M
+	 * @param	u11t_f:		First colour trial field
+	 * @param	u12t_f:		Second colour trial field
+	 *	@param	iu:			Upper halo indices
+	 *	@param	id:			Lower halo indices
+	 *	@param	gamval_f:	Gamma matrices
+	 *	@param	gamin:		Indices for dirac terms
+	 *	@param	dk4m_f:		
+	 *	@param	dk4p_f:		
+	 *	@param	jqq:			Diquark source
+	 *	@param	akappa:		Hopping parameter
 	 *
-	 * Parameter:
-	 * ==========
-	 * Complex_f	*phi:			The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
-	 * 								for consistency with the FORTRAN code I'll keep the name here
-	 * Complex_f	*r:			The array being acted on by M
-	 * Complex_f	*u11t_f:		First colour trial field
-	 * Complex_f	*u12t_f:		Second colour trial field
-	 *	int			*iu:			Upper halo indices
-	 *	int			*id:			Lower halo indices
-	 *	Complex_f	*gamval_f:	Gamma matrices
-	 *	int			*gamin:		Indices for dirac terms
-	 *	float			*dk4m_f:	
-	 *	float			*dk4p_f:	
-	 *	Complex_f	jqq:		Diquark source
-	 *	float			akappa:	Hopping parameter
+	 * @see CHalo_swap_all (MPI only)
 	 *
-	 * Returns:
-	 * Zero on success, integer error code otherwise
+	 * @return Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Dslashd_f";
 	//Get the halos in order
@@ -640,10 +606,10 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 #ifdef _DEBUG
 	int errc=
 #endif
-	cudaMemcpy(phi, r, kferm*sizeof(Complex_f),cudaMemcpyDefault);
-	#ifdef _DEBUG
+		cudaMemcpy(phi, r, kferm*sizeof(Complex_f),cudaMemcpyDefault);
+#ifdef _DEBUG
 	printf("cudaMemcpy returned %d\n");
-	#endif
+#endif
 	cuDslashd_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm*sizeof(Complex_f));
@@ -742,31 +708,24 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 }
 int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned  int *iu,unsigned  int *id,\
 		Complex_f *gamval_f, int *gamin, float *dk4m_f, float *dk4p_f, float akappa){
-	/*
-	 * Evaluates phi= M*r
+	/**
+	 * @brief Evaluates @f(\Phi=M r@f) in single precision.
 	 *
-	 * Calls:
-	 * ======
-	 * CHalo_swap_all (Non-mpi version could do without these)
+	 * @param	phi:		The product
+	 * @param	r:			The array being acted on by M
+	 * @param	u11t_f:	First colour trial field
+	 * @param	u12t_f:	Second colour trial field
+	 *	@param	iu:		Upper halo indices
+	 *	@param	id:		Lower halo indices
+	 *	@param	gamval_f:	Gamma matrices
+	 *	@param	gamin:	Indices for dirac terms
+	 *	@param	dk4m_f:	
+	 *	@param	dk4p_f:	
+	 *	@param	akappa:	Hopping parameter
 	 *
-	 * Parameter:
-	 * ==========
-	 * Complex_f	*phi:			The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
-	 * 								for consistency with the FORTRAN code I'll keep the name here
-	 * Complex_f	*r:			The array being acted on by M
-	 * Complex_f	*u11t_f:		First colour trial field
-	 * Complex_f	*u12t_f:		Second colour trial field
-	 *	int			*iu:			Upper halo indices
-	 *	int			*id:			Lower halo indices
-	 *	Complex_f	*gamval_f:	Gamma matrices
-	 *	int			*gamin:		Indices for dirac terms
-	 *	float			*dk4m_f:	
-	 *	float			*dk4p_f:	
-	 *	Complex_f	jqq:		Diquark source
-	 *	float			akappa:	Hopping parameter
+	 * @see CHalo_swap_all (MPI only)
 	 *
-	 * Returns:
-	 * Zero on success, integer error code otherwise
+	 * @return Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Hdslash_f";
 	//Get the halos in order
@@ -780,7 +739,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
 #pragma omp parallel for
 	for(int i=0;i<kvol;i++){
-	//Spacelike term
+		//Spacelike term
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
@@ -838,31 +797,24 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 }
 int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
 		Complex_f *gamval_f, int *gamin, float *dk4m_f, float *dk4p_f, float akappa){
-	/*
-	 * Evaluates phi= M*r
+	/**
+	 * @brief Evaluates @f(\Phi=M^\dagger r@f) in single precision
 	 *
-	 * Calls:
-	 * ======
-	 * CHalo_swap_all (Non-mpi version could do without these)
+	 * @param	phi:		The product
+	 * @param	r:			The array being acted on by M
+	 * @param	u11t_f:	First colour trial field
+	 * @param	u12t_f:	Second colour trial field
+	 *	@param	iu:		Upper halo indices
+	 *	@param	id:		Lower halo indices
+	 *	@param	gamval_f:	Gamma matrices
+	 *	@param	gamin:	Indices for dirac terms
+	 *	@param	dk4m_f:	
+	 *	@param	dk4p_f:	
+	 *	@param	akappa:	Hopping parameter
 	 *
-	 * Parameter:
-	 * ==========
-	 * Complex_f	*phi:			The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
-	 * 								for consistency with the FORTRAN code I'll keep the name here
-	 * Complex_f	*r:			The array being acted on by M
-	 * Complex_f	*u11t_f:		First colour trial field
-	 * Complex_f	*u12t_f:		Second colour trial field
-	 *	int			*iu:			Upper halo indices
-	 *	int			*id:			Lower halo indices
-	 *	Complex_f	*gamval_f:	Gamma matrices
-	 *	int			*gamin:		Indices for dirac terms
-	 *	float			*dk4m_f:	
-	 *	float			*dk4p_f:	
-	 *	Complex_f	jqq:		Diquark source
-	 *	float			akappa:	Hopping parameter
+	 * @see CHalo_swap_all (MPI only)
 	 *
-	 * Returns:
-	 * Zero on success, integer error code otherwise
+	 * @return Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Hdslashd_f";
 	//Get the halos in order. Because C is row major, we need to extract the correct
@@ -945,35 +897,31 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_
 	return 0;
 }
 int New_trial(double dt, double *pp, Complex *u11t, Complex *u12t){
-	/*
-	 * Generates new trial fields
+	/**
+	 * @brief Generates new trial fields
 	 *
-	 * Calls:
-	 * =====
+	 * @see cuNew_trial (CUDA Wrapper)
+	 * 
+	 * @param	dt:		Half lattice spacing
+	 * @param	pp:		Momentum field
+	 * @param	u11t:		First colour field
+	 * @param	u12t:		Second colour field
 	 *
-	 * Parameters:
-	 * =========
-	 * double	dt:		Half lattice spacing
-	 * double *pp:		Momentum field
-	 * Complex	*u11t:	First colour field
-	 * Complex	*u12t:	Second colour field
-	 *
-	 * Returns:
-	 * Zero on success, integer error code otherwise
+	 * @returns	Zero on success, integer error code otherwise
 	 */
-	char *funcname = "New_trial"; //
-											//#ifdef __clang__
-											//Double precision bad for offloading
+	char *funcname = "New_trial"; 
 #ifdef __NVCC__
 	cuNew_trial(dt,pp,u11t,u12t,dimGrid,dimBlock);
 #else
 #pragma omp parallel for simd collapse(2) aligned(pp,u11t,u12t:AVX) 
 	for(int i=0;i<kvol;i++)
 		for(int mu = 0; mu<ndim; mu++){
-			//Sticking to what was in the FORTRAN for variable names.
-			//CCC for cosine SSS for sine AAA for...
-			//Re-exponentiating the force field. Can be done analytically in SU(2)
-			//using sine and cosine which is nice
+			/**
+			 * Sticking to what was in the FORTRAN for variable names.
+			 * CCC for cosine SSS for sine AAA for...
+			 * Re-exponentiating the force field. Can be done analytically in SU(2)
+			 * using sine and cosine which is nice
+			 */
 
 			double AAA = dt*sqrt(pp[i*nadj*ndim+mu]*pp[i*nadj*ndim+mu]\
 					+pp[(i*nadj+1)*ndim+mu]*pp[(i*nadj+1)*ndim+mu]\
@@ -992,20 +940,18 @@ int New_trial(double dt, double *pp, Complex *u11t, Complex *u12t){
 	return 0;
 }
 inline int Reunitarise(Complex *u11t, Complex *u12t){
-	/*
-	 * Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1
+	/**
+	 * @brief Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1
 	 *
 	 * If you're looking at the FORTRAN code be careful. There are two header files
 	 * for the /trial/ header. One with u11 u12 (which was included here originally)
 	 * and the other with u11t and u12t.
 	 *
-	 * Globals:
-	 * =======
-	 * u11t, u12t
+	 * @see cuReunitarise (CUDA Wrapper)
 	 *
-	 * Returns:
-	 * ========
-	 * Zero on success, integer error code otherwise
+	 * @param u11t, u12t Trial fields to be reunitarised
+	 *
+	 * @return Zero on success, integer error code otherwise
 	 */
 	const char *funcname = "Reunitarise";
 #ifdef __NVCC__
@@ -1034,8 +980,10 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 		unsigned int *iu, unsigned int *id, int *hu, int *hd, double *dk4m, double *dk4p,\
 		float *dk4m_f, float *dk4p_f, int *gamin, Complex *gamval, Complex_f *gamval_f,\
 		Complex_f jqq,float akappa,float beta, double ancg){
-	/*
-	 * Routine to check if the multiplication routines are working or not
+	//TODO: Give this it's own file
+	/**
+	 * @brief Routine to check if the varous routines are working or not
+	 * 
 	 * How I hope this will work is that
 	 * 1)	Initialise the system
 	 * 2) Just after the initialisation of the system but before anything
@@ -1047,8 +995,8 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 	 */
 	char *funcname = "Diagnostics";
 
-	//Initialise the arrays being used. Just going to assume MKL is being
-	//used here will also assert the number of flavours for now to avoid issues
+	//Initialise the arrays being used.
+	//Will also assert the number of flavours for now to avoid issues
 	//later
 	assert(nf==1);
 #include<float.h>

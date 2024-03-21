@@ -1,3 +1,8 @@
+/**
+ * @file par_mpi.c
+ *
+ * @brief MPI routines
+ */
 #include <par_mpi.h>
 #include <su2hmc.h>
 
