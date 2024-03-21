@@ -254,6 +254,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 #endif
 #ifdef __NVCC__
 #ifdef _DEBUG
+	cudaDeviceSynchronise();
 	cudaFree(x1_f);cudaFree(x2_f); cudaFree(p_f);
 	cudaFree(r_f);cudaFree(X1_f);
 #else

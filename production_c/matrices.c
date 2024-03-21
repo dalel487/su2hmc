@@ -50,9 +50,9 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int 
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork = idirac+4;
 			Complex a_1, a_2;
-			a_1=conj(jqq)*gamval[idirac];
+			a_1=conj(jqq)*gamval[4*ndirac+idirac];
 			//We subtract a_2, hence the minus
-			a_2=-jqq*gamval[idirac];
+			a_2=-jqq*gamval[4*ndirac+idirac];
 			phi[(i*ngorkov+idirac)*nc]+=a_1*r[(i*ngorkov+igork)*nc+0];
 			phi[(i*ngorkov+idirac)*nc+1]+=a_1*r[(i*ngorkov+igork)*nc+1];
 			phi[(i*ngorkov+igork)*nc+0]+=a_2*r[(i*ngorkov+idirac)*nc];
@@ -1534,15 +1534,16 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 				break;
 			case(8):
 				int na=0;
+				output_old = fopen("PreUpDownPart","w");
+				for(int i=0; i<kferm; i+=2)
+					fprintf(output_old,"R1[%d]:\t%.5e+%.5ei\tR1[%d]:\t%.5e+%.5ei\n",\
+							i,creal(R1[i]),cimag(R1[i]),i+1,creal(R1[i+1]),cimag(R1[i+1]));
 				UpDownPart(na,X0,R1);
+				fclose(output_old);
 				output = fopen("UpDownPart","w");
-				for(int i=0; i<kvol; i++)
-					for(int idirac = 0; idirac < ndirac; idirac++){
-						fprintf(output,"X0[%d]:\t%.5e+%.5ei\tX0[%d]:\t%.5e+%.5ei\n",((na*kvol+i)*ndirac+idirac)*nc,
-								creal(X0[((na*kvol+i)*ndirac+idirac)*nc]),cimag(X0[((na*kvol+i)*ndirac+idirac)*nc]),
-								((na*kvol+i)*ndirac+idirac)*nc+1,
-								creal(X0[((na*kvol+i)*ndirac+idirac)*nc+1]),cimag(X0[((na*kvol+i)*ndirac+idirac)*nc+1]));
-					}
+				for(int i=0; i<kferm2; i+=2)
+					fprintf(output,"X0[%d]:\t%.5e+%.5ei\tX0[%d]:\t%.5e+%.5ei\n",\
+							i,creal(X0[i]),cimag(X0[i]),i+1,creal(X0[i+1]),cimag(X0[i+1]));
 
 				fclose(output);
 				break;

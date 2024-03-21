@@ -339,6 +339,7 @@ int main(int argc, char *argv[]){
 	cudaMallocManaged(&X1, kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&pp, kmom*sizeof(double),cudaMemAttachGlobal);
 	cudaMalloc(&dSdpi, kmom*sizeof(double));
+	cudaDeviceSynchronise();
 #else
 	R1= aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 	Phi= aligned_alloc(AVX,nf*kferm*sizeof(Complex)); 
@@ -376,17 +377,20 @@ int main(int argc, char *argv[]){
 			//How do we optimise this for use in CUDA? Do we use CUDA's PRNG
 			//or stick with MKL and synchronise/copy over the array
 #ifdef __NVCC__
-			Complex_f *R,*R1_f;
+			Complex_f *R1_f,*R_d;
 #ifdef _DEBUG
 			cudaMallocManaged(&R1_f,kferm*sizeof(Complex_f),cudaMemAttachGlobal);
+			cudaMallocManaged(&R_d,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
 #else
 			cudaMallocAsync(&R1_f,kferm*sizeof(Complex_f),streams[0]);
+			cudaMallocAsync(&R_d,kfermHalo*sizeof(Complex_f),streams[1]);
 #endif
-			cudaMallocManaged(&R,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
+			cudaMemset(R1_f,0,kferm*sizeof(Complex_f));
 #else
-			Complex_f *R=aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 			Complex_f *R1_f=aligned_alloc(AVX,kferm*sizeof(Complex_f));
+			memset(R1_f,0,kferm*sizeof(Complex_f));
 #endif
+			Complex_f *R=aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 			//The FORTRAN code had two Gaussian routines.
 			//gaussp was the normal Box-Muller and gauss0 didn't have 2 inside the square root
 			//Using σ=1/sqrt(2) in these routines has the same effect as gauss0
@@ -396,33 +400,65 @@ int main(int argc, char *argv[]){
 			vsRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, R, 0, 1/sqrt(2));
 #endif
 #ifdef __NVCC__
-			cudaMemPrefetchAsync(R,kferm*sizeof(Complex_f),device,NULL);
-			cudaDeviceSynchronise();
+			cudaMemcpy(R_d,R,kferm*sizeof(Complex_f),cudaMemcpyDefault);
 #endif
-			Dslashd_f(R1_f,R,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 #ifdef _DEBUG
 #ifdef __NVCC__
-			cudaDeviceSynchronise();
+			cudaMemPrefetchAsync(R1_f,kferm*sizeof(Complex_f),device,streams[1]);
+#endif
+			FILE *Dslashd_f_Debug;
+			if(!rank){
+				Dslashd_f_Debug = fopen("PreDslashd_f_Debug","w");
+				for(int i=0; i<kferm; i+=2)
+					fprintf(Dslashd_f_Debug,"R[%d]:\t%.5e+%.5ei\tR[%d]:\t%.5e+%.5ei\n",\
+							i,creal(R[i]),cimag(R[i]),i+1,creal(R[i+1]),cimag(R[i+1]));
+				fclose(Dslashd_f_Debug);
+#ifdef __NVCC__
+				cudaDeviceSynchronise();
+#endif
+			}
+#endif
+#ifdef __NVCC__
+			Dslashd_f(R1_f,R_d,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
+#else
+			Dslashd_f(R1_f,R,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
+#endif
+#ifdef _DEBUG
+#ifdef __NVCC__
 			cudaMemPrefetchAsync(R1_f,kferm*sizeof(Complex_f),device,NULL);
+			cudaDeviceSynchronise();
 #endif
-			if(!rank)
-				printf("na=%d\tR1_f[kferm-1]=%.5e+%.5ei\n", na, creal(R1_f[kferm-1]), cimag(R1_f[kferm-1]));
+			if(!rank){
+				Dslashd_f_Debug = fopen("Dslashd_f_Debug","w");
+				for(int i=0; i<kferm; i+=2)
+					fprintf(Dslashd_f_Debug,"R1_f[%d]:\t%.5e+%.5ei\tR1_f[%d]:\t%.5e+%.5ei\n",\
+							i,creal(R1_f[i]),cimag(R1_f[i]),i+1,creal(R1_f[i+1]),cimag(R1_f[i+1]));
+				fclose(Dslashd_f_Debug);
+			}
 #endif
+			free(R); 
 #ifdef __NVCC__
 			//Make sure the multiplication is finished before freeing its input!!
 			cudaDeviceSynchronise();
 			//cudaFree is blocking so don't need to synchronise
-			cudaFree(R);
-			cuReal_convert(R1_f,R1,kferm,false,dimBlock,dimGrid);
+			#ifdef __NVCC__
+			cudaFree(R_d);
+			#else
+			cudaFreeAsync(R_d,streams[0]);
+			#endif
+			cuComplex_convert(R1_f,R1,kferm,false,dimBlock,dimGrid);
 			//cudaDeviceSynchronise();
 			//cudaFreeAsync(R1_f,NULL);
 			cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,NULL);
-			//			cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,streams[1]);
+			//cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,streams[1]);
 			cudaDeviceSynchronise();
+#ifdef _DEBUG
+			cudaFree(R1_f);
+#else
 			cudaFreeAsync(R1_f,NULL);
+#endif
 			//cudaFree is blocking so don't need cudaDeviceSynchronise()
 #else
-			free(R); 
 #pragma omp simd aligned(R1_f,R1:AVX)
 			for(int i=0;i<kferm;i++)
 				R1[i]=(Complex)R1_f[i];
@@ -430,21 +466,33 @@ int main(int argc, char *argv[]){
 			memcpy(Phi+na*kferm,R1, kferm*sizeof(Complex));
 			//Up/down partitioning (using only pseudofermions of flavour 1)
 #endif
-			UpDownPart(na, X0, R1);
-#ifdef _DEBUG
+			#ifdef _DEBUG
+			#ifdef __NVCC__
+			cudaMemPrefetchAsync(R1,kferm*sizeof(Complex_f),device,NULL);
+			cudaDeviceSynchronise();
+			#endif
 			if(!rank){
-				FILE *UpDownDebug = fopen("UpDownDebug","w");
-				for(int i=0; i<kvol; i++)
-					for(int idirac = 0; idirac < ndirac; idirac++){
-						fprintf(UpDownDebug,"X0[%d]:\t%.5e+%.5ei\tX0[%d]:\t%.5e+%.5ei\n",((na*kvol+i)*ndirac+idirac)*nc,
-								creal(X0[((na*kvol+i)*ndirac+idirac)*nc]),cimag(X0[((na*kvol+i)*ndirac+idirac)*nc]),
-								((na*kvol+i)*ndirac+idirac)*nc+1,
-								creal(X0[((na*kvol+i)*ndirac+idirac)*nc+1]),cimag(X0[((na*kvol+i)*ndirac+idirac)*nc+1]));
-					}
-
-				fclose(UpDownDebug);
+				Dslashd_f_Debug = fopen("DoubleFloatConvert","w");
+				for(int i=0; i<kferm; i+=2)
+					fprintf(Dslashd_f_Debug,"R1[%d]:\t%.5e+%.5ei\tR1[%d]:\t%.5e+%.5ei\n",\
+							i,creal(R1[i]),cimag(R1[i]),i+1,creal(R1[i+1]),cimag(R1[i+1]));
+				fclose(Dslashd_f_Debug);
 			}
-#endif
+			#endif
+			UpDownPart(na, X0, R1);
+			#ifdef _DEBUG
+			#ifdef __NVCC__
+			cudaMemPrefetchAsync(X0,kferm2*sizeof(Complex_f),device,NULL);
+			cudaDeviceSynchronise();
+			#endif
+			if(!rank){
+				Dslashd_f_Debug = fopen("UpDownPart","w");
+				for(int i=0; i<kferm2; i+=2)
+					fprintf(Dslashd_f_Debug,"X0[%d]:\t%.5e+%.5ei\tX0[%d]:\t%.5e+%.5ei\n",\
+							i,creal(X0[i]),cimag(X0[i]),i+1,creal(X0[i+1]),cimag(X0[i+1]));
+				fclose(Dslashd_f_Debug);
+			}
+			#endif
 		}	
 		//Heatbath
 		//========
