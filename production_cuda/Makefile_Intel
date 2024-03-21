@@ -78,7 +78,7 @@ CUEDT=	$(CUSRC:.cu=.cu~)
 TMP=	$(MOD) $(CEDT) $(CUEDT) core
 
 profiler:	CFLAGS += -g -D_DEBUG
-profiler:	NVCCFLAGS += -G -g -lineinfo  -keep
+profiler:	NVCCFLAGS += -lineinfo  -keep
 profiler:	release
 
 release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high 
