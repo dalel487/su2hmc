@@ -4,8 +4,6 @@
  * @brief Conjugate gradients. Congradq for the solver and Congradp for the inversion
  */
 #include	<matrices.h>
-#include	<par_mpi.h>
-#include	<su2hmc.h>
 int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f *u12t,unsigned int *iu,unsigned int *id,\
 		Complex_f *gamval_f,int *gamin,float *dk4m,float *dk4p,Complex_f jqq,float akappa,int *itercg){
 	/*
@@ -285,8 +283,6 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 	 * @param 	jqq:			Diquark source
 	 * @param 	akappa:		Hopping Parameter
 	 * @param 	itercg:		Counts the iterations of the conjugate gradient
-	 * 
-	 * @see Dslash(), Dslashd(), Par_fsum(), Par_dsum()
 	 *
 	 * @return 0 on success, integer error code otherwise
 	 */

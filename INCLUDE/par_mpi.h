@@ -11,7 +11,7 @@
 #ifdef _OPENMP
 #include	<omp.h>
 #endif
-#include	<random.h>
+//#include	<random.h>
 #include	<sizes.h>
 #ifdef __cplusplus
 #include	<cstdio>

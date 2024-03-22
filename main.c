@@ -5,12 +5,12 @@
 	 *				based on the algorithm of Duane et al. Phys. Lett. B195 (1987) 216. 
 	 *
 	 *    There is "up/down partitioning": each update requires
-	 *    one operation of congradq on complex*16 vectors to determine
+	 *    one operation of Congradq() on complex*16 vectors to determine
 	 *    @f((M^{\dagger} M)^{-1}  \Phi@f) where @f(\Phi@f) has dimension 4*kvol*nc*Nf - 
 	 *    The matrix M is the Wilson matrix for a single flavor
 	 *    there is no extra species doubling as a result
 	 *
-	 *    matrix multiplies done using routines hdslash and hdslashd
+	 *    Matrix multiplies done using routines Hdslash() and Hdslashd()
 	 *
 	 *    Hence, the number of lattice flavors Nf is related to the
 	 *    number of continuum flavors N_f by
@@ -18,10 +18,10 @@
 	 *
 	 *    Fermion expectation values are measured using a noisy estimator.
 	 *    on the Wilson-Gor'kov matrix, which has dimension 8*kvol*nc*Nf
-	 *    inversions done using congradp, and matrix multiplies with dslash,
-	 *    dslashd
+	 *    inversions done using Congradp(), and matrix multiplies with Dslash(),
+	 *    Dslashd()
 	 *
-	 *    trajectory length is random with mean dt*stepl
+	 *    Trajectory length is random with mean dt*stepl
 	 *    The code runs for a fixed number ntraj of trajectories.
 	 *
 	 *    Phi: pseudofermion field 

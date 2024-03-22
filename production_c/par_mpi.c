@@ -4,6 +4,7 @@
  * @brief MPI routines
  */
 #include <par_mpi.h>
+#include <random.h>
 #include <su2hmc.h>
 
 //NOTE: In FORTRAN code everything was capitalised (despite being case insensitive)

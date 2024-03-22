@@ -18,9 +18,6 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	 * uses NEW lookup tables **
 	 * Implemented in Congradq
 	 *
-	 *
-	 * Parameters:
-	 * ==========
 	 * @param	pbp:				@f(\langle\bar{\Psi}\Psi\rangle@f)
 	 *	@param	endenf:			Energy density
 	 *	@param	denf:				Number Density

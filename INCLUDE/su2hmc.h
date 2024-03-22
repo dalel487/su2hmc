@@ -188,9 +188,6 @@ extern "C"
 	 * uses NEW lookup tables **
 	 * Implemented in Congradp()
 	 *
-	 *
-	 * Parameters:
-	 * ==========
 	 * @param	pbp:				@f(\langle\bar{\Psi}\Psi\rangle@f)
 	 *	@param	endenf:			Energy density
 	 *	@param	denf:				Number Density
