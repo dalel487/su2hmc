@@ -81,7 +81,7 @@ inline int ranset(long *seed)
 #endif
 }
 int Par_ranread(char *filename, double *ranval){
-	/**
+	/*
 	 * @brief Reads ps from a file
 	 * Since this function is very similar to Par_sread, I'm not really going to comment it
 	 * check there if you are confused about things. 

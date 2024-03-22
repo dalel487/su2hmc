@@ -30,8 +30,6 @@ extern "C"
 	 *	@param	jqq:			Diquark source
 	 *	@param	akappa:		Hopping parameter
 	 *
-	 * @see ZHalo_swap_all (MPI only)
-	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
 	int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
@@ -52,8 +50,6 @@ extern "C"
 	 *	@param	jqq:			Diquark source
 	 *	@param	akappa:		Hopping parameter
 	 *
-	 * @see ZHalo_swap_all (MPI only)
-	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
 	int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
@@ -73,8 +69,6 @@ extern "C"
 	 *	@param	dk4p:	
 	 *	@param	akappa:	Hopping parameter
 	 *
-	 * @see ZHalo_swap_all (MPI only)
-	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
 	int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
@@ -93,8 +87,6 @@ extern "C"
 	 *	@param	dk4m:	
 	 *	@param	dk4p:	
 	 *	@param	akappa:	Hopping parameter
-	 *
-	 * @see ZHalo_swap_all (MPI only)
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
@@ -117,8 +109,6 @@ extern "C"
 	 *	@param	jqq:			Diquark source
 	 *	@param	akappa:		Hopping parameter
 	 *
-	 * @see CHalo_swap_all (MPI only)
-	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
 	int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
@@ -139,8 +129,6 @@ extern "C"
 	 *	@param	jqq:			Diquark source
 	 *	@param	akappa:		Hopping parameter
 	 *
-	 * @see CHalo_swap_all (MPI only)
-	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
 	int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
@@ -160,8 +148,6 @@ extern "C"
 	 *	@param	dk4p_f:	
 	 *	@param	akappa:	Hopping parameter
 	 *
-	 * @see CHalo_swap_all (MPI only)
-	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
 	int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
@@ -180,8 +166,6 @@ extern "C"
 	 *	@param	dk4m_f:	
 	 *	@param	dk4p_f:	
 	 *	@param	akappa:	Hopping parameter
-	 *
-	 * @see CHalo_swap_all (MPI only)
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */

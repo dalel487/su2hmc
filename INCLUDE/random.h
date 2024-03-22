@@ -1,4 +1,9 @@
-#ifndef	RANDOM
+/**
+ * @file	random.h
+ *
+ * @brief	Header for random number configuration
+ */
+#ifndef	RANDOa
 #define	RANDOM
 //Need two cases here. MKL/CUDA or not for BLAS and CUDA or not for complex
 #ifdef __NVCC__ 
@@ -42,10 +47,8 @@ extern "C"
 	 * c     in the underlying value of ds(1) (it was always 10 times bigger
 	 * c     on the last processor). This does not appear to happen with 9.
 	 *
-	 * @param	*seed:	The seed from the rank in question.
+	 * @param	seed:	The seed from the rank in question.
 	 * @param	iread:	Do we read from file or not. Don't remember why it's here as it's not used	
-	 *
-	 * @see ranset() (used to initialise the stream for MKL at the moment. Legacy from Fortran)
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
@@ -77,9 +80,7 @@ extern "C"
 /**
  * @brief Seed the ranlux generator from GSL
  *
- * @param *seed pointer to seed
- *
- * @see gsl_rng_alloc(), gsl_rng_set()
+ * @param seed pointer to seed
  * 
  *	@return 0
  */
@@ -92,10 +93,8 @@ extern "C"
 	 * c     in the underlying value of ds(1) (it was always 10 times bigger
 	 * c     on the last processor). This does not appear to happen with 9.
 	 *
-	 * @param	*seed:	The seed from the rank in question.
+	 * @param	seed:	The seed from the rank in question.
 	 * @param	iread:	Do we read from file or not. Don't remember why it's here as it's not used	
-	 *
-	 * @see ranset() (used to initialise the stream for MKL at the moment. Legacy from Fortran)
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
@@ -113,10 +112,8 @@ extern "C"
 /**
  * @brief Seed the Intel Mersenne twister generator
  *
- * @param *seed pointer to seed
+ * @param seed pointer to seed
  *
- * @see vslNewStream()
- * 
  *	@return 0
  */
 	int ranset(unsigned int *seed);
@@ -128,10 +125,8 @@ extern "C"
 	 * c     in the underlying value of ds(1) (it was always 10 times bigger
 	 * c     on the last processor). This does not appear to happen with 9.
 	 *
-	 * @param	*seed:	The seed from the rank in question.
+	 * @param	seed:	The seed from the rank in question.
 	 * @param	iread:	Do we read from file or not. Don't remember why it's here as it's not used	
-	 *
-	 * @see ranset() (used to initialise the stream for MKL at the moment. Legacy from Fortran)
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
@@ -168,8 +163,6 @@ extern "C"
 	 * @param	n:			The array length
 	 * @param	mu:		mean
 	 * @param	sigma:	variance
-	 *
-	 * @see ran2(), par_dcopy(), gsl_rng_uniform(), vdRngUniform()
 	 * 
 	 * @return Zero on success integer error code otherwise
 	 */
@@ -182,8 +175,6 @@ extern "C"
 	 * @param	mu:		mean
 	 * @param	sigma:	variance
 	 *
-	 * @see ran2(), par_dcopy(), gsl_rng_uniform(), vdRngUniform()
-	 * 
 	 * @return Zero on success integer error code otherwise
 	 */
 	int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma);
@@ -194,8 +185,6 @@ extern "C"
 	 * @param	n:			The array length
 	 * @param	mu:		mean
 	 * @param	sigma:	variance
-	 *
-	 * @see ran2(), par_dcopy(), gsl_rng_uniform(), vdRngUniform()
 	 * 
 	 * @return Zero on success integer error code otherwise
 	 */
@@ -208,19 +197,25 @@ extern "C"
 	 * @param	mu:		mean
 	 * @param	sigma:	variance
 	 *
-	 * @see ran2(), par_dcopy(), gsl_rng_uniform(), vdRngUniform()
-	 * 
 	 * @return Zero on success integer error code otherwise
 	 */
 	int Gauss_f(float *ps, unsigned int n, const float mu, const float sigma);
 
 	//MPI
 	//===
-	int Par_ranread(char *filename, double *ranval);
-	/*
-	 * @brief Generates a random double which is then sent to the other ranks
+	/**
+	 * @brief Reads ps from a file
+	 * Since this function is very similar to Par_sread, I'm not really going to comment it
+	 * check there if you are confused about things. 
 	 *
-	 * @see ran2(), par_dcopy(), gsl_rng_uniform(), vdRngUniform()
+	 * @param	filename: The name of the file we're reading from
+	 * @param	ps:	The destination for the file's contents
+	 *
+	 * @return Zero on success, integer error code otherwise
+	 */
+	int Par_ranread(char *filename, double *ranval);
+	/**
+	 * @brief Generates a random double which is then sent to the other ranks
 	 *
 	 * @return the random number generated
 	 */

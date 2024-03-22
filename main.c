@@ -1,10 +1,12 @@
 	/** 
+	 * 	@file main.c
+	 *
 	 *   @brief Hybrid Monte Carlo algorithm for Two Colour QCD with Wilson-Gor'kov fermions
-	 *    based on the algorithm of Duane et al. Phys. Lett. B195 (1987) 216. 
+	 *				based on the algorithm of Duane et al. Phys. Lett. B195 (1987) 216. 
 	 *
 	 *    There is "up/down partitioning": each update requires
 	 *    one operation of congradq on complex*16 vectors to determine
-	 *    (Mdagger M)**-1  Phi where Phi has dimension 4*kvol*nc*Nf - 
+	 *    @f((M^{\dagger} M)^{-1}  \Phi@f) where @f(\Phi@f) has dimension 4*kvol*nc*Nf - 
 	 *    The matrix M is the Wilson matrix for a single flavor
 	 *    there is no extra species doubling as a result
 	 *
@@ -33,10 +35,9 @@
 	 *    fort.12   spatial plaquette, temporal plaquette, Polyakov line
 	 *    fort.13   real<qq>, real <qbar qbar>, imag <qq>= imag<qbar qbar>
 	 *
-	 *                                               SJH March 2005
-	 *
-	 *     Hybrid code, P.Giudice, May 2013
-	 *     Converted from Fortran to C by D. Lawlor March 2021
+	 *     @author SJH	(Original Code, March 2005)
+	 *     @author P.Giudice	(Hybrid Code, May 2013)
+	 *     @author D. Lawlor	(Fortran to C Conversion, March 2021. Mixed Precision. GPU, March 2024)
 	 ******************************************************************/
 #include	<assert.h>
 #include	<coord.h>
@@ -71,10 +72,8 @@ cudaMemPool_t mempool;
  * These can be found in the file errorcode.h and can help with debugging
  *
  * Lastly, the comment style for the start of a function is based off of 
- * numpy's style It should consist of a description of the function, a list of parameters with a brief
+ * doxygen. It should consist of a description of the function, a list of parameters with a brief
  * explanation and lastly what is returned by the function (on success or failure).
- *
- * This will be supplimented with doxygen
  */
 int main(int argc, char *argv[]){
 	//Instead of hard coding the function name so the error messages are easier to implement
@@ -88,12 +87,14 @@ int main(int argc, char *argv[]){
 #endif
 
 	/**
-	 * Inputs Parameters.
-	 * The input file format is 
+	 * @subsection inputs Input Parameters.
+	 * The input file format is like the table below, with values sepearated by whitespace
 	 *
-	 * 0.0100 	1.7	0.1780	0.00	0.000		0.0	0.0	100	4		1			5			1
-	 * dt			beta	akappa	jqq	thetaq	fmu	aNf	stepl	ntraj	istart	icheck	iread
-	 *	The default values here are straight from the FORTRAN. Note that the bottom line is ignored
+	 * 0.0100|1.7|0.1780|0.00|0.000|0.0|0.0|100|4|1|5|1|
+	 * ------|---|------|----|-----|---|---|---|-|-|-|-|
+	 * dt	|beta|akappa|jqq|thetaq|fmu|aNf|stepl|ntraj|istart|icheck|iread|
+	 *
+	 *	The default values here are straight from the FORTRAN. Note that the bottom line labelling each input is ignored
 	 *
 	 *	@param dt		Step length for HMC	
 	 *	@param beta 	Inverse Gauge Coupling
@@ -240,11 +241,19 @@ int main(int argc, char *argv[]){
 	u11t_f = (Complex_f *)aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex_f));
 	u12t_f = (Complex_f *)aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex_f));
 #endif
-	//Initialisation
-	//istart < 0: Start from tape in FORTRAN?!? How old was this code?
-	//istart = 0: Ordered/Cold Start
-	//			For some reason this leaves the trial fields as zero in the FORTRAN code?
-	//istart > 0: Random/Hot Start
+	/**
+	* \subsection initialise Initialisation
+	*
+	* Changing the value of istart in the input parameter file gives us the following start options. These are quoted
+	* from the FORTRAN comments
+	*
+	* istart < 0: Start from tape in FORTRAN?!? How old was this code? (depreciated, replaced with iread)
+	*
+	* istart = 0: Ordered/Cold Start
+	* 			For some reason this leaves the trial fields as zero in the FORTRAN code?
+	*
+	* istart > 0: Random/Hot Start
+	*/
 	Init(istart,ibound,iread,beta,fmu,akappa,ajq,u11,u12,u11t,u12t,u11t_f,u12t_f,gamval,gamval_f,gamin,dk4m,dk4p,dk4m_f,dk4p_f,iu,id);
 #ifdef __NVCC__
 	//GPU Initialisation stuff
@@ -359,7 +368,11 @@ int main(int argc, char *argv[]){
 	//pp is the momentum field
 	pp = aligned_alloc(AVX,kmom*sizeof(double));
 #endif
-	////Arabic for hour/watch so probably not defined elsewhere like TIME potentially is
+	/**
+	 * @subsection timing Timing
+	 * To time the code compile with @verbatim -DSA3AT @endverbatim
+	 * This is arabic for hour/watch so is probably not reserved like time is
+	 */
 #if (defined SA3AT)
 	double start_time=0;
 	if(!rank){
@@ -646,7 +659,6 @@ int main(int argc, char *argv[]){
 								//That will need to be looked into for the C version
 								//It would explain the weird names like fort.1X that looked like they were somehow
 								//FORTRAN related...
-								//Not yet implemented
 								fprintf(output, "Iter (CG) %i ancg %.3f ancgh %.3f\n", itercg, ancg, ancgh);
 								fflush(output);
 								break;

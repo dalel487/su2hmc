@@ -9,7 +9,7 @@ int Gauge_force(double *dSdpi, Complex_f *u11t, Complex_f *u12t,unsigned int *iu
 	 *
 	 * Calls:
 	 * =====
-	 * Z_Halo_swap_all, Z_gather, Z_Halo_swap_dir
+	 * C_Halo_swap_all, C_gather, C_Halo_swap_dir
 	 *
 	 * Parameters:
 	 * =======

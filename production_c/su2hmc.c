@@ -1,3 +1,8 @@
+/**
+ * @file su2hmc.c
+ *
+ * @brief	An ecclectic collection of functions used in the HMC
+ */
 #include	<assert.h>
 #include	<coord.h>
 #ifdef	__NVCC__

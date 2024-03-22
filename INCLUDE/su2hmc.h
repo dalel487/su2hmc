@@ -234,11 +234,12 @@ extern "C"
 	int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u11t, Complex_f *u12t,\
 			unsigned int *iu, float beta);
 	/**
-	 * @brief Calculates the plaquette at site i in the μ-ν direction
+	 * @brief Calculates the plaquette at site i in the @f(\mu--\nu@f) direction
 	 *
-	 * @param u11t, u12t:	Trial fields
-	 * @param int *iu:	Upper halo indices
-	 * @param mu, nu:				Plaquette direction. Note that mu and nu can be negative
+	 * @param	u11t, u12t:	Trial fields
+	 * @param	i:				Lattice site
+	 * @param	iu:			Upper halo indices
+	 * @param 	mu, nu:		Plaquette direction. Note that mu and nu can be negative
 	 * 							to facilitate calculating plaquettes for Clover terms. No
 	 * 							sanity checks are conducted on them in this routine.
 	 *
@@ -256,9 +257,31 @@ extern "C"
 	 * @return Double corresponding to the polyakov loop
 	 */
 	double Polyakov(Complex_f *u11t, Complex_f *u12t);
-	//Inline Stuff
-	extern int C_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu);
-	extern int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu);
+	//Inline functions
+	/**
+	 * @brief	Extracts all the single precision gauge links in the @f(\mu@f) direction only
+	 *
+	 * @param	x:			The output 
+	 * @param	y:			The gauge field for a particular colour
+	 * @param	n:			Number of sites in the gauge field. This is typically kvol
+	 * @param	table:	Table containing information on nearest neighbours. Usually id or iu
+	 * @param	mu:		Direciton we're interested in extractng	
+	 *
+	 * @return Zero on success, integer error code otherwise
+	*/
+	int C_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu);
+	/**
+	 * @brief	Extracts all the double precision gauge links in the @f(\mu@f) direction only
+	 *
+	 * @param	x:			The output 
+	 * @param	y:			The gauge field for a particular colour
+	 * @param	n:			Number of sites in the gauge field. This is typically kvol
+	 * @param	table:	Table containing information on nearest neighbours. Usually id or iu
+	 * @param	mu:		Direciton we're interested in extractng	
+	 *
+	 * @return Zero on success, integer error code otherwise
+	*/
+	int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu);
 	/**
 	 * Copies necessary (2*4*kvol) elements of Phi into a vector variable
 	 *
@@ -268,7 +291,7 @@ extern "C"
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
-	extern int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi);
+	int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi);
 
 	//CUDA Declarations:
 	//#################
