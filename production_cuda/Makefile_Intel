@@ -5,7 +5,7 @@ NVCC=		nvcc
 
 IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include" -I ./ -I../production_c\
 				-I /opt/nvidia/hpc_sdk/Linux_x86_64/2024/cuda/include/ \
-				-I /opt/nvidia/hpc_sdk/Linux_x86_64/2024/math_libs/include/ \
+				-I /opt/nvidia/hpc_sdk/Linux_x86_64/2024/math_libs/include/ 
 
 CFLAGS=  -qmkl -qopt-zmm-usage=high -MD -D__NVCC__ -static-intel -static-libgcc \
 			-xSKYLAKE -ax'SKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE'\
@@ -15,11 +15,11 @@ CFLAGS=  -qmkl -qopt-zmm-usage=high -MD -D__NVCC__ -static-intel -static-libgcc 
 MKLFLAGS=	-qmkl -L${MKLROOT}/lib/intel64 -limf #-DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
 CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/2024/cuda/lib64/ \
 				-L/opt/nvidia/hpc_sdk/Linux_x86_64/2024/math_libs/lib64/ \
-				-lcuda -lcudart -lcublas #-L${NVSHMEM_HOME}/lib -lnvshmem -lblis 
+				-lcuda -lcudart -lcublas 
 
 LFLAGS=		-liomp5 -lstdc++ -lpthread -ldl -limf -lgsl  #${CULFLAGS}
 
-NVCCFLAGS=	${IFLAGS}  -std=c++14 -err-no -w -expt-relaxed-constexpr 
+NVCCFLAGS=	${IFLAGS}  -std=c++14 -err-no -w #-expt-relaxed-constexpr 
 			#Last flag is an experimental one used to call host functions in device code. Not sure
 			#if it does what we want because the error message suggesting it came up when declaring
 			#a11 and a12 in the Dslash routine
@@ -78,11 +78,11 @@ CUEDT=	$(CUSRC:.cu=.cu~)
 TMP=	$(MOD) $(CEDT) $(CUEDT) core
 
 profiler:	CFLAGS += -g -D_DEBUG
-profiler:	NVCCFLAGS += -lineinfo  -keep
+profiler:	NVCCFLAGS += -lineinfo  -D_DEBUG#-keep
 profiler:	release
 
-release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high 
-release:	NVCCFLAGS += -O3 -arch=sm_75 --maxrregcount=64
+release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high -rdynamic
+release:	NVCCFLAGS += -O3 -opt-info=inline -arch=compute_70 -code=sm_75,sm_80,sm_90 --maxrregcount=64 #-G -dopt=on
 release:	$(EXE)
 
 diagnostics: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
@@ -108,8 +108,8 @@ $(EXE): ../main.c $(OBJ)
 	$(CC) -std=gnu11 -ipo $(CFLAGS) $(MKLFLAGS) -c $^  
 
 clean:
-	rm -f $(OBJ) $(COBJ) $(CUOBJ) $(CULIB) $(CLIB) $(TMP) *.cpp?.ii *.cudafe1.* *.*bin *.fatbin.c *.ptx *.sm_* *.module_id\
-	*dlink.* *.ltoir *.d i?_out
+	rm -f $(OBJ) $(COBJ) $(CUOBJ) $(CULIB) $(CLIB) $(TMP) *.cpp?.ii *.cudafe1.* *.*bin *.fatbin.c *.ptx *.sm_* *module_id \
+	*dlink* *.ltoir *.d i?_out
 
 INP=	\
 	midout \

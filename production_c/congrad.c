@@ -75,8 +75,9 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 #ifdef __NVCC__
 	cuComplex_convert(X1_f,X1,kferm2,true,dimBlock,dimGrid);
 	//cudaMemcpy is blocking, so use async instead
-	cudaMemcpyAsync(p_f, X1_f, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice,streams[0]);
 	cuComplex_convert(r_f,r,kferm2,true,dimBlock,dimGrid);
+	cudaMemcpyAsync(p_f, X1_f, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice,NULL);
+		cudaDeviceSynchronise();
 #else
 #pragma omp parallel for simd
 	for(int i=0;i<kferm2;i++){
@@ -113,10 +114,10 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 				creal(p_f[kferm2-1]),cimag(p_f[kferm2-1]),creal(x1_f[kferm2-1]),cimag(x1_f[kferm2-1]),creal(x2_f[kferm2-1]),cimag(x2_f[kferm2-1]));
 #endif
 		Hdslash_f(x1_f,p_f,u11t,u12t,iu,id,gamval_f,gamin,dk4m,dk4p,akappa);
-#ifdef _DEBUGCG
 #ifdef __NVCC__
 		cudaDeviceSynchronise();
 #endif
+#ifdef _DEBUGCG
 		printf("\nHdslash_f:\tp_f[kferm2-1]=%.5e+%.5ei\tx1_f[kferm2-1]=%.5e+%.5ei\tx2_f[kferm2-1]=%.5e+%.5ei",\
 				creal(p_f[kferm2-1]),cimag(p_f[kferm2-1]),creal(x1_f[kferm2-1]),cimag(x1_f[kferm2-1]),creal(x2_f[kferm2-1]),cimag(x2_f[kferm2-1]));
 #endif
