@@ -10,6 +10,7 @@ dim3 dimGrid= dim3(ksizex,ksizet);
 //dim3 dimGrid= 1;
 dim3 dimBlockOne = dim3(1,1,1);
 dim3 dimGridOne= dim3(1,1,1);
+//dim3	dimBlock=dimBlockOne; dim3 dimGrid=dimGridOne;
 cudaStream_t streams[ndirac*ndim*nadj];
 void	Init_CUDA(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f,\
 		Complex *gamval, Complex_f *gamval_f, int *gamin,\

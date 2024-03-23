@@ -1211,6 +1211,7 @@ int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u
 #endif
 	free(z);
 #endif
+//And get the single precision gauge fields preppeed
 #ifdef __NVCC__
 	cuComplex_convert(u11t_f,u11t,ndim*(kvol+halo),true,dimBlock,dimGrid);
 	cuComplex_convert(u12t_f,u12t,ndim*(kvol+halo),true,dimBlock,dimGrid);
