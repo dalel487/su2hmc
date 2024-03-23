@@ -425,7 +425,6 @@ int main(int argc, char *argv[]){
 			Complex_f *R=aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 			memset(R1_f,0,kferm*sizeof(Complex_f));
 #endif
-			Complex_f *R=aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 			//The FORTRAN code had two Gaussian routines.
 			//gaussp was the normal Box-Muller and gauss0 didn't have 2 inside the square root
 			//Using σ=1/sqrt(2) in these routines has the same effect as gauss0
@@ -459,6 +458,7 @@ int main(int argc, char *argv[]){
 #endif
 			//cudaFree is blocking so don't need cudaDeviceSynchronise()
 #else
+			free(R); 
 #pragma omp simd aligned(R1_f,R1:AVX)
 			for(int i=0;i<kferm;i++)
 				R1[i]=(Complex)R1_f[i];
