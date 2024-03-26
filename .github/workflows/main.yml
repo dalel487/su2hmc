@@ -5,6 +5,7 @@ name: Deploy Documentation
 
 # Controls when the action will run. 
 on:
+  workflow_run:
   push:
     branches: [ main ]
     
