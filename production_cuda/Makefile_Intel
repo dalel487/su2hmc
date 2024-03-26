@@ -19,12 +19,12 @@ CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/2024/cuda/lib64/ \
 
 LFLAGS=		-liomp5 -lstdc++ -lpthread -ldl -limf -lgsl  #${CULFLAGS}
 
-NVCCFLAGS=	${IFLAGS}  -std=c++14 -err-no -w #-expt-relaxed-constexpr 
+NVCCFLAGS=	${IFLAGS} --resource-usage -std=c++14 -err-no -w #-expt-relaxed-constexpr 
 			#Last flag is an experimental one used to call host functions in device code. Not sure
 			#if it does what we want because the error message suggesting it came up when declaring
 			#a11 and a12 in the Dslash routine
-#NVCCFLAGS=	${IFLAGS}  -arch=compute_60 -code=sm_60,sm_61,sm_70,sm_75,sm_80,sm_86 -err-no -w \
-#Replace first line of NVCCFLAGS with above when done. Targets every platform since 2016
+#Replace first line of NVCCFLAGS with below when done. Targets every platform since 2016
+#NVCCFLAGS=	${IFLAGS}  -arch=compute_60 -code=sm_60,sm_61,sm_70,sm_75,sm_80,sm_86,sm_90 -err-no -w \
 
 EXE=	su2hmc_CUDA
 
@@ -36,7 +36,8 @@ CSRC=	\
     	random.c \
 		par_mpi.c \
 		bosonic.c\
-		fermionic.c
+		fermionic.c\
+		diagnostics.c
 
 CUSRC_DIR=	../production_cuda
 CUSRC=	\
@@ -77,33 +78,26 @@ CEDT=	$(CSRC:.c=.c~)
 CUEDT=	$(CUSRC:.cu=.cu~)
 TMP=	$(MOD) $(CEDT) $(CUEDT) core
 
-profiler:	CFLAGS += -g -D_DEBUG
-profiler:	NVCCFLAGS += -lineinfo  -D_DEBUG#-keep
+profiler:	CFLAGS += -g #-D_DEBUG
+profiler:	NVCCFLAGS += -lineinfo # -D_DEBUG#-keep
 profiler:	release
 
 release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high -rdynamic
-release:	NVCCFLAGS += -O3 -opt-info=inline -arch=compute_70 -code=sm_75,sm_80,sm_90 --maxrregcount=64 #-G -dopt=on
+release:	NVCCFLAGS += -Xptxas -O0,-v -arch=native --maxrregcount=64 -G# -dopt=on
 release:	$(EXE)
 
-diagnostics: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
-diagnostics: NVCCFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
-diagnostics: debug
+diagnostic: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
+diagnostic: NVCCFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
+diagnostic: debug
 
 debug:		CFLAGS += -O0 -g -D_DEBUG -rdynamic 
-debug:		NVCCFLAGS += -O0 -G -g -D_DEBUG -arch=sm_75 --maxrregcount=255  -keep 
+debug:		NVCCFLAGS += -Xptxas -O0,-v -G -g -D_DEBUG -arch=sm_75 --maxrregcount=255  -keep 
 debug:		$(EXE)
-
 		 
 $(EXE): ../main.c $(OBJ)
 	$(NVCC) $(NVCCFLAGS) -ccbin $(CC) -Xcompiler "$(CFLAGS) $(MKLFLAGS) -std=gnu11 -ipo" $^ $(LFLAGS) $(CULFLAGS)  -o $@
-#$(CULIB2): $(CULIB)
-#	ar rc $@ $^ 
-#$(CULIB): $(CUOBJ)
-#	$(NVCC) -ccbin $(CXX) $(NVCCFLAGS) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $(NVCCFLAGS)  $(LFLAGS) -dlink $^ -o $@ 
-#$(CLIB):	$(COBJ) 
-#	ar rc $@  $^
 %.o: $(CUSRC_DIR)/%.cu
-	$(NVCC) $(NVCCFLAGS) -ccbin $(CXX) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $^ -dc $@ 
+	$(NVCC) $(NVCCFLAGS) -ccbin $(CXX) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $^ -dc $@
 %.o: $(CSRC_DIR)%.c
 	$(CC) -std=gnu11 -ipo $(CFLAGS) $(MKLFLAGS) -c $^  
 
