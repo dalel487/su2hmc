@@ -8,6 +8,8 @@ on:
   workflow_dispatch:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [main]
     
 jobs:
   build-documentation:
@@ -18,14 +20,13 @@ jobs:
       - name: Run Doxygen
         uses: mattnotmitt/doxygen-action@v1.2.1
         with:
-          # These are default values, but included for clarity
           doxyfile-path: ./docs/doxygen_config
           working-directory: ./docs
       - name: Pages Deployment
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs/html/
+          publish_dir: ./
           enable_jekyll: false
           allow_empty_commit: false
           force_orphan: true
