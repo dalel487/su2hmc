@@ -20,7 +20,6 @@ CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/2024/cuda/lib64/ \
 LFLAGS=		-liomp5 -lstdc++ -lpthread -ldl -limf -lgsl  #${CULFLAGS}
 
 NVCCFLAGS=	${IFLAGS} --resource-usage -std=c++14 -err-no -w #-expt-relaxed-constexpr 
->>>>>>> d3bcdd6 (Good news: We have working GPU code in both the debug mode (Unified)
 			#Last flag is an experimental one used to call host functions in device code. Not sure
 			#if it does what we want because the error message suggesting it came up when declaring
 			#a11 and a12 in the Dslash routine
