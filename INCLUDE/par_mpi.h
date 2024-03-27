@@ -50,8 +50,8 @@ extern int __attribute__((aligned(AVX))) pu[ndim];
 /// @brief Processors in the down direction
 extern int __attribute__((aligned(AVX))) pd[ndim];
 
-//MPI Stuff
 #if (nproc >1)
+//MPI Stuff
 /// @brief MPI communicator
 extern MPI_Comm comm ;
 /// @brief MPI request. Required for send/receive
