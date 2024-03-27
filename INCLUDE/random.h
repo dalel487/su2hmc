@@ -3,7 +3,7 @@
  *
  * @brief	Header for random number configuration
  */
-#ifndef	RANDOa
+#ifndef	RANDOM
 #define	RANDOM
 //Need two cases here. MKL/CUDA or not for BLAS and CUDA or not for complex
 #ifdef __NVCC__ 
@@ -209,7 +209,7 @@ extern "C"
 	 * check there if you are confused about things. 
 	 *
 	 * @param	filename: The name of the file we're reading from
-	 * @param	ps:	The destination for the file's contents
+	 * @param	ranval:	The destination for the file's contents
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
@@ -220,14 +220,14 @@ extern "C"
 	 * @return the random number generated
 	 */
 	double Par_granf();
-	//Test Functions
+	/// @brief Test Functions
 	int	ran_test();
 
 #ifdef __cplusplus
 }
 #endif
 //RAN2 stuff treat it separately so as to avoid any accidents
-#ifndef RAN2
+#if !(defined RAN2) && !(defined __RANLUX__)
 #define RAN2
 #define IM1 2147483563
 #define IM2 2147483399

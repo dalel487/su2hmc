@@ -15,7 +15,7 @@ extern "C"
 {
 #endif
 	/**
-	 * @brief Evaluates @f(\Phi=M r@f) in double precision.
+	 * @brief Evaluates @f$\Phi=M r@f$ in double precision.
 	 *
 	 * @param	phi:			The product
 	 * @param	r:				The array being acted on by M
@@ -25,8 +25,8 @@ extern "C"
 	 *	@param	id:			Lower halo indices
 	 *	@param	gamval:	Gamma matrices
 	 *	@param	gamin:		Indices for dirac terms
-	 *	@param	dk4m:		
-	 *	@param	dk4p:		
+	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
+	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$
 	 *	@param	jqq:			Diquark source
 	 *	@param	akappa:		Hopping parameter
 	 *
@@ -35,7 +35,7 @@ extern "C"
 	int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
 			Complex *gamval, int *gamin, double *dk4m, double *dk4p, Complex_f jqq, float akappa);
 	/**
-	 * @brief Evaluates @f(\Phi=M^\dagger r@f) in double precision.
+	 * @brief Evaluates @f$\Phi=M^\dagger r@f$ in double precision.
 	 *
 	 * @param	phi:			The product
 	 * @param	r:				The array being acted on by M
@@ -45,8 +45,8 @@ extern "C"
 	 *	@param	id:			Lower halo indices
 	 *	@param	gamval:	Gamma matrices
 	 *	@param	gamin:		Indices for dirac terms
-	 *	@param	dk4m:		
-	 *	@param	dk4p:		
+	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
+	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$
 	 *	@param	jqq:			Diquark source
 	 *	@param	akappa:		Hopping parameter
 	 *
@@ -55,7 +55,7 @@ extern "C"
 	int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
 			Complex *gamval, int *gamin, double *dk4m, double *dk4p, Complex_f jqq, float akappa);
 	/**
-	 * @brief Evaluates @f(\Phi=M r@f) in double precision
+	 * @brief Evaluates @f$\Phi=M r@f$ in double precision
 	 *
 	 * @param	phi:		The product
 	 * @param	r:			The array being acted on by M
@@ -65,8 +65,8 @@ extern "C"
 	 *	@param	id:		Lower halo indices
 	 *	@param	gamval:	Gamma matrices
 	 *	@param	gamin:	Indices for dirac terms
-	 *	@param	dk4m:	
-	 *	@param	dk4p:	
+	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
+	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$
 	 *	@param	akappa:	Hopping parameter
 	 *
 	 * @return Zero on success, integer error code otherwise
@@ -74,7 +74,7 @@ extern "C"
 	int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
 			Complex *gamval, int *gamin, double *dk4m, double *dk4p, float akappa);
 	/**
-	 * @brief Evaluates @f(\Phi=M^\dagger r@f) in double precision
+	 * @brief Evaluates @f$\Phi=M^\dagger r@f$ in double precision
 	 *
 	 * @param	phi:		The product
 	 * @param	r:			The array being acted on by M
@@ -84,8 +84,8 @@ extern "C"
 	 *	@param	id:		Lower halo indices
 	 *	@param	gamval:	Gamma matrices
 	 *	@param	gamin:	Indices for dirac terms
-	 *	@param	dk4m:	
-	 *	@param	dk4p:	
+	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
+	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$
 	 *	@param	akappa:	Hopping parameter
 	 *
 	 * @return Zero on success, integer error code otherwise
@@ -94,7 +94,7 @@ extern "C"
 			Complex *gamval, int *gamin, double *dk4m, double *dk4p, float akappa);
 	//Float version
 	/**
-	 * @brief Evaluates @f(\Phi=M r@f) in single precision.
+	 * @brief Evaluates @f$\Phi=M r@f$ in single precision.
 	 *
 	 * @param	phi:			The product
 	 * @param	r:				The array being acted on by M
@@ -104,8 +104,8 @@ extern "C"
 	 *	@param	id:			Lower halo indices
 	 *	@param	gamval:	Gamma matrices
 	 *	@param	gamin:		Indices for dirac terms
-	 *	@param	dk4m:		
-	 *	@param	dk4p:		
+	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
+	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$
 	 *	@param	jqq:			Diquark source
 	 *	@param	akappa:		Hopping parameter
 	 *
@@ -114,7 +114,7 @@ extern "C"
 	int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
 			Complex_f *gamval,int *gamin, float *dk4m, float *dk4p, Complex_f jqq, float akappa);
 	/**
-	 * @brief Evaluates @f(\Phi=M^\dagger r@f) in single precision.
+	 * @brief Evaluates @f$\Phi=M^\dagger r@f$ in single precision.
 	 *
 	 * @param	phi:			The product
 	 * @param	r:				The array being acted on by M
@@ -124,8 +124,8 @@ extern "C"
 	 *	@param	id:			Lower halo indices
 	 *	@param	gamval:	Gamma matrices
 	 *	@param	gamin:		Indices for dirac terms
-	 *	@param	dk4m:		
-	 *	@param	dk4p:		
+	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
+	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$
 	 *	@param	jqq:			Diquark source
 	 *	@param	akappa:		Hopping parameter
 	 *
@@ -134,7 +134,7 @@ extern "C"
 	int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
 			Complex_f *gamval,int *gamin, float *dk4m, float *dk4p, Complex_f jqq, float akappa);
 	/**
-	 * @brief Evaluates @f(\Phi=M r@f) in single precision.
+	 * @brief Evaluates @f$\Phi=M r@f$ in single precision.
 	 *
 	 * @param	phi:		The product
 	 * @param	r:			The array being acted on by M
@@ -144,8 +144,8 @@ extern "C"
 	 *	@param	id:		Lower halo indices
 	 *	@param	gamval:	Gamma matrices
 	 *	@param	gamin:	Indices for dirac terms
-	 *	@param	dk4m:	
-	 *	@param	dk4p:	
+	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
+	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$
 	 *	@param	akappa:	Hopping parameter
 	 *
 	 * @return Zero on success, integer error code otherwise
@@ -153,7 +153,7 @@ extern "C"
 	int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
 			Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, float akappa);
 	/**
-	 * @brief Evaluates @f(\Phi=M^\dagger r@f) in single precision
+	 * @brief Evaluates @f$\Phi=M^\dagger r@f$ in single precision
 	 *
 	 * @param	phi:		The product
 	 * @param	r:			The array being acted on by M
@@ -163,8 +163,8 @@ extern "C"
 	 *	@param	id:		Lower halo indices
 	 *	@param	gamval:	Gamma matrices
 	 *	@param	gamin:	Indices for dirac terms
-	 *	@param	dk4m:	
-	 *	@param	dk4p:	
+	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
+	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$
 	 *	@param	akappa:	Hopping parameter
 	 *
 	 * @return Zero on success, integer error code otherwise
@@ -178,8 +178,6 @@ extern "C"
 	 * for the /trial/ header. One with u11 u12 (which was included here originally)
 	 * and the other with u11t and u12t.
 	 *
-	 * @see cuReunitarise (CUDA Wrapper)
-	 *
 	 * @param u11t, u12t Trial fields to be reunitarised
 	 *
 	 * @return Zero on success, integer error code otherwise
@@ -188,8 +186,6 @@ extern "C"
 	/**
 	 * @brief Generates new trial fields
 	 *
-	 * @see cuNew_trial (CUDA Wrapper)
-	 * 
 	 * @param	dt:		Half lattice spacing
 	 * @param	pp:		Momentum field
 	 * @param	u11t:		First colour field

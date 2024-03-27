@@ -1,44 +1,45 @@
-	/** 
-	 * 	@file main.c
-	 *
-	 *   @brief Hybrid Monte Carlo algorithm for Two Colour QCD with Wilson-Gor'kov fermions
-	 *				based on the algorithm of Duane et al. Phys. Lett. B195 (1987) 216. 
-	 *
-	 *    There is "up/down partitioning": each update requires
-	 *    one operation of Congradq() on complex*16 vectors to determine
-	 *    @f((M^{\dagger} M)^{-1}  \Phi@f) where @f(\Phi@f) has dimension 4*kvol*nc*Nf - 
-	 *    The matrix M is the Wilson matrix for a single flavor
-	 *    there is no extra species doubling as a result
-	 *
-	 *    Matrix multiplies done using routines Hdslash() and Hdslashd()
-	 *
-	 *    Hence, the number of lattice flavors Nf is related to the
-	 *    number of continuum flavors N_f by
-	 *                 @f$ N_f = 2 N_f@f$
-	 *
-	 *    Fermion expectation values are measured using a noisy estimator.
-	 *    on the Wilson-Gor'kov matrix, which has dimension 8*kvol*nc*Nf
-	 *    inversions done using Congradp(), and matrix multiplies with Dslash(),
-	 *    Dslashd()
-	 *
-	 *    Trajectory length is random with mean dt*stepl
-	 *    The code runs for a fixed number ntraj of trajectories.
-	 *
-	 *    Phi: pseudofermion field 
-	 *    bmass: bare fermion mass 
-	 *    fmu: chemical potential 
-	 *    actiona: running average of total action
-	 *
-	 *    Fermion expectation values are measured using a noisy estimator.
-	 *    outputs:
-	 *    fort.11   psibarpsi, energy density, baryon density
-	 *    fort.12   spatial plaquette, temporal plaquette, Polyakov line
-	 *    fort.13   real<qq>, real <qbar qbar>, imag <qq>= imag<qbar qbar>
-	 *
-	 *     @author SJH	(Original Code, March 2005)
-	 *     @author P.Giudice	(Hybrid Code, May 2013)
-	 *     @author D. Lawlor	(Fortran to C Conversion, March 2021. Mixed Precision. GPU, March 2024)
-	 ******************************************************************/
+/** 
+ * 	@file main.c
+ *
+ *   @brief Hybrid Monte Carlo algorithm for Two Colour QCD with Wilson-Gor'kov fermions
+ *				based on the algorithm of Duane et al. Phys. Lett. B195 (1987) 216. 
+ *
+ *    There is "up/down partitioning": each update requires
+ *    one operation of Congradq() on complex*16 vectors to determine
+ *    @f$(M^{\dagger} M)^{-1}  \Phi@f$ where @f$\Phi@f$ has dimension 4*kvol*nc*Nf - 
+ *    The matrix M is the Wilson matrix for a single flavor
+ *    there is no extra species doubling as a result
+ *
+ *    Matrix multiplies done using routines Hdslash() and Hdslashd()
+ *
+ *    Hence, the number of lattice flavors Nf is related to the
+ *    number of continuum flavors @f$N_f@f$ by
+ *                 @f$ \text{Nf} = 2 N_f@f$
+ *
+ *    Fermion expectation values are measured using a noisy estimator.
+ *    on the Wilson-Gor'kov matrix, which has dimension 8*kvol*nc*Nf
+ *    inversions done using Congradp(), and matrix multiplies with Dslash(),
+ *    Dslashd()
+ *
+ *    Trajectory length is random with mean dt*stepl
+ *    The code runs for a fixed number ntraj of trajectories.
+ *
+ *    @f$\Phi@f$: pseudofermion field <br>
+ *    bmass: bare fermion mass  <br>
+ *    @f$\mu@f$: chemical potential  <br>
+ *    actiona: running average of total action <br>
+ *
+ *    Fermion expectation values are measured using a noisy estimator.
+ *
+ *    outputs: <br>
+ *    fermi		psibarpsi, energy density, baryon density <br>
+ *    bose	   spatial plaquette, temporal plaquette, Polyakov line <br>
+ *    diq	   real<qq>
+ *
+ *     @author SJH			(Original Code, March 2005)
+ *     @author P.Giudice	(Hybrid Code, May 2013)
+ *     @author D. Lawlor	(Fortran to C Conversion, March 2021. Mixed Precision. GPU, March 2024)
+ ******************************************************************/
 #include	<assert.h>
 #include	<coord.h>
 #include	<math.h>
@@ -242,18 +243,18 @@ int main(int argc, char *argv[]){
 	u12t_f = (Complex_f *)aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex_f));
 #endif
 	/**
-	* \subsection initialise Initialisation
-	*
-	* Changing the value of istart in the input parameter file gives us the following start options. These are quoted
-	* from the FORTRAN comments
-	*
-	* istart < 0: Start from tape in FORTRAN?!? How old was this code? (depreciated, replaced with iread)
-	*
-	* istart = 0: Ordered/Cold Start
-	* 			For some reason this leaves the trial fields as zero in the FORTRAN code?
-	*
-	* istart > 0: Random/Hot Start
-	*/
+	 * \subsection initialise Initialisation
+	 *
+	 * Changing the value of istart in the input parameter file gives us the following start options. These are quoted
+	 * from the FORTRAN comments
+	 *
+	 * istart < 0: Start from tape in FORTRAN?!? How old was this code? (depreciated, replaced with iread)
+	 *
+	 * istart = 0: Ordered/Cold Start
+	 * 			For some reason this leaves the trial fields as zero in the FORTRAN code?
+	 *
+	 * istart > 0: Random/Hot Start
+	 */
 	Init(istart,ibound,iread,beta,fmu,akappa,ajq,u11,u12,u11t,u12t,u11t_f,u12t_f,gamval,gamval_f,gamin,dk4m,dk4p,dk4m_f,dk4p_f,iu,id);
 #ifdef __NVCC__
 	//GPU Initialisation stuff
@@ -491,7 +492,9 @@ int main(int argc, char *argv[]){
 #endif
 		//Main loop for classical time evolution
 		//======================================
-		for(int step = 1; step<=stepmax; step++){
+		bool end_traj=false; int step =1;
+		//	for(int step = 1; step<=stepmax; step++){
+		do{
 #ifdef _DEBUG
 			if(!rank)
 				printf("Traj: %d\tStep: %d\n", itraj, step);
@@ -529,6 +532,7 @@ int main(int argc, char *argv[]){
 				itot+=step;
 				ancg/=step;
 				totancg+=ancg;
+				end_traj=true;
 				break;
 			}
 			else{
@@ -543,8 +547,9 @@ int main(int argc, char *argv[]){
 				for(int i = 0; i<kmom; i++)
 					pp[i]-=dt*dSdpi[i];
 #endif
+				step++;
 			}
-		}
+		}while(!end_traj);
 		//Monte Carlo step: Accept new fields with the probability of min(1,exp(H0-X0))
 		//Kernel Call needed here?
 		Reunitarise(u11t,u12t);
@@ -805,4 +810,4 @@ int main(int argc, char *argv[]){
 #endif
 	fflush(stdout);
 	return 0;
-}
+	}

@@ -37,16 +37,16 @@
 /// @brief The main rank. Used for serial tasks
 #define masterproc 0
 
-
+///@brief default MPI tag
 #define tag   0
 //#define _STAT_SIZE_  sizeof(MPI_Status)
 //Variables
 //=========
 //Up/Down arrays
 /// @brief Processors in the up direction
-extern int pu[ndim] __attribute__((aligned(AVX)));
+extern int __attribute__((aligned(AVX))) pu[ndim];
 /// @brief Processors in the down direction
-extern int pd[ndim] __attribute__((aligned(AVX))); 
+extern int __attribute__((aligned(AVX))) pd[ndim];
 
 //MPI Stuff
 /// @brief MPI communicator
@@ -57,9 +57,9 @@ extern MPI_Request request;
 /// @brief The processor grid
 extern int *pcoord;
 /// @brief The initial lattice site on each sublattice in a given direction
-extern int pstart[ndim][nproc] __attribute__ ((aligned(AVX)));
+extern int  __attribute__((aligned(AVX))) pstart[ndim][nproc];
 /// @brief The final lattice site on each sublattice in a given direction
-extern int pstop [ndim][nproc] __attribute__ ((aligned(AVX)));
+extern int  __attribute__((aligned(AVX))) pstop[ndim][nproc];
 ///	@brief The MPI rank
 extern int rank;
 ///	@brief The number of MPI ranks in total
@@ -84,7 +84,7 @@ extern "C"
 	 * @param	argc		Number of arguments given to the programme
 	 * @param	argv		Array of arguments
 	 *
-	 * @zero Zero on success, integer error code otherwise.
+	 * @return Zero on success, integer error code otherwise.
 	 */
 	int Par_begin(int argc, char *argv[]);
 	/**
@@ -261,7 +261,7 @@ extern "C"
 	/**
 	 * @brief Calls the functions to send data to both the up and down halos
 	 *
-	 * @param	z:		The data being sent
+	 * @param	d:		The data being sent
 	 * @param	ncpt:	Number of components being sent
 	 *
 	 * @return	Zero on success, integer error code otherwise
