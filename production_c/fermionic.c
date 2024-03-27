@@ -34,8 +34,11 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	 * @param	dk4p_f:			� exp(μ) float 	
 	 *	@param	jqq:				Diquark source
 	 *	@param	akappa:			Hopping parameter
-	 *	@param	Phi:			
-	 *	@param	R1:
+	 *	@param	Phi:				Pseudofermion field	
+	 *	@param	R1:				A useful array for holding things that was already assigned in main.
+	 *									In particular, we'll be using it to catch the output of
+	 *									@f$ M^\dagger\Xi@f$ before the inversion, then used to store the
+	 *									output of the inversion
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
@@ -70,7 +73,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	for(int i=0;i<kferm;i++)
 		xi[i]=(Complex)xi_f[i];
 #endif
-	//R_1= M^† Ξ 
+	//R_1= @f$M^\dagger\Xi@f$
 	//R1 is local in FORTRAN but since its going to be reset anyway I'm going to recycle the
 	//global
 	Dslashd_f(R1_f,xi_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);

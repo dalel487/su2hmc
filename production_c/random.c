@@ -24,16 +24,22 @@
 
 //Declaring external variables
 #if (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))
+/// @brief RAN2 seed
 long seed;
 #elif defined __RANLUX__
+/// @brief RANLUX instance
 gsl_rng *ranlux_instd;
+/// @brief RANLUX seed
 unsigned long seed;
 #elif defined __INTEL_MKL__
+/// @brief Intel Mersene Twister seed
 unsigned int seed;
+/// @brief Intel Mersene Twister stream
 VSLStreamStatePtr stream;
 #endif
 #ifndef M_PI
-#define M_PI           3.14159265358979323846
+/// @brief	@f$\pi@f$ if not defined elsewhere	
+#define M_PI  acos(-1)
 #endif
 
 #ifdef __RANLUX__
@@ -431,6 +437,7 @@ int Gauss_f(float *ps, unsigned int n, const float mu, const float sigma){
 	}
 	return 0;
 }
+#ifndef __RANLUX__
 double ran2(long *idum) {
 	/*
 	 * @brief	Generates uniformly distributed random double between zero and one as
@@ -483,6 +490,7 @@ double ran2(long *idum) {
 	else return temp;
 
 }
+#endif
 
 /*
 	int ran_test(){

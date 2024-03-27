@@ -43,7 +43,7 @@
 extern cublasHandle_t cublas_handle;
 extern cublasStatus_t cublas_status;
 extern cudaMemPool_t mempool;
-//Get rid of that dirty yankee English
+///@brief	Get rid of that bastardised yankee English
 #define cudaDeviceSynchronise() cudaDeviceSynchronize()
 #endif
 #ifdef __CUDACC__
@@ -52,10 +52,13 @@ extern cudaMemPool_t mempool;
 #include <thrust/device_vector.h>
 #else
 #include	<complex.h>
+///@brief Single precision complex number 
 #define	Complex_f	float	complex
+///@brief Double precision complex number 
 #define	Complex		double complex
 #endif
 
+/// @brief	Default file name length
 #define	FILELEN	64
 // Common block definition for parallel variables
 
@@ -91,7 +94,7 @@ extern cudaMemPool_t mempool;
 #define	gvol3   (nx*ny*nz)
 
 ///	@brief Processor grid x extent. This must be a divisor of nx
-#define	npx	1
+#define	npx	2
 #if(npx<1)
 #error "npx is expected it to be greater than or equal to 1"
 #elif(nx%npx!=0)
@@ -118,7 +121,7 @@ extern cudaMemPool_t mempool;
 #endif
 
 ///	@brief Processor grid t extent
-#define	npt	1
+#define	npt	2
 #if(npt<1)
 #error "npt is expected it to be greater than or equal to 1"
 #elif(nt%npt!=0)
@@ -152,7 +155,6 @@ extern cudaMemPool_t mempool;
 ///	@brief	Sublattice spatial volume
 #define	kvol3	(ksizez*ksizey*ksizex)
 
-#define	stepmax	1000
 //     integer, parameter :: niterc=2*gvol  
 //      #define niterc 2*gvol
 //    jis: hard limit to avoid runaway trajectories
@@ -181,32 +183,34 @@ extern cudaMemPool_t mempool;
 #define	kferm	(nc*ngorkov*kvol)
 ///		@brief	sublattice size including Dirac indices
 #define	kferm2	(nc*ndirac*kvol)
-/*
-*    For those who may not have used MPI Before, halos are just a bit 
-*    of padding we put outside of the sublattices we're using in MPI
-*    so we can look at terms outside the sublattice we're actively working
-*    on with that process.
-*/
-#if(npx>1)
+/**
+ * 	@subsection halo MPI Halos 
+ *
+ *    For those who may not have used MPI Before, halos are just a bit 
+ *    of padding we put outside of the sublattices we're using in MPI
+ *    so we can look at terms outside the sublattice we're actively working
+ *    on with that process.
+ */
 ///	@brief	x Halo size
+#if(npx>1)
 #define	halox	(ksizey*ksizez*ksizet)
 #else
 #define	halox	0
 #endif
-#if(npy>1)
 ///	@brief	y Halo size
+#if(npy>1)
 #define	haloy	(ksizex*ksizez*ksizet)
 #else
 #define	haloy	0
 #endif
-#if(npz>1)
 ///	@brief	z Halo size
+#if(npz>1)
 #define	haloz	(ksizex*ksizey*ksizet)
 #else
 #define	haloz	0
 #endif
-#if(npt>1)
 ///	@brief	t Halo size
+#if(npt>1)
 #define	halot	(ksizex*ksizey*ksizez)
 #else
 #define	halot	0
@@ -221,7 +225,7 @@ extern cudaMemPool_t mempool;
 ///	@brief	Momentum lattice and halo
 #define	kmomHalo	(ndim*nadj*(kvol+halo))
 
-///	@brief Conjugate gradient residue for @f(\langle\bar{\Psi}\Psi\rangle@f)
+///	@brief Conjugate gradient residue for @f$\langle\bar{\Psi}\Psi\rangle@f$
 #define	respbp	1E-6
 ///	@brief Conjugate gradient residue for update
 #define	rescgg	1E-6 
@@ -259,15 +263,15 @@ extern cudaMemPool_t mempool;
 /*
  * @section gridblock Grids and Blocks
  *
-* Threads are grouped together to form warps of 32 threads
-* best to keep the block dimension (ksizex*ksizey) multiples of 32,
-* usually between 128 and 256
-* Note that from Volta/Turing  each SM (group of processors)
-* is smaller than on previous generations of GPUs
-*/
+ * Threads are grouped together to form warps of 32 threads
+ * best to keep the block dimension (ksizex*ksizey) multiples of 32,
+ * usually between 128 and 256
+ * Note that from Volta/Turing  each SM (group of processors)
+ * is smaller than on previous generations of GPUs
+ */
 extern dim3	dimBlock;//	=dim3(nx,ny,nz);
 extern dim3	dimGrid;//	=dim3(nt,1,1);
-//For copying over gamval
+						  //For copying over gamval
 extern dim3	dimBlockOne;//	=dim3(nx,ny,nz);
 extern dim3	dimGridOne;//	=dim3(nt,1,1);
 #define	USE_BLAS

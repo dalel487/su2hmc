@@ -39,20 +39,25 @@ extern "C"
 {
 #endif
 	/**
-	 *	@brief Calculates the force @f(\frac{dS}{d\pi}@f) at each intermediate time
+	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
 	 *	
 	 *	@param	dSdpi:			The force
-	 *	@param	iflag:	
+	 *	@param	iflag:			Invert before evaluating the force?	
 	 *	@param	res1:				Conjugate gradient residule
-	 *	@param	X0:
-	 *	@param	X1:
-	 *	@param	Phi:
+	 *	@param	X0:				Up/down partitioned pseudofermion field
+	 *	@param	X1:				Holder for the partitioned fermion field, then the conjugate gradient output
+	 *	@param	Phi:				Pseudofermion field
 	 *	@param	u11t,u12t		Double precision colour fields
 	 *	@param	u11t_f,u12t_f:	Single precision colour fields
 	 *	@param	iu,id:			Lattice indices
 	 *	@param	gamin:			Gamma indices
 	 *	@param	gamval:			Double precision gamma matrices
 	 *	@param	gamval_f:		Single precision gamma matrices
+	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
+	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$
+	 * @param	dk4m_f:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ float
+	 * @param	dk4p_f:			@f$\left(1-\gamma_0\right)e^\mu@f$ float
+	 * @param 	jqq:				Diquark source
 	 *	@param	akappa:			Hopping parameter
 	 *	@param	beta:				Inverse gauge coupling
 	 *	@param	ancg:				Counter for conjugate gradient iterations
@@ -69,7 +74,7 @@ extern "C"
 	 * @param	dSdpi:		The force
 	 *	@param	u11t,u12t:	Gauge fields
 	 * @param	iu,id:		Lattice indices 
-	 * @param	beta:			Invers gauge coupling
+	 * @param	beta:			Inverse gauge coupling
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
@@ -87,10 +92,10 @@ extern "C"
 	 * @param	u11, u12:			Gauge fields
 	 * @param	u11t, u12t:			Trial gauge field
 	 * @param	u11t_f, u12t_f:	Trial gauge field (single precision)
-	 * @param	dk4m					@f( Îe^{-\mu}@f)
-	 * @param	dk4p:					@f( Îe^\mu@f)
-	 * @param	dk4m_f:				@f( Îe^{-\mu}@f) float 	
-	 * @param	dk4p_f:				@f( Îe^\mu@f) float 	
+	 * @param	dk4m					@f$\left(1+\gamma_0\right)e^{-\mu}@f$
+	 * @param	dk4p:					@f$\left(1-\gamma_0\right)^\mu@f$
+	 * @param	dk4m_f:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$ float 	
+	 * @param	dk4p_f:				@f$\left(1-\gamma_0\right)e^\mu@f$ float 	
 	 * @param	iu,id:				Up halo indices
 	 * @param	gamin:				Gamma matrix indices
 	 * @param	gamval:				Gamma Matrices
@@ -109,16 +114,16 @@ extern "C"
 	 * @param	s:						Action
 	 * @param	res2:					Limit for conjugate gradient
 	 * @param	pp:					Momentum field
-	 * @param	X0:
-	 * @param	X1:
-	 * @param	Phi:
+	 *	@param	X0:					Up/down partitioned pseudofermion field
+	 *	@param	X1:					Holder for the partitioned fermion field, then the conjugate gradient output
+	 * @param	Phi:					Pseudofermion field
 	 * @param	u11t,u12t:			Gauge fields
-	 * @param	u11t_f,u12t_f:		Gauge fields
+	 * @param	u11t_f,u12t_f:		Gauge fields (single precision)
 	 * @param	iu,id:				Lattice indices
 	 * @param	gamval_f:			Gamma matrices
 	 * @param	gamin:				Gamma indices
-	 * @param	dk4m_f:				@f( Îe^{-\mu}@f)
-	 * @param	dk4p_f:				@f( Îe^\mu@f)
+	 * @param	dk4m_f:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$ float
+	 * @param	dk4p_f:				@f$\left(1-\gamma_0\right)e^\mu@f$ float
 	 * @param	jqq:					Diquark source
 	 * @param	akappa:				Hopping parameter
 	 * @param	beta:					Inverse gauge coupling
@@ -138,16 +143,16 @@ extern "C"
 	 *
 	 * @param	na:			Flavour index
 	 * @param	res:			Limit for conjugate gradient
-	 * @param	X1:			@f(\Phi@f) initially, returned as @f((M^\dagger M)^{-1} \Phi@f)
-	 * @param	r:				Partition of @f(\Phi@f) being used. Gets recycled as the residual vector
-	 * @param	u11t:			First colour's trial field
-	 * @param	u12t:			Second colour's trial field
+	 * @param	X1:			Pseudofermion field @f$\Phi@f$ initially, returned as @f$(M^\dagger M)^{-1} \Phi@f$
+	 * @param	r:				Partition of @f$\Phi@f$ being used. Gets recycled as the residual vector
+	 * @param	u11t_f:		First colour's trial field
+	 * @param	u12t_f:		Second colour's trial field
 	 * @param	iu:			Upper halo indices
 	 * @param	id:			Lower halo indices
 	 * @param	gamval_f:	Gamma matrices
 	 * @param	gamin:		Dirac indices
-	 * @param	dk4m_f:		@f( Îe^{-\mu}@f)
-	 * @param	dk4p_f:		@f( Îe^\mu@f)
+	 * @param	dk4m_f:		@f$\left(1+\gamma_0\right)e^{-\mu}@f$
+	 * @param	dk4p_f:		@f$\left(1-\gamma_0\right)e^\mu@f$
 	 * @param	jqq:			Diquark source
 	 * @param	akappa:		Hopping Parameter
 	 * @param	itercg:		Counts the iterations of the conjugate gradient
@@ -163,16 +168,16 @@ extern "C"
 	 *
 	 * @param 	na:			Flavour index
 	 * @param 	res:			Limit for conjugate gradient
-	 * @param 	Phi:			@f(\Phi@f) initially, 
-	 * @param 	xi:			Returned as @f((M^\dagger M)^{-1} \Phi@f)
+	 * @param 	Phi:			Pseudofermion field.
+	 * @param 	xi:			Returned as @f$(M^\dagger M)^{-1} \Phi@f$
 	 * @param 	u11t:			First colour's trial field
 	 * @param 	u12t:			Second colour's trial field
 	 * @param 	iu:			Upper halo indices
 	 * @param 	id:			Lower halo indices
 	 * @param 	gamval:		Gamma matrices
 	 * @param 	gamin:		Dirac indices
-	 * @param 	dk4m:
-	 * @param 	dk4p:
+	 * @param	dk4m:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$
+	 * @param	dk4p:			@f$\left(1-\gamma_0\right)e^\mu@f$
 	 * @param 	jqq:			Diquark source
 	 * @param 	akappa:		Hopping Parameter
 	 * @param 	itercg:		Counts the iterations of the conjugate gradient
@@ -185,12 +190,12 @@ extern "C"
 	 * @brief	Calculate fermion expectation values via a noisy estimator
 	 * 
 	 * Matrix inversion via conjugate gradient algorithm
-	 * Solves @f(Mx=x_1@f)
+	 * Solves @f$MX=X_1@f$
 	 * (Numerical Recipes section 2.10 pp.70-73)   
 	 * uses NEW lookup tables **
 	 * Implemented in Congradp()
 	 *
-	 * @param	pbp:				@f(\langle\bar{\Psi}\Psi\rangle@f)
+	 * @param	pbp:				@f$\langle\bar{\Psi}\Psi\rangle@f$
 	 *	@param	endenf:			Energy density
 	 *	@param	denf:				Number Density
 	 *	@param	qq:				Diquark condensate
@@ -200,14 +205,20 @@ extern "C"
 	 * @param	u11t,u12t		Double precisiongauge field
 	 * @param	u11t_f,u12t_f:	Single precision gauge fields
 	 *	@param	iu,id				Lattice indices
-	 *	@param	gamval_f:		Gamma matrices
+	 *	@param	gamval:			Gamma matrices
+	 *	@param	gamval_f:		Gamma matrices (float)
 	 *	@param	gamin:			Indices for Dirac terms
-	 * @param	dk4m_f:			@f( Îe^{-\mu}@f) float 	
-	 * @param	dk4p_f:			@f( Îe^\mu@f) float 	
+	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
+	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$
+	 * @param	dk4m_f:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$
+	 * @param	dk4p_f:			@f$\left(1-\gamma_0\right)e^\mu@f$
 	 *	@param	jqq:				Diquark source
 	 *	@param	akappa:			Hopping parameter
-	 *	@param	Phi:			
-	 *	@param	R1:
+	 *	@param	Phi:				Pseudofermion field	
+	 *	@param	R1:				A useful array for holding things that was already assigned in main.
+	 *									In particular, we'll be using it to catch the output of
+	 *									@f$ M^\dagger\Xi@f$ before the inversion, then used to store the
+	 *									output of the inversion
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
@@ -233,7 +244,7 @@ extern "C"
 	int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u11t, Complex_f *u12t,\
 			unsigned int *iu, float beta);
 	/**
-	 * @brief Calculates the plaquette at site i in the @f(\mu--\nu@f) direction
+	 * @brief Calculates the plaquette at site i in the @f$\mu--\nu@f$ direction
 	 *
 	 * @param	u11t, u12t:	Trial fields
 	 * @param	i:				Lattice site
@@ -258,7 +269,7 @@ extern "C"
 	double Polyakov(Complex_f *u11t, Complex_f *u12t);
 	//Inline functions
 	/**
-	 * @brief	Extracts all the single precision gauge links in the @f(\mu@f) direction only
+	 * @brief	Extracts all the single precision gauge links in the @f$\mu@f$ direction only
 	 *
 	 * @param	x:			The output 
 	 * @param	y:			The gauge field for a particular colour
@@ -270,7 +281,7 @@ extern "C"
 	*/
 	int C_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu);
 	/**
-	 * @brief	Extracts all the double precision gauge links in the @f(\mu@f) direction only
+	 * @brief	Extracts all the double precision gauge links in the @f$\mu@f$ direction only
 	 *
 	 * @param	x:			The output 
 	 * @param	y:			The gauge field for a particular colour
@@ -284,9 +295,9 @@ extern "C"
 	/**
 	 * Copies necessary (2*4*kvol) elements of Phi into a vector variable
 	 *
-	 * @param	na: flavour index
-	 * @param	smallPhi:	  The target array
-	 * @param	Phi:	  The source array
+	 * @param	na: 				flavour index
+	 * @param	smallPhi:		The partitioned output
+	 * @param	Phi:				The pseudofermion field
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
