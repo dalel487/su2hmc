@@ -24,37 +24,46 @@
 #include	<string.h>
 #endif
 
-//Avoid any accidents with US/UK spelling
+/// @brief Avoid any accidents with US/UK spelling
 #define MPI_Finalise() MPI_Finalize()
 
 //Definitions
 //==========
+/// @brief Flag for send down
 #define	DOWN	0
+/// @brief Flag for send up
 #define	UP		1
 
+/// @brief The main rank. Used for serial tasks
 #define masterproc 0
 
-//	Used the actual name instead of the alias when converting, but it's still good to have here
-//	I may change to the alias so that we can update it quicker in the future.
-#define MPI_CMPLXKIND   MPI_C_DOUBLE_COMPLEX
-#define MPI_REALKIND    MPI_DOUBLE
 
 #define tag   0
 //#define _STAT_SIZE_  sizeof(MPI_Status)
 //Variables
 //=========
 //Up/Down arrays
+/// @brief Processors in the up direction
 extern int pu[ndim] __attribute__((aligned(AVX)));
+/// @brief Processors in the down direction
 extern int pd[ndim] __attribute__((aligned(AVX))); 
 
 //MPI Stuff
+/// @brief MPI communicator
 extern MPI_Comm comm ;
+/// @brief MPI request. Required for send/receive
 extern MPI_Request request;
 
+/// @brief The processor grid
 extern int *pcoord;
+/// @brief The initial lattice site on each sublattice in a given direction
 extern int pstart[ndim][nproc] __attribute__ ((aligned(AVX)));
+/// @brief The final lattice site on each sublattice in a given direction
 extern int pstop [ndim][nproc] __attribute__ ((aligned(AVX)));
-extern int rank, size;
+///	@brief The MPI rank
+extern int rank;
+///	@brief The number of MPI ranks in total
+extern int size;
 //The common keyword from fortran is largely redundant here as everything
 //is already global scope.
 
