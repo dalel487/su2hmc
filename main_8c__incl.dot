@@ -1,0 +1,54 @@
+digraph "main.c"
+{
+ // LATEX_PDF_SIZE
+  bgcolor="transparent";
+  edge [fontname=IBM Plex Sans,fontsize=10,labelfontname=IBM Plex Sans,labelfontsize=10];
+  node [fontname=IBM Plex Sans,fontsize=10,shape=box,height=0.2,width=0.4];
+  Node1 [id="Node000001",label="main.c",height=0.2,width=0.4,color="gray40", fillcolor="grey60", style="filled", fontcolor="black",tooltip="Hybrid Monte Carlo algorithm for Two Colour QCD with Wilson-Gor'kov fermions based on the algorithm o..."];
+  Node1 -> Node2 [id="edge1_Node000001_Node000002",color="steelblue1",style="solid",tooltip=" "];
+  Node2 [id="Node000002",label="assert.h",height=0.2,width=0.4,color="grey60", fillcolor="#E0E0E0", style="filled",tooltip=" "];
+  Node1 -> Node3 [id="edge2_Node000001_Node000003",color="steelblue1",style="solid",tooltip=" "];
+  Node3 [id="Node000003",label="coord.h",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$coord_8h.html",tooltip="Header for routines related to lattice sites."];
+  Node3 -> Node4 [id="edge3_Node000003_Node000004",color="steelblue1",style="solid",tooltip=" "];
+  Node4 [id="Node000004",label="math.h",height=0.2,width=0.4,color="grey60", fillcolor="#E0E0E0", style="filled",tooltip=" "];
+  Node3 -> Node5 [id="edge4_Node000003_Node000005",color="steelblue1",style="solid",tooltip=" "];
+  Node5 [id="Node000005",label="sizes.h",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$sizes_8h.html",tooltip="Defines the constants of the code and other parameters for loop dimensions. Each subroutine includes ..."];
+  Node5 -> Node6 [id="edge5_Node000005_Node000006",color="steelblue1",style="solid",tooltip=" "];
+  Node6 [id="Node000006",label="complex.h",height=0.2,width=0.4,color="grey60", fillcolor="#E0E0E0", style="filled",tooltip=" "];
+  Node1 -> Node4 [id="edge6_Node000001_Node000004",color="steelblue1",style="solid",tooltip=" "];
+  Node1 -> Node7 [id="edge7_Node000001_Node000007",color="steelblue1",style="solid",tooltip=" "];
+  Node7 [id="Node000007",label="matrices.h",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$matrices_8h.html",tooltip="Matrix multiplication and related declarations."];
+  Node7 -> Node8 [id="edge8_Node000007_Node000008",color="steelblue1",style="solid",tooltip=" "];
+  Node8 [id="Node000008",label="par_mpi.h",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$par__mpi_8h.html",tooltip="MPI headers."];
+  Node8 -> Node3 [id="edge9_Node000008_Node000003",color="steelblue1",style="solid",tooltip=" "];
+  Node8 -> Node9 [id="edge10_Node000008_Node000009",color="steelblue1",style="solid",tooltip=" "];
+  Node9 [id="Node000009",label="errorcodes.h",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$errorcodes_8h.html",tooltip="This header is intended to be a useful reference for error codes and their meanings."];
+  Node8 -> Node10 [id="edge11_Node000008_Node000010",color="steelblue1",style="solid",tooltip=" "];
+  Node10 [id="Node000010",label="mpi.h",height=0.2,width=0.4,color="grey60", fillcolor="#E0E0E0", style="filled",tooltip=" "];
+  Node8 -> Node5 [id="edge12_Node000008_Node000005",color="steelblue1",style="solid",tooltip=" "];
+  Node8 -> Node11 [id="edge13_Node000008_Node000011",color="steelblue1",style="solid",tooltip=" "];
+  Node11 [id="Node000011",label="stdbool.h",height=0.2,width=0.4,color="grey60", fillcolor="#E0E0E0", style="filled",tooltip=" "];
+  Node8 -> Node12 [id="edge14_Node000008_Node000012",color="steelblue1",style="solid",tooltip=" "];
+  Node12 [id="Node000012",label="stdio.h",height=0.2,width=0.4,color="grey60", fillcolor="#E0E0E0", style="filled",tooltip=" "];
+  Node8 -> Node13 [id="edge15_Node000008_Node000013",color="steelblue1",style="solid",tooltip=" "];
+  Node13 [id="Node000013",label="stdlib.h",height=0.2,width=0.4,color="grey60", fillcolor="#E0E0E0", style="filled",tooltip=" "];
+  Node8 -> Node14 [id="edge16_Node000008_Node000014",color="steelblue1",style="solid",tooltip=" "];
+  Node14 [id="Node000014",label="string.h",height=0.2,width=0.4,color="grey60", fillcolor="#E0E0E0", style="filled",tooltip=" "];
+  Node7 -> Node15 [id="edge17_Node000007_Node000015",color="steelblue1",style="solid",tooltip=" "];
+  Node15 [id="Node000015",label="su2hmc.h",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$su2hmc_8h.html",tooltip="Function declarations for most of the routines."];
+  Node15 -> Node5 [id="edge18_Node000015_Node000005",color="steelblue1",style="solid",tooltip=" "];
+  Node15 -> Node12 [id="edge19_Node000015_Node000012",color="steelblue1",style="solid",tooltip=" "];
+  Node15 -> Node13 [id="edge20_Node000015_Node000013",color="steelblue1",style="solid",tooltip=" "];
+  Node15 -> Node16 [id="edge21_Node000015_Node000016",color="steelblue1",style="solid",tooltip=" "];
+  Node16 [id="Node000016",label="time.h",height=0.2,width=0.4,color="grey60", fillcolor="#E0E0E0", style="filled",tooltip=" "];
+  Node1 -> Node8 [id="edge22_Node000001_Node000008",color="steelblue1",style="solid",tooltip=" "];
+  Node1 -> Node17 [id="edge23_Node000001_Node000017",color="steelblue1",style="solid",tooltip=" "];
+  Node17 [id="Node000017",label="random.h",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$random_8h.html",tooltip="Header for random number configuration."];
+  Node17 -> Node18 [id="edge24_Node000017_Node000018",color="steelblue1",style="solid",tooltip=" "];
+  Node18 [id="Node000018",label="gsl/gsl_rng.h",height=0.2,width=0.4,color="grey60", fillcolor="#E0E0E0", style="filled",tooltip=" "];
+  Node17 -> Node4 [id="edge25_Node000017_Node000004",color="steelblue1",style="solid",tooltip=" "];
+  Node17 -> Node8 [id="edge26_Node000017_Node000008",color="steelblue1",style="solid",tooltip=" "];
+  Node17 -> Node5 [id="edge27_Node000017_Node000005",color="steelblue1",style="solid",tooltip=" "];
+  Node1 -> Node14 [id="edge28_Node000001_Node000014",color="steelblue1",style="solid",tooltip=" "];
+  Node1 -> Node15 [id="edge29_Node000001_Node000015",color="steelblue1",style="solid",tooltip=" "];
+}

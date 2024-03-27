@@ -1,0 +1,11 @@
+digraph "Par_ranset"
+{
+ // LATEX_PDF_SIZE
+  bgcolor="transparent";
+  edge [fontname=IBM Plex Sans,fontsize=10,labelfontname=IBM Plex Sans,labelfontsize=10];
+  node [fontname=IBM Plex Sans,fontsize=10,shape=box,height=0.2,width=0.4];
+  rankdir="LR";
+  Node1 [id="Node000001",label="Par_ranset",height=0.2,width=0.4,color="gray40", fillcolor="grey60", style="filled", fontcolor="black",tooltip="Uses the rank to get a new seed. Copying from the FORTRAN description here c create new seeds in rang..."];
+  Node1 -> Node2 [id="edge1_Node000001_Node000002",color="steelblue1",style="solid",tooltip=" "];
+  Node2 [id="Node000002",label="ranset",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$random_8c.html#af57f23ea0fda9e95ac9483a949b1efaa",tooltip="Seed the ranlux generator from GSL."];
+}

@@ -1,0 +1,13 @@
+digraph "Addrc"
+{
+ // LATEX_PDF_SIZE
+  bgcolor="transparent";
+  edge [fontname=IBM Plex Sans,fontsize=10,labelfontname=IBM Plex Sans,labelfontsize=10];
+  node [fontname=IBM Plex Sans,fontsize=10,shape=box,height=0.2,width=0.4];
+  rankdir="RL";
+  Node1 [id="Node000001",label="Addrc",height=0.2,width=0.4,color="gray40", fillcolor="grey60", style="filled", fontcolor="black",tooltip="Loads the addresses required during the update."];
+  Node1 -> Node2 [id="edge1_Node000001_Node000002",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node2 [id="Node000002",label="Init",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$su2hmc_8c.html#a1fbc1cb0a07d63c39d8cff966a534d09",tooltip="Initialises the system."];
+  Node2 -> Node3 [id="edge2_Node000002_Node000003",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node3 [id="Node000003",label="main",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$main_8c.html#a0ddf1224851353fc92bfbff6f499fa97",tooltip=" "];
+}

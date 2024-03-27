@@ -1,0 +1,11 @@
+digraph "Par_ranread"
+{
+ // LATEX_PDF_SIZE
+  bgcolor="transparent";
+  edge [fontname=IBM Plex Sans,fontsize=10,labelfontname=IBM Plex Sans,labelfontsize=10];
+  node [fontname=IBM Plex Sans,fontsize=10,shape=box,height=0.2,width=0.4];
+  rankdir="LR";
+  Node1 [id="Node000001",label="Par_ranread",height=0.2,width=0.4,color="gray40", fillcolor="grey60", style="filled", fontcolor="black",tooltip="Reads ps from a file Since this function is very similar to Par_sread, I'm not really going to commen..."];
+  Node1 -> Node2 [id="edge1_Node000001_Node000002",color="steelblue1",style="solid",tooltip=" "];
+  Node2 [id="Node000002",label="Par_dcopy",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$par__mpi_8h.html#a6067f92fc64a6426e2780a017dc553c7",tooltip="Broadcasts a double to the other processes."];
+}

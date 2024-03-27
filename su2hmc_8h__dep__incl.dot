@@ -1,0 +1,29 @@
+digraph "INCLUDE/su2hmc.h"
+{
+ // LATEX_PDF_SIZE
+  bgcolor="transparent";
+  edge [fontname=IBM Plex Sans,fontsize=10,labelfontname=IBM Plex Sans,labelfontsize=10];
+  node [fontname=IBM Plex Sans,fontsize=10,shape=box,height=0.2,width=0.4];
+  Node1 [id="Node000001",label="INCLUDE/su2hmc.h",height=0.2,width=0.4,color="gray40", fillcolor="grey60", style="filled", fontcolor="black",tooltip="Function declarations for most of the routines."];
+  Node1 -> Node2 [id="edge1_Node000001_Node000002",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node2 [id="Node000002",label="INCLUDE/matrices.h",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$matrices_8h.html",tooltip="Matrix multiplication and related declarations."];
+  Node2 -> Node3 [id="edge2_Node000002_Node000003",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node3 [id="Node000003",label="main.c",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$main_8c.html",tooltip="Hybrid Monte Carlo algorithm for Two Colour QCD with Wilson-Gor'kov fermions based on the algorithm o..."];
+  Node2 -> Node4 [id="edge3_Node000002_Node000004",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node4 [id="Node000004",label="production_c/congrad.c",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$congrad_8c.html",tooltip="Conjugate gradients. Congradq for the solver and Congradp for the inversion."];
+  Node2 -> Node5 [id="edge4_Node000002_Node000005",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node5 [id="Node000005",label="production_c/fermionic.c",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$fermionic_8c.html",tooltip="Code for fermionic observables."];
+  Node2 -> Node6 [id="edge5_Node000002_Node000006",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node6 [id="Node000006",label="production_c/force.c",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$force_8c.html",tooltip="Code for force calculations."];
+  Node2 -> Node7 [id="edge6_Node000002_Node000007",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node7 [id="Node000007",label="production_c/matrices.c",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$matrices_8c.html",tooltip="Matrix multiplication and related routines."];
+  Node2 -> Node8 [id="edge7_Node000002_Node000008",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node8 [id="Node000008",label="production_c/su2hmc.c",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$su2hmc_8c.html",tooltip="An ecclectic collection of functions used in the HMC."];
+  Node1 -> Node3 [id="edge8_Node000001_Node000003",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node1 -> Node9 [id="edge9_Node000001_Node000009",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node9 [id="Node000009",label="production_c/bosonic.c",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$bosonic_8c.html",tooltip="Code for bosonic observables, Basically polyakov loop and Plaquette routines."];
+  Node1 -> Node5 [id="edge10_Node000001_Node000005",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node1 -> Node10 [id="edge11_Node000001_Node000010",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node10 [id="Node000010",label="production_c/par_mpi.c",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$par__mpi_8c.html",tooltip="MPI routines."];
+  Node1 -> Node8 [id="edge12_Node000001_Node000008",dir="back",color="steelblue1",style="solid",tooltip=" "];
+}

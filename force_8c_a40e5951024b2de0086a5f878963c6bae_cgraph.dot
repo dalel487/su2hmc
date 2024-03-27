@@ -1,0 +1,36 @@
+digraph "Force"
+{
+ // LATEX_PDF_SIZE
+  bgcolor="transparent";
+  edge [fontname=IBM Plex Sans,fontsize=10,labelfontname=IBM Plex Sans,labelfontsize=10];
+  node [fontname=IBM Plex Sans,fontsize=10,shape=box,height=0.2,width=0.4];
+  rankdir="LR";
+  Node1 [id="Node000001",label="Force",height=0.2,width=0.4,color="gray40", fillcolor="grey60", style="filled", fontcolor="black",tooltip="Calculates the force  at each intermediate time."];
+  Node1 -> Node2 [id="edge1_Node000001_Node000002",color="steelblue1",style="solid",tooltip=" "];
+  Node2 [id="Node000002",label="Congradq",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$congrad_8c.html#aa32f0774e38a36310209b44a2abae8e6",tooltip="Matrix Inversion via Conjugate Gradient (up/down flavour partitioning). Solves  Implements up/down pa..."];
+  Node2 -> Node3 [id="edge2_Node000002_Node000003",color="steelblue1",style="solid",tooltip=" "];
+  Node3 [id="Node000003",label="Hdslash_f",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$matrices_8c.html#a17eb50d07c881fc5d1585ddf14aa1ff0",tooltip="Evaluates  in single precision."];
+  Node3 -> Node4 [id="edge3_Node000003_Node000004",color="steelblue1",style="solid",tooltip=" "];
+  Node4 [id="Node000004",label="CHalo_swap_all",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$par__mpi_8h.html#a14b1a550ef4f44a9e4d7dd06c9427993",tooltip="Calls the functions to send data to both the up and down halos."];
+  Node2 -> Node5 [id="edge4_Node000002_Node000005",color="steelblue1",style="solid",tooltip=" "];
+  Node5 [id="Node000005",label="Hdslashd_f",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$matrices_8c.html#a87e3179e3c6947eacfa74ada59aaeb0c",tooltip="Evaluates  in single precision."];
+  Node5 -> Node4 [id="edge5_Node000005_Node000004",color="steelblue1",style="solid",tooltip=" "];
+  Node2 -> Node6 [id="edge6_Node000002_Node000006",color="steelblue1",style="solid",tooltip=" "];
+  Node6 [id="Node000006",label="Par_dsum",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$par__mpi_8h.html#aecfe9840e5f8dfd693b813b750d81a0c",tooltip="Performs a reduction on a double dval to get a sum which is then distributed to all ranks."];
+  Node2 -> Node7 [id="edge7_Node000002_Node000007",color="steelblue1",style="solid",tooltip=" "];
+  Node7 [id="Node000007",label="Par_fsum",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$par__mpi_8h.html#a4e2e85b06c5b05c5181729cc5ebdd05b",tooltip="Performs a reduction on a float dval to get a sum which is then distributed to all ranks."];
+  Node1 -> Node8 [id="edge8_Node000001_Node000008",color="steelblue1",style="solid",tooltip=" "];
+  Node8 [id="Node000008",label="Fill_Small_Phi",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$su2hmc_8c.html#ad4816b4c3599a65d212f34e10c83055f",tooltip=" "];
+  Node1 -> Node9 [id="edge9_Node000001_Node000009",color="steelblue1",style="solid",tooltip=" "];
+  Node9 [id="Node000009",label="Gauge_force",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$force_8c.html#a45c04d32a0a22833e0ed90db2baf454d",tooltip="Calculates the gauge force due to the Wilson Action at each intermediate time."];
+  Node9 -> Node10 [id="edge10_Node000009_Node000010",color="steelblue1",style="solid",tooltip=" "];
+  Node10 [id="Node000010",label="C_gather",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$su2hmc_8c.html#af64f1450e29df479f82290bc4f7bdc1f",tooltip="Extracts all the single precision gauge links in the  direction only."];
+  Node9 -> Node11 [id="edge11_Node000009_Node000011",color="steelblue1",style="solid",tooltip=" "];
+  Node11 [id="Node000011",label="CHalo_swap_dir",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$par__mpi_8h.html#ab73329ce6f65730ba4783a8031edd518",tooltip="Swaps the halos along the axis given by idir in the direction given by layer."];
+  Node1 -> Node12 [id="edge12_Node000001_Node000012",color="steelblue1",style="solid",tooltip=" "];
+  Node12 [id="Node000012",label="Hdslash",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$matrices_8c.html#aa9c3d535a95a3dd48438717eb8d71893",tooltip="Evaluates  in double precision."];
+  Node12 -> Node13 [id="edge13_Node000012_Node000013",color="steelblue1",style="solid",tooltip=" "];
+  Node13 [id="Node000013",label="ZHalo_swap_all",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$par__mpi_8h.html#a35d208a5a65e71101e71d3f0248aef03",tooltip="Calls the functions to send data to both the up and down halos."];
+  Node1 -> Node14 [id="edge14_Node000001_Node000014",color="steelblue1",style="solid",tooltip=" "];
+  Node14 [id="Node000014",label="ZHalo_swap_dir",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$par__mpi_8h.html#a893a7c85fb77e355d4cec6bc35711b98",tooltip="Swaps the halos along the axis given by idir in the direction given by layer."];
+}

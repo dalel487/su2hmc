@@ -1,0 +1,35 @@
+digraph "CHalo_swap_all"
+{
+ // LATEX_PDF_SIZE
+  bgcolor="transparent";
+  edge [fontname=IBM Plex Sans,fontsize=10,labelfontname=IBM Plex Sans,labelfontsize=10];
+  node [fontname=IBM Plex Sans,fontsize=10,shape=box,height=0.2,width=0.4];
+  rankdir="RL";
+  Node1 [id="Node000001",label="CHalo_swap_all",height=0.2,width=0.4,color="gray40", fillcolor="grey60", style="filled", fontcolor="black",tooltip="Calls the functions to send data to both the up and down halos."];
+  Node1 -> Node2 [id="edge1_Node000001_Node000002",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node2 [id="Node000002",label="Dslash_f",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$matrices_8c.html#ac6cc2163c8a92f8029e274926047c256",tooltip="Evaluates  in single precision."];
+  Node2 -> Node3 [id="edge2_Node000002_Node000003",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node3 [id="Node000003",label="Congradp",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$congrad_8c.html#afe0b99f1475067a37a8f3d4ce2b2de7f",tooltip="Matrix Inversion via Conjugate Gradient (no up/down flavour partitioning). Solves  The matrix multipl..."];
+  Node3 -> Node4 [id="edge3_Node000003_Node000004",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node4 [id="Node000004",label="Measure",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$fermionic_8c.html#a38464140ca960a533faa9e49b6ee6131",tooltip="Calculate fermion expectation values via a noisy estimator."];
+  Node4 -> Node5 [id="edge4_Node000004_Node000005",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node5 [id="Node000005",label="main",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$main_8c.html#a0ddf1224851353fc92bfbff6f499fa97",tooltip=" "];
+  Node1 -> Node6 [id="edge5_Node000001_Node000006",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node6 [id="Node000006",label="Dslashd_f",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$matrices_8c.html#aba7f4f08e497d2b0b94f3e2526ca0a31",tooltip="Evaluates  in single precision."];
+  Node6 -> Node3 [id="edge6_Node000006_Node000003",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node6 -> Node5 [id="edge7_Node000006_Node000005",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node6 -> Node4 [id="edge8_Node000006_Node000004",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node1 -> Node7 [id="edge9_Node000001_Node000007",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node7 [id="Node000007",label="Hdslash_f",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$matrices_8c.html#a17eb50d07c881fc5d1585ddf14aa1ff0",tooltip="Evaluates  in single precision."];
+  Node7 -> Node8 [id="edge10_Node000007_Node000008",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node8 [id="Node000008",label="Congradq",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$congrad_8c.html#aa32f0774e38a36310209b44a2abae8e6",tooltip="Matrix Inversion via Conjugate Gradient (up/down flavour partitioning). Solves  Implements up/down pa..."];
+  Node8 -> Node9 [id="edge11_Node000008_Node000009",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node9 [id="Node000009",label="Force",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$force_8c.html#a40e5951024b2de0086a5f878963c6bae",tooltip="Calculates the force  at each intermediate time."];
+  Node9 -> Node5 [id="edge12_Node000009_Node000005",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node8 -> Node10 [id="edge13_Node000008_Node000010",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node10 [id="Node000010",label="Hamilton",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$su2hmc_8c.html#a8162f75ab3c29cbe30e22ccdc02a7566",tooltip="Calculate the Hamiltonian."];
+  Node10 -> Node5 [id="edge14_Node000010_Node000005",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node1 -> Node11 [id="edge15_Node000001_Node000011",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node11 [id="Node000011",label="Hdslashd_f",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$matrices_8c.html#a87e3179e3c6947eacfa74ada59aaeb0c",tooltip="Evaluates  in single precision."];
+  Node11 -> Node8 [id="edge16_Node000011_Node000008",dir="back",color="steelblue1",style="solid",tooltip=" "];
+}

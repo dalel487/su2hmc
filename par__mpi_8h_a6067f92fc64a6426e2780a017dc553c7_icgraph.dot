@@ -1,0 +1,15 @@
+digraph "Par_dcopy"
+{
+ // LATEX_PDF_SIZE
+  bgcolor="transparent";
+  edge [fontname=IBM Plex Sans,fontsize=10,labelfontname=IBM Plex Sans,labelfontsize=10];
+  node [fontname=IBM Plex Sans,fontsize=10,shape=box,height=0.2,width=0.4];
+  rankdir="RL";
+  Node1 [id="Node000001",label="Par_dcopy",height=0.2,width=0.4,color="gray40", fillcolor="grey60", style="filled", fontcolor="black",tooltip="Broadcasts a double to the other processes."];
+  Node1 -> Node2 [id="edge1_Node000001_Node000002",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node2 [id="Node000002",label="Par_granf",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$random_8c.html#af30389dbea7d2b366abea7a923bb008d",tooltip="Generates a random double which is then sent to the other ranks."];
+  Node2 -> Node3 [id="edge2_Node000002_Node000003",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node3 [id="Node000003",label="main",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$main_8c.html#a0ddf1224851353fc92bfbff6f499fa97",tooltip=" "];
+  Node1 -> Node4 [id="edge3_Node000001_Node000004",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node4 [id="Node000004",label="Par_ranread",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$random_8c.html#a328653cc438367219bad89a935958108",tooltip="Reads ps from a file Since this function is very similar to Par_sread, I'm not really going to commen..."];
+}

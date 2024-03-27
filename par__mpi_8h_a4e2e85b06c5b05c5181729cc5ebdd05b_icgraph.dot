@@ -1,0 +1,23 @@
+digraph "Par_fsum"
+{
+ // LATEX_PDF_SIZE
+  bgcolor="transparent";
+  edge [fontname=IBM Plex Sans,fontsize=10,labelfontname=IBM Plex Sans,labelfontsize=10];
+  node [fontname=IBM Plex Sans,fontsize=10,shape=box,height=0.2,width=0.4];
+  rankdir="RL";
+  Node1 [id="Node000001",label="Par_fsum",height=0.2,width=0.4,color="gray40", fillcolor="grey60", style="filled", fontcolor="black",tooltip="Performs a reduction on a float dval to get a sum which is then distributed to all ranks."];
+  Node1 -> Node2 [id="edge1_Node000001_Node000002",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node2 [id="Node000002",label="Congradp",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$congrad_8c.html#afe0b99f1475067a37a8f3d4ce2b2de7f",tooltip="Matrix Inversion via Conjugate Gradient (no up/down flavour partitioning). Solves  The matrix multipl..."];
+  Node2 -> Node3 [id="edge2_Node000002_Node000003",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node3 [id="Node000003",label="Measure",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$fermionic_8c.html#a38464140ca960a533faa9e49b6ee6131",tooltip="Calculate fermion expectation values via a noisy estimator."];
+  Node3 -> Node4 [id="edge3_Node000003_Node000004",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node4 [id="Node000004",label="main",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$main_8c.html#a0ddf1224851353fc92bfbff6f499fa97",tooltip=" "];
+  Node1 -> Node5 [id="edge4_Node000001_Node000005",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node5 [id="Node000005",label="Congradq",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$congrad_8c.html#aa32f0774e38a36310209b44a2abae8e6",tooltip="Matrix Inversion via Conjugate Gradient (up/down flavour partitioning). Solves  Implements up/down pa..."];
+  Node5 -> Node6 [id="edge5_Node000005_Node000006",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node6 [id="Node000006",label="Force",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$force_8c.html#a40e5951024b2de0086a5f878963c6bae",tooltip="Calculates the force  at each intermediate time."];
+  Node6 -> Node4 [id="edge6_Node000006_Node000004",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node5 -> Node7 [id="edge7_Node000005_Node000007",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node7 [id="Node000007",label="Hamilton",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$su2hmc_8c.html#a8162f75ab3c29cbe30e22ccdc02a7566",tooltip="Calculate the Hamiltonian."];
+  Node7 -> Node4 [id="edge8_Node000007_Node000004",dir="back",color="steelblue1",style="solid",tooltip=" "];
+}
