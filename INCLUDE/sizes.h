@@ -94,7 +94,7 @@ extern cudaMemPool_t mempool;
 #define	gvol3   (nx*ny*nz)
 
 ///	@brief Processor grid x extent. This must be a divisor of nx
-#define	npx	1
+#define	npx	2
 #if(npx<1)
 #error "npx is expected it to be greater than or equal to 1"
 #elif(nx%npx!=0)
@@ -121,7 +121,7 @@ extern cudaMemPool_t mempool;
 #endif
 
 ///	@brief Processor grid t extent
-#define	npt	1
+#define	npt	2
 #if(npt<1)
 #error "npt is expected it to be greater than or equal to 1"
 #elif(nt%npt!=0)
@@ -228,13 +228,14 @@ extern cudaMemPool_t mempool;
 ///	@brief	Momentum lattice and halo
 #define	kmomHalo	(ndim*nadj*(kvol+halo))
 
-///	@brief Conjugate gradient residue for @f$\langle\bar{\Psi}\Psi\rangle@f$
+/**	@brief Conjugate gradient residue for @f$\langle\bar{\Psi}\Psi\rangle@f$
 //		These all used to be multipled by kferm or kferm2 at the start of Congradq or Congradp
 //		On 20240516 in Room 2.19 of the Lloyd building of Trinity we copped that doing so means that the residue is larger
 //		if running on a smaller number of cores. In the extreme GPU case the subvolume is the entire volume so the residue
 //		can be several orders of magnitude larger than in the smallest sublattice case.
 //		Instead, we rescale all the default residues here by sqrt(kferm) or sqrt(kferm2). No matter what size sublattice
 //		we use now, the residue will match that of a 2^3X4 sublattice used in the earlier FORTRAN runs
+*/	
 #define	respbp	3.2E-5
 ///	@brief Conjugate gradient residue for update
 #define	rescgg	2.26E-5 
