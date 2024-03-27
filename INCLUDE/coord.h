@@ -27,7 +27,16 @@
 #ifdef __CUDACC__
 __managed__
 #endif
-extern unsigned int *hu, *hd, *h1u, *h1d, *halosize;;
+///@brief Up halo indices
+extern unsigned int *hu;
+///@brief Down halo indices
+extern unsigned int *hd;
+///@brief Up halo starting element
+extern unsigned int *h1u;
+///@brief Down halo starting element
+extern unsigned int *h1d;
+///@brief Array containing the size of the halo in each direction
+extern unsigned int  *halosize;;
 #ifdef __cplusplus
 extern "C"
 {
@@ -49,7 +58,7 @@ extern "C"
 	 * @brief Described as a 21st Century address calculator, it gets the memory
 	 * address of an array entry.
 	 *
-	 * @param x, y, z, t. The coordinates
+	 * @param x, y, z, t: The coordinates
 	 *
 	 * @return An integer corresponding to the position of the entry in a flattened
 	 * row-major array.
@@ -115,8 +124,7 @@ extern "C"
 	 * Also C and Fortran store data in the opposite memory order so
 	 * be careful when calling this function!
 	 *
-	 * @param index: The flattend index of the coordinate
-	 * @param coord: The coordinate 
+	 * @param ix,iy,iz,it:	Index in each direction
 	 *
 	 * Returns:
 	 * ========
@@ -134,8 +142,7 @@ extern "C"
 	 * Also C and Fortran store data in the opposite memory order so
 	 * be careful when calling this function!
 	 *
-	 * @param index: The flattend index of the coordinate
-	 * @param coord: The coordinate 
+	 * @param ix,iy,iz,it:	Index in each direction
 	 *
 	 * Returns:
 	 * ========
