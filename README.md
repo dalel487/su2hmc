@@ -8,7 +8,7 @@ based on the algorithm of Duane et al. Phys. Lett. B195 (1987) 216.
 There is "up/down partitioning": each update requires
 one operation of congradq on complex vectors to determine
 $$
-\left(M\dagger M\right)^{-1}\Phi
+\left(M^\dagger M\right)^{-1}\Phi
 $$ 
 where $\Phi$ has dimension 4 * kvol * nc * Nf -
 The matrix M is the Wilson matrix for a single flavor
@@ -18,7 +18,7 @@ matrix multiplies done using routines `hdslash` and `hdslashd`
 
 Hence, the number of lattice flavors Nf is related to the
 number of continuum flavors N_f by
-              N_f = 2 * Nf
+              $$N_f = 2  \text{Nf}$$
 
 Fermion expectation values are measured using a noisy estimator.
 on the Wilson-Gor'kov matrix, which has dimension 8 * kvol * nc * Nf
