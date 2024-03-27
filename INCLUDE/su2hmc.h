@@ -108,6 +108,7 @@ extern "C"
 	 * @param	h:						Hamiltonian
 	 * @param	s:						Action
 	 * @param	res2:					Limit for conjugate gradient
+	 * @param	pp:					Momentum field
 	 * @param	X0:
 	 * @param	X1:
 	 * @param	Phi:
