@@ -77,7 +77,6 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 	//cudaMemcpy is blocking, so use async instead
 	cuComplex_convert(r_f,r,kferm2,true,dimBlock,dimGrid);
 	cudaMemcpyAsync(p_f, X1_f, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice,NULL);
-		cudaDeviceSynchronise();
 #else
 #pragma omp parallel for simd
 	for(int i=0;i<kferm2;i++){
@@ -90,45 +89,11 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
 	//if statements quicker to type
 	double betan;
-#ifdef _DEBUGCG
-	printf("Gammas:\n");
-	for(int i=0;i<5;i++){
-		for(int j=0;j<4;j++)
-			printf("%.5e+%.5ei\t",creal(gamval_f[i*4+j]),cimag(gamval_f[i*4+j]));
-		printf("\n");
-	}
-	printf("\nConstants (index %d):\nu11t[kvol-1]=%e+%.5ei\tu12t[kvol-1]=%e+%.5ei\tdk4m=%.5e\tdk4p=%.5e\tjqq=%.5e+I%.5f\tkappa=%.5f\n",\
-			kvol-1,creal(u11t[kvol-1]),cimag(u11t[kvol-1]),creal(u12t[kvol-1]),cimag(u12t[kvol-1]),dk4m[kvol-1],dk4p[kvol-1],creal(jqq),cimag(jqq),akappa);
-#endif
 	for(*itercg=0; *itercg<niterc; (*itercg)++){
 		//x2 =  (M^†M)p 
-		//No need to synchronise here. The memcpy in Hdslash is blocking
-		//But one hits the halo exchange first...
-#ifdef _DEBUGCG
-		memset(x1_f,0,kferm2Halo*sizeof(Complex_f));
-#ifdef __NVCC__
-		cudaMemPrefetchAsync(x1_f,kferm2*sizeof(Complex_f),device,NULL);
-		cudaDeviceSynchronise();
-#endif
-		printf("\nPre mult:\tp_f[kferm2-1]=%.5e+%.5ei\tx1_f[kferm2-1]=%.5e+%.5ei\tx2_f[kferm2-1]=%.5e+%.5ei\t",\
-				creal(p_f[kferm2-1]),cimag(p_f[kferm2-1]),creal(x1_f[kferm2-1]),cimag(x1_f[kferm2-1]),creal(x2_f[kferm2-1]),cimag(x2_f[kferm2-1]));
-#endif
+		//No need to synchronoise here. The memcpy in Hdslash is blocking
 		Hdslash_f(x1_f,p_f,u11t,u12t,iu,id,gamval_f,gamin,dk4m,dk4p,akappa);
-#ifdef __NVCC__
-		cudaDeviceSynchronise();
-#endif
-#ifdef _DEBUGCG
-		printf("\nHdslash_f:\tp_f[kferm2-1]=%.5e+%.5ei\tx1_f[kferm2-1]=%.5e+%.5ei\tx2_f[kferm2-1]=%.5e+%.5ei",\
-				creal(p_f[kferm2-1]),cimag(p_f[kferm2-1]),creal(x1_f[kferm2-1]),cimag(x1_f[kferm2-1]),creal(x2_f[kferm2-1]),cimag(x2_f[kferm2-1]));
-#endif
 		Hdslashd_f(x2_f,x1_f,u11t,u12t,iu,id,gamval_f,gamin,dk4m,dk4p,akappa);
-#ifdef _DEBUGCG
-#ifdef __NVCC__
-		cudaDeviceSynchronise();
-#endif
-		printf("\nHdslashd_f:\tp_f[kferm2-1]=%.5e+%.5ei\tx1_f[kferm2-1]=%.5e+%.5ei\tx2_f[kferm2-1]=%.5e+%.5ei\n",\
-				creal(p_f[kferm2-1]),cimag(p_f[kferm2-1]),creal(x1_f[kferm2-1]),cimag(x1_f[kferm2-1]),creal(x2_f[kferm2-1]),cimag(x2_f[kferm2-1]));
-#endif
 		//x2 =  (M^†M+J^2)p 
 		//No point adding zero a couple of hundred times if the diquark source is zero
 		if(fac_f!=0){
@@ -177,7 +142,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 		}			
 		// r_n+1 = r_n-α(M^† M)p_n and β_n=r*.r
 #ifdef	__NVCC__
-		__managed__ Complex_f alpha_m=(Complex_f)(-alpha);
+		Complex_f alpha_m=(Complex_f)(-alpha);
 		cublasCaxpy(cublas_handle, kferm2,(cuComplex *)&alpha_m,(cuComplex *)x2_f,1,(cuComplex *)r_f,1);
 		float betan_f;
 		cublasScnrm2(cublas_handle,kferm2,(cuComplex *)r_f,1,&betan_f);
@@ -501,3 +466,38 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 #endif
 	return ret_val;
 }
+/* Old clutter for debugging CG
+ * Pre mult
+#ifdef _DEBUGCG
+memset(x1_f,0,kferm2Halo*sizeof(Complex_f));
+#ifdef __NVCC__
+cudaMemPrefetchAsync(x1_f,kferm2*sizeof(Complex_f),device,NULL);
+cudaDeviceSynchronise();
+#endif
+printf("\nPre mult:\tp_f[kferm2-1]=%.5e+%.5ei\tx1_f[kferm2-1]=%.5e+%.5ei\tx2_f[kferm2-1]=%.5e+%.5ei\t",\
+creal(p_f[kferm2-1]),cimag(p_f[kferm2-1]),creal(x1_f[kferm2-1]),cimag(x1_f[kferm2-1]),creal(x2_f[kferm2-1]),cimag(x2_f[kferm2-1]));
+#endif
+
+First mult
+#ifdef _DEBUGCG
+printf("\nHdslash_f:\tp_f[kferm2-1]=%.5e+%.5ei\tx1_f[kferm2-1]=%.5e+%.5ei\tx2_f[kferm2-1]=%.5e+%.5ei",\
+creal(p_f[kferm2-1]),cimag(p_f[kferm2-1]),creal(x1_f[kferm2-1]),cimag(x1_f[kferm2-1]),creal(x2_f[kferm2-1]),cimag(x2_f[kferm2-1]));
+#endif
+Post mult
+#ifdef _DEBUGCG
+printf("\nHdslashd_f:\tp_f[kferm2-1]=%.5e+%.5ei\tx1_f[kferm2-1]=%.5e+%.5ei\tx2_f[kferm2-1]=%.5e+%.5ei\n",\
+creal(p_f[kferm2-1]),cimag(p_f[kferm2-1]),creal(x1_f[kferm2-1]),cimag(x1_f[kferm2-1]),creal(x2_f[kferm2-1]),cimag(x2_f[kferm2-1]));
+#endif
+
+GAmmas
+#ifdef _DEBUGCG
+printf("Gammas:\n");
+for(int i=0;i<5;i++){
+for(int j=0;j<4;j++)
+printf("%.5e+%.5ei\t",creal(gamval_f[i*4+j]),cimag(gamval_f[i*4+j]));
+printf("\n");
+}
+printf("\nConstants (index %d):\nu11t[kvol-1]=%e+%.5ei\tu12t[kvol-1]=%e+%.5ei\tdk4m=%.5e\tdk4p=%.5e\tjqq=%.5e+I%.5f\tkappa=%.5f\n",\
+kvol-1,creal(u11t[kvol-1]),cimag(u11t[kvol-1]),creal(u12t[kvol-1]),cimag(u12t[kvol-1]),dk4m[kvol-1],dk4p[kvol-1],creal(jqq),cimag(jqq),akappa);
+#endif
+*/
