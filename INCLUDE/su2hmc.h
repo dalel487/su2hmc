@@ -50,6 +50,7 @@ extern "C"
 	 *	@param	u11t,u12t		Double precision colour fields
 	 *	@param	u11t_f,u12t_f:	Single precision colour fields
 	 *	@param	iu,id:			Lattice indices
+	 *	@param	gamin:			Gamma indices
 	 *	@param	gamval:			Double precision gamma matrices
 	 *	@param	gamval_f:		Single precision gamma matrices
 	 *	@param	akappa:			Hopping parameter
@@ -91,6 +92,7 @@ extern "C"
 	 * @param	dk4m_f:				@f( Îe^{-\mu}@f) float 	
 	 * @param	dk4p_f:				@f( Îe^\mu@f) float 	
 	 * @param	iu,id:				Up halo indices
+	 * @param	gamin:				Gamma matrix indices
 	 * @param	gamval:				Gamma Matrices
 	 * @param	gamval_f:			Float Gamma matrices:
 	 *
@@ -102,11 +104,11 @@ extern "C"
 			unsigned int *iu, unsigned int *id);
 	/**
 	 * @brief Calculate the Hamiltonian
-	 * 
 	 *
 	 * @param	h:						Hamiltonian
 	 * @param	s:						Action
 	 * @param	res2:					Limit for conjugate gradient
+	 * @param	pp:					Momentum field
 	 * @param	X0:
 	 * @param	X1:
 	 * @param	Phi:
