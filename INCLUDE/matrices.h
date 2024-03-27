@@ -98,14 +98,14 @@ extern "C"
 	 *
 	 * @param	phi:			The product
 	 * @param	r:				The array being acted on by M
-	 * @param	u11t_f:		First colour trial field
-	 * @param	u12t_f:		Second colour trial field
+	 * @param	u11t:		First colour trial field
+	 * @param	u12t:		Second colour trial field
 	 *	@param	iu:			Upper halo indices
 	 *	@param	id:			Lower halo indices
-	 *	@param	gamval_f:	Gamma matrices
+	 *	@param	gamval:	Gamma matrices
 	 *	@param	gamin:		Indices for dirac terms
-	 *	@param	dk4m_f:		
-	 *	@param	dk4p_f:		
+	 *	@param	dk4m:		
+	 *	@param	dk4p:		
 	 *	@param	jqq:			Diquark source
 	 *	@param	akappa:		Hopping parameter
 	 *
@@ -118,14 +118,14 @@ extern "C"
 	 *
 	 * @param	phi:			The product
 	 * @param	r:				The array being acted on by M
-	 * @param	u11t_f:		First colour trial field
-	 * @param	u12t_f:		Second colour trial field
+	 * @param	u11t:		First colour trial field
+	 * @param	u12t:		Second colour trial field
 	 *	@param	iu:			Upper halo indices
 	 *	@param	id:			Lower halo indices
-	 *	@param	gamval_f:	Gamma matrices
+	 *	@param	gamval:	Gamma matrices
 	 *	@param	gamin:		Indices for dirac terms
-	 *	@param	dk4m_f:		
-	 *	@param	dk4p_f:		
+	 *	@param	dk4m:		
+	 *	@param	dk4p:		
 	 *	@param	jqq:			Diquark source
 	 *	@param	akappa:		Hopping parameter
 	 *
@@ -138,14 +138,14 @@ extern "C"
 	 *
 	 * @param	phi:		The product
 	 * @param	r:			The array being acted on by M
-	 * @param	u11t_f:	First colour trial field
-	 * @param	u12t_f:	Second colour trial field
+	 * @param	u11t:	First colour trial field
+	 * @param	u12t:	Second colour trial field
 	 *	@param	iu:		Upper halo indices
 	 *	@param	id:		Lower halo indices
-	 *	@param	gamval_f:	Gamma matrices
+	 *	@param	gamval:	Gamma matrices
 	 *	@param	gamin:	Indices for dirac terms
-	 *	@param	dk4m_f:	
-	 *	@param	dk4p_f:	
+	 *	@param	dk4m:	
+	 *	@param	dk4p:	
 	 *	@param	akappa:	Hopping parameter
 	 *
 	 * @return Zero on success, integer error code otherwise
@@ -157,14 +157,14 @@ extern "C"
 	 *
 	 * @param	phi:		The product
 	 * @param	r:			The array being acted on by M
-	 * @param	u11t_f:	First colour trial field
-	 * @param	u12t_f:	Second colour trial field
+	 * @param	u11t:	First colour trial field
+	 * @param	u12t:	Second colour trial field
 	 *	@param	iu:		Upper halo indices
 	 *	@param	id:		Lower halo indices
-	 *	@param	gamval_f:	Gamma matrices
+	 *	@param	gamval:	Gamma matrices
 	 *	@param	gamin:	Indices for dirac terms
-	 *	@param	dk4m_f:	
-	 *	@param	dk4p_f:	
+	 *	@param	dk4m:	
+	 *	@param	dk4p:	
 	 *	@param	akappa:	Hopping parameter
 	 *
 	 * @return Zero on success, integer error code otherwise
