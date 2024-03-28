@@ -2524,18 +2524,16 @@ DOT_NUM_THREADS        = 0
 # to find the font, which can be done by putting it in a standard location or by
 # setting the DOTFONTPATH environment variable or by setting DOT_FONTPATH to the
 # directory containing the font. Default graphviz fontsize is 14.
-
 # The default value is: fontname=Helvetica ,fontsize=10.
 # This tag requires that the tag HAVE_DOT is set to YES.
 
 DOT_COMMON_ATTR        = "fontname=IBMPlexSans-Regular,fontsize=10"
 
-
 # DOT_EDGE_ATTR is concatenated with DOT_COMMON_ATTR. For elegant style you can
 # add 'arrowhead=open, arrowtail=open, arrowsize=0.5'. <a
 # href=https://graphviz.org/doc/info/arrows.html>Complete documentation about
 # arrows shapes.</a>
-# The default value is: labelfontname=IBM Plex Sans,labelfontsize=10.
+# The default value is: labelfontname=Helvetica,labelfontsize=10.
 # This tag requires that the tag HAVE_DOT is set to YES.
 
 DOT_EDGE_ATTR          = "labelfontname=IBMPlexSans-Regular ,labelfontsize=10"
