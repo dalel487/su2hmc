@@ -482,9 +482,9 @@ int main(int argc, char *argv[]){
 #endif
 		//Initialise Trial Fields
 #ifdef __NVCC__
+		cudaMemPrefetchAsync(pp,kmom*sizeof(double),device,streams[1]);
 		cudaMemcpy(u11t, u11, ndim*kvol*sizeof(Complex),cudaMemcpyDefault);
 		cudaMemcpy(u12t, u12, ndim*kvol*sizeof(Complex),cudaMemcpyDefault);
-		cudaMemPrefetchAsync(pp,kmom*sizeof(double),device,streams[1]);
 #else
 		memcpy(u11t, u11, ndim*kvol*sizeof(Complex));
 		memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
