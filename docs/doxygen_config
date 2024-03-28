@@ -1347,7 +1347,7 @@ HTML_FOOTER            =
 # obsolete.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-HTML_STYLESHEET        =
+HTML_STYLESHEET        = 
 
 # The HTML_EXTRA_STYLESHEET tag can be used to specify additional user-defined
 # cascading style sheets that are included after the standard style sheets
@@ -1365,7 +1365,7 @@ HTML_STYLESHEET        =
 # documentation.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-HTML_EXTRA_STYLESHEET  =
+HTML_EXTRA_STYLESHEET  =	./options.css	
 
 # The HTML_EXTRA_FILES tag can be used to specify one or more extra images or
 # other source files which should be copied to the HTML output directory. Note
@@ -1399,7 +1399,7 @@ HTML_COLORSTYLE        = AUTO_LIGHT
 # Minimum value: 0, maximum value: 359, default value: 220.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-HTML_COLORSTYLE_HUE    = 220
+HTML_COLORSTYLE_HUE    = 150
 
 # The HTML_COLORSTYLE_SAT tag controls the purity (or saturation) of the colors
 # in the HTML output. For a value of 0 the output will use gray-scales only. A
@@ -1716,7 +1716,7 @@ DISABLE_INDEX          = NO
 # The default value is: NO.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-GENERATE_TREEVIEW      = NO
+GENERATE_TREEVIEW      = YES
 
 # When both GENERATE_TREEVIEW and DISABLE_INDEX are set to YES, then the
 # FULL_SIDEBAR option determines if the side bar is limited to only the treeview
@@ -1728,7 +1728,7 @@ GENERATE_TREEVIEW      = NO
 # The default value is: NO.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-FULL_SIDEBAR           = NO
+FULL_SIDEBAR           = YES
 
 # The ENUM_VALUES_PER_LINE tag can be used to set the number of enum values that
 # doxygen will group on one line in the generated HTML documentation.
@@ -2522,10 +2522,12 @@ DOT_NUM_THREADS        = 0
 # to find the font, which can be done by putting it in a standard location or by
 # setting the DOTFONTPATH environment variable or by setting DOT_FONTPATH to the
 # directory containing the font. Default graphviz fontsize is 14.
-# The default value is: fontname=IBM Plex Sans,fontsize=10.
+
+# The default value is: fontname=Helvetica ,fontsize=10.
 # This tag requires that the tag HAVE_DOT is set to YES.
 
-DOT_COMMON_ATTR        = "fontname=IBM Plex Sans,fontsize=10"
+DOT_COMMON_ATTR        = "fontname=IBMPlexSans-Regular,fontsize=10"
+
 
 # DOT_EDGE_ATTR is concatenated with DOT_COMMON_ATTR. For elegant style you can
 # add 'arrowhead=open, arrowtail=open, arrowsize=0.5'. <a
@@ -2534,7 +2536,7 @@ DOT_COMMON_ATTR        = "fontname=IBM Plex Sans,fontsize=10"
 # The default value is: labelfontname=IBM Plex Sans,labelfontsize=10.
 # This tag requires that the tag HAVE_DOT is set to YES.
 
-DOT_EDGE_ATTR          = "labelfontname=IBM Plex Sans,labelfontsize=10"
+DOT_EDGE_ATTR          = "labelfontname=IBMPlexSans-Regular ,labelfontsize=10"
 
 # DOT_NODE_ATTR is concatenated with DOT_COMMON_ATTR. For view without boxes
 # around nodes set 'shape=plain' or 'shape=plaintext' <a
@@ -2548,7 +2550,7 @@ DOT_NODE_ATTR          = "shape=box,height=0.2,width=0.4"
 # DOT_COMMON_ATTR and others dot attributes.
 # This tag requires that the tag HAVE_DOT is set to YES.
 
-DOT_FONTPATH           =
+DOT_FONTPATH           =	"https://github.com/IBM/plex/tree/master/IBM-Plex-Sans/fonts/complete/ttf"
 
 # If the CLASS_GRAPH tag is set to YES or GRAPH or BUILTIN then doxygen will
 # generate a graph for each documented class showing the direct and indirect
