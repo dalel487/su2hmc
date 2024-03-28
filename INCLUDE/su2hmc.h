@@ -302,6 +302,16 @@ extern "C"
 	 * @return Zero on success, integer error code otherwise
 	 */
 	int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi);
+	/*
+	 *	@brief Up/Down partitioning of the pseudofermion field
+	 *
+	 *	@param	na:	Flavour index
+	 *	@param	X0:	Partitioned field
+	 *	@param	R1:	Full pseudofermion field
+	 *
+	 *	@return	Zero on success, integer error code otherwise	
+	 */
+	int UpDownPart(const int na, Complex *X0, Complex *R1);
 
 	//CUDA Declarations:
 	//#################
