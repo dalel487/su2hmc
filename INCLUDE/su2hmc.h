@@ -315,9 +315,14 @@ extern "C"
 
 	//CUDA Declarations:
 	//#################
-#ifdef __NVCC__
 	//Not a function. An array of concurrent GPU streams to keep it busy
-	extern cudaStream_t streams[ndirac*ndim*nadj];
+#if (defined __NVCC__ || defined __HIPCC__)
+	#ifdef __NVCC__
+	extern cudaStream_t
+	#elif defined __HIPCC__
+	extern hipStream_t
+	#endif
+	streams[ndirac*ndim*nadj];
 	//Calling Functions:
 	//=================
 	void cuAverage_Plaquette(double *hgs, double *hgt, Complex_f *u11t, Complex_f *u12t, unsigned int *iu,dim3 dimGrid, dim3 dimBlock);
@@ -346,7 +351,7 @@ extern "C"
 #endif
 //CUDA Kernels:
 //============
-#ifdef __CUDACC__
+#if (defined __CUDACC__ || __HIP_DEVICE_COMPILE__)
 //__global__ void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
 //		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa);
 __global__ void Plus_staple(int mu, int nu,unsigned int *iu, Complex_f *Sigma11, Complex_f *Sigma12,\
