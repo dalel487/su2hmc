@@ -43,19 +43,27 @@
 extern cublasHandle_t cublas_handle;
 extern cublasStatus_t cublas_status;
 extern cudaMemPool_t mempool;
+#elif	defined	__HIPCC__
+#include	<hip/hip_runtime.h>
+#include	<hipblas.h>
+extern hipblasHandle_t hipblas_handle;
+extern hipblasStatus_t hipblas_status;
+extern hipMemPool_t mempool;
+#endif
+#if defined __NVCC__ || defined __HIPCC__
 ///@brief	Get rid of that bastardised yankee English
 #define cudaDeviceSynchronise() cudaDeviceSynchronize()
 #endif
-#if (defined __CUDACC__|| defined __HIPCC__)
-#include	<thrust_complex.h>
+#if (defined __CUDACC__|| defined __HIP_DEVICE_COMPILE__)
 #include <thrust/reduce.h>
 #include <thrust/device_vector.h>
+#include	<thrust_complex.h>
 #else
 #include	<complex.h>
 ///@brief Single precision complex number 
-#define	Complex_f	float	complex
+typedef float complex Complex_f;
 ///@brief Double precision complex number 
-#define	Complex		double complex
+typedef double complex Complex;
 #endif
 
 /// @brief	Default file name length

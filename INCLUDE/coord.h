@@ -8,9 +8,13 @@
 #include <cuda.h>
 #define USE_BLAS
 #include <cublas_v2.h>
+#elif defined __HIPCC__ 
+#include	<hip/hip_runtime.h>
+#define USE_BLAS
+#include <hipblas.h>
 #endif
 #include <math.h>
-#if (defined__INTEL_COMPILER || __INTEL_LLVM_COMPILER)
+#if (defined __INTEL_COMPILER || __INTEL_LLVM_COMPILER)
 #include <mathimf.h>
 #endif
 #if defined __INTEL_MKL__
@@ -24,9 +28,16 @@
 #include <cblas.h>
 #endif
 #include <sizes.h>
-#ifdef __CUDACC__
-__managed__
-#endif
+#if defined __CUDACC__ || __HIP_DEVICE_COMPILE__
+///@brief Up halo indices
+extern unsigned int *hu __managed__;
+///@brief Down halo indices
+extern unsigned int *hd __managed__;
+///@brief Up halo starting element
+extern unsigned int *h1u __managed__;
+///@brief Down halo starting element
+extern unsigned int *h1d __managed__;
+#else
 ///@brief Up halo indices
 extern unsigned int *hu;
 ///@brief Down halo indices
@@ -37,6 +48,8 @@ extern unsigned int *h1u;
 extern unsigned int *h1d;
 ///@brief Array containing the size of the halo in each direction
 extern unsigned int  *halosize;;
+#endif
+///@brief Down halo indices
 #ifdef __cplusplus
 extern "C"
 {
