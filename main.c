@@ -112,6 +112,9 @@ int main(int argc, char *argv[]){
 	 */
 	float beta = 1.7f;
 	float akappa = 0.1780f;
+	#ifdef __NVCC__
+	__managed__ 
+	#endif
 	Complex_f jqq = 0;
 	float fmu = 0.0f;
 	int iread = 0;
@@ -125,7 +128,7 @@ int main(int argc, char *argv[]){
 	const double tpi = 2*acos(-1.0);
 #endif
 	float dt=0.004; float ajq = 0.0;
-	float delb; //Not used?
+	float delb=0; //Not used?
 	float athq = 0.0;
 	int stepl = 250; int ntraj = 10;
 	//rank is zero means it must be the "master process"
@@ -153,8 +156,9 @@ int main(int argc, char *argv[]){
 	Par_fcopy(&dt); Par_fcopy(&beta); Par_fcopy(&akappa); Par_fcopy(&ajq);
 	Par_fcopy(&athq); Par_fcopy(&fmu); Par_fcopy(&delb); //Not used?
 	Par_icopy(&stepl); Par_icopy(&ntraj); Par_icopy(&istart); Par_icopy(&icheck);
-	Par_icopy(&iread); jqq=ajq*cexp(athq*I);
+	Par_icopy(&iread); 
 #endif
+	jqq=ajq*cexp(athq*I);
 	//End of input
 #ifdef __NVCC__
 	//CUBLAS Handle
@@ -492,7 +496,7 @@ int main(int argc, char *argv[]){
 		Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
 		double H0, S0;
 		Hamilton(&H0, &S0, rescga,pp,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval_f,gamin,\
-				dk4m_f,dk4p_f,jqq,akappa,beta,&ancgh);
+				dk4m_f,dk4p_f,jqq,akappa,beta,&ancgh,itraj);
 #ifdef _DEBUG
 		if(!rank) printf("H0: %e S0: %e\n", H0, S0);
 #endif
@@ -580,7 +584,7 @@ int main(int argc, char *argv[]){
 		Reunitarise(u11t,u12t);
 		double H1, S1;
 		Hamilton(&H1, &S1, rescga,pp,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval_f,gamin,\
-				dk4m_f,dk4p_f,jqq,akappa,beta,&ancgh);
+				dk4m_f,dk4p_f,jqq,akappa,beta,&ancgh,itraj);
 		ancgh/=2.0; //Hamilton is called at start and end of trajectory
 		totancgh+=ancgh;
 #ifdef _DEBUG

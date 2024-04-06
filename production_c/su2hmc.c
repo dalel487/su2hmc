@@ -208,7 +208,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex *X1, Complex *Phi,\
 		Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f, unsigned int * iu, unsigned int *id,\
 		Complex_f *gamval_f, int *gamin, float *dk4m_f, float * dk4p_f, Complex_f jqq,\
-		float akappa, float beta, double *ancgh){
+		float akappa, float beta, double *ancgh,int traj){
 	/*
 	 * @brief Calculate the Hamiltonian
 	 * 
@@ -277,7 +277,9 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 		memcpy(X1,X0+na*kferm2,kferm2*sizeof(Complex));
 #endif
 		Fill_Small_Phi(na, smallPhi, Phi);
-		Congradq(na,res2,X1,smallPhi,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,&itercg);
+		if(Congradq(na,res2,X1,smallPhi,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,&itercg))
+			fprintf("Trajectory %d\n", traj);
+
 		*ancgh+=itercg;
 #ifdef __NVCC__
 		cudaMemcpyAsync(X0+na*kferm2,X1,kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice,streams[0]);
