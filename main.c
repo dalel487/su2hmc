@@ -56,6 +56,12 @@ cublasHandle_t cublas_handle;
 cublasStatus_t cublas_status;
 cudaMemPool_t mempool;
 //Fix this later
+#elif defined __HIPCC__
+#include <hip/hip_runtime.h>
+#include <hipblas.h>
+hipblasHandle_t cublas_handle;
+hipblasStatus_t cublas_status;
+hipMemPool_t mempool;
 #endif
 /**
  * For the early phases of this translation, I'm going to try and
@@ -85,6 +91,8 @@ int main(int argc, char *argv[]){
 #if(nproc>1)
 	MPI_Comm_rank(comm, &rank);
 	MPI_Comm_size(comm, &size);
+#else
+	rank=0;
 #endif
 
 	/**
@@ -444,7 +452,7 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 			//Make sure the multiplication is finished before freeing its input!!
 			cudaFree(R);//cudaDeviceSynchronise(); 
-			//cudaFree is blocking so don't need to synchronise
+							//cudaFree is blocking so don't need to synchronise
 			cuComplex_convert(R1_f,R1,kferm,false,dimBlock,dimGrid);
 			//cudaDeviceSynchronise();
 			//cudaFreeAsync(R1_f,NULL);

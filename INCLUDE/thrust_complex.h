@@ -8,7 +8,6 @@
  * We are also adding dding the macros for extracting the real, imaginary parts.
  * This way they match the C standard library calles
  */
-#ifdef __CUDACC__
 #warning "Compiling with thrust"
 #include <thrust/complex.h>
 #include <math.h>
@@ -29,8 +28,30 @@ using thrust::complex;
 typedef	complex<float>		Complex_f;
 ///@brief Double precision complex number 
 typedef	complex<double>	Complex;
+#endif
+/*
+#ifdef __CUDACC__ || defined __HIP__
+#elif defined __HIPCC__
+#warning "Hip Device Compiling"
+#include <complex>
+using std::complex;
+///@brief	Exponentiate
+#define	cexp(z)	std::exp(z)
+///@brief	Extract Imaginary Component
+#define	cimag(z)	z.imag()
+///@brief	Extract Real Component
+#define	creal(z)	z.real()
+///@brief	Complex Conjugation
+#define	conj(z)	std::conj(z)
+///@brief 	Define I
+#define	I	Complex(0.0,1.0)	
 
-#elif defined __HIP_DEVICE_COMPILE__
+///@brief Single precision complex number 
+typedef	std::complex<float>		Complex_f;
+///@brief Double precision complex number 
+typedef	std::complex<double>	Complex;
+#endif
+#elif
 #include <hip/hip_complex.h>
 #warning "Compiling with hip_complex"
 ///@brief Single precision complex number 
@@ -74,24 +95,4 @@ __HOST_DEVICE__ static __inline__ Complex_f cexp(Complex_f z)
 	return exp (a) * v;
 }
 #endif
-
-#elif 0
-#include <complex>
-using std::complex;
-///@brief	Exponentiate
-#define	cexp(z)	std::exp(z)
-///@brief	Extract Imaginary Component
-#define	cimag(z)	z.imag()
-///@brief	Extract Real Component
-#define	creal(z)	z.real()
-///@brief	Complex Conjugation
-#define	conj(z)	std::conj(z)
-///@brief 	Define I
-#define 	I 	1i
-
-///@brief Single precision complex number 
-typedef	complex<float>		Complex_f;
-///@brief Double precision complex number 
-typedef	complex<double>	Complex;
-#endif
-#endif
+*/

@@ -352,7 +352,7 @@ extern "C"
 #endif
 //CUDA Kernels:
 //============
-#if (defined __CUDACC__ || __HIP_DEVICE_COMPILE__)
+#if (defined __CUDACC__ || __HIP__)
 //__global__ void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
 //		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa);
 __global__ void Plus_staple(int mu, int nu,unsigned int *iu, Complex_f *Sigma11, Complex_f *Sigma12,\

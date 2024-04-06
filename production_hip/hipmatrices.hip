@@ -1,4 +1,3 @@
-  warning: ../production_cuda/cumatrices.cu:#1101 : 	cudaDeviceSynchronise();
 #include "hip/hip_runtime.h"
 #include <assert.h>
 #include <matrices.h>

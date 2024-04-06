@@ -227,7 +227,7 @@ extern "C"
 #if (defined __cplusplus)
 }
 #endif
-#if defined __CUDACC__ || defined __HIP_DEVICE_COMPILE__
+#if defined __CUDACC__ || defined __HIP__
 //Actual CUDA
 __global__ void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
 		Complex *gamval, int *gamin, double *dk4m, double *dk4p, Complex_f jqq, float akappa);

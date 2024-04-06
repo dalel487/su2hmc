@@ -50,11 +50,15 @@ extern hipblasHandle_t hipblas_handle;
 extern hipblasStatus_t hipblas_status;
 extern hipMemPool_t mempool;
 #endif
-#if defined __NVCC__ || defined __HIPCC__
+#if defined __NVCC__ 
 ///@brief	Get rid of that bastardised yankee English
 #define cudaDeviceSynchronise() cudaDeviceSynchronize()
-#endif
-#if (defined __CUDACC__|| defined __HIP_DEVICE_COMPILE__)
+#include <thrust/reduce.h>
+#include <thrust/device_vector.h>
+#include	<thrust_complex.h>
+#elif defined __HIPCC__ && defined __HIP__
+///@brief	Get rid of that bastardised yankee English
+#define cudaDeviceSynchronise() hipDeviceSynchronize()
 #include <thrust/reduce.h>
 #include <thrust/device_vector.h>
 #include	<thrust_complex.h>

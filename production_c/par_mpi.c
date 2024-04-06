@@ -14,14 +14,15 @@
 #if(nproc>1)
 MPI_Comm comm = MPI_COMM_WORLD;
 MPI_Request request;
+int size;
 #endif
 
 int *pcoord;
 int pstart[ndim][nproc] __attribute__((aligned(AVX)));
 int pstop [ndim][nproc] __attribute__((aligned(AVX)));
-int rank, size;
 int pu[ndim] __attribute__((aligned(AVX)));
 int pd[ndim] __attribute__((aligned(AVX))); 
+int rank;
 int Par_begin(int argc, char *argv[]){
 	/* Initialises the MPI configuration
 	 *

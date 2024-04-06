@@ -49,10 +49,12 @@ extern int __attribute__((aligned(AVX))) pu[ndim];
 extern int __attribute__((aligned(AVX))) pd[ndim];
 
 //MPI Stuff
+#if (nproc>1)
 /// @brief MPI communicator
 extern MPI_Comm comm ;
 /// @brief MPI request. Required for send/receive
 extern MPI_Request request;
+#endif
 
 /// @brief The processor grid
 extern int *pcoord;
