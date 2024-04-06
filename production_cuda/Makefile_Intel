@@ -78,12 +78,12 @@ CEDT=	$(CSRC:.c=.c~)
 CUEDT=	$(CUSRC:.cu=.cu~)
 TMP=	$(MOD) $(CEDT) $(CUEDT) core
 
-profiler:	CFLAGS += -g #-D_DEBUG
-profiler:	NVCCFLAGS += -lineinfo # -D_DEBUG#-keep
+profiler:	CFLAGS += -g #-D_DEBUGCG
+profiler:	NVCCFLAGS += -lineinfo #-D_DEBUGCG #-keep
 profiler:	release
 
 release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high -rdynamic
-release:	NVCCFLAGS += -Xptxas -O0,-v -arch=native --maxrregcount=64 -G #-dopt=on
+release:	NVCCFLAGS += -Xptxas -O3,-v -arch=native #--maxrregcount=64 -G -dopt=on
 release:	$(EXE)
 
 diagnostic: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE

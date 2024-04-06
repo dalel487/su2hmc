@@ -88,17 +88,19 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
 	//if statements quicker to type
-	double betan;
+	double betan; bool pf=true;
 	for(*itercg=0; *itercg<niterc; (*itercg)++){
 		//x2 =  (M^†M)p 
-		//No need to synchronoise here. The memcpy in Hdslash is blocking
+		//No need to synchronise here. The memcpy in Hdslash is blocking
 		Hdslash_f(x1_f,p_f,u11t,u12t,iu,id,gamval_f,gamin,dk4m,dk4p,akappa);
 		Hdslashd_f(x2_f,x1_f,u11t,u12t,iu,id,gamval_f,gamin,dk4m,dk4p,akappa);
+#ifdef	__NVCC__
+		cudaDeviceSynchronise();
+#endif
 		//x2 =  (M^†M+J^2)p 
 		//No point adding zero a couple of hundred times if the diquark source is zero
 		if(fac_f!=0){
 #ifdef	__NVCC__
-			cudaDeviceSynchronise();
 			cublasCaxpy(cublas_handle,kferm2,(cuComplex *)&fac_f,(cuComplex *)p_f,1,(cuComplex *)x2_f,1);
 #elif defined USE_BLAS
 			cblas_caxpy(kferm2, &fac_f, p_f, 1, x2_f, 1);
@@ -166,8 +168,14 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 #if(nproc>1)
 		Par_dsum(&betan);
 #endif
+#ifdef _DEBUGCG
+#warning "CG Debugging"
+		char *endline = "\n";
+#else
+		char *endline = "\r";
+#endif
 #ifdef _DEBUG
-		if(!rank) printf("Iter(CG)=%i\tβ_n=%e\tα=%e\r", *itercg, betan, alpha);
+		if(!rank) printf("Iter(CG)=%i\tβ_n=%e\tα=%e%s", *itercg, betan, alpha,endline);
 #endif
 		if(betan<resid){ 
 			(*itercg)++;
@@ -318,27 +326,8 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 	for((*itercg)=0; (*itercg)<=niterc; (*itercg)++){
 		//Don't overwrite on first run. 
 		//x2=(M^†)x1=(M^†)Mp
-#ifdef _DEBUGCG
-		printf("Pre mult:\tp_f[0]=%.5e\tx1_f[0]=%.5e\tx2_f[0]=%.5e\tdk4m=%.5e\tdk4p=%.5e\n",\
-				creal(p_f[0]),creal(x1_f[0]),creal(x2_f[0]),dk4m[0],dk4p[0]);
-		printf("κ=%.5e\n",akappa);
-#endif
 		Dslash_f(x1_f,p_f,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
-#ifdef _DEBUGCG
-#ifdef __NVCC__
-		cudaDeviceSynchronise();
-#endif
-		printf("Dslash: \tp_f[0]=%.5e\tx1_f[0]=%.5e\tx2_f[0]=%.5e\tdk4m=%.5e\tdk4p=%.5e\n",\
-				creal(p_f[0]),creal(x1_f[0]),creal(x2_f[0]),dk4m[0],dk4p[0]);
-#endif
 		Dslashd_f(x2_f,x1_f,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
-#ifdef _DEBUGCG
-#ifdef __NVCC__
-		cudaDeviceSynchronise();
-#endif
-		printf("Dslash: \tp_f[0]=%.5e\tx1_f[0]=%.5e\tx2_f[0]=%.5e\tdk4m=%.5e\tdk4p=%.5e\n",\
-				creal(p_f[0]),creal(x1_f[0]),creal(x2_f[0]),dk4m[0],dk4p[0]);
-#endif
 		//We can't evaluate α on the first niterx because we need to get β_n.
 		if(*itercg){
 			//x*.x
@@ -409,7 +398,12 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 		Par_dsum(&betan);
 #endif
 #ifdef _DEBUG
-		if(!rank) printf("Iter (CG) = %i β_n= %e α= %e\r", *itercg, betan, alpha);
+#ifdef _DEBUGCG
+		char *endline = "\n";
+#else
+		char *endline = "\r";
+#endif
+		if(!rank) printf("Iter (CG) = %i β_n= %e α= %e%s", *itercg, betan, alpha,endline);
 #endif
 		if(betan<resid){
 			//Started counting from zero so add one to make it accurate
