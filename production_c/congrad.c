@@ -328,16 +328,21 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 		//x2=(M^†)x1=(M^†)Mp
 		Dslash_f(x1_f,p_f,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 		Dslashd_f(x2_f,x1_f,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
+#ifdef __NVCC__
+		cudaDeviceSynchronise();
+#endif
 		//We can't evaluate α on the first niterx because we need to get β_n.
 		if(*itercg){
 			//x*.x
-#ifdef __NVCC__
+#ifdef USE_BLAS
 			float alphad_f;
+#ifdef __NVCC__
 			cublasScnrm2(cublas_handle,kferm,(cuComplex*) x1_f, 1,(float *)&alphad_f);
 			alphad = alphad_f*alphad_f;
-#elif defined USE_BLAS
+#else
 			alphad = cblas_scnrm2(kferm, x1_f, 1);
 			alphad = alphad*alphad;
+#endif
 #else
 			alphad=0;
 			for(int i = 0; i<kferm; i++)
@@ -350,14 +355,13 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 			alpha=alphan/creal(alphad);
 			//			Complex_f alpha_f = (Complex_f)alpha;
 			//x+αp
+#ifdef USE_BLAS
+			Complex_f alpha_f=(float)alpha;
 #ifdef __NVCC__
-			Complex_f alpha_f=(float)alpha;
 			cublasCaxpy(cublas_handle,kferm,(cuComplex*) &alpha_f,(cuComplex*) p_f,1,(cuComplex*) xi_f,1);
-			//cublasCaxpy(cublas_handle,kferm,(cuComplex*) &alpha_f,(cuComplex*) p_f,1,(cuComplex*) xi_f,1);
-#elif defined USE_BLAS
-			//cblas_caxpy(kferm, (Complex_f*)&alpha_f,(Complex_f*)p_f, 1, (Complex_f*)xi_f, 1);
-			Complex_f alpha_f=(float)alpha;
+#else
 			cblas_caxpy(kferm, (Complex_f*)&alpha_f,(Complex_f*)p_f, 1, (Complex_f*)xi_f, 1);
+#endif
 #else
 #pragma omp parallel for simd aligned(xi,p_f:AVX)
 			for(int i = 0; i<kferm; i++)
@@ -366,20 +370,19 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 		}
 
 		//r=α(M^†)Mp and β_n=r*.r
+#if defined USE_BLAS
+		Complex_f alpha_m=(Complex_f)(-alpha);
 #ifdef __NVCC__
-		Complex_f alpha_m=-alpha;
 		cublasCaxpy(cublas_handle,kferm, (cuComplex *)&alpha_m,(cuComplex *) x2_f, 1,(cuComplex *) r_f, 1);
 		//cudaDeviceSynchronise();
 		//r*.r
 		float betan_f;
 		cublasScnrm2(cublas_handle,kferm,(cuComplex *) r_f,1,(float *)&betan_f);
-		//Gotta square it to "undo" the norm
-		betan=betan_f*betan_f;
-#elif defined USE_BLAS
-		Complex_f alpha_m=(Complex_f)(-alpha);
+#else
 		cblas_caxpy(kferm,(Complex_f*) &alpha_m,(Complex_f*) x2_f, 1,(Complex_f*) r_f, 1);
 		//r*.r
 		float		betan_f = cblas_scnrm2(kferm, (Complex_f*)r_f,1);
+#endif
 		//Gotta square it to "undo" the norm
 		betan=betan_f*betan_f;
 #else
@@ -424,21 +427,19 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multiplying y by 
 		//β instead of x.
 		//There is cblas_zaxpby in the MKL though, set a = 1 and b = β.
-#ifdef __NVCC__
+#ifdef USE_BLAS
 		Complex_f beta_f = (Complex_f)beta;
-		cublasCscal(cublas_handle,kferm,(cuComplex *)&beta_f,(cuComplex *)p_f,1);
 		Complex_f a = 1.0;
+#ifdef __NVCC__
+		cublasCscal(cublas_handle,kferm,(cuComplex *)&beta_f,(cuComplex *)p_f,1);
 		cublasCaxpy(cublas_handle,kferm,(cuComplex *)&a,(cuComplex *)r_f,1,(cuComplex *)p_f,1);
 		cudaDeviceSynchronise();
-#elif (defined __INTEL_MKL__)
-		Complex_f beta_f = (Complex_f)beta;
-		Complex_f a = 1;
+#elif (defined __INTEL_MKL__ || defined AMD_BLAS)
 		cblas_caxpby(kferm, &a, r_f, 1, &beta_f,  p_f, 1);
-#elif	defined USE_BLAS
-		Complex_f beta_f = (Complex_f)beta;
+#else
 		cblas_cscal(kferm,&beta_f,p_f,1);
-		Complex_f a = 1.0;
 		cblas_caxpy(kferm,&a,r_f,1,p_f,1);
+#endif
 #else
 #pragma omp parallel for simd aligned(r_f,p_f:AVX)
 		for(int i=0; i<kferm; i++)
