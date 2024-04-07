@@ -112,6 +112,9 @@ int main(int argc, char *argv[]){
 	 */
 	float beta = 1.7f;
 	float akappa = 0.1780f;
+	#ifdef __NVCC__
+	__managed__ 
+	#endif
 	Complex_f jqq = 0;
 	float fmu = 0.0f;
 	int iread = 0;
@@ -125,7 +128,7 @@ int main(int argc, char *argv[]){
 	const double tpi = 2*acos(-1.0);
 #endif
 	float dt=0.004; float ajq = 0.0;
-	float delb; //Not used?
+	float delb=0; //Not used?
 	float athq = 0.0;
 	int stepl = 250; int ntraj = 10;
 	//rank is zero means it must be the "master process"
@@ -153,8 +156,9 @@ int main(int argc, char *argv[]){
 	Par_fcopy(&dt); Par_fcopy(&beta); Par_fcopy(&akappa); Par_fcopy(&ajq);
 	Par_fcopy(&athq); Par_fcopy(&fmu); Par_fcopy(&delb); //Not used?
 	Par_icopy(&stepl); Par_icopy(&ntraj); Par_icopy(&istart); Par_icopy(&icheck);
-	Par_icopy(&iread); jqq=ajq*cexp(athq*I);
+	Par_icopy(&iread); 
 #endif
+	jqq=ajq*cexp(athq*I);
 	//End of input
 #ifdef __NVCC__
 	//CUBLAS Handle
@@ -356,10 +360,16 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 	cudaMallocManaged(&R1, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMalloc(&Phi, nf*kferm*sizeof(Complex));
+#ifdef _DEBUG
+	cudaMallocManaged(&X0, nf*kferm2*sizeof(Complex),cudaMemAttachGlobal);
+#else
 	cudaMalloc(&X0, nf*kferm2*sizeof(Complex));
+#endif
+
 	cudaMallocManaged(&X1, kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&pp, kmom*sizeof(double),cudaMemAttachGlobal);
 	cudaMalloc(&dSdpi, kmom*sizeof(double));
+	cudaDeviceSynchronise();
 #else
 	R1= aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 	Phi= aligned_alloc(AVX,nf*kferm*sizeof(Complex)); 
@@ -401,34 +411,51 @@ int main(int argc, char *argv[]){
 			//How do we optimise this for use in CUDA? Do we use CUDA's PRNG
 			//or stick with MKL and synchronise/copy over the array
 #ifdef __NVCC__
-			Complex_f *R,*R1_f;
-			cudaMallocAsync(&R1_f,kferm*sizeof(Complex_f),streams[0]);
+			Complex_f *R1_f,*R;
 			cudaMallocManaged(&R,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
+#ifdef _DEBUG
+			cudaMallocManaged(&R1_f,kferm*sizeof(Complex_f),cudaMemAttachGlobal);
+			cudaMemset(R1_f,0,kferm*sizeof(Complex_f));
 #else
-			Complex_f *R=aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
-			Complex_f *R1_f=aligned_alloc(AVX,kferm*sizeof(Complex_f));
+			cudaMallocAsync(&R1_f,kferm*sizeof(Complex_f),streams[0]);
+			cudaMemsetAsync(R1_f,0,kferm*sizeof(Complex_f),streams[0]);
 #endif
-			//Multiply the dimension of R by 2 because R is complex
+#else
+			Complex_f *R1_f=aligned_alloc(AVX,kferm*sizeof(Complex_f));
+			Complex_f *R=aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
+			memset(R1_f,0,kferm*sizeof(Complex_f));
+#endif
 			//The FORTRAN code had two Gaussian routines.
 			//gaussp was the normal Box-Muller and gauss0 didn't have 2 inside the square root
 			//Using σ=1/sqrt(2) in these routines has the same effect as gauss0
+#if (defined __NVCC__ && defined _DEBUG)
+			cudaMemPrefetchAsync(R1_f,kferm*sizeof(Complex_f),device,streams[1]);
+#endif
 #if (defined(USE_RAN2)||defined(__RANLUX__)||!defined(__INTEL_MKL__))
 			Gauss_c(R, kferm, 0, 1/sqrt(2));
 #else
 			vsRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, R, 0, 1/sqrt(2));
 #endif
 #ifdef __NVCC__
-			cudaMemPrefetchAsync(R,kferm*sizeof(Complex_f),device,NULL);
+			cudaMemPrefetchAsync(R,kfermHalo*sizeof(Complex_f),device,NULL);
+			cudaDeviceSynchronise();
 #endif
 			Dslashd_f(R1_f,R,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 #ifdef __NVCC__
+			//Make sure the multiplication is finished before freeing its input!!
+			cudaFree(R);//cudaDeviceSynchronise(); 
 			//cudaFree is blocking so don't need to synchronise
-			cudaFree(R);
 			cuComplex_convert(R1_f,R1,kferm,false,dimBlock,dimGrid);
-			cudaFreeAsync(R1_f,streams[0]);
-			cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,streams[1]);
-			//Up/down partitioning (using only pseudofermions of flavour 1)
-			cuUpDownPart(na,X0,R1,dimBlock,dimGrid);
+			//cudaDeviceSynchronise();
+			//cudaFreeAsync(R1_f,NULL);
+			cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,0);
+			//cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,streams[1]);
+			cudaDeviceSynchronise();
+#ifdef _DEBUG
+			cudaFree(R1_f);
+#else
+			cudaFreeAsync(R1_f,0);
+#endif
 			//cudaFree is blocking so don't need cudaDeviceSynchronise()
 #else
 			free(R); 
@@ -438,18 +465,20 @@ int main(int argc, char *argv[]){
 			free(R1_f);
 			memcpy(Phi+na*kferm,R1, kferm*sizeof(Complex));
 			//Up/down partitioning (using only pseudofermions of flavour 1)
-#pragma omp parallel for simd collapse(2) aligned(X0,R1:AVX)
-			for(int i=0; i<kvol; i++)
-				for(int idirac = 0; idirac < ndirac; idirac++){
-					X0[((na*kvol+i)*ndirac+idirac)*nc]=R1[(i*ngorkov+idirac)*nc];
-					X0[((na*kvol+i)*ndirac+idirac)*nc+1]=R1[(i*ngorkov+idirac)*nc+1];
-				}
 #endif
+			UpDownPart(na, X0, R1);
 		}	
 		//Heatbath
 		//========
 		//We're going to make the most of the new Gauss_d routine to send a flattened array
 		//and do this all in one step.
+#ifdef __NVCC__
+		cudaMemcpyAsync(u11t, u11, ndim*kvol*sizeof(Complex),cudaMemcpyHostToDevice,streams[1]);
+		cudaMemcpyAsync(u12t, u12, ndim*kvol*sizeof(Complex),cudaMemcpyHostToDevice,streams[2]);
+#else
+		memcpy(u11t, u11, ndim*kvol*sizeof(Complex));
+		memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
+#endif
 #if (defined(USE_RAN2)||defined(__RANLUX__)||!defined(__INTEL_MKL__))
 		Gauss_d(pp, kmom, 0, 1);
 #else
@@ -467,7 +496,7 @@ int main(int argc, char *argv[]){
 		Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
 		double H0, S0;
 		Hamilton(&H0, &S0, rescga,pp,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval_f,gamin,\
-				dk4m_f,dk4p_f,jqq,akappa,beta,&ancgh);
+				dk4m_f,dk4p_f,jqq,akappa,beta,&ancgh,itraj);
 #ifdef _DEBUG
 		if(!rank) printf("H0: %e S0: %e\n", H0, S0);
 #endif
@@ -555,7 +584,7 @@ int main(int argc, char *argv[]){
 		Reunitarise(u11t,u12t);
 		double H1, S1;
 		Hamilton(&H1, &S1, rescga,pp,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval_f,gamin,\
-				dk4m_f,dk4p_f,jqq,akappa,beta,&ancgh);
+				dk4m_f,dk4p_f,jqq,akappa,beta,&ancgh,itraj);
 		ancgh/=2.0; //Hamilton is called at start and end of trajectory
 		totancgh+=ancgh;
 #ifdef _DEBUG
@@ -781,9 +810,15 @@ int main(int argc, char *argv[]){
 #if (defined SA3AT)
 	if(!rank){
 		FILE *sa3at = fopen("Bench_times.csv", "a");
+#ifdef __NVCC__
+		char *version[256];
+		sprintf(version,"%s\n%s",cudaRuntimeGetVersion,__VERSION__);
+#else
+		char *version=__VERSION__;
+#endif
 		fprintf(sa3at, "%s\nβ%0.3f κ:%0.4f μ:%0.4f j:%0.3f s:%i t:%i kvol:%ld\n"
 				"npx:%i npt:%i nthread:%i ncore:%i time:%f traj_time:%f\n\n",\
-				__VERSION__,beta,akappa,fmu,ajq,nx,nt,kvol,npx,npt,nthreads,npx*npy*npz*npt*nthreads,elapsed,elapsed/ntraj);
+				version,beta,akappa,fmu,ajq,nx,nt,kvol,npx,npt,nthreads,npx*npy*npz*npt*nthreads,elapsed,elapsed/ntraj);
 		fclose(sa3at);
 	}
 #endif

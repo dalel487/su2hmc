@@ -49,10 +49,10 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	int device=-1;
 	cudaGetDevice(&device);
 	Complex	*x, *xi; Complex_f *xi_f, *R1_f;
+	cudaMallocAsync((void **)&R1_f,kfermHalo*sizeof(Complex_f),streams[1]);
 	cudaMallocManaged((void **)&x,kfermHalo*sizeof(Complex), cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&xi,kferm*sizeof(Complex), cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&xi_f,kfermHalo*sizeof(Complex_f), cudaMemAttachGlobal);
-	cudaMallocAsync((void **)&R1_f,kfermHalo*sizeof(Complex_f),streams[1]);
 #else
 	Complex *x =(Complex *)aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 	Complex *xi =(Complex *)aligned_alloc(AVX,kferm*sizeof(Complex));
@@ -68,30 +68,29 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #ifdef __NVCC__
 	cudaMemPrefetchAsync(xi_f,kferm*sizeof(Complex_f),device,streams[0]);
 	cuComplex_convert(xi_f,xi,kferm,false,dimBlock,dimGrid);
+	cudaMemcpyAsync(x, xi, kferm*sizeof(Complex),cudaMemcpyDefault,0);
 #else
 #pragma omp parallel for simd aligned(xi,xi_f:AVX)
 	for(int i=0;i<kferm;i++)
 		xi[i]=(Complex)xi_f[i];
+	memcpy(x, xi, kferm*sizeof(Complex));
 #endif
 	//R_1= @f$M^\dagger\Xi@f$
 	//R1 is local in FORTRAN but since its going to be reset anyway I'm going to recycle the
 	//global
 	Dslashd_f(R1_f,xi_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 #ifdef __NVCC__
-	cudaMemcpyAsync(x, xi, kferm*sizeof(Complex),cudaMemcpyDefault,streams[0]);
+	cudaDeviceSynchronise();
 	cuComplex_convert(R1_f,R1,kferm,false,dimBlock,dimGrid);
+	cudaMemcpy(Phi, R1, kferm*sizeof(Complex),cudaMemcpyDefault);
+	cudaDeviceSynchronise();
 #else
-	memcpy(x, xi, kferm*sizeof(Complex));
 #pragma omp parallel for simd aligned(R1,R1_f:AVX)
 	for(int i=0;i<kferm;i++)
 		R1[i]=(Complex)R1_f[i];
-#endif
 	//Copying R1 to the first (zeroth) flavour index of Phi
 	//This should be safe with memcpy since the pointer name
 	//references the first block of memory for that pointer
-#ifdef __NVCC__
-	cudaMemcpy(Phi, R1, kferm*sizeof(Complex),cudaMemcpyDefault);
-#else
 	memcpy(Phi, R1, kferm*sizeof(Complex));
 #endif
 	//Evaluate xi = (M^† M)^-1 R_1 
@@ -108,25 +107,22 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #pragma omp parallel for simd aligned(R1,R1_f:AVX)
 for(int i=0;i<kferm;i++)
 xi[i]=(Complex)R1_f[i];
-	 */
+*/
 #ifdef __NVCC__
 	cudaMemcpyAsync(xi,R1,kferm*sizeof(Complex),cudaMemcpyDefault,streams[0]);
-#else
-	memcpy(xi,R1,kferm*sizeof(Complex));
-#endif
-#ifdef __NVCC__
 	cudaFreeAsync(R1_f,streams[1]);	cudaFree(xi_f);	
 #else
+	memcpy(xi,R1,kferm*sizeof(Complex));
 	free(xi_f);	free(R1_f);
 #endif
-#ifdef __NVCC__
+#ifdef USE_BLAS
 	Complex buff;
+#ifdef __NVCC__
 	cublasZdotc(cublas_handle,kferm,(cuDoubleComplex *)x,1,(cuDoubleComplex *)xi,1,(cuDoubleComplex *)&buff);
 	cudaDeviceSynchronise();
-	*pbp=creal(buff);
 #elif defined USE_BLAS
-	Complex buff;
 	cblas_zdotc_sub(kferm, x, 1, xi,  1, &buff);
+#endif
 	*pbp=creal(buff);
 #else
 	*pbp = 0;
@@ -150,9 +146,17 @@ xi[i]=(Complex)R1_f[i];
 			//Because we have kvol on the outer index and are summing over it, we set the
 			//step for BLAS to be ngorkov*nc=16. 
 			//Does this make sense to do on the GPU?
+#ifdef __NVCC__
+			cublasZdotc(cublas_handle,kvol,(cuDoubleComplex *)(x+idirac*nc+ic),ngorkov*nc,(cuDoubleComplex *)(xi+igork*nc+ic), ngorkov*nc,(cuDoubleComplex *)&dot);
+#else
 			cblas_zdotc_sub(kvol, &x[idirac*nc+ic], ngorkov*nc, &xi[igork*nc+ic], ngorkov*nc, &dot);
+#endif
 			*qbqb+=gamval[4*ndirac+idirac]*dot;
+#ifdef __NVCC__
+			cublasZdotc(cublas_handle,kvol,(cuDoubleComplex *)(x+igork*nc+ic),ngorkov*nc,(cuDoubleComplex *)(xi+idirac*nc+ic), ngorkov*nc,(cuDoubleComplex *)&dot);
+#else
 			cblas_zdotc_sub(kvol, &x[igork*nc+ic], ngorkov*nc, &xi[idirac*nc+ic], ngorkov*nc, &dot);
+#endif
 			*qq-=gamval[4*ndirac+idirac]*dot;
 		}
 	}
@@ -188,6 +192,7 @@ xi[i]=(Complex)R1_f[i];
 	//Instead of typing id[i*ndim+3] a lot, we'll just assign them to variables.
 	//Idea. One loop instead of two loops but for xuu and xdd just use ngorkov-(igorkov+1) instead
 	//Dirty CUDA work around since it won't convert thrust<complex> to double
+	//TODO: get a reduction routine ready for CUDA
 #ifndef __NVCC__
 #pragma omp parallel for reduction(+:xd,xu,xdd,xuu) 
 #endif

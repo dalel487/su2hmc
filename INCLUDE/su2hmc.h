@@ -128,13 +128,14 @@ extern "C"
 	 * @param	akappa:				Hopping parameter
 	 * @param	beta:					Inverse gauge coupling
 	 * @param	ancgh:				Conjugate gradient iterations counter 
+	 * @param	traj:					Calling trajectory for error reporting
 	 *
 	 * @return	Zero on success. Integer Error code otherwise.
 	 */	
 	int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex *X1, Complex *Phi,\
 			Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f, unsigned int * iu, unsigned int *id,\
 			Complex_f *gamval_f, int *gamin, float *dk4m_f, float * dk4p_f, Complex_f jqq,\
-			float akappa, float beta,double *ancgh);
+			float akappa, float beta,double *ancgh,int traj);
 	/**
 	 * @brief Matrix Inversion via Conjugate Gradient (up/down flavour partitioning).
 	 * Solves @f$(M^\dagger)Mx=\Phi@f$
@@ -302,6 +303,16 @@ extern "C"
 	 * @return Zero on success, integer error code otherwise
 	 */
 	int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi);
+	/*
+	 *	@brief Up/Down partitioning of the pseudofermion field
+	 *
+	 *	@param	na:	Flavour index
+	 *	@param	X0:	Partitioned field
+	 *	@param	R1:	Full pseudofermion field
+	 *
+	 *	@return	Zero on success, integer error code otherwise	
+	 */
+	int UpDownPart(const int na, Complex *X0, Complex *R1);
 
 	//CUDA Declarations:
 	//#################

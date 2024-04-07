@@ -2,11 +2,15 @@
 #include	<cuda_runtime.h>
 #include	<su2hmc.h>
 #define MIN(x,y) (x<y?x:y)
+#define MAX(x,y) (x>y?x:y)
 //Worst case scenario, each block contains 256 threads. This should be tuned later
-dim3 dimBlock = dim3(MIN(ksizex,16),MIN(ksizet,16));
-dim3 dimGrid= dim3(MIN(ksizez,8),MIN(ksizey,8));
-dim3 dimBlockOne = dim3(4,4,1);
+dim3 dimBlock = dim3(MAX(8*(ksizez/8),8),MAX(16*(ksizey/16),16));
+//dim3 dimBlock = 1;
+dim3 dimGrid= dim3(ksizex,ksizet);
+//dim3 dimGrid= 1;
+dim3 dimBlockOne = dim3(1,1,1);
 dim3 dimGridOne= dim3(1,1,1);
+//dim3	dimBlock=dimBlockOne; dim3 dimGrid=dimGridOne;
 cudaStream_t streams[ndirac*ndim*nadj];
 void	Init_CUDA(Complex *u11t, Complex *u12t,Complex *gamval, Complex_f *gamval_f, int *gamin, double*dk4m,\
 					double *dk4p, unsigned int *iu, unsigned int *id){

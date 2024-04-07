@@ -63,7 +63,7 @@ extern cudaMemPool_t mempool;
 // Common block definition for parallel variables
 
 ///	@brief Lattice x extent
-#define	nx 12
+#define	nx 8
 #if(nx<1)
 #error "nx is expected it to be greater than or equal to 1"
 #endif
@@ -94,7 +94,7 @@ extern cudaMemPool_t mempool;
 #define	gvol3   (nx*ny*nz)
 
 ///	@brief Processor grid x extent. This must be a divisor of nx
-#define	npx	2
+#define	npx	1
 #if(npx<1)
 #error "npx is expected it to be greater than or equal to 1"
 #elif(nx%npx!=0)
@@ -121,7 +121,7 @@ extern cudaMemPool_t mempool;
 #endif
 
 ///	@brief Processor grid t extent
-#define	npt	2
+#define	npt	1
 #if(npt<1)
 #error "npt is expected it to be greater than or equal to 1"
 #elif(nt%npt!=0)
@@ -131,7 +131,7 @@ extern cudaMemPool_t mempool;
 ///	@brief	Number of processors for MPI
 #define	nproc	(npx*npy*npz*npt)
 
-///	@brief /Number of threads for OpenMP, which can be overwritten at runtime
+///	@brief Number of threads for OpenMP, which can be overwritten at runtime
 #define	nthreads	16
 
 //    Existing parameter definitions.
@@ -158,7 +158,10 @@ extern cudaMemPool_t mempool;
 //     integer, parameter :: niterc=2*gvol  
 //      #define niterc 2*gvol
 //    jis: hard limit to avoid runaway trajectories
-#if(nx>=(3*nt)/2)
+#if	(nx*ny*nz*nt<=16384)
+///	@brief	Hard limit for runaway trajectories in Conjugate gradient
+#define	niterc	gvol
+#elif (nx>=(3*nt)/2)
 ///	@brief	Hard limit for runaway trajectories in Conjugate gradient
 #define	niterc	gvol3
 #else

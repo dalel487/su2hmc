@@ -29,14 +29,15 @@ void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *
 	//cuForce<<<dimGrid,dimBlock>>>(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa);
 	for(int idirac=0;idirac<ndirac;idirac++){
 		for(int mu=0;mu<3;mu++){
-			cuForce_s0<<<dimGrid,dimBlock,0,streams[idirac*(ndim+mu*nadj)]>>>(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac,mu);
-			cuForce_s1<<<dimGrid,dimBlock,0,streams[idirac*(ndim+mu*nadj)+1]>>>(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac,mu);
-			cuForce_s2<<<dimGrid,dimBlock,0,streams[idirac*(ndim+mu*nadj)+2]>>>(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac,mu);
-
+			cuForce_s0<<<dimGrid,dimBlock,0,streams[mu*nadj+0]>>>(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac,mu);
+			cuForce_s1<<<dimGrid,dimBlock,0,streams[mu*nadj+1]>>>(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac,mu);
+			cuForce_s2<<<dimGrid,dimBlock,0,streams[mu*nadj+2]>>>(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac,mu);
 		}
-		cuForce_t0<<<dimGrid,dimBlock,0,streams[idirac*(ndim+3*nadj)]>>>(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac);
-		cuForce_t1<<<dimGrid,dimBlock,0,streams[idirac*(ndim+3*nadj)+1]>>>(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac);
-		cuForce_t2<<<dimGrid,dimBlock,0,streams[idirac*(ndim+3*nadj)+2]>>>(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac);
+		//Set stream for time direction
+		int mu=3;
+		cuForce_t0<<<dimGrid,dimBlock,0,streams[mu*nadj+0]>>>(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac);
+		cuForce_t1<<<dimGrid,dimBlock,0,streams[mu*nadj+1]>>>(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac);
+		cuForce_t2<<<dimGrid,dimBlock,0,streams[mu*nadj+2]>>>(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac);
 	}
 	cudaDeviceSynchronise();
 }
