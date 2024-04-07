@@ -1,6 +1,6 @@
 MF=Makefile_GCC
 CC=		gcc-13
-CXX=		hipify-clang
+CXX=		g++-13
 HIPCC=	hipcc
 HIP_PLATFORM='amd'
 
@@ -9,7 +9,7 @@ IFLAGS=     -I../INCLUDE/ -I ${AOCL_ROOT}/include $(shell gsl-config --cflags)\
 			#	-I /opt/nvidia/hpc_sdk/Linux_x86_64/2024/cuda/include/ \
 			#	-I /opt/nvidia/hpc_sdk/Linux_x86_64/2024/math_libs/include/ 
 
-CFLAGS=	$(IFLAGS) -std=gnu11 -fcommon -D__HIPCC__ -march=native -D__HIPCC__\
+CFLAGS=	$(IFLAGS) -std=gnu11 -fcommon -D__HIPCC__ -march=native\
 		-fopenmp -fopenmp-simd -static-libgcc -DSA3AT -flto -D__HIP_PLATFORM_AMD__\
 		-foffload=disable #amdgcn-amdhsa="-march=gfx902" #-fopenacc\
 #		-pg -fprofile-arcs-foffload=amdgcn-amdhsa="-march=gfx90c"
