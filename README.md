@@ -68,7 +68,7 @@ Some adaptions from the original are:
 -	GSL ranlux support
 
 Other works in progress include:
--	CUDA implementation. So far bosonic observables can be evaluated on the GPU. The conjugate gradient currently disagrees with the CPU version.
+-	CUDA implementation. The CUDA code works, but we have yet to optimise it fully
 -	Improved action
 
   
