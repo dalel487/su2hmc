@@ -1,0 +1,124 @@
+MF=Makefile_GCC
+CC=		gcc 
+CXX=		g++
+NVCC=		nvcc
+
+IFLAGS=     -I../INCLUDE -I ./ -I../production_c $(shell gsl-config --cflags)\
+				-I /opt/nvidia/hpc_sdk/Linux_x86_64/2024/cuda/include/ \
+				-I /opt/nvidia/hpc_sdk/Linux_x86_64/2024/math_libs/include/ 
+
+CFLAGS=	$(IFLAGS) -std=gnu11 -fcommon -D__NVCC__\
+		-march=core-avx2 -mtune=native -D__RANLUX__ \
+		-fopenmp -fopenmp-simd -static-libgcc -DSA3AT \
+		-foffload=disable #amdgcn-amdhsa="-march=gfx902" #-fopenacc\
+
+ifdef AOCL_ROOT
+CFLAGS += -DAMD_BLAS -I ${AOCL_ROOT}/include 
+LFLAGS = -L${AOCL_ROOT}/lib/ -lblis  -lalm
+else ifdef LIBSCI_BASE_DIR
+CFLAGS += -DUSE_BLAS
+#Automatic on LUMI?
+#LFLAGS = ‐L${LIBSCI_BASE_DIR}/gnu/91/x86_64/lib/ -lsci_comp
+else
+CFLAGS += -DUSE_BLAS 
+LFLAGS	+=	-lm $(shell gsl-config --libs)
+endif
+LFLAGS	+=	-lm $(shell gsl-config --libs-without-cblas)
+
+CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/2024/cuda/lib64/ \
+				-L/opt/nvidia/hpc_sdk/Linux_x86_64/2024/math_libs/lib64/ \
+				-lcuda -lcudart -lcublas 
+
+LFLAGS +=		-lstdc++ -lpthread -ldl #${CULFLAGS}
+
+NVCCFLAGS=	${IFLAGS} --resource-usage -std=c++14 -err-no -w #-expt-relaxed-constexpr 
+			#Last flag is an experimental one used to call host functions in device code. Not sure
+			#if it does what we want because the error message suggesting it came up when declaring
+			#a11 and a12 in the Dslash routine
+#Replace first line of NVCCFLAGS with below when done. Targets every platform since 2016
+#NVCCFLAGS=	${IFLAGS}  -arch=compute_60 -code=sm_60,sm_61,sm_70,sm_75,sm_80,sm_86,sm_90 -err-no -w \
+
+EXE=	su2hmc_CUDA
+
+CSRC_DIR=	../production_c
+CSRC=	\
+	    coord.c \
+	    congrad.c \
+		force.c \
+    	random.c \
+		par_mpi.c \
+		bosonic.c\
+		fermionic.c\
+		diagnostics.c
+
+CUSRC_DIR=	../production_cuda
+CUSRC=	\
+		cubosonic.cu\
+		cumatrices.cu\
+		cuforce.cu\
+		cusu2hmc.cu
+
+#CUSRC= CUDA_Compile.cu
+CINC=	\
+		su2hmc.h \
+		sizes.h \
+	    par_mpi.h \
+    	random.h \
+	    matrices.h \
+    	coord.h \
+	    errorcodes.h \
+
+#
+# No need to edit below this line
+#
+
+.SUFFIXES: .c .cu .h .hpp .o 
+.PHONY: clean debug release profiler tar
+C_SOURCES:= $(wildcard $(CSRC_DIR)/*.c)
+CU_SOURCES:= $(wildcard $(CUSRC_DIR)/*.cu)
+COBJ=	$(patsubst $(CSRC_DIR)/%.c, $(CSRC_DIR)/%.o, $(C_SOURCES))
+CUOBJ= $(patsubst $(CUSRC_DIR)/%.cu, $(CUSRC_DIR)/%.o, $(CU_SOURCES))
+CLIB= libc.a
+CULIB= libcu.a
+CULIB2= libcu2.a
+#OBJ=	$(CLIB) $(CULIB2)
+OBJ = $(COBJ) $(CUOBJ) 
+
+#MOD=	$(CSRC:.c=.mod)
+MOD=	
+CEDT=	$(CSRC:.c=.c~)
+CUEDT=	$(CUSRC:.cu=.cu~)
+TMP=	$(MOD) $(CEDT) $(CUEDT) core
+
+profiler:	CFLAGS += -g #-D_DEBUGCG
+profiler:	NVCCFLAGS += -lineinfo #-D_DEBUGCG #-keep
+profiler:	release
+
+release:	CFLAGS +=  -Ofast -funroll-all-loops -fcf-protection=none #-fprofile-use=./gcc_pgo
+release:	NVCCFLAGS += -Xptxas -O3,-v -arch=native #--maxrregcount=64 -G -dopt=on
+release:	$(EXE)
+
+diagnostic: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
+diagnostic: NVCCFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
+diagnostic: debug
+
+debug:		CFLAGS += -g -O0 -D_DEBUG #-DDIAGNOSTIC -DNO_TIME -DNO_SPACE
+debug:		NVCCFLAGS += -Xptxas -O0,-v -G -g -D_DEBUG -arch=sm_75 --maxrregcount=255  -keep 
+debug:		$(EXE)
+		 
+$(EXE): $(OBJ) ../main.c
+	$(NVCC) $(NVCCFLAGS) -ccbin $(CC) -Xcompiler "$(CFLAGS) -std=gnu11" $(LFLAGS) $(CULFLAGS) $^ -o $@
+%.o: $(CUSRC_DIR)/%.cu
+	$(NVCC) $(NVCCFLAGS) -ccbin $(CXX) -Xcompiler "$(CFLAGS)" $^ -dc $@
+%.o: $(CSRC_DIR)%.c
+	$(CC) $(CFLAGS) -c $^  
+
+clean:
+	rm -f $(OBJ) $(COBJ) $(CUOBJ) $(CULIB) $(CLIB) $(TMP) *.cpp?.ii *.cudafe1.* *.*bin *.fatbin.c *.ptx *.sm_* *module_id \
+	*dlink* *.ltoir *.d i?_out
+
+INP=	\
+	midout \
+
+tar:
+	tar cvf $(EXE).tar $(MF) $(CSRC) $(CUSRC) $(CINC) $(CUINC) $(INP)

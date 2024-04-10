@@ -244,6 +244,7 @@ extern "C"
 	 */
 	int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u11t, Complex_f *u12t,\
 			unsigned int *iu, float beta);
+#if (!defined __NVCC__ && !defined __HIPCC__)
 	/**
 	 * @brief Calculates the plaquette at site i in the @f$\mu--\nu@f$ direction
 	 *
@@ -258,6 +259,7 @@ extern "C"
 	 *
 	 */
 	float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int i, int mu, int nu);
+	#endif
 	/**
 	 * @brief Calculate the Polyakov loop (no prizes for guessing that one...)
 	 * 

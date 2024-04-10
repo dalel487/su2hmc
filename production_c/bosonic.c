@@ -67,6 +67,7 @@ int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u
 #endif
 	return 0;
 }
+#if (!defined __NVCC__ && !defined __HIPCC__)
 #pragma omp declare simd
 inline float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int i, int mu, int nu){
 	/*
@@ -100,6 +101,7 @@ inline float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int i, 
 	//				Not needed in final result as it traces out
 	return creal(Sigma11);
 }
+#endif
 double Polyakov(Complex_f *u11t, Complex_f *u12t){
 	/*
 	 * Calculate the Polyakov loop (no prizes for guessing that one...)
