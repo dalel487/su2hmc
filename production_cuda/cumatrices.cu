@@ -316,7 +316,7 @@ __global__ void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12
 
 //Dslash_f Index 0
 __global__ void cuDslash0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		Complex_f *gamval_d,	int *gamin_d,	float *dk4m, float *dk4p, Complex_f jqq, float akappa){
+		__shared__ Complex_f *gamval_d,	int *gamin_d,	float *dk4m, float *dk4p, Complex_f jqq, float akappa){
 	char *funcname = "cuDslash0_f";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -391,7 +391,7 @@ __global__ void cuDslash0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Compl
 	}
 }
 __global__ void cuDslashd0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		Complex_f *gamval_d,	int *gamin_d,	float *dk4m, float *dk4p, Complex_f jqq, float akappa){
+		__shared__ Complex_f *gamval_d,	int *gamin_d,	float *dk4m, float *dk4p, Complex_f jqq, float akappa){
 	char *funcname = "cuDslashd0_f";
 	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -460,7 +460,7 @@ __global__ void cuDslashd0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comp
 }
 //Dslash_f Index 1
 __global__ void cuDslash1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		Complex_f *gamval_d,	int *gamin_d,	float *dk4m, float *dk4p, Complex_f jqq, float akappa){
+		__shared__ Complex_f *gamval_d,	int *gamin_d,	float *dk4m, float *dk4p, Complex_f jqq, float akappa){
 	char *funcname = "cuDslash1_f";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -533,7 +533,7 @@ __global__ void cuDslash1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Compl
 	}
 }
 __global__ void cuDslashd1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		Complex_f *gamval_d,	int *gamin_d,	float *dk4m, float *dk4p, Complex_f jqq, float akappa){
+		__shared__ Complex_f *gamval_d,	int *gamin_d,	float *dk4m, float *dk4p, Complex_f jqq, float akappa){
 	char *funcname = "cuDslashd1_f";
 	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -605,7 +605,7 @@ __global__ void cuDslashd1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comp
 //There are no race contitions.
 //HDslash_f Index 0
 __global__ void cuHdslash0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		Complex_f *gamval,	int *gamin_d,	float *dk4m, float *dk4p, float akappa,int idirac){
+		__shared__ Complex_f *gamval,	int *gamin_d,	float *dk4m, float *dk4p, float akappa,int idirac){
 	/*
 	 * Half Dslash float precision acting on colour index zero
 	 */
@@ -614,6 +614,10 @@ __global__ void cuHdslash0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comp
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+
+//Shared blocks for the gauge fields, and also in the up and down directions
+	//__shared__ Complex_f u11tb[4*bsize], u12tb[4*bsize],u11tu[4*bsize],u12tu[4*bsize], u11td[4*bsize], u12td[4*bsize];
+
 	for(int i=threadId;i<kvol;i+=bsize*gsize){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
@@ -649,7 +653,7 @@ __global__ void cuHdslash0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comp
 	}
 }
 __global__ void cuHdslashd0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		Complex_f *gamval,	int *gamin_d,	float *dk4m, float *dk4p, float akappa,int idirac){
+		__shared__ Complex_f *gamval,	int *gamin_d,	float *dk4m, float *dk4p, float akappa,int idirac){
 	char *funcname = "cuHdslashd0_f";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -694,7 +698,7 @@ __global__ void cuHdslashd0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Com
 }
 //HDslash_f Index 1
 __global__ void cuHdslash1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		Complex_f *gamval,	int *gamin_d,	float *dk4m, float *dk4p, float akappa,int idirac){
+		__shared__ Complex_f *gamval,	int *gamin_d,	float *dk4m, float *dk4p, float akappa,int idirac){
 	char *funcname = "cuHdslash1_f";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -734,7 +738,7 @@ __global__ void cuHdslash1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comp
 	}
 }
 __global__ void cuHdslashd1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		Complex_f *gamval,	int *gamin_d,	float *dk4m, float *dk4p, float akappa,int idirac){
+		__shared__ Complex_f *gamval,	int *gamin_d,	float *dk4m, float *dk4p, float akappa,int idirac){
 	char *funcname = "cuHdslashd1_f";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -838,6 +842,7 @@ __global__ void cuNew_trial(double dt, double *pp, Complex *u11t, Complex *u12t,
 		u12t[i*ndim+mu] = a11*u12t[i*ndim+mu]+a12*conj(b11);
 	}
 }
+
 //Calling Functions
 //================
 void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
@@ -1085,6 +1090,8 @@ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t
 	 */
 	char *funcname = "Hdslashd_f";
 	int cuCpyStat=0;
+	//__shared__ int gamin_s[16]; __shared__ Complex_f gamval_s[20];
+	//intShare(gamin_s,gamin,16); floatShare(gamval_s,gamval,2*20);
 	if((cuCpyStat=cudaMemcpy(phi, r, kferm2*sizeof(Complex_f),cudaMemcpyDefault))){
 		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
 				CPYERROR,funcname,cuCpyStat);

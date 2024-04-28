@@ -3,17 +3,54 @@
 #include	<su2hmc.h>
 #define MIN(x,y) (x<y?x:y)
 #define MAX(x,y) (x>y?x:y)
-//Worst case scenario, each block contains 256 threads. This should be tuned later
-dim3 dimBlock = dim3(MAX(8*(ksizez/8),8),MAX(16*(ksizey/16),16));
-//dim3 dimBlock = 1;
-dim3 dimGrid= dim3(ksizex,ksizet);
-//dim3 dimGrid= 1;
 dim3 dimBlockOne = dim3(1,1,1);
 dim3 dimGridOne= dim3(1,1,1);
+//Worst case scenario, each block contains 256 threads. This should be tuned later
+dim3 dimBlock = dim3(1,1,1);
+//dim3 dimBlock = 1;
+dim3 dimGrid= dim3(1,1,1);
 //dim3	dimBlock=dimBlockOne; dim3 dimGrid=dimGridOne;
 cudaStream_t streams[ndirac*ndim*nadj];
+void blockInit(int x, int y, int z, int t, dim3 *dimBlock, dim3 *dimGrid){
+
+	char *funcname = "blockInit";
+
+	int device=-1;	cudaGetDevice(&device);
+	cudaDeviceProp prop;	cudaGetDeviceProperties(&prop, device);
+	//Threads per block
+	int tpb=prop.maxThreadsPerBlock/4;
+	//Warp size
+	int tpw=prop.warpSize;
+	int bx=1;
+	//Set bx to be the largest power of 2 less than x that fits in a block
+	while(bx<x/2 && bx<tpb)
+		bx*=2;
+	int by=1;
+	//Set by to be the largest power of 2 less than y such that bx*by fits in a block
+	while(by<y/2 && bx*by<tpb)
+		by*=2;
+
+	if(bx*by>=128){
+		*dimBlock=dim3(bx,by);
+		*dimGrid=dim3(nz,nt,1);
+	}
+	else{
+		int bz=1;
+	//Set by to be the largest power of 2 less than y such that bx*by fits in an optimal block
+		while(bz<z/2 && bx*by*bz<tpb)
+			bz*=2;
+		*dimBlock=dim3(bx,by,bz);
+
+		//If we have an awkward block size then flag it.
+		if(bx*by*bz%tpw!=0)
+			fprintf(stderr,"Alert %i in %s: Suboptimal block size for warp size %d. bx=%d by=%d bz=%d\n",
+					BLOCKALERT,	funcname, tpw, bx, by,bz);
+		*dimGrid=dim3(z/bz,nt,1);
+	}
+	printf("Block: (%d,%d,%d)\tGrid: (%d,%d,%d)\n",dimBlock->x,dimBlock->y,dimBlock->z,dimGrid->x,dimGrid->y,dimGrid->z);
+}
 void	Init_CUDA(Complex *u11t, Complex *u12t,Complex *gamval, Complex_f *gamval_f, int *gamin, double*dk4m,\
-					double *dk4p, unsigned int *iu, unsigned int *id){
+		double *dk4p, unsigned int *iu, unsigned int *id){
 	/*
 	 * Initialises the GPU Components of the system
 	 *

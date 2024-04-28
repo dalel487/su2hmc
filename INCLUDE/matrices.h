@@ -242,22 +242,22 @@ __global__ void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12
 		Complex *gamval, int *gamin, double *dk4m, double *dk4p, float akappa);
 //Float version
 __global__ void cuDslash0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, Complex_f jqq, float akappa);
+		__shared__ Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, Complex_f jqq, float akappa);
 __global__ void cuDslashd0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, Complex_f jqq, float akappa);
+		__shared__ Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, Complex_f jqq, float akappa);
 __global__ void cuDslash1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, Complex_f jqq, float akappa);
+		__shared__ Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, Complex_f jqq, float akappa);
 __global__ void cuDslashd1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, Complex_f jqq, float akappa);
+		__shared__ Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, Complex_f jqq, float akappa);
 
 __global__ void cuHdslash0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, float akappa,int idirac);
+		__shared__ Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, float akappa,int idirac);
 __global__ void cuHdslashd0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, float akappa,int idirac);
+		__shared__ Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, float akappa,int idirac);
 __global__ void cuHdslash1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, float akappa,int idirac);
+		__shared__ Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, float akappa,int idirac);
 __global__ void cuHdslashd1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, float akappa,int idirac);
+		__shared__ Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, float akappa,int idirac);
 //New Trial Fields
 __global__ void cuReunitarise(Complex *u11t, Complex *u12t);
 __global__ void cuNew_trial(double dt, double *pp, Complex *u11t, Complex *u12t, int mu);

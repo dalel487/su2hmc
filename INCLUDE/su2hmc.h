@@ -6,6 +6,7 @@
 #define SU2HEAD
 //ARM Based machines. BLAS routines should work with other libraries, so we can set a compiler
 //flag to sort them out. But the PRNG routines etc. are MKL exclusive
+#include <errorcodes.h>
 #ifdef	__INTEL_MKL__
 #define	USE_BLAS
 #include	<mkl.h>
@@ -259,7 +260,7 @@ extern "C"
 	 *
 	 */
 	float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int i, int mu, int nu);
-	#endif
+#endif
 	/**
 	 * @brief Calculate the Polyakov loop (no prizes for guessing that one...)
 	 * 
@@ -281,7 +282,7 @@ extern "C"
 	 * @param	mu:		Direciton we're interested in extractng	
 	 *
 	 * @return Zero on success, integer error code otherwise
-	*/
+	 */
 	int C_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu);
 	/**
 	 * @brief	Extracts all the double precision gauge links in the @f$\mu@f$ direction only
@@ -293,7 +294,7 @@ extern "C"
 	 * @param	mu:		Direciton we're interested in extractng	
 	 *
 	 * @return Zero on success, integer error code otherwise
-	*/
+	 */
 	int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu);
 	/**
 	 * Copies necessary (2*4*kvol) elements of Phi into a vector variable
@@ -343,6 +344,8 @@ extern "C"
 	void cuComplex_convert(Complex_f *a, Complex *b, int len, bool ftod, dim3 dimBlock, dim3 dimGrid);
 	void cuReal_convert(float *a, double *b, int len, bool ftod, dim3 dimBlock, dim3 dimGrid);
 	void cuUpDownPart(int na, Complex *X0, Complex *R1,dim3 dimBlock, dim3 dimGrid);
+	//And a little something to set the CUDA grid and block sizes
+	void blockInit(int x, int y, int z, int t, dim3 *dimBlock, dim3 *dimGrid);
 #endif
 #if (defined __cplusplus)
 }

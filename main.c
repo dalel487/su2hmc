@@ -163,6 +163,8 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 	//CUBLAS Handle
 	cublasCreate(&cublas_handle);
+	//Set up grid and blocks
+	blockInit(nx, ny, nz, nt, &dimBlock, &dimGrid);
 	//CUDA device
 	int device=-1;
 	cudaGetDevice(&device);

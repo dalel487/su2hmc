@@ -96,4 +96,18 @@
 //Alerts:
 //------
 #define	NOINIT		14201 //Not initialising the lattice
+
+//CUDA Errors. Leading digits are 15
+//==================================
+//Errors:
+//------
+#define	BLOCKERROR	15001
+
+//Warnings:
+//------
+#define	BLOCKWARN	15101
+
+//ALERT:
+//------
+#define	BLOCKALERT	15201
 #endif
