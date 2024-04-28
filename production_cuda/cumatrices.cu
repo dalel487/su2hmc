@@ -605,7 +605,7 @@ __global__ void cuDslashd1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comp
 //There are no race contitions.
 //HDslash_f Index 0
 __global__ void cuHdslash0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		__shared__ Complex_f *gamval,	int *gamin_d,	float *dk4m, float *dk4p, float akappa,int idirac){
+		__shared__ Complex_f gamval[20],	int *gamin_d,	float *dk4m, float *dk4p, float akappa,int idirac){
 	/*
 	 * Half Dslash float precision acting on colour index zero
 	 */
@@ -653,7 +653,7 @@ __global__ void cuHdslash0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comp
 	}
 }
 __global__ void cuHdslashd0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		__shared__ Complex_f *gamval,	int *gamin_d,	float *dk4m, float *dk4p, float akappa,int idirac){
+		__shared__ Complex_f gamval[20],	int *gamin_d,	float *dk4m, float *dk4p, float akappa,int idirac){
 	char *funcname = "cuHdslashd0_f";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -698,7 +698,7 @@ __global__ void cuHdslashd0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Com
 }
 //HDslash_f Index 1
 __global__ void cuHdslash1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		__shared__ Complex_f *gamval,	int *gamin_d,	float *dk4m, float *dk4p, float akappa,int idirac){
+		__shared__ Complex_f gamval[20],	int *gamin_d,	float *dk4m, float *dk4p, float akappa,int idirac){
 	char *funcname = "cuHdslash1_f";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -738,7 +738,7 @@ __global__ void cuHdslash1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comp
 	}
 }
 __global__ void cuHdslashd1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		__shared__ Complex_f *gamval,	int *gamin_d,	float *dk4m, float *dk4p, float akappa,int idirac){
+		__shared__ Complex_f gamval[20],	int *gamin_d,	float *dk4m, float *dk4p, float akappa,int idirac){
 	char *funcname = "cuHdslashd1_f";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
