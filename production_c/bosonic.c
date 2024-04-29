@@ -46,8 +46,8 @@ int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u
 #pragma omp parallel for simd aligned(u11t,u12t,iu:AVX) reduction(+:hgs,hgt)
 			for(int i=0;i<kvol;i++){
 				//Save us from typing iu[mu+ndim*i] everywhere
-				Complex Sigma11, Sigma12;
-				SU2plaq(u11t,u12t,Sigma11,Sigma12,u11t,u12t,iu,i,mu,nu);
+				Complex_f Sigma11, Sigma12;
+				SU2plaq(u11t,u12t,&Sigma11,&Sigma12,iu,i,mu,nu);
 				switch(mu){
 					//Time component
 					case(ndim-1):	hgt -= creal(Sigma11);
@@ -71,18 +71,7 @@ int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u
 }
 #if (!defined __NVCC__ && !defined __HIPCC__)
 #pragma omp declare simd
-<<<<<<< HEAD
-inline float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int i, int mu, int nu){
-	/*
-	 * Calculates the plaquette at site i in the μ-ν direction
-	 *	
-	 *	Parameters:
-	 *	==========
-	 * u11t, u12t:	Trial fields
-	 * int *iu:	Upper halo indices
-	 * mu, nu:				Plaquette direction. Note that mu and nu can be negative
-=======
-inline int SU2plaq(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigmas11, Complex_f *Sigma12, unsigned int *iu, int i, int mu, int nu){
+inline int SU2plaq(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11, Complex_f *Sigma12, unsigned int *iu, int i, int mu, int nu){
 	/*
 	 * Calculates the trace of the plaquette at site i in the μ-ν direction
 	 *
@@ -91,7 +80,6 @@ inline int SU2plaq(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigmas11, Comple
 	 * Complex u11t, u12t:	Trial fields
 	 * unsignedi int *iu:	Upper halo indices
 	 * int mu, nu:				Plaquette direction. Note that mu and nu can be negative
->>>>>>> dd3e6c1 (Changes made, let's see if it works)
 	 * 							to facilitate calculating plaquettes for Clover terms. No
 	 * 							sanity checks are conducted on them in this routine.
 	 *
@@ -113,20 +101,15 @@ inline int SU2plaq(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigmas11, Comple
 	 *	This applies to the Sigmas and a's below too
 	 */
 
-<<<<<<< HEAD
-	Complex_f Sigma11=u11t[i*ndim+mu]*u11t[uidm*ndim+nu]-u12t[i*ndim+mu]*conj(u12t[uidm*ndim+nu]);
-	Complex_f Sigma12=u11t[i*ndim+mu]*u12t[uidm*ndim+nu]+u12t[i*ndim+mu]*conj(u11t[uidm*ndim+nu]);
-=======
 	*Sigma11=u11t[i*ndim+mu]*u11t[uidm*ndim+nu]-u12t[i*ndim+mu]*conj(u12t[uidm*ndim+nu]);
 	*Sigma12=u11t[i*ndim+mu]*u12t[uidm*ndim+nu]+u12t[i*ndim+mu]*conj(u11t[uidm*ndim+nu]);
->>>>>>> dd3e6c1 (Changes made, let's see if it works)
 
 	int uidn = iu[nu+ndim*i]; 
-	Complex_f a11=Sigma11*conj(u11t[uidn*ndim+mu])+Sigma12*conj(u12t[uidn*ndim+mu]);
-	Complex_f a12=-Sigma11*u12t[uidn*ndim+mu]+Sigma12*u11t[uidn*ndim+mu];
+	Complex_f a11=*Sigma11*conj(u11t[uidn*ndim+mu])+*Sigma12*conj(u12t[uidn*ndim+mu]);
+	Complex_f a12=-*Sigma11*u12t[uidn*ndim+mu]+*Sigma12*u11t[uidn*ndim+mu];
 
 	*Sigma11=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
-	*Sigma12=-a11[i]*u12t[i*ndim+nu]+a12*u11t[i*ndim+mu];
+	*Sigma12=-a11*u12t[i*ndim+nu]+a12*u11t[i*ndim+mu];
 	return 0;
 }
 #endif

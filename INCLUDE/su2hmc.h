@@ -258,8 +258,8 @@ extern "C"
 	 * @return double corresponding to the plaquette value
 	 *
 	 */
-	float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int i, int mu, int nu);
-	#endif
+	int SU2plaq(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11, Complex_f *Sigma12, unsigned int *iu, int i, int mu, int nu);
+#endif
 	/**
 	 * @brief Calculate the Polyakov loop (no prizes for guessing that one...)
 	 * 
@@ -281,7 +281,7 @@ extern "C"
 	 * @param	mu:		Direciton we're interested in extractng	
 	 *
 	 * @return Zero on success, integer error code otherwise
-	*/
+	 */
 	int C_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu);
 	/**
 	 * @brief	Extracts all the double precision gauge links in the @f$\mu@f$ direction only
@@ -293,7 +293,7 @@ extern "C"
 	 * @param	mu:		Direciton we're interested in extractng	
 	 *
 	 * @return Zero on success, integer error code otherwise
-	*/
+	 */
 	int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu);
 	/**
 	 * Copies necessary (2*4*kvol) elements of Phi into a vector variable
