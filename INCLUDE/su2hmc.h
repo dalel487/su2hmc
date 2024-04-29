@@ -249,6 +249,7 @@ extern "C"
 	 * @brief Calculates the plaquette at site i in the @f$\mu--\nu@f$ direction
 	 *
 	 * @param	u11t, u12t:	Trial fields
+	 * @param	Sigma11, Sigma12:	Plaquette components
 	 * @param	i:				Lattice site
 	 * @param	iu:			Upper halo indices
 	 * @param 	mu, nu:		Plaquette direction. Note that mu and nu can be negative
@@ -360,7 +361,7 @@ __global__ void cuGaugeForce(int mu, Complex_f *Sigma11, Complex_f *Sigma12,doub
 		float beta);
 __global__ void cuAverage_Plaquette(float *hgs_d, float *hgt_d, Complex_f *u11t, Complex_f *u12t, unsigned int *iu);
 __global__ void cuPolyakov(Complex_f *Sigma11, Complex_f * Sigma12, Complex_f *u11t, Complex_f *u12t);
-__device__ float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int i, int mu, int nu);
+__device__ void SU2plaq(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11, Complex_f *Sigma12, unsigned int *iu, int i, int mu, int nu);
 //Force Kernels. We've taken each nadj index and the spatial/temporal components and created a separate kernel for each
 //CPU code just has these as a huge blob that the vectoriser can't handle. May be worth splitting it there too?
 //It might not be a bad idea to make a seperate header for all these kernels...
