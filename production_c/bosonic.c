@@ -32,8 +32,8 @@ int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u
 	 * beta			Inverse gauge coupling
 	 *
 	 * Calls:
-	 * =====
-	 * Par_dsum
+	 * ======
+	 * Par_dsum()
 	 *
 	 * Return:
 	 * ======

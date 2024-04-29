@@ -23,7 +23,6 @@ SRC= \
 	par_mpi.c \
 	su2hmc.c \
 	integrate.c\
-	diagnostics.c
 
 INC= \
 	sizes.h \
