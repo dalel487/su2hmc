@@ -1,3 +1,7 @@
+/**
+ *	@file coord.h
+ *	@brief Header for routines related to lattice sites
+ */
 #ifndef COORD
 #define COORD
 #ifdef __CUDACC__
@@ -19,60 +23,164 @@
 #define USE_BLAS
 #include <cblas.h>
 #endif
-//#include <par_mpi.h>
 #include <sizes.h>
-//Global Variables
-//unsigned int id[ndim][kvol], iu[ndim][kvol] __attribute__((aligned(AVX)));
-//unsigned int hu[4][halo], hd[4][halo] __attribute__((aligned(AVX)));
 #ifdef __CUDACC__
 __managed__
 #endif
-extern unsigned int *hu, *hd, *h1u, *h1d, *halosize;;
+///@brief Up halo indices
+extern unsigned int *hu;
+///@brief Down halo indices
+extern unsigned int *hd;
+///@brief Up halo starting element
+extern unsigned int *h1u;
+///@brief Down halo starting element
+extern unsigned int *h1d;
+///@brief Array containing the size of the halo in each direction
+extern unsigned int  *halosize;;
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 	//Functions
 	//========
+	/**
+	 * @brief	Loads the addresses required during the update
+	 * 
+	 * @param	iu:	Upper halo indices
+	 * @param	id:	Lower halo indices
+	 *
+	 * @see hu, hd, h1u, h1d, h2u, h2d, halosize
+	 *
+	 * @return Zero on success, integer error code otherwise
+	 */
 	int Addrc(unsigned int *iu, unsigned int *id);
-	/*
-	 * Loads the addresses required during the update
+	/**
+	 * @brief Described as a 21st Century address calculator, it gets the memory
+	 * address of an array entry.
+	 *
+	 * @param x, y, z, t: The coordinates
+	 *
+	 * @return An integer corresponding to the position of the entry in a flattened
+	 * row-major array.
+	 *
+	 * @todo	Future... Switch for Row and column major, and zero or one indexing
 	 */
 	int ia(int x,int y,int z, int t);
+	/** Checks that the addresses are within bounds before an update
+	 *
+	 * @param	table:	Pointer to the table in question
+	 * @param	lns:		Size of each spacial dimension
+	 * @param	lnt:		Size of the time dimension
+	 * @param	imin:		Lower bound for element of the table
+	 * @param	imax:		Upper bound for an element of the table
+	 *
+	 * @return	Zero on success, integer error code otherwise.
+	 */
 	int Check_addr(unsigned int *table, int lns, int lnt, int imin, int imax);
-	/*  Checks that the addresses are all correct before an update
-	 *  Depends on nothing else
-	 */
+	/**
+	 *@brief Converts the index of a point in memory to the equivalent point
+	 * in the 4 dimensional array, where the time index is the last
+	 * coordinate in the array.
+	 *
+	 * This is a rather nuanced function, as C and Fortran are rather
+	 * different in how they store arrays. C starts with index 0 and
+	 * Fortran (by default) starts with index 1
+	 *
+	 * Also C and Fortran store data in the opposite memory order so
+	 * be careful when calling this function!
+	 *
+	 * @param	index:	The index of the point as stored linearly in computer memory
+	 * @param	coord:	The 4-array for the coordinates. The first three spots are for the time index.
+	 *
+	 * @return Zero on success. Integer Error code otherwise
+	 */ 
 	int Index2lcoord(int index, int *coord);
-	/* Converts the index of a point in memory to the equivalent point
+	/**
+	 * @brief Converts the index of a point in memory to the equivalent point
 	 * in the 4 dimensional array, where the time index is the last
-	 * coordinate in the array
-	 * Depends on nothing else.
-	 */
+	 * coordinate in the array.
+	 *
+	 * This is a rather nuanced function, as C and Fortran are rather
+	 * different in how they store arrays. C starts with index 0 and
+	 * Fortran (by default) starts with index 1
+	 *
+	 * Also C and Fortran store data in the opposite memory order so
+	 * be careful when calling this function!
+	 *
+	 * @param	index:	The index of the point as stored linearly in computer memory
+	 * @param 	coord:	The 4-array for the coordinates. The first three spots are for the time index.
+	 *
+	 * @return	Zero on success. Integer Error code otherwise
+	 */ 
 	int Index2gcoord(int index, int *coord);
-	/* Converts the index of a point in memory to the equivalent point
-	 * in the 4 dimensional array, where the time index is the last
-	 * coordinate in the array
-	 * Depends on nothing else.
+	/**
+	 * @brief Converts the coordinates of a local lattice point to its index in the 
+	 * computer memory.
+	 *
+	 * This is a rather nuanced function, as C and Fortran are rather
+	 * different in how they store arrays. C starts with index 0 and
+	 * Fortran (by default) starts with index 1
+	 *
+	 * Also C and Fortran store data in the opposite memory order so
+	 * be careful when calling this function!
+	 *
+	 * @param ix,iy,iz,it:	Index in each direction
+	 *
+	 * Returns:
+	 * ========
+	 * int index: The position of the point
 	 */
 	int Coord2lindex(int ix, int iy, int iz, int it);
-	/* Converts the coordinates of a point to its relative index in the 
-	 * computer memory to the first point in the memory
-	 * Depends on nothing else.
+	/**
+	 * @brief Converts the coordinates of a global lattice point to its index in the 
+	 * computer memory.
+	 *
+	 * This is a rather nuanced function, as C and Fortran are rather
+	 * different in how they store arrays. C starts with index 0 and
+	 * Fortran (by default) starts with index 1
+	 *
+	 * Also C and Fortran store data in the opposite memory order so
+	 * be careful when calling this function!
+	 *
+	 * @param ix,iy,iz,it:	Index in each direction
+	 *
+	 * Returns:
+	 * ========
+	 * int index: The position of the point
 	 */
 	int Coord2gindex(int ix, int iy, int iz, int it);
-	/* Converts the coordinates of a point to its relative index in the 
-	 * computer memory to the first point in the memory
-	 * Depends on nothing else.
+	/**
+	 * @brief Tests if the local coordinate transformation functions are working
+	 * 
+	 * Going to expand a little on the original here and do the following
+	 * 1. Convert from int to lcoord (the original code)
+	 * And the planned additional features
+	 * 2. Convert from lcoord to int (new, function doesn't exist in the original
+	 * If we get the same value we started with then we're probably doing
+	 * something right.
+	 *
+	 * @param cap: The max value the index can take on. Should be the size of the array
+	 *
+	 * @return Zero on success, integer error code otherwise.
 	 */
 	int Testlcoord(int cap);
-	/* Tests if the coordinate transformation functions are working
-	 * Depends on Index2lcoord and Coord2lindex
+	/**
+	 * @brief This is completely new and missing from the original code.
+	 *
+	 * We test the coordinate conversion functions by doing the following
+	 * 1. Convert from int to gcoord (new)
+	 * 2. Convert from gcoord to int (also new) and compare to input.
+	 * If we get the same value we started with then we're probably doing
+	 * something right
+	 *
+	 * The code is basically the same as the previous function with different
+	 * magic numbers.
+	 *
+	 * @param cap: The max value the index can take on. Should be the size of our array
+	 *
+	 * @return Zero on success, integer error code otherwise 
 	 */
 	int Testgcoord(int cap);
-	/* Tests if the coordinate transformation functions are working
-	 * Depends on Index2gcoord and Coordglindex
-	 */
 #ifdef __cplusplus
 }
 #endif

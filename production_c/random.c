@@ -1,3 +1,8 @@
+/**
+ * @file random.c
+ *
+ * @brief Random number generator related routines
+ */
 #include "coord.h"
 #ifdef	__NVCC__
 #include <curand.h>
@@ -19,23 +24,54 @@
 
 //Declaring external variables
 #if (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))
+/// @brief RAN2 seed
 long seed;
 #elif defined __RANLUX__
+/// @brief RANLUX instance
 gsl_rng *ranlux_instd;
+/// @brief RANLUX seed
 unsigned long seed;
 #elif defined __INTEL_MKL__
+/// @brief Intel Mersene Twister seed
 unsigned int seed;
+/// @brief Intel Mersene Twister stream
 VSLStreamStatePtr stream;
 #endif
 #ifndef M_PI
-#define M_PI           3.14159265358979323846
+/// @brief	@f$\pi@f$ if not defined elsewhere	
+#define M_PI  acos(-1)
 #endif
 
 #ifdef __RANLUX__
+/*
+ * @brief Seed the ranlux generator from GSL
+ *
+ * @param *seed pointer to seed
+ *
+ * @see gsl_rng_alloc(), gsl_rng_set()
+ * 
+ *	@return 0
+ */
 inline int ranset(unsigned long *seed)
 #elif (defined __INTEL_MKL__&&!defined USE_RAN2)
+/*
+ * @brief Seed the Intel Mersenne twister generator
+ *
+ * @param *seed pointer to seed
+ *
+ * @see vslNewStream()
+ * 
+ *	@return 0
+ */
 inline int ranset(unsigned int *seed)
 #else
+/*
+ * @brief Dummy seed the ran2 generator
+ *
+ * @param seed pointer to seed
+ * 
+ *	@return 0
+ */
 inline int ranset(long *seed)
 #endif
 {
@@ -46,21 +82,20 @@ inline int ranset(long *seed)
 #elif (defined __INTEL_MKL__&& !defined USE_RAN2)
 	vslNewStream( &stream, VSL_BRNG_MT19937, *seed );
 	return 0;
+#else
+	return 0;
 #endif
 }
 int Par_ranread(char *filename, double *ranval){
-	/* Reads ps from a file
+	/*
+	 * @brief Reads ps from a file
 	 * Since this function is very similar to Par_sread, I'm not really going to comment it
 	 * check there if you are confused about things. 
 	 *
-	 * Parameters;
-	 * ==========
-	 * char 	*filename: The name of the file we're reading from
-	 * double	ps:	The destination for the file's contents
+	 * @param	*filename: The name of the file we're reading from
+	 * @param	ps:	The destination for the file's contents
 	 *
-	 * Returns:
-	 * =======
-	 * Zero on success, integer error code otherwise
+	 * @return Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Par_psread";
 	FILE *dest;
@@ -83,32 +118,58 @@ int Par_ranread(char *filename, double *ranval){
 	return 0;
 }
 #if (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))
-int Par_ranset(long *seed,int iread)
-#elif defined __RANLUX__
-int Par_ranset(unsigned long *seed,int iread)
-#elif (defined __INTEL_MKL__||defined __RANLUX__)
-int Par_ranset(unsigned int *seed,int iread)
-#endif
-{
-	/* Uses the rank to get a new seed.
+	/*
+	 * @brief Uses the rank to get a new seed.
 	 * Copying from the FORTRAN description here 
 	 * c     create new seeds in range seed to 9*seed
 	 * c     having a range of 0*seed gave an unfortunate pattern
 	 * c     in the underlying value of ds(1) (it was always 10 times bigger
 	 * c     on the last processor). This does not appear to happen with 9.
 	 *
-	 * Parameters:
-	 * ===========
-	 * unsigned int/long *seed:  The seed from the rank in question.
+	 * @param	*seed:	The seed from the rank in question.
+	 * @param	iread:	Do we read from file or not. Don't remember why it's here as it's not used	
 	 *
-	 * Calls:
-	 * =====
-	 * ranset (used to initialise the stream for MKL at the moment. Legacy from Fortran)
+	 * @see ranset() (used to initialise the stream for MKL at the moment. Legacy from Fortran)
 	 *
-	 * Returns:
-	 * ========
-	 * Zero on success, integer error code otherwise
+	 * @return Zero on success, integer error code otherwise
 	 */
+int Par_ranset(long *seed,int iread)
+#elif defined __RANLUX__
+	/*
+	 * @brief Uses the rank to get a new seed.
+	 * Copying from the FORTRAN description here 
+	 * c     create new seeds in range seed to 9*seed
+	 * c     having a range of 0*seed gave an unfortunate pattern
+	 * c     in the underlying value of ds(1) (it was always 10 times bigger
+	 * c     on the last processor). This does not appear to happen with 9.
+	 *
+	 * @param	*seed:	The seed from the rank in question.
+	 * @param	iread:	Do we read from file or not. Don't remember why it's here as it's not used	
+	 *
+	 * @see ranset() (used to initialise the stream for MKL at the moment. Legacy from Fortran)
+	 *
+	 * @return Zero on success, integer error code otherwise
+	 */
+int Par_ranset(unsigned long *seed,int iread)
+#elif (defined __INTEL_MKL__||defined __RANLUX__)
+	/*
+	 * @brief Uses the rank to get a new seed.
+	 * Copying from the FORTRAN description here 
+	 * c     create new seeds in range seed to 9*seed
+	 * c     having a range of 0*seed gave an unfortunate pattern
+	 * c     in the underlying value of ds(1) (it was always 10 times bigger
+	 * c     on the last processor). This does not appear to happen with 9.
+	 *
+	 * @param	*seed:	The seed from the rank in question.
+	 * @param	iread:	Do we read from file or not. Don't remember why it's here as it's not used	
+	 *
+	 * @see ranset() (used to initialise the stream for MKL at the moment. Legacy from Fortran)
+	 *
+	 * @return Zero on success, integer error code otherwise
+	 */
+int Par_ranset(unsigned int *seed,int iread)
+#endif
+{
 	const char *funcname = "Par_ranset";
 	//If we're not using the master thread, we need to change the seed
 #ifdef _DEBUG
@@ -128,19 +189,12 @@ int Par_ranset(unsigned int *seed,int iread)
 #endif
 }
 double Par_granf(){
-	/* Generates a random value which is then sent to the other ranks
+	/*
+	 * @brief Generates a random double which is then sent to the other ranks
 	 *
-	 * Parameters:
-	 * ===========
-	 * None!
+	 * @see ran2(), par_dcopy(), gsl_rng_uniform(), vdRngUniform()
 	 *
-	 * Calls:
-	 * ran2, par_dcopy
-	 *
-	 * Returns:
-	 * ========
-	 * double: the random number generated
-	 *
+	 * @return the random number generated
 	 */
 	char *funcname = "Par_granf";
 	double ran_val=0;
@@ -159,27 +213,17 @@ double Par_granf(){
 	return ran_val;
 }
 int Gauss_z(Complex *ps, unsigned int n, const Complex mu, const double sigma){
-	/* Generates a vector of normally distributed random complex numbers
-	 * using the Box-Muller Method
+	/*
+	 * @brief	Generates a vector of normally distributed random double precision complex numbers using the Box-Muller Method
 	 * 
-	 * Parameters:
-	 * ==========
-	 * Complex *ps:   The array
-	 * unsigned int n: The array length
-	 * double mu:     mean
-	 * double sigma:  variance
+	 * @param	ps:		The output array
+	 * @param	n:			The array length
+	 * @param	mu:		mean
+	 * @param	sigma:	variance
 	 *
-	 * Globals:
-	 * =======
-	 * seed
-	 *
-	 * Calls:
-	 * =====
-	 * ran2
+	 * @see ran2(), par_dcopy(), gsl_rng_uniform(), vdRngUniform()
 	 * 
-	 * Returns:
-	 * =======
-	 * Zero on success integer error code otherwise
+	 * @return Zero on success integer error code otherwise
 	 */
 	const char *funcname = "Gauss_z";
 	if(n<=0){
@@ -215,27 +259,17 @@ int Gauss_z(Complex *ps, unsigned int n, const Complex mu, const double sigma){
 	return 0;
 }
 int Gauss_c(Complex_f *ps, unsigned int n, const Complex_f mu, const float sigma){
-	/* Generates a vector of normally distributed random complex numbers
-	 * using the Box-Muller Method
+	/*
+	 * @brief	Generates a vector of normally distributed random single precision complex numbers using the Box-Muller Method
 	 * 
-	 * Parameters:
-	 * ==========
-	 * Complex *ps:   The array
-	 * unsigned int n: The array length
-	 * double mu:     mean
-	 * double sigma:  variance
+	 * @param	ps:		The output array
+	 * @param	n:			The array length
+	 * @param	mu:		mean
+	 * @param	sigma:	variance
 	 *
-	 * Globals:
-	 * =======
-	 * seed
-	 *
-	 * Calls:
-	 * =====
-	 * ran2
+	 * @see ran2(), par_dcopy(), gsl_rng_uniform(), vdRngUniform()
 	 * 
-	 * Returns:
-	 * =======
-	 * Zero on success integer error code otherwise
+	 * @return Zero on success integer error code otherwise
 	 */
 	const char *funcname = "Gauss_z";
 	if(n<=0){
@@ -271,27 +305,17 @@ int Gauss_c(Complex_f *ps, unsigned int n, const Complex_f mu, const float sigma
 	return 0;
 }
 int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma){
-	/* Generates a vector of normally distributed random complex numbers
-	 * using the Box-Muller Method
+	/*
+	 * @brief	Generates a vector of normally distributed random double precision numbers using the Box-Muller Method
 	 * 
-	 * Parameters:
-	 * ==========
-	 * double *ps:   The array
-	 * unsigned int n: The array length
-	 * double mu:     mean
-	 * double sigma:  variance
+	 * @param	ps:		The output array
+	 * @param	n:			The array length
+	 * @param	mu:		mean
+	 * @param	sigma:	variance
 	 *
-	 * Globals:
-	 * ======
-	 * seed
-	 *
-	 * Calls:
-	 * =====
-	 * ran2
+	 * @see ran2(), par_dcopy(), gsl_rng_uniform(), vdRngUniform()
 	 * 
-	 * Returns:
-	 * =======
-	 * Zero on success integer error code otherwise
+	 * @return Zero on success integer error code otherwise
 	 */
 	const char *funcname = "Gauss_z";
 	//The FORTRAN Code had two different Gauss Routines. gaussp having unit
@@ -344,27 +368,17 @@ int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma){
 	return 0;
 }
 int Gauss_f(float *ps, unsigned int n, const float mu, const float sigma){
-	/* Generates a vector of normally distributed random complex numbers
-	 * using the Box-Muller Method
+	/*
+	 * @brief	Generates a vector of normally distributed random single precision numbers using the Box-Muller Method
 	 * 
-	 * Parameters:
-	 * ==========
-	 * double *ps:   The array
-	 * unsigned int n: The array length
-	 * double mu:     mean
-	 * double sigma:  variance
+	 * @param	ps:		The output array
+	 * @param	n:			The array length
+	 * @param	mu:		mean
+	 * @param	sigma:	variance
 	 *
-	 * Globals:
-	 * ======
-	 * seed
-	 *
-	 * Calls:
-	 * =====
-	 * ran2
+	 * @see ran2(), par_dcopy(), gsl_rng_uniform(), vdRngUniform()
 	 * 
-	 * Returns:
-	 * =======
-	 * Zero on success integer error code otherwise
+	 * @return Zero on success integer error code otherwise
 	 */
 	const char *funcname = "Gauss_z";
 	//The FORTRAN Code had two different Gauss Routines. gaussp having unit
@@ -423,17 +437,15 @@ int Gauss_f(float *ps, unsigned int n, const float mu, const float sigma){
 	}
 	return 0;
 }
+#ifndef __RANLUX__
 double ran2(long *idum) {
 	/*
-	 * Generates uniformly distributed random double between zero and one as 
-	 * described in numerical recipes. It's also thread-safe for different seeds.
+	 * @brief	Generates uniformly distributed random double between zero and one as
+	 * 			described in numerical recipes. It's also thread-safe for different seeds.
 	 *
-	 * Parameters:
-	 * ==========
-	 * long *idum: Pointer to the seed
+	 * @param	idum: Pointer to the seed
 	 *
-	 * Returns:
-	 * double: The random number between zero and one
+	 * @return	The random double between zero and one
 	 *
 	 */
 	long k;
@@ -441,10 +453,7 @@ double ran2(long *idum) {
 	static long idum2=123456789; 
 	static long iy=0;
 	static long iv[NTAB];
-	//Hopefully not anymore. Combining with unique seeds
-	//should do the trick (famous last words...)
-	//Combining this with a different seed for each thread
-	//should give a thread-safe and repeatable result
+	////Combining this with a different seed for each thread should give a thread-safe and repeatable result
 #pragma omp threadprivate(idum2, iy, iv)
 	//No worries
 	double temp;
@@ -481,6 +490,7 @@ double ran2(long *idum) {
 	else return temp;
 
 }
+#endif
 
 /*
 	int ran_test(){

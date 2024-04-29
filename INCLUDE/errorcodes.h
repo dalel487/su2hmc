@@ -1,4 +1,7 @@
-/* This header is intended to be a useful reference for error codes and their meanings.
+/** 
+ * @file errorcodes.h
+ * @brief This header is intended to be a useful reference for error codes and their meanings.
+ *
  * By placing all the error codes in one file I hope to make it easier to diagnose any
  * potential issues that crop up, and create a logical and consistent labelling system
  * for error codes.
@@ -36,20 +39,23 @@
 #define	WRITEWARN	10103
 #define	ARGWARN		10104
 
-//Memory Errors. Leading digits are 11
+/*
+ *	@section memerr Memory Errors.
+ *	Leading digits are 11
+ */
 //======================================
 //Errors:
 //-------
-#define	INDTOCOORD	11001	//Issues converting index to coordinates
-#define	COORDTOIND	11002	//Issues converting coordinate to index
-#define	BOUNDERROR	11003	//Accessing out of bounds element
-#define	ARRAYLEN		11004 //Impossible value for array length
-#define	CPYERROR		11005 //Copy failed
-//Warnings:
-//---------
-#define	BOUNDWARN	11103	//Accessing an out of bounds element, but not a big enough problem to crash the programme.
-#define	LIMWARN		11104	//Order of limits (x_min and x_max for example) is reversed.
-#define	CPYWARN		11105 //Copy failed
+#define	INDTOCOORD	11001	////Issues converting index to coordinates
+#define	COORDTOIND	11002	/////Issues converting coordinate to index
+#define	BOUNDERROR	11003	////Accessing out of bounds element
+#define	ARRAYLEN		11004 ////Impossible value for array length
+#define	CPYERROR		11005 ////Copy failed
+									//Warnings:
+									//---------
+#define	BOUNDWARN	11103	////Accessing an out of bounds element, but not a big enough problem to crash the programme.
+#define	LIMWARN		11104	////Order of limits (x_min and x_max for example) is reversed.
+#define	CPYWARN		11105 ////Copy failed
 
 //MPI Errors. Leading digits are 12
 //================================
@@ -65,8 +71,8 @@
 #define	BROADERR		12008	//Couldn't broadcast to the processes
 #define	REDUCERR		12009	//Couldn't carry out a reduction
 #define	GATHERR		12010	//Couldn't complete a gather
-//Warnings:
-//---------
+									//Warnings:
+									//---------
 #define	DIFNPROC		12101	//Continuation run on a different number of ranks
 
 //Halo Errors. Leading digits are 13

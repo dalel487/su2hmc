@@ -1,5 +1,6 @@
-/*
- *Code for fermionic observables
+/**
+ *	@file fermionic.c
+ *	@brief Code for fermionic observables
  */
 #include	<matrices.h>
 #include	<random.h>
@@ -9,42 +10,37 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 		Complex *gamval, Complex_f *gamval_f,	int *gamin, double *dk4m, double *dk4p,\
 		float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa,	Complex *Phi, Complex *R1){
 	/*
-	 * Calculate fermion expectation values via a noisy estimator
-	 * -matrix inversion via conjugate gradient algorithm
-	 * solves Mx=x1
+	 * @brief	Calculate fermion expectation values via a noisy estimator
+	 * 
+	 * Matrix inversion via conjugate gradient algorithm
+	 * Solves @f(Mx=x_1@f)
 	 * (Numerical Recipes section 2.10 pp.70-73)   
 	 * uses NEW lookup tables **
-	 * Implemented in CongradX
+	 * Implemented in Congradq
 	 *
-	 * Calls:
-	 * =====
-	 * Gauss_z, Par_dsum, ZHalo_swap_dir, Congradp, Dslashd
+	 * @param	pbp:				@f(\langle\bar{\Psi}\Psi\rangle@f)
+	 *	@param	endenf:			Energy density
+	 *	@param	denf:				Number Density
+	 *	@param	qq:				Diquark condensate
+	 *	@param	qbqb:				Antidiquark condensate
+	 *	@param	res:				Conjugate Gradient Residue
+	 *	@param	itercg:			Iterations of Conjugate Gradient
+	 * @param	u11t,u12t		Double precisiongauge field
+	 * @param	u11t_f,u12t_f:	Single precision gauge fields
+	 *	@param	iu,id				Lattice indices
+	 *	@param	gamval_f:		Gamma matrices
+	 *	@param	gamin:			Indices for Dirac terms
+	 * @param	dk4m_f:			� exp(-�) float	
+	 * @param	dk4p_f:			� exp(μ) float 	
+	 *	@param	jqq:				Diquark source
+	 *	@param	akappa:			Hopping parameter
+	 *	@param	Phi:				Pseudofermion field	
+	 *	@param	R1:				A useful array for holding things that was already assigned in main.
+	 *									In particular, we'll be using it to catch the output of
+	 *									@f$ M^\dagger\Xi@f$ before the inversion, then used to store the
+	 *									output of the inversion
 	 *
-	 * Parameters:
-	 * ==========
-	 * double		*pbp:			Pointer to ψ-bar ψ
-	 * double		*endenf:		Energy density
-	 * double		*denf:		Number Density
-	 * Complex 		*qq:			Diquark
-	 * Complex		*qbqb:		Antidiquark
-	 * double		res:			Conjugate Gradient Residue
-	 * int			itercg:		Iterations of Conjugate Gradient
-	 * Complex		*u11t:		First colour trial field
-	 * Complex		*u12t:		Second colour trial field
-	 * Complex_f	*u11t_f:		First colour trial field
-	 * Complex_f	*u12t_f:		Second colour trial field
-	 *	int			*iu:			Upper halo indices
-	 *	int			*id:			Lower halo indices
-	 *	Complex_f	*gamval_f:	Gamma matrices
-	 *	int			*gamin:		Indices for Dirac terms
-	 *	float			*dk4m_f:	
-	 *	float			*dk4p_f:	
-	 *	Complex_f	jqq:			Diquark source
-	 *	float			akappa:		Hopping parameter
-	 *
-	 * Returns:
-	 * =======
-	 * Zero on success, integer error code otherwise
+	 * @return Zero on success, integer error code otherwise
 	 */
 	const char *funcname = "Measure";
 	//This x is just a storage container
@@ -53,10 +49,10 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	int device=-1;
 	cudaGetDevice(&device);
 	Complex	*x, *xi; Complex_f *xi_f, *R1_f;
+	cudaMallocAsync((void **)&R1_f,kfermHalo*sizeof(Complex_f),streams[1]);
 	cudaMallocManaged((void **)&x,kfermHalo*sizeof(Complex), cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&xi,kferm*sizeof(Complex), cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&xi_f,kfermHalo*sizeof(Complex_f), cudaMemAttachGlobal);
-	cudaMallocAsync((void **)&R1_f,kfermHalo*sizeof(Complex_f),streams[1]);
 #else
 	Complex *x =(Complex *)aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 	Complex *xi =(Complex *)aligned_alloc(AVX,kferm*sizeof(Complex));
@@ -72,30 +68,29 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #ifdef __NVCC__
 	cudaMemPrefetchAsync(xi_f,kferm*sizeof(Complex_f),device,streams[0]);
 	cuComplex_convert(xi_f,xi,kferm,false,dimBlock,dimGrid);
+	cudaMemcpyAsync(x, xi, kferm*sizeof(Complex),cudaMemcpyDefault,0);
 #else
 #pragma omp parallel for simd aligned(xi,xi_f:AVX)
 	for(int i=0;i<kferm;i++)
 		xi[i]=(Complex)xi_f[i];
+	memcpy(x, xi, kferm*sizeof(Complex));
 #endif
-	//R_1= M^† Ξ 
+	//R_1= @f$M^\dagger\Xi@f$
 	//R1 is local in FORTRAN but since its going to be reset anyway I'm going to recycle the
 	//global
 	Dslashd_f(R1_f,xi_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 #ifdef __NVCC__
-	cudaMemcpyAsync(x, xi, kferm*sizeof(Complex),cudaMemcpyDefault,streams[0]);
+	cudaDeviceSynchronise();
 	cuComplex_convert(R1_f,R1,kferm,false,dimBlock,dimGrid);
+	cudaMemcpy(Phi, R1, kferm*sizeof(Complex),cudaMemcpyDefault);
+	cudaDeviceSynchronise();
 #else
-	memcpy(x, xi, kferm*sizeof(Complex));
 #pragma omp parallel for simd aligned(R1,R1_f:AVX)
 	for(int i=0;i<kferm;i++)
 		R1[i]=(Complex)R1_f[i];
-#endif
 	//Copying R1 to the first (zeroth) flavour index of Phi
 	//This should be safe with memcpy since the pointer name
 	//references the first block of memory for that pointer
-#ifdef __NVCC__
-	cudaMemcpy(Phi, R1, kferm*sizeof(Complex),cudaMemcpyDefault);
-#else
 	memcpy(Phi, R1, kferm*sizeof(Complex));
 #endif
 	//Evaluate xi = (M^† M)^-1 R_1 
@@ -112,25 +107,22 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #pragma omp parallel for simd aligned(R1,R1_f:AVX)
 for(int i=0;i<kferm;i++)
 xi[i]=(Complex)R1_f[i];
-	 */
+*/
 #ifdef __NVCC__
 	cudaMemcpyAsync(xi,R1,kferm*sizeof(Complex),cudaMemcpyDefault,streams[0]);
-#else
-	memcpy(xi,R1,kferm*sizeof(Complex));
-#endif
-#ifdef __NVCC__
 	cudaFreeAsync(R1_f,streams[1]);	cudaFree(xi_f);	
 #else
+	memcpy(xi,R1,kferm*sizeof(Complex));
 	free(xi_f);	free(R1_f);
 #endif
-#ifdef __NVCC__
+#ifdef USE_BLAS
 	Complex buff;
+#ifdef __NVCC__
 	cublasZdotc(cublas_handle,kferm,(cuDoubleComplex *)x,1,(cuDoubleComplex *)xi,1,(cuDoubleComplex *)&buff);
 	cudaDeviceSynchronise();
-	*pbp=creal(buff);
 #elif defined USE_BLAS
-	Complex buff;
 	cblas_zdotc_sub(kferm, x, 1, xi,  1, &buff);
+#endif
 	*pbp=creal(buff);
 #else
 	*pbp = 0;
@@ -154,9 +146,17 @@ xi[i]=(Complex)R1_f[i];
 			//Because we have kvol on the outer index and are summing over it, we set the
 			//step for BLAS to be ngorkov*nc=16. 
 			//Does this make sense to do on the GPU?
+#ifdef __NVCC__
+			cublasZdotc(cublas_handle,kvol,(cuDoubleComplex *)(x+idirac*nc+ic),ngorkov*nc,(cuDoubleComplex *)(xi+igork*nc+ic), ngorkov*nc,(cuDoubleComplex *)&dot);
+#else
 			cblas_zdotc_sub(kvol, &x[idirac*nc+ic], ngorkov*nc, &xi[igork*nc+ic], ngorkov*nc, &dot);
+#endif
 			*qbqb+=gamval[4*ndirac+idirac]*dot;
+#ifdef __NVCC__
+			cublasZdotc(cublas_handle,kvol,(cuDoubleComplex *)(x+igork*nc+ic),ngorkov*nc,(cuDoubleComplex *)(xi+idirac*nc+ic), ngorkov*nc,(cuDoubleComplex *)&dot);
+#else
 			cblas_zdotc_sub(kvol, &x[igork*nc+ic], ngorkov*nc, &xi[idirac*nc+ic], ngorkov*nc, &dot);
+#endif
 			*qq-=gamval[4*ndirac+idirac]*dot;
 		}
 	}
@@ -192,6 +192,7 @@ xi[i]=(Complex)R1_f[i];
 	//Instead of typing id[i*ndim+3] a lot, we'll just assign them to variables.
 	//Idea. One loop instead of two loops but for xuu and xdd just use ngorkov-(igorkov+1) instead
 	//Dirty CUDA work around since it won't convert thrust<complex> to double
+	//TODO: get a reduction routine ready for CUDA
 #ifndef __NVCC__
 #pragma omp parallel for reduction(+:xd,xu,xdd,xuu) 
 #endif

@@ -1,3 +1,7 @@
+/**
+ *	@file coord.c
+ *	@brief functions for dealing with lattice and MPI coordinates
+ */
 #include <coord.h>
 #include <errorcodes.h>
 #ifdef  __OPENMP
