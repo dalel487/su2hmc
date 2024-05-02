@@ -18,7 +18,7 @@ void blockInit(int x, int y, int z, int t, dim3 *dimBlock, dim3 *dimGrid){
 	int device=-1;	cudaGetDevice(&device);
 	cudaDeviceProp prop;	cudaGetDeviceProperties(&prop, device);
 	//Threads per block
-	int tpb=prop.maxThreadsPerBlock/4;
+	int tpb=prop.maxThreadsPerBlock/8;
 	//Warp size
 	int tpw=prop.warpSize;
 	int bx=1;
