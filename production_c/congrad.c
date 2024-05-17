@@ -34,7 +34,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 	 */
 	const char *funcname = "Congradq";
 	int ret_val=0;
-	const double resid = kferm2*res*res;
+	const double resid = res*res;
 	//The κ^2 factor is needed to normalise the fields correctly
 	//jqq is the diquark condensate and is global scope.
 	const Complex_f fac_f = conj(jqq)*jqq*akappa*akappa;
@@ -270,7 +270,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 	const char *funcname = "Congradp";
 	//Return value
 	int ret_val=0;
-	const double resid = kferm*res*res;
+	const double resid = res*res;
 	//These were evaluated only in the first loop of niterx so we'll just do it outside of the loop.
 	//These alpha and beta terms should be double, but that causes issues with BLAS. Instead we declare
 	//them Complex and work with the real part (especially for α_d)
