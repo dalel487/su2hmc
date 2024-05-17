@@ -63,7 +63,7 @@ extern cudaMemPool_t mempool;
 // Common block definition for parallel variables
 
 ///	@brief Lattice x extent
-#define	nx 12
+#define	nx 16
 #if(nx<1)
 #error "nx is expected it to be greater than or equal to 1"
 #endif
@@ -83,7 +83,7 @@ extern cudaMemPool_t mempool;
 #endif
 
 ///	@brief	Lattice temporal extent. This also corresponds to the inverse temperature
-#define	nt	24
+#define	nt	32
 #if(nt<1)
 #error "nt is expected it to be greater than or equal to 1"
 #endif
@@ -132,7 +132,7 @@ extern cudaMemPool_t mempool;
 #define	nproc	(npx*npy*npz*npt)
 
 ///	@brief Number of threads for OpenMP, which can be overwritten at runtime
-#define	nthreads	16
+#define	nthreads	12
 
 //    Existing parameter definitions.
 ///	@brief Sublattice x extent
@@ -229,11 +229,17 @@ extern cudaMemPool_t mempool;
 #define	kmomHalo	(ndim*nadj*(kvol+halo))
 
 ///	@brief Conjugate gradient residue for @f$\langle\bar{\Psi}\Psi\rangle@f$
-#define	respbp	1E-6
+//		These all used to be multipled by kferm or kferm2 at the start of Congradq or Congradp
+//		On 20240516 in Room 2.19 of the Lloyd building of Trinity we copped that doing so means that the residue is larger
+//		if running on a smaller number of cores. In the extreme GPU case the subvolume is the entire volume so the residue
+//		can be several orders of magnitude larger than in the smallest sublattice case.
+//		Instead, we rescale all the default residues here by sqrt(kferm) or sqrt(kferm2). No matter what size sublattice
+//		we use now, the residue will match that of a 2^3X4 sublattice used in the earlier FORTRAN runs
+#define	respbp	3.2E-5
 ///	@brief Conjugate gradient residue for update
-#define	rescgg	1E-6 
+#define	rescgg	2.26E-5 
 ///	@brief Conjugate gradient residue for acceptance
-#define	rescga	1E-9 
+#define	rescga	2.26E-8 
 
 
 #ifdef	__AVX512F__
