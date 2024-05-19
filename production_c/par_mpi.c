@@ -356,9 +356,11 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 	 * @return	Zero on success, integer error code otherwise
 	 */
 	char *funcname = "par_swrite";
+	#if (nproc>1)
 	MPI_Status status;
 	//Used for seed array later on
 	MPI_Datatype MPI_SEED_TYPE = (sizeof(seed)==sizeof(int)) ? MPI_INT:MPI_LONG;
+	#endif
 	Complex *u1buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
 	Complex *u2buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
 #ifdef _DEBUG
