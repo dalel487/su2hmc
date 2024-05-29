@@ -112,10 +112,10 @@ int main(int argc, char *argv[]){
 	 */
 	float beta = 1.7f;
 	float akappa = 0.1780f;
-	#ifdef __NVCC__
+#ifdef __NVCC__
 	__managed__ 
-	#endif
-	Complex_f jqq = 0;
+#endif
+		Complex_f jqq = 0;
 	float fmu = 0.0f;
 	int iread = 0;
 	int istart = 1;
@@ -347,9 +347,6 @@ int main(int argc, char *argv[]){
 
 	int naccp = 0; int ipbp = 0; int itot = 0;
 
-	//This was originally in the half-step of the FORTRAN code, but it makes more sense to declare
-	//it outside the loop. Since it's always being subtracted we'll define it as negative
-	const	double d = -dt*0.5;
 	//Start of classical evolution
 	//===========================
 	double pbp;
@@ -446,7 +443,7 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 			//Make sure the multiplication is finished before freeing its input!!
 			cudaFree(R);//cudaDeviceSynchronise(); 
-			//cudaFree is blocking so don't need to synchronise
+							//cudaFree is blocking so don't need to synchronise
 			cuComplex_convert(R1_f,R1,kferm,false,dimBlock,dimGrid);
 			//cudaDeviceSynchronise();
 			//cudaFreeAsync(R1_f,NULL);
@@ -504,83 +501,11 @@ int main(int argc, char *argv[]){
 #endif
 		if(itraj==1)
 			action = S0/gvol;
-
-		//Half step forward for p
-		//=======================
-#ifdef _DEBUG
-		printf("Evaluating force on rank %i\n", rank);
-#endif
-		Force(dSdpi, 1, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
-				dk4m_f,dk4p_f,jqq,akappa,beta,&ancg);
-#ifdef __NVCC__
-		cublasDaxpy(cublas_handle,kmom, &d, dSdpi, 1, pp, 1);
-#elif defined USE_BLAS
-		cblas_daxpy(kmom, d, dSdpi, 1, pp, 1);
-#else
-		for(int i=0;i<kmom;i++)
-			//d negated above
-			pp[i]+=d*dSdpi[i];
-#endif
-		//Main loop for classical time evolution
-		//======================================
-		bool end_traj=false; int step =1;
-		//	for(int step = 1; step<=stepmax; step++){
-		do{
-#ifdef _DEBUG
-			if(!rank)
-				printf("Traj: %d\tStep: %d\n", itraj, step);
-#endif
-			//The FORTRAN redefines d=dt here, which makes sense if you have a limited line length.
-			//I'll stick to using dt though.
-			//step (i) st(t+dt)=st(t)+p(t+dt/2)*dt;
-			//Note that we are moving from kernel to kernel within the default streams so don't need a Device_Sync here
-			New_trial(dt,pp,u11t,u12t);
-			Reunitarise(u11t,u12t);
-#ifdef __NVCC__
-			cudaDeviceSynchronise();
-#endif
-			//Get trial fields from accelerator for halo exchange
-			Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
-			//Mark trial fields as primarily read only here? Can re-enable writing at the end of each trajectory
-
-			//p(t+3et/2)=p(t+dt/2)-dSds(t+dt)*dt
-			//	Force(dSdpi, 0, rescgg);
-			Force(dSdpi, 0, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
-					dk4m_f,dk4p_f,jqq,akappa,beta,&ancg);
-			//The same for loop is given in both the if and else
-			//statement but only the value of d changes. This is due to the break in the if part
-			if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
-#ifdef __NVCC__
-				cublasDaxpy(cublas_handle,kmom, &d, dSdpi, 1, pp, 1);
-#elif defined USE_BLAS
-				cblas_daxpy(kmom, d, dSdpi, 1, pp, 1);
-#else
-#pragma omp parallel for simd aligned(pp,dSdpi:AVX)
-				for(int i = 0; i<kmom; i++)
-					//d negated above
-					pp[i]+=d*dSdpi[i];
-#endif
-				itot+=step;
-				ancg/=step;
-				totancg+=ancg;
-				end_traj=true;
-				break;
-			}
-			else{
-#ifdef __NVCC__
-				//dt is needed for the trial fields so has to be negated every time.
-				double dt_d=-1*dt;
-				cublasDaxpy(cublas_handle,kmom, &dt_d, dSdpi, 1, pp, 1);
-#elif defined USE_BLAS
-				cblas_daxpy(kmom, -dt, dSdpi, 1, pp, 1);
-#else
-#pragma omp parallel for simd aligned(pp,dSdpi:AVX)
-				for(int i = 0; i<kmom; i++)
-					pp[i]-=dt*dSdpi[i];
-#endif
-				step++;
-			}
-		}while(!end_traj);
+//		Leapfrog(u11t, u12t, u11t_f, u12t_f, X0, X1, Phi, dk4m, dk4p, dk4m_f, dk4p_f, dSdpi, pp,iu, id, gamval,
+//					gamval_f, gamin, jqq, beta,akappa,stepl,dt,&ancg,&itot,proby);
+		OMF4(u11t, u12t, u11t_f, u12t_f, X0, X1, Phi, dk4m, dk4p, dk4m_f, dk4p_f, dSdpi, pp,iu, id, gamval,
+					gamval_f, gamin, jqq, beta,akappa,stepl,dt,&ancg,&itot,proby,1/6.0);
+		totancg+=ancg;
 		//Monte Carlo step: Accept new fields with the probability of min(1,exp(H0-X0))
 		//Kernel Call needed here?
 		Reunitarise(u11t,u12t);
@@ -695,7 +620,7 @@ int main(int argc, char *argv[]){
 								//That will need to be looked into for the C version
 								//It would explain the weird names like fort.1X that looked like they were somehow
 								//FORTRAN related...
-								fprintf(output, "Iter (CG) %i ancg %.3f ancgh %.3f\n", itercg, ancg, ancgh);
+								fprintf(output, "Measure (CG) %i Update (CG) %.3f Hamiltonian (CG) %.3f\n", itercg, ancg, ancgh);
 								fflush(output);
 								break;
 							case(1):
@@ -847,4 +772,4 @@ int main(int argc, char *argv[]){
 #endif
 	fflush(stdout);
 	return 0;
-	}
+}

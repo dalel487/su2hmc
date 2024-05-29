@@ -1,2 +1,2 @@
-0.0100 	1.9	0.1680	0.00	0.000		0.0	0.0	100	4		1			5			0
+0.0200 	1.9	0.1680	0.00	0.000		0.0	0.0	50		19		1			5			1
 dt			beta	akappa	jqq	thetaq	fmu	aNf	stepl	ntraj	istart	icheck	iread

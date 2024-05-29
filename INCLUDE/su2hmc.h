@@ -7,6 +7,7 @@
 //ARM Based machines. BLAS routines should work with other libraries, so we can set a compiler
 //flag to sort them out. But the PRNG routines etc. are MKL exclusive
 #include <errorcodes.h>
+#include <integrate.h>
 #ifdef	__INTEL_MKL__
 #define	USE_BLAS
 #include	<mkl.h>
