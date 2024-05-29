@@ -134,7 +134,6 @@ int OMF2(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex
 			dk4m_f,dk4p_f,jqq,akappa,beta,ancg);
 	//Initial momentum update
 	Momentum_Update(dp,dSdpi,pp);
-
 	//Main loop for classical time evolution
 	//======================================
 	bool end_traj=false; int step =1;
@@ -282,7 +281,6 @@ int OMF4(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex
 		else{
 			//Since we apply the momentum at the start and end of a step we instead apply a double step here
 			Momentum_Update(dpO2,dSdpi,pp);
-			step++;
 		}
 	}while(!end_traj);
 	return 0;
