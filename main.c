@@ -780,14 +780,19 @@ int main(int argc, char *argv[]){
 #endif
 	//Get averages for final output
 	actiona/=ntraj; vel2a/=ntraj; pbpa/=ipbp; endenfa/=ipbp; denfa/=ipbp;
+<<<<<<< HEAD
 	totancg/=ntraj; totancgh/=ntraj; 
 	e_dH/=ntraj; e_dH_e=sqrt((e_dH_e/ntraj-e_dH*e_dH)/(ntraj-1));
 	yav/=ntraj; yyav=sqrt((yyav/ntraj - yav*yav)/(ntraj-1));
+=======
+	totancg/=ntraj; totancgh/=ntraj; yav/=ntraj; yyav=sqrt((yyav/ntraj - yav*yav)/(ntraj-1));
+>>>>>>> 723ee66 (Preparing for performance check on GPU)
 	float traj_cost=totancg/dt;
 	double atraj=dt*itot/ntraj;
 
 	if(!rank){
 		fprintf(output, "Averages for the last %i trajectories\n"\
+<<<<<<< HEAD
 				"Number of acceptances: %i\tAverage Trajectory Length = %e\n"\
 				"<dH>=%e+/-%e\t<exp(dH)>=%e+/-%e\tTrajectory cost=N_cg/dt =%e\n"\
 				"Average number of congrad iter guidance: %.3f acceptance %.3f\n"\
@@ -795,6 +800,15 @@ int main(int argc, char *argv[]){
 				"Mean Square Velocity = %e\tAction Per Site = %e\n"\
 				"Energy Density = %e\tNumber Density %e\n",\
 				ntraj, naccp, atraj, e_dH,e_dH_e, yav, yyav, traj_cost, totancg, totancgh, pbpa, vel2a, actiona, endenfa, denfa);
+=======
+				"Number of acceptances: %i Average Trajectory Length = %e\n"\
+				"<exp(dh)> = %e +/- %e\tTrajectory cost = N_cg/dt=%e"\
+				"Average number of congrad iter guidance: %.3f acceptance %.3f\n"\
+				"psibarpsi = %e\n"\
+				"Mean Square Velocity = %e Action Per Site = %e\n"\
+				"Energy Density = %e Number Density %e\n",\
+				ntraj, naccp, atraj, yav, yyav, traj_cost, totancg, totancgh, pbpa, vel2a, actiona, endenfa, denfa);
+>>>>>>> 723ee66 (Preparing for performance check on GPU)
 		fclose(output);
 	}
 #if(nproc>1)
