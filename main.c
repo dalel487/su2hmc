@@ -503,7 +503,7 @@ int main(int argc, char *argv[]){
 			action = S0/gvol;
 //		Leapfrog(u11t, u12t, u11t_f, u12t_f, X0, X1, Phi, dk4m, dk4p, dk4m_f, dk4p_f, dSdpi, pp,iu, id, gamval,
 //					gamval_f, gamin, jqq, beta,akappa,stepl,dt,&ancg,&itot,proby);
-		OMF4(u11t, u12t, u11t_f, u12t_f, X0, X1, Phi, dk4m, dk4p, dk4m_f, dk4p_f, dSdpi, pp,iu, id, gamval,
+		OMF2(u11t, u12t, u11t_f, u12t_f, X0, X1, Phi, dk4m, dk4p, dk4m_f, dk4p_f, dSdpi, pp,iu, id, gamval,
 					gamval_f, gamin, jqq, beta,akappa,stepl,dt,&ancg,&itot,proby,1/6.0);
 		totancg+=ancg;
 		//Monte Carlo step: Accept new fields with the probability of min(1,exp(H0-X0))
@@ -752,17 +752,18 @@ int main(int argc, char *argv[]){
 	//Get averages for final output
 	actiona/=ntraj; vel2a/=ntraj; pbpa/=ipbp; endenfa/=ipbp; denfa/=ipbp;
 	totancg/=ntraj; totancgh/=ntraj; yav/=ntraj; yyav=sqrt((yyav/ntraj - yav*yav)/(ntraj-1));
+	float traj_cost=totancg/dt;
 	double atraj=dt*itot/ntraj;
 
 	if(!rank){
 		fprintf(output, "Averages for the last %i trajectories\n"\
 				"Number of acceptances: %i Average Trajectory Length = %e\n"\
-				"<exp(dh)> = %e +/- %e\n"\
+				"<exp(dh)> = %e +/- %e\tTrajectory cost = N_cg/dt=%e"\
 				"Average number of congrad iter guidance: %.3f acceptance %.3f\n"\
 				"psibarpsi = %e\n"\
 				"Mean Square Velocity = %e Action Per Site = %e\n"\
 				"Energy Density = %e Number Density %e\n",\
-				ntraj, naccp, atraj, yav, yyav, totancg, totancgh, pbpa, vel2a, actiona, endenfa, denfa);
+				ntraj, naccp, atraj, yav, yyav, traj_cost, totancg, totancgh, pbpa, vel2a, actiona, endenfa, denfa);
 		fclose(output);
 	}
 #if(nproc>1)

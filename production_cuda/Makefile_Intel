@@ -37,6 +37,7 @@ CSRC=	\
 		par_mpi.c \
 		bosonic.c\
 		fermionic.c\
+		integrate.c \
 		diagnostics.c
 
 CUSRC_DIR=	../production_cuda
@@ -55,6 +56,7 @@ CINC=	\
 	    matrices.h \
     	coord.h \
 	    errorcodes.h \
+		 integrate.h
 
 #
 # No need to edit below this line

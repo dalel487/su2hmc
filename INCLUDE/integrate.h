@@ -75,7 +75,7 @@ int Leapfrog(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Com
 	 *
 	 *	@return Zero on success, integer error code otherwise
 	 */
-int OMF4(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex *X0,Complex *X1,
+int OMF2(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex *X0,Complex *X1,
 					Complex *Phi,double *dk4m,double *dk4p,float *dk4m_f,float *dk4p_f,double *dSdpi,double *pp,
 					int *iu,int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, Complex jqq,
 					float beta, float akappa, int stepl, float dt, double *ancg, int *itot, float proby, float alpha);

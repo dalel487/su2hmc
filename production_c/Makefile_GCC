@@ -44,7 +44,8 @@ SRC= \
 	fermionic.c\
 	force.c\
 	par_mpi.c \
-	su2hmc.c \
+	integrate.c \
+	su2hmc.c 
 
 INC= \
 	sizes.h \
@@ -53,7 +54,8 @@ INC= \
 	random.h \
 	matrices.h \
 	par_mpi.h \
-	su2hmc.h \
+	integrate.h\
+	su2hmc.h 
 #
 # No need to edit below this line
 #
