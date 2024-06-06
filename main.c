@@ -343,6 +343,9 @@ int main(int argc, char *argv[]){
 	//Initialise for averages
 	//======================
 	double actiona = 0.0; double vel2a = 0.0; double pbpa = 0.0; double endenfa = 0.0; double denfa = 0.0;
+	//Expected canged in Hamiltonian
+	double e_dH=0; double e_dH_e=0;
+	//Expected Metropolis accept probability. Skewed by cases where the hamiltonian decreases.
 	double yav = 0.0; double yyav = 0.0; 
 
 	int naccp = 0; int ipbp = 0; int itot = 0;
@@ -528,6 +531,7 @@ int main(int argc, char *argv[]){
 			printf("dH = %e dS = %e\n", dH, dS);
 #endif
 		}
+		e_dH+=dH; e_dH_e+=dH*dH;
 		double y = exp(dH);
 		yav+=y;
 		yyav+=y*y;
@@ -751,19 +755,21 @@ int main(int argc, char *argv[]){
 #endif
 	//Get averages for final output
 	actiona/=ntraj; vel2a/=ntraj; pbpa/=ipbp; endenfa/=ipbp; denfa/=ipbp;
-	totancg/=ntraj; totancgh/=ntraj; yav/=ntraj; yyav=sqrt((yyav/ntraj - yav*yav)/(ntraj-1));
+	totancg/=ntraj; totancgh/=ntraj; 
+	e_dH/=ntraj; e_dH_e=sqrt((e_dH_e/ntraj-e_dH*e_dH)/(ntraj-1));
+	yav/=ntraj; yyav=sqrt((yyav/ntraj - yav*yav)/(ntraj-1));
 	float traj_cost=totancg/dt;
 	double atraj=dt*itot/ntraj;
 
 	if(!rank){
 		fprintf(output, "Averages for the last %i trajectories\n"\
-				"Number of acceptances: %i Average Trajectory Length = %e\n"\
-				"<exp(dh)> = %e +/- %e\tTrajectory cost = N_cg/dt=%e"\
+				"Number of acceptances: %i\tAverage Trajectory Length = %e\n"\
+				"<dH>=%e+/-\%e\t<exp(dH)> = %e+/-%e\tTrajectory cost = N_cg/dt =%e\n"\
 				"Average number of congrad iter guidance: %.3f acceptance %.3f\n"\
 				"psibarpsi = %e\n"\
-				"Mean Square Velocity = %e Action Per Site = %e\n"\
-				"Energy Density = %e Number Density %e\n",\
-				ntraj, naccp, atraj, yav, yyav, traj_cost, totancg, totancgh, pbpa, vel2a, actiona, endenfa, denfa);
+				"Mean Square Velocity = %e\tAction Per Site = %e\n"\
+				"Energy Density = %e\tNumber Density %e\n",\
+				ntraj, naccp, atraj, e_dH,e_dH_e, yav, yyav, traj_cost, totancg, totancgh, pbpa, vel2a, actiona, endenfa, denfa);
 		fclose(output);
 	}
 #if(nproc>1)
