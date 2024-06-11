@@ -1,0 +1,1095 @@
+---
+MainSourceFile:  '/home/postgrad/dalel487/Code/su2hmc/production_sycl/MainSrcFiles_placehold'
+Replacements:
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/bosonic.c'
+    Offset:          0
+    Length:          0
+    ReplacementText: "#include <sycl/sycl.hpp>\n#include <dpct/dpct.hpp>\n"
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/bosonic.c'
+    Offset:          1205
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/bosonic.c'
+    Offset:          2181
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/bosonic.c'
+    Offset:          3816
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/bosonic.c'
+    Offset:          3842
+    Length:          22
+    ReplacementText: 'device = dpct::dev_mgr::instance().current_device_id()'
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/bosonic.c'
+    Offset:          3957
+    Length:          19
+    ReplacementText: '0'
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/bosonic.c'
+    Offset:          4391
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/bosonic.c'
+    Offset:          5331
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/bosonic.c'
+    Offset:          7022
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/bosonic.c'
+    Offset:          7248
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/bosonic.c'
+    Offset:          7258
+    Length:          17
+    ReplacementText: 'dpct::dpct_free(Sigma11, dpct::get_in_order_queue())'
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/congrad.c'
+    Offset:          0
+    Length:          0
+    ReplacementText: "#include <sycl/sycl.hpp>\n#include <dpct/dpct.hpp>\n"
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/congrad.c'
+    Offset:          2212
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/congrad.c'
+    Offset:          2281
+    Length:          22
+    ReplacementText: 'device = dpct::dev_mgr::instance().current_device_id()'
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/congrad.c'
+    Offset:          3575
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/congrad.c'
+    Offset:          4442
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/congrad.c'
+    Offset:          4614
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/congrad.c'
+    Offset:          5044
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/congrad.c'
+    Offset:          5639
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/congrad.c'
+    Offset:          6034
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/congrad.c'
+    Offset:          7835
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/congrad.c'
+    Offset:          8612
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/congrad.c'
+    Offset:          8838
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/congrad.c'
+    Offset:          10833
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/congrad.c'
+    Offset:          10899
+    Length:          22
+    ReplacementText: 'device = dpct::dev_mgr::instance().current_device_id()'
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/congrad.c'
+    Offset:          12118
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/congrad.c'
+    Offset:          12797
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/congrad.c'
+    Offset:          13105
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/congrad.c'
+    Offset:          16781
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/congrad.c'
+    Offset:          16945
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/congrad.c'
+    Offset:          16955
+    Length:          13
+    ReplacementText: 'dpct::dpct_free(p_f, dpct::get_in_order_queue())'
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/fermionic.c'
+    Offset:          0
+    Length:          0
+    ReplacementText: "#include <sycl/sycl.hpp>\n#include <dpct/dpct.hpp>\n"
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/fermionic.c'
+    Offset:          517
+    Length:          0
+    ReplacementText: "\n dpct::device_ext &dev_ct1 = dpct::get_current_device();\n sycl::queue &q_ct1 = dev_ct1.in_order_queue();"
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/fermionic.c'
+    Offset:          1920
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/fermionic.c'
+    Offset:          1946
+    Length:          22
+    ReplacementText: 'device = dpct::dev_mgr::instance().current_device_id()'
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/fermionic.c'
+    Offset:          2143
+    Length:          19
+    ReplacementText: '0'
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/fermionic.c'
+    Offset:          2220
+    Length:          19
+    ReplacementText: '0'
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/fermionic.c'
+    Offset:          2305
+    Length:          19
+    ReplacementText: '0'
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/fermionic.c'
+    Offset:          2876
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/fermionic.c'
+    Offset:          3454
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/fermionic.c'
+    Offset:          4644
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/fermionic.c'
+    Offset:          4762
+    Length:          14
+    ReplacementText: 'dpct::dpct_free(xi_f, q_ct1)'
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/fermionic.c'
+    Offset:          7728
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/fermionic.c'
+    Offset:          7883
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/fermionic.c'
+    Offset:          8568
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/fermionic.c'
+    Offset:          9184
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/fermionic.c'
+    Offset:          9846
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/fermionic.c'
+    Offset:          10700
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/fermionic.c'
+    Offset:          10710
+    Length:          11
+    ReplacementText: 'dpct::dpct_free(x, q_ct1)'
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/force.c'
+    Offset:          0
+    Length:          0
+    ReplacementText: "#include <sycl/sycl.hpp>\n#include <dpct/dpct.hpp>\n"
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/force.c'
+    Offset:          873
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/force.c'
+    Offset:          899
+    Length:          22
+    ReplacementText: 'device = dpct::dev_mgr::instance().current_device_id()'
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/force.c'
+    Offset:          1177
+    Length:          19
+    ReplacementText: '0'
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/force.c'
+    Offset:          1264
+    Length:          19
+    ReplacementText: '0'
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/force.c'
+    Offset:          1688
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/force.c'
+    Offset:          1972
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/force.c'
+    Offset:          3240
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/force.c'
+    Offset:          3958
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/force.c'
+    Offset:          4498
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/force.c'
+    Offset:          6305
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/force.c'
+    Offset:          6331
+    Length:          22
+    ReplacementText: 'device = dpct::dev_mgr::instance().current_device_id()'
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/force.c'
+    Offset:          6476
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/force.c'
+    Offset:          6558
+    Length:          19
+    ReplacementText: '0'
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/force.c'
+    Offset:          6703
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/force.c'
+    Offset:          6885
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/force.c'
+    Offset:          7273
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/force.c'
+    Offset:          7378
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/force.c'
+    Offset:          8562
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/force.c'
+    Offset:          9494
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/force.c'
+    Offset:          19216
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/force.c'
+    Offset:          19226
+    Length:          12
+    ReplacementText: 'dpct::dpct_free(X2, dpct::get_in_order_queue())'
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/matrices.c'
+    Offset:          393
+    Length:          0
+    ReplacementText: "#include <sycl/sycl.hpp>\n#include <dpct/dpct.hpp>\n"
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/matrices.c'
+    Offset:          1575
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/matrices.c'
+    Offset:          7607
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/matrices.c'
+    Offset:          13587
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/matrices.c'
+    Offset:          17807
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/matrices.c'
+    Offset:          21751
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/matrices.c'
+    Offset:          27905
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/matrices.c'
+    Offset:          33969
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/matrices.c'
+    Offset:          38313
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/matrices.c'
+    Offset:          41749
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/matrices.c'
+    Offset:          43387
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/par_mpi.c'
+    Offset:          0
+    Length:          0
+    ReplacementText: "#include <sycl/sycl.hpp>\n#include <dpct/dpct.hpp>\n#include <cmath>\n"
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/par_mpi.c'
+    Offset:          40788
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/random.c'
+    Offset:          106
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/random.c'
+    Offset:          273
+    Length:          0
+    ReplacementText: "#include <sycl/sycl.hpp>\n#include <dpct/dpct.hpp>\n"
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/random.c'
+    Offset:          426
+    Length:          0
+    ReplacementText: "\n#include <cmath>\n"
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/su2hmc.c'
+    Offset:          92
+    Length:          0
+    ReplacementText: "#include <sycl/sycl.hpp>\n#include <dpct/dpct.hpp>\n"
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/su2hmc.c'
+    Offset:          138
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/su2hmc.c'
+    Offset:          147
+    Length:          18
+    ReplacementText: ''
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/su2hmc.c'
+    Offset:          165
+    Length:          26
+    ReplacementText: ''
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/su2hmc.c'
+    Offset:          297
+    Length:          0
+    ReplacementText: "\n#include <cmath>\n"
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/su2hmc.c'
+    Offset:          3088
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/su2hmc.c'
+    Offset:          3717
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/su2hmc.c'
+    Offset:          3727
+    Length:          10
+    ReplacementText: 'dpct::get_in_order_queue().memcpy'
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/su2hmc.c'
+    Offset:          3767
+    Length:          18
+    ReplacementText: ''
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/su2hmc.c'
+    Offset:          3786
+    Length:          0
+    ReplacementText: '.wait()'
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/su2hmc.c'
+    Offset:          4368
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/su2hmc.c'
+    Offset:          6071
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/su2hmc.c'
+    Offset:          6099
+    Length:          22
+    ReplacementText: 'device = dpct::dev_mgr::instance().current_device_id()'
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/su2hmc.c'
+    Offset:          6384
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/su2hmc.c'
+    Offset:          8029
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/su2hmc.c'
+    Offset:          8067
+    Length:          22
+    ReplacementText: 'device = dpct::dev_mgr::instance().current_device_id()'
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/su2hmc.c'
+    Offset:          8543
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/su2hmc.c'
+    Offset:          8776
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/su2hmc.c'
+    Offset:          9250
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/su2hmc.c'
+    Offset:          9460
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/su2hmc.c'
+    Offset:          9930
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/su2hmc.c'
+    Offset:          10511
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/su2hmc.c'
+    Offset:          10978
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/su2hmc.c'
+    Offset:          11633
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+  - FilePath:        '/home/postgrad/dalel487/Code/su2hmc/production_c/su2hmc.c'
+    Offset:          12075
+    Length:          8
+    ReplacementText: DPCT_COMPATIBILITY_TEMP
+    ConstantFlag:    ''
+    ConstantOffset:  0
+    InitStr:         ''
+    NewHostVarName:  ''
+    BlockLevelFormatFlag: false
+MainSourceFilesDigest:
+  - MainSourceFile:  '/home/postgrad/dalel487/Code/su2hmc/production_c/bosonic.c'
+    Digest:          be1a4e91dc9519e352656acb99a93648
+  - MainSourceFile:  '/home/postgrad/dalel487/Code/su2hmc/production_c/congrad.c'
+    Digest:          fd157a662b40a1cbabf76367ea6dc340
+  - MainSourceFile:  '/home/postgrad/dalel487/Code/su2hmc/production_c/fermionic.c'
+    Digest:          6f7a64881877239cd0efc90b1c1edfd6
+  - MainSourceFile:  '/home/postgrad/dalel487/Code/su2hmc/production_c/force.c'
+    Digest:          b30f7e344e079fccfe0a05be995669c2
+  - MainSourceFile:  '/home/postgrad/dalel487/Code/su2hmc/production_c/matrices.c'
+    Digest:          148bc2c2978326ff3672c08a13498028
+  - MainSourceFile:  '/home/postgrad/dalel487/Code/su2hmc/production_c/par_mpi.c'
+    Digest:          e1271d25f4549384166888ba9486d526
+  - MainSourceFile:  '/home/postgrad/dalel487/Code/su2hmc/production_c/random.c'
+    Digest:          462bb3fcf95cd7aec700962a29f34c0d
+  - MainSourceFile:  '/home/postgrad/dalel487/Code/su2hmc/production_c/su2hmc.c'
+    Digest:          306849bc46eb6ae6945574fb37447b93
+DpctVersion:     2024.1.0
+MainHelperFileName: ''
+USMLevel:        ''
+FeatureMap:      {}
+CompileTargets:  {}
+OptionMap:
+  AnalysisScopePath:
+    Value:           '/home/postgrad/dalel487/Code/su2hmc/production_c'
+    Specified:       false
+  AsyncHandler:
+    Value:           'false'
+    Specified:       false
+  BuildScript:
+    Value:           '0'
+    Specified:       false
+  CodePinEnabled:
+    Value:           'false'
+    Specified:       false
+  CommentsEnabled:
+    Value:           'false'
+    Specified:       false
+  CompilationsDir:
+    Value:           ''
+    Specified:       false
+  CtadEnabled:
+    Value:           'false'
+    Specified:       false
+  EnablepProfiling:
+    Value:           'false'
+    Specified:       false
+  ExperimentalFlag:
+    Value:           '0'
+    Specified:       false
+  ExplicitNamespace:
+    Value:           '20'
+    Specified:       false
+  ExtensionDDFlag:
+    Value:           '0'
+    Specified:       false
+  ExtensionDEFlag:
+    Value:           '4294967295'
+    Specified:       false
+  HelperFuncPreferenceFlag:
+    Value:           '0'
+    Specified:       false
+  NDRangeDim:
+    Value:           '3'
+    Specified:       false
+  NoDRYPattern:
+    Value:           'false'
+    Specified:       false
+  OptimizeMigration:
+    Value:           'false'
+    Specified:       false
+  ProcessAll:
+    Value:           'false'
+    Specified:       false
+  RuleFile:
+    Value:           ''
+    Specified:       false
+  SyclNamedLambda:
+    Value:           'false'
+    Specified:       false
+  UsmLevel:
+    Value:           '1'
+    Specified:       false
+...

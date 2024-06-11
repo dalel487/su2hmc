@@ -36,33 +36,22 @@
 #define	USE_BLAS
 #include	<cblas.h>
 #endif
-//SYCL Flags
 #ifdef DPCT_COMPATIBILITY_TEMP
 #include <oneapi/dpl/execution>
 #include <oneapi/dpl/algorithm>
 #include <sycl/sycl.hpp>
-#define cudaDeviceSynchronise() queue::wait()
-#endif
-//NVCC Flags
-#ifdef	__NVCC__
-#include	<cuda.h>
-#include	<cuda_runtime_api.h>
-#include	<cublas_v2.h>
-#define	USE_BLAS
+#include <dpct/dpct.hpp>
+#include <cublas_v2.h>
 extern cublasHandle_t cublas_handle;
 extern cublasStatus_t cublas_status;
 extern cudaMemPool_t mempool;
 ///@brief	Get rid of that bastardised yankee English
-#define cudaDeviceSynchronise() cudaDeviceSynchronize()
+#define cudaDeviceSynchronise() queue::wait()
 #endif
 #ifdef SYCL_LANGUAGE_VERSION
 #include <thrust_complex.h>
 #include <dpct/dpl_utils.hpp>
 
-#elif define __CUDACC__
-#include	<thrust_complex.h>
-#include <thrust/reduce.h>
-#include <thrust/device_vector.h>
 #else
 #include	<complex.h>
 ///@brief Single precision complex number 
@@ -281,23 +270,7 @@ extern cudaMemPool_t mempool;
 #define	AVX	16
 #endif
 
-#ifdef	__NVCC__
-/*
- * @section gridblock Grids and Blocks
- *
- * Threads are grouped together to form warps of 32 threads
- * best to keep the block dimension (ksizex*ksizey) multiples of 32,
- * usually between 128 and 256
- * Note that from Volta/Turing  each SM (group of processors)
- * is smaller than on previous generations of GPUs
- */
-extern dim3	dimBlock;//	=dim3(nx,ny,nz);
-extern dim3	dimGrid;//	=dim3(nt,1,1);
-						  //For copying over gamval
-extern dim3	dimBlockOne;//	=dim3(nx,ny,nz);
-extern dim3	dimGridOne;//	=dim3(nt,1,1);
-#define	USE_BLAS
-#elif defned DPCT_COMPATIBILITY_TEMP
+#ifdef DPCT_COMPATIBILITY_TEMP
 /*
  * @section gridblock Grids and Blocks
  *
