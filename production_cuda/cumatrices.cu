@@ -5,10 +5,10 @@
 __global__ void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
 		Complex *gamval_d, int *gamin_d,	double *dk4m, double *dk4p, Complex_f jqq, float akappa){
 	char *funcname = "cuDslash";
-	const int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	for(int i=threadId;i<kvol;i+=gsize*bsize){
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork = idirac+4;
@@ -78,15 +78,15 @@ __global__ void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,
 						+u11t[did*ndim+3] *(r[(did*ngorkov+igorkov)*nc+1]+r[(did*ngorkov+igork1)*nc+1]));
 
 			//And the +4 terms. Note that dk4p and dk4m swap positions compared to the above				
-			phi[(i*ngorkov+igorkovPP)*nc]+=-dk4m[i]*(u11t[i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc]-r[(uid*ngorkov+igork1PP)*nc])+
-					u12t[i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc+1]-r[(uid*ngorkov+igork1PP)*nc+1]))-
-				dk4p[did]*(conj(u11t[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])-
-						u12t[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
+			phi[(i*ngorkov+igorkovPP)*nc]+=-dk4m[i]*(u11t[i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc]-r[(uid*ngorkov+igork1PP)*nc])+\
+					u12t[i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc+1]-r[(uid*ngorkov+igork1PP)*nc+1]))-\
+													 dk4p[did]*(conj(u11t[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])-\
+															 u12t[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
 
-			phi[(i*ngorkov+igorkovPP)*nc+1]+=-dk4m[i]*(conj(-u12t[i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc]-r[(uid*ngorkov+igork1PP)*nc])+
-					conj(u11t[i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc+1]-r[(uid*ngorkov+igork1PP)*nc+1]))-
-				dk4p[did]*(conj(u12t[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])+
-						u11t[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
+			phi[(i*ngorkov+igorkovPP)*nc+1]+=-dk4m[i]*(conj(-u12t[i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc]-r[(uid*ngorkov+igork1PP)*nc])+\
+					conj(u11t[i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc+1]-r[(uid*ngorkov+igork1PP)*nc+1]))-\
+														dk4p[did]*(conj(u12t[did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])+\
+																u11t[did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
 		}
 #endif
 	}
@@ -310,9 +310,13 @@ __global__ void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12
 }
 
 //Float editions
+//TODO: On newer GPUs (Ada and later) the L2 cache is big enough that the u11t or u12t fields can fit on it. In that
+//case it may be worth investigating shared memory access. Preload on the u11t and u12t before the kernel call even
+//https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html#shared-memory
+
 //Dslash_f Index 0
 __global__ void cuDslash0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		Complex_f *gamval_d,	int *gamin_d,	float *dk4m, float *dk4p, Complex_f jqq, float akappa){
+		__shared__ Complex_f *gamval_d,	int *gamin_d,	float *dk4m, float *dk4p, Complex_f jqq, float akappa){
 	char *funcname = "cuDslash0_f";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -322,9 +326,9 @@ __global__ void cuDslash0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Compl
 		for(int idirac=0;idirac<ndirac;idirac++){
 			int igork = idirac+4;
 			Complex_f a_1, a_2;
-			a_1=conj(jqq)*gamval_d[idirac];
+			a_1=conj(jqq)*gamval_d[4*ndirac+idirac];
 			//We subtract a_2, hence the minus
-			a_2=-jqq*gamval_d[idirac];
+			a_2=-jqq*gamval_d[4*ndirac+idirac];
 			phi[(i*ngorkov+idirac)*nc]+=a_1*r[(i*ngorkov+igork)*nc];
 			phi[(i*ngorkov+igork)*nc]+=a_2*r[(i*ngorkov+idirac)*nc];
 		}
@@ -339,14 +343,23 @@ __global__ void cuDslash0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Compl
 				//Can manually vectorise with a pragma?
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
-				phi[(i*ngorkov+igorkov)*nc]+=-akappa*(u11t[i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc]+
-						u12t[i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc+1]+
-						conj(u11t[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]-
+				//				phi[(i*ngorkov+igorkov)*nc]+=-akappa*(u11t[i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc]+
+				//						u12t[i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc+1]+
+				//						conj(u11t[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]-
+				//						u12t[did*ndim+mu]*r[(did*ngorkov+igorkov)*nc+1]);
+				//				//Dirac term
+				//				phi[(i*ngorkov+igorkov)*nc]+=gamval_d[mu*ndirac+idirac]*(u11t[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc]+
+				//						u12t[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc+1]-
+				//						conj(u11t[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]+
+				//						u12t[did*ndim+mu]*r[(did*ngorkov+igork1)*nc+1]);
+				phi[(i*ngorkov+igorkov)*nc]+=-akappa*(u11t[i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc]+\
+						u12t[i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc+1]+\
+						conj(u11t[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]-\
 						u12t[did*ndim+mu]*r[(did*ngorkov+igorkov)*nc+1]);
 				//Dirac term
-				phi[(i*ngorkov+igorkov)*nc]+=gamval_d[mu*ndirac+idirac]*(u11t[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc]+
-						u12t[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc+1]-
-						conj(u11t[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]+
+				phi[(i*ngorkov+igorkov)*nc]+=gamval_d[mu*ndirac+idirac]*(u11t[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc]+\
+						u12t[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc+1]-\
+						conj(u11t[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]+\
 						u12t[did*ndim+mu]*r[(did*ngorkov+igork1)*nc+1]);
 
 			}
@@ -378,7 +391,7 @@ __global__ void cuDslash0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Compl
 	}
 }
 __global__ void cuDslashd0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		Complex_f *gamval_d,	int *gamin_d,	float *dk4m, float *dk4p, Complex_f jqq, float akappa){
+		__shared__ Complex_f *gamval_d,	int *gamin_d,	float *dk4m, float *dk4p, Complex_f jqq, float akappa){
 	char *funcname = "cuDslashd0_f";
 	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -390,8 +403,8 @@ __global__ void cuDslashd0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comp
 			int igork = idirac+4;
 			Complex_f a_1, a_2;
 			//We subtract a_1, hence the minus
-			a_1=-conj(jqq)*gamval_d[idirac];
-			a_2=jqq*gamval_d[idirac];
+			a_1=-conj(jqq)*gamval_d[4*ndirac+idirac];
+			a_2=jqq*gamval_d[4*ndirac+idirac];
 			phi[(i*ngorkov+idirac)*nc]+=a_1*r[(i*ngorkov+igork)*nc];
 			phi[(i*ngorkov+igork)*nc]+=a_2*r[(i*ngorkov+idirac)*nc];
 		}
@@ -447,7 +460,7 @@ __global__ void cuDslashd0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comp
 }
 //Dslash_f Index 1
 __global__ void cuDslash1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		Complex_f *gamval_d,	int *gamin_d,	float *dk4m, float *dk4p, Complex_f jqq, float akappa){
+		__shared__ Complex_f *gamval_d,	int *gamin_d,	float *dk4m, float *dk4p, Complex_f jqq, float akappa){
 	char *funcname = "cuDslash1_f";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -457,9 +470,9 @@ __global__ void cuDslash1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Compl
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork = idirac+4;
 			Complex_f a_1, a_2;
-			a_1=conj(jqq)*gamval_d[idirac];
+			a_1=conj(jqq)*gamval_d[4*ndirac+idirac];
 			//We subtract a_2, hence the minus
-			a_2=-jqq*gamval_d[idirac];
+			a_2=-jqq*gamval_d[4*ndirac+idirac];
 			phi[(i*ngorkov+idirac)*nc+1]+=a_1*r[(i*ngorkov+igork)*nc+1];
 			phi[(i*ngorkov+igork)*nc+1]+=a_2*r[(i*ngorkov+idirac)*nc+1];
 		}
@@ -474,6 +487,15 @@ __global__ void cuDslash1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Compl
 				int igork1 = (igorkov<4) ? gamin_d[mu*ndirac+idirac] : gamin_d[mu*ndirac+idirac]+4;
 				//Can manually vectorise with a pragma?
 				//Wilson + Dirac term in that order. 
+				//		phi[(i*ngorkov+igorkov)*nc+1]+=-akappa*(-conj(u12t[i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc]+\
+				//				conj(u11t[i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc+1]+\
+				//				conj(u12t[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]+\
+				//				u11t[did*ndim+mu]*r[(did*ngorkov+igorkov)*nc+1]);
+				//		//Dirac term
+				//		phi[(i*ngorkov+igorkov)*nc+1]+=gamval_d[mu*ndirac+idirac]*(-conj(u12t[i*ndim+mu])*r[(uid*ngorkov+igork1)*nc]+\
+				//				conj(u11t[i*ndim+mu])*r[(uid*ngorkov+igork1)*nc+1]-\
+				//				conj(u12t[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]-\
+				//				u11t[did*ndim+mu]*r[(did*ngorkov+igork1)*nc+1]);
 				phi[(i*ngorkov+igorkov)*nc+1]+=-akappa*(-conj(u12t[i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc]+\
 						conj(u11t[i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc+1]+\
 						conj(u12t[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]+\
@@ -511,7 +533,7 @@ __global__ void cuDslash1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Compl
 	}
 }
 __global__ void cuDslashd1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		Complex_f *gamval_d,	int *gamin_d,	float *dk4m, float *dk4p, Complex_f jqq, float akappa){
+		__shared__ Complex_f *gamval_d,	int *gamin_d,	float *dk4m, float *dk4p, Complex_f jqq, float akappa){
 	char *funcname = "cuDslashd1_f";
 	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -523,8 +545,8 @@ __global__ void cuDslashd1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comp
 			int igork = idirac+4;
 			Complex_f a_1, a_2;
 			//We subtract a_1, hence the minus
-			a_1=-conj(jqq)*gamval_d[idirac];
-			a_2=jqq*gamval_d[idirac];
+			a_1=-conj(jqq)*gamval_d[4*ndirac+idirac];
+			a_2=jqq*gamval_d[4*ndirac+idirac];
 			phi[(i*ngorkov+idirac)*nc+1]+=a_1*r[(i*ngorkov+igork)*nc+1];
 			phi[(i*ngorkov+igork)*nc+1]+=a_2*r[(i*ngorkov+idirac)*nc+1];
 		}
@@ -582,8 +604,8 @@ __global__ void cuDslashd1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comp
 //IDEA: Split the Dslash routines into different streams for each colour index so the can run concurrently
 //There are no race contitions.
 //HDslash_f Index 0
-__global__ void cuHdslash0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		Complex_f *gamval,	int *gamin_d,	float *dk4m, float *dk4p, float akappa,int idirac){
+__global__ void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
+		__shared__ Complex_f gamval[20],	int *gamin_d,	float *dk4m, float *dk4p, float akappa){
 	/*
 	 * Half Dslash float precision acting on colour index zero
 	 */
@@ -591,165 +613,233 @@ __global__ void cuHdslash0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comp
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	for(int i=threadId;i<kvol;i+=bsize*gsize){
+	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const int gthreadId= blockId * bsize+bthreadId;
+
+
+	//Right. Time to prefetch into shared memory
+	//TODO:	Gorkov index terms
+	//__shared__ Complex_f ru[ndim*bsize*nc], rd[ndim*bsize*nc];
+	//extern __shared__ Complex_f s[];
+	//Complex_f *ru = s;
+	__shared__ Complex_f ru[128*nc]; __shared__ Complex_f rd[128*nc];
+	__shared__ Complex_f rgu[128*nc]; __shared__ Complex_f rgd[128*nc];
+	__shared__ Complex_f u11s[128];	__shared__ Complex_f u12s[128];
+	__shared__ Complex_f u11sd[128];	__shared__ Complex_f u12sd[128];
+	for(int i=gthreadId;i<kvol;i+=bsize*gsize){
+		//Do we need to sync threads if each thread only accesses the value it put in shared memory?
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
-			//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
-			int igork1 = gamin_d[mu*ndirac+idirac];
-			//Can manually vectorise with a pragma?
-			//Wilson + Dirac term in that order. Definitely easier
-			//to read when split into different loops, but should be faster this way
-				phi[(i*ndirac+idirac)*nc]+=-akappa*(u11t[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]+\
-						u12t[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]+\
-						conj(u11t[did*ndim+mu])*r[(did*ndirac+idirac)*nc]-\
-						u12t[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1]);
+			u11s[bthreadId]=u11t[i*ndim+mu];	u12s[bthreadId]=u12t[i*ndim+mu];
+			u11sd[bthreadId]=u11t[did*ndim+mu];	u12sd[bthreadId]=u12t[did*ndim+mu];
+			for(int idirac=0; idirac<ndirac; idirac++){
+				int igork1 = gamin_d[mu*ndirac+idirac];
+				for(int c=0;c<nc;c++){
+					ru[bthreadId*nc+c]=r[(uid*ndirac+idirac)*nc+c];
+					rd[bthreadId*nc+c]=r[(did*ndirac+idirac)*nc+c];
+					rgu[bthreadId*nc+c]=r[(uid*ndirac+igork1)*nc+c];
+					rgd[bthreadId*nc+c]=r[(did*ndirac+igork1)*nc+c];
+				}
+				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
+				//Can manually vectorise with a pragma?
+				//Wilson + Dirac term in that order. Definitely easier
+				//to read when split into different loops, but should be faster this way
+				phi[(i*ndirac+idirac)*nc]+=-akappa*(u11s[bthreadId]*ru[bthreadId*nc]+\
+						u12s[bthreadId]*ru[bthreadId*nc+1]+\
+						conj(u11sd[bthreadId])*rd[bthreadId*nc]-\
+						u12sd[bthreadId]*rd[bthreadId*nc+1]);
 				//Dirac term
-				phi[(i*ndirac+idirac)*nc]+=gamval[mu*ndirac+idirac]*(u11t[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]+\
-						u12t[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]-\
-						conj(u11t[did*ndim+mu])*r[(did*ndirac+igork1)*nc]+\
-						u12t[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
+				phi[(i*ndirac+idirac)*nc]+=gamval[mu*ndirac+idirac]*(u11s[bthreadId]*rgu[bthreadId*nc]+\
+						u12s[bthreadId]*rgu[bthreadId*nc+1]-\
+						conj(u11sd[bthreadId])*rgd[bthreadId*nc]+\
+						u12sd[bthreadId]*rgd[bthreadId*nc+1]);
+
+				phi[(i*ndirac+idirac)*nc+1]+=-akappa*(-conj(u12s[bthreadId])*ru[bthreadId*nc]+\
+						conj(u11s[bthreadId])*ru[bthreadId*nc+1]+\
+						conj(u12sd[bthreadId])*rd[bthreadId*nc]+\
+						u11sd[bthreadId]*rd[bthreadId*nc+1]);
+				//Dirac term
+				phi[(i*ndirac+idirac)*nc+1]+=gamval[mu*ndirac+idirac]*(-conj(u12s[bthreadId])*rgu[bthreadId*nc]+\
+						conj(u11s[bthreadId])*rgu[bthreadId*nc+1]-\
+						conj(u12sd[bthreadId])*rgd[bthreadId*nc]-\
+						u11sd[bthreadId]*rgd[bthreadId*nc+1]);
+			}
 		}
 #endif
+#ifndef NO_TIME
 		//Timelike terms
 		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
-#ifndef NO_TIME
-		int igork1 = gamin_d[3*ndirac+idirac];
-		//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
-			phi[(i*ndirac+idirac)*nc]+=
-				-dk4p[i]*(u11t[i*ndim+3]*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
-						+u12t[i*ndim+3]*(r[(uid*ndirac+idirac)*nc+1]-r[(uid*ndirac+igork1)*nc+1]))
-				-dk4m[did]*(conj(u11t[did*ndim+3])*(r[(did*ndirac+idirac)*nc]+r[(did*ndirac+igork1)*nc])
-						-u12t[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]+r[(did*ndirac+igork1)*nc+1]));
+		u11s[bthreadId]=u11t[i*ndim+3];	u12s[bthreadId]=u12t[i*ndim+3];
+		u11sd[bthreadId]=u11t[did*ndim+3];	u12sd[bthreadId]=u12t[did*ndim+3];
+		for(int idirac=0; idirac<ndirac; idirac++){
+			int igork1 = gamin_d[3*ndirac+idirac];
+			for(int c=0;c<nc;c++){
+				ru[bthreadId*nc+c]=r[(uid*ndirac+idirac)*nc+c];
+				rd[bthreadId*nc+c]=r[(did*ndirac+idirac)*nc+c];
+				rgu[bthreadId*nc+c]=r[(uid*ndirac+igork1)*nc+c];
+				rgd[bthreadId*nc+c]=r[(did*ndirac+igork1)*nc+c];
+			}
+			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
+			phi[(i*ndirac+idirac)*nc]-=
+				dk4p[i]*(u11s[bthreadId]*(ru[bthreadId*nc]-rgu[bthreadId*nc])
+						+u12s[bthreadId]*(ru[bthreadId*nc+1]-rgu[bthreadId*nc+1]));
+			phi[(i*ndirac+idirac)*nc]-=
+				dk4m[did]*(conj(u11sd[bthreadId])*(rd[bthreadId*nc]+rgd[bthreadId*nc])
+						-u12sd[bthreadId] *(rd[bthreadId*nc+1]+rgd[bthreadId*nc+1]));
+
+			phi[(i*ndirac+idirac)*nc+1]-=
+				dk4p[i]*(-conj(u12s[bthreadId])*(ru[bthreadId*nc]-rgu[bthreadId*nc])
+						+conj(u11s[bthreadId])*(ru[bthreadId*nc+1]-rgu[bthreadId*nc+1]))
+				+dk4m[did]*(conj(u12sd[bthreadId])*(rd[bthreadId*nc]+rgd[bthreadId*nc])
+						+u11sd[bthreadId] *(rd[bthreadId*nc+1]+rgd[bthreadId*nc+1]));
 #endif
+		}
 	}
 }
-__global__ void cuHdslashd0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		Complex_f *gamval,	int *gamin_d,	float *dk4m, float *dk4p, float akappa,int idirac){
+__global__ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
+		__shared__ Complex_f gamval[20],	int *gamin_d,	float *dk4m, float *dk4p, float akappa){
 	char *funcname = "cuHdslashd0_f";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	for(int i=threadId;i<kvol;i+=gsize*bsize){
+	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const int gthreadId= blockId * bsize+bthreadId;
+
+	__shared__ Complex_f u11s[128];	__shared__ Complex_f u12s[128];
+	__shared__ Complex_f u11sd[128];	__shared__ Complex_f u12sd[128];
+	__shared__ Complex_f ru[128*nc]; __shared__ Complex_f rd[128*nc];
+	__shared__ Complex_f rgu[128*nc]; __shared__ Complex_f rgd[128*nc];
+	for(int i=gthreadId;i<kvol;i+=gsize*bsize){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <ndim-1; mu++){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
 			//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
-			int igork1 = gamin_d[mu*ndirac+idirac];
-			//Can manually vectorise with a pragma?
-			//Wilson + Dirac term in that order. Definitely easier
-			//to read when split into different loops, but should be faster this way
+			u11s[bthreadId]=u11t[i*ndim+mu];	u12s[bthreadId]=u12t[i*ndim+mu];
+			u11sd[bthreadId]=u11t[did*ndim+mu];	u12sd[bthreadId]=u12t[did*ndim+mu];
+			for(int idirac=0; idirac<ndirac; idirac++){
+				int igork1 = gamin_d[mu*ndirac+idirac];
+				for(int c=0;c<nc;c++){
+					ru[bthreadId*nc+c]=r[(uid*ndirac+idirac)*nc+c];
+					rd[bthreadId*nc+c]=r[(did*ndirac+idirac)*nc+c];
+					rgu[bthreadId*nc+c]=r[(uid*ndirac+igork1)*nc+c];
+					rgd[bthreadId*nc+c]=r[(did*ndirac+igork1)*nc+c];
+				}
+				//Can manually vectorise with a pragma?
+				//Wilson + Dirac term in that order. Definitely easier
+				//to read when split into different loops, but should be faster this way
 
-			phi[(i*ndirac+idirac)*nc]-=akappa*(u11t[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]
-					+u12t[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]
-					+conj(u11t[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
-					-u12t[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1]);
-			//Dirac term
-			phi[(i*ndirac+idirac)*nc]-=gamval[mu*ndirac+idirac]*
-				(u11t[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]
-				 +u12t[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]
-				 -conj(u11t[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
-				 +u12t[did*ndim+mu] *r[(did*ndirac+igork1)*nc+1]);
+				phi[(i*ndirac+idirac)*nc]-=akappa*(u11s[bthreadId]*ru[bthreadId*nc]
+						+u12s[bthreadId]*ru[bthreadId*nc+1]
+						+conj(u11sd[bthreadId])*rd[bthreadId*nc]
+						-u12sd[bthreadId] *rd[bthreadId*nc+1]);
+				//Dirac term
+				phi[(i*ndirac+idirac)*nc]-=gamval[mu*ndirac+idirac]*
+					(u11s[bthreadId]*rgu[bthreadId*nc]
+					 +u12s[bthreadId]*rgu[bthreadId*nc+1]
+					 -conj(u11sd[bthreadId])*rgd[bthreadId*nc]
+					 +u12sd[bthreadId] *rgd[bthreadId*nc+1]);
 
+				phi[(i*ndirac+idirac)*nc+1]-=akappa*(-conj(u12s[bthreadId])*ru[bthreadId*nc]
+						+conj(u11s[bthreadId])*ru[bthreadId*nc+1]
+						+conj(u12sd[bthreadId])*rd[bthreadId*nc]
+						+u11sd[bthreadId] *rd[bthreadId*nc+1]);
+				//Dirac term
+				phi[(i*ndirac+idirac)*nc+1]-=gamval[mu*ndirac+idirac]*
+					(-conj(u12s[bthreadId])*rgu[bthreadId*nc]
+					 +conj(u11s[bthreadId])*rgu[bthreadId*nc+1]
+					 -conj(u12sd[bthreadId])*rgd[bthreadId*nc]
+					 -u11sd[bthreadId] *rgd[bthreadId*nc+1]);
+			}
 		}
 #endif
 #ifndef NO_TIME
 		//Timelike terms
 		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
-		int igork1 = gamin_d[3*ndirac+idirac];
-		//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
-		//dk4m and dk4p swap under dagger
-		phi[(i*ndirac+idirac)*nc]+=
-			-dk4m[i]*(u11t[i*ndim+3]*(r[(uid*ndirac+idirac)*nc]+r[(uid*ndirac+igork1)*nc])
-					+u12t[i*ndim+3]*(r[(uid*ndirac+idirac)*nc+1]+r[(uid*ndirac+igork1)*nc+1]))
-			-dk4p[did]*(conj(u11t[did*ndim+3])*(r[(did*ndirac+idirac)*nc]-r[(did*ndirac+igork1)*nc])
-					-u12t[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]-r[(did*ndirac+igork1)*nc+1]));
+		u11s[bthreadId]=u11t[i*ndim+3];	u12s[bthreadId]=u12t[i*ndim+3];
+		u11sd[bthreadId]=u11t[did*ndim+3];	u12sd[bthreadId]=u12t[did*ndim+3];
+		for(int idirac=0; idirac<ndirac; idirac++){
+			int igork1 = gamin_d[3*ndirac+idirac];
+			for(int c=0;c<nc;c++){
+				ru[bthreadId*nc+c]=r[(uid*ndirac+idirac)*nc+c];
+				rd[bthreadId*nc+c]=r[(did*ndirac+idirac)*nc+c];
+				rgu[bthreadId*nc+c]=r[(uid*ndirac+igork1)*nc+c];
+				rgd[bthreadId*nc+c]=r[(did*ndirac+igork1)*nc+c];
+			}
+			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
+			//dk4m and dk4p swap under dagger
+			phi[(i*ndirac+idirac)*nc]+=
+				-dk4m[i]*(u11s[bthreadId]*(ru[bthreadId*nc]+rgu[bthreadId*nc])
+						+u12s[bthreadId]*(ru[bthreadId*nc+1]+rgu[bthreadId*nc+1]))
+				-dk4p[did]*(conj(u11sd[bthreadId])*(rd[bthreadId*nc]-rgd[bthreadId*nc])
+						-u12sd[bthreadId] *(rd[bthreadId*nc+1]-rgd[bthreadId*nc+1]));
+
+			phi[(i*ndirac+idirac)*nc+1]-=
+				dk4m[i]*(-conj(u12s[bthreadId])*(ru[bthreadId*nc]+rgu[bthreadId*nc])
+						+conj(u11s[bthreadId])*(ru[bthreadId*nc+1]+rgu[bthreadId*nc+1]))
+				+dk4p[did]*(conj(u12sd[bthreadId])*(rd[bthreadId*nc]-rgd[bthreadId*nc])
+						+u11sd[bthreadId] *(rd[bthreadId*nc+1]-rgd[bthreadId*nc+1]));
 #endif
+		}
 	}
 }
 //HDslash_f Index 1
-__global__ void cuHdslash1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		Complex_f *gamval,	int *gamin_d,	float *dk4m, float *dk4p, float akappa,int idirac){
-	char *funcname = "cuHdslash1_f";
-	const int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	for(int i=threadId;i<kvol;i+=gsize*bsize){
-#ifndef NO_SPACE
-		for(int mu = 0; mu <3; mu++){
-			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
-			//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
-			int igork1 = gamin_d[mu*ndirac+idirac];
-			//Can manually vectorise with a pragma?
-			//Wilson + Dirac term in that order. Definitely easier
-			//to read when split into different loops, but should be faster this way
-			phi[(i*ndirac+idirac)*nc+1]+=-akappa*(-conj(u12t[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]+\
-					conj(u11t[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]+\
-					conj(u12t[did*ndim+mu])*r[(did*ndirac+idirac)*nc]+\
-					u11t[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1]);
-			//Dirac term
-			phi[(i*ndirac+idirac)*nc+1]+=gamval[mu*ndirac+idirac]*(-conj(u12t[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]+\
-					conj(u11t[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]-\
-					conj(u12t[did*ndim+mu])*r[(did*ndirac+igork1)*nc]-\
-					u11t[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
-		}
-#endif
-		//Timelike terms
-		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
-#ifndef NO_TIME
-		int igork1 = gamin_d[3*ndirac+idirac];
-		//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
-		phi[(i*ndirac+idirac)*nc+1]-=
-			dk4p[i]*(-conj(u12t[i*ndim+3])*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
-					+conj(u11t[i*ndim+3])*(r[(uid*ndirac+idirac)*nc+1]-r[(uid*ndirac+igork1)*nc+1]))
-			+dk4m[did]*(conj(u12t[did*ndim+3])*(r[(did*ndirac+idirac)*nc]+r[(did*ndirac+igork1)*nc])
-					+u11t[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]+r[(did*ndirac+igork1)*nc+1]));
-#endif
-	}
-}
 __global__ void cuHdslashd1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		Complex_f *gamval,	int *gamin_d,	float *dk4m, float *dk4p, float akappa,int idirac){
+		__shared__ Complex_f gamval[20],	int *gamin_d,	float *dk4m, float *dk4p, float akappa,int idirac){
 	char *funcname = "cuHdslashd1_f";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	for(int i=threadId;i<kvol;i+=gsize*bsize){
+	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const int gthreadId= blockId * bsize+bthreadId;
+
+	__shared__ Complex_f ru[128*nc]; __shared__ Complex_f rd[128*nc];
+	__shared__ Complex_f rgu[128*nc]; __shared__ Complex_f rgd[128*nc];
+	for(int i=gthreadId;i<kvol;i+=gsize*bsize){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <ndim-1; mu++){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
 			//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
 			int igork1 = gamin_d[mu*ndirac+idirac];
+			for(int c=0;c<nc;c++){
+				ru[bthreadId*nc+c]=r[(uid*ndirac+idirac)*nc+c];
+				rd[bthreadId*nc+c]=r[(did*ndirac+idirac)*nc+c];
+				rgu[bthreadId*nc+c]=r[(uid*ndirac+igork1)*nc+c];
+				rgd[bthreadId*nc+c]=r[(did*ndirac+igork1)*nc+c];
+			}
 			//Can manually vectorise with a pragma?
 			//Wilson + Dirac term in that order. Definitely easier
 			//to read when split into different loops, but should be faster this way
-			phi[(i*ndirac+idirac)*nc+1]-=akappa*(-conj(u12t[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]
-					+conj(u11t[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]
-					+conj(u12t[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
-					+u11t[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1]);
+			phi[(i*ndirac+idirac)*nc+1]-=akappa*(-conj(u12t[i*ndim+mu])*ru[bthreadId*nc]
+					+conj(u11t[i*ndim+mu])*ru[bthreadId*nc+1]
+					+conj(u12t[did*ndim+mu])*rd[bthreadId*nc]
+					+u11t[did*ndim+mu] *rd[bthreadId*nc+1]);
 			//Dirac term
 			phi[(i*ndirac+idirac)*nc+1]-=gamval[mu*ndirac+idirac]*
-				(-conj(u12t[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]
-				 +conj(u11t[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]
-				 -conj(u12t[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
-				 -u11t[did*ndim+mu] *r[(did*ndirac+igork1)*nc+1]);
+				(-conj(u12t[i*ndim+mu])*rgu[bthreadId*nc]
+				 +conj(u11t[i*ndim+mu])*rgu[bthreadId*nc+1]
+				 -conj(u12t[did*ndim+mu])*rgd[bthreadId*nc]
+				 -u11t[did*ndim+mu] *rgd[bthreadId*nc+1]);
 		}
 #endif
 		//Timelike terms
 		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
 #ifndef NO_TIME
 		int igork1 = gamin_d[3*ndirac+idirac];
+		for(int c=0;c<nc;c++){
+			ru[bthreadId*nc+c]=r[(uid*ndirac+idirac)*nc+c];
+			rd[bthreadId*nc+c]=r[(did*ndirac+idirac)*nc+c];
+			rgu[bthreadId*nc+c]=r[(uid*ndirac+igork1)*nc+c];
+			rgd[bthreadId*nc+c]=r[(did*ndirac+igork1)*nc+c];
+		}
 		//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 		//dk4m and dk4p swap under dagger
 
 		phi[(i*ndirac+idirac)*nc+1]-=
-			dk4m[i]*(-conj(u12t[i*ndim+3])*(r[(uid*ndirac+idirac)*nc]+r[(uid*ndirac+igork1)*nc])
-					+conj(u11t[i*ndim+3])*(r[(uid*ndirac+idirac)*nc+1]+r[(uid*ndirac+igork1)*nc+1]))
-			+dk4p[did]*(conj(u12t[did*ndim+3])*(r[(did*ndirac+idirac)*nc]-r[(did*ndirac+igork1)*nc])
-					+u11t[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]-r[(did*ndirac+igork1)*nc+1]));
+			dk4m[i]*(-conj(u12t[i*ndim+3])*(ru[bthreadId*nc]+rgu[bthreadId*nc])
+					+conj(u11t[i*ndim+3])*(ru[bthreadId*nc+1]+rgu[bthreadId*nc+1]))
+			+dk4p[did]*(conj(u12t[did*ndim+3])*(rd[bthreadId*nc]-rgd[bthreadId*nc])
+					+u11t[did*ndim+3] *(rd[bthreadId*nc+1]-rgd[bthreadId*nc+1]));
 #endif
 	}
 }
@@ -815,6 +905,7 @@ __global__ void cuNew_trial(double dt, double *pp, Complex *u11t, Complex *u12t,
 		u12t[i*ndim+mu] = a11*u12t[i*ndim+mu]+a12*conj(b11);
 	}
 }
+
 //Calling Functions
 //================
 void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
@@ -960,7 +1051,7 @@ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,u
 	int cuCpyStat=0;
 	if((cuCpyStat=cudaMemcpy(phi, r, kferm*sizeof(Complex_f),cudaMemcpyDefault))){
 		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
-		CPYERROR,funcname,cuCpyStat);
+				CPYERROR,funcname,cuCpyStat);
 		exit(cuCpyStat);
 	}
 	cuDslash0_f<<<dimGrid,dimBlock,0,streams[0]>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
@@ -994,7 +1085,7 @@ void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,
 	int cuCpyStat=0;
 	if((cuCpyStat=cudaMemcpy(phi, r, kferm*sizeof(Complex_f),cudaMemcpyDefault))){
 		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
-		CPYERROR,funcname,cuCpyStat);
+				CPYERROR,funcname,cuCpyStat);
 		exit(cuCpyStat);
 	}
 	cuDslashd0_f<<<dimGrid,dimBlock,0,streams[0]>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
@@ -1027,14 +1118,13 @@ void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,
 	char *funcname = "Hdslash_f";
 	int cuCpyStat=0;
 	if((cuCpyStat=cudaMemcpy(phi, r, kferm2*sizeof(Complex_f),cudaMemcpyDefault))){
-		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
-		CPYERROR,funcname,cuCpyStat);
+		fprintf(stderr,"Error %d in %s: Cuda failed to copy r into device Phi with code %d.\nExiting,,,\n\n",\
+				CPYERROR,funcname,cuCpyStat);
 		exit(cuCpyStat);
 	}
-	for(int idirac=0; idirac<ndirac; idirac++){
-		cuHdslash0_f<<<dimGrid,dimBlock,0,streams[idirac*nc]>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa,idirac);
-		cuHdslash1_f<<<dimGrid,dimBlock,0,streams[idirac*nc+1]>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa,idirac);
-	}
+	const int bsize=dimGrid.x*dimGrid.y*dimGrid.z;
+	const int shareSize= ndim*bsize*nc*sizeof(Complex_f);
+	cuHdslash_f<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
 }
 void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
 		Complex_f *gamval,int *gamin,	float *dk4m, float *dk4p, float akappa,\
@@ -1062,15 +1152,14 @@ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t
 	 */
 	char *funcname = "Hdslashd_f";
 	int cuCpyStat=0;
+	//__shared__ int gamin_s[16]; __shared__ Complex_f gamval_s[20];
+	//intShare(gamin_s,gamin,16); floatShare(gamval_s,gamval,2*20);
 	if((cuCpyStat=cudaMemcpy(phi, r, kferm2*sizeof(Complex_f),cudaMemcpyDefault))){
 		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
-		CPYERROR,funcname,cuCpyStat);
+				CPYERROR,funcname,cuCpyStat);
 		exit(cuCpyStat);
 	}
-	for(int idirac=0; idirac<ndirac; idirac++){
-		cuHdslashd0_f<<<dimGrid,dimBlock,0,streams[idirac*nc]>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa,idirac);
-		cuHdslashd1_f<<<dimGrid,dimBlock,0,streams[idirac*nc+1]>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa,idirac);
-	}
+	cuHdslashd_f<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
 }
 
 void cuReunitarise(Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock){

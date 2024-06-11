@@ -1,23 +1,35 @@
-MF=Makefile_Intel
-CC=		icc 
-CXX=		icpc 
+MF=Makefile_GCC
+CC=		gcc 
+CXX=		g++
 NVCC=		nvcc
 
-IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include" -I ./ -I../production_c\
+IFLAGS=     -I../INCLUDE -I ./ -I../production_c $(shell gsl-config --cflags)\
 				-I /opt/nvidia/hpc_sdk/Linux_x86_64/2024/cuda/include/ \
 				-I /opt/nvidia/hpc_sdk/Linux_x86_64/2024/math_libs/include/ 
 
-CFLAGS=  -qmkl -qopt-zmm-usage=high -MD -D__NVCC__ -static-intel -static-libgcc \
-			-xSKYLAKE -ax'SKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE'\
-			-DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__ -qopenmp -qno-openmp-offload\
-			-qopenmp-simd -DSA3AT -use-intel-optimized-headers -diag-disable=10441 $(IFLAGS) 
+CFLAGS=	$(IFLAGS) -std=gnu11 -fcommon -D__NVCC__\
+		-march=core-avx2 -mtune=native -D__RANLUX__ \
+		-fopenmp -fopenmp-simd -static-libgcc -DSA3AT \
+		-foffload=disable #amdgcn-amdhsa="-march=gfx902" #-fopenacc\
 
-MKLFLAGS=	-qmkl -L${MKLROOT}/lib/intel64 -limf #-DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
+ifdef AOCL_ROOT
+CFLAGS += -DAMD_BLAS -I ${AOCL_ROOT}/include 
+LFLAGS = -L${AOCL_ROOT}/lib/ -lblis  -lalm
+else ifdef LIBSCI_BASE_DIR
+CFLAGS += -DUSE_BLAS
+#Automatic on LUMI?
+#LFLAGS = ‐L${LIBSCI_BASE_DIR}/gnu/91/x86_64/lib/ -lsci_comp
+else
+CFLAGS += -DUSE_BLAS 
+LFLAGS	+=	-lm $(shell gsl-config --libs)
+endif
+LFLAGS	+=	-lm $(shell gsl-config --libs-without-cblas)
+
 CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/2024/cuda/lib64/ \
 				-L/opt/nvidia/hpc_sdk/Linux_x86_64/2024/math_libs/lib64/ \
 				-lcuda -lcudart -lcublas 
 
-LFLAGS=		-liomp5 -lstdc++ -lpthread -ldl -limf -lgsl  #${CULFLAGS}
+LFLAGS +=		-lstdc++ -lpthread -ldl #${CULFLAGS}
 
 NVCCFLAGS=	${IFLAGS} --resource-usage -std=c++14 -err-no -w #-expt-relaxed-constexpr 
 			#Last flag is an experimental one used to call host functions in device code. Not sure
@@ -82,7 +94,7 @@ profiler:	CFLAGS += -g #-D_DEBUGCG
 profiler:	NVCCFLAGS += -lineinfo #-D_DEBUGCG #-keep
 profiler:	release
 
-release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high -rdynamic
+release:	CFLAGS +=  -Ofast -funroll-all-loops -fcf-protection=none #-fprofile-use=./gcc_pgo
 release:	NVCCFLAGS += -Xptxas -O3,-v -arch=native #--maxrregcount=64 -G -dopt=on
 release:	$(EXE)
 
@@ -90,16 +102,16 @@ diagnostic: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 diagnostic: NVCCFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 diagnostic: debug
 
-debug:		CFLAGS += -O0 -g -D_DEBUG -rdynamic 
+debug:		CFLAGS += -g -O0 -D_DEBUG #-DDIAGNOSTIC -DNO_TIME -DNO_SPACE
 debug:		NVCCFLAGS += -Xptxas -O0,-v -G -g -D_DEBUG -arch=sm_75 --maxrregcount=255  -keep 
 debug:		$(EXE)
 		 
-$(EXE): ../main.c $(OBJ)
-	$(NVCC) $(NVCCFLAGS) -ccbin $(CC) -Xcompiler "$(CFLAGS) $(MKLFLAGS) -std=gnu11 -ipo" $^ $(LFLAGS) $(CULFLAGS)  -o $@
+$(EXE): $(OBJ) ../main.c
+	$(NVCC) $(NVCCFLAGS) -ccbin $(CC) -Xcompiler "$(CFLAGS) -std=gnu11" $(LFLAGS) $(CULFLAGS) $^ -o $@
 %.o: $(CUSRC_DIR)/%.cu
-	$(NVCC) $(NVCCFLAGS) -ccbin $(CXX) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $^ -dc $@
+	$(NVCC) $(NVCCFLAGS) -ccbin $(CXX) -Xcompiler "$(CFLAGS)" $^ -dc $@
 %.o: $(CSRC_DIR)%.c
-	$(CC) -std=gnu11 -ipo $(CFLAGS) $(MKLFLAGS) -c $^  
+	$(CC) $(CFLAGS) -c $^  
 
 clean:
 	rm -f $(OBJ) $(COBJ) $(CUOBJ) $(CULIB) $(CLIB) $(TMP) *.cpp?.ii *.cudafe1.* *.*bin *.fatbin.c *.ptx *.sm_* *module_id \

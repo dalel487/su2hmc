@@ -1,4 +1,10 @@
+/**
+ * @file par_mpi.c
+ *
+ * @brief MPI routines
+ */
 #include <par_mpi.h>
+#include <random.h>
 #include <su2hmc.h>
 
 //NOTE: In FORTRAN code everything was capitalised (despite being case insensitive)
@@ -121,15 +127,17 @@ int Par_begin(int argc, char *argv[]){
 int Par_sread(const int iread, const float beta, const float fmu, const float akappa, const Complex_f ajq,\
 		Complex *u11, Complex *u12, Complex *u11t, Complex *u12t){
 	/*
-	 * Reads and assigns the gauges from file
-	 *
-	 * Parameters:
-	 * ----------
-	 *  None (file names are hard-coded in)
-	 *
-	 *  Returns:
-	 *  -------
-	 *  Zero on success, integer error code otherwise
+	 * @brief Reads and assigns the gauges from file
+	 *	
+	 *	@param	iread:		Configuration to read in
+	 *	@param	beta:			Inverse gauge coupling
+	 *	@param   fmu:			Chemical potential
+	 *	@param	akappa:		Hopping parameter
+	 *	@param	ajq:			Diquark source
+	 *	@param	u11,u12:		Gauge fields
+	 *	@param	u11t,u12t:	Trial fields
+	 * 
+	 * @return	Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Par_sread";
 #if(nproc>1)
@@ -333,36 +341,26 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 int Par_swrite(const int itraj, const int icheck, const float beta, const float fmu, const float akappa, 
 		const Complex_f ajq, Complex *u11, Complex *u12){
 	/*
+	 * @brief	Copies u11 and u12 into arrays without halos which then get written to output
+	 *
 	 * Modified from an original version of swrite in FORTRAN
-	 *
-	 * Copies u11 and u12 into arrays without halos which
-	 * then get written to output
-	 *
-	 * Parameters:
-	 * ----------
-	 * int	itraj:	Current trajectory
-	 * int	icheck:	How often to write gauge fields. Used to generate name of configuration
-	 * double	beta
-	 * double	fmu:		Fermion chemical potential
-	 * double	akappa:
-	 * double	ajq:
-	 *
-	 * Globals:
-	 * -------
-	 * Complex	*u11, u12:	Gauge fields
-	 * int	seed
-	 *
-	 * Calls:
-	 * ------
-	 *
-	 * Returns:
-	 * -------
-	 * Zero on success, integer error code otherwise
+	 *	
+	 *	@param	itraj:		Trajectory to write
+	 *	@param	icheck:		Not currently used but haven't gotten around to removing it
+	 *	@param	beta:			Inverse gauge coupling
+	 *	@param   fmu:			Chemical potential
+	 *	@param	akappa:		Hopping parameter
+	 *	@param	ajq:			Diquark source
+	 *	@param	u11,u12:		Gauge fields
+	 * 
+	 * @return	Zero on success, integer error code otherwise
 	 */
 	char *funcname = "par_swrite";
+	#if (nproc>1)
 	MPI_Status status;
 	//Used for seed array later on
 	MPI_Datatype MPI_SEED_TYPE = (sizeof(seed)==sizeof(int)) ? MPI_INT:MPI_LONG;
+	#endif
 	Complex *u1buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
 	Complex *u2buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
 #ifdef _DEBUG
@@ -761,6 +759,28 @@ inline int Par_fcopy(float *fval){
 	if(MPI_Bcast(fval,1,MPI_FLOAT,masterproc,comm)){
 		fprintf(stderr, "Error %i in %s: Failed to broadcast %f from %i.\nExiting...\n\n",
 				BROADERR, funcname, *fval, rank);
+		MPI_Abort(comm,BROADERR);
+	}
+	return 0;
+}
+inline int Par_ccopy(Complex *cval){
+	/*
+	 * Broadcasts a Complex value to the other processes
+	 *
+	 * Parameters:
+	 * ----------
+	 * Complex *zval
+	 *
+	 * Returns:
+	 * -------
+	 * Zero on success, integer error code otherwise
+	 */
+	char *funcname = "Par_ccopy";
+	if(MPI_Bcast(cval,1,MPI_C_FLOAT_COMPLEX,masterproc,comm)){
+#ifndef __NVCC__
+		fprintf(stderr, "Error %i in %s: Failed to broadcast %f+i%f from %i.\nExiting...\n\n",
+				BROADERR, funcname, creal(*cval), cimag(*cval), rank);
+#endif
 		MPI_Abort(comm,BROADERR);
 	}
 	return 0;
@@ -1211,6 +1231,7 @@ int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u
 #endif
 	free(z);
 #endif
+//And get the single precision gauge fields preppeed
 #ifdef __NVCC__
 	cuComplex_convert(u11t_f,u11t,ndim*(kvol+halo),true,dimBlock,dimGrid);
 	cuComplex_convert(u12t_f,u12t,ndim*(kvol+halo),true,dimBlock,dimGrid);

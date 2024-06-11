@@ -1,3 +1,8 @@
+/**
+ * @file su2hmc.c
+ *
+ * @brief	An ecclectic collection of functions used in the HMC
+ */
 #include	<assert.h>
 #include	<coord.h>
 #ifdef	__NVCC__
@@ -34,7 +39,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 	 * int iread:				Read configuration from file
 	 * float beta:				beta
 	 * float fmu:				Chemical potential
-	 * float akappa:			
+	 * float akappa:			Hopping parameter
 	 * Complex_f ajq:			Diquark source
 	 * Complex *u11:			First colour field
 	 * Complex *u12:			Second colour field
@@ -42,10 +47,10 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 	 * Complex *u12t:			Second colour trial field
 	 * Complex_f *u11t_f:	First float trial field
 	 * Complex_f *u12t_f:	Second float trial field
-	 * double	*dk4m:
-	 * double	*dk4p:
-	 * float		*dk4m_f:
-	 * float		*dk4p_f:
+	 * double	*dk4m			Î exp(-Î¼)	
+	 * double	*dk4p:		Î exp(Î¼)    	
+	 * float		*dk4m_f:		Î exp(-Î) float	
+	 * float		*dk4p_f:		Î exp(Î¼) float 	
 	 * unsigned int *iu:		Up halo indices
 	 * unsigned int *id:		Down halo indices
 	 *
@@ -203,26 +208,30 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex *X1, Complex *Phi,\
 		Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f, unsigned int * iu, unsigned int *id,\
 		Complex_f *gamval_f, int *gamin, float *dk4m_f, float * dk4p_f, Complex_f jqq,\
-		float akappa, float beta, double *ancgh){
-	/* Evaluates the Hamiltonian function
+		float akappa, float beta, double *ancgh,int traj){
+	/*
+	 * @brief Calculate the Hamiltonian
 	 * 
-	 * Calls:
-	 * =====
-	 * Average_Plaquette, Par_dsum, Congradq, Fill_Small_Phi
 	 *
-	 * Globals:
-	 * =======
-	 * pp, rank, ancgh, X0, X1, Phi
+	 * @param	h:						Hamiltonian
+	 * @param	s:						Action
+	 * @param	res2:					Limit for conjugate gradient
+	 * @param	X0:
+	 * @param	X1:
+	 * @param	Phi:
+	 * @param	u11t,u12t:			Gauge fields
+	 * @param	u11t_f,u12t_f:		Gauge fields
+	 * @param	iu,id:				Lattice indices
+	 * @param	gamval_f:			Gamma matrices
+	 * @param	gamin:				Gamma indices
+	 * @param	dk4m_f:				Î exp(-Î) float	
+	 * @param	dk4p_f:				Î exp(Î¼) float 	
+	 * @param	jqq:					Diquark source
+	 * @param	akappa:				Hopping parameter
+	 * @param	beta:					Inverse gauge coupling
+	 * @param	ancgh:				Conjugate gradient iterations counter 
 	 *
-	 * Parameters:
-	 * ===========
-	 * double *h: Hamiltonian
-	 * double *s: Action
-	 * double res2: Limit for conjugate gradient
-	 *
-	 * Returns:
-	 * =======
-	 * Zero on success. Integer Error code otherwise.
+	 * @return	Zero on success. Integer Error code otherwise.
 	 */	
 	const char *funcname = "Hamilton";
 	//Iterate over momentum terms.
@@ -257,12 +266,20 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 	//Iterating over flavours
 	for(int na=0;na<nf;na++){
 #ifdef __NVCC__
+#ifdef _DEBUG
+		cudaDeviceSynchronise();
+#endif
 		cudaMemcpyAsync(X1,X0+na*kferm2,kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice,streams[0]);
+#ifdef _DEBUG
+		cudaDeviceSynchronise();
+#endif
 #else
 		memcpy(X1,X0+na*kferm2,kferm2*sizeof(Complex));
 #endif
 		Fill_Small_Phi(na, smallPhi, Phi);
-		Congradq(na,res2,X1,smallPhi,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,&itercg);
+		if(Congradq(na,res2,X1,smallPhi,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,&itercg))
+			fprintf("Trajectory %d\n", traj);
+
 		*ancgh+=itercg;
 #ifdef __NVCC__
 		cudaMemcpyAsync(X0+na*kferm2,X1,kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice,streams[0]);
@@ -357,6 +374,21 @@ inline int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
 			for(int ic= 0; ic<nc; ic++)
 				//	  PHI_index=i*16+j*2+k;
 				smallPhi[(i*ndirac+idirac)*nc+ic]=Phi[((na*kvol+i)*ngorkov+idirac)*nc+ic];
+#endif
+	return 0;
+}
+inline int UpDownPart(const int na, Complex *X0, Complex *R1){
+#ifdef __NVCC__
+	cuUpDownPart(na,X0,R1,dimBlock,dimGrid);
+	cudaDeviceSynchronise();
+#else
+	//The only reason this was removed from the original function is for diagnostics
+#pragma omp parallel for simd collapse(2) aligned(X0,R1:AVX)
+	for(int i=0; i<kvol; i++)
+		for(int idirac = 0; idirac < ndirac; idirac++){
+			X0[((na*kvol+i)*ndirac+idirac)*nc]=R1[(i*ngorkov+idirac)*nc];
+			X0[((na*kvol+i)*ndirac+idirac)*nc+1]=R1[(i*ngorkov+idirac)*nc+1];
+		}
 #endif
 	return 0;
 }

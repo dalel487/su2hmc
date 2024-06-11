@@ -1,42 +1,39 @@
-/*
- * Code for bosonic observables
- * Basically polyakov loop and Plaquette routines
+/**
+ * @file bosonic.c
+ *
+ * @brief Code for bosonic observables, Basically polyakov loop and Plaquette routines.
  */
 #include	<par_mpi.h>
 #include	<su2hmc.h>
 int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u11t, Complex_f *u12t, unsigned int *iu, float beta){
 	/* 
-	 * Calculates the gauge action using new (how new?) lookup table
-	 * Follows a routine called qedplaq in some QED3 code
-	 *
-	 * Globals:
-	 * =======
-	 * rank
-	 *
+	 *	Calculates the gauge action using new (how new?) lookup table
+	 *	Follows a routine called qedplaq in some QED3 code
+	 * 
 	 * Parameters:
-	 * ===========
-	 * double	hg				Gauge component of Hamilton
-	 * double	avplaqs		Average spacial Plaquette
-	 * double	avplaqt		Average Temporal Plaquette
-	 * Complex*	u11t,u12t	The trial fields
-	 * int*		iu				Upper halo indices
-	 * double	beta
+	 * =========
+	 * hg				Gauge component of Hamilton
+	 * avplaqs		Average spacial Plaquette
+	 * avplaqt		Average Temporal Plaquette
+	 * u11t,u12t	The trial fields
+	 * iu				Upper halo indices
+	 * beta			Inverse gauge coupling
 	 *
 	 * Calls:
 	 * =====
 	 * Par_dsum
 	 *
-	 * Returns:
-	 * =======
+	 * Return:
+	 * ======
 	 * Zero on success, integer error code otherwise
 	 */
 	const char *funcname = "Average_Plaquette";
-	/*Was a halo exchange here but moved it outside
+	/*There was a halo exchange here but moved it outside
 	  The FORTRAN code used several consecutive loops to get the plaquette
 	  Instead we'll just make the arrays variables and do everything in one loop
 	  Should work since in the FORTRAN Sigma11[i] only depends on i components  for example
 	  Since the ν loop doesn't get called for μ=0 we'll start at μ=1
-	 */
+	  */
 #ifdef __NVCC__
 	__managed__ double hgs = 0; __managed__ double hgt = 0;
 	cuAverage_Plaquette(&hgs, &hgt, u11t, u12t, iu,dimGrid,dimBlock);
@@ -70,21 +67,22 @@ int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u
 #endif
 	return 0;
 }
+#if (!defined __NVCC__ && !defined __HIPCC__)
 #pragma omp declare simd
 inline float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int i, int mu, int nu){
 	/*
 	 * Calculates the plaquette at site i in the μ-ν direction
-	 *
-	 * Parameters:
-	 * ==========
-	 * Complex u11t, u12t:	Trial fields
-	 * unsignedi int *iu:	Upper halo indices
-	 * int mu, nu:				Plaquette direction. Note that mu and nu can be negative
+	 *	
+	 *	Parameters:
+	 *	==========
+	 * u11t, u12t:	Trial fields
+	 * int *iu:	Upper halo indices
+	 * mu, nu:				Plaquette direction. Note that mu and nu can be negative
 	 * 							to facilitate calculating plaquettes for Clover terms. No
 	 * 							sanity checks are conducted on them in this routine.
 	 *
-	 * Returns:
-	 * ========
+	 * Return:
+	 * =======
 	 * double corresponding to the plaquette value
 	 *
 	 */
@@ -103,20 +101,21 @@ inline float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int i, 
 	//				Not needed in final result as it traces out
 	return creal(Sigma11);
 }
+#endif
 double Polyakov(Complex_f *u11t, Complex_f *u12t){
 	/*
 	 * Calculate the Polyakov loop (no prizes for guessing that one...)
+	 * 
+	 * Parameters:
+	 * =========
+	 * u11t, u12t	The gauge fields
 	 *
 	 * Calls:
 	 * ======
 	 * Par_tmul, Par_dsum
 	 * 
-	 * Parameters:
-	 * ==========
-	 * Complex*	u11t, u12t	The trial fields
-	 * 
-	 * Returns:
-	 * =======
+	 * Return:
+	 * ======
 	 * Double corresponding to the polyakov loop
 	 */
 	const char *funcname = "Polyakov";
@@ -162,7 +161,7 @@ double Polyakov(Complex_f *u11t, Complex_f *u12t){
 		previously started at t+T and looped back to 1, 2, ... T-1
 		Buffers
 		There is a dependency. Can only parallelise the inner loop
-	 */
+		*/
 #ifdef __NVCC__
 	cudaDeviceSynchronise();
 	cuPolyakov(Sigma11,Sigma12,u11t,u12t,dimGrid,dimBlock);
@@ -203,16 +202,16 @@ double Polyakov(Complex_f *u11t, Complex_f *u12t){
 	  This is (according to the FORTRAN code) a bit of a hack
 	  I will expand on this hack and completely avoid any work
 	  for this case rather than calculating everything just to set it to zero
-	 */
+	  */
 	if(!pcoord[3+rank*ndim])
 #ifdef __NVCC__
-	cudaDeviceSynchronise();
+		cudaDeviceSynchronise();
 #pragma omp parallel for simd reduction(+:poly)
 #else
 #pragma omp parallel for simd reduction(+:poly) aligned(Sigma11:AVX)
 #endif
-		for(int i=0;i<kvol3;i++)
-			poly+=creal(Sigma11[i]);
+	for(int i=0;i<kvol3;i++)
+		poly+=creal(Sigma11[i]);
 #ifdef __NVCC__
 	cudaFree(Sigma11);
 #ifdef _DEBUG

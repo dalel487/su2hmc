@@ -1,6 +1,6 @@
-/*
- * Code for force calculations.
- * Requires multiply.cu to work
+/**
+ * @file force.c
+ * @brief Code for force calculations.
  */
 #include	<matrices.h>
 int Gauge_force(double *dSdpi, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id, float beta){
@@ -9,7 +9,7 @@ int Gauge_force(double *dSdpi, Complex_f *u11t, Complex_f *u12t,unsigned int *iu
 	 *
 	 * Calls:
 	 * =====
-	 * Z_Halo_swap_all, Z_gather, Z_Halo_swap_dir
+	 * C_Halo_swap_all, C_gather, C_Halo_swap_dir
 	 *
 	 * Parameters:
 	 * =======
@@ -133,35 +133,30 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 		int *gamin,double *dk4m, double *dk4p, float *dk4m_f,float *dk4p_f,Complex_f jqq,\
 		float akappa,float beta,double *ancg){
 	/*
-	 *	Calculates dSdpi at each intermediate time
+	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
 	 *	
-	 *	Calls:
-	 *	=====
-	 *	Gauge_force, Fill_Small_Phi, Congradq, Hdslash, ZHalo_swap_dir
+	 *	@param	dSdpi:			The force
+	 *	@param	iflag:			Invert before evaluating the force?	
+	 *	@param	res1:				Conjugate gradient residule
+	 *	@param	X0:				Up/down partitioned pseudofermion field
+	 *	@param	X1:				Holder for the partitioned fermion field, then the conjugate gradient output
+	 *	@param	Phi:				Pseudofermion field
+	 *	@param	u11t,u12t		Double precision colour fields
+	 *	@param	u11t_f,u12t_f:	Single precision colour fields
+	 *	@param	iu,id:			Lattice indices
+	 *	@param	gamin:			Gamma indices
+	 *	@param	gamval:			Double precision gamma matrices
+	 *	@param	gamval_f:		Single precision gamma matrices
+	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
+	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$
+	 * @param	dk4m_f:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ float
+	 * @param	dk4p_f:			@f$\left(1-\gamma_0\right)e^\mu@f$ float
+	 * @param 	jqq:				Diquark source
+	 *	@param	akappa:			Hopping parameter
+	 *	@param	beta:				Inverse gauge coupling
+	 *	@param	ancg:				Counter for conjugate gradient iterations
 	 *
-	 *	Parameters:
-	 *	===========
-	 *	double			*dSdpi
-	 *	int				iflag
-	 *	double			res1:
-	 *	Complex			*X0:
-	 *	Complex			*X1:
-	 *	Complex			*Phi:
-	 *	Complex			*u11t:
-	 *	Complex			*u12t:
-	 *	Complex_f		*u11t_f:
-	 *	Complex_f		*u12t_f:
-	 *	unsigned int	*iu:
-	 *	unsigned int	*id:
-	 *	Complex			gamval[5][4]:
-	 *	Complex_f		gamval_f[5][4]:
-	 *	float				akappa:
-	 *	float				beta:
-	 *	double			*ancg:
-	 *
-	 *	Returns:
-	 *	=======
-	 *	Zero on success, integer error code otherwise
+	 *	@return Zero on success, integer error code otherwise
 	 */
 	const char *funcname = "Force";
 #ifdef __NVCC__

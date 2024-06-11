@@ -1,3 +1,45 @@
+/** 
+ * 	@file main.c
+ *
+ *   @brief Hybrid Monte Carlo algorithm for Two Colour QCD with Wilson-Gor'kov fermions
+ *				based on the algorithm of Duane et al. Phys. Lett. B195 (1987) 216. 
+ *
+ *    There is "up/down partitioning": each update requires
+ *    one operation of Congradq() on complex*16 vectors to determine
+ *    @f$(M^{\dagger} M)^{-1}  \Phi@f$ where @f$\Phi@f$ has dimension 4*kvol*nc*Nf - 
+ *    The matrix M is the Wilson matrix for a single flavor
+ *    there is no extra species doubling as a result
+ *
+ *    Matrix multiplies done using routines Hdslash() and Hdslashd()
+ *
+ *    Hence, the number of lattice flavors Nf is related to the
+ *    number of continuum flavors @f$N_f@f$ by
+ *                 @f$ \text{Nf} = 2 N_f@f$
+ *
+ *    Fermion expectation values are measured using a noisy estimator.
+ *    on the Wilson-Gor'kov matrix, which has dimension 8*kvol*nc*Nf
+ *    inversions done using Congradp(), and matrix multiplies with Dslash(),
+ *    Dslashd()
+ *
+ *    Trajectory length is random with mean dt*stepl
+ *    The code runs for a fixed number ntraj of trajectories.
+ *
+ *    @f$\Phi@f$: pseudofermion field <br>
+ *    bmass: bare fermion mass  <br>
+ *    @f$\mu@f$: chemical potential  <br>
+ *    actiona: running average of total action <br>
+ *
+ *    Fermion expectation values are measured using a noisy estimator.
+ *
+ *    outputs: <br>
+ *    fermi		psibarpsi, energy density, baryon density <br>
+ *    bose	   spatial plaquette, temporal plaquette, Polyakov line <br>
+ *    diq	   real<qq>
+ *
+ *     @author SJH			(Original Code, March 2005)
+ *     @author P.Giudice	(Hybrid Code, May 2013)
+ *     @author D. Lawlor	(Fortran to C Conversion, March 2021. Mixed Precision. GPU, March 2024)
+ ******************************************************************/
 #include	<assert.h>
 #include	<coord.h>
 #include	<math.h>
@@ -15,7 +57,7 @@ cublasStatus_t cublas_status;
 cudaMemPool_t mempool;
 //Fix this later
 #endif
-/*
+/**
  * For the early phases of this translation, I'm going to try and
  * copy the original format as much as possible and keep things
  * in one file. Hopefully this will change as we move through
@@ -31,51 +73,10 @@ cudaMemPool_t mempool;
  * These can be found in the file errorcode.h and can help with debugging
  *
  * Lastly, the comment style for the start of a function is based off of 
- * Niall Moran's python style (which may have come from numpy?) It should
- * consist of a description of the function, a list of parameters with a brief
- * explanation and lastly what is returned by the function (on success or failure)
+ * doxygen. It should consist of a description of the function, a list of parameters with a brief
+ * explanation and lastly what is returned by the function (on success or failure).
  */
 int main(int argc, char *argv[]){
-	/*******************************************************************
-	 *    Hybrid Monte Carlo algorithm for Two Colour QCD with Wilson-Gor'kov fermions
-	 *    based on the algorithm of Duane et al. Phys. Lett. B195 (1987) 216. 
-	 *
-	 *    There is "up/down partitioning": each update requires
-	 *    one operation of congradq on complex*16 vectors to determine
-	 *    (Mdagger M)**-1  Phi where Phi has dimension 4*kvol*nc*Nf - 
-	 *    The matrix M is the Wilson matrix for a single flavor
-	 *    there is no extra species doubling as a result
-	 *
-	 *    matrix multiplies done using routines hdslash and hdslashd
-	 *
-	 *    Hence, the number of lattice flavors Nf is related to the
-	 *    number of continuum flavors N_f by
-	 *                  N_f = 2 * Nf
-	 *
-	 *    Fermion expectation values are measured using a noisy estimator.
-	 *    on the Wilson-Gor'kov matrix, which has dimension 8*kvol*nc*Nf
-	 *    inversions done using congradp, and matrix multiplies with dslash,
-	 *    dslashd
-	 *
-	 *    trajectory length is random with mean dt*stepl
-	 *    The code runs for a fixed number ntraj of trajectories.
-	 *
-	 *    Phi: pseudofermion field 
-	 *    bmass: bare fermion mass 
-	 *    fmu: chemical potential 
-	 *    actiona: running average of total action
-	 *
-	 *    Fermion expectation values are measured using a noisy estimator.
-	 *    outputs:
-	 *    fort.11   psibarpsi, energy density, baryon density
-	 *    fort.12   spatial plaquette, temporal plaquette, Polyakov line
-	 *    fort.13   real<qq>, real <qbar qbar>, imag <qq>= imag<qbar qbar>
-	 *
-	 *                                               SJH March 2005
-	 *
-	 *     Hybrid code, P.Giudice, May 2013
-	 *     Converted from Fortran to C by D. Lawlor March 2021
-	 ******************************************************************/
 	//Instead of hard coding the function name so the error messages are easier to implement
 	const char *funcname = "main";
 
@@ -86,26 +87,48 @@ int main(int argc, char *argv[]){
 	MPI_Comm_size(comm, &size);
 #endif
 
-	//Input
-	//The default values here are straight from the FORTRAN
-	//=====================================================
+	/**
+	 * @subsection inputs Input Parameters.
+	 * The input file format is like the table below, with values sepearated by whitespace
+	 *
+	 * 0.0100|1.7|0.1780|0.00|0.000|0.0|0.0|100|4|1|5|1|
+	 * ------|---|------|----|-----|---|---|---|-|-|-|-|
+	 * dt	|beta|akappa|jqq|thetaq|fmu|aNf|stepl|ntraj|istart|icheck|iread|
+	 *
+	 *	The default values here are straight from the FORTRAN. Note that the bottom line labelling each input is ignored
+	 *
+	 *	@param dt		Step length for HMC	
+	 *	@param beta 	Inverse Gauge Coupling
+	 *	@param akappa	Hopping Parameter
+	 *	@param jqq		Diquark Source
+	 *	@param thetaq	Depericiated/Legacy.
+	 *	@param fmu		Chemical Potential
+	 *	@param aNf		Depreciated/Legacy
+	 *	@param stepl	Mean number of steps per HMC trajectory
+	 *	@param istart 	If 0, start from cold start. If one, start from hot start
+	 *	@param iprint	How often are measurements made (every iprint trajectories)
+	 *	@param icheck	How often are configurations saved (every icheck trajectories)
+	 *	@param iread  	Config to read in. If zero, the start based on value of istart
+	 */
 	float beta = 1.7f;
 	float akappa = 0.1780f;
+	#ifdef __NVCC__
+	__managed__ 
+	#endif
 	Complex_f jqq = 0;
 	float fmu = 0.0f;
 	int iread = 0;
 	int istart = 1;
-	int ibound = -1;
-	int iwrite = 1;
 	int iprint = 1; //How often are measurements made
 	int icheck = 5; //How often are configurations saved
+	int ibound = -1;
 #ifdef USE_MATH_DEFINES
 	const double tpi = 2*M_PI;
 #else
 	const double tpi = 2*acos(-1.0);
 #endif
 	float dt=0.004; float ajq = 0.0;
-	float delb; //Not used?
+	float delb=0; //Not used?
 	float athq = 0.0;
 	int stepl = 250; int ntraj = 10;
 	//rank is zero means it must be the "master process"
@@ -133,12 +156,15 @@ int main(int argc, char *argv[]){
 	Par_fcopy(&dt); Par_fcopy(&beta); Par_fcopy(&akappa); Par_fcopy(&ajq);
 	Par_fcopy(&athq); Par_fcopy(&fmu); Par_fcopy(&delb); //Not used?
 	Par_icopy(&stepl); Par_icopy(&ntraj); Par_icopy(&istart); Par_icopy(&icheck);
-	Par_icopy(&iread); jqq=ajq*cexp(athq*I);
+	Par_icopy(&iread); 
 #endif
+	jqq=ajq*cexp(athq*I);
 	//End of input
 #ifdef __NVCC__
 	//CUBLAS Handle
 	cublasCreate(&cublas_handle);
+	//Set up grid and blocks
+	blockInit(nx, ny, nz, nt, &dimBlock, &dimGrid);
 	//CUDA device
 	int device=-1;
 	cudaGetDevice(&device);
@@ -222,11 +248,19 @@ int main(int argc, char *argv[]){
 	u11t_f = (Complex_f *)aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex_f));
 	u12t_f = (Complex_f *)aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex_f));
 #endif
-	//Initialisation
-	//istart < 0: Start from tape in FORTRAN?!? How old was this code?
-	//istart = 0: Ordered/Cold Start
-	//			For some reason this leaves the trial fields as zero in the FORTRAN code?
-	//istart > 0: Random/Hot Start
+	/**
+	 * \subsection initialise Initialisation
+	 *
+	 * Changing the value of istart in the input parameter file gives us the following start options. These are quoted
+	 * from the FORTRAN comments
+	 *
+	 * istart < 0: Start from tape in FORTRAN?!? How old was this code? (depreciated, replaced with iread)
+	 *
+	 * istart = 0: Ordered/Cold Start
+	 * 			For some reason this leaves the trial fields as zero in the FORTRAN code?
+	 *
+	 * istart > 0: Random/Hot Start
+	 */
 	Init(istart,ibound,iread,beta,fmu,akappa,ajq,u11,u12,u11t,u12t,u11t_f,u12t_f,gamval,gamval_f,gamin,dk4m,dk4p,dk4m_f,dk4p_f,iu,id);
 #ifdef __NVCC__
 	//GPU Initialisation stuff
@@ -328,10 +362,16 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 	cudaMallocManaged(&R1, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMalloc(&Phi, nf*kferm*sizeof(Complex));
+#ifdef _DEBUG
+	cudaMallocManaged(&X0, nf*kferm2*sizeof(Complex),cudaMemAttachGlobal);
+#else
 	cudaMalloc(&X0, nf*kferm2*sizeof(Complex));
+#endif
+
 	cudaMallocManaged(&X1, kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&pp, kmom*sizeof(double),cudaMemAttachGlobal);
 	cudaMalloc(&dSdpi, kmom*sizeof(double));
+	cudaDeviceSynchronise();
 #else
 	R1= aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 	Phi= aligned_alloc(AVX,nf*kferm*sizeof(Complex)); 
@@ -341,7 +381,11 @@ int main(int argc, char *argv[]){
 	//pp is the momentum field
 	pp = aligned_alloc(AVX,kmom*sizeof(double));
 #endif
-	//Arabic for hour/watch so probably not defined elsewhere like TIME potentially is
+	/**
+	 * @subsection timing Timing
+	 * To time the code compile with @verbatim -DSA3AT @endverbatim
+	 * This is arabic for hour/watch so is probably not reserved like time is
+	 */
 #if (defined SA3AT)
 	double start_time=0;
 	if(!rank){
@@ -369,34 +413,51 @@ int main(int argc, char *argv[]){
 			//How do we optimise this for use in CUDA? Do we use CUDA's PRNG
 			//or stick with MKL and synchronise/copy over the array
 #ifdef __NVCC__
-			Complex_f *R,*R1_f;
-			cudaMallocAsync(&R1_f,kferm*sizeof(Complex_f),streams[0]);
+			Complex_f *R1_f,*R;
 			cudaMallocManaged(&R,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
+#ifdef _DEBUG
+			cudaMallocManaged(&R1_f,kferm*sizeof(Complex_f),cudaMemAttachGlobal);
+			cudaMemset(R1_f,0,kferm*sizeof(Complex_f));
 #else
-			Complex_f *R=aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
-			Complex_f *R1_f=aligned_alloc(AVX,kferm*sizeof(Complex_f));
+			cudaMallocAsync(&R1_f,kferm*sizeof(Complex_f),streams[0]);
+			cudaMemsetAsync(R1_f,0,kferm*sizeof(Complex_f),streams[0]);
 #endif
-			//Multiply the dimension of R by 2 because R is complex
+#else
+			Complex_f *R1_f=aligned_alloc(AVX,kferm*sizeof(Complex_f));
+			Complex_f *R=aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
+			memset(R1_f,0,kferm*sizeof(Complex_f));
+#endif
 			//The FORTRAN code had two Gaussian routines.
 			//gaussp was the normal Box-Muller and gauss0 didn't have 2 inside the square root
 			//Using σ=1/sqrt(2) in these routines has the same effect as gauss0
+#if (defined __NVCC__ && defined _DEBUG)
+			cudaMemPrefetchAsync(R1_f,kferm*sizeof(Complex_f),device,streams[1]);
+#endif
 #if (defined(USE_RAN2)||defined(__RANLUX__)||!defined(__INTEL_MKL__))
 			Gauss_c(R, kferm, 0, 1/sqrt(2));
 #else
 			vsRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, R, 0, 1/sqrt(2));
 #endif
 #ifdef __NVCC__
-			cudaMemPrefetchAsync(R,kferm*sizeof(Complex_f),device,NULL);
+			cudaMemPrefetchAsync(R,kfermHalo*sizeof(Complex_f),device,NULL);
+			cudaDeviceSynchronise();
 #endif
 			Dslashd_f(R1_f,R,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 #ifdef __NVCC__
+			//Make sure the multiplication is finished before freeing its input!!
+			cudaFree(R);//cudaDeviceSynchronise(); 
 			//cudaFree is blocking so don't need to synchronise
-			cudaFree(R);
 			cuComplex_convert(R1_f,R1,kferm,false,dimBlock,dimGrid);
-			cudaFreeAsync(R1_f,streams[0]);
-			cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,streams[1]);
-			//Up/down partitioning (using only pseudofermions of flavour 1)
-			cuUpDownPart(na,X0,R1,dimBlock,dimGrid);
+			//cudaDeviceSynchronise();
+			//cudaFreeAsync(R1_f,NULL);
+			cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,0);
+			//cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,streams[1]);
+			cudaDeviceSynchronise();
+#ifdef _DEBUG
+			cudaFree(R1_f);
+#else
+			cudaFreeAsync(R1_f,0);
+#endif
 			//cudaFree is blocking so don't need cudaDeviceSynchronise()
 #else
 			free(R); 
@@ -406,18 +467,20 @@ int main(int argc, char *argv[]){
 			free(R1_f);
 			memcpy(Phi+na*kferm,R1, kferm*sizeof(Complex));
 			//Up/down partitioning (using only pseudofermions of flavour 1)
-#pragma omp parallel for simd collapse(2) aligned(X0,R1:AVX)
-			for(int i=0; i<kvol; i++)
-				for(int idirac = 0; idirac < ndirac; idirac++){
-					X0[((na*kvol+i)*ndirac+idirac)*nc]=R1[(i*ngorkov+idirac)*nc];
-					X0[((na*kvol+i)*ndirac+idirac)*nc+1]=R1[(i*ngorkov+idirac)*nc+1];
-				}
 #endif
+			UpDownPart(na, X0, R1);
 		}	
 		//Heatbath
 		//========
 		//We're going to make the most of the new Gauss_d routine to send a flattened array
 		//and do this all in one step.
+#ifdef __NVCC__
+		cudaMemcpyAsync(u11t, u11, ndim*kvol*sizeof(Complex),cudaMemcpyHostToDevice,streams[1]);
+		cudaMemcpyAsync(u12t, u12, ndim*kvol*sizeof(Complex),cudaMemcpyHostToDevice,streams[2]);
+#else
+		memcpy(u11t, u11, ndim*kvol*sizeof(Complex));
+		memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
+#endif
 #if (defined(USE_RAN2)||defined(__RANLUX__)||!defined(__INTEL_MKL__))
 		Gauss_d(pp, kmom, 0, 1);
 #else
@@ -435,7 +498,7 @@ int main(int argc, char *argv[]){
 		Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
 		double H0, S0;
 		Hamilton(&H0, &S0, rescga,pp,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval_f,gamin,\
-				dk4m_f,dk4p_f,jqq,akappa,beta,&ancgh);
+				dk4m_f,dk4p_f,jqq,akappa,beta,&ancgh,itraj);
 #ifdef _DEBUG
 		if(!rank) printf("H0: %e S0: %e\n", H0, S0);
 #endif
@@ -460,7 +523,9 @@ int main(int argc, char *argv[]){
 #endif
 		//Main loop for classical time evolution
 		//======================================
-		for(int step = 1; step<=stepmax; step++){
+		bool end_traj=false; int step =1;
+		//	for(int step = 1; step<=stepmax; step++){
+		do{
 #ifdef _DEBUG
 			if(!rank)
 				printf("Traj: %d\tStep: %d\n", itraj, step);
@@ -498,6 +563,7 @@ int main(int argc, char *argv[]){
 				itot+=step;
 				ancg/=step;
 				totancg+=ancg;
+				end_traj=true;
 				break;
 			}
 			else{
@@ -512,14 +578,15 @@ int main(int argc, char *argv[]){
 				for(int i = 0; i<kmom; i++)
 					pp[i]-=dt*dSdpi[i];
 #endif
+				step++;
 			}
-		}
+		}while(!end_traj);
 		//Monte Carlo step: Accept new fields with the probability of min(1,exp(H0-X0))
 		//Kernel Call needed here?
 		Reunitarise(u11t,u12t);
 		double H1, S1;
 		Hamilton(&H1, &S1, rescga,pp,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval_f,gamin,\
-				dk4m_f,dk4p_f,jqq,akappa,beta,&ancgh);
+				dk4m_f,dk4p_f,jqq,akappa,beta,&ancgh,itraj);
 		ancgh/=2.0; //Hamilton is called at start and end of trajectory
 		totancgh+=ancgh;
 #ifdef _DEBUG
@@ -628,7 +695,6 @@ int main(int argc, char *argv[]){
 								//That will need to be looked into for the C version
 								//It would explain the weird names like fort.1X that looked like they were somehow
 								//FORTRAN related...
-								//Not yet implemented
 								fprintf(output, "Iter (CG) %i ancg %.3f ancgh %.3f\n", itercg, ancg, ancgh);
 								fflush(output);
 								break;
@@ -746,9 +812,15 @@ int main(int argc, char *argv[]){
 #if (defined SA3AT)
 	if(!rank){
 		FILE *sa3at = fopen("Bench_times.csv", "a");
+#ifdef __NVCC__
+		char *version[256];
+		sprintf(version,"%s\n%s",cudaRuntimeGetVersion,__VERSION__);
+#else
+		char *version=__VERSION__;
+#endif
 		fprintf(sa3at, "%s\nβ%0.3f κ:%0.4f μ:%0.4f j:%0.3f s:%i t:%i kvol:%ld\n"
 				"npx:%i npt:%i nthread:%i ncore:%i time:%f traj_time:%f\n\n",\
-				__VERSION__,beta,akappa,fmu,ajq,nx,nt,kvol,npx,npt,nthreads,npx*npy*npz*npt*nthreads,elapsed,elapsed/ntraj);
+				version,beta,akappa,fmu,ajq,nx,nt,kvol,npx,npt,nthreads,npx*npy*npz*npt*nthreads,elapsed,elapsed/ntraj);
 		fclose(sa3at);
 	}
 #endif
@@ -775,4 +847,4 @@ int main(int argc, char *argv[]){
 #endif
 	fflush(stdout);
 	return 0;
-}
+	}
