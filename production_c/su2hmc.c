@@ -278,7 +278,7 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 #endif
 		Fill_Small_Phi(na, smallPhi, Phi);
 		if(Congradq(na,res2,X1,smallPhi,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,&itercg))
-			fprintf("Trajectory %d\n", traj);
+			fprintf(stderr,"Trajectory %d\n", traj);
 
 		*ancgh+=itercg;
 #ifdef __NVCC__
