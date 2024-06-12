@@ -19,7 +19,7 @@ SYCLCCFLAGS= -I./INCLUDE ${IFLAGS} -err-no -w #-expt-relaxed-constexpr
 
 EXE=	su2hmc_SYCL
 
-CSRC_DIR=	../production_c
+CSRC_DIR=	./production_c
 CSRC=	\
 	    coord.c \
 	    congrad.c \
