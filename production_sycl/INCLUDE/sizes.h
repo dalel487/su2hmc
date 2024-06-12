@@ -44,17 +44,17 @@
 #include <oneapi/mkl.hpp>
 using namespace oneapi::mkl;
 ///@brief	Get rid of that bastardised yankee English
-#endif
+#include <thrust_complex.h>
 #ifdef SYCL_LANGUAGE_VERSION
 #include <dpct/dpl_utils.hpp>
-//#else
-//#include	<complex.h>
-/////@brief Single precision complex number 
-//#define	Complex_f	float	complex
-/////@brief Double precision complex number 
-//#define	Complex		double complex
 #endif
-#include <thrust_complex.h>
+#else
+#include	<complex.h>
+///@brief Single precision complex number 
+#define	Complex_f	float	complex
+///@brief Double precision complex number 
+#define	Complex		double complex
+#endif
 
 /// @brief	Default file name length
 #define	FILELEN	64

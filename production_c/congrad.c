@@ -75,7 +75,6 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 	cuComplex_convert(X1_f,X1,kferm2,true,dimBlock,dimGrid);
 	//cudaMemcpy is blocking, so use async instead
 	cuComplex_convert(r_f,r,kferm2,true,dimBlock,dimGrid);
-	cudaMemcpyAsync(p_f, X1_f, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice,NULL);
 #else
 #pragma omp parallel for simd
 	for(int i=0;i<kferm2;i++){
@@ -98,9 +97,9 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 #endif
 		//x2 =  (M^†M+J^2)p 
 		//No point adding zero a couple of hundred times if the diquark source is zero
-		if(fac_f!=0){
+		if(fac_f!=(Complex_f)0){
 #ifdef	DPCT_COMPATIBILITY_TEMP
-			cublasCaxpy(cublas_handle,kferm2,(cuComplex *)&fac_f,(cuComplex *)p_f,1,(cuComplex *)x2_f,1);
+			blas::axpy(streams[0],kferm2, &fac_f, p_f, 1, x2_f, 1);
 #elif defined USE_BLAS
 			cblas_caxpy(kferm2, &fac_f, p_f, 1, x2_f, 1);
 #else
@@ -113,7 +112,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 		if(*itercg){
 			//α_d= p* (M^†M+J^2)p
 #ifdef DPCT_COMPATIBILITY_TEMP
-			cublasCdotc(cublas_handle,kferm2,(cuComplex *)p_f,1,(cuComplex *)x2_f,1,(cuComplex *)&alphad);
+			blas::dotc(streams[0],kferm2,p_f,1,x2_f,1,&alphad);
 #elif defined USE_BLAS
 			cblas_cdotc_sub(kferm2, p_f, 1, x2_f, 1, &alphad);
 #else
@@ -132,7 +131,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 			//x-αp, 
 #ifdef DPCT_COMPATIBILITY_TEMP
 			Complex_f alpha_f = (Complex_f)alpha;
-			cublasCaxpy(cublas_handle,kferm2,(cuComplex *)&alpha_f,(cuComplex *)p_f,1,(cuComplex *)X1_f,1);
+			blas::axpy(streams[0],kferm2,&alpha_f,p_f,1,X1_f,1);
 #elif defined USE_BLAS
 			Complex_f alpha_f = (Complex_f)alpha;
 			cblas_caxpy(kferm2, &alpha_f, p_f, 1, X1_f, 1);
@@ -144,9 +143,9 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 		// r_n+1 = r_n-α(M^† M)p_n and β_n=r*.r
 #ifdef	DPCT_COMPATIBILITY_TEMP
 		Complex_f alpha_m=(Complex_f)(-alpha);
-		cublasCaxpy(cublas_handle, kferm2,(cuComplex *)&alpha_m,(cuComplex *)x2_f,1,(cuComplex *)r_f,1);
+		blas::axpy(streams[0], kferm2,&alpha_m,x2_f,1,r_f,1);
 		float betan_f;
-		cublasScnrm2(cublas_handle,kferm2,(cuComplex *)r_f,1,&betan_f);
+		blas::nrm2(streams[0],kferm2,r_f,1,&betan_f);
 		betan = betan_f*betan_f;
 #elif defined USE_BLAS
 		Complex_f alpha_m = (Complex_f)(-alpha);
@@ -196,9 +195,10 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 		//β instead of x.
 #ifdef DPCT_COMPATIBILITY_TEMP
 		Complex_f beta_f=(Complex_f)beta;
-		__managed__ Complex_f a = 1.0;
-		cublasCscal(cublas_handle,kferm2,(cuComplex *)&beta_f,(cuComplex *)p_f,1);
-		cublasCaxpy(cublas_handle,kferm2,(cuComplex *)&a,(cuComplex *)r_f,1,(cuComplex *)p_f,1);
+		Complex_f a = 1.0;
+		blas::scal(streams[0],kferm2,&beta_f,p_f,1);
+		blas::axpy(streams[0],kferm2,&a,r_f,1,p_f,1);
+		blas::axpby(streams[0],kferm2, &a, r_f, 1, &beta_f,  p_f, 1);
 #elif (defined __INTEL_MKL__)
 		Complex_f a = 1.0;
 		Complex_f beta_f=(Complex_f)beta;
@@ -226,8 +226,8 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 #endif
 #ifdef DPCT_COMPATIBILITY_TEMP
 	cudaDeviceSynchronise();
-	streams[0]::free(x1_f);streams[0]::free(x2_f); streams[0]::free(p_f);
-	streams[0]::free(r_f);streams[0]::free(X1_f);
+	sycl::free(x1_f,streams[0]);sycl::free(x2_f,streams[0]); sycl::free(p_f,streams[0]);
+	sycl::free(r_f,streams[0]);sycl::free(X1_f,streams[0]);
 #else
 	free(x1_f);free(x2_f); free(p_f);  free(r_f); free(X1_f);
 #endif
@@ -329,7 +329,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 #ifdef USE_BLAS
 			float alphad_f;
 #ifdef DPCT_COMPATIBILITY_TEMP
-			cublasScnrm2(cublas_handle,kferm,(cuComplex*) x1_f, 1,(float *)&alphad_f);
+			blas::nrm2(streams[0],kferm, x1_f, 1,(float *)&alphad_f);
 			alphad = alphad_f*alphad_f;
 #else
 			alphad = cblas_scnrm2(kferm, x1_f, 1);
@@ -348,9 +348,9 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 			//			Complex_f alpha_f = (Complex_f)alpha;
 			//x+αp
 #ifdef USE_BLAS
-			Complex_f alpha_f=(float)alpha;
+			Complex_f alpha_f=creal(alpha);
 #ifdef DPCT_COMPATIBILITY_TEMP
-			cublasCaxpy(cublas_handle,kferm,(cuComplex*) &alpha_f,(cuComplex*) p_f,1,(cuComplex*) xi_f,1);
+			blas::axpy(streams[0],kferm, &alpha_f, p_f,1, xi_f,1);
 #else
 			cblas_caxpy(kferm, (Complex_f*)&alpha_f,(Complex_f*)p_f, 1, (Complex_f*)xi_f, 1);
 #endif
@@ -365,11 +365,11 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 #if defined USE_BLAS
 		Complex_f alpha_m=(Complex_f)(-alpha);
 #ifdef DPCT_COMPATIBILITY_TEMP
-		cublasCaxpy(cublas_handle,kferm, (cuComplex *)&alpha_m,(cuComplex *) x2_f, 1,(cuComplex *) r_f, 1);
+		blas::axpy(streams[0],kferm, &alpha_m, x2_f, 1, r_f, 1);
 		//cudaDeviceSynchronise();
 		//r*.r
 		float betan_f;
-		cublasScnrm2(cublas_handle,kferm,(cuComplex *) r_f,1,(float *)&betan_f);
+		blas::nrm2(streams[0],kferm, r_f,1,(float *)&betan_f);
 #else
 		cblas_caxpy(kferm,(Complex_f*) &alpha_m,(Complex_f*) x2_f, 1,(Complex_f*) r_f, 1);
 		//r*.r
@@ -423,8 +423,9 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 		Complex_f beta_f = (Complex_f)beta;
 		Complex_f a = 1.0;
 #ifdef DPCT_COMPATIBILITY_TEMP
-		cublasCscal(cublas_handle,kferm,(cuComplex *)&beta_f,(cuComplex *)p_f,1);
-		cublasCaxpy(cublas_handle,kferm,(cuComplex *)&a,(cuComplex *)r_f,1,(cuComplex *)p_f,1);
+		blas::scal(streams[0],kferm,&beta_f,p_f,1);
+		blas::axpy(streams[0],kferm,&a,r_f,1,p_f,1);
+		blas::axpby(streams[0],kferm, &a, r_f, 1, &beta_f,  p_f, 1);
 		cudaDeviceSynchronise();
 #elif (defined __INTEL_MKL__ || defined AMD_BLAS)
 		cblas_caxpby(kferm, &a, r_f, 1, &beta_f,  p_f, 1);
@@ -447,7 +448,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 	}
 #endif
 #ifdef	DPCT_COMPATIBILITY_TEMP
-	streams[0]::free(p_f); streams[0]::free(r_f);streams[0]::free(x1_f); streams[0]::free(x2_f); streams[0]::free(xi_f); 
+	sycl::free(p_f,streams[0]); sycl::free(r_f,streams[0]);sycl::free(x1_f,streams[0]); sycl::free(x2_f,streams[0]); sycl::free(xi_f,streams[0]); 
 #else
 	free(p_f); free(r_f); free(x1_f); free(x2_f); free(xi_f); 
 #endif

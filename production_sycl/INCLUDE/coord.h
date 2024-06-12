@@ -27,15 +27,11 @@
 #include <cblas.h>
 #endif
 #include <sizes.h>
-#ifdef SYCL_LANGUAGE_VERSION
-dpct::shared_memory<unsigned int *, 0> hu;
-#else
 #ifdef __CUDACC__
 __managed__
 #endif
 ///@brief Up halo indices
 extern unsigned int *hu;
-#endif
 ///@brief Down halo indices
 extern unsigned int *hd;
 ///@brief Up halo starting element
