@@ -34,19 +34,16 @@
 #include <gsl/gsl_cblas.h>
 #elif defined AMD_BLAS
 #define	USE_BLAS
-#include	<cblas.h>
+#include	<oneapi/mkl.hpp>
 #endif
 #ifdef DPCT_COMPATIBILITY_TEMP
 #include <oneapi/dpl/execution>
 #include <oneapi/dpl/algorithm>
 #include <sycl/sycl.hpp>
 #include <dpct/dpct.hpp>
-#include <cublas_v2.h>
-extern cublasHandle_t cublas_handle;
-extern cublasStatus_t cublas_status;
-extern cudaMemPool_t mempool;
+#include <oneapi/mkl.hpp>
 ///@brief	Get rid of that bastardised yankee English
-#define cudaDeviceSynchronise() queue::wait()
+#define cudaDeviceSynchronise() sycl::device.wait()
 #endif
 #ifdef SYCL_LANGUAGE_VERSION
 #include <thrust_complex.h>

@@ -5,9 +5,6 @@
  */
 #ifndef MATRICES
 #define MATRICES
-#ifdef DPCT_COMPATIBILITY_TEMP
-#include <curand.h>
-#endif
 #include <oneapi/dpl/execution>
 #include <oneapi/dpl/algorithm>
 #include <sycl/sycl.hpp>
@@ -257,29 +254,28 @@ extern "C"
 #ifdef SYCL_LANGUAGE_VERSION
 //Actual CUDA
 void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
-		Complex *gamval, int *gamin, double *dk4m, double *dk4p, Complex_f jqq, float akappa);
+		Complex *gamval, int *gamin, double *dk4m, double *dk4p, Complex_f jqq, float akappa, const sycl::nd_item<3> &item_ct1);
 void cuDslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
-		Complex *gamval, int *gamin, double *dk4m, double *dk4p, Complex_f jqq, float akappa);
+		Complex *gamval, int *gamin, double *dk4m, double *dk4p, Complex_f jqq, float akappa, const sycl::nd_item<3> &item_ct1);
 void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
-		Complex *gamval, int *gamin, double *dk4m, double *dk4p, float akappa);
+		Complex *gamval, int *gamin, double *dk4m, double *dk4p, float akappa, const sycl::nd_item<3> &item_ct1);
 void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
-		Complex *gamval, int *gamin, double *dk4m, double *dk4p, float akappa);
+		Complex *gamval, int *gamin, double *dk4m, double *dk4p, float akappa, const sycl::nd_item<3> &item_ct1);
 //Float version
 void cuDslash0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		
+		 Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, Complex_f jqq, float akappa, const sycl::nd_item<3> &item_ct1);
 void cuDslashd0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		
+		 Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, Complex_f jqq, float akappa, const sycl::nd_item<3> &item_ct1);
 void cuDslash1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		
+		 Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, Complex_f jqq, float akappa, const sycl::nd_item<3> &item_ct1);
 void cuDslashd1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		
-
+		 Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, Complex_f jqq, float akappa, const sycl::nd_item<3> &item_ct1);
 void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		
+		 Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, float akappa, const sycl::nd_item<3> &item_ct1);
 void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		
+		 Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, float akappa, const sycl::nd_item<3> &item_ct1);
 //New Trial Fields
-void cuReunitarise(Complex *u11t, Complex *u12t);
-void cuNew_trial(double dt, double *pp, Complex *u11t, Complex *u12t, int mu);
+void cuReunitarise(Complex *u11t, Complex *u12t,const sycl::nd_item<3> &item_ct1);
+void cuNew_trial(double dt, double *pp, Complex *u11t, Complex *u12t, int mu,const sycl::nd_item<3> &item_ct1);
 #endif
 #endif

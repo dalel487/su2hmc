@@ -2,9 +2,9 @@ MF=Makefile_Intel
 CC=		icx
 CXX=		icpx  -fsycl
 
-IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include" -I ./ -I../production_c  $(shell gsl-config --cflags)
+IFLAGS=   -I../INCLUDE -I"${MKLROOT}/include" -I ./ -I../production_c  $(shell gsl-config --cflags)
 
-CFLAGS=  -qmkl -qopt-zmm-usage=high -MD  -static-intel -static-libgcc \
+CFLAGS=  -qmkl -qopt-zmm-usage=high -MD  -static-intel -static-libgcc -ipo\
 			-xSKYLAKE -ax'SKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE'\
 			-DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__ -qopenmp \
 			-qopenmp-simd -DSA3AT -use-intel-optimized-headers -mllvm -loopopt=0 $(IFLAGS) 
@@ -13,7 +13,7 @@ MKLFLAGS=	-qmkl -L${MKLROOT}/lib/intel64 -limf #-DUSE_MKL -DMKL_DIRECT_CALL -DMK
 
 LFLAGS=		-liomp5 -lstdc++ -lpthread -ldl -limf $(shell gsl-config --libs-without-cblas) #${SYCLLFLAGS}
 
-SYCLCCFLAGS=	-I./INCLUDE ${IFLAGS} --resource-usage -std=c++14 -err-no -w #-expt-relaxed-constexpr 
+SYCLCCFLAGS= -I./INCLUDE ${IFLAGS} -err-no -w #-expt-relaxed-constexpr 
 #Replace first line of SYCLCCFLAGS with below when done. Targets every platform since 2016
 #SYCLCCFLAGS=	${IFLAGS}  -arch=compute_60 -code=sm_60,sm_61,sm_70,sm_75,sm_80,sm_86,sm_90 -err-no -w \
 
@@ -56,7 +56,7 @@ CINC=	\
 C_SOURCES:= $(wildcard $(CSRC_DIR)/*.c)
 SYCL_SOURCES:= $(wildcard $(SYCLSRC_DIR)/*.dp.cpp)
 COBJ=	$(patsubst $(CSRC_DIR)/%.c, $(CSRC_DIR)/%.o, $(C_SOURCES))
-SYCLOBJ= $(patsubst $(SYCLSRC_DIR)/%.dp.cpp, $(SYCLSRC_DIR)/%.o, $(SYCL_SOURCES))
+SYCLOBJ= $(patsubst $(SYCLSRC_DIR)/%.dp.cpp, $(SYCLSRC_DIR)/%.dp.o, $(SYCL_SOURCES))
 CLIB= libc.a
 SYCLLIB= libcu.a
 SYCLLIB2= libcu2.a
@@ -74,7 +74,7 @@ profiler:	SYCLCCFLAGS += -lineinfo #-D_DEBUGCG #-keep
 profiler:	release
 
 release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high -rdynamic
-release:	SYCLCCFLAGS += -Xptxas -O3,-v -arch=native #--maxrregcount=64 -G -dopt=on
+release:	SYCLCCFLAGS += #--maxrregcount=64 -G -dopt=on
 release:	$(EXE)
 
 diagnostic: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
@@ -86,11 +86,11 @@ debug:		SYCLCCFLAGS += -Xptxas -O0,-v -G -g -D_DEBUG -arch=sm_75 --maxrregcount=
 debug:		$(EXE)
 		 
 $(EXE): ../main.c $(OBJ)
-	$(SYCLCC) $(SYCLCCFLAGS) -ccbin $(CC) -Xcompiler "$(CFLAGS) $(MKLFLAGS) -std=gnu11 -ipo" $^ $(LFLAGS) $(SYCLLFLAGS)  -o $@
-%.o: $(SYCLSRC_DIR)/%.dp.cpp
-	$(SYCLCC) $(SYCLCCFLAGS) -ccbin $(CXX) -Xcompiler "$(CFLAGS) $(MKLFLAGS)" $^ -dc $@
+	$(CXX) $(CFLAGS) $(MKLFLAGS) $^ $(LFLAGS) -o $@
+%.dp.o: $(SYCLSRC_DIR)/%.dp.cpp
+	$(CXX) -std=c++17 $(SYCLCCFLAGS) $(CFLAGS) $(MKLFLAGS) -c $^
 %.o: $(CSRC_DIR)%.c
-	$(CC) -std=gnu11 -ipo $(CFLAGS) $(MKLFLAGS) -c $^  
+	$(CC) -std=gnu11 $(CFLAGS) $(MKLFLAGS) -c $^  
 
 clean:
 	rm -f $(OBJ) $(COBJ) $(SYCLOBJ) $(SYCLLIB) $(CLIB) $(TMP) *.cpp?.ii *.dp.cppdafe1.* *.*bin *.fatbin.c *.ptx *.sm_* *module_id \

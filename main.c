@@ -48,7 +48,8 @@
 #include	<random.h>
 #include	<string.h>
 #include	<su2hmc.h>
-#ifdef	__NVCC__
+
+#elif defined	__NVCC__
 #include <cublas_v2.h>
 #include	<cuda.h>
 #include	<cuda_runtime.h>

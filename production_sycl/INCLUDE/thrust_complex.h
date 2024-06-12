@@ -10,22 +10,24 @@
 #define TCMPLX
 #include <sycl/sycl.hpp>
 #include <dpct/dpct.hpp>
+#define SYCL_EXT_ONEAPI_COMPLEX
+#include <sycl/ext/oneapi/experimental/complex/complex.hpp>
 #include <complex>
-using std::complex;
+using namespace sycl::ext::oneapi::experimental;
 //#undef	complex
 ///@brief Single precision complex number 
-#define	Complex_f	 complex<float>
+#define	Complex_f	complex<float>
 ///@brief Double precision complex number 
-#define	Complex	 complex<double>
+#define	Complex		complex<double>
 
 ///@brief	Exponentiate
-#define	cexp(z)	std::exp(z)
+#define	cexp(z)	exp(z)
 ///@brief	Extract Imaginary Component
 #define	cimag(z)	z.imag()
 ///@brief	Extract Real Component
 #define	creal(z)	z.real()
 ///@brief	Complex Conjugation
-#define	conj(z)	std::conj(z)
+#define	conj(z)	conj(z)
 ///@brief 	Define I
 #define	I	Complex(0.0,1.0)	
 #endif

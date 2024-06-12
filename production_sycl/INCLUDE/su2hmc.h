@@ -325,7 +325,7 @@ extern "C"
 	//#################
 #ifdef DPCT_COMPATIBILITY_TEMP
         //Not a function. An array of concurrent GPU streams to keep it busy
-        extern dpct::queue_ptr streams[ndirac * ndim * nadj];
+        extern sycl::queue streams[ndirac * ndim * nadj];
         //Calling Functions:
 	//=================
         void cuAverage_Plaquette(double *hgs, double *hgt, Complex_f *u11t,
@@ -381,34 +381,34 @@ extern "C"
 //__global__ void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
 //		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa);
 void Plus_staple(int mu, int nu,unsigned int *iu, Complex_f *Sigma11, Complex_f *Sigma12,\
-		Complex_f *u11t, Complex_f *u12t);
+		Complex_f *u11t, Complex_f *u12t,const sycl::nd_item<3> &item_ct1);
 void Minus_staple(int mu, int nu,unsigned int *iu,unsigned int *id, Complex_f *Sigma11, Complex_f *Sigma12,\
-		Complex_f *u11sh, Complex_f *u12sh, Complex_f *u11t, Complex_f *u12t);
+		Complex_f *u11sh, Complex_f *u12sh, Complex_f *u11t, Complex_f *u12t,const sycl::nd_item<3> &item_ct1);
 void cuGaugeForce(int mu, Complex_f *Sigma11, Complex_f *Sigma12,double* dSdpi,Complex_f *u11t, Complex_f *u12t,\
-		float beta);
-void cuAverage_Plaquette(float *hgs_d, float *hgt_d, Complex_f *u11t, Complex_f *u12t, unsigned int *iu);
-void cuPolyakov(Complex_f *Sigma11, Complex_f * Sigma12, Complex_f *u11t, Complex_f *u12t);
+		float beta,	const sycl::nd_item<3> &item_ct1);
+void cuAverage_Plaquette(float *hgs_d, float *hgt_d, Complex_f *u11t, Complex_f *u12t, unsigned int *iu,	const sycl::nd_item<3> &item_ct1);
+void cuPolyakov(Complex_f *Sigma11, Complex_f * Sigma12, Complex_f *u11t, Complex_f *u12t,const sycl::nd_item<3> &item_ct1);
 float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int i, int mu, int nu);
 //Force Kernels. We've taken each nadj index and the spatial/temporal components and created a separate kernel for each
 //CPU code just has these as a huge blob that the vectoriser can't handle. May be worth splitting it there too?
 //It might not be a bad idea to make a seperate header for all these kernels...
 void cuForce_s0(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
-		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac, int mu);
+		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac, int mu,const sycl::nd_item<3> &item_ct1);
 void cuForce_s1(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
-		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac, int mu);
+		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac, int mu,const sycl::nd_item<3> &item_ct1);
 void cuForce_s2(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
-		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac, int mu);
+		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac, int mu,const sycl::nd_item<3> &item_ct1);
 void cuForce_t0(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
-		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac);
+		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac,const sycl::nd_item<3> &item_ct1);
 void cuForce_t1(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
-		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac);
+		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac,const sycl::nd_item<3> &item_ct1);
 void cuForce_t2(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
-		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac);
-void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi);
-void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu);
-void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu);
-void cuComplex_convert(Complex_f *a, Complex *b, int len, bool dtof);
-void cuReal_convert(float *a, double *b, int len, bool dtof);
-void cuUpDownPart(int na, Complex *X0, Complex *R1);
+		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac,const sycl::nd_item<3> &item_ct1);
+void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi,const sycl::nd_item<3> &item_ct1);
+void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu,const sycl::nd_item<3> &item_ct1);
+void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu,const sycl::nd_item<3> &item_ct1);
+void cuComplex_convert(Complex_f *a, Complex *b, int len, bool dtof,const sycl::nd_item<3> &item_ct1);
+void cuReal_convert(float *a, double *b, int len, bool dtof,const sycl::nd_item<3> &item_ct1);
+void cuUpDownPart(int na, Complex *X0, Complex *R1,const sycl::nd_item<3> &item_ct1);
 #endif
 #endif

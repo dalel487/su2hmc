@@ -10,7 +10,7 @@
 #include <sycl/sycl.hpp>
 #include <dpct/dpct.hpp>
 #define USE_BLAS
-#include <cublas_v2.h>
+#include <oneapi/mkl.hpp>
 #endif
 #include <math.h>
 #if (defined__INTEL_COMPILER || __INTEL_LLVM_COMPILER)
@@ -29,6 +29,7 @@
 #include <sizes.h>
 #ifdef SYCL_LANGUAGE_VERSION
 dpct::shared_memory<unsigned int *, 0> hu;
+#else
 #ifdef __CUDACC__
 __managed__
 #endif

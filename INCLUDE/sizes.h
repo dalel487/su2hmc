@@ -59,7 +59,7 @@ extern cudaMemPool_t mempool;
 #include <thrust_complex.h>
 #include <dpct/dpl_utils.hpp>
 
-#elif define __CUDACC__
+#elif defined __CUDACC__
 #include	<thrust_complex.h>
 #include <thrust/reduce.h>
 #include <thrust/device_vector.h>
@@ -297,7 +297,7 @@ extern dim3	dimGrid;//	=dim3(nt,1,1);
 extern dim3	dimBlockOne;//	=dim3(nx,ny,nz);
 extern dim3	dimGridOne;//	=dim3(nt,1,1);
 #define	USE_BLAS
-#elif defned DPCT_COMPATIBILITY_TEMP
+#elif defined DPCT_COMPATIBILITY_TEMP
 /*
  * @section gridblock Grids and Blocks
  *

@@ -9,44 +9,85 @@
 #include	<su2hmc.h>
 //Calling functions
 void cuGauge_force(int mu, Complex_f *Sigma11, Complex_f *Sigma12,
-                   Complex_f *u11t, Complex_f *u12t, double *dSdpi, float beta,
-                   sycl::range<3> dimGrid, sycl::range<3> dimBlock) {
-        const char *funcname = "Gauge_force";
-	cuGaugeForce<<<dimGrid,dimBlock>>>(mu,Sigma11,Sigma12,dSdpi,u11t,u12t,beta);
+		Complex_f *u11t, Complex_f *u12t, double *dSdpi, float beta,
+		sycl::range<3> dimGrid, sycl::range<3> dimBlock) {
+	const char *funcname = "Gauge_force";
+	sycl::nd_range<3>(dimGrid * dimBlock, dimBlock),
+		[=](sycl::nd_item<3> item_ct1) {
+			cuGaugeForce(mu,Sigma11,Sigma12,dSdpi,u11t,u12t,beta,item_ct1);
+		};
 }
 void cuPlus_staple(int mu, int nu, unsigned int *iu, Complex_f *Sigma11,
-                   Complex_f *Sigma12, Complex_f *u11t, Complex_f *u12t,
-                   sycl::range<3> dimGrid, sycl::range<3> dimBlock) {
-        const char *funcname="Plus_staple";
-	Plus_staple<<<dimGrid,dimBlock>>>(mu, nu, iu, Sigma11, Sigma12,u11t,u12t);
+		Complex_f *Sigma12, Complex_f *u11t, Complex_f *u12t,
+		sycl::range<3> dimGrid, sycl::range<3> dimBlock) {
+	const char *funcname="Plus_staple";
+	streams[mu*nadj+0].parallel_for(
+			sycl::nd_range<3>(dimGrid * dimBlock, dimBlock),
+			[=](sycl::nd_item<3> item_ct1) {
+			Plus_staple(mu, nu, iu, Sigma11, Sigma12,u11t,u12t,item_ct1);
+			});
 }
 void cuMinus_staple(int mu, int nu, unsigned int *iu, unsigned int *id,
-                    Complex_f *Sigma11, Complex_f *Sigma12, Complex_f *u11sh,
-                    Complex_f *u12sh, Complex_f *u11t, Complex_f *u12t,
-                    sycl::range<3> dimGrid, sycl::range<3> dimBlock) {
-        const char *funcname="Minus_staple";
-	Minus_staple<<<dimGrid,dimBlock>>>(mu, nu, iu, id,Sigma11,Sigma12,u11sh,u12sh,u11t,u12t);
+		Complex_f *Sigma11, Complex_f *Sigma12, Complex_f *u11sh,
+		Complex_f *u12sh, Complex_f *u11t, Complex_f *u12t,
+		sycl::range<3> dimGrid, sycl::range<3> dimBlock) {
+	const char *funcname="Minus_staple";
+	streams[mu*nadj+0].parallel_for(
+			sycl::nd_range<3>(dimGrid * dimBlock, dimBlock),
+			[=](sycl::nd_item<3> item_ct1) {
+			Minus_staple(mu, nu, iu, id,Sigma11,Sigma12,u11sh,u12sh,u11t,u12t,item_ct1);
+			});
 }
 void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1,
-             Complex *X2, Complex *gamval, double *dk4m, double *dk4p,
-             unsigned int *iu, int *gamin, float akappa, sycl::range<3> dimGrid,
-             sycl::range<3> dimBlock) {
-        const char *funcname = "Force";
+		Complex *X2, Complex *gamval, double *dk4m, double *dk4p,
+		unsigned int *iu, int *gamin, float akappa, sycl::range<3> dimGrid,
+		sycl::range<3> dimBlock) {
+	const char *funcname = "Force";
 	//X1=(M†M)^{1} Phi
 	//cuForce<<<dimGrid,dimBlock>>>(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa);
 	for(int idirac=0;idirac<ndirac;idirac++){
 		for(int mu=0;mu<3;mu++){
-			cuForce_s0<<<dimGrid,dimBlock,0,streams[mu*nadj+0]>>>(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac,mu);
-			cuForce_s1<<<dimGrid,dimBlock,0,streams[mu*nadj+1]>>>(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac,mu);
-			cuForce_s2<<<dimGrid,dimBlock,0,streams[mu*nadj+2]>>>(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac,mu);
+			//Manually done
+			streams[mu*nadj+0].parallel_for(
+					sycl::nd_range<3>(dimGrid * dimBlock, dimBlock),
+					[=](sycl::nd_item<3> item_ct1) {
+					cuForce_s0(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac,mu,item_ct1);
+					});
+			//Manually done
+			streams[mu*nadj+1].parallel_for(
+					sycl::nd_range<3>(dimGrid * dimBlock, dimBlock),
+					[=](sycl::nd_item<3> item_ct1) {
+					cuForce_s1(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac,mu,item_ct1);
+					});
+			//Manually done
+			streams[mu*nadj+2].parallel_for(
+					sycl::nd_range<3>(dimGrid * dimBlock, dimBlock),
+					[=](sycl::nd_item<3> item_ct1) {
+					cuForce_s2(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac,mu,item_ct1);
+					});
 		}
 		//Set stream for time direction
 		int mu=3;
-		cuForce_t0<<<dimGrid,dimBlock,0,streams[mu*nadj+0]>>>(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac);
-		cuForce_t1<<<dimGrid,dimBlock,0,streams[mu*nadj+1]>>>(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac);
-		cuForce_t2<<<dimGrid,dimBlock,0,streams[mu*nadj+2]>>>(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac);
+		//Manually done
+		streams[mu*nadj+0].parallel_for(
+				sycl::nd_range<3>(dimGrid * dimBlock, dimBlock),
+				[=](sycl::nd_item<3> item_ct1) {
+				cuForce_t0(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac,item_ct1);
+				});
+		//Manually done
+		streams[mu*nadj+1].parallel_for(
+				sycl::nd_range<3>(dimGrid * dimBlock, dimBlock),
+				[=](sycl::nd_item<3> item_ct1) {
+				cuForce_t1(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac,item_ct1);
+				});
+		//Manually done
+		streams[mu*nadj+2].parallel_for(
+				sycl::nd_range<3>(dimGrid * dimBlock, dimBlock),
+				[=](sycl::nd_item<3> item_ct1) {
+				cuForce_t2(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac,item_ct1);
+				});
 	}
-	cudaDeviceSynchronise();
+	//cudaDeviceSynchronise();
 }
 
 //CUDA Kernels
@@ -91,34 +132,34 @@ uid = iu[mu+ndim*i];
 
 }
 }
- */
+*/
 void Plus_staple(int mu, int nu,unsigned int *iu, Complex_f *Sigma11, Complex_f *Sigma12, Complex_f *u11t, Complex_f *u12t,
-                 const sycl::nd_item<3> &item_ct1){
+		const sycl::nd_item<3> &item_ct1){
 	char *funcname = "Plus_staple";
-        const int gsize = item_ct1.get_group_range(2) *
-                          item_ct1.get_group_range(1) *
-                          item_ct1.get_group_range(0);
-        const int bsize = item_ct1.get_local_range(2) *
-                          item_ct1.get_local_range(1) *
-                          item_ct1.get_local_range(0);
-        const int blockId =
-            item_ct1.get_group(2) +
-            item_ct1.get_group(1) * item_ct1.get_group_range(2) +
-            item_ct1.get_group_range(2) * item_ct1.get_group_range(1) *
-                item_ct1.get_group(0);
-        const int threadId =
-            blockId * bsize +
-            (item_ct1.get_local_id(0) * item_ct1.get_local_range(1) +
-             item_ct1.get_local_id(1)) *
-                item_ct1.get_local_range(2) +
-            item_ct1.get_local_id(2);
-        for(int i=threadId;i<kvol;i+=gsize*bsize){
+	const int gsize = item_ct1.get_group_range(2) *
+		item_ct1.get_group_range(1) *
+		item_ct1.get_group_range(0);
+	const int bsize = item_ct1.get_local_range(2) *
+		item_ct1.get_local_range(1) *
+		item_ct1.get_local_range(0);
+	const int blockId =
+		item_ct1.get_group(2) +
+		item_ct1.get_group(1) * item_ct1.get_group_range(2) +
+		item_ct1.get_group_range(2) * item_ct1.get_group_range(1) *
+		item_ct1.get_group(0);
+	const int threadId =
+		blockId * bsize +
+		(item_ct1.get_local_id(0) * item_ct1.get_local_range(1) +
+		 item_ct1.get_local_id(1)) *
+		item_ct1.get_local_range(2) +
+		item_ct1.get_local_id(2);
+	for(int i=threadId;i<kvol;i+=gsize*bsize){
 		int uidm = iu[mu+ndim*i];
 		int uidn = iu[nu+ndim*i];
 		Complex_f	a11=u11t[uidm*ndim+nu]*conj(u11t[uidn*ndim+mu])+\
-						 u12t[uidm*ndim+nu]*conj(u12t[uidn*ndim+mu]);
+							 u12t[uidm*ndim+nu]*conj(u12t[uidn*ndim+mu]);
 		Complex_f	a12=-u11t[uidm*ndim+nu]*u12t[uidn*ndim+mu]+\
-						 u12t[uidm*ndim+nu]*u11t[uidn*ndim+mu];
+							 u12t[uidm*ndim+nu]*u11t[uidn*ndim+mu];
 		Sigma11[i]+=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
 		Sigma12[i]+=-a11*u12t[i*ndim+nu]+a12*u11t[i*ndim+nu];
 	}
@@ -127,56 +168,56 @@ void Minus_staple(int mu,int nu,unsigned int *iu,unsigned int *id, Complex_f *Si
 		Complex_f *u11sh, Complex_f *u12sh, Complex_f *u11t, Complex_f *u12t,
 		const sycl::nd_item<3> &item_ct1){
 	char *funcname = "Minus_staple";
-        const int gsize = item_ct1.get_group_range(2) *
-                          item_ct1.get_group_range(1) *
-                          item_ct1.get_group_range(0);
-        const int bsize = item_ct1.get_local_range(2) *
-                          item_ct1.get_local_range(1) *
-                          item_ct1.get_local_range(0);
-        const int blockId =
-            item_ct1.get_group(2) +
-            item_ct1.get_group(1) * item_ct1.get_group_range(2) +
-            item_ct1.get_group_range(2) * item_ct1.get_group_range(1) *
-                item_ct1.get_group(0);
-        const int threadId =
-            blockId * bsize +
-            (item_ct1.get_local_id(0) * item_ct1.get_local_range(1) +
-             item_ct1.get_local_id(1)) *
-                item_ct1.get_local_range(2) +
-            item_ct1.get_local_id(2);
-        for(int i=threadId;i<kvol;i+=gsize*bsize){
+	const int gsize = item_ct1.get_group_range(2) *
+		item_ct1.get_group_range(1) *
+		item_ct1.get_group_range(0);
+	const int bsize = item_ct1.get_local_range(2) *
+		item_ct1.get_local_range(1) *
+		item_ct1.get_local_range(0);
+	const int blockId =
+		item_ct1.get_group(2) +
+		item_ct1.get_group(1) * item_ct1.get_group_range(2) +
+		item_ct1.get_group_range(2) * item_ct1.get_group_range(1) *
+		item_ct1.get_group(0);
+	const int threadId =
+		blockId * bsize +
+		(item_ct1.get_local_id(0) * item_ct1.get_local_range(1) +
+		 item_ct1.get_local_id(1)) *
+		item_ct1.get_local_range(2) +
+		item_ct1.get_local_id(2);
+	for(int i=threadId;i<kvol;i+=gsize*bsize){
 		int uidm = iu[mu+ndim*i];
 		int didn = id[nu+ndim*i];
 		//uidm is correct here
 		Complex_f a11=conj(u11sh[uidm])*conj(u11t[didn*ndim+mu])-\
-						u12sh[uidm]*conj(u12t[didn*ndim+mu]);
+						  u12sh[uidm]*conj(u12t[didn*ndim+mu]);
 		Complex_f a12=-conj(u11sh[uidm])*u12t[didn*ndim+mu]-\
-						u12sh[uidm]*u11t[didn*ndim+mu];
+						  u12sh[uidm]*u11t[didn*ndim+mu];
 		Sigma11[i]+=a11*u11t[didn*ndim+nu]-a12*conj(u12t[didn*ndim+nu]);
 		Sigma12[i]+=a11*u12t[didn*ndim+nu]+a12*conj(u11t[didn*ndim+nu]);
 	}
 }
 void cuGaugeForce(int mu, Complex_f *Sigma11, Complex_f *Sigma12,double* dSdpi,Complex_f *u11t, Complex_f *u12t, float beta,
-                  const sycl::nd_item<3> &item_ct1){
+		const sycl::nd_item<3> &item_ct1){
 	char *funcname = "cuGaugeForce";
-        const int gsize = item_ct1.get_group_range(2) *
-                          item_ct1.get_group_range(1) *
-                          item_ct1.get_group_range(0);
-        const int bsize = item_ct1.get_local_range(2) *
-                          item_ct1.get_local_range(1) *
-                          item_ct1.get_local_range(0);
-        const int blockId =
-            item_ct1.get_group(2) +
-            item_ct1.get_group(1) * item_ct1.get_group_range(2) +
-            item_ct1.get_group_range(2) * item_ct1.get_group_range(1) *
-                item_ct1.get_group(0);
-        const int threadId =
-            blockId * bsize +
-            (item_ct1.get_local_id(0) * item_ct1.get_local_range(1) +
-             item_ct1.get_local_id(1)) *
-                item_ct1.get_local_range(2) +
-            item_ct1.get_local_id(2);
-        for(int i=threadId;i<kvol;i+=gsize*bsize){
+	const int gsize = item_ct1.get_group_range(2) *
+		item_ct1.get_group_range(1) *
+		item_ct1.get_group_range(0);
+	const int bsize = item_ct1.get_local_range(2) *
+		item_ct1.get_local_range(1) *
+		item_ct1.get_local_range(0);
+	const int blockId =
+		item_ct1.get_group(2) +
+		item_ct1.get_group(1) * item_ct1.get_group_range(2) +
+		item_ct1.get_group_range(2) * item_ct1.get_group_range(1) *
+		item_ct1.get_group(0);
+	const int threadId =
+		blockId * bsize +
+		(item_ct1.get_local_id(0) * item_ct1.get_local_range(1) +
+		 item_ct1.get_local_id(1)) *
+		item_ct1.get_local_range(2) +
+		item_ct1.get_local_id(2);
+	for(int i=threadId;i<kvol;i+=gsize*bsize){
 		Complex_f a11 = u11t[i*ndim+mu]*Sigma12[i]+u12t[i*ndim+mu]*conj(Sigma11[i]);
 		Complex_f a12 = u11t[i*ndim+mu]*Sigma11[i]+conj(u12t[i*ndim+mu])*Sigma12[i];
 		//Not worth splitting into different streams, before we get ideas...
@@ -190,24 +231,24 @@ void cuForce_s0(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Comple
 		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac, int mu,
 		const sycl::nd_item<3> &item_ct1){
 	char *funcname = "cuForce";
-        const int gsize = item_ct1.get_group_range(2) *
-                          item_ct1.get_group_range(1) *
-                          item_ct1.get_group_range(0);
-        const int bsize = item_ct1.get_local_range(2) *
-                          item_ct1.get_local_range(1) *
-                          item_ct1.get_local_range(0);
-        const int blockId =
-            item_ct1.get_group(2) +
-            item_ct1.get_group(1) * item_ct1.get_group_range(2) +
-            item_ct1.get_group_range(2) * item_ct1.get_group_range(1) *
-                item_ct1.get_group(0);
-        const int threadId =
-            blockId * bsize +
-            (item_ct1.get_local_id(0) * item_ct1.get_local_range(1) +
-             item_ct1.get_local_id(1)) *
-                item_ct1.get_local_range(2) +
-            item_ct1.get_local_id(2);
-        const int igork1 = gamin[mu*ndirac+idirac];	
+	const int gsize = item_ct1.get_group_range(2) *
+		item_ct1.get_group_range(1) *
+		item_ct1.get_group_range(0);
+	const int bsize = item_ct1.get_local_range(2) *
+		item_ct1.get_local_range(1) *
+		item_ct1.get_local_range(0);
+	const int blockId =
+		item_ct1.get_group(2) +
+		item_ct1.get_group(1) * item_ct1.get_group_range(2) +
+		item_ct1.get_group_range(2) * item_ct1.get_group_range(1) *
+		item_ct1.get_group(0);
+	const int threadId =
+		blockId * bsize +
+		(item_ct1.get_local_id(0) * item_ct1.get_local_range(1) +
+		 item_ct1.get_local_id(1)) *
+		item_ct1.get_local_range(2) +
+		item_ct1.get_local_id(2);
+	const int igork1 = gamin[mu*ndirac+idirac];	
 	for(int i=threadId;i<kvol;i+=gsize*bsize){
 		//Up indices
 		int uid = iu[mu+ndim*i];
@@ -243,24 +284,24 @@ void cuForce_s1(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Comple
 		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac, int mu,
 		const sycl::nd_item<3> &item_ct1){
 	char *funcname = "cuForce";
-        const int gsize = item_ct1.get_group_range(2) *
-                          item_ct1.get_group_range(1) *
-                          item_ct1.get_group_range(0);
-        const int bsize = item_ct1.get_local_range(2) *
-                          item_ct1.get_local_range(1) *
-                          item_ct1.get_local_range(0);
-        const int blockId =
-            item_ct1.get_group(2) +
-            item_ct1.get_group(1) * item_ct1.get_group_range(2) +
-            item_ct1.get_group_range(2) * item_ct1.get_group_range(1) *
-                item_ct1.get_group(0);
-        const int threadId =
-            blockId * bsize +
-            (item_ct1.get_local_id(0) * item_ct1.get_local_range(1) +
-             item_ct1.get_local_id(1)) *
-                item_ct1.get_local_range(2) +
-            item_ct1.get_local_id(2);
-        const int igork1 = gamin[mu*ndirac+idirac];	
+	const int gsize = item_ct1.get_group_range(2) *
+		item_ct1.get_group_range(1) *
+		item_ct1.get_group_range(0);
+	const int bsize = item_ct1.get_local_range(2) *
+		item_ct1.get_local_range(1) *
+		item_ct1.get_local_range(0);
+	const int blockId =
+		item_ct1.get_group(2) +
+		item_ct1.get_group(1) * item_ct1.get_group_range(2) +
+		item_ct1.get_group_range(2) * item_ct1.get_group_range(1) *
+		item_ct1.get_group(0);
+	const int threadId =
+		blockId * bsize +
+		(item_ct1.get_local_id(0) * item_ct1.get_local_range(1) +
+		 item_ct1.get_local_id(1)) *
+		item_ct1.get_local_range(2) +
+		item_ct1.get_local_id(2);
+	const int igork1 = gamin[mu*ndirac+idirac];	
 	for(int i=threadId;i<kvol;i+=gsize*bsize){
 		//Up indices
 		int uid = iu[mu+ndim*i];
@@ -296,24 +337,24 @@ void cuForce_s2(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Comple
 		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac, int mu,
 		const sycl::nd_item<3> &item_ct1){
 	char *funcname = "cuForce";
-        const int gsize = item_ct1.get_group_range(2) *
-                          item_ct1.get_group_range(1) *
-                          item_ct1.get_group_range(0);
-        const int bsize = item_ct1.get_local_range(2) *
-                          item_ct1.get_local_range(1) *
-                          item_ct1.get_local_range(0);
-        const int blockId =
-            item_ct1.get_group(2) +
-            item_ct1.get_group(1) * item_ct1.get_group_range(2) +
-            item_ct1.get_group_range(2) * item_ct1.get_group_range(1) *
-                item_ct1.get_group(0);
-        const int threadId =
-            blockId * bsize +
-            (item_ct1.get_local_id(0) * item_ct1.get_local_range(1) +
-             item_ct1.get_local_id(1)) *
-                item_ct1.get_local_range(2) +
-            item_ct1.get_local_id(2);
-        const int igork1 = gamin[mu*ndirac+idirac];	
+	const int gsize = item_ct1.get_group_range(2) *
+		item_ct1.get_group_range(1) *
+		item_ct1.get_group_range(0);
+	const int bsize = item_ct1.get_local_range(2) *
+		item_ct1.get_local_range(1) *
+		item_ct1.get_local_range(0);
+	const int blockId =
+		item_ct1.get_group(2) +
+		item_ct1.get_group(1) * item_ct1.get_group_range(2) +
+		item_ct1.get_group_range(2) * item_ct1.get_group_range(1) *
+		item_ct1.get_group(0);
+	const int threadId =
+		blockId * bsize +
+		(item_ct1.get_local_id(0) * item_ct1.get_local_range(1) +
+		 item_ct1.get_local_id(1)) *
+		item_ct1.get_local_range(2) +
+		item_ct1.get_local_id(2);
+	const int igork1 = gamin[mu*ndirac+idirac];	
 	for(int i=threadId;i<kvol;i+=gsize*bsize){
 		//Up indices
 		int uid = iu[mu+ndim*i];
@@ -349,24 +390,24 @@ void cuForce_t0(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Comple
 		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac,
 		const sycl::nd_item<3> &item_ct1){
 	char *funcname = "cuForce";
-        const int gsize = item_ct1.get_group_range(2) *
-                          item_ct1.get_group_range(1) *
-                          item_ct1.get_group_range(0);
-        const int bsize = item_ct1.get_local_range(2) *
-                          item_ct1.get_local_range(1) *
-                          item_ct1.get_local_range(0);
-        const int blockId =
-            item_ct1.get_group(2) +
-            item_ct1.get_group(1) * item_ct1.get_group_range(2) +
-            item_ct1.get_group_range(2) * item_ct1.get_group_range(1) *
-                item_ct1.get_group(0);
-        const int threadId =
-            blockId * bsize +
-            (item_ct1.get_local_id(0) * item_ct1.get_local_range(1) +
-             item_ct1.get_local_id(1)) *
-                item_ct1.get_local_range(2) +
-            item_ct1.get_local_id(2);
-        //instead of hardcoding 3 in everywhere, use mu like the CPU code does.
+	const int gsize = item_ct1.get_group_range(2) *
+		item_ct1.get_group_range(1) *
+		item_ct1.get_group_range(0);
+	const int bsize = item_ct1.get_local_range(2) *
+		item_ct1.get_local_range(1) *
+		item_ct1.get_local_range(0);
+	const int blockId =
+		item_ct1.get_group(2) +
+		item_ct1.get_group(1) * item_ct1.get_group_range(2) +
+		item_ct1.get_group_range(2) * item_ct1.get_group_range(1) *
+		item_ct1.get_group(0);
+	const int threadId =
+		blockId * bsize +
+		(item_ct1.get_local_id(0) * item_ct1.get_local_range(1) +
+		 item_ct1.get_local_id(1)) *
+		item_ct1.get_local_range(2) +
+		item_ct1.get_local_id(2);
+	//instead of hardcoding 3 in everywhere, use mu like the CPU code does.
 	const int mu=3;
 	const int igork1 = gamin[mu*ndirac+idirac];	
 	for(int i=threadId;i<kvol;i+=gsize*bsize){
@@ -404,24 +445,24 @@ void cuForce_t1(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Comple
 		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac,
 		const sycl::nd_item<3> &item_ct1){
 	char *funcname = "cuForce";
-        const int gsize = item_ct1.get_group_range(2) *
-                          item_ct1.get_group_range(1) *
-                          item_ct1.get_group_range(0);
-        const int bsize = item_ct1.get_local_range(2) *
-                          item_ct1.get_local_range(1) *
-                          item_ct1.get_local_range(0);
-        const int blockId =
-            item_ct1.get_group(2) +
-            item_ct1.get_group(1) * item_ct1.get_group_range(2) +
-            item_ct1.get_group_range(2) * item_ct1.get_group_range(1) *
-                item_ct1.get_group(0);
-        const int threadId =
-            blockId * bsize +
-            (item_ct1.get_local_id(0) * item_ct1.get_local_range(1) +
-             item_ct1.get_local_id(1)) *
-                item_ct1.get_local_range(2) +
-            item_ct1.get_local_id(2);
-        const int mu=3;
+	const int gsize = item_ct1.get_group_range(2) *
+		item_ct1.get_group_range(1) *
+		item_ct1.get_group_range(0);
+	const int bsize = item_ct1.get_local_range(2) *
+		item_ct1.get_local_range(1) *
+		item_ct1.get_local_range(0);
+	const int blockId =
+		item_ct1.get_group(2) +
+		item_ct1.get_group(1) * item_ct1.get_group_range(2) +
+		item_ct1.get_group_range(2) * item_ct1.get_group_range(1) *
+		item_ct1.get_group(0);
+	const int threadId =
+		blockId * bsize +
+		(item_ct1.get_local_id(0) * item_ct1.get_local_range(1) +
+		 item_ct1.get_local_id(1)) *
+		item_ct1.get_local_range(2) +
+		item_ct1.get_local_id(2);
+	const int mu=3;
 	const int igork1 = gamin[mu*ndirac+idirac];	
 	for(int i=threadId;i<kvol;i+=gsize*bsize){
 		//Up indices
@@ -458,24 +499,24 @@ void cuForce_t2(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Comple
 		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac,
 		const sycl::nd_item<3> &item_ct1){
 	char *funcname = "cuForce";
-        const int gsize = item_ct1.get_group_range(2) *
-                          item_ct1.get_group_range(1) *
-                          item_ct1.get_group_range(0);
-        const int bsize = item_ct1.get_local_range(2) *
-                          item_ct1.get_local_range(1) *
-                          item_ct1.get_local_range(0);
-        const int blockId =
-            item_ct1.get_group(2) +
-            item_ct1.get_group(1) * item_ct1.get_group_range(2) +
-            item_ct1.get_group_range(2) * item_ct1.get_group_range(1) *
-                item_ct1.get_group(0);
-        const int threadId =
-            blockId * bsize +
-            (item_ct1.get_local_id(0) * item_ct1.get_local_range(1) +
-             item_ct1.get_local_id(1)) *
-                item_ct1.get_local_range(2) +
-            item_ct1.get_local_id(2);
-        const int mu=3;
+	const int gsize = item_ct1.get_group_range(2) *
+		item_ct1.get_group_range(1) *
+		item_ct1.get_group_range(0);
+	const int bsize = item_ct1.get_local_range(2) *
+		item_ct1.get_local_range(1) *
+		item_ct1.get_local_range(0);
+	const int blockId =
+		item_ct1.get_group(2) +
+		item_ct1.get_group(1) * item_ct1.get_group_range(2) +
+		item_ct1.get_group_range(2) * item_ct1.get_group_range(1) *
+		item_ct1.get_group(0);
+	const int threadId =
+		blockId * bsize +
+		(item_ct1.get_local_id(0) * item_ct1.get_local_range(1) +
+		 item_ct1.get_local_id(1)) *
+		item_ct1.get_local_range(2) +
+		item_ct1.get_local_id(2);
+	const int mu=3;
 	const int igork1 = gamin[mu*ndirac+idirac];	
 	for(int i=threadId;i<kvol;i+=gsize*bsize){
 		//Up indices
