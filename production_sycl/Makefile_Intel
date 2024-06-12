@@ -1,13 +1,13 @@
 MF=Makefile_Intel
-CC=		icx
+CC=		icpx -xc++ -fsycl
 CXX=		icpx  -fsycl
 
-IFLAGS=   -I../INCLUDE -I"${MKLROOT}/include" -I ./ -I../production_c  $(shell gsl-config --cflags)
+IFLAGS=   -I./INCLUDE -I"${MKLROOT}/include" -I ./ -I../production_c  $(shell gsl-config --cflags)
 
 CFLAGS=  -qmkl -qopt-zmm-usage=high -MD  -static-intel -static-libgcc -ipo\
 			-xSKYLAKE -ax'SKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE'\
 			-DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__ -qopenmp \
-			-qopenmp-simd -DSA3AT -use-intel-optimized-headers -mllvm -loopopt=0 $(IFLAGS) 
+			-qopenmp-simd -DSA3AT -mllvm -loopopt=0 $(IFLAGS) 
 
 MKLFLAGS=	-qmkl -L${MKLROOT}/lib/intel64 -limf #-DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
 
@@ -85,8 +85,8 @@ debug:		CFLAGS += -O0 -g -D_DEBUG -rdynamic
 debug:		SYCLCCFLAGS += -Xptxas -O0,-v -G -g -D_DEBUG -arch=sm_75 --maxrregcount=255  -keep 
 debug:		$(EXE)
 		 
-$(EXE): ../main.c $(OBJ)
-	$(CXX) $(CFLAGS) $(MKLFLAGS) $^ $(LFLAGS) -o $@
+$(EXE): ../main.dp.cpp $(OBJ)
+	$(CXX) $(SYCLCCFLAGS) $(CFLAGS) $(MKLFLAGS) $^ $(LFLAGS) -o $@
 %.dp.o: $(SYCLSRC_DIR)/%.dp.cpp
 	$(CXX) -std=c++17 $(SYCLCCFLAGS) $(CFLAGS) $(MKLFLAGS) -c $^
 %.o: $(CSRC_DIR)%.c

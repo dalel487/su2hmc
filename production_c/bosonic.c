@@ -34,8 +34,8 @@ int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u
 	  Should work since in the FORTRAN Sigma11[i] only depends on i components  for example
 	  Since the ν loop doesn't get called for μ=0 we'll start at μ=1
 	  */
-#ifdef __NVCC__
-	__managed__ double hgs = 0; __managed__ double hgt = 0;
+#ifdef DPCT_COMPATIBILITY_TEMP
+	double hgs = 0; double hgt = 0;
 	cuAverage_Plaquette(&hgs, &hgt, u11t, u12t, iu,dimGrid,dimBlock);
 #else
 	double hgs = 0; double hgt = 0;
@@ -67,7 +67,7 @@ int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u
 #endif
 	return 0;
 }
-#if (!defined __NVCC__ && !defined __HIPCC__)
+#if (!defined DPCT_COMPATIBILITY_TEMP && !defined __HIPCC__)
 #pragma omp declare simd
 inline float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int i, int mu, int nu){
 	/*
@@ -120,25 +120,25 @@ double Polyakov(Complex_f *u11t, Complex_f *u12t){
 	 */
 	const char *funcname = "Polyakov";
 	double poly = 0;
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 	int device=-1;
-	cudaGetDevice(&device);
+	dpct::device_ext &dev_ct1 = dpct::get_current_device();
 	Complex_f *Sigma11,*Sigma12;
-	cudaMallocManaged((void **)&Sigma11,kvol3*sizeof(Complex_f),cudaMemAttachGlobal);
+	Sigma11 = (Complex_f *)aligned_alloc_shared(AVX,kvol3*sizeof(Complex_f),streams[0]);
 #ifdef _DEBUG
-	cudaMallocManaged((void **)&Sigma12,kvol3*sizeof(Complex_f),cudaMemAttachGlobal);
+	Sigma12 = (Complex_f *)aligned_alloc_shared(AVX,kvol3*sizeof(Complex_f),streams[0]);
 #else
-	cudaMallocAsync((void **)&Sigma12,kvol3*sizeof(Complex_f),streams[0]);
+	Sigma12 = (Complex_f *)aligned_alloc_device(AVX,kvol3*sizeof(Complex_f),streams[0]);
 #endif
 #else
-	Complex_f *Sigma11 = aligned_alloc(AVX,kvol3*sizeof(Complex_f));
-	Complex_f *Sigma12 = aligned_alloc(AVX,kvol3*sizeof(Complex_f));
+	Complex_f *Sigma11 = (Complex_f *)aligned_alloc(AVX,kvol3*sizeof(Complex_f));
+	Complex_f *Sigma12 = (Complex_f *)aligned_alloc(AVX,kvol3*sizeof(Complex_f));
 #endif
 
 	//Extract the time component from each site and save in corresponding Sigma
-#ifdef __NVCC__
-	cublasCcopy(cublas_handle,kvol3, (cuComplex *)(u11t+3), ndim, (cuComplex *)Sigma11, 1);
-	cublasCcopy(cublas_handle,kvol3, (cuComplex *)(u12t+3), ndim, (cuComplex *)Sigma12, 1);
+#ifdef DPCT_COMPATIBILITY_TEMP
+	blas::copy(streams[0],kvol3, u11t+3, ndim, Sigma11, 1);
+	blas::copy(streams[0],kvol3, u12t+3, ndim, Sigma12, 1);
 #elif defined USE_BLAS
 	cblas_ccopy(kvol3, u11t+3, ndim, Sigma11, 1);
 	cblas_ccopy(kvol3, u12t+3, ndim, Sigma12, 1);
@@ -162,10 +162,9 @@ double Polyakov(Complex_f *u11t, Complex_f *u12t){
 		Buffers
 		There is a dependency. Can only parallelise the inner loop
 		*/
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 	cudaDeviceSynchronise();
 	cuPolyakov(Sigma11,Sigma12,u11t,u12t,dimGrid,dimBlock);
-	cudaMemPrefetchAsync(Sigma11,kvol3*sizeof(Complex_f),cudaCpuDeviceId,NULL);
 #else
 #pragma unroll
 	for(int it=1;it<ksizet;it++)
@@ -187,7 +186,7 @@ double Polyakov(Complex_f *u11t, Complex_f *u12t){
 	//Par_tmul does nothing if there is only a single processor in the time direction. So we only compile
 	//its call if it is required
 #if (npt>1)
-#ifdef __NVCC_
+#ifdef DPCT_COMPATIBILITY_TEMP
 #error Par_tmul is not yet implimented in CUDA as Sigma12 is device only memory
 #endif
 #ifdef _DEBUG
@@ -203,8 +202,9 @@ double Polyakov(Complex_f *u11t, Complex_f *u12t){
 	  I will expand on this hack and completely avoid any work
 	  for this case rather than calculating everything just to set it to zero
 	  */
-	if(!pcoord[3+rank*ndim])
-#ifdef __NVCC__
+	//	if(!pcoord[3+rank*ndim])
+	if(!pcoord[3+0*ndim])
+#ifdef DPCT_COMPATIBILITY_TEMP
 		cudaDeviceSynchronise();
 #pragma omp parallel for simd reduction(+:poly)
 #else
@@ -212,13 +212,9 @@ double Polyakov(Complex_f *u11t, Complex_f *u12t){
 #endif
 	for(int i=0;i<kvol3;i++)
 		poly+=creal(Sigma11[i]);
-#ifdef __NVCC__
-	cudaFree(Sigma11);
-#ifdef _DEBUG
-	cudaFree(Sigma12);
-#else
-	cudaFreeAsync(Sigma12,streams[0]);
-#endif
+#ifdef DPCT_COMPATIBILITY_TEMP
+	sycl::free(Sigma11,streams[0]);
+	sycl::free(Sigma12,streams[0]);
 #else
 	free(Sigma11); free(Sigma12);
 #endif

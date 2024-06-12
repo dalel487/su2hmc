@@ -34,7 +34,7 @@
 #include <gsl/gsl_cblas.h>
 #elif defined AMD_BLAS
 #define	USE_BLAS
-#include	<oneapi/mkl.hpp>
+#include	<cblas.h>
 #endif
 #ifdef DPCT_COMPATIBILITY_TEMP
 #include <oneapi/dpl/execution>
@@ -42,20 +42,19 @@
 #include <sycl/sycl.hpp>
 #include <dpct/dpct.hpp>
 #include <oneapi/mkl.hpp>
+using namespace oneapi::mkl;
 ///@brief	Get rid of that bastardised yankee English
-#define cudaDeviceSynchronise() sycl::device.wait()
 #endif
 #ifdef SYCL_LANGUAGE_VERSION
-#include <thrust_complex.h>
 #include <dpct/dpl_utils.hpp>
-
-#else
-#include	<complex.h>
-///@brief Single precision complex number 
-#define	Complex_f	float	complex
-///@brief Double precision complex number 
-#define	Complex		double complex
+//#else
+//#include	<complex.h>
+/////@brief Single precision complex number 
+//#define	Complex_f	float	complex
+/////@brief Double precision complex number 
+//#define	Complex		double complex
 #endif
+#include <thrust_complex.h>
 
 /// @brief	Default file name length
 #define	FILELEN	64

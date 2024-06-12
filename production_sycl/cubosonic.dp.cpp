@@ -19,7 +19,7 @@ void cuAverage_Plaquette(double *hgs, double *hgt, Complex_f *u11t,
 	device = dpct::dev_mgr::instance().current_device_id();
 	hgs=0; hgt=0;
 	float *hgs_d =(float *)sycl::malloc_device(kvol*sizeof(float),streams[0]);
-	float *hgt_d =(float *)sycl::malloc_device(kvol*sizeof(float),streams[1]);
+	float *hgt_d =(float *)sycl::malloc_device(kvol*sizeof(float),streams[0]);
 
 	/*
 DPCT1049:0: The work-group size passed to the SYCL kernel may exceed the
@@ -39,7 +39,7 @@ Adjust the work-group size if needed.
 	}
 	*hgs=hgs_t; *hgt=hgt_t;
 	sycl::free(hgs_d,streams[0]);
-	sycl::free(hgt_d,streams[1]);
+	sycl::free(hgt_d,streams[0]);
 }
 void cuPolyakov(Complex_f *Sigma11, Complex_f *Sigma12, Complex_f *u11t,
 		Complex_f *u12t, sycl::range<3> dimGrid,

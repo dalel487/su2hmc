@@ -8,17 +8,19 @@
  */
 #ifndef TCMPLX
 #define TCMPLX
-#include <sycl/sycl.hpp>
-#include <dpct/dpct.hpp>
+#ifdef SYCL_LANGUAGE_VERSION
 #define SYCL_EXT_ONEAPI_COMPLEX
 #include <sycl/ext/oneapi/experimental/complex/complex.hpp>
 #include <complex>
 using namespace sycl::ext::oneapi::experimental;
+#else
+#include <complex>
+#endif
 //#undef	complex
 ///@brief Single precision complex number 
-#define	Complex_f	complex<float>
+#define	Complex_f	std::complex<float>
 ///@brief Double precision complex number 
-#define	Complex		complex<double>
+#define	Complex		std::complex<double>
 
 ///@brief	Exponentiate
 #define	cexp(z)	exp(z)

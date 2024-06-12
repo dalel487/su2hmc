@@ -6,7 +6,7 @@
 #ifndef	RANDOM
 #define	RANDOM
 //Need two cases here. MKL/CUDA or not for BLAS and CUDA or not for complex
-#ifdef DPCT_COMPATIBILITY_TEMP
+#if defined __NVCC__
 #include <cublas_v2.h>
 #endif
 #ifdef __INTEL_MKL__
@@ -17,10 +17,6 @@
 #ifdef __RANLUX__
 #include <gsl/gsl_rng.h>
 #endif
-#include <oneapi/dpl/execution>
-#include <oneapi/dpl/algorithm>
-#include <sycl/sycl.hpp>
-#include <dpct/dpct.hpp>
 #include <math.h>
 #if (defined__INTEL_COMPILER || __INTEL_LLVM_COMPILER)
 #include <mathimf.h>

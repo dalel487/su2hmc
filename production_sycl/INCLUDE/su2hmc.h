@@ -6,10 +6,6 @@
 #define SU2HEAD
 //ARM Based machines. BLAS routines should work with other libraries, so we can set a compiler
 //flag to sort them out. But the PRNG routines etc. are MKL exclusive
-#include <oneapi/dpl/execution>
-#include <oneapi/dpl/algorithm>
-#include <sycl/sycl.hpp>
-#include <dpct/dpct.hpp>
 #include <errorcodes.h>
 #ifdef	__INTEL_MKL__
 #define	USE_BLAS
@@ -324,8 +320,10 @@ extern "C"
 	//CUDA Declarations:
 	//#################
 #ifdef DPCT_COMPATIBILITY_TEMP
+			void cudaDeviceSynchronise();	
         //Not a function. An array of concurrent GPU streams to keep it busy
-        extern sycl::queue streams[ndirac * ndim * nadj];
+        extern sycl::queue streams[1];
+        //extern sycl::queue streams[ndirac * ndim * nadj];
         //Calling Functions:
 	//=================
         void cuAverage_Plaquette(double *hgs, double *hgt, Complex_f *u11t,

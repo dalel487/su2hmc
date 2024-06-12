@@ -5,10 +5,6 @@
  */
 #ifndef MATRICES
 #define MATRICES
-#include <oneapi/dpl/execution>
-#include <oneapi/dpl/algorithm>
-#include <sycl/sycl.hpp>
-#include <dpct/dpct.hpp>
 #include <par_mpi.h>
 #include <su2hmc.h>
 #if (defined __cplusplus)

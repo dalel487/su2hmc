@@ -5,8 +5,6 @@
  */
 #ifndef	PAR_MPI
 #define	PAR_MPI
-#include <oneapi/dpl/execution>
-#include <oneapi/dpl/algorithm>
 #include <coord.h>
 #include	<errorcodes.h>
 #if (nproc >1)
@@ -106,7 +104,7 @@ extern "C"
 	 * 
 	 * @return	Zero on success, integer error code otherwise
 	 */
-	int Par_sread(const int iread, const float beta, const float fmu, const float akappa, const Complex_f ajq,\
+	int Par_sread(const int iread, const float beta, const float fmu, const float akappa, const Complex_f ajq,
 			Complex *u11, Complex *u12, Complex *u11t, Complex *u12t);
 	/**
 	 * @brief	Copies u11 and u12 into arrays without halos which then get written to output
@@ -123,7 +121,7 @@ extern "C"
 	 * 
 	 * @return	Zero on success, integer error code otherwise
 	 */
-	int Par_swrite(const int itraj, const int icheck, const float beta, const float fmu, const float akappa,\
+	int Par_swrite(const int itraj, const int icheck, const float beta, const float fmu, const float akappa,
 			const Complex_f ajq,	Complex *u11, Complex *u12);
 	//Shortcuts for reductions and broadcasts. These should be inlined
 	/**

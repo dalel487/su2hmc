@@ -49,7 +49,7 @@
 #include	<string.h>
 #include	<su2hmc.h>
 
-#elif defined	__NVCC__
+#ifdef __NVCC__
 #include <cublas_v2.h>
 #include	<cuda.h>
 #include	<cuda_runtime.h>

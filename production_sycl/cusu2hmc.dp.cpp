@@ -10,7 +10,8 @@ sycl::range<3> dimBlock = sycl::range<3>(1, 1, 1);
 //sycl::range<3> dimBlock = 1;
 sycl::range<3> dimGrid = sycl::range<3>(1, 1, 1);
 //sycl::range<3>	dimBlock=dimBlockOne; sycl::range<3> dimGrid=dimGridOne;
-sycl::queue streams[ndirac * ndim * nadj];
+//sycl::queue streams[ndirac * ndim * nadj];
+sycl::queue streams[1];
 void blockInit(int x, int y, int z, int t, sycl::range<3> *dimBlock,
 		sycl::range<3> *dimGrid) {
 
@@ -362,4 +363,10 @@ void cuUpDownPart(int na, Complex *X0, Complex *R1,
 			X0[((na*kvol+i)*ndirac+idirac)*nc]=R1[(i*ngorkov+idirac)*nc];
 			X0[((na*kvol+i)*ndirac+idirac)*nc+1]=R1[(i*ngorkov+idirac)*nc+1];
 		}
+}
+
+
+//DIRTY HACK
+inline void cudaDeviceSynchronise(){
+	streams[0].wait();
 }

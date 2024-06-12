@@ -46,23 +46,22 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 	//Give initial values Will be overwritten if niterx>0
 	double betad = 1.0; Complex_f alphad=0; Complex alpha = 1;
 	//Because we're dealing with flattened arrays here we can call cblas safely without the halo
-#ifdef __NVCC__
-	Complex_f *p_f, *x1_f, *x2_f, *r_f, *X1_f;
-	int device=-1; cudaGetDevice(&device);
-
+#ifdef DPCT_COMPATIBILITY_TEMP
+	int device; 
+	dpct::device_ext &dev_ct1 = dpct::get_current_device();
 #ifdef _DEBUG
-	cudaMallocManaged((void **)&p_f, kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&x1_f, kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&x2_f, kferm2*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&r_f, kferm2*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&X1_f, kferm2*sizeof(Complex_f),cudaMemAttachGlobal);
+	Complex_f *p_f= (Complex_f *)aligned_alloc_shared(AVX,kferm2Halo*sizeof(Complex_f),streams[0]);
+	Complex_f *x1_f=(Complex_f *)aligned_alloc_shared(AVX,kferm2Halo*sizeof(Complex_f),streams[0]);
+	Complex_f *x2_f=(Complex_f *)aligned_alloc_shared(AVX,kferm2*sizeof(Complex_f),streams[0]);
+	Complex_f *X1_f=(Complex_f *)aligned_alloc_shared(AVX,kferm2*sizeof(Complex_f),streams[0]);
+	Complex_f *r_f= (Complex_f *)aligned_alloc_shared(AVX,kferm2*sizeof(Complex_f),streams[0]);
 #else
 	//First two have halo exchanges, so getting NCCL working is important
-	cudaMallocAsync((void **)&p_f, kferm2Halo*sizeof(Complex_f),streams[0]);
-	cudaMallocAsync((void **)&x1_f, kferm2Halo*sizeof(Complex_f),streams[1]);
-	cudaMallocAsync((void **)&x2_f, kferm2*sizeof(Complex_f),streams[2]);
-	cudaMallocAsync((void **)&r_f, kferm2*sizeof(Complex_f),streams[3]);
-	cudaMallocAsync((void **)&X1_f, kferm2*sizeof(Complex_f),streams[4]);
+	Complex_f *p_f= (Complex_f *)aligned_alloc_device(AVX,kferm2Halo*sizeof(Complex_f),streams[0]);
+	Complex_f *x1_f=(Complex_f *)aligned_alloc_device(AVX,kferm2Halo*sizeof(Complex_f),streams[0]);
+	Complex_f *x2_f=(Complex_f *)aligned_alloc_device(AVX,kferm2*sizeof(Complex_f),streams[0]);
+	Complex_f *X1_f=(Complex_f *)aligned_alloc_device(AVX,kferm2*sizeof(Complex_f),streams[0]);
+	Complex_f *r_f= (Complex_f *)aligned_alloc_device(AVX,kferm2*sizeof(Complex_f),streams[0]);
 #endif
 #else
 	Complex_f *p_f=aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
@@ -72,7 +71,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 	Complex_f *r_f=aligned_alloc(AVX,kferm2*sizeof(Complex_f));
 #endif
 	//Instead of copying element-wise in a loop, use memcpy.
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 	cuComplex_convert(X1_f,X1,kferm2,true,dimBlock,dimGrid);
 	//cudaMemcpy is blocking, so use async instead
 	cuComplex_convert(r_f,r,kferm2,true,dimBlock,dimGrid);
@@ -94,13 +93,13 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 		//No need to synchronise here. The memcpy in Hdslash is blocking
 		Hdslash_f(x1_f,p_f,u11t,u12t,iu,id,gamval_f,gamin,dk4m,dk4p,akappa);
 		Hdslashd_f(x2_f,x1_f,u11t,u12t,iu,id,gamval_f,gamin,dk4m,dk4p,akappa);
-#ifdef	__NVCC__
+#ifdef	DPCT_COMPATIBILITY_TEMP
 		cudaDeviceSynchronise();
 #endif
 		//x2 =  (M^†M+J^2)p 
 		//No point adding zero a couple of hundred times if the diquark source is zero
 		if(fac_f!=0){
-#ifdef	__NVCC__
+#ifdef	DPCT_COMPATIBILITY_TEMP
 			cublasCaxpy(cublas_handle,kferm2,(cuComplex *)&fac_f,(cuComplex *)p_f,1,(cuComplex *)x2_f,1);
 #elif defined USE_BLAS
 			cblas_caxpy(kferm2, &fac_f, p_f, 1, x2_f, 1);
@@ -113,7 +112,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 		//We can't evaluate α on the first *itercg because we need to get β_n.
 		if(*itercg){
 			//α_d= p* (M^†M+J^2)p
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 			cublasCdotc(cublas_handle,kferm2,(cuComplex *)p_f,1,(cuComplex *)x2_f,1,(cuComplex *)&alphad);
 #elif defined USE_BLAS
 			cblas_cdotc_sub(kferm2, p_f, 1, x2_f, 1, &alphad);
@@ -131,7 +130,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 			//α=α_n/α_d = (r.r)/p(M^†M)p 
 			alpha=alphan/creal(alphad);
 			//x-αp, 
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 			Complex_f alpha_f = (Complex_f)alpha;
 			cublasCaxpy(cublas_handle,kferm2,(cuComplex *)&alpha_f,(cuComplex *)p_f,1,(cuComplex *)X1_f,1);
 #elif defined USE_BLAS
@@ -143,7 +142,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 #endif
 		}			
 		// r_n+1 = r_n-α(M^† M)p_n and β_n=r*.r
-#ifdef	__NVCC__
+#ifdef	DPCT_COMPATIBILITY_TEMP
 		Complex_f alpha_m=(Complex_f)(-alpha);
 		cublasCaxpy(cublas_handle, kferm2,(cuComplex *)&alpha_m,(cuComplex *)x2_f,1,(cuComplex *)r_f,1);
 		float betan_f;
@@ -195,7 +194,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 		betad=betan; alphan=betan;
 		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multiplying y by
 		//β instead of x.
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 		Complex_f beta_f=(Complex_f)beta;
 		__managed__ Complex_f a = 1.0;
 		cublasCscal(cublas_handle,kferm2,(cuComplex *)&beta_f,(cuComplex *)p_f,1);
@@ -216,7 +215,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 			p_f[i]=r_f[i]+beta*p_f[i];
 #endif
 	}
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 	cuComplex_convert(X1_f,X1,kferm2,false,dimBlock,dimGrid);
 	cuComplex_convert(r_f,r,kferm2,false,dimBlock,dimGrid);
 #else
@@ -225,17 +224,10 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 		r[i]=(Complex)r_f[i];
 	}
 #endif
-#ifdef __NVCC__
-#ifdef _DEBUG
+#ifdef DPCT_COMPATIBILITY_TEMP
 	cudaDeviceSynchronise();
-	cudaFree(x1_f);cudaFree(x2_f); cudaFree(p_f);
-	cudaFree(r_f);cudaFree(X1_f);
-#else
-	//streams match the ones that allocated them.
-	cudaFreeAsync(p_f,streams[0]);cudaFreeAsync(x1_f,streams[1]);cudaFreeAsync(x2_f,streams[2]);
-	cudaDeviceSynchronise();
-	cudaFreeAsync(r_f,streams[3]);cudaFreeAsync(X1_f,streams[4]);
-#endif
+	streams[0]::free(x1_f);streams[0]::free(x2_f); streams[0]::free(p_f);
+	streams[0]::free(r_f);streams[0]::free(X1_f);
 #else
 	free(x1_f);free(x2_f); free(p_f);  free(r_f); free(X1_f);
 #endif
@@ -275,21 +267,21 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 	//These alpha and beta terms should be double, but that causes issues with BLAS. Instead we declare
 	//them Complex and work with the real part (especially for α_d)
 	//Give initial values Will be overwritten if niterx>0
-#ifdef __NVCC__
-	Complex_f *p_f, *r_f, *xi_f, *x1_f, *x2_f;
-	int device; cudaGetDevice(&device);
+#ifdef DPCT_COMPATIBILITY_TEMP
+	int device; 
+	dpct::device_ext &dev_ct1 = dpct::get_current_device();
 #ifdef _DEBUG
-	cudaMallocManaged((void **)&p_f, kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&r_f, kferm*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&x1_f, kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&x2_f, kferm*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&xi_f, kferm*sizeof(Complex_f),cudaMemAttachGlobal);
+	Complex_f *p_f  =		(Complex_f *)aligned_alloc_shared(AVX,kfermHalo*sizeof(Complex_f),streams[0]);
+	Complex_f *r_f  =		(Complex_f *)aligned_alloc_shared(AVX,kferm*sizeof(Complex_f),streams[0]);
+	Complex_f *x1_f	=	(Complex_f *)aligned_alloc_shared(AVX,kfermHalo*sizeof(Complex_f),streams[0]);
+	Complex_f *x2_f	=	(Complex_f *)aligned_alloc_shared(AVX,kferm*sizeof(Complex_f),streams[0]);
+	Complex_f *xi_f	=	(Complex_f *)aligned_alloc_shared(AVX,kferm*sizeof(Complex_f),streams[0]);
 #else
-	cudaMalloc((void **)&p_f, kfermHalo*sizeof(Complex_f));
-	cudaMalloc((void **)&r_f, kferm*sizeof(Complex_f));
-	cudaMalloc((void **)&x1_f, kfermHalo*sizeof(Complex_f));
-	cudaMalloc((void **)&x2_f, kferm*sizeof(Complex_f));
-	cudaMalloc((void **)&xi_f, kferm*sizeof(Complex_f));
+	Complex_f *p_f  =		(Complex_f *)aligned_alloc_device(AVX,kfermHalo*sizeof(Complex_f),streams[0]);
+	Complex_f *r_f  =		(Complex_f *)aligned_alloc_device(AVX,kferm*sizeof(Complex_f),streams[0]);
+	Complex_f *x1_f	=	(Complex_f *)aligned_alloc_device(AVX,kfermHalo*sizeof(Complex_f),streams[0]);
+	Complex_f *x2_f	=	(Complex_f *)aligned_alloc_device(AVX,kferm*sizeof(Complex_f),streams[0]);
+	Complex_f *xi_f	=	(Complex_f *)aligned_alloc_device(AVX,kferm*sizeof(Complex_f),streams[0]);
 #endif
 #else
 	Complex_f *p_f  =	aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
@@ -301,7 +293,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 	double betad = 1.0; Complex_f alphad=0; Complex alpha = 1;
 	double alphan=0.0;
 	//Instead of copying element-wise in a loop, use memcpy.
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 	cuComplex_convert(p_f,xi,kferm,true,dimGrid,dimBlock);
 	cuComplex_convert(xi_f,xi,kferm,true,dimGrid,dimBlock);
 	cuComplex_convert(r_f,Phi+na*kferm,kferm,true,dimGrid,dimBlock);
@@ -320,7 +312,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
 	//if statements quicker to type
 	double betan;
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 	cudaDeviceSynchronise();
 #endif
 	for((*itercg)=0; (*itercg)<=niterc; (*itercg)++){
@@ -328,7 +320,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 		//x2=(M^†)x1=(M^†)Mp
 		Dslash_f(x1_f,p_f,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 		Dslashd_f(x2_f,x1_f,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 		cudaDeviceSynchronise();
 #endif
 		//We can't evaluate α on the first niterx because we need to get β_n.
@@ -336,7 +328,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 			//x*.x
 #ifdef USE_BLAS
 			float alphad_f;
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 			cublasScnrm2(cublas_handle,kferm,(cuComplex*) x1_f, 1,(float *)&alphad_f);
 			alphad = alphad_f*alphad_f;
 #else
@@ -357,7 +349,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 			//x+αp
 #ifdef USE_BLAS
 			Complex_f alpha_f=(float)alpha;
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 			cublasCaxpy(cublas_handle,kferm,(cuComplex*) &alpha_f,(cuComplex*) p_f,1,(cuComplex*) xi_f,1);
 #else
 			cblas_caxpy(kferm, (Complex_f*)&alpha_f,(Complex_f*)p_f, 1, (Complex_f*)xi_f, 1);
@@ -372,7 +364,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 		//r=α(M^†)Mp and β_n=r*.r
 #if defined USE_BLAS
 		Complex_f alpha_m=(Complex_f)(-alpha);
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 		cublasCaxpy(cublas_handle,kferm, (cuComplex *)&alpha_m,(cuComplex *) x2_f, 1,(cuComplex *) r_f, 1);
 		//cudaDeviceSynchronise();
 		//r*.r
@@ -430,7 +422,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 #ifdef USE_BLAS
 		Complex_f beta_f = (Complex_f)beta;
 		Complex_f a = 1.0;
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 		cublasCscal(cublas_handle,kferm,(cuComplex *)&beta_f,(cuComplex *)p_f,1);
 		cublasCaxpy(cublas_handle,kferm,(cuComplex *)&a,(cuComplex *)r_f,1,(cuComplex *)p_f,1);
 		cudaDeviceSynchronise();
@@ -446,7 +438,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 			p_f[i]=r_f[i]+beta*p_f[i];
 #endif
 	}
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 	cuComplex_convert(xi_f,xi,kferm,false,dimBlock,dimGrid);
 #else
 #pragma omp simd
@@ -454,8 +446,8 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 		xi[i]=(Complex)xi_f[i];
 	}
 #endif
-#ifdef	__NVCC__
-	cudaFree(p_f); cudaFree(r_f);cudaFree(x1_f); cudaFree(x2_f); cudaFree(xi_f); 
+#ifdef	DPCT_COMPATIBILITY_TEMP
+	streams[0]::free(p_f); streams[0]::free(r_f);streams[0]::free(x1_f); streams[0]::free(x2_f); streams[0]::free(xi_f); 
 #else
 	free(p_f); free(r_f); free(x1_f); free(x2_f); free(xi_f); 
 #endif
@@ -465,7 +457,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
  * Pre mult
 #ifdef _DEBUGCG
 memset(x1_f,0,kferm2Halo*sizeof(Complex_f));
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 cudaMemPrefetchAsync(x1_f,kferm2*sizeof(Complex_f),device,NULL);
 cudaDeviceSynchronise();
 #endif
