@@ -32,14 +32,14 @@ int Gauge_force(double *dSdpi, Complex_f *u11t, Complex_f *u12t,unsigned int *iu
 	//		memset(u12t[kvol], 0, ndim*halo*sizeof(Complex_f));	
 	//	#endif
 	//Was a trial field halo exchange here at one point.
-#ifdef __NVCC__
-	int device=-1;
-	cudaGetDevice(&device);
+#ifdef DPCT_COMPATIBILITY_TEMP
+	dpct::device_ext &dev_ct1 = dpct::get_current_device();
+	sycl::queue stream = dev_ct1.in_order_queue();
 	Complex_f *Sigma11, *Sigma12, *u11sh, *u12sh;
-	cudaMallocAsync((void **)&Sigma11,kvol*sizeof(Complex_f),streams[0]);
-	cudaMallocAsync((void **)&Sigma12,kvol*sizeof(Complex_f),streams[1]);
-	cudaMallocManaged((void **)&u11sh,(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&u12sh,(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
+	Sigma11 = (Complex_f *)aligned_alloc_device(AVX,kvol*sizeof(Complex_f),stream); 
+	Sigma12= (Complex_f *)aligned_alloc_device(AVX,kvol*sizeof(Complex_f),stream); 
+	u11sh = (Complex_f *)aligned_alloc_shared(AVX,(kvol+halo)*sizeof(Complex_f),stream); 
+	u12sh = (Complex_f *)aligned_alloc_shared(AVX,(kvol+halo)*sizeof(Complex_f),stream); 
 #else
 	Complex_f *Sigma11 = (Complex_f *)aligned_alloc(AVX,kvol*sizeof(Complex_f)); 
 	Complex_f *Sigma12= (Complex_f *)aligned_alloc(AVX,kvol*sizeof(Complex_f)); 
@@ -48,17 +48,12 @@ int Gauge_force(double *dSdpi, Complex_f *u11t, Complex_f *u12t,unsigned int *iu
 #endif
 	//Holders for directions
 	for(int mu=0; mu<ndim; mu++){
-#ifdef __NVCC__
-		cudaMemset(Sigma11,0, kvol*sizeof(Complex_f));
-		cudaMemset(Sigma12,0, kvol*sizeof(Complex_f));
-#else
 		memset(Sigma11,0, kvol*sizeof(Complex_f));
 		memset(Sigma12,0, kvol*sizeof(Complex_f));
-#endif
 		for(int nu=0; nu<ndim; nu++)
 			if(nu!=mu){
 				//The +ν Staple
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 				cuPlus_staple(mu,nu,iu,Sigma11,Sigma12,u11t,u12t,dimGrid,dimBlock);
 #else
 #pragma omp parallel for simd aligned(u11t,u12t,Sigma11,Sigma12,iu:AVX)
@@ -76,20 +71,10 @@ int Gauge_force(double *dSdpi, Complex_f *u11t, Complex_f *u12t,unsigned int *iu
 				C_gather(u11sh, u11t, kvol, id, nu);
 				C_gather(u12sh, u12t, kvol, id, nu);
 #if(nproc>1)
-#ifdef __NVCC__
-				//Prefetch to the CPU for until we get NCCL working
-				cudaMemPrefetchAsync(u11sh, kvol*sizeof(Complex_f),cudaCpuDeviceId,streams[0]);
-				cudaMemPrefetchAsync(u12sh, kvol*sizeof(Complex_f),cudaCpuDeviceId,streams[1]);
-#endif
 				CHalo_swap_dir(u11sh, 1, mu, DOWN); CHalo_swap_dir(u12sh, 1, mu, DOWN);
-#ifdef __NVCC__
-				cudaMemPrefetchAsync(u11sh+kvol, halo*sizeof(Complex_f),device,streams[0]);
-				cudaMemPrefetchAsync(u12sh+kvol, halo*sizeof(Complex_f),device,streams[1]);
-#endif
 #endif
 				//Next up, the -ν staple
-#ifdef __NVCC__
-				cudaDeviceSynchronise();
+#ifdef DPCT_COMPATIBILITY_TEMP
 				cuMinus_staple(mu,nu,iu,id,Sigma11,Sigma12,u11sh,u12sh,u11t,u12t,dimGrid,dimBlock);
 #else
 #pragma omp parallel for simd aligned(u11t,u12t,u11sh,u12sh,Sigma11,Sigma12,iu,id:AVX)
@@ -106,7 +91,7 @@ int Gauge_force(double *dSdpi, Complex_f *u11t, Complex_f *u12t,unsigned int *iu
 				}
 #endif
 			}
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 		cuGauge_force(mu,Sigma11,Sigma12,u11t,u12t,dSdpi,beta,dimGrid,dimBlock);
 #else
 #pragma omp parallel for simd aligned(u11t,u12t,Sigma11,Sigma12,dSdpi:AVX)
@@ -120,9 +105,9 @@ int Gauge_force(double *dSdpi, Complex_f *u11t, Complex_f *u12t,unsigned int *iu
 		}
 #endif
 	}
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 	cudaDeviceSynchronise();
-	cudaFreeAsync(Sigma11,streams[0]); cudaFreeAsync(Sigma12,streams[1]); cudaFree(u11sh); cudaFree(u12sh);
+	sycl::free(Sigma11,stream); sycl::free(Sigma12,stream); sycl::free(u11sh,stream); sycl::free(u12sh,stream);
 #else
 	free(u11sh); free(u12sh); free(Sigma11); free(Sigma12);
 #endif
@@ -159,47 +144,40 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 	 *	@return Zero on success, integer error code otherwise
 	 */
 	const char *funcname = "Force";
-#ifdef __NVCC__
-	int device=-1;
-	cudaGetDevice(&device);
-#endif
 #ifndef NO_GAUGE
 	Gauge_force(dSdpi,u11t_f,u12t_f,iu,id,beta);
 #endif
 	//X1=(M†M)^{1} Phi
 	int itercg=1;
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 	Complex *X2;
-	cudaMallocManaged((void **)&X2,kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
+	dpct::device_ext &dev_ct1 = dpct::get_current_device();
+	sycl::queue stream = dev_ct1.in_order_queue();
+	X2= (Complex *)aligned_alloc_shared(AVX,kferm2Halo*sizeof(Complex),stream);
 #else
 	Complex *X2= (Complex *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex));
 #endif
 	for(int na = 0; na<nf; na++){
-#ifdef __NVCC__
-		cudaMemcpyAsync(X1,X0+na*kferm2,kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice,NULL);
-#else
 		memcpy(X1,X0+na*kferm2,kferm2*sizeof(Complex));
-#endif
 		if(!iflag){
-#ifdef __NVCC__
-			Complex *smallPhi;
-			cudaMallocAsync((void **)&smallPhi,kferm2*sizeof(Complex),streams[0]);
+#ifdef DPCT_COMPATIBILITY_TEMP
+			Complex *smallPhi = (Complex *)aligned_alloc_device(AVX,kferm2*sizeof(Complex),stream); 
 #else
 			Complex *smallPhi = (Complex *)aligned_alloc(AVX,kferm2*sizeof(Complex)); 
 #endif
 			Fill_Small_Phi(na, smallPhi, Phi);
 			//	Congradq(na, res1,smallPhi, &itercg );
 			Congradq(na,res1,X1,smallPhi,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,&itercg);
-#ifdef __NVCC__
-			cudaFreeAsync(smallPhi,streams[0]);
+#ifdef DPCT_COMPATIBILITY_TEMP
+			sycl::free(smallPhi,stream);
 #else
 			free(smallPhi);
 #endif
 			*ancg+=itercg;
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 			Complex blasa=2.0; double blasb=-1.0;
-			cublasZdscal(cublas_handle,kferm2,&blasb,(cuDoubleComplex *)(X0+na*kferm2),1);
-			cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&blasa,(cuDoubleComplex *)X1,1,(cuDoubleComplex *)(X0+na*kferm2),1);
+			blas::scal(stream,kferm2,&blasb,(X0+na*kferm2),1);
+			blas::axpy(stream,kferm2,&blasa,X1,1,(X0+na*kferm2),1);
 			//HDslash launches a different stream so we need a barrieer
 			cudaDeviceSynchronise();
 #elif (defined __INTEL_MKL__)
@@ -223,10 +201,10 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 #endif
 		}
 		Hdslash(X2,X1,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 		double blasd=2.0;
 		cudaDeviceSynchronise();
-		cublasZdscal(cublas_handle,kferm2, &blasd, (cuDoubleComplex *)X2, 1);
+		blas::scal(stream,kferm2, &blasd, X2, 1);
 #elif defined USE_BLAS
 		double blasd=2.0;
 		cblas_zdscal(kferm2, blasd, X2, 1);
@@ -260,7 +238,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 		//  as a result, need to swap the DOWN halos in all dirs for
 		//  both these arrays, each of which has 8 cpts
 		//
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 		cudaDeviceSynchronise();
 		cuForce(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,dimGrid,dimBlock);
 #else
@@ -457,8 +435,8 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 			}
 #endif
 	}
-#ifdef __NVCC__
-	cudaFree(X2);
+#ifdef DPCT_COMPATIBILITY_TEMP
+	sycl::free(X2,stream);
 #else
 	free(X2); 
 #endif

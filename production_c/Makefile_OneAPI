@@ -1,5 +1,5 @@
 MF=Makefile_OneAPI
-CC=	mpiicx -v
+CC=	mpiicx
 
 IFLAGS=	-I../INCLUDE 
 

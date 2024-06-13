@@ -47,21 +47,21 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 	double betad = 1.0; Complex_f alphad=0; Complex alpha = 1;
 	//Because we're dealing with flattened arrays here we can call cblas safely without the halo
 #ifdef DPCT_COMPATIBILITY_TEMP
-	int device; 
 	dpct::device_ext &dev_ct1 = dpct::get_current_device();
+	sycl::queue stream = dev_ct1.in_order_queue();
 #ifdef _DEBUG
-	Complex_f *p_f= (Complex_f *)aligned_alloc_shared(AVX,kferm2Halo*sizeof(Complex_f),streams[0]);
-	Complex_f *x1_f=(Complex_f *)aligned_alloc_shared(AVX,kferm2Halo*sizeof(Complex_f),streams[0]);
-	Complex_f *x2_f=(Complex_f *)aligned_alloc_shared(AVX,kferm2*sizeof(Complex_f),streams[0]);
-	Complex_f *X1_f=(Complex_f *)aligned_alloc_shared(AVX,kferm2*sizeof(Complex_f),streams[0]);
-	Complex_f *r_f= (Complex_f *)aligned_alloc_shared(AVX,kferm2*sizeof(Complex_f),streams[0]);
+	Complex_f *p_f= (Complex_f *)aligned_alloc_shared(AVX,kferm2Halo*sizeof(Complex_f),stream);
+	Complex_f *x1_f=(Complex_f *)aligned_alloc_shared(AVX,kferm2Halo*sizeof(Complex_f),stream);
+	Complex_f *x2_f=(Complex_f *)aligned_alloc_shared(AVX,kferm2*sizeof(Complex_f),stream);
+	Complex_f *X1_f=(Complex_f *)aligned_alloc_shared(AVX,kferm2*sizeof(Complex_f),stream);
+	Complex_f *r_f= (Complex_f *)aligned_alloc_shared(AVX,kferm2*sizeof(Complex_f),stream);
 #else
 	//First two have halo exchanges, so getting NCCL working is important
-	Complex_f *p_f= (Complex_f *)aligned_alloc_device(AVX,kferm2Halo*sizeof(Complex_f),streams[0]);
-	Complex_f *x1_f=(Complex_f *)aligned_alloc_device(AVX,kferm2Halo*sizeof(Complex_f),streams[0]);
-	Complex_f *x2_f=(Complex_f *)aligned_alloc_device(AVX,kferm2*sizeof(Complex_f),streams[0]);
-	Complex_f *X1_f=(Complex_f *)aligned_alloc_device(AVX,kferm2*sizeof(Complex_f),streams[0]);
-	Complex_f *r_f= (Complex_f *)aligned_alloc_device(AVX,kferm2*sizeof(Complex_f),streams[0]);
+	Complex_f *p_f= (Complex_f *)aligned_alloc_device(AVX,kferm2Halo*sizeof(Complex_f),stream);
+	Complex_f *x1_f=(Complex_f *)aligned_alloc_device(AVX,kferm2Halo*sizeof(Complex_f),stream);
+	Complex_f *x2_f=(Complex_f *)aligned_alloc_device(AVX,kferm2*sizeof(Complex_f),stream);
+	Complex_f *X1_f=(Complex_f *)aligned_alloc_device(AVX,kferm2*sizeof(Complex_f),stream);
+	Complex_f *r_f= (Complex_f *)aligned_alloc_device(AVX,kferm2*sizeof(Complex_f),stream);
 #endif
 #else
 	Complex_f *p_f=aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
@@ -99,7 +99,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 		//No point adding zero a couple of hundred times if the diquark source is zero
 		if(fac_f!=(Complex_f)0){
 #ifdef	DPCT_COMPATIBILITY_TEMP
-			blas::axpy(streams[0],kferm2, &fac_f, p_f, 1, x2_f, 1);
+			blas::axpy(stream,kferm2, &fac_f, p_f, 1, x2_f, 1);
 #elif defined USE_BLAS
 			cblas_caxpy(kferm2, &fac_f, p_f, 1, x2_f, 1);
 #else
@@ -112,7 +112,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 		if(*itercg){
 			//α_d= p* (M^†M+J^2)p
 #ifdef DPCT_COMPATIBILITY_TEMP
-			blas::dotc(streams[0],kferm2,p_f,1,x2_f,1,&alphad);
+			blas::dotc(stream,kferm2,p_f,1,x2_f,1,&alphad);
 #elif defined USE_BLAS
 			cblas_cdotc_sub(kferm2, p_f, 1, x2_f, 1, &alphad);
 #else
@@ -131,7 +131,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 			//x-αp, 
 #ifdef DPCT_COMPATIBILITY_TEMP
 			Complex_f alpha_f = (Complex_f)alpha;
-			blas::axpy(streams[0],kferm2,&alpha_f,p_f,1,X1_f,1);
+			blas::axpy(stream,kferm2,&alpha_f,p_f,1,X1_f,1);
 #elif defined USE_BLAS
 			Complex_f alpha_f = (Complex_f)alpha;
 			cblas_caxpy(kferm2, &alpha_f, p_f, 1, X1_f, 1);
@@ -143,9 +143,9 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 		// r_n+1 = r_n-α(M^† M)p_n and β_n=r*.r
 #ifdef	DPCT_COMPATIBILITY_TEMP
 		Complex_f alpha_m=(Complex_f)(-alpha);
-		blas::axpy(streams[0], kferm2,&alpha_m,x2_f,1,r_f,1);
+		blas::axpy(stream, kferm2,&alpha_m,x2_f,1,r_f,1);
 		float betan_f;
-		blas::nrm2(streams[0],kferm2,r_f,1,&betan_f);
+		blas::nrm2(stream,kferm2,r_f,1,&betan_f);
 		betan = betan_f*betan_f;
 #elif defined USE_BLAS
 		Complex_f alpha_m = (Complex_f)(-alpha);
@@ -168,9 +168,9 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 #endif
 #ifdef _DEBUGCG
 #warning "CG Debugging"
-		char *endline = "\n";
+		const char *endline = "\n";
 #else
-		char *endline = "\r";
+		const char *endline = "\r";
 #endif
 #ifdef _DEBUG
 		if(!rank) printf("Iter(CG)=%i\tβ_n=%e\tα=%e%s", *itercg, betan, alpha,endline);
@@ -196,9 +196,9 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 #ifdef DPCT_COMPATIBILITY_TEMP
 		Complex_f beta_f=(Complex_f)beta;
 		Complex_f a = 1.0;
-		blas::scal(streams[0],kferm2,&beta_f,p_f,1);
-		blas::axpy(streams[0],kferm2,&a,r_f,1,p_f,1);
-		blas::axpby(streams[0],kferm2, &a, r_f, 1, &beta_f,  p_f, 1);
+		blas::scal(stream,kferm2,&beta_f,p_f,1);
+		blas::axpy(stream,kferm2,&a,r_f,1,p_f,1);
+		blas::axpby(stream,kferm2, &a, r_f, 1, &beta_f,  p_f, 1);
 #elif (defined __INTEL_MKL__)
 		Complex_f a = 1.0;
 		Complex_f beta_f=(Complex_f)beta;
@@ -226,8 +226,8 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 #endif
 #ifdef DPCT_COMPATIBILITY_TEMP
 	cudaDeviceSynchronise();
-	sycl::free(x1_f,streams[0]);sycl::free(x2_f,streams[0]); sycl::free(p_f,streams[0]);
-	sycl::free(r_f,streams[0]);sycl::free(X1_f,streams[0]);
+	sycl::free(x1_f,stream);sycl::free(x2_f,stream); sycl::free(p_f,stream);
+	sycl::free(r_f,stream);sycl::free(X1_f,stream);
 #else
 	free(x1_f);free(x2_f); free(p_f);  free(r_f); free(X1_f);
 #endif
@@ -270,18 +270,19 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 #ifdef DPCT_COMPATIBILITY_TEMP
 	int device; 
 	dpct::device_ext &dev_ct1 = dpct::get_current_device();
+	sycl::queue stream = dev_ct1.in_order_queue();
 #ifdef _DEBUG
-	Complex_f *p_f  =		(Complex_f *)aligned_alloc_shared(AVX,kfermHalo*sizeof(Complex_f),streams[0]);
-	Complex_f *r_f  =		(Complex_f *)aligned_alloc_shared(AVX,kferm*sizeof(Complex_f),streams[0]);
-	Complex_f *x1_f	=	(Complex_f *)aligned_alloc_shared(AVX,kfermHalo*sizeof(Complex_f),streams[0]);
-	Complex_f *x2_f	=	(Complex_f *)aligned_alloc_shared(AVX,kferm*sizeof(Complex_f),streams[0]);
-	Complex_f *xi_f	=	(Complex_f *)aligned_alloc_shared(AVX,kferm*sizeof(Complex_f),streams[0]);
+	Complex_f *p_f  =		(Complex_f *)aligned_alloc_shared(AVX,kfermHalo*sizeof(Complex_f),stream);
+	Complex_f *r_f  =		(Complex_f *)aligned_alloc_shared(AVX,kferm*sizeof(Complex_f),stream);
+	Complex_f *x1_f	=	(Complex_f *)aligned_alloc_shared(AVX,kfermHalo*sizeof(Complex_f),stream);
+	Complex_f *x2_f	=	(Complex_f *)aligned_alloc_shared(AVX,kferm*sizeof(Complex_f),stream);
+	Complex_f *xi_f	=	(Complex_f *)aligned_alloc_shared(AVX,kferm*sizeof(Complex_f),stream);
 #else
-	Complex_f *p_f  =		(Complex_f *)aligned_alloc_device(AVX,kfermHalo*sizeof(Complex_f),streams[0]);
-	Complex_f *r_f  =		(Complex_f *)aligned_alloc_device(AVX,kferm*sizeof(Complex_f),streams[0]);
-	Complex_f *x1_f	=	(Complex_f *)aligned_alloc_device(AVX,kfermHalo*sizeof(Complex_f),streams[0]);
-	Complex_f *x2_f	=	(Complex_f *)aligned_alloc_device(AVX,kferm*sizeof(Complex_f),streams[0]);
-	Complex_f *xi_f	=	(Complex_f *)aligned_alloc_device(AVX,kferm*sizeof(Complex_f),streams[0]);
+	Complex_f *p_f  =		(Complex_f *)aligned_alloc_device(AVX,kfermHalo*sizeof(Complex_f),stream);
+	Complex_f *r_f  =		(Complex_f *)aligned_alloc_device(AVX,kferm*sizeof(Complex_f),stream);
+	Complex_f *x1_f	=	(Complex_f *)aligned_alloc_device(AVX,kfermHalo*sizeof(Complex_f),stream);
+	Complex_f *x2_f	=	(Complex_f *)aligned_alloc_device(AVX,kferm*sizeof(Complex_f),stream);
+	Complex_f *xi_f	=	(Complex_f *)aligned_alloc_device(AVX,kferm*sizeof(Complex_f),stream);
 #endif
 #else
 	Complex_f *p_f  =	aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
@@ -329,7 +330,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 #ifdef USE_BLAS
 			float alphad_f;
 #ifdef DPCT_COMPATIBILITY_TEMP
-			blas::nrm2(streams[0],kferm, x1_f, 1,(float *)&alphad_f);
+			blas::nrm2(stream,kferm, x1_f, 1,(float *)&alphad_f);
 			alphad = alphad_f*alphad_f;
 #else
 			alphad = cblas_scnrm2(kferm, x1_f, 1);
@@ -350,7 +351,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 #ifdef USE_BLAS
 			Complex_f alpha_f=creal(alpha);
 #ifdef DPCT_COMPATIBILITY_TEMP
-			blas::axpy(streams[0],kferm, &alpha_f, p_f,1, xi_f,1);
+			blas::axpy(stream,kferm, &alpha_f, p_f,1, xi_f,1);
 #else
 			cblas_caxpy(kferm, (Complex_f*)&alpha_f,(Complex_f*)p_f, 1, (Complex_f*)xi_f, 1);
 #endif
@@ -365,11 +366,11 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 #if defined USE_BLAS
 		Complex_f alpha_m=(Complex_f)(-alpha);
 #ifdef DPCT_COMPATIBILITY_TEMP
-		blas::axpy(streams[0],kferm, &alpha_m, x2_f, 1, r_f, 1);
+		blas::axpy(stream,kferm, &alpha_m, x2_f, 1, r_f, 1);
 		//cudaDeviceSynchronise();
 		//r*.r
 		float betan_f;
-		blas::nrm2(streams[0],kferm, r_f,1,(float *)&betan_f);
+		blas::nrm2(stream,kferm, r_f,1,(float *)&betan_f);
 #else
 		cblas_caxpy(kferm,(Complex_f*) &alpha_m,(Complex_f*) x2_f, 1,(Complex_f*) r_f, 1);
 		//r*.r
@@ -394,9 +395,9 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 #endif
 #ifdef _DEBUG
 #ifdef _DEBUGCG
-		char *endline = "\n";
+		const char *endline = "\n";
 #else
-		char *endline = "\r";
+		const char *endline = "\r";
 #endif
 		if(!rank) printf("Iter (CG) = %i β_n= %e α= %e%s", *itercg, betan, alpha,endline);
 #endif
@@ -423,9 +424,9 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 		Complex_f beta_f = (Complex_f)beta;
 		Complex_f a = 1.0;
 #ifdef DPCT_COMPATIBILITY_TEMP
-		blas::scal(streams[0],kferm,&beta_f,p_f,1);
-		blas::axpy(streams[0],kferm,&a,r_f,1,p_f,1);
-		blas::axpby(streams[0],kferm, &a, r_f, 1, &beta_f,  p_f, 1);
+		blas::scal(stream,kferm,&beta_f,p_f,1);
+		blas::axpy(stream,kferm,&a,r_f,1,p_f,1);
+		blas::axpby(stream,kferm, &a, r_f, 1, &beta_f,  p_f, 1);
 		cudaDeviceSynchronise();
 #elif (defined __INTEL_MKL__ || defined AMD_BLAS)
 		cblas_caxpby(kferm, &a, r_f, 1, &beta_f,  p_f, 1);
@@ -448,7 +449,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 	}
 #endif
 #ifdef	DPCT_COMPATIBILITY_TEMP
-	sycl::free(p_f,streams[0]); sycl::free(r_f,streams[0]);sycl::free(x1_f,streams[0]); sycl::free(x2_f,streams[0]); sycl::free(xi_f,streams[0]); 
+	sycl::free(p_f,stream); sycl::free(r_f,stream);sycl::free(x1_f,stream); sycl::free(x2_f,stream); sycl::free(xi_f,stream); 
 #else
 	free(p_f); free(r_f); free(x1_f); free(x2_f); free(xi_f); 
 #endif

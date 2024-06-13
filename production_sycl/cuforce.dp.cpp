@@ -12,6 +12,8 @@ void cuGauge_force(int mu, Complex_f *Sigma11, Complex_f *Sigma12,
 		Complex_f *u11t, Complex_f *u12t, double *dSdpi, float beta,
 		sycl::range<3> dimGrid, sycl::range<3> dimBlock) {
 	const char *funcname = "Gauge_force";
+	dpct::device_ext &dev_ct1 = dpct::get_current_device();
+	sycl::queue stream = dev_ct1.in_order_queue();
 	sycl::nd_range<3>(dimGrid * dimBlock, dimBlock),
 		[=](sycl::nd_item<3> item_ct1) {
 			cuGaugeForce(mu,Sigma11,Sigma12,dSdpi,u11t,u12t,beta,item_ct1);
@@ -21,7 +23,9 @@ void cuPlus_staple(int mu, int nu, unsigned int *iu, Complex_f *Sigma11,
 		Complex_f *Sigma12, Complex_f *u11t, Complex_f *u12t,
 		sycl::range<3> dimGrid, sycl::range<3> dimBlock) {
 	const char *funcname="Plus_staple";
-	streams[0].parallel_for(
+	dpct::device_ext &dev_ct1 = dpct::get_current_device();
+	sycl::queue stream = dev_ct1.in_order_queue();
+	stream.parallel_for(
 			sycl::nd_range<3>(dimGrid * dimBlock, dimBlock),
 			[=](sycl::nd_item<3> item_ct1) {
 			Plus_staple(mu, nu, iu, Sigma11, Sigma12,u11t,u12t,item_ct1);
@@ -32,7 +36,9 @@ void cuMinus_staple(int mu, int nu, unsigned int *iu, unsigned int *id,
 		Complex_f *u12sh, Complex_f *u11t, Complex_f *u12t,
 		sycl::range<3> dimGrid, sycl::range<3> dimBlock) {
 	const char *funcname="Minus_staple";
-	streams[0].parallel_for(
+	dpct::device_ext &dev_ct1 = dpct::get_current_device();
+	sycl::queue stream = dev_ct1.in_order_queue();
+	stream.parallel_for(
 			sycl::nd_range<3>(dimGrid * dimBlock, dimBlock),
 			[=](sycl::nd_item<3> item_ct1) {
 			Minus_staple(mu, nu, iu, id,Sigma11,Sigma12,u11sh,u12sh,u11t,u12t,item_ct1);
@@ -43,24 +49,26 @@ void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1,
 		unsigned int *iu, int *gamin, float akappa, sycl::range<3> dimGrid,
 		sycl::range<3> dimBlock) {
 	const char *funcname = "Force";
+	dpct::device_ext &dev_ct1 = dpct::get_current_device();
+	sycl::queue stream = dev_ct1.in_order_queue();
 	//X1=(M†M)^{1} Phi
 	//cuForce<<<dimGrid,dimBlock>>>(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa);
 	for(int idirac=0;idirac<ndirac;idirac++){
 		for(int mu=0;mu<3;mu++){
 			//Manually done
-			streams[0].parallel_for(
+			stream.parallel_for(
 					sycl::nd_range<3>(dimGrid * dimBlock, dimBlock),
 					[=](sycl::nd_item<3> item_ct1) {
 					cuForce_s0(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac,mu,item_ct1);
 					});
 			//Manually done
-			streams[0].parallel_for(
+			stream.parallel_for(
 					sycl::nd_range<3>(dimGrid * dimBlock, dimBlock),
 					[=](sycl::nd_item<3> item_ct1) {
 					cuForce_s1(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac,mu,item_ct1);
 					});
 			//Manually done
-			streams[0].parallel_for(
+			stream.parallel_for(
 					sycl::nd_range<3>(dimGrid * dimBlock, dimBlock),
 					[=](sycl::nd_item<3> item_ct1) {
 					cuForce_s2(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac,mu,item_ct1);
@@ -69,19 +77,19 @@ void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1,
 		//Set stream for time direction
 		int mu=3;
 		//Manually done
-		streams[0].parallel_for(
+		stream.parallel_for(
 				sycl::nd_range<3>(dimGrid * dimBlock, dimBlock),
 				[=](sycl::nd_item<3> item_ct1) {
 				cuForce_t0(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac,item_ct1);
 				});
 		//Manually done
-		streams[0].parallel_for(
+		stream.parallel_for(
 				sycl::nd_range<3>(dimGrid * dimBlock, dimBlock),
 				[=](sycl::nd_item<3> item_ct1) {
 				cuForce_t1(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac,item_ct1);
 				});
 		//Manually done
-		streams[0].parallel_for(
+		stream.parallel_for(
 				sycl::nd_range<3>(dimGrid * dimBlock, dimBlock),
 				[=](sycl::nd_item<3> item_ct1) {
 				cuForce_t2(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac,item_ct1);

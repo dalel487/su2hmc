@@ -1,21 +1,22 @@
 MF=Makefile_Intel
-CC=		icpx -xc++ -fsycl
-CXX=		icpx  -fsycl
+CC=		icpx -xc++ -fsycl 
+CXX=		icpx  -fsycl -DSYCL_EXT_ONEAPI_COMPLEX
 
 IFLAGS=   -I./INCLUDE -I"${MKLROOT}/include" -I ./ -I../production_c  $(shell gsl-config --cflags)
 
-CFLAGS=  -qmkl -qopt-zmm-usage=high -MD  -static-intel -static-libgcc -ipo\
-			-xSKYLAKE -ax'SKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE'\
+CFLAGS=  -qmkl  -MD  -ipo 	-xHOST\
 			-DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__ -qopenmp \
 			-qopenmp-simd -DSA3AT -mllvm -loopopt=0 $(IFLAGS) 
+			#-xSKYLAKE -ax'SKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE'\
 
 MKLFLAGS=	-qmkl -L${MKLROOT}/lib/intel64 -limf #-DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
 
 LFLAGS=		-liomp5 -lstdc++ -lpthread -ldl -limf $(shell gsl-config --libs-without-cblas) #${SYCLLFLAGS}
 
-SYCLCCFLAGS= -I./INCLUDE ${IFLAGS} -err-no -w #-expt-relaxed-constexpr 
+SYCLCCFLAGS= -I./INCLUDE ${IFLAGS} -w #-expt-relaxed-constexpr 
 #Replace first line of SYCLCCFLAGS with below when done. Targets every platform since 2016
-#SYCLCCFLAGS=	${IFLAGS}  -arch=compute_60 -code=sm_60,sm_61,sm_70,sm_75,sm_80,sm_86,sm_90 -err-no -w \
+#SYCLCCFLAGS=	${IFLAGS}  -arch=compute_60 -code=sm_60,sm_61,sm_70,sm_75,sm_80,sm_86,sm_90  -w \
+#NEVER PUT IN -err-no. It changes the entry point
 
 EXE=	su2hmc_SYCL
 
@@ -73,7 +74,7 @@ profiler:	CFLAGS += -g #-D_DEBUGCG
 profiler:	SYCLCCFLAGS += -lineinfo #-D_DEBUGCG #-keep
 profiler:	release
 
-release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high -rdynamic
+release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high 
 release:	SYCLCCFLAGS += #--maxrregcount=64 -G -dopt=on
 release:	$(EXE)
 
@@ -81,8 +82,8 @@ diagnostic: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 diagnostic: SYCLCCFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 diagnostic: debug
 
-debug:		CFLAGS += -O0 -g -D_DEBUG -rdynamic 
-debug:		SYCLCCFLAGS += -Xptxas -O0,-v -G -g -D_DEBUG -arch=sm_75 --maxrregcount=255  -keep 
+debug:		CFLAGS += -O0 -g -D_DEBUG
+debug:		SYCLCCFLAGS += -O0 -g -D_DEBUG 
 debug:		$(EXE)
 		 
 $(EXE): ../main.dp.cpp $(OBJ)

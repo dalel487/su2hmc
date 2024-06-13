@@ -5,8 +5,6 @@
 #ifndef COORD
 #define COORD
 #ifdef SYCL_LANGUAGE_VERSION
-#include <oneapi/dpl/execution>
-#include <oneapi/dpl/algorithm>
 #include <sycl/sycl.hpp>
 #include <dpct/dpct.hpp>
 #define USE_BLAS

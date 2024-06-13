@@ -177,7 +177,7 @@ xi[i]=(Complex)R1_f[i];
 #if(nproc>1)
 	Par_dsum((double *)qq); Par_dsum((double *)qbqb);
 #endif
-	*qq=(*qq+*qbqb)/(2*gvol);
+	*qq=(*qq+*qbqb)/(Complex)(2*gvol);
 	Complex xu, xd, xuu, xdd;
 	xu=xd=xuu=xdd=0;
 
@@ -249,8 +249,8 @@ xi[i]=(Complex)R1_f[i];
 						conj(u12t[i*ndim+3])*(xi[(i*ngorkov+igorkovPP)*nc]+xi[(i*ngorkov+igork1PP)*nc]) ) );
 		}
 	}
-	*endenf=creal(xu-xd-xuu+xdd);
-	*denf=creal(xu+xd+xuu+xdd);
+	*endenf=creal(xu)-creal(xd)-creal(xuu)+creal(xdd);
+	*denf=creal(xu)+creal(xd)+creal(xuu)+creal(xdd);
 
 #if(nproc>1)
 	Par_dsum(endenf); Par_dsum(denf);

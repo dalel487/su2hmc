@@ -4,22 +4,19 @@
  */
 #include	<par_mpi.h>
 #include	<su2hmc.h>
-#include <oneapi/dpl/execution>
-#include <oneapi/dpl/algorithm>
 #include <sycl/sycl.hpp>
 #include <dpct/dpct.hpp>
-#include <dpct/dpl_utils.hpp>
 // #include <thrust/execution_policy.h>
 
 void cuAverage_Plaquette(double *hgs, double *hgt, Complex_f *u11t,
 		Complex_f *u12t, unsigned int *iu,
 		sycl::range<3> dimGrid, sycl::range<3> dimBlock) {
 	//	float *hgs_d, *hgt_d;
-	int device=-1;
-	device = dpct::dev_mgr::instance().current_device_id();
-	hgs=0; hgt=0;
-	float *hgs_d =(float *)sycl::malloc_device(kvol*sizeof(float),streams[0]);
-	float *hgt_d =(float *)sycl::malloc_device(kvol*sizeof(float),streams[0]);
+	dpct::device_ext &dev_ct1 = dpct::get_current_device();
+	sycl::queue stream = dev_ct1.in_order_queue();
+	*hgs=0; *hgt=0;
+	float *hgs_d =(float *)sycl::malloc_device(kvol*sizeof(float),stream);
+	float *hgt_d =(float *)sycl::malloc_device(kvol*sizeof(float),stream);
 
 	/*
 DPCT1049:0: The work-group size passed to the SYCL kernel may exceed the
@@ -37,9 +34,10 @@ Adjust the work-group size if needed.
 	for(int i=0;i<kvol;i++){
 		hgs_t+=hgs_d[i]; hgt_t+=hgt_d[i];
 	}
-	*hgs=hgs_t; *hgt=hgt_t;
-	sycl::free(hgs_d,streams[0]);
-	sycl::free(hgt_d,streams[0]);
+	*hgs=(double)hgs_t;
+	*hgt=(double)hgt_t;
+	sycl::free(hgs_d,stream);
+	sycl::free(hgt_d,stream);
 }
 void cuPolyakov(Complex_f *Sigma11, Complex_f *Sigma12, Complex_f *u11t,
 		Complex_f *u12t, sycl::range<3> dimGrid,
@@ -49,6 +47,8 @@ DPCT1049:1: The work-group size passed to the SYCL kernel may exceed the
 limit. To get the device limit, query info::device::max_work_group_size.
 Adjust the work-group size if needed.
 */
+	dpct::device_ext &dev_ct1 = dpct::get_current_device();
+	sycl::queue stream = dev_ct1.in_order_queue();
 	dpct::get_in_order_queue().parallel_for(
 			sycl::nd_range<3>(dimGrid * dimBlock, dimBlock),
 			[=](sycl::nd_item<3> item_ct1) {

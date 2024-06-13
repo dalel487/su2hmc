@@ -19,7 +19,7 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 	 * realise was being called and hadn't initialised it properly (Congradq
 	 * springs to mind straight away)
 	 */
-	char *funcname = "Diagnostics";
+	const char *funcname = "Diagnostics";
 
 	//Initialise the arrays being used. Just going to assume MKL is being
 	//used here will also assert the number of flavours for now to avoid issues

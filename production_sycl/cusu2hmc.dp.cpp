@@ -11,15 +11,15 @@ sycl::range<3> dimBlock = sycl::range<3>(1, 1, 1);
 sycl::range<3> dimGrid = sycl::range<3>(1, 1, 1);
 //sycl::range<3>	dimBlock=dimBlockOne; sycl::range<3> dimGrid=dimGridOne;
 //sycl::queue streams[ndirac * ndim * nadj];
-sycl::queue streams[1];
 void blockInit(int x, int y, int z, int t, sycl::range<3> *dimBlock,
 		sycl::range<3> *dimGrid) {
 
 	char *funcname = "blockInit";
 
-	int device = -1; device = dpct::dev_mgr::instance().current_device_id();
-	dpct::device_info prop; dpct::get_device_info(
-			prop, dpct::dev_mgr::instance().get_device(device));
+	dpct::device_ext &dev_ct1 = dpct::get_current_device();
+	sycl::queue stream = dev_ct1.in_order_queue();
+	dpct::device_info prop; 
+	dpct::get_device_info(prop,dev_ct1);
 	//Threads per block
 	int tpb = prop.get_max_work_group_size() / 8;
 	//Warp size
@@ -98,11 +98,11 @@ void	Init_CUDA(Complex *u11t, Complex *u12t,Complex *gamval, Complex_f *gamval_f
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Init_CUDA";
-	int device=-1;
-	device = dpct::dev_mgr::instance().current_device_id();
+	dpct::device_ext &dev_ct1 = dpct::get_current_device();
+	sycl::queue stream = dev_ct1.in_order_queue();
 	//Set iu and id to mainly read in CUDA and prefetch them to the GPU
 	/*
-	cudaMemPrefetchAsync(iu,ndim*kvol*sizeof(int),device,streams[0]);
+	cudaMemPrefetchAsync(iu,ndim*kvol*sizeof(int),device,stream);
 	cudaMemPrefetchAsync(id,ndim*kvol*sizeof(int),device,streams[1]);
 	cudaMemAdvise(iu,ndim*kvol*sizeof(int),cudaMemAdviseSetReadMostly,device);
 	cudaMemAdvise(id,ndim*kvol*sizeof(int),cudaMemAdviseSetReadMostly,device);
@@ -116,14 +116,15 @@ void	Init_CUDA(Complex *u11t, Complex *u12t,Complex *gamval, Complex_f *gamval_f
 DPCT1063:13: Advice parameter is device-defined and was set to 0. You
 may need to adjust it.
 */
-	dpct::get_device(device).in_order_queue().mem_advise(gamin, 4 * 4 * sizeof(int), 0);
-	dpct::get_device(device).in_order_queue().mem_advise(gamval, 5 * 4 * sizeof(Complex), 0);
+
+/*
+	dpct::get_device(dev_ct1).in_order_queue().mem_advise(gamin, 4 * 4 * sizeof(int), 0);
+	dpct::get_device(dev_ct1).in_order_queue().mem_advise(gamval, 5 * 4 * sizeof(Complex), 0);
 
 	//More prefetching and marking as read-only (mostly)
 	//Prefetching Momentum Fields and Trial Fields to GPU
-	dpct::get_device(device).in_order_queue().mem_advise(dk4p, (kvol+halo)* sizeof(double), 0);
-	dpct::get_device(device).in_order_queue().mem_advise(dk4m, (kvol+halo)* sizeof(double), 0);
-/*
+	dpct::get_device(dev_ct1).in_order_queue().mem_advise(dk4p, (kvol+halo)* sizeof(double), 0);
+	dpct::get_device(dev_ct1).in_order_queue().mem_advise(dk4m, (kvol+halo)* sizeof(double), 0);
 	cudaMemPrefetchAsync(dk4p,(kvol+halo)*sizeof(double),device,streams[2]);
 	cudaMemPrefetchAsync(dk4m,(kvol+halo)*sizeof(double),device,streams[3]);
 	cudaMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),device,streams[4]);
@@ -136,6 +137,8 @@ void cuReal_convert(float *a, double *b, int len, bool dtof,
 	 * Kernel wrapper for conversion between sp and dp complex on the GPU.
 	 */
 	char *funcname = "cuComplex_convert";
+	dpct::device_ext &dev_ct1 = dpct::get_current_device();
+	sycl::queue stream = dev_ct1.in_order_queue();
 	dpct::get_in_order_queue().parallel_for(
 			sycl::nd_range<3>(dimBlock * dimGrid, dimGrid),
 			[=](sycl::nd_item<3> item_ct1) {
@@ -148,6 +151,8 @@ void cuComplex_convert(Complex_f *a, Complex *b, int len, bool dtof,
 	 * Kernel wrapper for conversion between sp and dp complex on the GPU.
 	 */
 	char *funcname = "cuComplex_convert";
+	dpct::device_ext &dev_ct1 = dpct::get_current_device();
+	sycl::queue stream = dev_ct1.in_order_queue();
 	dpct::get_in_order_queue().parallel_for(
 			sycl::nd_range<3>(dimBlock * dimGrid, dimGrid),
 			[=](sycl::nd_item<3> item_ct1) {
@@ -161,6 +166,8 @@ DPCT1049:9: The work-group size passed to the SYCL kernel may exceed the
 limit. To get the device limit, query info::device::max_work_group_size.
 Adjust the work-group size if needed.
 */
+	dpct::device_ext &dev_ct1 = dpct::get_current_device();
+	sycl::queue stream = dev_ct1.in_order_queue();
 	dpct::get_in_order_queue().parallel_for(
 			sycl::nd_range<3>(dimBlock * dimGrid, dimGrid),
 			[=](sycl::nd_item<3> item_ct1) {
@@ -177,6 +184,9 @@ DPCT1049:10: The work-group size passed to the SYCL kernel may exceed
 the limit. To get the device limit, query
 info::device::max_work_group_size. Adjust the work-group size if needed.
 */
+	dpct::device_ext &dev_ct1 = dpct::get_current_device();
+	sycl::queue stream = dev_ct1.in_order_queue();
+	
 	dpct::get_in_order_queue().parallel_for(
 			sycl::nd_range<3>(dimBlock * dimGrid, dimGrid),
 			[=](sycl::nd_item<3> item_ct1) {
@@ -193,6 +203,9 @@ DPCT1049:11: The work-group size passed to the SYCL kernel may exceed
 the limit. To get the device limit, query
 info::device::max_work_group_size. Adjust the work-group size if needed.
 */
+	dpct::device_ext &dev_ct1 = dpct::get_current_device();
+	sycl::queue stream = dev_ct1.in_order_queue();
+	
 	dpct::get_in_order_queue().parallel_for(
 			sycl::nd_range<3>(dimBlock * dimGrid, dimGrid),
 			[=](sycl::nd_item<3> item_ct1) {
@@ -206,6 +219,9 @@ DPCT1049:12: The work-group size passed to the SYCL kernel may exceed
 the limit. To get the device limit, query
 info::device::max_work_group_size. Adjust the work-group size if needed.
 */
+	dpct::device_ext &dev_ct1 = dpct::get_current_device();
+	sycl::queue stream = dev_ct1.in_order_queue();
+	
 	dpct::get_in_order_queue().parallel_for(
 			sycl::nd_range<3>(dimBlock * dimGrid, dimGrid),
 			[=](sycl::nd_item<3> item_ct1) {
@@ -367,6 +383,7 @@ void cuUpDownPart(int na, Complex *X0, Complex *R1,
 
 
 //DIRTY HACK
-inline void cudaDeviceSynchronise(){
-	streams[0].wait();
-}
+//void cudaDeviceSynchronise(){
+//	stream.wait();
+//}
+

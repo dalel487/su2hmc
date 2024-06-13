@@ -37,7 +37,7 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int 
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
-	char *funcname = "Dslash";
+	const char *funcname = "Dslash";
 	//Get the halos in order
 #if(nproc>1)
 	ZHalo_swap_all(r, 16);
@@ -45,7 +45,7 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int 
 
 	//Mass term
 	//Diquark Term (antihermitian)
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 	cuDslash(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm*sizeof(Complex));
@@ -159,14 +159,14 @@ int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int 
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
-	char *funcname = "Dslashd";
+	const char *funcname = "Dslashd";
 	//Get the halos in order
 #if(nproc>1)
 	ZHalo_swap_all(r, 16);
 #endif
 
 	//Mass term
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 	cuDslashd(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm*sizeof(Complex));
@@ -284,7 +284,7 @@ int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
-	char *funcname = "Hdslash";
+	const char *funcname = "Hdslash";
 	//Get the halos in order
 #if(nproc>1)
 	ZHalo_swap_all(r, 8);
@@ -292,7 +292,7 @@ int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int
 
 	//Mass term
 	//Spacelike term
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 	cuHdslash(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm2*sizeof(Complex));
@@ -374,7 +374,7 @@ int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  in
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
-	char *funcname = "Hdslashd";
+	const char *funcname = "Hdslashd";
 	//Get the halos in order. Because C is row major, we need to extract the correct
 	//terms for each halo first. Changing the indices was considered but that caused
 	//issues with the BLAS routines.
@@ -387,7 +387,7 @@ int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  in
 	//anyways so memory access patterns mightn't be as big of an limiting factor here anyway
 
 	//Mass term
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 	cuHdslashd(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm2*sizeof(Complex));
@@ -478,7 +478,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
-	char *funcname = "Dslash_f";
+	const char *funcname = "Dslash_f";
 	//Get the halos in order
 #if(nproc>1)
 	CHalo_swap_all(r, 16);
@@ -486,7 +486,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 
 	//Mass term
 	//Diquark Term (antihermitian)
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 	cuDslash_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm*sizeof(Complex_f));
@@ -600,14 +600,14 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
-	char *funcname = "Dslashd_f";
+	const char *funcname = "Dslashd_f";
 	//Get the halos in order
 #if(nproc>1)
 	CHalo_swap_all(r, 16);
 #endif
 
 	//Mass term
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 	cuDslashd_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm*sizeof(Complex_f));
@@ -725,12 +725,12 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
-	char *funcname = "Hdslash_f";
+	const char *funcname = "Hdslash_f";
 	//Get the halos in order
 #if(nproc>1)
 	CHalo_swap_all(r, 8);
 #endif
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 	cuHdslash_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,akappa,dimGrid,dimBlock);
 #else
 	//Mass term
@@ -815,7 +815,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
-	char *funcname = "Hdslashd_f";
+	const char *funcname = "Hdslashd_f";
 	//Get the halos in order. Because C is row major, we need to extract the correct
 	//terms for each halo first. Changing the indices was considered but that caused
 	//issues with the BLAS routines.
@@ -828,7 +828,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_
 	//anyways so memory access patterns mightn't be as big of an limiting factor here anyway
 
 	//Mass term
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 	cuHdslashd_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
@@ -908,8 +908,8 @@ int New_trial(double dt, double *pp, Complex *u11t, Complex *u12t){
 	 *
 	 * @returns	Zero on success, integer error code otherwise
 	 */
-	char *funcname = "New_trial"; 
-#ifdef __NVCC__
+	const char *funcname = "New_trial"; 
+#ifdef DPCT_COMPATIBILITY_TEMP
 	cuNew_trial(dt,pp,u11t,u12t,dimGrid,dimBlock);
 #else
 #pragma omp parallel for simd collapse(2) aligned(pp,u11t,u12t:AVX) 
@@ -938,7 +938,7 @@ int New_trial(double dt, double *pp, Complex *u11t, Complex *u12t){
 #endif
 	return 0;
 }
-inline int Reunitarise(Complex *u11t, Complex *u12t){
+int Reunitarise(Complex *u11t, Complex *u12t){
 	/*
 	 * @brief Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1
 	 *
@@ -953,7 +953,7 @@ inline int Reunitarise(Complex *u11t, Complex *u12t){
 	 * @return Zero on success, integer error code otherwise
 	 */
 	const char *funcname = "Reunitarise";
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 	cuReunitarise(u11t,u12t,dimGrid,dimBlock);
 #else
 #pragma omp parallel for simd aligned(u11t,u12t:AVX)

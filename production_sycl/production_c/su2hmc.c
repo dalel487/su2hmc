@@ -1,15 +1,6 @@
-/**
- * @file su2hmc.c
- *
- * @brief	An ecclectic collection of functions used in the HMC
- */
 #include	<assert.h>
 #include	<coord.h>
-#ifdef	__NVCC__
-#include	<cuda.h>
-#include	<cuda_runtime.h>
 //Fix this later
-#endif
 #include	<matrices.h>
 #include	<par_mpi.h>
 #include	<random.h>
@@ -101,7 +92,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 	DHalo_swap_dir(dk4m, 1, 3, UP);
 #endif
 	//Float versions
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 	cuReal_convert(dk4p_f,dk4p,kvol+halo,true,dimBlock,dimGrid);
 	cuReal_convert(dk4m_f,dk4m,kvol+halo,true,dimBlock,dimGrid);
 #else
@@ -116,11 +107,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 	//Gattringer and Lang have a nice crash course in appendix A.2 of
 	//Quantum Chromodynamics on the Lattice (530.14 GAT)
 	//_t is for temp. We copy these into the real gamvals later
-#ifdef __NVCC__
-	cudaMemcpy(gamin,gamin_t,4*4*sizeof(int),cudaMemcpyDefault);
-#else
 	memcpy(gamin,gamin_t,4*4*sizeof(int));
-#endif
 	Complex	__attribute__((aligned(AVX)))	gamval_t[5][4] =	{{-I,-I,I,I},{-1,1,1,-1},{-I,I,I,-I},{1,1,1,1},{1,1,-1,-1}};
 	//Each gamma matrix is rescaled by akappa by flattening the gamval array
 #if defined USE_BLAS
@@ -134,11 +121,10 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 			gamval_t[i][j]*=akappa;
 #endif
 
-#ifdef __NVCC__
-	cudaMemcpy(gamval,gamval_t,5*4*sizeof(Complex),cudaMemcpyDefault);
+	memcpy(gamval,gamval_t,5*4*sizeof(Complex));
+#ifdef DPCT_COMPATIBILITY_TEMP
 	cuComplex_convert(gamval_f,gamval,20,true,dimBlockOne,dimGridOne);	
 #else
-	memcpy(gamval,gamval_t,5*4*sizeof(Complex));
 	for(int i=0;i<5*4;i++)
 		gamval_f[i]=(Complex_f)gamval[i];
 #endif
@@ -162,8 +148,8 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 			//Ideally, we can use gsl_ranlux as the PRNG
 #ifdef __RANLUX__
 			for(int i=0; i<kvol*ndim;i++){
-				u11t[i]=2*(gsl_rng_uniform(ranlux_instd)-0.5+I*(gsl_rng_uniform(ranlux_instd)-0.5));
-				u12t[i]=2*(gsl_rng_uniform(ranlux_instd)-0.5+I*(gsl_rng_uniform(ranlux_instd)-0.5));
+				u11t[i]=(Complex)2*(gsl_rng_uniform(ranlux_instd)-0.5+I*(gsl_rng_uniform(ranlux_instd)-0.5));
+				u12t[i]=(Complex)2*(gsl_rng_uniform(ranlux_instd)-0.5+I*(gsl_rng_uniform(ranlux_instd)-0.5));
 			}
 			//If not, the Intel Vectorise Mersenne Twister
 #elif (defined __INTEL_MKL__&&!defined USE_RAN2)
@@ -181,24 +167,11 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 		else
 			fprintf(stderr,"Warning %i in %s: Gauge fields are not initialised.\n", NOINIT, funcname);
 
-#ifdef __NVCC__
-		int device=-1;
-		cudaGetDevice(&device);
-		cudaMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),device,streams[0]);
-		cudaMemPrefetchAsync(u12t, ndim*kvol*sizeof(Complex),device,streams[1]);
-#endif
 		//Send trials to accelerator for reunitarisation
 		Reunitarise(u11t,u12t);
 		//Get trials back
-#ifdef __NVCC__
-		cudaMemcpyAsync(u11,u11t,ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[0]);
-		cudaMemPrefetchAsync(u11, ndim*kvol*sizeof(Complex),device,streams[0]);
-		cudaMemcpyAsync(u12,u12t,ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[1]);
-		cudaMemPrefetchAsync(u12, ndim*kvol*sizeof(Complex),device,streams[1]);
-#else
 		memcpy(u11, u11t, ndim*kvol*sizeof(Complex));
 		memcpy(u12, u12t, ndim*kvol*sizeof(Complex));
-#endif
 	}
 #ifdef _DEBUG
 	printf("Initialisation Complete\n");
@@ -235,12 +208,10 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 	 */	
 	const char *funcname = "Hamilton";
 	//Iterate over momentum terms.
-#ifdef __NVCC__
-	double hp;
-	int device=-1;
-	cudaGetDevice(&device);
-	cudaMemPrefetchAsync(pp,kmom*sizeof(double),device,NULL);
-	cublasDnrm2(cublas_handle, kmom, pp, 1,&hp);
+#ifdef DPCT_COMPATIBILITY_TEMP
+	dpct::device_ext &dev_ct1 = dpct::get_current_device();
+	sycl::queue stream = dev_ct1.in_order_queue();
+	double hp;blas::nrm2(stream, kmom, pp, 1,&hp);
 	hp*=hp;
 #elif defined USE_BLAS
 	double hp = cblas_dnrm2(kmom, pp, 1);
@@ -257,39 +228,25 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 	Average_Plaquette(&hg,&avplaqs,&avplaqt,u11t_f,u12t_f,iu,beta);
 
 	double hf = 0; int itercg = 0;
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 	Complex *smallPhi;
-	cudaMallocAsync((void **)&smallPhi,kferm2*sizeof(Complex),NULL);
+	smallPhi = (Complex *)aligned_alloc_shared(AVX,kferm2*sizeof(Complex),stream);
 #else
 	Complex *smallPhi = aligned_alloc(AVX,kferm2*sizeof(Complex));
 #endif
 	//Iterating over flavours
 	for(int na=0;na<nf;na++){
-#ifdef __NVCC__
-#ifdef _DEBUG
-		cudaDeviceSynchronise();
-#endif
-		cudaMemcpyAsync(X1,X0+na*kferm2,kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice,streams[0]);
-#ifdef _DEBUG
-		cudaDeviceSynchronise();
-#endif
-#else
 		memcpy(X1,X0+na*kferm2,kferm2*sizeof(Complex));
-#endif
 		Fill_Small_Phi(na, smallPhi, Phi);
 		if(Congradq(na,res2,X1,smallPhi,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,&itercg))
 			fprintf(stderr,"Trajectory %d\n", traj);
 
 		*ancgh+=itercg;
-#ifdef __NVCC__
-		cudaMemcpyAsync(X0+na*kferm2,X1,kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice,streams[0]);
-#else
 		memcpy(X0+na*kferm2,X1,kferm2*sizeof(Complex));
-#endif
 		Fill_Small_Phi(na, smallPhi,Phi);
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 		Complex dot;
-		cublasZdotc(cublas_handle,kferm2,(cuDoubleComplex *)smallPhi,1,(cuDoubleComplex *) X1,1,(cuDoubleComplex *) &dot);
+		blas::dotc(stream,kferm2,smallPhi,1, X1,1, &dot);
 		hf+=creal(dot);
 #elif defined USE_BLAS
 		Complex dot;
@@ -302,8 +259,8 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 			hf+=creal(conj(smallPhi[j])*X1[j]);
 #endif
 	}
-#ifdef __NVCC__
-	cudaFreeAsync(smallPhi,NULL);
+#ifdef DPCT_COMPATIBILITY_TEMP
+	sycl::free(smallPhi,stream);
 #else
 	free(smallPhi);
 #endif
@@ -318,12 +275,12 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 #endif
 	return 0;
 }
-inline int C_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu)
+int C_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu)
 {
-	char *funcname = "C_gather";
+	const char *funcname = "C_gather";
 	//FORTRAN had a second parameter m giving the size of y (kvol+halo) normally
 	//Pointers mean that's not an issue for us so I'm leaving it out
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 	cuC_gather(x,y,n,table,mu,dimBlock,dimGrid);
 #else
 #pragma omp parallel for simd aligned (x,y,table:AVX)
@@ -332,12 +289,12 @@ inline int C_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsi
 #endif
 	return 0;
 }
-inline int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu)
+int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu)
 {
-	char *funcname = "Z_gather";
+	const char *funcname = "Z_gather";
 	//FORTRAN had a second parameter m giving the size of y (kvol+halo) normally
 	//Pointers mean that's not an issue for us so I'm leaving it out
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 	cuZ_gather(x,y,n,table,mu,dimBlock,dimGrid);
 #else
 #pragma omp parallel for simd aligned (x,y,table:AVX)
@@ -346,7 +303,7 @@ inline int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned
 #endif
 	return 0;
 }
-inline int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
+int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
 {
 	/*Copies necessary (2*4*kvol) elements of Phi into a vector variable
 	 *
@@ -365,7 +322,7 @@ inline int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
 	 */
 	const char *funcname = "Fill_Small_Phi";
 	//BIG and small phi index
-#ifdef __NVCC__
+#ifdef DPCT_COMPATIBILITY_TEMP
 	cuFill_Small_Phi(na,smallPhi,Phi,dimBlock,dimGrid);
 #else
 #pragma omp parallel for simd aligned(smallPhi,Phi:AVX) collapse(3)
@@ -377,10 +334,9 @@ inline int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
 #endif
 	return 0;
 }
-inline int UpDownPart(const int na, Complex *X0, Complex *R1){
-#ifdef __NVCC__
+int UpDownPart(const int na, Complex *X0, Complex *R1){
+#ifdef DPCT_COMPATIBILITY_TEMP
 	cuUpDownPart(na,X0,R1,dimBlock,dimGrid);
-	cudaDeviceSynchronise();
 #else
 	//The only reason this was removed from the original function is for diagnostics
 #pragma omp parallel for simd collapse(2) aligned(X0,R1:AVX)

@@ -246,7 +246,7 @@ extern "C"
 	int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u11t, Complex_f *u12t,\
 			unsigned int *iu, float beta);
 #if (!defined DPCT_COMPATIBILITY_TEMP && !defined __HIPCC__)
-        /**
+	/**
 	 * @brief Calculates the plaquette at site i in the @f$\mu--\nu@f$ direction
 	 *
 	 * @param	u11t, u12t:	Trial fields
@@ -320,55 +320,56 @@ extern "C"
 	//CUDA Declarations:
 	//#################
 #ifdef DPCT_COMPATIBILITY_TEMP
-			void cudaDeviceSynchronise();	
-        //Not a function. An array of concurrent GPU streams to keep it busy
-        extern sycl::queue streams[1];
-        //extern sycl::queue streams[ndirac * ndim * nadj];
-        //Calling Functions:
+#define cudaDeviceSynchronise() stream.wait()
+	//	void cudaDeviceSynchronise();	
+	//Not a function. An array of concurrent GPU streams to keep it busy
+//	extern dpct::queue_ptr streams[1];
+	//extern sycl::queue streams[ndirac * ndim * nadj];
+	//Calling Functions:
 	//=================
-        void cuAverage_Plaquette(double *hgs, double *hgt, Complex_f *u11t,
-                                 Complex_f *u12t, unsigned int *iu,
-                                 sycl::range<3> dimGrid,
-                                 sycl::range<3> dimBlock);
-        void cuPolyakov(Complex_f *Sigma11, Complex_f *Sigma12, Complex_f *u11t,
-                        Complex_f *u12t, sycl::range<3> dimGrid,
-                        sycl::range<3> dimBlock);
-        void cuGauge_force(int mu, Complex_f *Sigma11, Complex_f *Sigma12,
-                           Complex_f *u11t, Complex_f *u12t, double *dSdpi,
-                           float beta, sycl::range<3> dimGrid,
-                           sycl::range<3> dimBlock);
-        void cuPlus_staple(int mu, int nu, unsigned int *iu, Complex_f *Sigma11,
-                           Complex_f *Sigma12, Complex_f *u11t, Complex_f *u12t,
-                           sycl::range<3> dimGrid, sycl::range<3> dimBlock);
-        void cuMinus_staple(int mu, int nu, unsigned int *iu, unsigned int *id,
-                            Complex_f *Sigma11, Complex_f *Sigma12,
-                            Complex_f *u11sh, Complex_f *u12sh, Complex_f *u11t,
-                            Complex_f *u12t, sycl::range<3> dimGrid,
-                            sycl::range<3> dimBlock);
-        void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1,
-                     Complex *X2, Complex *gamval, double *dk4m, double *dk4p,
-                     unsigned int *iu, int *gamin, float akappa,
-                     sycl::range<3> dimGrid, sycl::range<3> dimBlock);
-        //cuInit was taken already by CUDA (unsurprisingly)
+	void cuAverage_Plaquette(double *hgs, double *hgt, Complex_f *u11t,
+			Complex_f *u12t, unsigned int *iu,
+			sycl::range<3> dimGrid,
+			sycl::range<3> dimBlock);
+	void cuPolyakov(Complex_f *Sigma11, Complex_f *Sigma12, Complex_f *u11t,
+			Complex_f *u12t, sycl::range<3> dimGrid,
+			sycl::range<3> dimBlock);
+	void cuGauge_force(int mu, Complex_f *Sigma11, Complex_f *Sigma12,
+			Complex_f *u11t, Complex_f *u12t, double *dSdpi,
+			float beta, sycl::range<3> dimGrid,
+			sycl::range<3> dimBlock);
+	void cuPlus_staple(int mu, int nu, unsigned int *iu, Complex_f *Sigma11,
+			Complex_f *Sigma12, Complex_f *u11t, Complex_f *u12t,
+			sycl::range<3> dimGrid, sycl::range<3> dimBlock);
+	void cuMinus_staple(int mu, int nu, unsigned int *iu, unsigned int *id,
+			Complex_f *Sigma11, Complex_f *Sigma12,
+			Complex_f *u11sh, Complex_f *u12sh, Complex_f *u11t,
+			Complex_f *u12t, sycl::range<3> dimGrid,
+			sycl::range<3> dimBlock);
+	void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1,
+			Complex *X2, Complex *gamval, double *dk4m, double *dk4p,
+			unsigned int *iu, int *gamin, float akappa,
+			sycl::range<3> dimGrid, sycl::range<3> dimBlock);
+	//cuInit was taken already by CUDA (unsurprisingly)
 	void Init_CUDA(Complex *u11t, Complex *u12t,Complex *gamval, Complex_f *gamval_f, int *gamin, double*dk4m,\
 			double *dk4p, unsigned int *iu, unsigned int *id);
-        void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi,
-                              sycl::range<3> dimBlock, sycl::range<3> dimGrid);
-        void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table,
-                        unsigned int mu, sycl::range<3> dimBlock,
-                        sycl::range<3> dimGrid);
-        void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table,
-                        unsigned int mu, sycl::range<3> dimBlock,
-                        sycl::range<3> dimGrid);
-        void cuComplex_convert(Complex_f *a, Complex *b, int len, bool ftod,
-                               sycl::range<3> dimBlock, sycl::range<3> dimGrid);
-        void cuReal_convert(float *a, double *b, int len, bool ftod,
-                            sycl::range<3> dimBlock, sycl::range<3> dimGrid);
-        void cuUpDownPart(int na, Complex *X0, Complex *R1,
-                          sycl::range<3> dimBlock, sycl::range<3> dimGrid);
-        //And a little something to set the CUDA grid and block sizes
-        void blockInit(int x, int y, int z, int t, sycl::range<3> *dimBlock,
-                       sycl::range<3> *dimGrid);
+	void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi,
+			sycl::range<3> dimBlock, sycl::range<3> dimGrid);
+	void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table,
+			unsigned int mu, sycl::range<3> dimBlock,
+			sycl::range<3> dimGrid);
+	void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table,
+			unsigned int mu, sycl::range<3> dimBlock,
+			sycl::range<3> dimGrid);
+	void cuComplex_convert(Complex_f *a, Complex *b, int len, bool ftod,
+			sycl::range<3> dimBlock, sycl::range<3> dimGrid);
+	void cuReal_convert(float *a, double *b, int len, bool ftod,
+			sycl::range<3> dimBlock, sycl::range<3> dimGrid);
+	void cuUpDownPart(int na, Complex *X0, Complex *R1,
+			sycl::range<3> dimBlock, sycl::range<3> dimGrid);
+	//And a little something to set the CUDA grid and block sizes
+	void blockInit(int x, int y, int z, int t, sycl::range<3> *dimBlock,
+			sycl::range<3> *dimGrid);
 #endif
 #if (defined __cplusplus)
 }
@@ -376,37 +377,37 @@ extern "C"
 //CUDA Kernels:
 //============
 #ifdef SYCL_LANGUAGE_VERSION
-//__global__ void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
+//__global__ extern SYCL_EXTERNAL void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
 //		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa);
-void Plus_staple(int mu, int nu,unsigned int *iu, Complex_f *Sigma11, Complex_f *Sigma12,\
+extern SYCL_EXTERNAL void Plus_staple(int mu, int nu,unsigned int *iu, Complex_f *Sigma11, Complex_f *Sigma12,\
 		Complex_f *u11t, Complex_f *u12t,const sycl::nd_item<3> &item_ct1);
-void Minus_staple(int mu, int nu,unsigned int *iu,unsigned int *id, Complex_f *Sigma11, Complex_f *Sigma12,\
+extern SYCL_EXTERNAL void Minus_staple(int mu, int nu,unsigned int *iu,unsigned int *id, Complex_f *Sigma11, Complex_f *Sigma12,\
 		Complex_f *u11sh, Complex_f *u12sh, Complex_f *u11t, Complex_f *u12t,const sycl::nd_item<3> &item_ct1);
-void cuGaugeForce(int mu, Complex_f *Sigma11, Complex_f *Sigma12,double* dSdpi,Complex_f *u11t, Complex_f *u12t,\
+extern SYCL_EXTERNAL void cuGaugeForce(int mu, Complex_f *Sigma11, Complex_f *Sigma12,double* dSdpi,Complex_f *u11t, Complex_f *u12t,\
 		float beta,	const sycl::nd_item<3> &item_ct1);
-void cuAverage_Plaquette(float *hgs_d, float *hgt_d, Complex_f *u11t, Complex_f *u12t, unsigned int *iu,	const sycl::nd_item<3> &item_ct1);
-void cuPolyakov(Complex_f *Sigma11, Complex_f * Sigma12, Complex_f *u11t, Complex_f *u12t,const sycl::nd_item<3> &item_ct1);
+extern SYCL_EXTERNAL void cuAverage_Plaquette(float *hgs_d, float *hgt_d, Complex_f *u11t, Complex_f *u12t, unsigned int *iu,	const sycl::nd_item<3> &item_ct1);
+extern SYCL_EXTERNAL void cuPolyakov(Complex_f *Sigma11, Complex_f * Sigma12, Complex_f *u11t, Complex_f *u12t,const sycl::nd_item<3> &item_ct1);
 float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int i, int mu, int nu);
 //Force Kernels. We've taken each nadj index and the spatial/temporal components and created a separate kernel for each
 //CPU code just has these as a huge blob that the vectoriser can't handle. May be worth splitting it there too?
 //It might not be a bad idea to make a seperate header for all these kernels...
-void cuForce_s0(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
+extern SYCL_EXTERNAL void cuForce_s0(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
 		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac, int mu,const sycl::nd_item<3> &item_ct1);
-void cuForce_s1(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
+extern SYCL_EXTERNAL void cuForce_s1(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
 		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac, int mu,const sycl::nd_item<3> &item_ct1);
-void cuForce_s2(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
+extern SYCL_EXTERNAL void cuForce_s2(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
 		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac, int mu,const sycl::nd_item<3> &item_ct1);
-void cuForce_t0(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
+extern SYCL_EXTERNAL void cuForce_t0(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
 		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac,const sycl::nd_item<3> &item_ct1);
-void cuForce_t1(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
+extern SYCL_EXTERNAL void cuForce_t1(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
 		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac,const sycl::nd_item<3> &item_ct1);
-void cuForce_t2(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
+extern SYCL_EXTERNAL void cuForce_t2(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
 		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac,const sycl::nd_item<3> &item_ct1);
-void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi,const sycl::nd_item<3> &item_ct1);
-void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu,const sycl::nd_item<3> &item_ct1);
-void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu,const sycl::nd_item<3> &item_ct1);
-void cuComplex_convert(Complex_f *a, Complex *b, int len, bool dtof,const sycl::nd_item<3> &item_ct1);
-void cuReal_convert(float *a, double *b, int len, bool dtof,const sycl::nd_item<3> &item_ct1);
-void cuUpDownPart(int na, Complex *X0, Complex *R1,const sycl::nd_item<3> &item_ct1);
+extern SYCL_EXTERNAL void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi,const sycl::nd_item<3> &item_ct1);
+extern SYCL_EXTERNAL void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu,const sycl::nd_item<3> &item_ct1);
+extern SYCL_EXTERNAL void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu,const sycl::nd_item<3> &item_ct1);
+extern SYCL_EXTERNAL void cuComplex_convert(Complex_f *a, Complex *b, int len, bool dtof,const sycl::nd_item<3> &item_ct1);
+extern SYCL_EXTERNAL void cuReal_convert(float *a, double *b, int len, bool dtof,const sycl::nd_item<3> &item_ct1);
+extern SYCL_EXTERNAL void cuUpDownPart(int na, Complex *X0, Complex *R1,const sycl::nd_item<3> &item_ct1);
 #endif
 #endif

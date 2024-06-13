@@ -37,17 +37,12 @@
 #include	<cblas.h>
 #endif
 #ifdef DPCT_COMPATIBILITY_TEMP
-#include <oneapi/dpl/execution>
-#include <oneapi/dpl/algorithm>
 #include <sycl/sycl.hpp>
 #include <dpct/dpct.hpp>
 #include <oneapi/mkl.hpp>
 using namespace oneapi::mkl;
 ///@brief	Get rid of that bastardised yankee English
 #include <thrust_complex.h>
-#ifdef SYCL_LANGUAGE_VERSION
-#include <dpct/dpl_utils.hpp>
-#endif
 #else
 #include	<complex.h>
 ///@brief Single precision complex number 
@@ -61,7 +56,7 @@ using namespace oneapi::mkl;
 // Common block definition for parallel variables
 
 ///	@brief Lattice x extent
-#define	nx 18
+#define	nx 8
 #if(nx<1)
 #error "nx is expected it to be greater than or equal to 1"
 #endif
@@ -81,7 +76,7 @@ using namespace oneapi::mkl;
 #endif
 
 ///	@brief	Lattice temporal extent. This also corresponds to the inverse temperature
-#define	nt	40
+#define	nt	16
 #if(nt<1)
 #error "nt is expected it to be greater than or equal to 1"
 #endif
@@ -130,7 +125,7 @@ using namespace oneapi::mkl;
 #define	nproc	(npx*npy*npz*npt)
 
 ///	@brief Number of threads for OpenMP, which can be overwritten at runtime
-#define	nthreads	12
+#define	nthreads	8
 
 //    Existing parameter definitions.
 ///	@brief Sublattice x extent

@@ -121,14 +121,14 @@ double Polyakov(Complex_f *u11t, Complex_f *u12t){
 	const char *funcname = "Polyakov";
 	double poly = 0;
 #ifdef DPCT_COMPATIBILITY_TEMP
-	int device=-1;
 	dpct::device_ext &dev_ct1 = dpct::get_current_device();
+	sycl::queue stream = dev_ct1.in_order_queue();
 	Complex_f *Sigma11,*Sigma12;
-	Sigma11 = (Complex_f *)aligned_alloc_shared(AVX,kvol3*sizeof(Complex_f),streams[0]);
+	Sigma11 = (Complex_f *)aligned_alloc_shared(AVX,kvol3*sizeof(Complex_f),stream);
 #ifdef _DEBUG
-	Sigma12 = (Complex_f *)aligned_alloc_shared(AVX,kvol3*sizeof(Complex_f),streams[0]);
+	Sigma12 = (Complex_f *)aligned_alloc_shared(AVX,kvol3*sizeof(Complex_f),stream);
 #else
-	Sigma12 = (Complex_f *)aligned_alloc_device(AVX,kvol3*sizeof(Complex_f),streams[0]);
+	Sigma12 = (Complex_f *)aligned_alloc_device(AVX,kvol3*sizeof(Complex_f),stream);
 #endif
 #else
 	Complex_f *Sigma11 = (Complex_f *)aligned_alloc(AVX,kvol3*sizeof(Complex_f));
@@ -137,8 +137,8 @@ double Polyakov(Complex_f *u11t, Complex_f *u12t){
 
 	//Extract the time component from each site and save in corresponding Sigma
 #ifdef DPCT_COMPATIBILITY_TEMP
-	blas::copy(streams[0],kvol3, u11t+3, ndim, Sigma11, 1);
-	blas::copy(streams[0],kvol3, u12t+3, ndim, Sigma12, 1);
+	blas::copy(stream,kvol3, u11t+3, ndim, Sigma11, 1);
+	blas::copy(stream,kvol3, u12t+3, ndim, Sigma12, 1);
 #elif defined USE_BLAS
 	cblas_ccopy(kvol3, u11t+3, ndim, Sigma11, 1);
 	cblas_ccopy(kvol3, u12t+3, ndim, Sigma12, 1);
@@ -213,8 +213,8 @@ double Polyakov(Complex_f *u11t, Complex_f *u12t){
 	for(int i=0;i<kvol3;i++)
 		poly+=creal(Sigma11[i]);
 #ifdef DPCT_COMPATIBILITY_TEMP
-	sycl::free(Sigma11,streams[0]);
-	sycl::free(Sigma12,streams[0]);
+	sycl::free(Sigma11,stream);
+	sycl::free(Sigma12,stream);
 #else
 	free(Sigma11); free(Sigma12);
 #endif

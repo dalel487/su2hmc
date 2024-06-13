@@ -959,7 +959,9 @@ void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Dslash";
-	streams[0].memcpy(phi, r, kferm*sizeof(Complex));
+	dpct::device_ext &dev_ct1 = dpct::get_current_device();
+	sycl::queue stream = dev_ct1.in_order_queue();
+	stream.memcpy(phi, r, kferm*sizeof(Complex));
 	/*
 DPCT1049:2: The work-group size passed to the SYCL kernel may exceed the
 limit. To get the device limit, query info::device::max_work_group_size.
@@ -999,7 +1001,9 @@ void cuDslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Dslashd";
-	streams[0].memcpy(phi, r, kferm*sizeof(Complex));
+	dpct::device_ext &dev_ct1 = dpct::get_current_device();
+	sycl::queue stream = dev_ct1.in_order_queue();
+	stream.memcpy(phi, r, kferm*sizeof(Complex));
 	/*
 DPCT1049:3: The work-group size passed to the SYCL kernel may exceed the
 limit. To get the device limit, query info::device::max_work_group_size.
@@ -1039,7 +1043,9 @@ void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Hdslash";
-	streams[0].memcpy(phi, r, kferm2*sizeof(Complex));
+	dpct::device_ext &dev_ct1 = dpct::get_current_device();
+	sycl::queue stream = dev_ct1.in_order_queue();
+	stream.memcpy(phi, r, kferm2*sizeof(Complex));
 	/*
 DPCT1049:4: The work-group size passed to the SYCL kernel may exceed the
 limit. To get the device limit, query info::device::max_work_group_size.
@@ -1080,7 +1086,9 @@ void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,
 	 */
 	char *funcname = "Hdslashd";
 	//Spacelike term
-	streams[0].memcpy(phi, r, kferm2*sizeof(Complex));
+	dpct::device_ext &dev_ct1 = dpct::get_current_device();
+	sycl::queue stream = dev_ct1.in_order_queue();
+	stream.memcpy(phi, r, kferm2*sizeof(Complex));
 	/*
 DPCT1049:5: The work-group size passed to the SYCL kernel may exceed the
 limit. To get the device limit, query info::device::max_work_group_size.
@@ -1120,13 +1128,15 @@ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Dslash_f";
-	streams[0].memcpy(phi, r, kferm*sizeof(Complex_f));
-	streams[0].parallel_for(
+	dpct::device_ext &dev_ct1 = dpct::get_current_device();
+	sycl::queue stream = dev_ct1.in_order_queue();
+	stream.memcpy(phi, r, kferm*sizeof(Complex_f));
+	stream.parallel_for(
 			sycl::nd_range<3>(dimGrid * dimBlock, dimBlock),
 			[=](sycl::nd_item<3> item_ct1) {
 			cuDslash0_f(phi, r, u11t, u12t, iu, id, gamval, gamin, dk4m, dk4p,jqq, akappa,item_ct1);
 			});
-	streams[0].parallel_for(
+	stream.parallel_for(
 			sycl::nd_range<3>(dimGrid * dimBlock, dimBlock),
 			[=](sycl::nd_item<3> item_ct1) {
 			cuDslash1_f(phi, r, u11t, u12t, iu, id, gamval, gamin, dk4m, dk4p,jqq, akappa,item_ct1);
@@ -1161,13 +1171,15 @@ void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Dslashd_f";
-	streams[0].memcpy(phi, r, kferm*sizeof(Complex_f));
-	streams[0].parallel_for(
+	dpct::device_ext &dev_ct1 = dpct::get_current_device();
+	sycl::queue stream = dev_ct1.in_order_queue();
+	stream.memcpy(phi, r, kferm*sizeof(Complex_f));
+	stream.parallel_for(
 			sycl::nd_range<3>(dimGrid * dimBlock, dimBlock),
 			[=](sycl::nd_item<3> item_ct1) {
 			cuDslashd0_f(phi, r, u11t, u12t, iu, id, gamval, gamin, dk4m, dk4p,jqq, akappa,item_ct1);
 			});
-	streams[0].parallel_for(
+	stream.parallel_for(
 			sycl::nd_range<3>(dimGrid * dimBlock, dimBlock),
 			[=](sycl::nd_item<3> item_ct1) {
 			cuDslashd1_f(phi, r, u11t, u12t, iu, id, gamval, gamin, dk4m, dk4p,jqq, akappa,item_ct1);
@@ -1199,7 +1211,9 @@ void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Hdslash_f";
-	streams[0].memcpy(phi, r, kferm*sizeof(Complex_f));
+	dpct::device_ext &dev_ct1 = dpct::get_current_device();
+	sycl::queue stream = dev_ct1.in_order_queue();
+	stream.memcpy(phi, r, kferm2*sizeof(Complex_f));
 	const int bsize = dimGrid[2] * dimGrid[1] * dimGrid[0];
 	const int shareSize= ndim*bsize*nc*sizeof(Complex_f);
 	/*
@@ -1241,7 +1255,9 @@ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t,
 	 * Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Hdslashd_f";
-	streams[0].memcpy(phi, r, kferm*sizeof(Complex_f));
+	dpct::device_ext &dev_ct1 = dpct::get_current_device();
+	sycl::queue stream = dev_ct1.in_order_queue();
+	stream.memcpy(phi, r, kferm2*sizeof(Complex_f));
 	/*
 DPCT1049:7: The work-group size passed to the SYCL kernel may exceed the
 limit. To get the device limit, query info::device::max_work_group_size.
@@ -1257,6 +1273,8 @@ Adjust the work-group size if needed.
 
 void cuReunitarise(Complex *u11t, Complex *u12t, sycl::range<3> dimGrid,
 		sycl::range<3> dimBlock) {
+	dpct::device_ext &dev_ct1 = dpct::get_current_device();
+	sycl::queue stream = dev_ct1.in_order_queue();
 	/*
 DPCT1049:8: The work-group size passed to the SYCL kernel may exceed the
 limit. To get the device limit, query info::device::max_work_group_size.
@@ -1267,12 +1285,13 @@ Adjust the work-group size if needed.
 			[=](sycl::nd_item<3> item_ct1) {
 			cuReunitarise(u11t, u12t,item_ct1);
 			});
-	cudaDeviceSynchronise();
 }
 void cuNew_trial(double dt, double *pp, Complex *u11t, Complex *u12t,
 		sycl::range<3> dimGrid, sycl::range<3> dimBlock) {
+	dpct::device_ext &dev_ct1 = dpct::get_current_device();
+	sycl::queue stream = dev_ct1.in_order_queue();
 	for(int mu=0;mu<ndim;mu++)
-		streams[0].parallel_for(
+		stream.parallel_for(
 				sycl::nd_range<3>(dimGrid * dimBlock, dimBlock),
 				[=](sycl::nd_item<3> item_ct1) {
 				cuNew_trial(dt,pp,u11t, u12t,mu,item_ct1);

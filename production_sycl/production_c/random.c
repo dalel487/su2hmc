@@ -4,9 +4,6 @@
  * @brief Random number generator related routines
  */
 #include "coord.h"
-#ifdef	__NVCC__
-#include <curand.h>
-#endif
 #include "errorcodes.h"
 #ifdef	__INTEL_MKL__
 #include <mkl.h>
@@ -86,7 +83,7 @@ inline int ranset(long *seed)
 	return 0;
 #endif
 }
-int Par_ranread(char *filename, double *ranval){
+int Par_ranread(const char *filename, double *ranval){
 	/*
 	 * @brief Reads ps from a file
 	 * Since this function is very similar to Par_sread, I'm not really going to comment it
@@ -97,7 +94,7 @@ int Par_ranread(char *filename, double *ranval){
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
-	char *funcname = "Par_psread";
+	const char *funcname = "Par_psread";
 	FILE *dest;
 	if(!rank){
 		if(!(dest = fopen(filename, "rb"))){
@@ -196,7 +193,7 @@ double Par_granf(){
 	 *
 	 * @return the random number generated
 	 */
-	char *funcname = "Par_granf";
+	const char *funcname = "Par_granf";
 	double ran_val=0;
 	if(!rank){
 #if (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))
@@ -300,7 +297,7 @@ int Gauss_c(Complex_f *ps, unsigned int n, const Complex_f mu, const float sigma
 		float r =sigma*sqrt(-2*log(ran2(&seed)));
 		float theta=2.0*M_PI*ran2(&seed);
 #endif
-		ps[i]=r*(cos(theta)+mu+sin(theta)*I)+mu;
+		ps[i]=r*(cos(theta)+mu+sin(theta)*(Complex_f)I)+mu;
 	}     
 	return 0;
 }
@@ -494,7 +491,7 @@ double ran2(long *idum) {
 
 /*
 	int ran_test(){
-	char *funcname ="ran_test";
+	const char *funcname ="ran_test";
 	const double mu = 0.3;
 	const double sigma = 2;
 	const float mu_f = 0.7;
