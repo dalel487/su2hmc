@@ -30,7 +30,7 @@ int Addrc(unsigned int *iu, unsigned int *id){
 	 * ========
 	 * Zero on success, integer error code otherwise
 	 */
-	char *funcname = "Addrc";
+	const char *funcname = "Addrc";
 		//Rather than having 8 ih variables I'm going to use a 2x4 array
 		//down is 0, up is 1
 		int ih[2][4] = {{-1,-1,-1,-1},{-1,-1,-1,-1}};
@@ -320,7 +320,7 @@ inline int ia(int x, int y, int z, int t){
 	 *
 	 * Future... Switch for Row and column major, and zero or one indexing
 	 */
-	char *funcname = "ia";
+	const char *funcname = "ia";
 	//We need to ensure that the indices aren't out of bounds using while loops
 	while(x<0) x+=ksizex; while(x>=ksizex) x-= ksizex;
 	while(y<0) y+=ksizey; while(y>=ksizey) y-= ksizey;
@@ -346,7 +346,7 @@ int Check_addr(unsigned int *table, int lns, int lnt, int imin, int imax){
 	 * =======
 	 * Zero on success, integer error code otherwise.
 	 */
-	char *funcname = "Check_addr";
+	const char *funcname = "Check_addr";
 	//Get the total number of elements in each dimension of the table
 	int ntable = lns*lns*lns*lnt;
 	int iaddr;
@@ -390,7 +390,7 @@ inline int Index2lcoord(int index, int *coord){
 	 * Zero on success. Integer Error code otherwise
 	 */ 
 
-	char *funcname = "Index2lcoord";
+	const char *funcname = "Index2lcoord";
 	//A divide and conquer approach. Going from the deepest coordinate
 	//to the least deep coordinate, we take the modulo of the index by
 	//the length of that axis to get the coordinate, and then divide
@@ -427,7 +427,7 @@ inline int Index2gcoord(int index, int *coord){
 	 * Zero on success. Integer Error code otherwise
 	 */ 
 
-	char *funcname = "Index2gcoord";
+	const char *funcname = "Index2gcoord";
 	//A divide and conquer approach. Going from the deepest coordinate
 	//to the least deep coordinate, we take the modulo of the index by
 	//the length of that axis to get the coordinate, and then divide
@@ -458,7 +458,7 @@ inline int Coord2lindex(int ix, int iy, int iz, int it){
 	 * ========
 	 * int index: The position of the point
 	 */
-	char *funcname = "Coord2gindex";
+	const char *funcname = "Coord2gindex";
 
 	//I've factorised this function compared to its original 
 	//implementation to reduce the number of multiplications
@@ -484,7 +484,7 @@ inline int Coord2gindex(int ix, int iy, int iz, int it){
 	 * ========
 	 * int index: The position of the point
 	 */
-	char *funcname = "Coord2gindex";
+	const char *funcname = "Coord2gindex";
 
 	//I've factorised this function compared to its original 
 	//implementation to reduce the number of multiplications
@@ -513,7 +513,7 @@ int Testlcoord(int cap){
 	 * ========
 	 * Zero on success, integer error code otherwise.
 	 */
-	char *funcname = "Testlcoord";
+	const char *funcname = "Testlcoord";
 	//The storage array for the coordinates, and the index and its test value.
 	int coord[4], index, index2;
 	for(index =0; index<cap; index++){
@@ -557,7 +557,7 @@ int Testgcoord(int cap){
 	 * ========
 	 * Zero on success, integer error code otherwise 
 	 */
-	char *funcname = "Testgcoord";
+	const char *funcname = "Testgcoord";
 	int coord[4], index, index2;
 #pragma omp parallel for private(coord, index, index2)
 	for(index=0; index<cap; index++){

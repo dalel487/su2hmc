@@ -1,5 +1,5 @@
 MF=	Makefile_OneAPI
-CC=	mpiicx -save-temps -v
+CC=	mpiicx
 
 IFLAGS=	-I../INCLUDE $(shell gsl-config --cflags)
 

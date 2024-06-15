@@ -97,7 +97,7 @@ int Par_ranread(char *filename, double *ranval){
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
-	char *funcname = "Par_psread";
+	const char *funcname = "Par_psread";
 	FILE *dest;
 	if(!rank){
 		if(!(dest = fopen(filename, "rb"))){
@@ -196,7 +196,7 @@ double Par_granf(){
 	 *
 	 * @return the random number generated
 	 */
-	char *funcname = "Par_granf";
+	const char *funcname = "Par_granf";
 	double ran_val=0;
 	if(!rank){
 #if (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))
@@ -494,7 +494,7 @@ double ran2(long *idum) {
 
 /*
 	int ran_test(){
-	char *funcname ="ran_test";
+	const char *funcname ="ran_test";
 	const double mu = 0.3;
 	const double sigma = 2;
 	const float mu_f = 0.7;

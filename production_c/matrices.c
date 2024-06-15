@@ -37,7 +37,7 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int 
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
-	char *funcname = "Dslash";
+	const char *funcname = "Dslash";
 	//Get the halos in order
 #if(nproc>1)
 	ZHalo_swap_all(r, 16);
@@ -159,7 +159,7 @@ int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int 
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
-	char *funcname = "Dslashd";
+	const char *funcname = "Dslashd";
 	//Get the halos in order
 #if(nproc>1)
 	ZHalo_swap_all(r, 16);
@@ -284,7 +284,7 @@ int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
-	char *funcname = "Hdslash";
+	const char *funcname = "Hdslash";
 	//Get the halos in order
 #if(nproc>1)
 	ZHalo_swap_all(r, 8);
@@ -374,7 +374,7 @@ int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  in
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
-	char *funcname = "Hdslashd";
+	const char *funcname = "Hdslashd";
 	//Get the halos in order. Because C is row major, we need to extract the correct
 	//terms for each halo first. Changing the indices was considered but that caused
 	//issues with the BLAS routines.
@@ -478,7 +478,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
-	char *funcname = "Dslash_f";
+	const char *funcname = "Dslash_f";
 	//Get the halos in order
 #if(nproc>1)
 	CHalo_swap_all(r, 16);
@@ -600,7 +600,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
-	char *funcname = "Dslashd_f";
+	const char *funcname = "Dslashd_f";
 	//Get the halos in order
 #if(nproc>1)
 	CHalo_swap_all(r, 16);
@@ -725,7 +725,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
-	char *funcname = "Hdslash_f";
+	const char *funcname = "Hdslash_f";
 	//Get the halos in order
 #if(nproc>1)
 	CHalo_swap_all(r, 8);
@@ -815,7 +815,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
-	char *funcname = "Hdslashd_f";
+	const char *funcname = "Hdslashd_f";
 	//Get the halos in order. Because C is row major, we need to extract the correct
 	//terms for each halo first. Changing the indices was considered but that caused
 	//issues with the BLAS routines.
@@ -908,7 +908,7 @@ int New_trial(double dt, double *pp, Complex *u11t, Complex *u12t){
 	 *
 	 * @returns	Zero on success, integer error code otherwise
 	 */
-	char *funcname = "New_trial"; 
+	const char *funcname = "New_trial"; 
 #ifdef __NVCC__
 	cuNew_trial(dt,pp,u11t,u12t,dimGrid,dimBlock);
 #else

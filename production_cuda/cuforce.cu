@@ -49,7 +49,7 @@ void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *
 /*
 	__global__ void cuForce(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Complex_f *X1, Complex_f *X2, Complex_f *gamval,\
 	double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa){
-	char *funcname = "cuForce";
+	const char *funcname = "cuForce";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -86,7 +86,7 @@ uid = iu[mu+ndim*i];
 }
  */
 __global__ void Plus_staple(int mu, int nu,unsigned int *iu, Complex_f *Sigma11, Complex_f *Sigma12, Complex_f *u11t, Complex_f *u12t){
-	char *funcname = "Plus_staple";
+	const char *funcname = "Plus_staple";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -104,7 +104,7 @@ __global__ void Plus_staple(int mu, int nu,unsigned int *iu, Complex_f *Sigma11,
 }
 __global__ void Minus_staple(int mu,int nu,unsigned int *iu,unsigned int *id, Complex_f *Sigma11, Complex_f *Sigma12,\
 		Complex_f *u11sh, Complex_f *u12sh, Complex_f *u11t, Complex_f *u12t){
-	char *funcname = "Minus_staple";
+	const char *funcname = "Minus_staple";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -122,7 +122,7 @@ __global__ void Minus_staple(int mu,int nu,unsigned int *iu,unsigned int *id, Co
 	}
 }
 __global__ void cuGaugeForce(int mu, Complex_f *Sigma11, Complex_f *Sigma12,double* dSdpi,Complex_f *u11t, Complex_f *u12t, float beta){
-	char *funcname = "cuGaugeForce";
+	const char *funcname = "cuGaugeForce";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -139,7 +139,7 @@ __global__ void cuGaugeForce(int mu, Complex_f *Sigma11, Complex_f *Sigma12,doub
 
 __global__ void cuForce_s0(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
 		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac, int mu){
-	char *funcname = "cuForce";
+	const char *funcname = "cuForce";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -178,7 +178,7 @@ __global__ void cuForce_s0(double *dSdpi, Complex *u11t, Complex *u12t, Complex 
 }
 __global__ void cuForce_s1(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
 		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac, int mu){
-	char *funcname = "cuForce";
+	const char *funcname = "cuForce";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -217,7 +217,7 @@ __global__ void cuForce_s1(double *dSdpi, Complex *u11t, Complex *u12t, Complex 
 }
 __global__ void cuForce_s2(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
 		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac, int mu){
-	char *funcname = "cuForce";
+	const char *funcname = "cuForce";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -256,7 +256,7 @@ __global__ void cuForce_s2(double *dSdpi, Complex *u11t, Complex *u12t, Complex 
 }
 __global__ void cuForce_t0(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
 		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac){
-	char *funcname = "cuForce";
+	const char *funcname = "cuForce";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -297,7 +297,7 @@ __global__ void cuForce_t0(double *dSdpi, Complex *u11t, Complex *u12t, Complex 
 }
 __global__ void cuForce_t1(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
 		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac){
-	char *funcname = "cuForce";
+	const char *funcname = "cuForce";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -337,7 +337,7 @@ __global__ void cuForce_t1(double *dSdpi, Complex *u11t, Complex *u12t, Complex 
 }
 __global__ void cuForce_t2(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
 		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac){
-	char *funcname = "cuForce";
+	const char *funcname = "cuForce";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
