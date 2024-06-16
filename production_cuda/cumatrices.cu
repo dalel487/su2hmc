@@ -880,8 +880,8 @@ __global__ void cuReunitarise(Complex *u11t, Complex * u12t){
 		u12t[i]/=anorm;
 	}
 }
-__global__ void cuNew_trial(double dt, double *pp, Complex *u11t, Complex *u12t,int mu){
-	char *funcname = "New_trial";
+__global__ void cuGauge_Update(double dt, double *pp, Complex *u11t, Complex *u12t,int mu){
+	char *funcname = "Gauge_Update";
 	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -1166,7 +1166,7 @@ void cuReunitarise(Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock){
 	cuReunitarise<<<dimGrid,dimBlock>>>(u11t,u12t);
 	cudaDeviceSynchronise();
 }
-void cuNew_trial(double dt, double *pp, Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock){
+void cuGauge_Update(double dt, double *pp, Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock){
 	for(int mu=0;mu<ndim;mu++)
-		cuNew_trial<<<dimGrid,dimBlock,0,streams[mu]>>>(dt,pp,u11t,u12t,mu);
+		cuGauge_Update<<<dimGrid,dimBlock,0,streams[mu]>>>(dt,pp,u11t,u12t,mu);
 }

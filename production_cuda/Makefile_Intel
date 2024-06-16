@@ -9,7 +9,8 @@ IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include" -I ./ -I../production_c\
 
 CFLAGS=  -qmkl -qopt-zmm-usage=high -MD -D__NVCC__ -static-intel -static-libgcc \
 			-xSKYLAKE -ax'SKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE'\
-			-DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__ -qopenmp -qno-openmp-offload\
+			-DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__ -qopenmp -qno-openmp-offload \
+			-DINT_OMF4 \
 			-qopenmp-simd -DSA3AT -use-intel-optimized-headers -diag-disable=10441 $(IFLAGS) 
 
 MKLFLAGS=	-qmkl -L${MKLROOT}/lib/intel64 -limf #-DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64

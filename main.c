@@ -504,10 +504,24 @@ int main(int argc, char *argv[]){
 #endif
 		if(itraj==1)
 			action = S0/gvol;
-//		Leapfrog(u11t, u12t, u11t_f, u12t_f, X0, X1, Phi, dk4m, dk4p, dk4m_f, dk4p_f, dSdpi, pp,iu, id, gamval,
-//					gamval_f, gamin, jqq, beta,akappa,stepl,dt,&ancg,&itot,proby);
+
+//Integration 
+//TODO: Have this as a runtime parameter.
+#if (defined INT_LPFR && defined INT_OMF2) ||(defined INT_LPFR && defined INT_OMF4)||(defined INT_OMF2 && defined INT_OMF4)
+#error "Only one integrator may be defined
+#elif defined INT_LPFR
+		Leapfrog(u11t, u12t, u11t_f, u12t_f, X0, X1, Phi, dk4m, dk4p, dk4m_f, dk4p_f, dSdpi, pp,iu, id, gamval,
+				gamval_f, gamin, jqq, beta,akappa,stepl,dt,&ancg,&itot,proby);
+#elif defined INT_OMF2
 		OMF2(u11t, u12t, u11t_f, u12t_f, X0, X1, Phi, dk4m, dk4p, dk4m_f, dk4p_f, dSdpi, pp,iu, id, gamval,
-					gamval_f, gamin, jqq, beta,akappa,stepl,dt,&ancg,&itot,proby,1/6.0);
+				gamval_f, gamin, jqq, beta,akappa,stepl,dt,&ancg,&itot,proby,1/6.0);
+#elif defined INT_OMF4
+		OMF4(u11t, u12t, u11t_f, u12t_f, X0, X1, Phi, dk4m, dk4p, dk4m_f, dk4p_f, dSdpi, pp,iu, id, gamval,
+				gamval_f, gamin, jqq, beta,akappa,stepl,dt,&ancg,&itot,proby);
+#else
+#error "No integrator defined. Please define {INT_LPFR.INT_OMF2,INT_OMF4}"
+#endif
+
 		totancg+=ancg;
 		//Monte Carlo step: Accept new fields with the probability of min(1,exp(H0-X0))
 		//Kernel Call needed here?

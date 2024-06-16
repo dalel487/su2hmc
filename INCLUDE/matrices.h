@@ -183,17 +183,6 @@ extern "C"
 	 * @return Zero on success, integer error code otherwise
 	 */
 	int Reunitarise(Complex *u11t, Complex *u12t);
-	/**
-	 * @brief Generates new trial fields
-	 *
-	 * @param	dt:		Half lattice spacing
-	 * @param	pp:		Momentum field
-	 * @param	u11t:		First colour field
-	 * @param	u12t:		Second colour field
-	 *
-	 * @returns	Zero on success, integer error code otherwise
-	 */
-	int New_trial(double dt, double *pp, Complex *u11t, Complex *u12t);
 #ifdef DIAGNOSTIC
 	int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f,\
 			unsigned int *iu, unsigned int *id, int *hu, int *hd, double *dk4m, double *dk4p,\
@@ -225,7 +214,7 @@ extern "C"
 			Complex_f *gamval_f,int *gamin, float *dk4m_f, float *dk4p_f, float akappa_f, dim3 dimGrid, dim3 dimBlock);
 	//New Trial Fields
 	void cuReunitarise(Complex *u11t, Complex *u12t,dim3 dimGrid, dim3 dimBlock);
-	void cuNew_trial(double dt, double *pp, Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock);
+	void cuGauge_Update(double dt, double *pp, Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock);
 #endif
 #if (defined __cplusplus)
 }
@@ -254,8 +243,8 @@ __global__ void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Compl
 		__shared__ Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, float akappa);
 __global__ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
 		__shared__ Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, float akappa);
-//New Trial Fields
+//Update Gauge fields
 __global__ void cuReunitarise(Complex *u11t, Complex *u12t);
-__global__ void cuNew_trial(double dt, double *pp, Complex *u11t, Complex *u12t, int mu);
+__global__ void cuGauge_Update(double dt, double *pp, Complex *u11t, Complex *u12t, int mu);
 #endif
 #endif

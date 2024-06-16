@@ -8,6 +8,27 @@
 #include <random.h>
 #include <sizes.h>
 
+/**
+ * @brief Gauge update for the integration step of the HMC
+ *
+ * @param dt:	Gauge step size
+ * @param pp:	Momentum field
+ * @param u11t,u12t:	Double precision gauge fields
+ * @param u11t_f,u12t_f:	Single precision gauge fields
+ *
+ * @return Zero on success, integer error code otherwise.
+*/
+int Gauge_Update(double d, double *pp, Complex *u11t, Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f);
+/**
+ * @brief Wrapper for the momentum update during the integration step of the HMC
+ *
+ * @param dt:	Gauge step size
+ * @param pp:	Momentum field
+ * @param dSdpi:	Force field
+ *
+ * @return Zero on success, integer error code otherwise.
+*/
+int Momentum_Update(double d, double *pp, double *dSdpi);
 	/**
 	 *	@brief	Leapfrog integrator. Each trajectory step takes the form of p->p+dt/2,u->u+dt,p->p+dt/2
 	 *				In practice this is implemented for the entire trajectory as
@@ -79,4 +100,8 @@ int OMF2(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex
 					Complex *Phi,double *dk4m,double *dk4p,float *dk4m_f,float *dk4p_f,double *dSdpi,double *pp,
 					int *iu,int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, Complex jqq,
 					float beta, float akappa, int stepl, float dt, double *ancg, int *itot, float proby, float alpha);
+int OMF4(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex *X0,Complex *X1,
+					Complex *Phi,double *dk4m,double *dk4p,float *dk4m_f,float *dk4p_f,double *dSdpi,double *pp,
+					int *iu,int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, Complex jqq,
+					float beta, float akappa, int stepl, float dt, double *ancg, int *itot, float proby);
 #endif

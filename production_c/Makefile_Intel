@@ -5,7 +5,7 @@ IFLAGS=	-I../INCLUDE
 
 CFLAGS=     $(IFLAGS) -qmkl -std=gnu11 -ipo -qopt-zmm-usage=high -MD\
 			-xSKYLAKE -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE,RAPTORLAKE\
-			-DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
+			-DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__ -DINT_LPFR\
 			-qopenmp -qno-openmp-offload -qopenmp-simd -DSA3AT -diag-disable=10441
 
 LFLAGS=	-L${MKLROOT}/lib/intel64 -limf -lgsl

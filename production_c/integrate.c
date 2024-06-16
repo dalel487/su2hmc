@@ -1,20 +1,57 @@
 #include <su2hmc.h>
 
-int Leapfrog(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex *X0,Complex *X1,
-		Complex *Phi,double *dk4m,double *dk4p,float *dk4m_f,float *dk4p_f,double *dSdpi,double *pp,
-		int *iu,int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, Complex jqq,
-		float beta, float akappa, int stepl, float dt, double *ancg, int *itot, float proby)
-{
-	//This was originally in the half-step of the FORTRAN code, but it makes more sense to declare
-	//it outside the loop. Since it's always being subtracted we'll define it as negative
-	const	double d = -dt*0.5;
-	//Half step forward for p
-	//=======================
-#ifdef _DEBUG
-	printf("Evaluating force on rank %i\n", rank);
+int Gauge_Update(double dt, double *pp, Complex *u11t, Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f){
+	/*
+	 * @brief Generates new trial fields
+	 *
+	 * @see cuGauge_Update (CUDA Wrapper)
+	 * 
+	 * @param	dt:		Half lattice spacing
+	 * @param	pp:		Momentum field
+	 * @param	u11t:		First colour field
+	 * @param	u12t:		Second colour field
+	 *
+	 * @returns	Zero on success, integer error code otherwise
+	 */
+	char *funcname = "Gauge_Update"; 
+#ifdef __NVCC__
+	cuGauge_Update(dt,pp,u11t,u12t,dimGrid,dimBlock);
+#else
+#pragma omp parallel for simd collapse(2) aligned(pp,u11t,u12t:AVX) 
+	for(int i=0;i<kvol;i++)
+		for(int mu = 0; mu<ndim; mu++){
+			/*
+			 * Sticking to what was in the FORTRAN for variable names.
+			 * CCC for cosine SSS for sine AAA for...
+			 * Re-exponentiating the force field. Can be done analytically in SU(2)
+			 * using sine and cosine which is nice
+			 */
+
+			double AAA = dt*sqrt(pp[i*nadj*ndim+mu]*pp[i*nadj*ndim+mu]\
+					+pp[(i*nadj+1)*ndim+mu]*pp[(i*nadj+1)*ndim+mu]\
+					+pp[(i*nadj+2)*ndim+mu]*pp[(i*nadj+2)*ndim+mu]);
+			double CCC = cos(AAA);
+			double SSS = dt*sin(AAA)/AAA;
+			Complex a11 = CCC+I*SSS*pp[(i*nadj+2)*ndim+mu];
+			Complex a12 = pp[(i*nadj+1)*ndim+mu]*SSS + I*SSS*pp[i*nadj*ndim+mu];
+			//b11 and b12 are u11t and u12t terms, so we'll use u12t directly
+			//but use b11 for u11t to prevent RAW dependency
+			complex b11 = u11t[i*ndim+mu];
+			u11t[i*ndim+mu] = a11*b11-a12*conj(u12t[i*ndim+mu]);
+			u12t[i*ndim+mu] = a11*u12t[i*ndim+mu]+a12*conj(b11);
+		}
 #endif
-	Force(dSdpi, 1, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
-			dk4m_f,dk4p_f,jqq,akappa,beta,ancg);
+	Reunitarise(u11t,u12t);
+#ifdef __NVCC__
+	cudaDeviceSynchronise();
+#endif
+	//Get trial fields from accelerator for halo exchange
+	Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
+	return 0;
+}
+inline int Momentum_Update(double d, double *pp, double *dSdpi)
+{
+
 #ifdef __NVCC__
 	cublasDaxpy(cublas_handle,kmom, &d, dSdpi, 1, pp, 1);
 #elif defined USE_BLAS
@@ -24,6 +61,23 @@ int Leapfrog(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Com
 		//d negated above
 		pp[i]+=d*dSdpi[i];
 #endif
+}
+int Leapfrog(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex *X0,Complex *X1,
+		Complex *Phi,double *dk4m,double *dk4p,float *dk4m_f,float *dk4p_f,double *dSdpi,double *pp,
+		int *iu,int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, Complex jqq,
+		float beta, float akappa, int stepl, float dt, double *ancg, int *itot, float proby)
+{
+	//This was originally in the half-step of the FORTRAN code, but it makes more sense to declare
+	//it outside the loop. Since it's always being subtracted we'll define it as negative
+	const	double d =-dt*0.5;
+	//Half step forward for p
+	//=======================
+#ifdef _DEBUG
+	printf("Evaluating force on rank %i\n", rank);
+#endif
+	Force(dSdpi, 1, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
+			dk4m_f,dk4p_f,jqq,akappa,beta,ancg);
+	Momentum_Update(d,pp,dSdpi);
 	//Main loop for classical time evolution
 	//======================================
 	bool end_traj=false; int step =1;
@@ -31,20 +85,13 @@ int Leapfrog(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Com
 	do{
 #ifdef _DEBUG
 		if(!rank)
-			printf("Traj: %d\tStep: %d\n", itraj, step);
+			printf("Step: %d\n",  step);
 #endif
 		//The FORTRAN redefines d=dt here, which makes sense if you have a limited line length.
 		//I'll stick to using dt though.
 		//step (i) st(t+dt)=st(t)+p(t+dt/2)*dt;
 		//Note that we are moving from kernel to kernel within the default streams so don't need a Device_Sync here
-		New_trial(dt,pp,u11t,u12t);
-		Reunitarise(u11t,u12t);
-#ifdef __NVCC__
-		cudaDeviceSynchronise();
-#endif
-		//Get trial fields from accelerator for halo exchange
-		Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
-		//Mark trial fields as primarily read only here? Can re-enable writing at the end of each trajectory
+		Gauge_Update(dt,pp,u11t,u12t,u11t_f,u12t_f);
 
 		//p(t+3et/2)=p(t+dt/2)-dSds(t+dt)*dt
 		//	Force(dSdpi, 0, rescgg);
@@ -53,33 +100,14 @@ int Leapfrog(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Com
 		//The same for loop is given in both the if and else
 		//statement but only the value of d changes. This is due to the break in the if part
 		if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
-#ifdef __NVCC__
-			cublasDaxpy(cublas_handle,kmom, &d, dSdpi, 1, pp, 1);
-#elif defined USE_BLAS
-			cblas_daxpy(kmom, d, dSdpi, 1, pp, 1);
-#else
-#pragma omp parallel for simd aligned(pp,dSdpi:AVX)
-			for(int i = 0; i<kmom; i++)
-				//d negated above
-				pp[i]+=d*dSdpi[i];
-#endif
+			Momentum_Update(d,pp,dSdpi);
 			*itot+=step;
 			*ancg/=step;
 			end_traj=true;
 			break;
 		}
 		else{
-#ifdef __NVCC__
-			//dt is needed for the trial fields so has to be negated every time.
-			double dt_d=-1*dt;
-			cublasDaxpy(cublas_handle,kmom, &dt_d, dSdpi, 1, pp, 1);
-#elif defined USE_BLAS
-			cblas_daxpy(kmom, -dt, dSdpi, 1, pp, 1);
-#else
-#pragma omp parallel for simd aligned(pp,dSdpi:AVX)
-			for(int i = 0; i<kmom; i++)
-				pp[i]-=dt*dSdpi[i];
-#endif
+			Momentum_Update(-dt,pp,dSdpi);
 			step++;
 		}
 	}while(!end_traj);
@@ -91,11 +119,11 @@ int OMF2(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex
 		float beta, float akappa, int stepl, float dt, double *ancg, int *itot, float proby, float alpha)
 {
 	//Gauge update by half dt
-	const	double dh = dt*0.5;
+	const	double dU = dt*0.5;
 	//Momentum updates by alpha, 2alpha and (1-2alpha) in the middle
-	const double da= -alpha*dt;
-	const double da2= -2*alpha*dt;
-	const double dam= -(1-2*alpha)*dt;
+	const double dp= -alpha*dt;
+	const double dp2= -2*alpha*dt;
+	const double dpm= -(1-2*alpha)*dt;
 	//Initial step forward for p
 	//=======================
 #ifdef _DEBUG
@@ -104,13 +132,13 @@ int OMF2(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex
 	Force(dSdpi, 1, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
 			dk4m_f,dk4p_f,jqq,akappa,beta,ancg);
 #ifdef __NVCC__
-	cublasDaxpy(cublas_handle,kmom, &da, dSdpi, 1, pp, 1);
+	cublasDaxpy(cublas_handle,kmom, &dp, dSdpi, 1, pp, 1);
 #elif defined USE_BLAS
-	cblas_daxpy(kmom, da, dSdpi, 1, pp, 1);
+	cblas_daxpy(kmom, dp, dSdpi, 1, pp, 1);
 #else
 	for(int i=0;i<kmom;i++)
 		//da negated above
-		pp[i]+=da*dSdpi[i];
+		pp[i]+=dp*dSdpi[i];
 #endif
 	//Main loop for classical time evolution
 	//======================================
@@ -119,41 +147,19 @@ int OMF2(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex
 	do{
 #ifdef _DEBUG
 		if(!rank)
-			printf("Traj: %d\tStep: %d\n", itraj, step);
+			printf("Step: %d\n", step);
 #endif
 		//First gauge update
-		New_trial(dh,pp,u11t,u12t);
-		Reunitarise(u11t,u12t);
-#ifdef __NVCC__
-		cudaDeviceSynchronise();
-#endif
-		//Get trial fields from accelerator for halo exchange
-		Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
-		//Mark trial fields as primarily read only here? Can re-enable writing at the end of each trajectory
+		Gauge_Update(dU,pp,u11t,u12t,u11t_f,u12t_f);
 
 		//Calculate force for middle momentum update
 		Force(dSdpi, 0, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
 				dk4m_f,dk4p_f,jqq,akappa,beta,ancg);
 		//Now do the middle momentum update
-#ifdef __NVCC__
-		cublasDaxpy(cublas_handle,kmom, &dam, dSdpi, 1, pp, 1);
-#elif defined USE_BLAS
-		cblas_daxpy(kmom, dam, dSdpi, 1, pp, 1);
-#else
-#pragma omp parallel for simd aligned(pp,dSdpi:AVX)
-		for(int i = 0; i<kmom; i++)
-			pp[i]+=dam*dSdpi[i];
-#endif
+		Momentum_Update(dpm,pp,dSdpi);
 
 		//Another gauge update
-		New_trial(dh,pp,u11t,u12t);
-		Reunitarise(u11t,u12t);
-#ifdef __NVCC__
-		cudaDeviceSynchronise();
-#endif
-		//Get trial fields from accelerator for halo exchange
-		Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
-		//Mark trial fields as primarily read only here? Can re-enable writing at the end of each trajectory
+		Gauge_Update(dU,pp,u11t,u12t,u11t_f,u12t_f);
 
 		//Calculate force for final momentum update
 		Force(dSdpi, 0, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
@@ -162,16 +168,7 @@ int OMF2(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex
 		//statement but only the value of d changes. This is due to the break in the if part
 		if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
 			//Final momentum step
-#ifdef __NVCC__
-			cublasDaxpy(cublas_handle,kmom, &da, dSdpi, 1, pp, 1);
-#elif defined USE_BLAS
-			cblas_daxpy(kmom, da, dSdpi, 1, pp, 1);
-#else
-#pragma omp parallel for simd aligned(pp,dSdpi:AVX)
-			for(int i = 0; i<kmom; i++)
-				//d negated above
-				pp[i]+=da*dSdpi[i];
-#endif
+			Momentum_Update(dp,pp,dSdpi);
 			*itot+=step;
 			//Two force terms, so an extra factor of two in the average?
 			//Or leave it as it was, to get the average CG iterations per trajectory rather than force
@@ -181,15 +178,111 @@ int OMF2(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex
 		}
 		else{
 			//Since we apply the momentum at the start and end of a step we instead apply a double step here
-#ifdef __NVCC__
-			cublasDaxpy(cublas_handle,kmom, &da2, dSdpi, 1, pp, 1);
-#elif defined USE_BLAS
-			cblas_daxpy(kmom, da2, dSdpi, 1, pp, 1);
-#else
-#pragma omp parallel for simd aligned(pp,dSdpi:AVX)
-			for(int i = 0; i<kmom; i++)
-				pp[i]+=da2*dSdpi[i];
+			Momentum_Update(dp2,pp,dSdpi);
+			step++;
+		}
+	}while(!end_traj);
+	return 0;
+}
+int OMF4(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex *X0,Complex *X1,
+		Complex *Phi,double *dk4m,double *dk4p,float *dk4m_f,float *dk4p_f,double *dSdpi,double *pp,
+		int *iu,int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, Complex jqq,
+		float beta, float akappa, int stepl, float dt, double *ancg, int *itot, float proby)
+{
+	//These values were lifted from openqcd-fastsum, and should probably be tuned for QC2D. They also probably never
+	//will be...
+	const double r1 = 0.08398315262876693;
+	const double r2 = 0.2539785108410595;
+	const double r3 = 0.6822365335719091;
+	const double r4 = -0.03230286765269967;
+	///@brief Momentum updates
+	///@brief Outer updates depend on r1. We have two of these, doubled for between full steps
+	const double dpO= -r1*dt;
+	const double dpO2= -2*r1*dt;
+	///@brief Middle updates depend on r3
+	const double dpM= -r3*dt;
+	///@brief Inner updates depend on r1 and r3
+	const double dpI= -(0.5-r1-r3)*dt;
+
+	///@brief Gauge updates. These depend on r2 and r4
+	///@brief Outer gauge update depends on r2
+	const	double duO = dt*r2;
+	///@brief Middle gauge update depends on r4
+	const	double duM = dt*r4;
+	///@brief Inner gauge update depends on r2 and r4
+	const	double duI = dt*(1-2*(r2+r4));
+	//Initial step forward for p
+	//=======================
+#ifdef _DEBUG
+	printf("Evaluating force on rank %i\n", rank);
 #endif
+	Force(dSdpi, 1, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
+			dk4m_f,dk4p_f,jqq,akappa,beta,ancg);
+	Momentum_Update(dpO,pp,dSdpi);
+
+	//Main loop for classical time evolution
+	//======================================
+	bool end_traj=false; int step =1;
+	//	for(int step = 1; step<=stepmax; step++){
+	do{
+#ifdef _DEBUG
+		if(!rank)
+			printf("Step: %d\n", step);
+#endif
+		//First outer gauge update
+		Gauge_Update(duO,pp,u11t,u12t,u11t_f,u12t_f);
+
+		//Calculate force for first middle momentum update
+		Force(dSdpi, 0, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
+				dk4m_f,dk4p_f,jqq,akappa,beta,ancg);
+		//Now do the first middle momentum update
+		Momentum_Update(dpM,pp,dSdpi);
+
+		//First middle gauge update
+		Gauge_Update(duM,pp,u11t,u12t,u11t_f,u12t_f);
+
+		//Calculate force for first inner momentum update
+		Force(dSdpi, 0, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
+				dk4m_f,dk4p_f,jqq,akappa,beta,ancg);
+		//Now do the first inner momentum update
+		Momentum_Update(dpI,pp,dSdpi);
+
+		//Inner gauge update
+		Gauge_Update(duI,pp,u11t,u12t,u11t_f,u12t_f);
+
+		//Calculate force for second inner momentum update
+		Force(dSdpi, 0, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
+				dk4m_f,dk4p_f,jqq,akappa,beta,ancg);
+		//Now do the second inner momentum update
+		Momentum_Update(dpI,pp,dSdpi);
+
+		//Second middle gauge update
+		Gauge_Update(duM,pp,u11t,u12t,u11t_f,u12t_f);
+
+		//Calculate force for second middle momentum update
+		Force(dSdpi, 0, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
+				dk4m_f,dk4p_f,jqq,akappa,beta,ancg);
+		//Now do the second middle momentum update
+		Momentum_Update(dpM,pp,dSdpi);
+
+		//Second outer gauge update
+		Gauge_Update(duO,pp,u11t,u12t,u11t_f,u12t_f);
+
+		//Outer momentum update depends on if we've finished the trajectory
+		if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
+			//Final momentum step
+			Momentum_Update(dpO,pp,dSdpi);
+			*itot+=step;
+
+			//Four force terms, so an extra factor of four in the average?
+			//Or leave it as it was, to get the average CG iterations per trajectory rather than force
+			*ancg/=step;
+			end_traj=true;
+			break;
+		}
+		else{
+			//Since we apply the momentum at the start and end of a step we instead apply a double step here
+			Momentum_Update(dpO2,pp,dSdpi);
 			step++;
 		}
 	}while(!end_traj);

@@ -895,49 +895,6 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_
 #endif
 	return 0;
 }
-int New_trial(double dt, double *pp, Complex *u11t, Complex *u12t){
-	/*
-	 * @brief Generates new trial fields
-	 *
-	 * @see cuNew_trial (CUDA Wrapper)
-	 * 
-	 * @param	dt:		Half lattice spacing
-	 * @param	pp:		Momentum field
-	 * @param	u11t:		First colour field
-	 * @param	u12t:		Second colour field
-	 *
-	 * @returns	Zero on success, integer error code otherwise
-	 */
-	char *funcname = "New_trial"; 
-#ifdef __NVCC__
-	cuNew_trial(dt,pp,u11t,u12t,dimGrid,dimBlock);
-#else
-#pragma omp parallel for simd collapse(2) aligned(pp,u11t,u12t:AVX) 
-	for(int i=0;i<kvol;i++)
-		for(int mu = 0; mu<ndim; mu++){
-			/*
-			 * Sticking to what was in the FORTRAN for variable names.
-			 * CCC for cosine SSS for sine AAA for...
-			 * Re-exponentiating the force field. Can be done analytically in SU(2)
-			 * using sine and cosine which is nice
-			 */
-
-			double AAA = dt*sqrt(pp[i*nadj*ndim+mu]*pp[i*nadj*ndim+mu]\
-					+pp[(i*nadj+1)*ndim+mu]*pp[(i*nadj+1)*ndim+mu]\
-					+pp[(i*nadj+2)*ndim+mu]*pp[(i*nadj+2)*ndim+mu]);
-			double CCC = cos(AAA);
-			double SSS = dt*sin(AAA)/AAA;
-			Complex a11 = CCC+I*SSS*pp[(i*nadj+2)*ndim+mu];
-			Complex a12 = pp[(i*nadj+1)*ndim+mu]*SSS + I*SSS*pp[i*nadj*ndim+mu];
-			//b11 and b12 are u11t and u12t terms, so we'll use u12t directly
-			//but use b11 for u11t to prevent RAW dependency
-			complex b11 = u11t[i*ndim+mu];
-			u11t[i*ndim+mu] = a11*b11-a12*conj(u12t[i*ndim+mu]);
-			u12t[i*ndim+mu] = a11*u12t[i*ndim+mu]+a12*conj(b11);
-		}
-#endif
-	return 0;
-}
 inline int Reunitarise(Complex *u11t, Complex *u12t){
 	/*
 	 * @brief Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1
