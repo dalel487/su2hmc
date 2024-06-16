@@ -1,6 +1,6 @@
 MF=Makefile_Intel
-CC=		icpx -xc++ -fsycl -fsycl-targets=x86_64,spir64_gen-11
-CXX=		icpx  -fsycl -fsycl-targets=x86_64,spir64_gen-11 -DSYCL_EXT_ONEAPI_COMPLEX
+CC=		icpx -xc++ -fsycl 
+CXX=		icpx  -fsycl  -DSYCL_EXT_ONEAPI_COMPLEX
 
 IFLAGS=   -I./INCLUDE -I"${MKLROOT}/include" -I ./ -I../production_c  $(shell gsl-config --cflags)
 
@@ -71,7 +71,7 @@ SYCLEDT=	$(SYCLSRC:.dp.cpp=.dp.cpp~)
 TMP=	$(MOD) $(CEDT) $(SYCLEDT) core
 
 profiler:	CFLAGS += -g #-D_DEBUGCG
-profiler:	SYCLCCFLAGS += -lineinfo #-D_DEBUGCG #-keep
+profiler:	SYCLCCFLAGS += -g  #-D_DEBUGCG #-keep
 profiler:	release
 
 release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high 
