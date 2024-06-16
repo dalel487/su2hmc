@@ -320,7 +320,7 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 }
 inline int C_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu)
 {
-const *funcname = "C_gather";
+	const char *funcname = "C_gather";
 	//FORTRAN had a second parameter m giving the size of y (kvol+halo) normally
 	//Pointers mean that's not an issue for us so I'm leaving it out
 #ifdef __NVCC__
@@ -334,7 +334,7 @@ const *funcname = "C_gather";
 }
 inline int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu)
 {
-const *funcname = "Z_gather";
+	const char *funcname = "Z_gather";
 	//FORTRAN had a second parameter m giving the size of y (kvol+halo) normally
 	//Pointers mean that's not an issue for us so I'm leaving it out
 #ifdef __NVCC__
