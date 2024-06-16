@@ -28,7 +28,7 @@ Adjust the work-group size if needed.
 			[=](sycl::nd_item<3> item_ct1) {
 			cuAverage_Plaquette(hgs_d, hgt_d, u11t, u12t, iu,item_ct1);
 			});
-
+	cudaDeviceSynchronise();
 	float hgs_t=0; float hgt_t=0;
 #pragma omp parallel for simd reduction(+:hgs_t,hgt_t)
 	for(int i=0;i<kvol;i++){

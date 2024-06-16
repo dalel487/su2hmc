@@ -972,6 +972,7 @@ Adjust the work-group size if needed.
 			[=](sycl::nd_item<3> item_ct1) {
 			cuDslash(phi, r, u11t, u12t, iu, id, gamval, gamin, dk4m, dk4p,jqq, akappa,item_ct1);
 			});
+	cudaDeviceSynchronise();
 }
 void cuDslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,
 		unsigned int *iu, unsigned int *id, Complex *gamval, int *gamin,
@@ -1014,6 +1015,7 @@ Adjust the work-group size if needed.
 			[=](sycl::nd_item<3> item_ct1) {
 			cuDslashd(phi, r, u11t, u12t, iu, id, gamval, gamin, dk4m, dk4p,jqq, akappa,item_ct1);
 			});
+	cudaDeviceSynchronise();
 }
 void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,
 		unsigned int *iu, unsigned int *id, Complex *gamval, int *gamin,
@@ -1056,6 +1058,7 @@ Adjust the work-group size if needed.
 			[=](sycl::nd_item<3> item_ct1) {
 			cuHdslash(phi, r, u11t, u12t, iu, id, gamval, gamin, dk4m, dk4p, akappa,item_ct1);
 			});
+	cudaDeviceSynchronise();
 }
 void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,
 		unsigned int *iu, unsigned int *id, Complex *gamval, int *gamin,
@@ -1099,6 +1102,7 @@ Adjust the work-group size if needed.
 			[=](sycl::nd_item<3> item_ct1) {
 			cuHdslashd(phi, r, u11t, u12t, iu, id, gamval, gamin, dk4m, dk4p, akappa,item_ct1);
 			});
+	cudaDeviceSynchronise();
 }
 
 //Float editions
@@ -1136,11 +1140,13 @@ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,
 			[=](sycl::nd_item<3> item_ct1) {
 			cuDslash0_f(phi, r, u11t, u12t, iu, id, gamval, gamin, dk4m, dk4p,jqq, akappa,item_ct1);
 			});
+	cudaDeviceSynchronise();
 	stream.parallel_for(
 			sycl::nd_range<3>(dimGrid * dimBlock, dimBlock),
 			[=](sycl::nd_item<3> item_ct1) {
 			cuDslash1_f(phi, r, u11t, u12t, iu, id, gamval, gamin, dk4m, dk4p,jqq, akappa,item_ct1);
 			});
+	cudaDeviceSynchronise();
 }
 void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,
 		unsigned int *iu, unsigned int *id, Complex_f *gamval,
@@ -1179,11 +1185,13 @@ void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,
 			[=](sycl::nd_item<3> item_ct1) {
 			cuDslashd0_f(phi, r, u11t, u12t, iu, id, gamval, gamin, dk4m, dk4p,jqq, akappa,item_ct1);
 			});
+	cudaDeviceSynchronise();
 	stream.parallel_for(
 			sycl::nd_range<3>(dimGrid * dimBlock, dimBlock),
 			[=](sycl::nd_item<3> item_ct1) {
 			cuDslashd1_f(phi, r, u11t, u12t, iu, id, gamval, gamin, dk4m, dk4p,jqq, akappa,item_ct1);
 			});
+	cudaDeviceSynchronise();
 }
 void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,
 		unsigned int *iu, unsigned int *id, Complex_f *gamval,
@@ -1227,6 +1235,7 @@ Adjust the work-group size if needed.
 			cuHdslash_f(phi, r, u11t, u12t, iu, id, gamval, gamin, dk4m, dk4p,
 					akappa,item_ct1);
 			});
+	cudaDeviceSynchronise();
 }
 void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t,
 		Complex_f *u12t, unsigned int *iu, unsigned int *id,
@@ -1269,6 +1278,7 @@ Adjust the work-group size if needed.
 			cuHdslashd_f(phi, r, u11t, u12t, iu, id, gamval, gamin, dk4m, dk4p,
 					akappa,item_ct1);
 			});
+	cudaDeviceSynchronise();
 }
 
 void cuReunitarise(Complex *u11t, Complex *u12t, sycl::range<3> dimGrid,
@@ -1285,6 +1295,7 @@ Adjust the work-group size if needed.
 			[=](sycl::nd_item<3> item_ct1) {
 			cuReunitarise(u11t, u12t,item_ct1);
 			});
+	cudaDeviceSynchronise();
 }
 void cuNew_trial(double dt, double *pp, Complex *u11t, Complex *u12t,
 		sycl::range<3> dimGrid, sycl::range<3> dimBlock) {
@@ -1296,4 +1307,5 @@ void cuNew_trial(double dt, double *pp, Complex *u11t, Complex *u12t,
 				[=](sycl::nd_item<3> item_ct1) {
 				cuNew_trial(dt,pp,u11t, u12t,mu,item_ct1);
 				});
+	cudaDeviceSynchronise();
 }

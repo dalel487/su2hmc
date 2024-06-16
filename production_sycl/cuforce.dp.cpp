@@ -18,6 +18,7 @@ void cuGauge_force(int mu, Complex_f *Sigma11, Complex_f *Sigma12,
 		[=](sycl::nd_item<3> item_ct1) {
 			cuGaugeForce(mu,Sigma11,Sigma12,dSdpi,u11t,u12t,beta,item_ct1);
 		};
+	cudaDeviceSynchronise();
 }
 void cuPlus_staple(int mu, int nu, unsigned int *iu, Complex_f *Sigma11,
 		Complex_f *Sigma12, Complex_f *u11t, Complex_f *u12t,
@@ -30,6 +31,7 @@ void cuPlus_staple(int mu, int nu, unsigned int *iu, Complex_f *Sigma11,
 			[=](sycl::nd_item<3> item_ct1) {
 			Plus_staple(mu, nu, iu, Sigma11, Sigma12,u11t,u12t,item_ct1);
 			});
+	cudaDeviceSynchronise();
 }
 void cuMinus_staple(int mu, int nu, unsigned int *iu, unsigned int *id,
 		Complex_f *Sigma11, Complex_f *Sigma12, Complex_f *u11sh,
@@ -43,6 +45,7 @@ void cuMinus_staple(int mu, int nu, unsigned int *iu, unsigned int *id,
 			[=](sycl::nd_item<3> item_ct1) {
 			Minus_staple(mu, nu, iu, id,Sigma11,Sigma12,u11sh,u12sh,u11t,u12t,item_ct1);
 			});
+	cudaDeviceSynchronise();
 }
 void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1,
 		Complex *X2, Complex *gamval, double *dk4m, double *dk4p,

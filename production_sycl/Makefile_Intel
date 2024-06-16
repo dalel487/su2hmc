@@ -1,10 +1,10 @@
 MF=Makefile_Intel
-CC=		icpx -xc++ -fsycl 
-CXX=		icpx  -fsycl -DSYCL_EXT_ONEAPI_COMPLEX
+CC=		icpx -xc++ -fsycl -fsycl-targets=x86_64,spir64_gen-11
+CXX=		icpx  -fsycl -fsycl-targets=x86_64,spir64_gen-11 -DSYCL_EXT_ONEAPI_COMPLEX
 
 IFLAGS=   -I./INCLUDE -I"${MKLROOT}/include" -I ./ -I../production_c  $(shell gsl-config --cflags)
 
-CFLAGS=  -qmkl  -MD  -ipo 	-xHOST\
+CFLAGS=  -qmkl  -MD  -ipo 	-xHOST \
 			-DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__ -qopenmp \
 			-qopenmp-simd -DSA3AT -mllvm -loopopt=0 $(IFLAGS) 
 			#-xSKYLAKE -ax'SKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE'\

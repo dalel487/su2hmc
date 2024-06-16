@@ -146,6 +146,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 		blas::axpy(stream, kferm2,&alpha_m,x2_f,1,r_f,1);
 		float betan_f;
 		blas::nrm2(stream,kferm2,r_f,1,&betan_f);
+		cudaDeviceSynchronise();
 		betan = betan_f*betan_f;
 #elif defined USE_BLAS
 		Complex_f alpha_m = (Complex_f)(-alpha);
@@ -199,6 +200,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 		blas::scal(stream,kferm2,&beta_f,p_f,1);
 		blas::axpy(stream,kferm2,&a,r_f,1,p_f,1);
 		blas::axpby(stream,kferm2, &a, r_f, 1, &beta_f,  p_f, 1);
+		cudaDeviceSynchronise();
 #elif (defined __INTEL_MKL__)
 		Complex_f a = 1.0;
 		Complex_f beta_f=(Complex_f)beta;

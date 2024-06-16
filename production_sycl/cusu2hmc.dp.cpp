@@ -144,6 +144,7 @@ void cuReal_convert(float *a, double *b, int len, bool dtof,
 			[=](sycl::nd_item<3> item_ct1) {
 			cuReal_convert(a,b,len,dtof,item_ct1);
 			});
+			cudaDeviceSynchronise();
 }
 void cuComplex_convert(Complex_f *a, Complex *b, int len, bool dtof,
 		sycl::range<3> dimBlock, sycl::range<3> dimGrid) {
@@ -158,6 +159,7 @@ void cuComplex_convert(Complex_f *a, Complex *b, int len, bool dtof,
 			[=](sycl::nd_item<3> item_ct1) {
 			cuReal_convert((float *)a,(double *)b,2*len,dtof,item_ct1);
 			});
+			cudaDeviceSynchronise();
 }
 void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi,
 		sycl::range<3> dimBlock, sycl::range<3> dimGrid) {
@@ -173,6 +175,7 @@ Adjust the work-group size if needed.
 			[=](sycl::nd_item<3> item_ct1) {
 			cuFill_Small_Phi(na, smallPhi, Phi,item_ct1);
 			});
+			cudaDeviceSynchronise();
 }
 void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table,
 		unsigned int mu, sycl::range<3> dimBlock,
@@ -192,6 +195,7 @@ info::device::max_work_group_size. Adjust the work-group size if needed.
 			[=](sycl::nd_item<3> item_ct1) {
 			cuC_gather(x, y, n, table, mu,item_ct1);
 			});
+			cudaDeviceSynchronise();
 }
 void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table,
 		unsigned int mu, sycl::range<3> dimBlock,
@@ -211,6 +215,7 @@ info::device::max_work_group_size. Adjust the work-group size if needed.
 			[=](sycl::nd_item<3> item_ct1) {
 			cuZ_gather(x, y, n, table, mu,item_ct1);
 			});
+			cudaDeviceSynchronise();
 }
 void cuUpDownPart(int na, Complex *X0, Complex *R1, sycl::range<3> dimBlock,
 		sycl::range<3> dimGrid) {
@@ -227,6 +232,7 @@ info::device::max_work_group_size. Adjust the work-group size if needed.
 			[=](sycl::nd_item<3> item_ct1) {
 			cuUpDownPart(na, X0, R1,item_ct1);
 			});
+			cudaDeviceSynchronise();
 }
 //CUDA Kernels
 void cuReal_convert(float *a, double *b, int len, bool dtof,
