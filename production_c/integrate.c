@@ -6,7 +6,7 @@ int Gauge_Update(const double d, double *pp, Complex *u11t, Complex *u12t,Comple
 	 *
 	 * @see cuGauge_Update (CUDA Wrapper)
 	 * 
-	 * @param	dt:		Half lattice spacing
+	 * @param	d:		Half lattice spacing
 	 * @param	pp:		Momentum field
 	 * @param	u11t:		First colour field
 	 * @param	u12t:		Second colour field
