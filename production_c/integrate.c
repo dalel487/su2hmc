@@ -123,7 +123,7 @@ int OMF2(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex
 
 	//Momentum updates by lambda, 2lambda and (1-2lambda) in the middle
 	const double dp= -lambda*dt;
-	const double dp2= -2.0*dp;
+	const double dp2= 2.0*dp;
 	const double dpm= -(1.0-2.0*lambda)*dt;
 	//Initial step forward for p
 	//=======================

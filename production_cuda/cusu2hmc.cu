@@ -158,7 +158,7 @@ void cuReunitarise(Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock){
 }
 void cuGauge_Update(const double d, double *pp, Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock){
 	for(int mu=0;mu<ndim;mu++)
-		cuGauge_Update<<<dimGrid,dimBlock,0,streams[mu]>>>(dt,pp,u11t,u12t,mu);
+		cuGauge_Update<<<dimGrid,dimBlock,0,streams[mu]>>>(d,pp,u11t,u12t,mu);
 }
 //CUDA Kernels
 __global__ void cuReal_convert(float *a, double *b, int len, bool dtof){
@@ -290,11 +290,11 @@ __global__ void cuGauge_Update(const double d, double *pp, Complex *u11t, Comple
 		//CCC for cosine SSS for sine AAA for...
 		//Re-exponentiating the force field. Can be done analytically in SU(2)
 		//using sine and cosine which is nice
-		double AAA = dt*sqrt(pp[i*nadj*ndim+mu]*pp[i*nadj*ndim+mu]\
+		double AAA = d*sqrt(pp[i*nadj*ndim+mu]*pp[i*nadj*ndim+mu]\
 				+pp[(i*nadj+1)*ndim+mu]*pp[(i*nadj+1)*ndim+mu]\
 				+pp[(i*nadj+2)*ndim+mu]*pp[(i*nadj+2)*ndim+mu]);
 		double CCC = cos(AAA);
-		double SSS = dt*sin(AAA)/AAA;
+		double SSS = d*sin(AAA)/AAA;
 		Complex a11 = CCC+I*SSS*pp[(i*nadj+2)*ndim+mu];
 		Complex a12 = pp[(i*nadj+1)*ndim+mu]*SSS + I*SSS*pp[i*nadj*ndim+mu];
 		//b11 and b12 are u11t and u12t terms, so we'll use u12t directly
