@@ -32,7 +32,7 @@ extern "C"
 	 *
 	 * @return Zero on success, integer error code otherwise.
 	 */
-	int Momentum_Update(const double d, double *dSdpi, double *pp);
+	int Momentum_Update(const double d,const double *dSdpi, double *pp);
 	/**
 	 *	@brief	Leapfrog integrator. Each trajectory step takes the form of p->p+dt/2,u->u+dt,p->p+dt/2
 	 *				In practice this is implemented for the entire trajectory as
@@ -109,7 +109,7 @@ extern "C"
 			float beta, float akappa, int stepl, float dt, double *ancg, int *itot, float proby);
 	//CUDA Calling functions
 #ifdef __NVCC__
-	void cuGauge_Update(const double dt, double *pp, Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock);
+	void cuGauge_Update(const double d, double *pp, Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock);
 #endif
 
 #if (defined __cplusplus)
@@ -118,6 +118,6 @@ extern "C"
 //Actual CUDA
 #ifdef __CUDACC__
 //Update Gauge fields
-__global__ void cuGauge_Update(const double dt, double *pp, Complex *u11t, Complex *u12t, int mu);
+__global__ void cuGauge_Update(const double d, double *pp, Complex *u11t, Complex *u12t, int mu);
 #endif
 #endif

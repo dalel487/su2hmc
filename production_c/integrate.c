@@ -1,6 +1,6 @@
 #include <su2hmc.h>
 
-int Gauge_Update(const double dt, double *pp, Complex *u11t, Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f){
+int Gauge_Update(const double d, double *pp, Complex *u11t, Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f){
 	/*
 	 * @brief Generates new trial fields
 	 *
@@ -15,7 +15,7 @@ int Gauge_Update(const double dt, double *pp, Complex *u11t, Complex *u12t,Compl
 	 */
 	char *funcname = "Gauge_Update"; 
 #ifdef __NVCC__
-	cuGauge_Update(dt,pp,u11t,u12t,dimGrid,dimBlock);
+	cuGauge_Update(d,pp,u11t,u12t,dimGrid,dimBlock);
 #else
 #pragma omp parallel for simd collapse(2) aligned(pp,u11t,u12t:AVX) 
 	for(int i=0;i<kvol;i++)
@@ -27,11 +27,11 @@ int Gauge_Update(const double dt, double *pp, Complex *u11t, Complex *u12t,Compl
 			 * using sine and cosine which is nice
 			 */
 
-			double AAA = dt*sqrt(pp[i*nadj*ndim+mu]*pp[i*nadj*ndim+mu]\
+			double AAA = d*sqrt(pp[i*nadj*ndim+mu]*pp[i*nadj*ndim+mu]\
 					+pp[(i*nadj+1)*ndim+mu]*pp[(i*nadj+1)*ndim+mu]\
 					+pp[(i*nadj+2)*ndim+mu]*pp[(i*nadj+2)*ndim+mu]);
 			double CCC = cos(AAA);
-			double SSS = dt*sin(AAA)/AAA;
+			double SSS = d*sin(AAA)/AAA;
 			Complex a11 = CCC+I*SSS*pp[(i*nadj+2)*ndim+mu];
 			Complex a12 = pp[(i*nadj+1)*ndim+mu]*SSS + I*SSS*pp[i*nadj*ndim+mu];
 			//b11 and b12 are u11t and u12t terms, so we'll use u12t directly
@@ -46,7 +46,7 @@ int Gauge_Update(const double dt, double *pp, Complex *u11t, Complex *u12t,Compl
 	Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
 	return 0;
 }
-inline int Momentum_Update(const double d, double *dSdpi, double *pp)
+inline int Momentum_Update(const double d, const double *dSdpi, double *pp)
 {
 #ifdef __NVCC__
 	cublasDaxpy(cublas_handle,kmom, &d, dSdpi, 1, pp, 1);
@@ -94,7 +94,7 @@ int Leapfrog(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Com
 				dk4m_f,dk4p_f,jqq,akappa,beta,ancg);
 
 		if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
-		//Final trajectory has a half momentum step
+			//Final trajectory has a half momentum step
 			Momentum_Update(d,dSdpi,pp);
 			*itot+=step;
 			*ancg/=step;
@@ -102,7 +102,7 @@ int Leapfrog(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Com
 			break;
 		}
 		else{
-		//Otherwise, there's a half step at the end and start of each trajectory, so we combine them into one full step.
+			//Otherwise, there's a half step at the end and start of each trajectory, so we combine them into one full step.
 			Momentum_Update(-dt,dSdpi,pp);
 			step++;
 		}
@@ -114,9 +114,10 @@ int OMF2(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex
 		int *iu,int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, Complex jqq,
 		float beta, float akappa, int stepl, float dt, double *ancg, int *itot, float proby)
 {
-	const double lambda=0.5-pow(2*sqrt(326.0)+36,1.0/3.0)/12+1/pow(6*sqrt(326.0) + 36,1.0/3.0);
-	//const double lambda=1.0/6.0;
-	
+	const double lambda=0.5-pow(2.0*sqrt(326.0)+36.0,1.0/3.0)/12.0+1.0/pow(6.0*sqrt(326.0) + 36.0,1.0/3.0);
+	// const double lambda=1.0/6.0;
+	//	const double lambda=0.5;
+
 	//Gauge update by half dt
 	const	double dU = dt*0.5;
 
@@ -131,7 +132,7 @@ int OMF2(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex
 #endif
 	Force(dSdpi, 1, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
 			dk4m_f,dk4p_f,jqq,akappa,beta,ancg);
-			//Initial momentum update
+	//Initial momentum update
 	Momentum_Update(dp,dSdpi,pp);
 
 	//Main loop for classical time evolution
@@ -152,7 +153,7 @@ int OMF2(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex
 		//Now do the middle momentum update
 		Momentum_Update(dpm,dSdpi,pp);
 
-		//Another gauge update
+		//Second gauge update
 		Gauge_Update(dU,pp,u11t,u12t,u11t_f,u12t_f);
 
 		//Calculate force for second momentum update
