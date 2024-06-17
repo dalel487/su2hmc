@@ -170,18 +170,6 @@ extern "C"
 	 */
 	int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
 			Complex_f *gamval,int *gamin, float *dk4m, float *dk4p, float akappa);
-	/**
-	 * @brief Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1
-	 *
-	 * If you're looking at the FORTRAN code be careful. There are two header files
-	 * for the /trial/ header. One with u11 u12 (which was included here originally)
-	 * and the other with u11t and u12t.
-	 *
-	 * @param u11t, u12t Trial fields to be reunitarised
-	 *
-	 * @return Zero on success, integer error code otherwise
-	 */
-	int Reunitarise(Complex *u11t, Complex *u12t);
 #ifdef DIAGNOSTIC
 	int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f,\
 			unsigned int *iu, unsigned int *id, int *hu, int *hd, double *dk4m, double *dk4p,\
