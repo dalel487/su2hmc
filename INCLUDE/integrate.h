@@ -8,27 +8,31 @@
 #include <random.h>
 #include <sizes.h>
 
-/**
- * @brief Gauge update for the integration step of the HMC
- *
- * @param dt:	Gauge step size
- * @param pp:	Momentum field
- * @param u11t,u12t:	Double precision gauge fields
- * @param u11t_f,u12t_f:	Single precision gauge fields
- *
- * @return Zero on success, integer error code otherwise.
-*/
-int Gauge_Update(double d, double *pp, Complex *u11t, Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f);
-/**
- * @brief Wrapper for the momentum update during the integration step of the HMC
- *
- * @param dt:	Gauge step size
- * @param pp:	Momentum field
- * @param dSdpi:	Force field
- *
- * @return Zero on success, integer error code otherwise.
-*/
-int Momentum_Update(double d, double *pp, double *dSdpi);
+#if (defined __cplusplus)
+extern "C"
+{
+#endif
+	/**
+	 * @brief Gauge update for the integration step of the HMC
+	 *
+	 * @param dt:	Gauge step size
+	 * @param pp:	Momentum field
+	 * @param u11t,u12t:	Double precision gauge fields
+	 * @param u11t_f,u12t_f:	Single precision gauge fields
+	 *
+	 * @return Zero on success, integer error code otherwise.
+	 */
+	int Gauge_Update(const double d, double *pp, Complex *u11t, Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f);
+	/**
+	 * @brief Wrapper for the momentum update during the integration step of the HMC
+	 *
+	 * @param dt:	Gauge step size
+	 * @param pp:	Momentum field
+	 * @param dSdpi:	Force field
+	 *
+	 * @return Zero on success, integer error code otherwise.
+	 */
+	int Momentum_Update(const double d, double *dSdpi, double *pp);
 	/**
 	 *	@brief	Leapfrog integrator. Each trajectory step takes the form of p->p+dt/2,u->u+dt,p->p+dt/2
 	 *				In practice this is implemented for the entire trajectory as
@@ -60,10 +64,10 @@ int Momentum_Update(double d, double *pp, double *dSdpi);
 	 *
 	 *	@return Zero on success, integer error code otherwise
 	 */
-int Leapfrog(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex *X0,Complex *X1,
-					Complex *Phi,double *dk4m,double *dk4p,float *dk4m_f,float *dk4p_f,double *dSdpi,double *pp,
-					int *iu,int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, Complex jqq,
-					float beta, float akappa, int stepl, float dt, double *ancg, int *itot, float proby);
+	int Leapfrog(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex *X0,Complex *X1,
+			Complex *Phi,double *dk4m,double *dk4p,float *dk4m_f,float *dk4p_f,double *dSdpi,double *pp,
+			int *iu,int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, Complex jqq,
+			float beta, float akappa, int stepl, float dt, double *ancg, int *itot, float proby);
 	/**
 	 *	@brief	OMF integrator. Each trajectory step takes the form of p->p+dt/2,u->u+dt,p->p+dt/2
 	 *				In practice this is implemented for the entire trajectory as
@@ -92,16 +96,28 @@ int Leapfrog(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Com
 	 *	@param	ancg:				Counter for average conjugate gradient iterations
 	 *	@param   itot:				Total average conjugate gradient iterations
 	 *	@param	proby:			Termination probability for random trajectory length
-	 *	@param	alpha:			Tunes the size of the momentum updates. If equal to .5 should in theory give the leapfrog
 	 *
 	 *	@return Zero on success, integer error code otherwise
 	 */
-int OMF2(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex *X0,Complex *X1,
-					Complex *Phi,double *dk4m,double *dk4p,float *dk4m_f,float *dk4p_f,double *dSdpi,double *pp,
-					int *iu,int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, Complex jqq,
-					float beta, float akappa, int stepl, float dt, double *ancg, int *itot, float proby, float alpha);
-int OMF4(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex *X0,Complex *X1,
-					Complex *Phi,double *dk4m,double *dk4p,float *dk4m_f,float *dk4p_f,double *dSdpi,double *pp,
-					int *iu,int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, Complex jqq,
-					float beta, float akappa, int stepl, float dt, double *ancg, int *itot, float proby);
+	int OMF2(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex *X0,Complex *X1,
+			Complex *Phi,double *dk4m,double *dk4p,float *dk4m_f,float *dk4p_f,double *dSdpi,double *pp,
+			int *iu,int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, Complex jqq,
+			float beta, float akappa, int stepl, float dt, double *ancg, int *itot, float proby);
+	int OMF4(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex *X0,Complex *X1,
+			Complex *Phi,double *dk4m,double *dk4p,float *dk4m_f,float *dk4p_f,double *dSdpi,double *pp,
+			int *iu,int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, Complex jqq,
+			float beta, float akappa, int stepl, float dt, double *ancg, int *itot, float proby);
+	//CUDA Calling functions
+#ifdef __NVCC__
+	void cuGauge_Update(const double dt, double *pp, Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock);
+#endif
+
+#if (defined __cplusplus)
+}
+#endif
+//Actual CUDA
+#ifdef __CUDACC__
+//Update Gauge fields
+__global__ void cuGauge_Update(const double dt, double *pp, Complex *u11t, Complex *u12t, int mu);
+#endif
 #endif

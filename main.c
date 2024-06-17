@@ -514,7 +514,7 @@ int main(int argc, char *argv[]){
 				gamval_f, gamin, jqq, beta,akappa,stepl,dt,&ancg,&itot,proby);
 #elif defined INT_OMF2
 		OMF2(u11t, u12t, u11t_f, u12t_f, X0, X1, Phi, dk4m, dk4p, dk4m_f, dk4p_f, dSdpi, pp,iu, id, gamval,
-				gamval_f, gamin, jqq, beta,akappa,stepl,dt,&ancg,&itot,proby,1/6.0);
+				gamval_f, gamin, jqq, beta,akappa,stepl,dt,&ancg,&itot,proby);
 #elif defined INT_OMF4
 		OMF4(u11t, u12t, u11t_f, u12t_f, X0, X1, Phi, dk4m, dk4p, dk4m_f, dk4p_f, dSdpi, pp,iu, id, gamval,
 				gamval_f, gamin, jqq, beta,akappa,stepl,dt,&ancg,&itot,proby);
@@ -778,7 +778,7 @@ int main(int argc, char *argv[]){
 	if(!rank){
 		fprintf(output, "Averages for the last %i trajectories\n"\
 				"Number of acceptances: %i\tAverage Trajectory Length = %e\n"\
-				"<dH>=%e+/-\%e\t<exp(dH)> = %e+/-%e\tTrajectory cost = N_cg/dt =%e\n"\
+				"<dH>=%e+/-%e\t<exp(dH)>=%e+/-%e\tTrajectory cost=N_cg/dt =%e\n"\
 				"Average number of congrad iter guidance: %.3f acceptance %.3f\n"\
 				"psibarpsi = %e\n"\
 				"Mean Square Velocity = %e\tAction Per Site = %e\n"\

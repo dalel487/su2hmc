@@ -1,6 +1,6 @@
 #include <su2hmc.h>
 
-int Gauge_Update(double dt, double *pp, Complex *u11t, Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f){
+int Gauge_Update(const double dt, double *pp, Complex *u11t, Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f){
 	/*
 	 * @brief Generates new trial fields
 	 *
@@ -42,23 +42,18 @@ int Gauge_Update(double dt, double *pp, Complex *u11t, Complex *u12t,Complex_f *
 		}
 #endif
 	Reunitarise(u11t,u12t);
-#ifdef __NVCC__
-	cudaDeviceSynchronise();
-#endif
 	//Get trial fields from accelerator for halo exchange
 	Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
 	return 0;
 }
-inline int Momentum_Update(double d, double *pp, double *dSdpi)
+inline int Momentum_Update(const double d, double *dSdpi, double *pp)
 {
-
 #ifdef __NVCC__
 	cublasDaxpy(cublas_handle,kmom, &d, dSdpi, 1, pp, 1);
 #elif defined USE_BLAS
 	cblas_daxpy(kmom, d, dSdpi, 1, pp, 1);
 #else
 	for(int i=0;i<kmom;i++)
-		//d negated above
 		pp[i]+=d*dSdpi[i];
 #endif
 }
@@ -77,7 +72,7 @@ int Leapfrog(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Com
 #endif
 	Force(dSdpi, 1, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
 			dk4m_f,dk4p_f,jqq,akappa,beta,ancg);
-	Momentum_Update(d,pp,dSdpi);
+	Momentum_Update(d,dSdpi,pp);
 	//Main loop for classical time evolution
 	//======================================
 	bool end_traj=false; int step =1;
@@ -97,17 +92,18 @@ int Leapfrog(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Com
 		//	Force(dSdpi, 0, rescgg);
 		Force(dSdpi, 0, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
 				dk4m_f,dk4p_f,jqq,akappa,beta,ancg);
-		//The same for loop is given in both the if and else
-		//statement but only the value of d changes. This is due to the break in the if part
+
 		if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
-			Momentum_Update(d,pp,dSdpi);
+		//Final trajectory has a half momentum step
+			Momentum_Update(d,dSdpi,pp);
 			*itot+=step;
 			*ancg/=step;
 			end_traj=true;
 			break;
 		}
 		else{
-			Momentum_Update(-dt,pp,dSdpi);
+		//Otherwise, there's a half step at the end and start of each trajectory, so we combine them into one full step.
+			Momentum_Update(-dt,dSdpi,pp);
 			step++;
 		}
 	}while(!end_traj);
@@ -116,14 +112,18 @@ int Leapfrog(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Com
 int OMF2(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex *X0,Complex *X1,
 		Complex *Phi,double *dk4m,double *dk4p,float *dk4m_f,float *dk4p_f,double *dSdpi,double *pp,
 		int *iu,int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, Complex jqq,
-		float beta, float akappa, int stepl, float dt, double *ancg, int *itot, float proby, float alpha)
+		float beta, float akappa, int stepl, float dt, double *ancg, int *itot, float proby)
 {
+	const double lambda=0.5-pow(2*sqrt(326.0)+36,1.0/3.0)/12+1/pow(6*sqrt(326.0) + 36,1.0/3.0);
+	//const double lambda=1.0/6.0;
+	
 	//Gauge update by half dt
 	const	double dU = dt*0.5;
-	//Momentum updates by alpha, 2alpha and (1-2alpha) in the middle
-	const double dp= -alpha*dt;
-	const double dp2= -2*alpha*dt;
-	const double dpm= -(1-2*alpha)*dt;
+
+	//Momentum updates by lambda, 2lambda and (1-2lambda) in the middle
+	const double dp= -lambda*dt;
+	const double dp2= -2.0*dp;
+	const double dpm= -(1.0-2.0*lambda)*dt;
 	//Initial step forward for p
 	//=======================
 #ifdef _DEBUG
@@ -131,15 +131,9 @@ int OMF2(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex
 #endif
 	Force(dSdpi, 1, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
 			dk4m_f,dk4p_f,jqq,akappa,beta,ancg);
-#ifdef __NVCC__
-	cublasDaxpy(cublas_handle,kmom, &dp, dSdpi, 1, pp, 1);
-#elif defined USE_BLAS
-	cblas_daxpy(kmom, dp, dSdpi, 1, pp, 1);
-#else
-	for(int i=0;i<kmom;i++)
-		//da negated above
-		pp[i]+=dp*dSdpi[i];
-#endif
+			//Initial momentum update
+	Momentum_Update(dp,dSdpi,pp);
+
 	//Main loop for classical time evolution
 	//======================================
 	bool end_traj=false; int step =1;
@@ -156,19 +150,18 @@ int OMF2(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex
 		Force(dSdpi, 0, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
 				dk4m_f,dk4p_f,jqq,akappa,beta,ancg);
 		//Now do the middle momentum update
-		Momentum_Update(dpm,pp,dSdpi);
+		Momentum_Update(dpm,dSdpi,pp);
 
 		//Another gauge update
 		Gauge_Update(dU,pp,u11t,u12t,u11t_f,u12t_f);
 
-		//Calculate force for final momentum update
+		//Calculate force for second momentum update
 		Force(dSdpi, 0, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
 				dk4m_f,dk4p_f,jqq,akappa,beta,ancg);
-		//The same for loop is given in both the if and else
-		//statement but only the value of d changes. This is due to the break in the if part
+
 		if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
 			//Final momentum step
-			Momentum_Update(dp,pp,dSdpi);
+			Momentum_Update(dp,dSdpi,pp);
 			*itot+=step;
 			//Two force terms, so an extra factor of two in the average?
 			//Or leave it as it was, to get the average CG iterations per trajectory rather than force
@@ -178,7 +171,7 @@ int OMF2(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex
 		}
 		else{
 			//Since we apply the momentum at the start and end of a step we instead apply a double step here
-			Momentum_Update(dp2,pp,dSdpi);
+			Momentum_Update(dp2,dSdpi,pp);
 			step++;
 		}
 	}while(!end_traj);
@@ -198,7 +191,7 @@ int OMF4(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex
 	///@brief Momentum updates
 	///@brief Outer updates depend on r1. We have two of these, doubled for between full steps
 	const double dpO= -r1*dt;
-	const double dpO2= -2*r1*dt;
+	const double dpO2= 2*dpO;
 	///@brief Middle updates depend on r3
 	const double dpM= -r3*dt;
 	///@brief Inner updates depend on r1 and r3
@@ -211,6 +204,7 @@ int OMF4(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex
 	const	double duM = dt*r4;
 	///@brief Inner gauge update depends on r2 and r4
 	const	double duI = dt*(1-2*(r2+r4));
+
 	//Initial step forward for p
 	//=======================
 #ifdef _DEBUG
@@ -218,7 +212,7 @@ int OMF4(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex
 #endif
 	Force(dSdpi, 1, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
 			dk4m_f,dk4p_f,jqq,akappa,beta,ancg);
-	Momentum_Update(dpO,pp,dSdpi);
+	Momentum_Update(dpO,dSdpi,pp);
 
 	//Main loop for classical time evolution
 	//======================================
@@ -236,7 +230,7 @@ int OMF4(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex
 		Force(dSdpi, 0, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
 				dk4m_f,dk4p_f,jqq,akappa,beta,ancg);
 		//Now do the first middle momentum update
-		Momentum_Update(dpM,pp,dSdpi);
+		Momentum_Update(dpM,dSdpi,pp);
 
 		//First middle gauge update
 		Gauge_Update(duM,pp,u11t,u12t,u11t_f,u12t_f);
@@ -245,7 +239,7 @@ int OMF4(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex
 		Force(dSdpi, 0, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
 				dk4m_f,dk4p_f,jqq,akappa,beta,ancg);
 		//Now do the first inner momentum update
-		Momentum_Update(dpI,pp,dSdpi);
+		Momentum_Update(dpI,dSdpi,pp);
 
 		//Inner gauge update
 		Gauge_Update(duI,pp,u11t,u12t,u11t_f,u12t_f);
@@ -254,7 +248,7 @@ int OMF4(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex
 		Force(dSdpi, 0, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
 				dk4m_f,dk4p_f,jqq,akappa,beta,ancg);
 		//Now do the second inner momentum update
-		Momentum_Update(dpI,pp,dSdpi);
+		Momentum_Update(dpI,dSdpi,pp);
 
 		//Second middle gauge update
 		Gauge_Update(duM,pp,u11t,u12t,u11t_f,u12t_f);
@@ -263,7 +257,7 @@ int OMF4(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex
 		Force(dSdpi, 0, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
 				dk4m_f,dk4p_f,jqq,akappa,beta,ancg);
 		//Now do the second middle momentum update
-		Momentum_Update(dpM,pp,dSdpi);
+		Momentum_Update(dpM,dSdpi,pp);
 
 		//Second outer gauge update
 		Gauge_Update(duO,pp,u11t,u12t,u11t_f,u12t_f);
@@ -271,7 +265,7 @@ int OMF4(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex
 		//Outer momentum update depends on if we've finished the trajectory
 		if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
 			//Final momentum step
-			Momentum_Update(dpO,pp,dSdpi);
+			Momentum_Update(dpO,dSdpi,pp);
 			*itot+=step;
 
 			//Four force terms, so an extra factor of four in the average?
@@ -282,7 +276,7 @@ int OMF4(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex
 		}
 		else{
 			//Since we apply the momentum at the start and end of a step we instead apply a double step here
-			Momentum_Update(dpO2,pp,dSdpi);
+			Momentum_Update(dpO2,dSdpi,pp);
 			step++;
 		}
 	}while(!end_traj);
