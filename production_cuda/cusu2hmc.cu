@@ -165,7 +165,7 @@ void cuReunitarise(Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock){
 	cuReunitarise<<<dimGrid,dimBlock>>>(u11t,u12t);
 	cudaDeviceSynchronise();
 }
-void cuGauge_Update(const double dt, double *pp, Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock){
+void cuGauge_Update(const double d, double *pp, Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock){
 	for(int mu=0;mu<ndim;mu++)
 		cuGauge_Update<<<dimGrid,dimBlock,0,streams[mu]>>>(dt,pp,u11t,u12t,mu);
 }
