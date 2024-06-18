@@ -1,14 +1,16 @@
-MF=Makefile_OneAPI
-CC=	mpiicx -v
+MF=	Makefile_OneAPI
+CC=	mpiicx
 
-IFLAGS=	-I../INCLUDE 
+IFLAGS=	-I../INCLUDE $(shell gsl-config --cflags)
 
 CFLAGS=     $(IFLAGS) -qmkl -std=gnu11 -ipo -qopt-zmm-usage=high -MD\
-			-xSKYLAKE -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE,RAPTORLAKE \
-			-DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__ \
-			-qopenmp -qopenmp-simd -DSA3AT
-
-LFLAGS=	-L${MKLROOT}/lib/intel64 -limf -lgsl
+			-xSKYLAKE -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE,RAPTORLAKE\
+			-DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
+			-qopenmp -qopenmp-simd -DSA3AT\
+			-mllvm -loopopt=0
+			#Last Line required to avoid segmentation fault
+			
+LFLAGS=	-L${MKLROOT}/lib/intel64 -limf $(shell gsl-config --libs-without-cblas)
 
 EXE=	su2hmc_OneAPI
 
@@ -21,7 +23,7 @@ SRC= \
 	fermionic.c\
 	force.c\
 	par_mpi.c \
-	su2hmc.c \
+	su2hmc.c 
 
 INC= \
 	sizes.h \
@@ -45,24 +47,21 @@ TMP=	$(MOD) $(EDT) core
 -include $(DEPS)
 all:	$(EXE)
 
-profiler:	CFLAGS += -g #-D_DEBUG
+profiler:	CFLAGS += -g #-D_DEBUGCG
 profiler:	release
 
 release:	CFLAGS +=  -O3  -inline-level=2\
 						-DMKL_ILP64  -I"${MKLROOT}/include" #-DUSE_RAN2
 release:	$(EXE)
 
-diagnostics: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME #-DNO_SPACE
-diagnostics: debug
+diagnostic: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
+diagnostic: debug
 
-debug:	CFLAGS += -g -O0 -D_DEBUG
+debug:	CFLAGS += -g -O0 -D_DEBUG -Wall
 debug:	$(EXE)
 
 $(EXE):	$(OBJ)
-		$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)  ../main.c 
-
-%.o: %.c
-	$(CC) $(CFLAGS) $(MKLFLAGS) -c $?  
+		$(CC) ../main.c -MMD -MP $(CFLAGS) -o $@ $(OBJ) $(LFLAGS)  
 
 clean:
 		rm -f $(OBJ) $(TMP) $(DEPS)
