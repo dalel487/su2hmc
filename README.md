@@ -57,7 +57,8 @@ This two colour implementation was originally written in FORTRAN for:
 dense 2-color QCD, Eur. Phys. J. C48, 193 (2006), hep-
 lat/0604004](https://arxiv.org/abs/hep-lat/0604004)
 
-It has since been rewritten in C and is in the process of being adapted for CUDA.
+It has since been rewritten in C and is in the process of being adapted for CUDA. We have sucessfully run on 7000+ Zen 2
+cores, as well as A100 GPUs
 
 Some adaptions from the original are:
 -	Mixed precision conjugate gradient
@@ -66,10 +67,16 @@ Some adaptions from the original are:
 -	`#pragma omp simd` instructions
 -	Makefiles for Intel, GCC and AMD compilers with flags set for latest machines
 -	GSL ranlux support
+-	CUDA implementation. 
 
 Other works in progress include:
--	CUDA implementation. The CUDA code works, but we have yet to optimise it fully
 -	Improved action
+-	SYCL implementation. 
+-   Multi-GPU support
+-   CMake build system
+-   yaml input file
+-   Set lattice volume and CPU grid at runtime
+-   Higher order integrators. 11 stage 4th order non-gradient integrator implimented but no speedup yet
 
   
 ## Getting started
