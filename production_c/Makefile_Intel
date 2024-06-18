@@ -5,7 +5,7 @@ IFLAGS=	-I../INCLUDE  $(shell gsl-config --cflags)
 
 CFLAGS=     $(IFLAGS) -qmkl -std=gnu11 -ipo -qopt-zmm-usage=high -MD\
 			-xSKYLAKE -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE,RAPTORLAKE\
-			-DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
+			-DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__ -DINT_LPFR\
 			-qopenmp -qno-openmp-offload -qopenmp-simd -DSA3AT -diag-disable=10441
 
 LFLAGS=	-L${MKLROOT}/lib/intel64 -limf $(shell gsl-config --libs-without-cblas)
@@ -21,7 +21,9 @@ SRC= \
 	fermionic.c\
 	force.c\
 	par_mpi.c \
-	su2hmc.c 
+	su2hmc.c \
+	integrate.c\
+	diagnostics.c
 
 INC= \
 	sizes.h \
@@ -30,6 +32,7 @@ INC= \
 	random.h \
 	matrices.h \
 	par_mpi.h \
+	integrate.h\
 	su2hmc.h \
 #
 # No need to edit below this line

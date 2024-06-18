@@ -152,6 +152,14 @@ void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int
 void cuUpDownPart(int na, Complex *X0, Complex *R1,dim3 dimBlock, dim3 dimGrid){
 	cuUpDownPart<<<dimBlock,dimGrid>>>(na,X0,R1);	
 }
+void cuReunitarise(Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock){
+	cuReunitarise<<<dimGrid,dimBlock>>>(u11t,u12t);
+	cudaDeviceSynchronise();
+}
+void cuGauge_Update(const double d, double *pp, Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock){
+	for(int mu=0;mu<ndim;mu++)
+		cuGauge_Update<<<dimGrid,dimBlock,0,streams[mu]>>>(d,pp,u11t,u12t,mu);
+}
 //CUDA Kernels
 __global__ void cuReal_convert(float *a, double *b, int len, bool dtof){
 	const char *funcname = "cuReal_convert";
@@ -233,4 +241,66 @@ __global__ void cuUpDownPart(int na, Complex *X0, Complex *R1){
 			X0[((na*kvol+i)*ndirac+idirac)*nc]=R1[(i*ngorkov+idirac)*nc];
 			X0[((na*kvol+i)*ndirac+idirac)*nc+1]=R1[(i*ngorkov+idirac)*nc+1];
 		}
+}
+
+__global__ void cuReunitarise(Complex *u11t, Complex * u12t){
+	/*
+	 * Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1
+	 *
+	 * If you're looking at the FORTRAN code be careful. There are two header files
+	 * for the /trial/ header. One with u11 u12 (which was included here originally)
+	 * and the other with u11t and u12t.
+	 *
+	 * Globals:
+	 * =======
+	 * u11t, u12t
+	 *
+	 * Returns:
+	 * ========
+	 * Zero on success, integer error code otherwise
+	 */
+	const char *funcname = "Reunitarise";
+	const int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	for(int i=threadId; i<kvol*ndim; i+=gsize*bsize){
+		//Declaring anorm inside the loop will hopefully let the compiler know it
+		//is safe to vectorise aggessively
+		double anorm=sqrt(conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]).real();
+		//		Exception handling code. May be faster to leave out as the exit prevents vectorisation.
+		//		if(anorm==0){
+		//			fprintf(stderr, "Error %i in %s on rank %i: anorm = 0 for μ=%i and i=%i.\nExiting...\n\n",
+		//					DIVZERO, funcname, rank, mu, i);
+		//			MPI_Finalise();
+		//			exit(DIVZERO);
+		//		}
+		u11t[i]/=anorm;
+		u12t[i]/=anorm;
+	}
+}
+__global__ void cuGauge_Update(const double d, double *pp, Complex *u11t, Complex *u12t,int mu){
+	char *funcname = "Gauge_Update";
+	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	for(int i=threadId;i<kvol;i+=gsize*bsize){
+		//Sticking to what was in the FORTRAN for variable names.
+		//CCC for cosine SSS for sine AAA for...
+		//Re-exponentiating the force field. Can be done analytically in SU(2)
+		//using sine and cosine which is nice
+		double AAA = d*sqrt(pp[i*nadj*ndim+mu]*pp[i*nadj*ndim+mu]\
+				+pp[(i*nadj+1)*ndim+mu]*pp[(i*nadj+1)*ndim+mu]\
+				+pp[(i*nadj+2)*ndim+mu]*pp[(i*nadj+2)*ndim+mu]);
+		double CCC = cos(AAA);
+		double SSS = d*sin(AAA)/AAA;
+		Complex a11 = CCC+I*SSS*pp[(i*nadj+2)*ndim+mu];
+		Complex a12 = pp[(i*nadj+1)*ndim+mu]*SSS + I*SSS*pp[i*nadj*ndim+mu];
+		//b11 and b12 are u11t and u12t terms, so we'll use u12t directly
+		//but use b11 for u11t to prevent RAW dependency
+		Complex b11 = u11t[i*ndim+mu];
+		u11t[i*ndim+mu] = a11*b11-a12*conj(u12t[i*ndim+mu]);
+		u12t[i*ndim+mu] = a11*u12t[i*ndim+mu]+a12*conj(b11);
+	}
 }

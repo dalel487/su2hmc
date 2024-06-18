@@ -7,6 +7,7 @@
 //ARM Based machines. BLAS routines should work with other libraries, so we can set a compiler
 //flag to sort them out. But the PRNG routines etc. are MKL exclusive
 #include <errorcodes.h>
+#include <integrate.h>
 #ifdef	__INTEL_MKL__
 #define	USE_BLAS
 #include	<mkl.h>
@@ -43,7 +44,7 @@ extern "C"
 	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
 	 *	
 	 *	@param	dSdpi:			The force
-	 *	@param	iflag:			Invert before evaluating the force?	
+	 *	@param	iflag:			Invert before evaluating the force. 0 to invert, one not to. Blame FORTRAN...	
 	 *	@param	res1:				Conjugate gradient residule
 	 *	@param	X0:				Up/down partitioned pseudofermion field
 	 *	@param	X1:				Holder for the partitioned fermion field, then the conjugate gradient output
@@ -316,7 +317,18 @@ extern "C"
 	 *	@return	Zero on success, integer error code otherwise	
 	 */
 	int UpDownPart(const int na, Complex *X0, Complex *R1);
-
+	/**
+	 * @brief Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1
+	 *
+	 * If you're looking at the FORTRAN code be careful. There are two header files
+	 * for the /trial/ header. One with u11 u12 (which was included here originally)
+	 * and the other with u11t and u12t.
+	 *
+	 * @param u11t, u12t Trial fields to be reunitarised
+	 *
+	 * @return Zero on success, integer error code otherwise
+	 */
+	int Reunitarise(Complex *u11t, Complex *u12t);
 	//CUDA Declarations:
 	//#################
 #ifdef __NVCC__
@@ -344,6 +356,7 @@ extern "C"
 	void cuComplex_convert(Complex_f *a, Complex *b, int len, bool ftod, dim3 dimBlock, dim3 dimGrid);
 	void cuReal_convert(float *a, double *b, int len, bool ftod, dim3 dimBlock, dim3 dimGrid);
 	void cuUpDownPart(int na, Complex *X0, Complex *R1,dim3 dimBlock, dim3 dimGrid);
+	void cuReunitarise(Complex *u11t, Complex *u12t,dim3 dimGrid, dim3 dimBlock);
 	//And a little something to set the CUDA grid and block sizes
 	void blockInit(int x, int y, int z, int t, dim3 *dimBlock, dim3 *dimGrid);
 #endif
@@ -385,5 +398,6 @@ __global__ void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, u
 __global__ void cuComplex_convert(Complex_f *a, Complex *b, int len, bool dtof);
 __global__ void cuReal_convert(float *a, double *b, int len, bool dtof);
 __global__ void cuUpDownPart(int na, Complex *X0, Complex *R1);
+__global__ void cuReunitarise(Complex *u11t, Complex *u12t);
 #endif
 #endif

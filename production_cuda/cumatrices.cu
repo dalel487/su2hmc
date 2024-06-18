@@ -844,68 +844,6 @@ __global__ void cuHdslashd1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Com
 	}
 }
 
-__global__ void cuReunitarise(Complex *u11t, Complex * u12t){
-	/*
-	 * Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1
-	 *
-	 * If you're looking at the FORTRAN code be careful. There are two header files
-	 * for the /trial/ header. One with u11 u12 (which was included here originally)
-	 * and the other with u11t and u12t.
-	 *
-	 * Globals:
-	 * =======
-	 * u11t, u12t
-	 *
-	 * Returns:
-	 * ========
-	 * Zero on success, integer error code otherwise
-	 */
-	const char *funcname = "Reunitarise";
-	const int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	for(int i=threadId; i<kvol*ndim; i+=gsize*bsize){
-		//Declaring anorm inside the loop will hopefully let the compiler know it
-		//is safe to vectorise aggessively
-		double anorm=sqrt(conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]).real();
-		//		Exception handling code. May be faster to leave out as the exit prevents vectorisation.
-		//		if(anorm==0){
-		//			fprintf(stderr, "Error %i in %s on rank %i: anorm = 0 for μ=%i and i=%i.\nExiting...\n\n",
-		//					DIVZERO, funcname, rank, mu, i);
-		//			MPI_Finalise();
-		//			exit(DIVZERO);
-		//		}
-		u11t[i]/=anorm;
-		u12t[i]/=anorm;
-	}
-}
-__global__ void cuNew_trial(double dt, double *pp, Complex *u11t, Complex *u12t,int mu){
-	const char *funcname = "New_trial";
-	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	for(int i=threadId;i<kvol;i+=gsize*bsize){
-		//Sticking to what was in the FORTRAN for variable names.
-		//CCC for cosine SSS for sine AAA for...
-		//Re-exponentiating the force field. Can be done analytically in SU(2)
-		//using sine and cosine which is nice
-		double AAA = dt*sqrt(pp[i*nadj*ndim+mu]*pp[i*nadj*ndim+mu]\
-				+pp[(i*nadj+1)*ndim+mu]*pp[(i*nadj+1)*ndim+mu]\
-				+pp[(i*nadj+2)*ndim+mu]*pp[(i*nadj+2)*ndim+mu]);
-		double CCC = cos(AAA);
-		double SSS = dt*sin(AAA)/AAA;
-		Complex a11 = CCC+I*SSS*pp[(i*nadj+2)*ndim+mu];
-		Complex a12 = pp[(i*nadj+1)*ndim+mu]*SSS + I*SSS*pp[i*nadj*ndim+mu];
-		//b11 and b12 are u11t and u12t terms, so we'll use u12t directly
-		//but use b11 for u11t to prevent RAW dependency
-		Complex b11 = u11t[i*ndim+mu];
-		u11t[i*ndim+mu] = a11*b11-a12*conj(u12t[i*ndim+mu]);
-		u12t[i*ndim+mu] = a11*u12t[i*ndim+mu]+a12*conj(b11);
-	}
-}
-
 //Calling Functions
 //================
 void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
@@ -1160,13 +1098,4 @@ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t
 		exit(cuCpyStat);
 	}
 	cuHdslashd_f<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
-}
-
-void cuReunitarise(Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock){
-	cuReunitarise<<<dimGrid,dimBlock>>>(u11t,u12t);
-	cudaDeviceSynchronise();
-}
-void cuNew_trial(double dt, double *pp, Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock){
-	for(int mu=0;mu<ndim;mu++)
-		cuNew_trial<<<dimGrid,dimBlock,0,streams[mu]>>>(dt,pp,u11t,u12t,mu);
 }
