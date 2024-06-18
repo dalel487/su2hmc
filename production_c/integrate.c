@@ -263,6 +263,10 @@ int OMF4(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex
 		//Second outer gauge update
 		Gauge_Update(duO,pp,u11t,u12t,u11t_f,u12t_f);
 
+		//Calculate force for outer momentum update
+		Force(dSdpi, 0, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
+				dk4m_f,dk4p_f,jqq,akappa,beta,ancg);
+
 		//Outer momentum update depends on if we've finished the trajectory
 		if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
 			//Final momentum step

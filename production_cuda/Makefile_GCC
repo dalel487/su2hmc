@@ -9,7 +9,7 @@ IFLAGS=     -I../INCLUDE -I ./ -I../production_c $(shell gsl-config --cflags)\
 
 CFLAGS=	$(IFLAGS) -std=gnu11 -fcommon -D__NVCC__\
 		-march=core-avx2 -mtune=native -D__RANLUX__ \
-		-fopenmp -fopenmp-simd -static-libgcc -DSA3AT \
+		-fopenmp -fopenmp-simd -static-libgcc -DSA3AT -DINT_LPFR\
 		-foffload=disable #amdgcn-amdhsa="-march=gfx902" #-fopenacc\
 
 ifdef AOCL_ROOT

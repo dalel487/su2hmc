@@ -17,7 +17,7 @@ endif
 IFLAGS=     -I../INCLUDE/ -I ${AOCL_ROOT}/include $(shell gsl-config --cflags)
 
 CFLAGS=	$(IFLAGS) -std=gnu11 -fcommon \
-		-march=znver2 -mtune=znver3 -D__RANLUX__ -DINT_OMF2\
+		-march=znver2 -mtune=znver3 -D__RANLUX__ -DINT_LPFR\
 		-fopenmp -fopenmp-simd -static-libgcc -DSA3AT -flto\
 		-foffload=disable #amdgcn-amdhsa="-march=gfx902" #-fopenacc\
 #		-pg -fprofile-arcs-foffload=amdgcn-amdhsa="-march=gfx90c"
