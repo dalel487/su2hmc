@@ -1,0 +1,13 @@
+<map id="Trial_Exchange" name="Trial_Exchange">
+<area shape="rect" id="Node000001" title="Exchanges the trial fields." alt="" coords="282,80,391,106"/>
+<area shape="rect" id="Node000002" href="$integrate_8c.html#aad98b6e55d3f033e15cffc5b53b173ee" title="Gauge update for the integration step of the HMC." alt="" coords="126,55,234,80"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="266,84,234,79,235,74,267,79"/>
+<area shape="rect" id="Node000006" href="$main_8c.html#a0ddf1224851353fc92bfbff6f499fa97" title=" " alt="" coords="155,104,205,130"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="267,106,206,116,205,110,266,101"/>
+<area shape="rect" id="Node000003" href="$integrate_8c.html#ae4e13e66dc0e7130825c11648f2ad80c" title="Leapfrog integrator. Each trajectory step takes the form of p&#45;&gt;p+dt/2,u&#45;&gt;u+dt,p&#45;&gt;p+dt/2 In practice t..." alt="" coords="5,5,78,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="127,51,77,33,79,28,128,46"/>
+<area shape="rect" id="Node000004" href="$integrate_8c.html#a44f16170b5e3c92646f2e649ee57da3d" title="OMF integrator. Each trajectory step takes the form of p&#45;&gt;p+dt/2,u&#45;&gt;u+dt,p&#45;&gt;p+dt/2 In practice this i..." alt="" coords="13,55,70,80"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="110,70,71,70,71,65,110,65"/>
+<area shape="rect" id="Node000005" href="$integrate_8c.html#a5bbed189bcdd47d814585aa7e842bb8e" title=" " alt="" coords="13,104,70,130"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="128,89,72,109,70,104,126,84"/>
+</map>

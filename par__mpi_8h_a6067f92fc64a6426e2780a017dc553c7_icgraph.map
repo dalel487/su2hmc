@@ -1,0 +1,13 @@
+<map id="Par_dcopy" name="Par_dcopy">
+<area shape="rect" id="Node000001" title="Broadcasts a double to the other processes." alt="" coords="265,80,347,106"/>
+<area shape="rect" id="Node000002" href="$random_8c.html#af30389dbea7d2b366abea7a923bb008d" title="Generates a random double which is then sent to the other ranks." alt="" coords="133,55,210,80"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="249,85,210,77,211,72,250,80"/>
+<area shape="rect" id="Node000006" href="$random_8c.html#a328653cc438367219bad89a935958108" title="Reads ps from a file Since this function is very similar to Par_sread, I&#39;m not really going to commen..." alt="" coords="126,104,217,130"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="250,105,218,111,217,106,249,100"/>
+<area shape="rect" id="Node000003" href="$integrate_8c.html#ae4e13e66dc0e7130825c11648f2ad80c" title="Leapfrog integrator. Each trajectory step takes the form of p&#45;&gt;p+dt/2,u&#45;&gt;u+dt,p&#45;&gt;p+dt/2 In practice t..." alt="" coords="5,5,78,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="120,51,77,34,79,29,122,46"/>
+<area shape="rect" id="Node000004" href="$integrate_8c.html#a44f16170b5e3c92646f2e649ee57da3d" title="OMF integrator. Each trajectory step takes the form of p&#45;&gt;p+dt/2,u&#45;&gt;u+dt,p&#45;&gt;p+dt/2 In practice this i..." alt="" coords="13,55,70,80"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="117,70,71,70,71,65,117,65"/>
+<area shape="rect" id="Node000005" href="$integrate_8c.html#a5bbed189bcdd47d814585aa7e842bb8e" title=" " alt="" coords="13,104,70,130"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="122,89,72,109,70,104,120,84"/>
+</map>

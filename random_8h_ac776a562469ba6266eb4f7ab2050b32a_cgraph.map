@@ -1,0 +1,5 @@
+<map id="Par_ranset" name="Par_ranset">
+<area shape="rect" id="Node000001" title="Uses the rank to get a new seed. Copying from the FORTRAN description here c create new seeds in rang..." alt="" coords="5,5,90,31"/>
+<area shape="rect" id="Node000002" href="$random_8c.html#a307bf51d68dba98763c1339095b11a12" title="Dummy seed the ran2 generator." alt="" coords="138,5,195,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="90,16,122,16,122,21,90,21"/>
+</map>

@@ -1,0 +1,13 @@
+<map id="CHalo_swap_dir" name="CHalo_swap_dir">
+<area shape="rect" id="Node000001" title="Swaps the halos along the axis given by idir in the direction given by layer." alt="" coords="371,55,488,80"/>
+<area shape="rect" id="Node000002" href="$force_8c.html#a45c04d32a0a22833e0ed90db2baf454d" title="Calculates the gauge force due to the Wilson Action at each intermediate time." alt="" coords="228,55,323,80"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="356,70,324,70,324,65,356,65"/>
+<area shape="rect" id="Node000003" href="$force_8c.html#a40e5951024b2de0086a5f878963c6bae" title="Calculates the force &#160;at each intermediate time." alt="" coords="126,55,180,80"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="212,70,181,70,181,65,212,65"/>
+<area shape="rect" id="Node000004" href="$integrate_8c.html#ae4e13e66dc0e7130825c11648f2ad80c" title="Leapfrog integrator. Each trajectory step takes the form of p&#45;&gt;p+dt/2,u&#45;&gt;u+dt,p&#45;&gt;p+dt/2 In practice t..." alt="" coords="5,5,78,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="110,52,71,34,73,29,112,47"/>
+<area shape="rect" id="Node000005" href="$integrate_8c.html#a44f16170b5e3c92646f2e649ee57da3d" title="OMF integrator. Each trajectory step takes the form of p&#45;&gt;p+dt/2,u&#45;&gt;u+dt,p&#45;&gt;p+dt/2 In practice this i..." alt="" coords="13,55,70,80"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="110,70,71,70,71,65,110,65"/>
+<area shape="rect" id="Node000006" href="$integrate_8c.html#a5bbed189bcdd47d814585aa7e842bb8e" title=" " alt="" coords="13,104,70,130"/>
+<area shape="poly" id="edge5_Node000003_Node000006" title=" " alt="" coords="112,88,72,107,70,102,110,83"/>
+</map>

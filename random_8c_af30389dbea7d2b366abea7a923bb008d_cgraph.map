@@ -1,0 +1,7 @@
+<map id="Par_granf" name="Par_granf">
+<area shape="rect" id="Node000001" title="Generates a random double which is then sent to the other ranks." alt="" coords="5,31,83,56"/>
+<area shape="rect" id="Node000002" href="$par__mpi_8h.html#a6067f92fc64a6426e2780a017dc553c7" title="Broadcasts a double to the other processes." alt="" coords="131,5,213,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="83,33,115,27,116,32,84,38"/>
+<area shape="rect" id="Node000003" href="$random_8c.html#afba975c2629ded7c68cb21cfbeb4b496" title="Generates uniformly distributed random double between zero and one as described in numerical recipes...." alt="" coords="149,55,195,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="84,48,134,58,133,63,83,53"/>
+</map>

@@ -1,0 +1,30 @@
+<map id="Par_dsum" name="Par_dsum">
+<area shape="rect" id="Node000001" title="Performs a reduction on a double dval to get a sum which is then distributed to all ranks." alt="" coords="427,132,508,158"/>
+<area shape="rect" id="Node000002" href="$bosonic_8c.html#a8549b8b092dcf706901258557a84f42b" title="Calculates the gauge action using new (how new?) lookup table." alt="" coords="248,56,379,82"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="425,127,378,103,341,85,343,80,381,98,428,122"/>
+<area shape="rect" id="Node000003" href="$su2hmc_8c.html#a73e6186c40491d6f550404b8e975adff" title="Calculate the Hamiltonian." alt="" coords="126,107,200,132"/>
+<area shape="poly" id="edge13_Node000001_Node000003" title=" " alt="" coords="411,143,200,125,200,120,412,138"/>
+<area shape="rect" id="Node000005" href="$congrad_8c.html#afe0b99f1475067a37a8f3d4ce2b2de7f" title="Matrix Inversion via Conjugate Gradient (no up/down flavour partitioning). Solves &#160;The matrix multipl..." alt="" coords="276,259,352,284"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="449,172,419,207,381,242,349,260,346,256,378,237,415,203,445,168"/>
+<area shape="rect" id="Node000006" href="$fermionic_8c.html#a38464140ca960a533faa9e49b6ee6131" title="Calculate fermion expectation values via a noisy estimator." alt="" coords="127,233,199,259"/>
+<area shape="poly" id="edge14_Node000001_Node000006" title=" " alt="" coords="435,169,380,198,332,215,283,228,200,244,199,239,282,222,331,209,378,193,433,164"/>
+<area shape="rect" id="Node000007" href="$congrad_8c.html#aa32f0774e38a36310209b44a2abae8e6" title="Matrix Inversion via Conjugate Gradient (up/down flavour partitioning). Solves &#160;Implements up/down pa..." alt="" coords="276,157,352,183"/>
+<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="413,157,352,167,352,161,412,151"/>
+<area shape="rect" id="Node000012" href="$bosonic_8c.html#abc8424ac85b82a4f8f1e067be367680f" title="Calculate the Polyakov loop (no prizes for guessing that one...)" alt="" coords="126,5,200,31"/>
+<area shape="poly" id="edge15_Node000001_Node000012" title=" " alt="" coords="449,120,420,80,400,61,378,46,333,28,285,19,239,17,200,17,200,12,239,11,286,14,334,23,381,41,404,57,424,77,454,117"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="259,90,201,110,199,105,258,85"/>
+<area shape="rect" id="Node000004" href="$main_8c.html#a0ddf1224851353fc92bfbff6f499fa97" title=" " alt="" coords="17,56,66,82"/>
+<area shape="poly" id="edge4_Node000002_Node000004" title=" " alt="" coords="232,72,67,72,67,66,232,66"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="116,103,66,81,68,77,118,98"/>
+<area shape="poly" id="edge6_Node000005_Node000006" title=" " alt="" coords="260,265,199,255,199,249,260,260"/>
+<area shape="poly" id="edge12_Node000007_Node000003" title=" " alt="" coords="260,155,199,134,201,129,262,150"/>
+<area shape="rect" id="Node000008" href="$force_8c.html#a40e5951024b2de0086a5f878963c6bae" title="Calculates the force &#160;at each intermediate time." alt="" coords="136,157,190,183"/>
+<area shape="poly" id="edge8_Node000007_Node000008" title=" " alt="" coords="260,173,190,173,190,168,260,168"/>
+<area shape="rect" id="Node000009" href="$integrate_8c.html#ae4e13e66dc0e7130825c11648f2ad80c" title="Leapfrog integrator. Each trajectory step takes the form of p&#45;&gt;p+dt/2,u&#45;&gt;u+dt,p&#45;&gt;p+dt/2 In practice t..." alt="" coords="5,157,78,183"/>
+<area shape="poly" id="edge9_Node000008_Node000009" title=" " alt="" coords="120,173,78,173,78,168,120,168"/>
+<area shape="rect" id="Node000010" href="$integrate_8c.html#a44f16170b5e3c92646f2e649ee57da3d" title="OMF integrator. Each trajectory step takes the form of p&#45;&gt;p+dt/2,u&#45;&gt;u+dt,p&#45;&gt;p+dt/2 In practice this i..." alt="" coords="13,207,70,232"/>
+<area shape="poly" id="edge10_Node000008_Node000010" title=" " alt="" coords="122,189,72,210,70,205,120,184"/>
+<area shape="rect" id="Node000011" href="$integrate_8c.html#a5bbed189bcdd47d814585aa7e842bb8e" title=" " alt="" coords="13,108,70,134"/>
+<area shape="poly" id="edge11_Node000008_Node000011" title=" " alt="" coords="120,156,70,135,72,130,122,151"/>
+<area shape="poly" id="edge16_Node000012_Node000004" title=" " alt="" coords="118,40,68,61,66,56,116,35"/>
+</map>
