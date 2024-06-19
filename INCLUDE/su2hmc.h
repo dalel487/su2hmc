@@ -380,18 +380,10 @@ __device__ float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int
 //Force Kernels. We've taken each nadj index and the spatial/temporal components and created a separate kernel for each
 //CPU code just has these as a huge blob that the vectoriser can't handle. May be worth splitting it there too?
 //It might not be a bad idea to make a seperate header for all these kernels...
-__global__ void cuForce_s0(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
-		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac, int mu);
-__global__ void cuForce_s1(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
-		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac, int mu);
-__global__ void cuForce_s2(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
-		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac, int mu);
-__global__ void cuForce_t0(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
-		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac);
-__global__ void cuForce_t1(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
-		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac);
-__global__ void cuForce_t2(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
-		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int idirac);
+__global__ void cuForce_s(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
+		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa, int mu);
+__global__ void cuForce_t(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
+		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa);
 __global__ void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi);
 __global__ void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu);
 __global__ void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu);

@@ -63,7 +63,7 @@ extern cudaMemPool_t mempool;
 // Common block definition for parallel variables
 
 ///	@brief Lattice x extent
-#define	nx 8
+#define	nx 16
 #if(nx<1)
 #error "nx is expected it to be greater than or equal to 1"
 #endif
