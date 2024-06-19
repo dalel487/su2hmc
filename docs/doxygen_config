@@ -2524,6 +2524,7 @@ DOT_NUM_THREADS        = 0
 # to find the font, which can be done by putting it in a standard location or by
 # setting the DOTFONTPATH environment variable or by setting DOT_FONTPATH to the
 # directory containing the font. Default graphviz fontsize is 14.
+#
 # The default value is: fontname=Helvetica ,fontsize=10.
 # This tag requires that the tag HAVE_DOT is set to YES.
 
