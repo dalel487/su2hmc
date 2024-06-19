@@ -1,5 +1,4 @@
-/**
- * @file matrices.h
+/** * @file matrices.h
  *
  * @brief Matrix multiplication and related declarations
  */
@@ -226,8 +225,8 @@ __global__ void cuDslashd1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comp
 		__shared__ Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, Complex_f jqq, float akappa);
 
 __global__ void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		__shared__ Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, float akappa);
+		const Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, const float akappa);
 __global__ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		__shared__ Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, float akappa);
+		const Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, const float akappa);
 #endif
 #endif
