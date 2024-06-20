@@ -73,10 +73,19 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 #endif
 	//Instead of copying element-wise in a loop, use memcpy.
 #ifdef __NVCC__
+	//Get X1 in single precision, then swap to AoS format
 	cuComplex_convert(X1_f,X1,kferm2,true,dimBlock,dimGrid);
-	//cudaMemcpy is blocking, so use async instead
+	GaugeFlip_f(X1_f,kvol,ndirac*nc,dimGrid,dimBlock);
+
+	//And repeat for r
 	cuComplex_convert(r_f,r,kferm2,true,dimBlock,dimGrid);
+	GaugeFlip_f(r_f,kvol,ndirac*nc,dimGrid,dimBlock);
+
+	//cudaMemcpy is blocking, so use async instead
 	cudaMemcpyAsync(p_f, X1_f, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice,NULL);
+	//Flip all the gauge fields around so memory is coalesced
+	GaugeFlip_f(u11t,kvol,ndim,dimGrid,dimBlock);
+	GaugeFlip_f(u12t,kvol,ndim,dimGrid,dimBlock);
 #else
 #pragma omp parallel for simd
 	for(int i=0;i<kferm2;i++){
