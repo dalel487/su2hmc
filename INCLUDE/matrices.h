@@ -199,7 +199,17 @@ extern "C"
 			Complex_f *gamval_f,int *gamin, float *dk4m_f, float *dk4p_f, float akappa_f,dim3 dimGrid, dim3 dimBlock);
 	void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
 			Complex_f *gamval_f,int *gamin, float *dk4m_f, float *dk4p_f, float akappa_f, dim3 dimGrid, dim3 dimBlock);
-	//New Trial Fields
+
+/**
+ * @brief In place transpose
+ *
+ * @param out: The array being transposed
+ * @param fast_in:	The old outermost/fastest index
+ * @param fast_out:	The new outermost/fastest index
+ * @param dimGrid:	CUDA grid
+ * @param dimBlock:	CUDA block
+ */
+	void Transpose_f(Complex_f *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
 #endif
 #if (defined __cplusplus)
 }
@@ -228,5 +238,6 @@ __global__ void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Compl
 		const Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, const float akappa);
 __global__ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
 		const Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, const float akappa);
+__global__ void Transpose_f(Complex_f *out, Complex_f *in, const int fast_in, const int fast_out);
 #endif
 #endif

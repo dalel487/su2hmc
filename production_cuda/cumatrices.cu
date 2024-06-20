@@ -636,7 +636,7 @@ __global__ void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Compl
 				int igork1 = gamin_d[mu*ndirac+idirac];
 				for(int c=0;c<nc;c++){
 					ru[bthreadId+128*c]=r[uid+kvol*(idirac*nc+c)];
-					rd[bthreadId+128*c]=r[uid+kvol*(idirac*nc+c)];
+					rd[bthreadId+128*c]=r[did+kvol*(idirac*nc+c)];
 					rgu[bthreadId+128*c]=r[uid+kvol*(igork1*nc+c)];
 					rgd[bthreadId+128*c]=r[did+kvol*(igork1*nc+c)];
 				}
@@ -680,7 +680,7 @@ __global__ void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Compl
 			int igork1 = gamin_d[3*ndirac+idirac];
 			for(int c=0;c<nc;c++){
 				ru[bthreadId+128*c]=r[uid+kvol*(idirac*nc+c)];
-				rd[bthreadId+128*c]=r[uid+kvol*(idirac*nc+c)];
+				rd[bthreadId+128*c]=r[did+kvol*(idirac*nc+c)];
 				rgu[bthreadId+128*c]=r[uid+kvol*(igork1*nc+c)];
 				rgd[bthreadId+128*c]=r[did+kvol*(igork1*nc+c)];
 			}
@@ -731,7 +731,7 @@ __global__ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comp
 				int igork1 = gamin_d[mu*ndirac+idirac];
 				for(int c=0;c<nc;c++){
 					ru[bthreadId+128*c]=r[uid+kvol*(idirac*nc+c)];
-					rd[bthreadId+128*c]=r[uid+kvol*(idirac*nc+c)];
+					rd[bthreadId+128*c]=r[did+kvol*(idirac*nc+c)];
 					rgu[bthreadId+128*c]=r[uid+kvol*(igork1*nc+c)];
 					rgd[bthreadId+128*c]=r[did+kvol*(igork1*nc+c)];
 				}
@@ -776,7 +776,7 @@ __global__ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comp
 			int igork1 = gamin_d[3*ndirac+idirac];
 			for(int c=0;c<nc;c++){
 				ru[bthreadId+128*c]=r[uid+kvol*(idirac*nc+c)];
-				rd[bthreadId+128*c]=r[uid+kvol*(idirac*nc+c)];
+				rd[bthreadId+128*c]=r[did+kvol*(idirac*nc+c)];
 				rgu[bthreadId+128*c]=r[uid+kvol*(igork1*nc+c)];
 				rgd[bthreadId+128*c]=r[did+kvol*(igork1*nc+c)];
 			}
@@ -811,24 +811,25 @@ __global__ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comp
  * @param ny:	The size of the fastest moving dimension, This is the direction index when read in from disk.
  * 
  */
-__global__ void GaugeFlip_f(Complex_f *out, Complex_f *in, const int nx, const int ny){
-	const char *funcname="GaugeFlip_f";
+__global__ void Transpose_f(Complex_f *out, Complex_f *in, const int fast_in, const int fast_out){
+	const char *funcname="Transpose_f";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const int gthreadId= blockId * bsize+bthreadId;
 	//The if/else here is only to ensure we maximise GPU bandwidth
 	//Typically this is used to write back to the AoS/Coalseced format
-	if(nx>ny){
-		for(int x=bthreadId;x<nx;x+=gsize*bsize)
-			for(int y=0; i<ny;y++)
-				out[y*nx+x]=in[x*ny+y];
+	if(fast_out>fast_in){
+		for(int x=gthreadId;x<fast_out;x+=gsize*bsize)
+			for(int y=0; y<fast_in;y++)
+				out[y*fast_out+x]=in[x*fast_in+y];
 	}
 	//Typically this is used to write back to the SoA/saved config format
 	else{
-		for(int x=0; i<nx;x++)
-			for(int y=bthreadId;x<ny;y+=gsize*bsize)
-				out[y*nx+x]=in[x*ny+y];
+		for(int x=0; x<fast_out;x++)
+			for(int y=gthreadId;y<fast_in;y+=gsize*bsize)
+				out[y*fast_out+x]=in[x*fast_in+y];
 	}
 }
 
@@ -1088,13 +1089,14 @@ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t
 	cuHdslashd_f<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
 }
 
-void GaugeFlip_f(Complex_f *out, Complex_f *in, const int nx, const int ny, const dim3 dimGrid, const dim3 dimBlock){
-	GaugeFlip_f<<<dimBlock,dimGrid>>>(out,in,nx,ny);
-}
-void GaugeFlip_f(Complex_f *out, const int nx, const int ny, const dim3 dimGrid, const dim3 dimBlock){
+void Transpose_f(Complex_f *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
 	Complex_f *holder;
-	cudaMalloc((void **)&holder,nx*ny*sizeof(Complex_f));
-	cudaMemcpy(holder,out,nx*ny*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
-	GaugeFlip_f<<<dimBlock,dimGrid>>>(out,in,nx,ny);
+	cudaMalloc((void **)&holder,fast_in*fast_out*sizeof(Complex_f));
+	cudaMemcpy(holder,out,fast_in*fast_out*sizeof(Complex_f),cudaMemcpyDefault);
+	Transpose_f<<<dimBlock,dimGrid>>>(out,holder,fast_in,fast_out);
+	Complex_f alpha=1; Complex_f beta=0;
+	//cublasCgeam(cublas_handle,CUBLAS_OP_T,CUBLAS_OP_N,fast_in,fast_out,(cuComplex *)&alpha,\
+	//(cuComplex *)out,fast_out,NULL,(cuComplex *)&beta,fast_out,(cuComplex *)holder,fast_out);
+	//cudaMemcpy(out,holder,fast_in*fast_out*sizeof(Complex_f),cudaMemcpyDefault);
 	cudaFree(holder);
 }
