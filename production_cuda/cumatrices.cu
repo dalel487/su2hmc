@@ -604,8 +604,8 @@ __global__ void cuDslashd1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comp
 //IDEA: Split the Dslash routines into different streams for each colour index so the can run concurrently
 //There are no race contitions.
 //HDslash_f Index 0
-__global__ void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		const Complex_f gamval[20],	int *gamin_d,	float *dk4m, float *dk4p, const float akappa){
+__global__ void cuHdslash_f(Complex_f *phi, const Complex_f *r, const Complex_f *u11t, const Complex_f *u12t,unsigned int *iu, unsigned int *id,\
+		const Complex_f gamval[20],	int *gamin_d,	const float *dk4m, const float *dk4p, const float akappa){
 	/*
 	 * Half Dslash float precision acting on colour index zero
 	 */
@@ -704,8 +704,8 @@ __global__ void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Compl
 		}
 	}
 }
-__global__ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		const Complex_f gamval[20],	int *gamin_d,	float *dk4m, float *dk4p, const float akappa){
+__global__ void cuHdslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f *u11t, const Complex_f *u12t,unsigned int *iu, unsigned int *id,\
+		const Complex_f gamval[20],	const int *gamin_d,	const float *dk4m, const float *dk4p, const float akappa){
 	const char *funcname = "cuHdslashd0_f";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
