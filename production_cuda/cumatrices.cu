@@ -354,31 +354,36 @@ __global__ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comple
 				int idirac=igorkov%4;		
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing in the dirac term.
 				int igork1 = (igorkov<4) ? gamin_d[mu*ndirac+idirac] : gamin_d[mu*ndirac+idirac]+4;
+				for(int c=0;c<nc;c++){
+					ru[bthreadId+128*c]=r[(uid*ngorkov+igorkov)*nc+c];
+					rd[bthreadId+128*c]=r[(did*ngorkov+igorkov)*nc+c];
+					rgu[bthreadId+128*c]=r[(uid*ngorkov+igork1)*nc+c];
+					rgd[bthreadId+128*c]=r[(did*ngorkov+igork1)*nc+c];
+				}
 				//Can manually vectorise with a pragma?
 				phi_s[bthreadId]=phi[(i*ngorkov+igorkov)*nc];
-				phi_s[bthreadId]+=-akappa*(u11s[bthreadId]*r[(uid*ngorkov+igorkov)*nc]+\
-						u12s[bthreadId]*r[(uid*ngorkov+igorkov)*nc+1]+\
-						conj(u11sd[bthreadId])*r[(did*ngorkov+igorkov)*nc]-\
-						u12sd[bthreadId]*r[(did*ngorkov+igorkov)*nc+1]);
+				phi_s[bthreadId]+=-akappa*(u11s[bthreadId]*ru[bthreadId]+\
+						u12s[bthreadId]*ru[bthreadId+128]+\
+						conj(u11sd[bthreadId])*rd[bthreadId]-\
+						u12sd[bthreadId]*rd[bthreadId+128]);
 				//Dirac term
-				phi_s[bthreadId]+=gamval_d[mu*ndirac+idirac]*(u11s[bthreadId]*r[(uid*ngorkov+igork1)*nc]+\
-						u12s[bthreadId]*r[(uid*ngorkov+igork1)*nc+1]-\
-						conj(u11sd[bthreadId])*r[(did*ngorkov+igork1)*nc]+\
-						u12sd[bthreadId]*r[(did*ngorkov+igork1)*nc+1]);
+				phi_s[bthreadId]+=gamval_d[mu*ndirac+idirac]*(u11s[bthreadId]*rgu[bthreadId]+\
+						u12s[bthreadId]*rgu[bthreadId+128]-\
+						conj(u11sd[bthreadId])*rgd[bthreadId]+\
+						u12sd[bthreadId]*rgd[bthreadId+128]);
 				phi[(i*ngorkov+igorkov)*nc]=phi_s[bthreadId];
 
 				phi_s[bthreadId]=phi[(i*ngorkov+igorkov)*nc+1];
-				phi_s[bthreadId]+=-akappa*(-conj(u12s[bthreadId])*r[(uid*ngorkov+igorkov)*nc]+\
-						conj(u11s[bthreadId])*r[(uid*ngorkov+igorkov)*nc+1]+\
-						conj(u12sd[bthreadId])*r[(did*ngorkov+igorkov)*nc]+\
-						u11sd[bthreadId]*r[(did*ngorkov+igorkov)*nc+1]);
+				phi_s[bthreadId]+=-akappa*(-conj(u12s[bthreadId])*ru[bthreadId]+\
+						conj(u11s[bthreadId])*ru[bthreadId+128]+\
+						conj(u12sd[bthreadId])*rd[bthreadId]+\
+						u11sd[bthreadId]*rd[bthreadId+128]);
 				//Dirac term
-				phi_s[bthreadId]+=gamval_d[mu*ndirac+idirac]*(-conj(u12s[bthreadId])*r[(uid*ngorkov+igork1)*nc]+\
-						conj(u11s[bthreadId])*r[(uid*ngorkov+igork1)*nc+1]-\
-						conj(u12sd[bthreadId])*r[(did*ngorkov+igork1)*nc]-\
-						u11sd[bthreadId]*r[(did*ngorkov+igork1)*nc+1]);
+				phi_s[bthreadId]+=gamval_d[mu*ndirac+idirac]*(-conj(u12s[bthreadId])*rgu[bthreadId]+\
+						conj(u11s[bthreadId])*rgu[bthreadId+128]-\
+						conj(u12sd[bthreadId])*rgd[bthreadId]-\
+						u11sd[bthreadId]*rgd[bthreadId+128]);
 				phi[(i*ngorkov+igorkov)*nc+1]=phi_s[bthreadId];
-
 			}
 		}
 		//Timelike terms next. These run from igorkov=0..3 and 4..7 with slightly different rules for each
@@ -392,38 +397,50 @@ __global__ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comple
 		dk4msd[bthreadId]=dk4m[did];	dk4psd[bthreadId]=dk4p[did];
 		for(int igorkov=0;igorkov<ndirac;igorkov++){
 			int igork1 = gamin_d[3*ndirac+igorkov];
+				for(int c=0;c<nc;c++){
+					ru[bthreadId+128*c]=r[(uid*ngorkov+igorkov)*nc+c];
+					rd[bthreadId+128*c]=r[(did*ngorkov+igorkov)*nc+c];
+					rgu[bthreadId+128*c]=r[(uid*ngorkov+igork1)*nc+c];
+					rgd[bthreadId+128*c]=r[(did*ngorkov+igork1)*nc+c];
+				}
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			phi_s[bthreadId]=phi[(i*ngorkov+igorkov)*nc];
 			phi_s[bthreadId]+=
-				-dk4ps[bthreadId]*(u11s[bthreadId]*(r[(uid*ngorkov+igorkov)*nc]-r[(uid*ngorkov+igork1)*nc])
-						+u12s[bthreadId]*(r[(uid*ngorkov+igorkov)*nc+1]-r[(uid*ngorkov+igork1)*nc+1]))
-				-dk4msd[bthreadId]*(conj(u11sd[bthreadId])*(r[(did*ngorkov+igorkov)*nc]+r[(did*ngorkov+igork1)*nc])
-						-u12sd[bthreadId] *(r[(did*ngorkov+igorkov)*nc+1]+r[(did*ngorkov+igork1)*nc+1]));
+				-dk4ps[bthreadId]*(u11s[bthreadId]*(ru[bthreadId]-rgu[bthreadId])
+						+u12s[bthreadId]*(ru[bthreadId+128]-rgu[bthreadId+128]))
+				-dk4msd[bthreadId]*(conj(u11sd[bthreadId])*(rd[bthreadId]+rgd[bthreadId])
+						-u12sd[bthreadId] *(rd[bthreadId+128]+rgd[bthreadId+128]));
 			phi[(i*ngorkov+igorkov)*nc]=phi_s[bthreadId];
 
 			phi_s[bthreadId]=phi[(i*ngorkov+igorkov)*nc+1];
 			phi_s[bthreadId]+=
-				-dk4ps[bthreadId]*(-conj(u12s[bthreadId])*(r[(uid*ngorkov+igorkov)*nc]-r[(uid*ngorkov+igork1)*nc])
-						+conj(u11s[bthreadId])*(r[(uid*ngorkov+igorkov)*nc+1]-r[(uid*ngorkov+igork1)*nc+1]))
-				-dk4msd[bthreadId]*(conj(u12sd[bthreadId])*(r[(did*ngorkov+igorkov)*nc]+r[(did*ngorkov+igork1)*nc])
-						+u11sd[bthreadId] *(r[(did*ngorkov+igorkov)*nc+1]+r[(did*ngorkov+igork1)*nc+1]));
+				-dk4ps[bthreadId]*(-conj(u12s[bthreadId])*(ru[bthreadId]-rgu[bthreadId])
+						+conj(u11s[bthreadId])*(ru[bthreadId+128]-rgu[bthreadId+128]))
+				-dk4msd[bthreadId]*(conj(u12sd[bthreadId])*(rd[bthreadId]+rgd[bthreadId])
+						+u11sd[bthreadId] *(rd[bthreadId+128]+rgd[bthreadId+128]));
 			phi[(i*ngorkov+igorkov)*nc+1]=phi_s[bthreadId];
 			int igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
 												//the FORTRAN code did it.
 			int igork1PP = igork1+4;
 			//And the gorkov terms. Note that dk4p and dk4m swap positions compared to the above				
+				for(int c=0;c<nc;c++){
+					ru[bthreadId+128*c]=r[(uid*ngorkov+igorkovPP)*nc+c];
+					rd[bthreadId+128*c]=r[(did*ngorkov+igorkovPP)*nc+c];
+					rgu[bthreadId+128*c]=r[(uid*ngorkov+igork1PP)*nc+c];
+					rgd[bthreadId+128*c]=r[(did*ngorkov+igork1PP)*nc+c];
+				}
 			phi_s[bthreadId]=phi[(i*ngorkov+igorkovPP)*nc];
-			phi_s[bthreadId]+=-dk4ms[bthreadId]*(u11s[bthreadId]*(r[(uid*ngorkov+igorkovPP)*nc]-r[(uid*ngorkov+igork1PP)*nc])+
-					u12s[bthreadId]*(r[(uid*ngorkov+igorkovPP)*nc+1]-r[(uid*ngorkov+igork1PP)*nc+1]))-
-				dk4psd[bthreadId]*(conj(u11sd[bthreadId])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])-
-						u12sd[bthreadId]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
+			phi_s[bthreadId]+=-dk4ms[bthreadId]*(u11s[bthreadId]*(ru[bthreadId]-rgu[bthreadId])+
+					u12s[bthreadId]*(ru[bthreadId+128]-rgu[bthreadId+128]))-
+				dk4psd[bthreadId]*(conj(u11sd[bthreadId])*(rd[bthreadId]+rgd[bthreadId])-
+						u12sd[bthreadId]*(rd[bthreadId+128]+rgd[bthreadId+128]));
 			phi[(i*ngorkov+igorkovPP)*nc]=phi_s[bthreadId];
 
 			phi_s[bthreadId]=phi[(i*ngorkov+igorkovPP)*nc+1];
-			phi_s[bthreadId]+=-dk4ms[bthreadId]*(conj(-u12s[bthreadId])*(r[(uid*ngorkov+igorkovPP)*nc]-r[(uid*ngorkov+igork1PP)*nc])
-					+conj(u11s[bthreadId])*(r[(uid*ngorkov+igorkovPP)*nc+1]-r[(uid*ngorkov+igork1PP)*nc+1]))
-				-dk4psd[bthreadId]*(conj(u12sd[bthreadId])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])
-						+u11sd[bthreadId]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
+			phi_s[bthreadId]+=-dk4ms[bthreadId]*(conj(-u12s[bthreadId])*(ru[bthreadId]-rgu[bthreadId])
+					+conj(u11s[bthreadId])*(ru[bthreadId+128]-rgu[bthreadId+128]))
+				-dk4psd[bthreadId]*(conj(u12sd[bthreadId])*(rd[bthreadId]+rgd[bthreadId])
+						+u11sd[bthreadId]*(rd[bthreadId+128]+rgd[bthreadId+128]));
 			phi[(i*ngorkov+igorkovPP)*nc+1]=phi_s[bthreadId];
 		}
 #endif
