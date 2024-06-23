@@ -77,7 +77,7 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 				fprintf(dk4p_File,"%f\t%f\t%f\t%f\n",dk4p[i],dk4p[i+1],dk4p[i+2],dk4p[i+3]);
 		}
 	}
-	for(int test = 0; test<=8; test++){
+	for(int test = 0; test<=9; test++){
 		//Trial fields shouldn't get modified so were previously set up outside
 		switch(istart){
 			case(1):
@@ -223,11 +223,21 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 				Dslash(xi,R1,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 #ifdef __NVCC__
 				cudaMemPrefetchAsync(xi,kferm*sizeof(Complex),device,NULL);
+				//Transpose needed here for Dslash_f
+				Transpose_f(xi_f,ngorkov*nc,kvol,dimGrid,dimBlock);
+				Transpose_f(R1_f,ngorkov*nc,kvol,dimGrid,dimBlock);
+				//Flip all the gauge fields around so memory is coalesced
+				Transpose_f(u11t_f,ndim,kvol,dimGrid,dimBlock);
+				Transpose_f(u12t_f,ndim,kvol,dimGrid,dimBlock);
 				cudaDeviceSynchronise();
 #endif
 				Dslash_f(xi_f,R1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 #ifdef __NVCC__
+				Transpose_f(xi_f,kvol,ngorkov*nc,dimGrid,dimBlock);
 				cudaMemPrefetchAsync(xi_f,kferm*sizeof(Complex_f),device,NULL);
+				Transpose_f(R1_f,kvol,ngorkov*nc,dimGrid,dimBlock);
+				Transpose_f(u11t_f,kvol,ndim,dimGrid,dimBlock);
+				Transpose_f(u12t_f,kvol,ndim,dimGrid,dimBlock);
 				cudaDeviceSynchronise();
 #endif
 				output = fopen("dslash", "w");
@@ -287,15 +297,28 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 							creal(R1[i+4]-R1_f[i+4]),cimag(R1[i+4]-R1_f[i+4]),creal(R1[i+5]-R1_f[i+5]),cimag(R1[i+5]-R1_f[i+5]),
 							creal(R1[i+6]-R1_f[i+6]),cimag(R1[i+6]-R1_f[i+6]),creal(R1[i+7]-R1_f[i+7]),cimag(R1[i+7]-R1_f[i+7]));
 				}
+#ifdef __NVCC__
+
+#endif
 				fclose(output_old); fclose(output_f_old);
 				Dslashd(xi,R1,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 #ifdef __NVCC__
 				cudaMemPrefetchAsync(xi,kferm*sizeof(Complex),device,NULL);
+				//Transpose needed here for Dslashd_f
+				Transpose_f(xi_f,ngorkov*nc,kvol,dimGrid,dimBlock);
+				Transpose_f(R1_f,ngorkov*nc,kvol,dimGrid,dimBlock);
+				//Flip all the gauge fields around so memory is coalesced
+				Transpose_f(u11t_f,ndim,kvol,dimGrid,dimBlock);
+				Transpose_f(u12t_f,ndim,kvol,dimGrid,dimBlock);
 				cudaDeviceSynchronise();
 #endif
 				Dslashd_f(xi_f,R1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 #ifdef __NVCC__
+				Transpose_f(xi_f,kvol,ngorkov*nc,dimGrid,dimBlock);
 				cudaMemPrefetchAsync(xi_f,kferm*sizeof(Complex_f),device,NULL);
+				Transpose_f(R1_f,kvol,ngorkov*nc,dimGrid,dimBlock);
+				Transpose_f(u11t_f,kvol,ndim,dimGrid,dimBlock);
+				Transpose_f(u12t_f,kvol,ndim,dimGrid,dimBlock);
 				cudaDeviceSynchronise();
 #endif
 				output = fopen("dslashd", "w");
@@ -354,9 +377,21 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 							creal(X0[i+6]-X0_f[i+6]),cimag(X0[i+6]-X0_f[i+6]),creal(X0[i+7]-X0_f[i+7]),cimag(X0[i+7]-X0_f[i+7]));
 				}
 				fclose(output_old);fclose(output_f_old);
+				#ifdef __NVCC__
+			//Transpose needed here for Dslashd
+			Transpose_f(X0_f,ndirac*nc,kvol,dimGrid,dimBlock);
+			Transpose_f(X1_f,ndirac*nc,kvol,dimGrid,dimBlock);
+			//Flip all the gauge fields around so memory is coalesced
+			Transpose_f(u11t_f,ndim,kvol,dimGrid,dimBlock);
+			Transpose_f(u12t_f,ndim,kvol,dimGrid,dimBlock);
+			#endif
 				Hdslash(X1,X0,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
 				Hdslash_f(X1_f,X0_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,akappa);
 #ifdef __NVCC__
+			Transpose_f(X0_f,kvol,ndirac*nc,dimGrid,dimBlock);
+			Transpose_f(X1_f,kvol,ndirac*nc,dimGrid,dimBlock);
+			Transpose_f(u11t_f,kvol,ndim,dimGrid,dimBlock);
+			Transpose_f(u12t_f,kvol,ndim,dimGrid,dimBlock);
 				cudaDeviceSynchronise();
 #endif
 				output = fopen("hdslash", "w");	output_f = fopen("hdslash_f", "w");
@@ -412,9 +447,21 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 							creal(X0[i+4]-X0_f[i+4]),cimag(X0[i+4]-X0_f[i+4]),creal(X0[i+5]-X0_f[i+5]),cimag(X0[i+5]-X0_f[i+5]),
 							creal(X0[i+6]-X0_f[i+6]),cimag(X0[i+6]-X0_f[i+6]),creal(X0[i+7]-X0_f[i+7]),cimag(X0[i+7]-X0_f[i+7]));
 				}
+				#ifdef __NVCC__
+			//Transpose needed here for Dslashd
+			Transpose_f(X0_f,ndirac*nc,kvol,dimGrid,dimBlock);
+			Transpose_f(X1_f,ndirac*nc,kvol,dimGrid,dimBlock);
+			//Flip all the gauge fields around so memory is coalesced
+			Transpose_f(u11t_f,ndim,kvol,dimGrid,dimBlock);
+			Transpose_f(u12t_f,ndim,kvol,dimGrid,dimBlock);
+			#endif
 				Hdslashd(X1,X0,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
 				Hdslashd_f(X1_f,X0_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,akappa);
 #ifdef __NVCC__
+			Transpose_f(X0_f,kvol,ndirac*nc,dimGrid,dimBlock);
+			Transpose_f(X1_f,kvol,ndirac*nc,dimGrid,dimBlock);
+			Transpose_f(u11t_f,kvol,ndim,dimGrid,dimBlock);
+			Transpose_f(u12t_f,kvol,ndim,dimGrid,dimBlock);
 				cudaDeviceSynchronise();
 #endif
 				output = fopen("hdslashd", "w");	output_f = fopen("hdslashd_f", "w");
@@ -451,7 +498,7 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 				output = fopen("hamiltonian", "w");
 				double h,s,ancgh;  h=s=ancgh=0;
 				Hamilton(&h,&s,rescgg,pp,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,\
-						akappa,beta,&ancgh);
+						akappa,beta,&ancgh,0);
 				for(int i = 0; i< kferm2; i+=8){
 					fprintf(output, "%.5f+%.5fI\t%.5f+%.5fI\n%.5f+%.5fI\t%.5f+%.5fI\n%.5f+%.5fI\t%.5f+%.5fI\n%.5f+%.5fI\t%.5f+%.5fI\n\n",
 							creal(X1[i]),cimag(X1[i]),creal(X1[i+1]),cimag(X1[i+1]),
@@ -524,6 +571,9 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 
 				fclose(output);
 				break;
+			case(9):
+				int itercg=0;
+				Congradp(0, respbp, Phi, R1,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,&itercg);
 
 		}
 	}
