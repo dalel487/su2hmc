@@ -68,6 +68,12 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #ifdef __NVCC__
 	cudaMemPrefetchAsync(xi_f,kferm*sizeof(Complex_f),device,streams[0]);
 	cuComplex_convert(xi_f,xi,kferm,false,dimBlock,dimGrid);
+	//Transpose needed here for Dslashd
+	Transpose_f(R1_f,ngorkov*nc,kvol,dimGrid,dimBlock);
+	Transpose_f(xi_f,ngorkov*nc,kvol,dimGrid,dimBlock);
+	//Flip all the gauge fields around so memory is coalesced
+	Transpose_f(u11t_f,ndim,kvol,dimGrid,dimBlock);
+	Transpose_f(u12t_f,ndim,kvol,dimGrid,dimBlock);
 	cudaMemcpyAsync(x, xi, kferm*sizeof(Complex),cudaMemcpyDefault,0);
 #else
 #pragma omp parallel for simd aligned(xi,xi_f:AVX)
@@ -81,9 +87,12 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	Dslashd_f(R1_f,xi_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 #ifdef __NVCC__
 	cudaDeviceSynchronise();
+	cudaFree(xi_f);	
+	Transpose_f(R1_f,kvol,ngorkov*nc,dimGrid,dimBlock);
+	Transpose_f(u11t_f,kvol,ndim,dimGrid,dimBlock);
+	Transpose_f(u12t_f,kvol,ndim,dimGrid,dimBlock);
 	cuComplex_convert(R1_f,R1,kferm,false,dimBlock,dimGrid);
 	cudaMemcpy(Phi, R1, kferm*sizeof(Complex),cudaMemcpyDefault);
-	cudaDeviceSynchronise();
 #else
 #pragma omp parallel for simd aligned(R1,R1_f:AVX)
 	for(int i=0;i<kferm;i++)
@@ -110,7 +119,7 @@ xi[i]=(Complex)R1_f[i];
 */
 #ifdef __NVCC__
 	cudaMemcpyAsync(xi,R1,kferm*sizeof(Complex),cudaMemcpyDefault,streams[0]);
-	cudaFreeAsync(R1_f,streams[1]);	cudaFree(xi_f);	
+	cudaFreeAsync(R1_f,streams[1]);
 #else
 	memcpy(xi,R1,kferm*sizeof(Complex));
 	free(xi_f);	free(R1_f);

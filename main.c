@@ -440,6 +440,12 @@ int main(int argc, char *argv[]){
 #endif
 #ifdef __NVCC__
 			cudaMemPrefetchAsync(R,kfermHalo*sizeof(Complex_f),device,NULL);
+			//Transpose needed here for Dslashd
+			Transpose_f(R1_f,ngorkov*nc,kvol,dimGrid,dimBlock);
+			Transpose_f(R,ngorkov*nc,kvol,dimGrid,dimBlock);
+			//Flip all the gauge fields around so memory is coalesced
+			Transpose_f(u11t_f,ndim,kvol,dimGrid,dimBlock);
+			Transpose_f(u12t_f,ndim,kvol,dimGrid,dimBlock);
 			cudaDeviceSynchronise();
 #endif
 			Dslashd_f(R1_f,R,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
@@ -447,7 +453,10 @@ int main(int argc, char *argv[]){
 			//Make sure the multiplication is finished before freeing its input!!
 			cudaFree(R);//cudaDeviceSynchronise(); 
 							//cudaFree is blocking so don't need to synchronise
+			Transpose_f(R1_f,kvol,ngorkov*nc,dimGrid,dimBlock);
 			cuComplex_convert(R1_f,R1,kferm,false,dimBlock,dimGrid);
+			Transpose_f(u11t_f,kvol,ndim,dimGrid,dimBlock);
+			Transpose_f(u12t_f,kvol,ndim,dimGrid,dimBlock);
 			//cudaDeviceSynchronise();
 			//cudaFreeAsync(R1_f,NULL);
 			cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,0);
@@ -505,8 +514,8 @@ int main(int argc, char *argv[]){
 		if(itraj==1)
 			action = S0/gvol;
 
-//Integration 
-//TODO: Have this as a runtime parameter.
+		//Integration 
+		//TODO: Have this as a runtime parameter.
 #if (defined INT_LPFR && defined INT_OMF2) ||(defined INT_LPFR && defined INT_OMF4)||(defined INT_OMF2 && defined INT_OMF4)
 #error "Only one integrator may be defined
 #elif defined INT_LPFR

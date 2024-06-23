@@ -34,8 +34,9 @@ void blockInit(int x, int y, int z, int t, dim3 *dimBlock, dim3 *dimGrid){
 		*dimBlock=dim3(bx,by);
 		//If the block size neatly divides the lattice size we can create
 		//extra blocks safely
-		int res= (nx*ny%bx*by ==0) ? (nx*ny)/(bx*by) :1;
-		*dimGrid=dim3(nz,nt);
+//		int res= ((nx*ny)%(bx*by) > 1) ? (nx*ny)/(bx*by) :1;
+		int res = 1;
+		*dimGrid=dim3(nz,nt,res);
 	}
 	else{
 		int bz=1;

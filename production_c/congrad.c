@@ -316,9 +316,18 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 	double alphan=0.0;
 	//Instead of copying element-wise in a loop, use memcpy.
 #ifdef __NVCC__
+	//Get xi  in single precision, then swap to AoS format
 	cuComplex_convert(p_f,xi,kferm,true,dimGrid,dimBlock);
-	cuComplex_convert(xi_f,xi,kferm,true,dimGrid,dimBlock);
+	Transpose_f(p_f,ngorkov*nc,kvol,dimGrid,dimBlock);
+	cudaMemcpy(xi_f,p_f,kferm*sizeof(Complex_f),cudaMemcpyDefault);
+
+	//And repeat for r
 	cuComplex_convert(r_f,Phi+na*kferm,kferm,true,dimGrid,dimBlock);
+	Transpose_f(r_f,ngorkov*nc,kvol,dimGrid,dimBlock);
+
+	//Flip all the gauge fields around so memory is coalesced
+	Transpose_f(u11t,ndim,kvol,dimGrid,dimBlock);
+	Transpose_f(u12t,ndim,kvol,dimGrid,dimBlock);
 #else
 #pragma omp parallel for simd aligned(p_f,xi_f,xi,r_f,Phi:AVX)
 	for(int i =0;i<kferm;i++){
@@ -354,9 +363,9 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 			cublasScnrm2(cublas_handle,kferm,(cuComplex*) x1_f, 1,(float *)&alphad_f);
 			alphad = alphad_f*alphad_f;
 #else
-			alphad = cblas_scnrm2(kferm, x1_f, 1);
-			alphad = alphad*alphad;
+			alphad_f = cblas_scnrm2(kferm, x1_f, 1);
 #endif
+			alphad = alphad_f*alphad_f;
 #else
 			alphad=0;
 			for(int i = 0; i<kferm; i++)
@@ -377,7 +386,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 			cblas_caxpy(kferm, (Complex_f*)&alpha_f,(Complex_f*)p_f, 1, (Complex_f*)xi_f, 1);
 #endif
 #else
-#pragma omp parallel for simd aligned(xi,p_f:AVX)
+#pragma omp parallel for simd aligned(xi_f,p_f:AVX)
 			for(int i = 0; i<kferm; i++)
 				xi_f[i]+=alpha*p_f[i];
 #endif
@@ -386,16 +395,16 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 		//r=α(M^†)Mp and β_n=r*.r
 #if defined USE_BLAS
 		Complex_f alpha_m=(Complex_f)(-alpha);
+		float betan_f=0;
 #ifdef __NVCC__
 		cublasCaxpy(cublas_handle,kferm, (cuComplex *)&alpha_m,(cuComplex *) x2_f, 1,(cuComplex *) r_f, 1);
 		//cudaDeviceSynchronise();
 		//r*.r
-		float betan_f;
 		cublasScnrm2(cublas_handle,kferm,(cuComplex *) r_f,1,(float *)&betan_f);
 #else
 		cblas_caxpy(kferm,(Complex_f*) &alpha_m,(Complex_f*) x2_f, 1,(Complex_f*) r_f, 1);
 		//r*.r
-		float		betan_f = cblas_scnrm2(kferm, (Complex_f*)r_f,1);
+		betan_f = cblas_scnrm2(kferm, (Complex_f*)r_f,1);
 #endif
 		//Gotta square it to "undo" the norm
 		betan=betan_f*betan_f;
@@ -461,6 +470,12 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 #endif
 	}
 #ifdef __NVCC__
+	Transpose_f(xi_f,kvol,ngorkov*nc,dimGrid,dimBlock);
+	Transpose_f(r_f,kvol,ngorkov*nc,dimGrid,dimBlock);
+
+	Transpose_f(u11t,kvol,ndim,dimGrid,dimBlock);
+	Transpose_f(u12t,kvol,ndim,dimGrid,dimBlock);
+	cudaDeviceSynchronise();
 	cuComplex_convert(xi_f,xi,kferm,false,dimBlock,dimGrid);
 #else
 #pragma omp simd

@@ -225,19 +225,15 @@ __global__ void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t
 __global__ void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
 		Complex *gamval, int *gamin, double *dk4m, double *dk4p, float akappa);
 //Float version
-__global__ void cuDslash0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
+__global__ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
 		__shared__ Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, Complex_f jqq, float akappa);
-__global__ void cuDslashd0_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		__shared__ Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, Complex_f jqq, float akappa);
-__global__ void cuDslash1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		__shared__ Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, Complex_f jqq, float akappa);
-__global__ void cuDslashd1_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
+__global__ void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
 		__shared__ Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, Complex_f jqq, float akappa);
 
-__global__ void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		const Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, const float akappa);
-__global__ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		const Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, const float akappa);
+__global__ void cuHdslash_f(Complex_f *phi, const Complex_f *r, const Complex_f *u11t, const Complex_f *u12t,unsigned int *iu, unsigned int *id,\
+		const Complex_f *gamval, const int *gamin, const float *dk4m, const float *dk4p, const float akappa);
+__global__ void cuHdslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f *u11t, const Complex_f *u12t,unsigned int *iu, unsigned int *id,\
+		const Complex_f *gamval, const int *gamin, const float *dk4m, const float *dk4p, const float akappa);
 __global__ void Transpose_f(Complex_f *out, Complex_f *in, const int fast_in, const int fast_out);
 #endif
 #endif
