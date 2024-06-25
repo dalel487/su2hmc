@@ -34,8 +34,8 @@ void blockInit(int x, int y, int z, int t, dim3 *dimBlock, dim3 *dimGrid){
 		*dimBlock=dim3(bx,by);
 		//If the block size neatly divides the lattice size we can create
 		//extra blocks safely
-//		int res= ((nx*ny)%(bx*by) > 1) ? (nx*ny)/(bx*by) :1;
-		int res = 1;
+		int res= ((nx*ny)%(bx*by) > 1) ? (nx*ny)/(bx*by) :1;
+//		int res = 1;
 		*dimGrid=dim3(nz,nt,res);
 	}
 	else{
@@ -128,30 +128,30 @@ void cuReal_convert(float *a, double *b, int len, bool dtof, dim3 dimBlock, dim3
 	 * Kernel wrapper for conversion between sp and dp complex on the GPU.
 	 */
 	const char *funcname = "cuComplex_convert";
-	cuReal_convert<<<dimBlock,dimGrid>>>(a,b,len,dtof);
+	cuReal_convert<<<dimGrid,dimBlock>>>(a,b,len,dtof);
 }
 void cuComplex_convert(Complex_f *a, Complex *b, int len, bool dtof, dim3 dimBlock, dim3 dimGrid){
 	/* 
 	 * Kernel wrapper for conversion between sp and dp complex on the GPU.
 	 */
 	const char *funcname = "cuComplex_convert";
-	cuReal_convert<<<dimBlock,dimGrid>>>((float *)a,(double *)b,2*len,dtof);
+	cuReal_convert<<<dimGrid,dimBlock>>>((float *)a,(double *)b,2*len,dtof);
 }
 void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi, dim3 dimBlock, dim3 dimGrid){
-	cuFill_Small_Phi<<<dimBlock,dimGrid>>>(na,smallPhi,Phi);
+	cuFill_Small_Phi<<<dimGrid,dimBlock>>>(na,smallPhi,Phi);
 }
 void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu,dim3 dimBlock, dim3 dimGrid)
 {
 	const char *funcname = "cuZ_gather";
-	cuC_gather<<<dimBlock,dimGrid>>>(x,y,n,table,mu);
+	cuC_gather<<<dimGrid,dimBlock>>>(x,y,n,table,mu);
 }
 void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu,dim3 dimBlock, dim3 dimGrid)
 {
 	const char *funcname = "cuZ_gather";
-	cuZ_gather<<<dimBlock,dimGrid>>>(x,y,n,table,mu);
+	cuZ_gather<<<dimGrid,dimBlock>>>(x,y,n,table,mu);
 }
 void cuUpDownPart(int na, Complex *X0, Complex *R1,dim3 dimBlock, dim3 dimGrid){
-	cuUpDownPart<<<dimBlock,dimGrid>>>(na,X0,R1);	
+	cuUpDownPart<<<dimGrid,dimBlock>>>(na,X0,R1);	
 }
 void cuReunitarise(Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock){
 	cuReunitarise<<<dimGrid,dimBlock>>>(u11t,u12t);
@@ -167,14 +167,16 @@ __global__ void cuReal_convert(float *a, double *b, int len, bool dtof){
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const int gthreadId= blockId * bsize+bthreadId;
+
 	//Double to float
 	if(dtof)
-		for(int i = threadId; i<len;i+=gsize*bsize)
+		for(int i = gthreadId; i<len;i+=gsize*bsize)
 			a[i]=(float)b[i];
 	//Float to double
 	else
-		for(int i = threadId; i<len;i+=gsize*bsize)
+		for(int i = gthreadId; i<len;i+=gsize*bsize)
 			b[i]=(double)a[i];
 }
 __global__ void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
@@ -199,8 +201,10 @@ __global__ void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	for(int i = threadId; i<kvol;i+=gsize*bsize)
+	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const int gthreadId= blockId * bsize+bthreadId;
+
+	for(int i = gthreadId; i<kvol;i+=gsize*bsize)
 		for(int idirac = 0; idirac<ndirac; idirac++)
 			for(int ic= 0; ic<nc; ic++)
 				//	  PHI_index=i*16+j*2+k;
@@ -214,8 +218,9 @@ __global__ void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *tabl
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	for(int i = threadId; i<n;i+=gsize*bsize)
+	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const int gthreadId= blockId * bsize+bthreadId;
+	for(int i = gthreadId; i<n;i+=gsize*bsize)
 		x[i]=y[table[i*ndim+mu]*ndim+mu];
 }
 __global__ void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu)
@@ -226,8 +231,9 @@ __global__ void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, u
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	for(int i = threadId; i<n;i+=gsize*bsize)
+	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const int gthreadId= blockId * bsize+bthreadId;
+	for(int i = gthreadId; i<n;i+=gsize*bsize)
 		x[i]=y[table[i*ndim+mu]*ndim+mu];
 }
 __global__ void cuUpDownPart(int na, Complex *X0, Complex *R1){
@@ -235,9 +241,10 @@ __global__ void cuUpDownPart(int na, Complex *X0, Complex *R1){
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const int gthreadId= blockId * bsize+bthreadId;
 	//Up/down partitioning (using only pseudofermions of flavour 1)
-	for(int i = threadId; i<kvol;i+=gsize*bsize)
+	for(int i = gthreadId; i<kvol;i+=gsize*bsize)
 		for(int idirac = 0; idirac < ndirac; idirac++){
 			X0[((na*kvol+i)*ndirac+idirac)*nc]=R1[(i*ngorkov+idirac)*nc];
 			X0[((na*kvol+i)*ndirac+idirac)*nc+1]=R1[(i*ngorkov+idirac)*nc+1];
@@ -264,8 +271,9 @@ __global__ void cuReunitarise(Complex *u11t, Complex * u12t){
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	for(int i=threadId; i<kvol*ndim; i+=gsize*bsize){
+	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const int gthreadId= blockId * bsize+bthreadId;
+	for(int i=gthreadId; i<kvol*ndim; i+=gsize*bsize){
 		//Declaring anorm inside the loop will hopefully let the compiler know it
 		//is safe to vectorise aggessively
 		double anorm=sqrt(conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]).real();
@@ -285,8 +293,9 @@ __global__ void cuGauge_Update(const double d, double *pp, Complex *u11t, Comple
 	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const	int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	for(int i=threadId;i<kvol;i+=gsize*bsize){
+	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const int gthreadId= blockId * bsize+bthreadId;
+	for(int i=gthreadId;i<kvol;i+=gsize*bsize){
 		//Sticking to what was in the FORTRAN for variable names.
 		//CCC for cosine SSS for sine AAA for...
 		//Re-exponentiating the force field. Can be done analytically in SU(2)

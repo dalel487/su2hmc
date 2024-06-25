@@ -49,7 +49,11 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	int device=-1;
 	cudaGetDevice(&device);
 	Complex	*x, *xi; Complex_f *xi_f, *R1_f;
+	#ifdef _DEBUG
+	cudaMallocManaged((void **)&R1_f,kfermHalo*sizeof(Complex_f), cudaMemAttachGlobal);
+	#else
 	cudaMallocAsync((void **)&R1_f,kfermHalo*sizeof(Complex_f),streams[1]);
+	#endif
 	cudaMallocManaged((void **)&x,kfermHalo*sizeof(Complex), cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&xi,kferm*sizeof(Complex), cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&xi_f,kfermHalo*sizeof(Complex_f), cudaMemAttachGlobal);
@@ -69,7 +73,6 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	cudaMemPrefetchAsync(xi_f,kferm*sizeof(Complex_f),device,streams[0]);
 	cuComplex_convert(xi_f,xi,kferm,false,dimBlock,dimGrid);
 	//Transpose needed here for Dslashd
-	Transpose_f(R1_f,ngorkov*nc,kvol,dimGrid,dimBlock);
 	Transpose_f(xi_f,ngorkov*nc,kvol,dimGrid,dimBlock);
 	//Flip all the gauge fields around so memory is coalesced
 	Transpose_f(u11t_f,ndim,kvol,dimGrid,dimBlock);
@@ -119,7 +122,11 @@ xi[i]=(Complex)R1_f[i];
 */
 #ifdef __NVCC__
 	cudaMemcpyAsync(xi,R1,kferm*sizeof(Complex),cudaMemcpyDefault,streams[0]);
+	#ifdef _DEBUG
+	cudaFree(R1_f);
+	#else
 	cudaFreeAsync(R1_f,streams[1]);
+	#endif
 #else
 	memcpy(xi,R1,kferm*sizeof(Complex));
 	free(xi_f);	free(R1_f);
