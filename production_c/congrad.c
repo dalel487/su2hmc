@@ -86,6 +86,8 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 	//Flip all the gauge fields around so memory is coalesced
 	Transpose_f(u11t,ndim,kvol,dimGrid,dimBlock);
 	Transpose_f(u12t,ndim,kvol,dimGrid,dimBlock);
+	Transpose_I(iu,ndim,kvol,dimGrid,dimBlock);
+	Transpose_I(id,ndim,kvol,dimGrid,dimBlock);
 #else
 #pragma omp parallel for simd
 	for(int i=0;i<kferm2;i++){
@@ -233,6 +235,8 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 	cuComplex_convert(r_f,r,kferm2,false,dimBlock,dimGrid);
 	Transpose_f(u11t,kvol,ndim,dimGrid,dimBlock);
 	Transpose_f(u12t,kvol,ndim,dimGrid,dimBlock);
+	Transpose_I(iu,kvol,ndim,dimGrid,dimBlock);
+	Transpose_I(id,kvol,ndim,dimGrid,dimBlock);
 #else
 	for(int i=0;i<kferm2;i++){
 		X1[i]=(Complex)X1_f[i];

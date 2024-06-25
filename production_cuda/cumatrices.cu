@@ -614,7 +614,7 @@ __global__ void cuHdslash_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
 			u11s=u11t[i+kvol*mu];	u12s=u12t[i+kvol*mu];
-			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
+			int did=id[mu*kvol+i]; int uid = iu[mu*kvol+i];
 			u11sd=u11t[did+kvol*mu];	u12sd=u12t[did+kvol*mu];
 			for(int idirac=0; idirac<ndirac; idirac++){
 				int igork1 = gamin_d[mu*ndirac+idirac];
@@ -656,7 +656,7 @@ __global__ void cuHdslash_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 #endif
 #ifndef NO_TIME
 		//Timelike terms
-		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
+			int did=id[3*kvol+i]; int uid = iu[3*kvol+i];
 		dk4ms=dk4m[did];
 		u11s=u11t[i+kvol*3];	u12s=u12t[i+kvol*3];
 		u11sd=u11t[did+kvol*3];	u12sd=u12t[did+kvol*3];
@@ -713,7 +713,7 @@ __global__ void cuHdslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f
 	for(int i=gthreadId;i<kvol;i+=gsize*bsize){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <ndim-1; mu++){
-			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
+			int did=id[mu*kvol+i]; int uid = iu[mu*kvol+i];
 			//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
 			u11s=u11t[i+kvol*mu];	u12s=u12t[i+kvol*mu];
 			u11sd=u11t[did+kvol*mu];	u12sd=u12t[did+kvol*mu];
@@ -758,7 +758,7 @@ __global__ void cuHdslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f
 #endif
 #ifndef NO_TIME
 		//Timelike terms
-		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
+		int did=id[3*kvol+i]; int uid = iu[3*kvol+i];
 		u11s=u11t[i+kvol*3];	u12s=u12t[i+kvol*3];
 		u11sd=u11t[did+kvol*3];	u12sd=u12t[did+kvol*3];
 		float  dk4ms=dk4m[i];  float dk4ps=dk4p[did];
@@ -803,6 +803,28 @@ __global__ void cuHdslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f
  */
 __global__ void Transpose_f(Complex_f *out, Complex_f *in, const int fast_in, const int fast_out){
 	const char *funcname="Transpose_f";
+	const int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const int gthreadId= blockId * bsize+bthreadId;
+
+	//The if/else here is only to ensure we maximise GPU bandwidth
+	//Typically this is used to write back to the AoS/Coalseced format
+	if(fast_out>fast_in){
+		for(int x=gthreadId;x<fast_out;x+=gsize*bsize)
+			for(int y=0; y<fast_in;y++)
+				out[y*fast_out+x]=in[x*fast_in+y];
+	}
+	//Typically this is used to write back to the SoA/saved config format
+	else{
+		for(int x=0; x<fast_out;x++)
+			for(int y=gthreadId;y<fast_in;y+=gsize*bsize)
+				out[y*fast_out+x]=in[x*fast_in+y];
+	}
+}
+__global__ void Transpose_I(int *out, int *in, const int fast_in, const int fast_out){
+	const char *funcname="Transpose_I";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -1087,5 +1109,16 @@ void Transpose_f(Complex_f *out, const int fast_in, const int fast_out, const di
 	//cublasCgeam(cublas_handle,CUBLAS_OP_T,CUBLAS_OP_N,fast_in,fast_out,(cuComplex *)&alpha,\
 	//(cuComplex *)out,fast_out,NULL,(cuComplex *)&beta,fast_out,(cuComplex *)holder,fast_out);
 	//cudaMemcpy(out,holder,fast_in*fast_out*sizeof(Complex_f),cudaMemcpyDefault);
+	cudaFree(holder);
+}
+void Transpose_I(int *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
+	int *holder;
+	cudaMalloc((void **)&holder,fast_in*fast_out*sizeof(int));
+	cudaMemcpy(holder,out,fast_in*fast_out*sizeof(int),cudaMemcpyDefault);
+	Transpose_I<<<dimGrid,dimBlock>>>(out,holder,fast_in,fast_out);
+	int alpha=1; int beta=0;
+	//cublasCgeam(cublas_handle,CUBLAS_OP_T,CUBLAS_OP_N,fast_in,fast_out,(cuComplex *)&alpha,\
+	//(cuComplex *)out,fast_out,NULL,(cuComplex *)&beta,fast_out,(cuComplex *)holder,fast_out);
+	//cudaMemcpy(out,holder,fast_in*fast_out*sizeof(int),cudaMemcpyDefault);
 	cudaFree(holder);
 }

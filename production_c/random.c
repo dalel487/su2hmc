@@ -13,7 +13,6 @@
 #include <mkl_vsl.h>
 //Bad practice? Yes but it is convenient
 #endif
-#include <mpi.h>
 #include "par_mpi.h"
 #include "random.h"
 #include "sizes.h"
