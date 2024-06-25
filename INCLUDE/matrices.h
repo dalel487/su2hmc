@@ -210,6 +210,7 @@ extern "C"
  * @param dimBlock:	CUDA block
  */
 	void Transpose_f(Complex_f *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
+	void Transpose_I(int *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
 #endif
 #if (defined __cplusplus)
 }
@@ -235,5 +236,6 @@ __global__ void cuHdslash_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 __global__ void cuHdslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f *u11t, const Complex_f *u12t,unsigned int *iu, unsigned int *id,\
 		const Complex_f *gamval, const int *gamin, const float *dk4m, const float *dk4p, const float akappa);
 __global__ void Transpose_f(Complex_f *out, Complex_f *in, const int fast_in, const int fast_out);
+__global__ void Transpose_I(int *out, int *in, const int fast_in, const int fast_out);
 #endif
 #endif
