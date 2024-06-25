@@ -317,12 +317,12 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 	//Instead of copying element-wise in a loop, use memcpy.
 #ifdef __NVCC__
 	//Get xi  in single precision, then swap to AoS format
-	cuComplex_convert(p_f,xi,kferm,true,dimGrid,dimBlock);
+	cuComplex_convert(p_f,xi,kferm,true,dimBlock,dimGrid);
 	Transpose_f(p_f,ngorkov*nc,kvol,dimGrid,dimBlock);
 	cudaMemcpy(xi_f,p_f,kferm*sizeof(Complex_f),cudaMemcpyDefault);
 
 	//And repeat for r
-	cuComplex_convert(r_f,Phi+na*kferm,kferm,true,dimGrid,dimBlock);
+	cuComplex_convert(r_f,Phi+na*kferm,kferm,true,dimBlock,dimGrid);
 	Transpose_f(r_f,ngorkov*nc,kvol,dimGrid,dimBlock);
 
 	//Flip all the gauge fields around so memory is coalesced

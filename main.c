@@ -766,7 +766,9 @@ int main(int argc, char *argv[]){
 		FILE *sa3at = fopen("Bench_times.csv", "a");
 #ifdef __NVCC__
 		char *version[256];
-		sprintf(version,"%s\n%s",cudaRuntimeGetVersion,__VERSION__);
+		int cuversion; cudaRuntimeGetVersion(&cuversion);
+		sprintf(version,"CUDA %d\tBlock: (%d,%d,%d)\tGrid: (%d,%d,%d)\n%s\n",cuversion,\
+					dimBlock.x,dimBlock.y,dimBlock.z,dimGrid.x,dimGrid.y,dimGrid.z,__VERSION__);
 #else
 		char *version=__VERSION__;
 #endif

@@ -802,6 +802,7 @@ __global__ void Transpose_f(Complex_f *out, Complex_f *in, const int fast_in, co
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	const int gthreadId= blockId * bsize+bthreadId;
+
 	//The if/else here is only to ensure we maximise GPU bandwidth
 	//Typically this is used to write back to the AoS/Coalseced format
 	if(fast_out>fast_in){
@@ -1075,7 +1076,7 @@ void Transpose_f(Complex_f *out, const int fast_in, const int fast_out, const di
 	Complex_f *holder;
 	cudaMalloc((void **)&holder,fast_in*fast_out*sizeof(Complex_f));
 	cudaMemcpy(holder,out,fast_in*fast_out*sizeof(Complex_f),cudaMemcpyDefault);
-	Transpose_f<<<dimBlock,dimGrid>>>(out,holder,fast_in,fast_out);
+	Transpose_f<<<dimGrid,dimBlock>>>(out,holder,fast_in,fast_out);
 	Complex_f alpha=1; Complex_f beta=0;
 	//cublasCgeam(cublas_handle,CUBLAS_OP_T,CUBLAS_OP_N,fast_in,fast_out,(cuComplex *)&alpha,\
 	//(cuComplex *)out,fast_out,NULL,(cuComplex *)&beta,fast_out,(cuComplex *)holder,fast_out);
