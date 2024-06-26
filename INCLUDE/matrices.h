@@ -199,7 +199,6 @@ extern "C"
 			Complex_f *gamval_f,int *gamin, float *dk4m_f, float *dk4p_f, float akappa_f,dim3 dimGrid, dim3 dimBlock);
 	void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
 			Complex_f *gamval_f,int *gamin, float *dk4m_f, float *dk4p_f, float akappa_f, dim3 dimGrid, dim3 dimBlock);
-<<<<<<< HEAD
 
 /**
  * @brief In place transpose
@@ -212,9 +211,6 @@ extern "C"
  */
 	void Transpose_f(Complex_f *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
 	void Transpose_I(int *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
-=======
-	//New Trial Fields
->>>>>>> 4961bc75d49a37e0d369c8385545cde0b5247588
 #endif
 #if (defined __cplusplus)
 }

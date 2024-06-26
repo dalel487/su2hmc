@@ -6,11 +6,7 @@ int Gauge_Update(const double d, double *pp, Complex *u11t, Complex *u12t,Comple
 	 *
 	 * @see cuGauge_Update (CUDA Wrapper)
 	 * 
-<<<<<<< HEAD
 	 * @param	d:		Half lattice spacing
-=======
-	 * @param	dt:		Half lattice spacing
->>>>>>> 4961bc75d49a37e0d369c8385545cde0b5247588
 	 * @param	pp:		Momentum field
 	 * @param	u11t:		First colour field
 	 * @param	u12t:		Second colour field
@@ -97,7 +93,8 @@ int Leapfrog(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Com
 		Force(dSdpi, 0, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
 				dk4m_f,dk4p_f,jqq,akappa,beta,ancg);
 
-		if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
+	//	if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
+		if(step==stepl){
 			//Final trajectory has a half momentum step
 			Momentum_Update(d,dSdpi,pp);
 			*itot+=step;
@@ -164,7 +161,8 @@ int OMF2(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex
 		Force(dSdpi, 0, rescgg,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval,gamval_f,gamin,dk4m,dk4p,\
 				dk4m_f,dk4p_f,jqq,akappa,beta,ancg);
 
-		if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
+		//if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
+		if(step==stepl){
 			//Final momentum step
 			Momentum_Update(dp,dSdpi,pp);
 			*itot+=step;
@@ -272,7 +270,8 @@ int OMF4(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex
 				dk4m_f,dk4p_f,jqq,akappa,beta,ancg);
 
 		//Outer momentum update depends on if we've finished the trajectory
-		if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
+		//if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
+		if(step==stepl){
 			//Final momentum step
 			Momentum_Update(dpO,dSdpi,pp);
 			*itot+=step;
