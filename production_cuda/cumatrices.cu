@@ -593,29 +593,31 @@ __global__ void cuHdslash_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 	/*
 	 * Half Dslash float precision acting on colour index zero
 	 */
-	const char *funcname = "cuHdslash0_f";
-	const int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const volatile char *funcname = "cuHdslash0_f";
+	const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const volatile int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const volatile int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const volatile int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	const int gthreadId= blockId * bsize+bthreadId;
 
 
 	//Right. Time to prefetch into shared memory
-	 Complex_f ru[2];  Complex_f rd[2];
-	 Complex_f rgu[2];  Complex_f rgd[2];
-	 Complex_f u11s;	 Complex_f u12s;
-	 Complex_f u11sd;	 Complex_f u12sd;
-	 float  dk4ms;   float dk4ps;
-	 Complex_f phi_s;
+	Complex_f ru[2];  Complex_f rd[2];
+	Complex_f rgu[2];  Complex_f rgd[2];
+	Complex_f u11s;	 Complex_f u12s;
+	Complex_f u11sd;	 Complex_f u12sd;
+	float  dk4ms;   float dk4ps;
+	Complex_f phi_s;
 	for(int i=gthreadId;i<kvol;i+=bsize*gsize){
 		dk4ps=dk4p[i];
 		//Do we need to sync threads if each thread only accesses the value it put in shared memory?
 #ifndef NO_SPACE
+#pragma unroll (ndim-1)
 		for(int mu = 0; mu <3; mu++){
 			u11s=u11t[i+kvol*mu];	u12s=u12t[i+kvol*mu];
 			int did=id[mu*kvol+i]; int uid = iu[mu*kvol+i];
 			u11sd=u11t[did+kvol*mu];	u12sd=u12t[did+kvol*mu];
+#pragma unroll (ndirac)
 			for(int idirac=0; idirac<ndirac; idirac++){
 				int igork1 = gamin_d[mu*ndirac+idirac];
 				for(int c=0;c<nc;c++){
@@ -656,10 +658,11 @@ __global__ void cuHdslash_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 #endif
 #ifndef NO_TIME
 		//Timelike terms
-			int did=id[3*kvol+i]; int uid = iu[3*kvol+i];
+		int did=id[3*kvol+i]; int uid = iu[3*kvol+i];
 		dk4ms=dk4m[did];
 		u11s=u11t[i+kvol*3];	u12s=u12t[i+kvol*3];
 		u11sd=u11t[did+kvol*3];	u12sd=u12t[did+kvol*3];
+#pragma unroll (ndirac)
 		for(int idirac=0; idirac<ndirac; idirac++){
 			int igork1 = gamin_d[3*ndirac+idirac];
 			for(int c=0;c<nc;c++){
@@ -690,21 +693,13 @@ __global__ void cuHdslash_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 }
 __global__ void cuHdslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f *u11t, const Complex_f *u12t,unsigned int *iu, unsigned int *id,\
 		const Complex_f gamval[20],	const int *gamin_d,	const float *dk4m, const float *dk4p, const float akappa){
-	const char *funcname = "cuHdslashd0_f";
-	const int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const volatile char *funcname = "cuHdslashd0_f";
+	const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const volatile int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const volatile int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const volatile int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	const int gthreadId= blockId * bsize+bthreadId;
 
-	/*
-		__shared__ Complex_f u11s[128];	__shared__ Complex_f u12s[128];
-		__shared__ Complex_f u11sd[128];	__shared__ Complex_f u12sd[128];
-		__shared__ Complex_f ru[128*nc]; __shared__ Complex_f rd[128*nc];
-		__shared__ Complex_f rgu[128*nc]; __shared__ Complex_f rgd[128*nc];
-		__shared__ float  dk4ms[128]; __shared__ float dk4ps[128];
-		__shared__ Complex_f phi_s[128];
-	 */
 	Complex_f u11s;	 Complex_f u12s;
 	Complex_f u11sd;	 Complex_f u12sd;
 	Complex_f ru[2];  Complex_f rd[2];
@@ -712,11 +707,13 @@ __global__ void cuHdslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f
 	Complex_f phi_s;
 	for(int i=gthreadId;i<kvol;i+=gsize*bsize){
 #ifndef NO_SPACE
+#pragma unroll (ndim-1)
 		for(int mu = 0; mu <ndim-1; mu++){
 			int did=id[mu*kvol+i]; int uid = iu[mu*kvol+i];
 			//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
 			u11s=u11t[i+kvol*mu];	u12s=u12t[i+kvol*mu];
 			u11sd=u11t[did+kvol*mu];	u12sd=u12t[did+kvol*mu];
+#pragma unroll (ndirac)
 			for(int idirac=0; idirac<ndirac; idirac++){
 				int igork1 = gamin_d[mu*ndirac+idirac];
 				for(int c=0;c<nc;c++){
@@ -762,6 +759,7 @@ __global__ void cuHdslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f
 		u11s=u11t[i+kvol*3];	u12s=u12t[i+kvol*3];
 		u11sd=u11t[did+kvol*3];	u12sd=u12t[did+kvol*3];
 		float  dk4ms=dk4m[i];  float dk4ps=dk4p[did];
+#pragma unroll (ndirac)
 		for(int idirac=0; idirac<ndirac; idirac++){
 			int igork1 = gamin_d[3*ndirac+idirac];
 			for(int c=0;c<nc;c++){
@@ -802,11 +800,11 @@ __global__ void cuHdslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f
  * 
  */
 __global__ void Transpose_f(Complex_f *out, Complex_f *in, const int fast_in, const int fast_out){
-	const char *funcname="Transpose_f";
-	const int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const volatile char *funcname="Transpose_f";
+	const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const volatile int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const volatile int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const volatile int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	const int gthreadId= blockId * bsize+bthreadId;
 
 	//The if/else here is only to ensure we maximise GPU bandwidth
@@ -824,11 +822,11 @@ __global__ void Transpose_f(Complex_f *out, Complex_f *in, const int fast_in, co
 	}
 }
 __global__ void Transpose_I(int *out, int *in, const int fast_in, const int fast_out){
-	const char *funcname="Transpose_I";
-	const int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const volatile char *funcname="Transpose_I";
+	const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const volatile int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const volatile int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const volatile int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	const int gthreadId= blockId * bsize+bthreadId;
 
 	//The if/else here is only to ensure we maximise GPU bandwidth
