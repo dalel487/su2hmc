@@ -455,16 +455,16 @@ __global__ void cuDslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 	const volatile int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	const volatile int gthreadId= blockId * bsize+bthreadId;
 
-	 Complex_f u11s;	 Complex_f u12s;
-	 Complex_f u11sd;	 Complex_f u12sd;
-	 Complex_f ru[nc];  Complex_f rd[nc];
-	 Complex_f rgu[nc];  Complex_f rgd[nc];
-	 Complex_f phi_s[ngorkov*nc];
+	Complex_f u11s;	 Complex_f u12s;
+	Complex_f u11sd;	 Complex_f u12sd;
+	Complex_f ru[nc];  Complex_f rd[nc];
+	Complex_f rgu[nc];  Complex_f rgd[nc];
+	Complex_f phi_s[ngorkov*nc];
 
 	for(int i=gthreadId;i<kvol;i+=gsize*bsize){
 		volatile int did=0; volatile int uid = 0;
 		//Diquark Term (antihermitian) The signs of a_1 and a_2 below flip under dagger
-		#pragma unroll
+#pragma unroll
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork = idirac+4;
 			Complex_f a_1, a_2;
@@ -483,12 +483,12 @@ __global__ void cuDslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 			did=id[mu+ndim*i]; uid = iu[mu+ndim*i];
 			u11s=u11t[i+kvol*mu]; u12s=u12t[i+kvol*mu];
 			u11sd=u11t[did+kvol*mu]; u12sd=u12t[did+kvol*mu];
-			#pragma unroll
+#pragma unroll
 			for(int igorkov=0; igorkov<ngorkov; igorkov++){
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing.
 				int idirac=igorkov%4;		
 				int igork1 = (igorkov<4) ? gamin_d[mu*ndirac+idirac] : gamin_d[mu*ndirac+idirac]+4;
-				#pragma unroll
+#pragma unroll
 				for(int c=0;c<nc;c++){
 					ru[c]=r[uid+kvol*(igorkov*nc+c)];
 					rd[c]=r[did+kvol*(igorkov*nc+c)];
@@ -497,7 +497,7 @@ __global__ void cuDslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 				}
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
-			//	phi_s[bthreadId]=phi[i+kvol*(igorkov*nc)];
+				//	phi_s[bthreadId]=phi[i+kvol*(igorkov*nc)];
 				phi_s[igorkov*nc]-=
 					akappa*(u11s*ru[0]
 							+u12s*ru[1]
@@ -510,9 +510,9 @@ __global__ void cuDslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 					 +u12s*rgu[1]
 					 -conj(u11sd)*rgd[0]
 					 +u12sd *rgd[1]);
-//				phi[i+kvol*(igorkov*nc)]=phi_s[bthreadId];
+				//				phi[i+kvol*(igorkov*nc)]=phi_s[bthreadId];
 
-//				phi_s[bthreadId]=phi[i+kvol*(igorkov*nc+1)];
+				//				phi_s[bthreadId]=phi[i+kvol*(igorkov*nc+1)];
 				phi_s[igorkov*nc+1]-=
 					akappa*(-conj(u12s)*ru[0]
 							+conj(u11s)*ru[1]
@@ -524,7 +524,7 @@ __global__ void cuDslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 					 +conj(u11s)*rgu[1]
 					 -conj(u12sd)*rgd[0]
 					 -u11sd *rgd[1]);
-//				phi[i+kvol*(igorkov*nc+1)]=phi_s[bthreadId];
+				//				phi[i+kvol*(igorkov*nc+1)]=phi_s[bthreadId];
 
 			}
 		}
@@ -542,7 +542,7 @@ __global__ void cuDslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 #pragma unroll
 		for(int igorkov=0; igorkov<ndirac; igorkov++){
 			int igork1 = gamin_d[3*ndirac+igorkov];	
-			#pragma unroll
+#pragma unroll
 			for(int c=0;c<nc;c++){
 				ru[c]=r[uid+kvol*(igorkov*nc+c)];
 				rd[c]=r[did+kvol*(igorkov*nc+c)];
@@ -550,7 +550,7 @@ __global__ void cuDslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 				rgd[c]=r[did+kvol*(igork1*nc+c)];
 			}
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
-//			phi_s[bthreadId]=phi[i+kvol*(igorkov*nc)];
+			//			phi_s[bthreadId]=phi[i+kvol*(igorkov*nc)];
 			phi_s[igorkov*nc]+=
 				-dk4ms*(u11s*(ru[0]+rgu[0])
 						+u12s*(ru[1]+rgu[1]))
@@ -558,7 +558,7 @@ __global__ void cuDslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 						-u12sd *(rd[1]-rgd[1]));
 			phi[i+kvol*(igorkov*nc)]=phi_s[igorkov*nc];
 
-//			phi_s[bthreadId]=phi[i+kvol*(igorkov*nc+1)];
+			//			phi_s[bthreadId]=phi[i+kvol*(igorkov*nc+1)];
 			phi_s[igorkov*nc+1]+=
 				-dk4ms*(-conj(u12s)*(ru[0]+rgu[0])
 						+conj(u11s)*(ru[1]+rgu[1]))
@@ -575,14 +575,14 @@ __global__ void cuDslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 				rgd[c]=r[did+kvol*(igork1PP*nc+c)];
 			}
 			//And the Gor'kov terms. Note that dk4p and dk4m swap positions compared to the above				
-//			phi_s[bthreadId]=phi[i+kvol*(igorkovPP*nc)];
+			//			phi_s[bthreadId]=phi[i+kvol*(igorkovPP*nc)];
 			phi_s[igorkovPP*nc]+=-dk4ps*(u11s*(ru[0]+rgu[0])
 					+u12s*(ru[1]+rgu[1]))
 				-dk4msd*(conj(u11sd)*(rd[0]-rgd[0])
 						-u12sd*(rd[1]-rgd[1]));
 			phi[i+kvol*(igorkovPP*nc)]=phi_s[igorkovPP*nc];
 
-//			phi_s[bthreadId]=phi[i+kvol*(igorkovPP*nc+1)];
+			//			phi_s[bthreadId]=phi[i+kvol*(igorkovPP*nc+1)];
 			phi_s[igorkovPP*nc+1]+=dk4ps*(conj(u12s)*(ru[0]+rgu[0])
 					-conj(u11s)*(ru[1]+rgu[1]))
 				-dk4msd*(conj(u12sd)*(rd[0]-rgd[0])
@@ -594,7 +594,7 @@ __global__ void cuDslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 }
 
 __global__ void cuHdslash_f(Complex_f *phi, const Complex_f *r, const Complex_f *u11t, const Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		const Complex_f gamval[20],	int *gamin_d,	const float *dk4m, const float *dk4p, const float akappa){
+		__constant__ Complex_f gamval[20],	__constant__ int gamin_d[16],	const float *dk4m, const float *dk4p, const float akappa){
 	/*
 	 * Half Dslash float precision
 	 */
@@ -622,8 +622,9 @@ __global__ void cuHdslash_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 #pragma unroll
 		for(int mu = 0; mu <3; mu++){
 			u11s=u11t[i+kvol*mu];	u12s=u12t[i+kvol*mu];
-			volatile int did=id[mu*kvol+i]; volatile int uid = iu[mu*kvol+i];
+			int did=id[mu*kvol+i];
 			u11sd=u11t[did+kvol*mu];	u12sd=u12t[did+kvol*mu];
+			int uid = iu[mu*kvol+i];
 #pragma unroll
 			for(int idirac=0; idirac<ndirac; idirac++){
 				int igork1 = gamin_d[mu*ndirac+idirac];
@@ -662,10 +663,11 @@ __global__ void cuHdslash_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 #endif
 #ifndef NO_TIME
 		//Timelike terms
-		volatile int did=id[3*kvol+i]; volatile int uid = iu[3*kvol+i];
 		u11s=u11t[i+kvol*3];	u12s=u12t[i+kvol*3];
+		int did=id[3*kvol+i]; 
 		u11sd=u11t[did+kvol*3];	u12sd=u12t[did+kvol*3];
 		float dk4ms=dk4m[did];   float dk4ps=dk4p[i];
+		int uid = iu[3*kvol+i];
 #pragma unroll
 		for(int idirac=0; idirac<ndirac; idirac++){
 			int igork1 = gamin_d[3*ndirac+idirac];
@@ -680,25 +682,25 @@ __global__ void cuHdslash_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 
 			phi_s[idirac*nc+0]-=
 				dk4ps*(u11s*(ru[0]-rgu[0])
-						+u12s*(ru[1]-rgu[1]))
-				+dk4ms*(conj(u11sd)*(rd[0]+rgd[0])
+						+u12s*(ru[1]-rgu[1]));
+			phi_s[idirac*nc+0]-=
+				dk4ms*(conj(u11sd)*(rd[0]+rgd[0])
 						-u12sd *(rd[1]+rgd[1]));
-				phi[i+kvol*(0+nc*idirac)]=phi_s[idirac*nc+0];
+			phi[i+kvol*(0+nc*idirac)]=phi_s[idirac*nc+0];
 
 			phi_s[idirac*nc+1]-=
 				dk4ps*(-conj(u12s)*(ru[0]-rgu[0])
-						+conj(u11s)*(ru[1]-rgu[1]))
-				+dk4ms*(conj(u12sd)*(rd[0]+rgd[0])
+						+conj(u11s)*(ru[1]-rgu[1]));
+			phi_s[idirac*nc+1]-=
+				dk4ms*(conj(u12sd)*(rd[0]+rgd[0])
 						+u11sd *(rd[1]+rgd[1]));
-				phi[i+kvol*(1+nc*idirac)]=phi_s[idirac*nc+1];
+			phi[i+kvol*(1+nc*idirac)]=phi_s[idirac*nc+1];
 #endif
 		}
 	}
 }
-__global__ void 
-__maxnreg__(64)
-cuHdslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f *u11t, const Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		const __shared__ Complex_f gamval[20],	const int *gamin_d,	const float *dk4m, const float *dk4p, const float akappa){
+__global__ void cuHdslashd_f(Complex_f *phi, const Complex_f* r, const Complex_f* u11t, const Complex_f* u12t,unsigned int* iu, unsigned int* id,\
+		__constant__ Complex_f gamval[20],	__constant__ int gamin_d[16],	const float* dk4m, const float* dk4p, const float akappa){
 	/*
 	 * Half Dslash Dagger float precision 
 	 */
@@ -715,7 +717,6 @@ cuHdslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f *u11t, const Co
 	Complex_f ru[2];  Complex_f rd[2];
 	Complex_f rgu[2];  Complex_f rgd[2];
 	Complex_f phi_s[ndirac*nc];
-	int did,uid;
 	for(int i=gthreadId;i<kvol;i+=gsize*bsize){
 #pragma unroll
 		for(int idirac=0; idirac<ndirac; idirac++)
@@ -726,11 +727,10 @@ cuHdslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f *u11t, const Co
 #pragma unroll
 		for(int mu = 0; mu <ndim-1; mu++){
 			//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
-			int mite=i+kvol*mu;
-			u11s=u11t[mite];	u12s=u12t[mite];
-			did=id[mite];
+			u11s=u11t[i+kvol*mu];	u12s=u12t[i+kvol*mu];
+			int did=id[i+kvol*mu];
 			u11sd=u11t[did+kvol*mu];	u12sd=u12t[did+kvol*mu];
- uid = iu[mite];
+			int uid = iu[i+kvol*mu];
 #pragma unroll
 			for(int idirac=0; idirac<ndirac; idirac++){
 				int igork1 = gamin_d[mu*ndirac+idirac];
@@ -761,20 +761,19 @@ cuHdslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f *u11t, const Co
 						+u11sd *rd[1]);
 				//Dirac term
 				phi_s[idirac*nc+1]-=gamval[mu*ndirac+idirac]*(-conj(u12s)*rgu[0]
-					 +conj(u11s)*rgu[1]
-					 -conj(u12sd)*rgd[0]
-					 -u11sd *rgd[1]);
+						+conj(u11s)*rgu[1]
+						-conj(u12sd)*rgd[0]
+						-u11sd *rgd[1]);
 			}
 		}
 #endif
 #ifndef NO_TIME
 		//Timelike terms
-			int mite=i+kvol*3;
-		u11s=u11t[mite];	u12s=u12t[mite];
-		did=id[mite];
+		u11s=u11t[i+kvol*3];	u12s=u12t[i+kvol*3];
+		int did=id[i+kvol*3];
 		u11sd=u11t[did+kvol*3];	u12sd=u12t[did+kvol*3];
 		float  dk4ms=dk4m[i];  float dk4ps=dk4p[did];
-		uid = iu[mite];
+		int uid = iu[i+kvol*3];
 #pragma unroll
 		for(int idirac=0; idirac<ndirac; idirac++){
 			int igork1 = gamin_d[3*ndirac+idirac];
@@ -793,7 +792,7 @@ cuHdslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f *u11t, const Co
 			phi_s[idirac*nc]+=
 				-dk4ps*(conj(u11sd)*(rd[0]-rgd[0])
 						-u12sd *(rd[1]-rgd[1]));
-				phi[i+kvol*(0+nc*idirac)]=phi_s[idirac*nc+0];
+			phi[i+kvol*(0+nc*idirac)]=phi_s[idirac*nc+0];
 
 			phi_s[idirac*nc+1]-=
 				dk4ms*(-conj(u12s)*(ru[0]+rgu[0])
@@ -801,7 +800,7 @@ cuHdslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f *u11t, const Co
 			phi_s[idirac*nc+1]-=
 				+dk4ps*(conj(u12sd)*(rd[0]-rgd[0])
 						+u11sd *(rd[1]-rgd[1]));
-				phi[i+kvol*(1+nc*idirac)]=phi_s[idirac*nc+1];
+			phi[i+kvol*(1+nc*idirac)]=phi_s[idirac*nc+1];
 #endif
 		}
 	}
