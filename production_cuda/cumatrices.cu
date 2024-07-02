@@ -605,7 +605,7 @@ __global__ void cuHdslash_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 	const volatile int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	const volatile int gthreadId= blockId * bsize+bthreadId;
 
-	//Right. Time to prefetch into shared memory
+	//Right. Time to prefetch
 	Complex_f u11s;	 Complex_f u12s;
 	Complex_f u11sd;	 Complex_f u12sd;
 	Complex_f ru[2];  Complex_f rd[2];
@@ -695,8 +695,10 @@ __global__ void cuHdslash_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 		}
 	}
 }
-__global__ void cuHdslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f *u11t, const Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		const Complex_f gamval[20],	const int *gamin_d,	const float *dk4m, const float *dk4p, const float akappa){
+__global__ void 
+__maxnreg__(64)
+cuHdslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f *u11t, const Complex_f *u12t,unsigned int *iu, unsigned int *id,\
+		const __shared__ Complex_f gamval[20],	const int *gamin_d,	const float *dk4m, const float *dk4p, const float akappa){
 	/*
 	 * Half Dslash Dagger float precision 
 	 */
@@ -707,12 +709,13 @@ __global__ void cuHdslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f
 	const volatile int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	const volatile int gthreadId= blockId * bsize+bthreadId;
 
-	//Right. Time to prefetch into shared memory
+	//Right. Time to prefetch
 	Complex_f u11s;	 Complex_f u12s;
 	Complex_f u11sd;	 Complex_f u12sd;
 	Complex_f ru[2];  Complex_f rd[2];
 	Complex_f rgu[2];  Complex_f rgd[2];
 	Complex_f phi_s[ndirac*nc];
+	int did,uid;
 	for(int i=gthreadId;i<kvol;i+=gsize*bsize){
 #pragma unroll
 		for(int idirac=0; idirac<ndirac; idirac++)
@@ -723,9 +726,11 @@ __global__ void cuHdslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f
 #pragma unroll
 		for(int mu = 0; mu <ndim-1; mu++){
 			//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
-			u11s=u11t[i+kvol*mu];	u12s=u12t[i+kvol*mu];
-			volatile int did=id[mu*kvol+i]; volatile int uid = iu[mu*kvol+i];
+			int mite=i+kvol*mu;
+			u11s=u11t[mite];	u12s=u12t[mite];
+			did=id[mite];
 			u11sd=u11t[did+kvol*mu];	u12sd=u12t[did+kvol*mu];
+ uid = iu[mite];
 #pragma unroll
 			for(int idirac=0; idirac<ndirac; idirac++){
 				int igork1 = gamin_d[mu*ndirac+idirac];
@@ -764,10 +769,12 @@ __global__ void cuHdslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f
 #endif
 #ifndef NO_TIME
 		//Timelike terms
-		volatile int did=id[3*kvol+i]; volatile int uid = iu[3*kvol+i];
-		u11s=u11t[i+kvol*3];	u12s=u12t[i+kvol*3];
+			int mite=i+kvol*3;
+		u11s=u11t[mite];	u12s=u12t[mite];
+		did=id[mite];
 		u11sd=u11t[did+kvol*3];	u12sd=u12t[did+kvol*3];
 		float  dk4ms=dk4m[i];  float dk4ps=dk4p[did];
+		uid = iu[mite];
 #pragma unroll
 		for(int idirac=0; idirac<ndirac; idirac++){
 			int igork1 = gamin_d[3*ndirac+idirac];
@@ -782,14 +789,16 @@ __global__ void cuHdslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f
 			//dk4m and dk4p swap under dagger
 			phi_s[idirac*nc]+=
 				-dk4ms*(u11s*(ru[0]+rgu[0])
-						+u12s*(ru[1]+rgu[1]))
+						+u12s*(ru[1]+rgu[1]));
+			phi_s[idirac*nc]+=
 				-dk4ps*(conj(u11sd)*(rd[0]-rgd[0])
 						-u12sd *(rd[1]-rgd[1]));
 				phi[i+kvol*(0+nc*idirac)]=phi_s[idirac*nc+0];
 
 			phi_s[idirac*nc+1]-=
 				dk4ms*(-conj(u12s)*(ru[0]+rgu[0])
-						+conj(u11s)*(ru[1]+rgu[1]))
+						+conj(u11s)*(ru[1]+rgu[1]));
+			phi_s[idirac*nc+1]-=
 				+dk4ps*(conj(u12sd)*(rd[0]-rgd[0])
 						+u11sd *(rd[1]-rgd[1]));
 				phi[i+kvol*(1+nc*idirac)]=phi_s[idirac*nc+1];
