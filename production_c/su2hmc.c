@@ -224,8 +224,8 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 	 * @param	iu,id:				Lattice indices
 	 * @param	gamval_f:			Gamma matrices
 	 * @param	gamin:				Gamma indices
-	 * @param	dk4m_f:				Î exp(-Î) float	
-	 * @param	dk4p_f:				Î exp(Î¼) float 	
+	 * @param	dk4m_f:				$exp(-\mu)$ float
+	 * @param	dk4p_f:				$exp(\mu)$ float
 	 * @param	jqq:					Diquark source
 	 * @param	akappa:				Hopping parameter
 	 * @param	beta:					Inverse gauge coupling
