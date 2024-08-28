@@ -47,10 +47,10 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 	 * Complex *u12t:			Second colour trial field
 	 * Complex_f *u11t_f:	First float trial field
 	 * Complex_f *u12t_f:	Second float trial field
-	 * double	*dk4m			Î exp(-Î¼)	
-	 * double	*dk4p:		Î exp(Î¼)    	
-	 * float		*dk4m_f:		Î exp(-Î) float	
-	 * float		*dk4p_f:		Î exp(Î¼) float 	
+	 * double	*dk4m			$exp(-\mu)$
+	 * double	*dk4p:		$exp(\mu)$
+	 * float		*dk4m_f:		$exp(-\mu)$ float
+	 * float		*dk4p_f:		$exp(\mu)$ float
 	 * unsigned int *iu:		Up halo indices
 	 * unsigned int *id:		Down halo indices
 	 *
