@@ -315,7 +315,7 @@ int main(int argc, char *argv[]){
 	//nt
 	sprintf(buff2,"t%02d",nt);
 	strcat(suffix,buff2);
-	char outname[FILELEN] = "Output."; char *outop="w";
+	char outname[FILELEN] = "Output."; char *outop="a";
 	strcat(outname,suffix);
 	FILE *output;
 	if(!rank){
@@ -793,7 +793,7 @@ int main(int argc, char *argv[]){
 				"Average number of congrad iter guidance: %.3f acceptance %.3f\n"\
 				"psibarpsi = %e\n"\
 				"Mean Square Velocity = %e\tAction Per Site = %e\n"\
-				"Energy Density = %e\tNumber Density %e\n",\
+				"Energy Density = %e\tNumber Density %e\n\n\n",\
 				ntraj, naccp, atraj, e_dH,e_dH_e, yav, yyav, traj_cost, totancg, totancgh, pbpa, vel2a, actiona, endenfa, denfa);
 		fclose(output);
 	}
