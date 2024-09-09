@@ -442,6 +442,8 @@ int main(int argc, char *argv[]){
 			cudaMemPrefetchAsync(R,kfermHalo*sizeof(Complex_f),device,NULL);
 			//Transpose needed here for Dslashd
 			Transpose_f(R1_f,ngorkov*nc,kvol,dimGrid,dimBlock);
+			//R is random so this techincally isn't required. But it does keep the code output consistent with previous
+			//versions.
 			Transpose_f(R,ngorkov*nc,kvol,dimGrid,dimBlock);
 			//Flip all the gauge fields around so memory is coalesced
 			Transpose_f(u11t_f,ndim,kvol,dimGrid,dimBlock);
