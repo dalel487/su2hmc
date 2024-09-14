@@ -115,8 +115,8 @@ int OMF2(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex
 		int *iu,int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, Complex jqq,
 		float beta, float akappa, int stepl, float dt, double *ancg, int *itot, float proby)
 {
-	const double lambda=0.5-pow(2.0*sqrt(326.0)+36.0,1.0/3.0)/12.0+1.0/pow(6.0*sqrt(326.0) + 36.0,1.0/3.0);
-	// const double lambda=1.0/6.0;
+	const double lambda=0.5-(pow(2.0*sqrt(326.0)+36.0,1.0/3.0)/12.0)+1.0/(6*pow(2.0*sqrt(326.0) + 36.0,1.0/3.0));
+	//const double lambda=1.0/6.0;
 	//	const double lambda=0.5;
 
 	//Gauge update by half dt
