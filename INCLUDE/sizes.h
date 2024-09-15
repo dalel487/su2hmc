@@ -63,7 +63,7 @@ extern cudaMemPool_t mempool;
 // Common block definition for parallel variables
 
 ///	@brief Lattice x extent
-#define	nx 8
+#define	nx 16
 #if(nx<1)
 #error "nx is expected it to be greater than or equal to 1"
 #endif
@@ -83,7 +83,7 @@ extern cudaMemPool_t mempool;
 #endif
 
 ///	@brief	Lattice temporal extent. This also corresponds to the inverse temperature
-#define	nt	16
+#define	nt	32
 #if(nt<1)
 #error "nt is expected it to be greater than or equal to 1"
 #endif
