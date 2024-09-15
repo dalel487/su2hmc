@@ -5,9 +5,9 @@ IFLAGS=	-I../INCLUDE $(shell gsl-config --cflags)
 
 CFLAGS=     $(IFLAGS) -qmkl -std=gnu11 -ipo -qopt-zmm-usage=high -MD\
 			-xSKYLAKE -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE,RAPTORLAKE\
-			-DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__ -DINT_LPFR\
-			-qopenmp -qopenmp-simd -DSA3AT
-#			-mllvm -loopopt=0
+			-DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
+			-qopenmp -qopenmp-simd -DSA3AT -DINT_OMF2\
+			-mllvm -loopopt=0
 			#Last Line required to avoid segmentation fault
 			
 LFLAGS=	-L${MKLROOT}/lib/intel64 -limf $(shell gsl-config --libs-without-cblas)

@@ -895,7 +895,6 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_
 #endif
 	return 0;
 }
-
 inline int Reunitarise(Complex *u11t, Complex *u12t){
 	/*
 	 * @brief Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1
