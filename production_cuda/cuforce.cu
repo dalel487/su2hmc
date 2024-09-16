@@ -26,21 +26,20 @@ void cuForce(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Complex *X1, Compl
 		float akappa, dim3 dimGrid, dim3 dimBlock){
 	const char *funcname = "Force";
 	//X1=(M†M)^{1} Phi
-//	Transpose_f(u11t,kvol,ndim,dimGrid,dimBlock);
-//	Transpose_f(u12t,kvol,ndim,dimGrid,dimBlock);
+	Transpose_f(u11t,ndim,kvol,dimGrid,dimBlock);
+	Transpose_f(u12t,ndim,kvol,dimGrid,dimBlock);
 	cudaDeviceSynchronise();
 	for(int mu=0;mu<3;mu++){
 		cuForce_s<<<dimGrid,dimBlock,0,streams[mu]>>>(dSdpi,u11t,u12t,X1,X2,gamval,iu,gamin,akappa,mu);
 		//			cuForce_s1<<<dimGrid,dimBlock,0,streams[mu*nadj+1]>>>(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac,mu);
 		//			cuForce_s2<<<dimGrid,dimBlock,0,streams[mu*nadj+2]>>>(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac,mu);
 	}
-//	Transpose_f(u11t,kvol,ndim,dimGrid,dimBlock);
-//	Transpose_f(u12t,kvol,ndim,dimGrid,dimBlock);
-	cudaDeviceSynchronise();
 	//Set stream for time direction
 	int mu=3;
 	cuForce_t<<<dimGrid,dimBlock,0,streams[mu]>>>(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa);
 	cudaDeviceSynchronise();
+	Transpose_f(u11t,kvol,ndim,dimGrid,dimBlock);
+	Transpose_f(u12t,kvol,ndim,dimGrid,dimBlock);
 }
 
 //CUDA Kernels
@@ -100,7 +99,7 @@ __global__ void cuGaugeForce(int mu, Complex_f *Sigma11, Complex_f *Sigma12,doub
 }
 
 __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Complex *X1, Complex *X2, Complex_f *gamval,\
-unsigned int *iu, int *gamin,float akappa, int mu){
+		unsigned int *iu, int *gamin,float akappa, int mu){
 	const char *funcname = "cuForce";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -108,7 +107,8 @@ unsigned int *iu, int *gamin,float akappa, int mu){
 	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	const int gthreadId= blockId * bsize+bthreadId;
 	for(int i=gthreadId;i<kvol;i+=gsize*bsize){
-		Complex_f u11s=u11t[i*ndim+mu];	Complex_f u12s=u12t[i*ndim+mu];
+		//Complex_f u11s=u11t[i*ndim+mu];	Complex_f u12s=u12t[i*ndim+mu];
+		Complex_f u11s=u11t[i+kvol*mu];	Complex_f u12s=u12t[i+kvol*mu];
 		int uid = iu[mu+ndim*i];
 		for(int idirac=0;idirac<ndirac;idirac++){
 			Complex_f X1s[nc];	 Complex_f X1su[nc];
@@ -229,12 +229,13 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 	for(int i=gthreadId;i<kvol;i+=gsize*bsize){
 		//Up indices
 		int uid = iu[mu+ndim*i];
-		Complex_f u11s=u11t[i*ndim+mu];	Complex_f u12s=u12t[i*ndim+mu];
+	//	Complex_f u11s=u11t[i*ndim+mu];	Complex_f u12s=u12t[i*ndim+mu];
+		Complex_f u11s=u11t[i+kvol*mu];	Complex_f u12s=u12t[i+kvol*mu];
 		float dk4ms=dk4m[i];	float dk4ps=dk4p[i];
 
 		for(int idirac=0;idirac<ndirac;idirac++){
-	 Complex X1s[nc];	 Complex X1su[nc];
-	 Complex_f X2s[nc];	 Complex_f X2su[nc];
+			Complex X1s[nc];	 Complex X1su[nc];
+			Complex_f X2s[nc];	 Complex_f X2su[nc];
 			X1s[0]=X1[(i*ndirac+idirac)*nc];	X1s[1]=X1[(i*ndirac+idirac)*nc+1];
 			X1su[0]=X1[(uid*ndirac+idirac)*nc];	X1su[1]=X1[(uid*ndirac+idirac)*nc+1];
 
@@ -246,45 +247,45 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 			dSdpis[0]+=(I*
 					(conj(X1s[0])*
 					 (dk4ms*(-conj(u12s)*X2su[0]
-											  +conj(u11s)*X2su[1]))
+								+conj(u11s)*X2su[1]))
 					 +conj(X1su[0])*
 					 (dk4ps*      (+u12s *X2s[0]
-													  -conj(u11s)*X2s[1]))
+										-conj(u11s)*X2s[1]))
 					 +conj(X1s[1])*
 					 (dk4ms*       (u11s *X2su[0]
-														+u12s *X2su[1]))
+										 +u12s *X2su[1]))
 					 +conj(X1su[1])*
 					 (dk4ps*      (-u11s *X2s[0]
-													  -conj(u12s)*X2s[1])))).real();
+										-conj(u12s)*X2s[1])))).real();
 			dSdpis[1]=dSdpi[(i*nadj+1)*ndim+mu];
 			dSdpis[1]+=(
 					conj(X1s[0])*
 					(dk4ms*(-conj(u12s)*X2su[0]
-											 +conj(u11s)*X2su[1]))
+							  +conj(u11s)*X2su[1]))
 					+conj(X1su[0])*
 					(dk4ps*      (-u12s *X2s[0]
-													 -conj(u11s)*X2s[1]))
+									  -conj(u11s)*X2s[1]))
 					+conj(X1s[1])*
 					(dk4ms*      (-u11s *X2su[0]
-													 -u12s *X2su[1]))
+									  -u12s *X2su[1]))
 					+conj(X1su[1])*
 					(dk4ps*      ( u11s *X2s[0]
-													  -conj(u12s)*X2s[1]))).real();
+										-conj(u12s)*X2s[1]))).real();
 
 			dSdpis[2]=dSdpi[(i*nadj+2)*ndim+mu];
 			dSdpis[2]+=(I*
 					(conj(X1s[0])*
 					 (dk4ms*       (u11s *X2su[0]
-														+u12s *X2su[1]))
+										 +u12s *X2su[1]))
 					 +conj(X1su[0])*
 					 (dk4ps*(-conj(u11s)*X2s[0]
-											  -u12s *X2s[1]))
+								-u12s *X2s[1]))
 					 +conj(X1s[1])*
 					 (dk4ms* (conj(u12s)*X2su[0]
-												-conj(u11s)*X2su[1]))
+								 -conj(u11s)*X2su[1]))
 					 +conj(X1su[1])*
 					 (dk4ps*(-conj(u12s)*X2s[0]
-											  +u11s *X2s[1])))).real();
+								+u11s *X2s[1])))).real();
 
 			const int igork1 = gamin[mu*ndirac+idirac];	
 			X2s[0]=X2[(i*ndirac+igork1)*nc];	X2s[1]=X2[(i*ndirac+igork1)*nc+1];
@@ -293,46 +294,46 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 			dSdpis[0]+=(I*
 					(conj(X1s[0])*
 					 (dk4ms*(-conj(u12s)*X2su[0]
-											  +conj(u11s)*X2su[1]))
+								+conj(u11s)*X2su[1]))
 					 +conj(X1su[0])*
 					 (-dk4ps*       (u12s *X2s[0]
-														 -conj(u11s)*X2s[1]))
+										  -conj(u11s)*X2s[1]))
 					 +conj(X1s[1])*
 					 (dk4ms*       (u11s *X2su[0]
-														+u12s *X2su[1]))
+										 +u12s *X2su[1]))
 					 +conj(X1su[1])*
 					 (-dk4ps*      (-u11s *X2s[0]
-														-conj(u12s)*X2s[1])))).real();
+										 -conj(u12s)*X2s[1])))).real();
 			dSdpi[(i*nadj)*ndim+mu]=dSdpis[0];
 
 			dSdpis[1]+=(
 					(conj(X1s[0])*
 					 (dk4ms*(-conj(u12s)*X2su[0]
-											  +conj(u11s)*X2su[1]))
+								+conj(u11s)*X2su[1]))
 					 +conj(X1su[0])*
 					 (-dk4ps*      (-u12s *X2s[0]
-														-conj(u11s)*X2s[1]))
+										 -conj(u11s)*X2s[1]))
 					 +conj(X1s[1])*
 					 (dk4ms*      (-u11s *X2su[0]
-													  -u12s *X2su[1]))
+										-u12s *X2su[1]))
 					 +conj(X1su[1])*
 					 (-dk4ps*       (u11s *X2s[0]
-														 -conj(u12s)*X2s[1])))).real();
+										  -conj(u12s)*X2s[1])))).real();
 			dSdpi[(i*nadj+1)*ndim+mu]=dSdpis[1];
 
 			dSdpis[2]+=(I*
 					(conj(X1s[0])*
 					 (dk4ms*       (u11s *X2su[0]
-														+u12s *X2su[1]))
+										 +u12s *X2su[1]))
 					 +conj(X1su[0])*
 					 (-dk4ps*(-conj(u11s)*X2s[0]
-												-u12s *X2s[1]))
+								 -u12s *X2s[1]))
 					 +conj(X1s[1])*
 					 (dk4ms* (conj(u12s)*X2su[0]
-												-conj(u11s)*X2su[1]))
+								 -conj(u11s)*X2su[1]))
 					 +conj(X1su[1])*
 					 (-dk4ps*(-conj(u12s)*X2s[0]
-												+u11s *X2s[1])))).real();
+								 +u11s *X2s[1])))).real();
 			dSdpi[(i*nadj+2)*ndim+mu]=dSdpis[2];
 		}
 	}
