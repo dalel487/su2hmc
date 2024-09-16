@@ -262,7 +262,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 		//
 #ifdef __NVCC__
 		cudaDeviceSynchronise();
-		cuForce(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,dimGrid,dimBlock);
+		cuForce(dSdpi,u11t_f,u12t_f,X1,X2,gamval_f,dk4m_f,dk4p_f,iu,gamin,akappa,dimGrid,dimBlock);
 #else
 #pragma omp parallel for
 		for(int i=0;i<kvol;i++)
