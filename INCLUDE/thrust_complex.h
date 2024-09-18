@@ -27,4 +27,5 @@ using thrust::complex;
 #define	conj(z)	thrust::conj(z)
 ///@brief 	Define I
 #define	I	Complex(0.0,1.0)	
+#define	I_f	Complex_f(0.0,1.0f)	
 #endif

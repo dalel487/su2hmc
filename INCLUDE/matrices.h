@@ -209,8 +209,12 @@ extern "C"
  * @param dimGrid:	CUDA grid
  * @param dimBlock:	CUDA block
  */
-	void Transpose_f(Complex_f *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
+	void Transpose_z(Complex *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
+	void Transpose_c(Complex_f *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
+	void Transpose_d(double *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
+	void Transpose_f(float *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
 	void Transpose_I(int *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
+	void Transpose_U(unsigned int *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
 #endif
 #if (defined __cplusplus)
 }
@@ -235,7 +239,6 @@ __global__ void cuHdslash_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 		const __shared__ Complex_f gamval[20], const __shared__ int gamin[16], const float *dk4m, const float *dk4p, const float akappa);
 __global__ void cuHdslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f *u11t, const Complex_f *u12t,const unsigned int *iu, const unsigned int *id,\
 		const __shared__ Complex_f gamval[20], const __shared__ int gamin[16], const float *dk4m, const float *dk4p, const float akappa);
-__global__ void Transpose_f(Complex_f *out, Complex_f *in, const int fast_in, const int fast_out);
-__global__ void Transpose_I(int *out, int *in, const int fast_in, const int fast_out);
+template <typename T> __global__ void Transpose(T *out, const T *in, const int fast_in, const int fast_out);
 #endif
 #endif

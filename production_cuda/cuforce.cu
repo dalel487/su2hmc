@@ -26,8 +26,10 @@ void cuForce(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Complex *X1, Compl
 		float akappa, dim3 dimGrid, dim3 dimBlock){
 	const char *funcname = "Force";
 	//X1=(M†M)^{1} Phi
-	Transpose_f(u11t,ndim,kvol,dimGrid,dimBlock);
-	Transpose_f(u12t,ndim,kvol,dimGrid,dimBlock);
+	Transpose_U(iu,ndim,kvol,dimGrid,dimBlock);
+	Transpose_d(dSdpi,nadj*ndim,kvol,dimGrid,dimBlock);
+	Transpose_c(u11t,ndim,kvol,dimGrid,dimBlock); Transpose_c(u12t,ndim,kvol,dimGrid,dimBlock);
+	Transpose_z(X1,ndirac*nc,kvol,dimGrid,dimBlock); Transpose_z(X2,ndirac*nc,kvol,dimGrid,dimBlock);
 	cudaDeviceSynchronise();
 	for(int mu=0;mu<3;mu++){
 		cuForce_s<<<dimGrid,dimBlock,0,streams[mu]>>>(dSdpi,u11t,u12t,X1,X2,gamval,iu,gamin,akappa,mu);
@@ -38,8 +40,11 @@ void cuForce(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Complex *X1, Compl
 	int mu=3;
 	cuForce_t<<<dimGrid,dimBlock,0,streams[mu]>>>(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa);
 	cudaDeviceSynchronise();
-	Transpose_f(u11t,kvol,ndim,dimGrid,dimBlock);
-	Transpose_f(u12t,kvol,ndim,dimGrid,dimBlock);
+	Transpose_z(X1,kvol,ndirac*nc,dimGrid,dimBlock); Transpose_z(X2,kvol,ndirac*nc,dimGrid,dimBlock);
+	Transpose_c(u11t,kvol,ndim,dimGrid,dimBlock); Transpose_c(u12t,kvol,ndim,dimGrid,dimBlock);
+	Transpose_U(iu,kvol,ndim,dimGrid,dimBlock); 	
+	Transpose_d(dSdpi,kvol,nadj*ndim,dimGrid,dimBlock);
+	cudaDeviceSynchronise();
 }
 
 //CUDA Kernels
@@ -108,34 +113,33 @@ __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 	const int gthreadId= blockId * bsize+bthreadId;
 	for(int i=gthreadId;i<kvol;i+=gsize*bsize){
 		//Complex_f u11s=u11t[i*ndim+mu];	Complex_f u12s=u12t[i*ndim+mu];
-		Complex_f u11s=u11t[i+kvol*mu];	Complex_f u12s=u12t[i+kvol*mu];
-		int uid = iu[mu+ndim*i];
+		const Complex_f u11s=u11t[i+kvol*mu];	const Complex_f u12s=u12t[i+kvol*mu];
+		//const int uid = iu[mu+ndim*i];
+		const int uid = iu[mu*kvol+i];
 		for(int idirac=0;idirac<ndirac;idirac++){
 			Complex_f X1s[nc];	 Complex_f X1su[nc];
 			Complex_f X2s[nc];	 Complex_f X2su[nc];
-			X1s[0]=X1[(i*ndirac+idirac)*nc];	X1s[1]=X1[(i*ndirac+idirac)*nc+1];
-			X1su[0]=X1[(uid*ndirac+idirac)*nc];	X1su[1]=X1[(uid*ndirac+idirac)*nc+1];
-
-			X2s[0]=X2[(i*ndirac+idirac)*nc];	X2s[1]=X2[(i*ndirac+idirac)*nc+1];
-			X2su[0]=X2[(uid*ndirac+idirac)*nc];	X2su[1]=X2[(uid*ndirac+idirac)*nc+1];
+			//	phi[(i*ndirac+idirac)*nc]+=
+			//phi_s[idirac*nc+c]=phi[i+kvol*(c+nc*idirac)];
+			//X1s[0]=X1[(i*ndirac+idirac)*nc];	X1s[1]=X1[(i*ndirac+idirac)*nc+1];
+			//X1su[0]=X1[(uid*ndirac+idirac)*nc];	X1su[1]=X1[(uid*ndirac+idirac)*nc+1];
+			//X2s[0]=X2[(i*ndirac+idirac)*nc];	X2s[1]=X2[(i*ndirac+idirac)*nc+1];
+			//X2su[0]=X2[(uid*ndirac+idirac)*nc];	X2su[1]=X2[(uid*ndirac+idirac)*nc+1];
+			X1s[0]=X1[i+kvol*(nc*idirac)]; X1s[1]=X1[i+kvol*(1+nc*idirac)];
+			X1su[0]=X1[uid+kvol*(nc*idirac)]; X1su[1]=X1[uid+kvol*(1+nc*idirac)];
+			X2s[0]=X2[i+kvol*(nc*idirac)]; X2s[1]=X2[i+kvol*(1+nc*idirac)];
+			X2su[0]=X2[uid+kvol*(nc*idirac)]; X2su[1]=X2[uid+kvol*(1+nc*idirac)];
 
 			float dSdpis[3];
-			dSdpis[0]=dSdpi[(i*nadj)*ndim+mu];
-			dSdpis[0]+=akappa*(I*
-					(conj(X1s[0])*
-					 (-conj(u12s)*X2su[0]
-					  +conj(u11s)*X2su[1])
-					 +conj(X1su[0])*
-					 ( u12s *X2s[0]
-						-conj(u11s)*X2s[1])
-					 +conj(X1s[1])*
-					 (u11s *X2su[0]
-					  +u12s *X2su[1])
-					 +conj(X1su[1])*
-					 (-u11s *X2s[0]
-					  -conj(u12s)*X2s[1]))).real();
+			//dSdpis[0]=dSdpi[(i*nadj)*ndim+mu];
+			dSdpis[0]=dSdpi[i+kvol*(mu)];
+			//Multiplying by i and taking the real component is the same as taking the negative imaginary component
+			dSdpis[0]+=-akappa*(
+					conj(X1s[0])*(-conj(u12s)*X2su[0]+conj(u11s)*X2su[1])+conj(X1su[0])*(u12s*X2s[0]-conj(u11s)*X2s[1])
+					+conj(X1s[1])*(u11s*X2su[0]+u12s*X2su[1])+conj(X1su[1])*(-u11s*X2s[0]-conj(u12s)*X2s[1])).imag();
 
-			dSdpis[1]=dSdpi[(i*nadj+1)*ndim+mu];
+			//dSdpis[1]=dSdpi[(i*nadj+1)*ndim+mu];
+			dSdpis[1]=dSdpi[i+kvol*(ndim+mu)];
 			dSdpis[1]+=akappa*(
 					(conj(X1s[0])*
 					 (-conj(u12s)*X2su[0]
@@ -150,26 +154,29 @@ __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 					 (u11s *X2s[0]
 					  -conj(u12s)*X2s[1]))).real();
 
-			dSdpis[2]=dSdpi[(i*nadj+2)*ndim+mu];
-			dSdpis[2]+=akappa*(I*
-					(conj(X1s[0])*
-					 (u11s *X2su[0]
-					  +u12s *X2su[1])
-					 +conj(X1su[0])*
-					 (-conj(u11s)*X2s[0]
-					  -u12s *X2s[1])
-					 +conj(X1s[1])*
-					 (conj(u12s)*X2su[0]
-					  -conj(u11s)*X2su[1])
-					 +conj(X1su[1])*
-					 (-conj(u12s)*X2s[0]
-					  +u11s *X2s[1]))).real();
+			//dSdpis[2]=dSdpi[(i*nadj+2)*ndim+mu];
+			dSdpis[2]=dSdpi[i+kvol*(2*ndim+mu)];
+			dSdpis[2]+=-akappa*(
+					conj(X1s[0])*
+					(u11s *X2su[0]
+					 +u12s *X2su[1])
+					+conj(X1su[0])*
+					(-conj(u11s)*X2s[0]
+					 -u12s *X2s[1])
+					+conj(X1s[1])*
+					(conj(u12s)*X2su[0]
+					 -conj(u11s)*X2su[1])
+					+conj(X1su[1])*
+					(-conj(u12s)*X2s[0]
+					 +u11s *X2s[1])).imag();
 
 			const int igork1 = gamin[mu*ndirac+idirac];	
-			X2s[0]=X2[(i*ndirac+igork1)*nc];	X2s[1]=X2[(i*ndirac+igork1)*nc+1];
-			X2su[0]=X2[(uid*ndirac+igork1)*nc];	X2su[1]=X2[(uid*ndirac+igork1)*nc+1];
+			//X2s[0]=X2[(i*ndirac+igork1)*nc];	X2s[1]=X2[(i*ndirac+igork1)*nc+1];
+			//X2su[0]=X2[(uid*ndirac+igork1)*nc];	X2su[1]=X2[(uid*ndirac+igork1)*nc+1];
+			X2s[0]=X2[i+kvol*(nc*igork1)]; X2s[1]=X2[i+kvol*(1+nc*igork1)];
+			X2su[0]=X2[uid+kvol*(nc*igork1)]; X2su[1]=X2[uid+kvol*(1+nc*igork1)];
 
-			dSdpis[0]+=(I*gamval[mu*ndirac+idirac]*
+			dSdpis[0]+=-(gamval[mu*ndirac+idirac]*
 					(conj(X1s[0])*
 					 (-conj(u12s)*X2su[0]
 					  +conj(u11s)*X2su[1])
@@ -181,8 +188,9 @@ __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 					  +u12s *X2su[1])
 					 +conj(X1su[1])*
 					 (u11s *X2s[0]
-					  +conj(u12s)*X2s[1]))).real();
-			dSdpi[(i*nadj)*ndim+mu]=dSdpis[0];
+					  +conj(u12s)*X2s[1]))).imag();
+			//dSdpi[(i*nadj)*ndim+mu]=dSdpis[0];
+			dSdpi[i+kvol*(mu)]=dSdpis[0];
 
 			dSdpis[1]+=(gamval[mu*ndirac+idirac]*
 					(conj(X1s[0])*
@@ -197,9 +205,10 @@ __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 					 +conj(X1su[1])*
 					 (-u11s *X2s[0]
 					  +conj(u12s)*X2s[1]))).real();
-			dSdpi[(i*nadj+1)*ndim+mu]=dSdpis[1];
+			//dSdpi[(i*nadj+1)*ndim+mu]=dSdpis[1];
+			dSdpi[i+kvol*(ndim+mu)]=dSdpis[1];
 
-			dSdpis[2]+=(I*gamval[mu*ndirac+idirac]*
+			dSdpis[2]+=-(gamval[mu*ndirac+idirac]*
 					(conj(X1s[0])*
 					 (u11s *X2su[0]
 					  +u12s *X2su[1])
@@ -211,8 +220,9 @@ __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 					  -conj(u11s)*X2su[1])
 					 +conj(X1su[1])*
 					 (conj(u12s)*X2s[0]
-					  -u11s *X2s[1]))).real();
-			dSdpi[(i*nadj+2)*ndim+mu]=dSdpis[2];
+					  -u11s *X2s[1]))).imag();
+			//dSdpi[(i*nadj+2)*ndim+mu]=dSdpis[2];
+			dSdpi[i+kvol*(2*ndim+mu)]=dSdpis[2];
 		}
 	}
 }
@@ -228,24 +238,28 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 	const int mu=3;
 	for(int i=gthreadId;i<kvol;i+=gsize*bsize){
 		//Up indices
-		int uid = iu[mu+ndim*i];
-	//	Complex_f u11s=u11t[i*ndim+mu];	Complex_f u12s=u12t[i*ndim+mu];
-		Complex_f u11s=u11t[i+kvol*mu];	Complex_f u12s=u12t[i+kvol*mu];
-		float dk4ms=dk4m[i];	float dk4ps=dk4p[i];
+		//const int uid = iu[mu+ndim*i];
+		const int uid = iu[mu*kvol+i];
+		//	Complex_f u11s=u11t[i*ndim+mu];	Complex_f u12s=u12t[i*ndim+mu];
+		const Complex_f u11s=u11t[i+kvol*mu];	const Complex_f u12s=u12t[i+kvol*mu];
+		const float dk4ms=dk4m[i];	const float dk4ps=dk4p[i];
 
 		for(int idirac=0;idirac<ndirac;idirac++){
 			Complex X1s[nc];	 Complex X1su[nc];
 			Complex_f X2s[nc];	 Complex_f X2su[nc];
-			X1s[0]=X1[(i*ndirac+idirac)*nc];	X1s[1]=X1[(i*ndirac+idirac)*nc+1];
-			X1su[0]=X1[(uid*ndirac+idirac)*nc];	X1su[1]=X1[(uid*ndirac+idirac)*nc+1];
-
-			X2s[0]=X2[(i*ndirac+idirac)*nc];	X2s[1]=X2[(i*ndirac+idirac)*nc+1];
-			X2su[0]=X2[(uid*ndirac+idirac)*nc];	X2su[1]=X2[(uid*ndirac+idirac)*nc+1];
+			//X1s[0]=X1[(i*ndirac+idirac)*nc];	X1s[1]=X1[(i*ndirac+idirac)*nc+1];
+			//X1su[0]=X1[(uid*ndirac+idirac)*nc];	X1su[1]=X1[(uid*ndirac+idirac)*nc+1];
+			//X2s[0]=X2[(i*ndirac+idirac)*nc];	X2s[1]=X2[(i*ndirac+idirac)*nc+1];
+			//X2su[0]=X2[(uid*ndirac+idirac)*nc];	X2su[1]=X2[(uid*ndirac+idirac)*nc+1];
+			X1s[0]=X1[i+kvol*(nc*idirac)]; X1s[1]=X1[i+kvol*(1+nc*idirac)];
+			X1su[0]=X1[uid+kvol*(nc*idirac)]; X1su[1]=X1[uid+kvol*(1+nc*idirac)];
+			X2s[0]=X2[i+kvol*(nc*idirac)]; X2s[1]=X2[i+kvol*(1+nc*idirac)];
+			X2su[0]=X2[uid+kvol*(nc*idirac)]; X2su[1]=X2[uid+kvol*(1+nc*idirac)];
 
 			float dSdpis[3];
-			dSdpis[0]=dSdpi[(i*nadj)*ndim+mu];
-			dSdpis[0]+=(I*
-					(conj(X1s[0])*
+		//	dSdpis[0]=dSdpi[(i*nadj)*ndim+mu];
+			dSdpis[0]=dSdpi[i+kvol*(mu)];
+			dSdpis[0]+=-(conj(X1s[0])*
 					 (dk4ms*(-conj(u12s)*X2su[0]
 								+conj(u11s)*X2su[1]))
 					 +conj(X1su[0])*
@@ -256,8 +270,9 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 										 +u12s *X2su[1]))
 					 +conj(X1su[1])*
 					 (dk4ps*      (-u11s *X2s[0]
-										-conj(u12s)*X2s[1])))).real();
-			dSdpis[1]=dSdpi[(i*nadj+1)*ndim+mu];
+										-conj(u12s)*X2s[1]))).imag();
+		//	dSdpis[1]=dSdpi[(i*nadj+1)*ndim+mu];
+			dSdpis[1]=dSdpi[i+kvol*(ndim+mu)];
 			dSdpis[1]+=(
 					conj(X1s[0])*
 					(dk4ms*(-conj(u12s)*X2su[0]
@@ -272,9 +287,9 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 					(dk4ps*      ( u11s *X2s[0]
 										-conj(u12s)*X2s[1]))).real();
 
-			dSdpis[2]=dSdpi[(i*nadj+2)*ndim+mu];
-			dSdpis[2]+=(I*
-					(conj(X1s[0])*
+			//dSdpis[2]=dSdpi[(i*nadj+2)*ndim+mu];
+			dSdpis[2]=dSdpi[i+kvol*(2*ndim+mu)];
+			dSdpis[2]+=-(conj(X1s[0])*
 					 (dk4ms*       (u11s *X2su[0]
 										 +u12s *X2su[1]))
 					 +conj(X1su[0])*
@@ -285,14 +300,15 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 								 -conj(u11s)*X2su[1]))
 					 +conj(X1su[1])*
 					 (dk4ps*(-conj(u12s)*X2s[0]
-								+u11s *X2s[1])))).real();
+								+u11s *X2s[1]))).imag();
 
 			const int igork1 = gamin[mu*ndirac+idirac];	
-			X2s[0]=X2[(i*ndirac+igork1)*nc];	X2s[1]=X2[(i*ndirac+igork1)*nc+1];
-			X2su[0]=X2[(uid*ndirac+igork1)*nc];	X2su[1]=X2[(uid*ndirac+igork1)*nc+1];
+			//X2s[0]=X2[(i*ndirac+igork1)*nc];	X2s[1]=X2[(i*ndirac+igork1)*nc+1];
+			//X2su[0]=X2[(uid*ndirac+igork1)*nc];	X2su[1]=X2[(uid*ndirac+igork1)*nc+1];
+			X2s[0]=X2[i+kvol*(nc*igork1)]; X2s[1]=X2[i+kvol*(1+nc*igork1)];
+			X2su[0]=X2[uid+kvol*(nc*igork1)]; X2su[1]=X2[uid+kvol*(1+nc*igork1)];
 
-			dSdpis[0]+=(I*
-					(conj(X1s[0])*
+			dSdpis[0]+=-(conj(X1s[0])*
 					 (dk4ms*(-conj(u12s)*X2su[0]
 								+conj(u11s)*X2su[1]))
 					 +conj(X1su[0])*
@@ -303,8 +319,9 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 										 +u12s *X2su[1]))
 					 +conj(X1su[1])*
 					 (-dk4ps*      (-u11s *X2s[0]
-										 -conj(u12s)*X2s[1])))).real();
-			dSdpi[(i*nadj)*ndim+mu]=dSdpis[0];
+										 -conj(u12s)*X2s[1]))).imag();
+			//dSdpi[(i*nadj)*ndim+mu]=dSdpis[0];
+			dSdpi[i+kvol*(mu)]=dSdpis[0];
 
 			dSdpis[1]+=(
 					(conj(X1s[0])*
@@ -319,10 +336,10 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 					 +conj(X1su[1])*
 					 (-dk4ps*       (u11s *X2s[0]
 										  -conj(u12s)*X2s[1])))).real();
-			dSdpi[(i*nadj+1)*ndim+mu]=dSdpis[1];
+			//dSdpi[(i*nadj+1)*ndim+mu]=dSdpis[1];
+			dSdpi[i+kvol*(ndim+mu)]=dSdpis[1];
 
-			dSdpis[2]+=(I*
-					(conj(X1s[0])*
+			dSdpis[2]+=-(conj(X1s[0])*
 					 (dk4ms*       (u11s *X2su[0]
 										 +u12s *X2su[1]))
 					 +conj(X1su[0])*
@@ -333,8 +350,9 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 								 -conj(u11s)*X2su[1]))
 					 +conj(X1su[1])*
 					 (-dk4ps*(-conj(u12s)*X2s[0]
-								 +u11s *X2s[1])))).real();
-			dSdpi[(i*nadj+2)*ndim+mu]=dSdpis[2];
+								 +u11s *X2s[1]))).imag();
+			//dSdpi[(i*nadj+2)*ndim+mu]=dSdpis[2];
+			dSdpi[i+kvol*(2*ndim+mu)]=dSdpis[2];
 		}
 	}
 }

@@ -811,6 +811,30 @@ __global__ void cuHdslashd_f(Complex_f *phi, const Complex_f* r, const Complex_f
  * @param ny:	The size of the fastest moving dimension, This is the direction index when read in from disk.
  * 
  */
+template <typename T>
+__global__ void Transpose(T *out, const T *in, const int fast_in, const int fast_out){
+	const volatile char *funcname="Transpose_f";
+	const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const volatile int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const volatile int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const volatile int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const int gthreadId= blockId * bsize+bthreadId;
+
+	//The if/else here is only to ensure we maximise GPU bandwidth
+	//Typically this is used to write back to the AoS/Coalseced format
+	if(fast_out>fast_in){
+		for(int x=gthreadId;x<fast_out;x+=gsize*bsize)
+			for(int y=0; y<fast_in;y++)
+				out[y*fast_out+x]=in[x*fast_in+y];
+	}
+	//Typically this is used to write back to the SoA/saved config format
+	else{
+		for(int x=0; x<fast_out;x++)
+			for(int y=gthreadId;y<fast_in;y+=gsize*bsize)
+				out[y*fast_out+x]=in[x*fast_in+y];
+	}
+}
+/*
 __global__ void Transpose_f(Complex_f *out, Complex_f *in, const int fast_in, const int fast_out){
 	const volatile char *funcname="Transpose_f";
 	const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
@@ -855,6 +879,7 @@ __global__ void Transpose_I(int *out, int *in, const int fast_in, const int fast
 				out[y*fast_out+x]=in[x*fast_in+y];
 	}
 }
+*/
 
 //Calling Functions
 //================
@@ -1110,25 +1135,71 @@ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t
 	cuHdslashd_f<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
 }
 
-void Transpose_f(Complex_f *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
-	Complex_f *holder;
-	cudaMalloc((void **)&holder,fast_in*fast_out*sizeof(Complex_f));
-	cudaMemcpy(holder,out,fast_in*fast_out*sizeof(Complex_f),cudaMemcpyDefault);
-	Transpose_f<<<dimGrid,dimBlock>>>(out,holder,fast_in,fast_out);
-	Complex_f alpha=1; Complex_f beta=0;
+void Transpose_z(Complex *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
+	Complex *holder;
+	cudaMalloc((void **)&holder,fast_in*fast_out*sizeof(Complex));
+	cudaMemcpy(holder,out,fast_in*fast_out*sizeof(Complex),cudaMemcpyDefault);
+	Transpose<<<dimGrid,dimBlock>>>(out,holder,fast_in,fast_out);
 	//cublasCgeam(cublas_handle,CUBLAS_OP_T,CUBLAS_OP_N,fast_in,fast_out,(cuComplex *)&alpha,\
 	//(cuComplex *)out,fast_out,NULL,(cuComplex *)&beta,fast_out,(cuComplex *)holder,fast_out);
 	//cudaMemcpy(out,holder,fast_in*fast_out*sizeof(Complex_f),cudaMemcpyDefault);
+	cudaFree(holder);
+}
+void Transpose_c(Complex_f *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
+	Complex_f *holder;
+	cudaMalloc((void **)&holder,fast_in*fast_out*sizeof(Complex_f));
+	cudaMemcpy(holder,out,fast_in*fast_out*sizeof(Complex_f),cudaMemcpyDefault);
+	Transpose<<<dimGrid,dimBlock>>>(out,holder,fast_in,fast_out);
+	cudaDeviceSynchronise();
+	//cublasCgeam(cublas_handle,CUBLAS_OP_T,CUBLAS_OP_N,fast_in,fast_out,(cuComplex *)&alpha,\
+	//(cuComplex *)out,fast_out,NULL,(cuComplex *)&beta,fast_out,(cuComplex *)holder,fast_out);
+	//cudaMemcpy(out,holder,fast_in*fast_out*sizeof(Complex_f),cudaMemcpyDefault);
+	cudaFree(holder);
+}
+void Transpose_d(double *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
+	double *holder;
+	cudaMalloc((void **)&holder,fast_in*fast_out*sizeof(double));
+	cudaMemcpy(holder,out,fast_in*fast_out*sizeof(double),cudaMemcpyDefault);
+	Transpose<<<dimGrid,dimBlock>>>(out,holder,fast_in,fast_out);
+	//cublasCgeam(cublas_handle,CUBLAS_OP_T,CUBLAS_OP_N,fast_in,fast_out,(cuComplex *)&alpha,\
+	//(cuComplex *)out,fast_out,NULL,(cuComplex *)&beta,fast_out,(cuComplex *)holder,fast_out);
+	//cudaMemcpy(out,holder,fast_in*fast_out*sizeof(double),cudaMemcpyDefault);
+	cudaFree(holder);
+}
+void Transpose_f(float *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
+	float *holder;
+	cudaMalloc((void **)&holder,fast_in*fast_out*sizeof(float));
+	cudaMemcpy(holder,out,fast_in*fast_out*sizeof(float),cudaMemcpyDefault);
+	Transpose<<<dimGrid,dimBlock>>>(out,holder,fast_in,fast_out);
+	//cublasCgeam(cublas_handle,CUBLAS_OP_T,CUBLAS_OP_N,fast_in,fast_out,(cuComplex *)&alpha,\
+	//(cuComplex *)out,fast_out,NULL,(cuComplex *)&beta,fast_out,(cuComplex *)holder,fast_out);
+	//cudaMemcpy(out,holder,fast_in*fast_out*sizeof(float),cudaMemcpyDefault);
 	cudaFree(holder);
 }
 void Transpose_I(int *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
 	int *holder;
 	cudaMalloc((void **)&holder,fast_in*fast_out*sizeof(int));
 	cudaMemcpy(holder,out,fast_in*fast_out*sizeof(int),cudaMemcpyDefault);
-	Transpose_I<<<dimGrid,dimBlock>>>(out,holder,fast_in,fast_out);
-	int alpha=1; int beta=0;
+	Transpose<<<dimGrid,dimBlock>>>(out,holder,fast_in,fast_out);
 	//cublasCgeam(cublas_handle,CUBLAS_OP_T,CUBLAS_OP_N,fast_in,fast_out,(cuComplex *)&alpha,\
 	//(cuComplex *)out,fast_out,NULL,(cuComplex *)&beta,fast_out,(cuComplex *)holder,fast_out);
 	//cudaMemcpy(out,holder,fast_in*fast_out*sizeof(int),cudaMemcpyDefault);
 	cudaFree(holder);
 }
+void Transpose_U(unsigned int *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
+	unsigned int *holder;
+	cudaMalloc((void **)&holder,fast_in*fast_out*sizeof(unsigned int));
+	cudaMemcpy(holder,out,fast_in*fast_out*sizeof(unsigned int),cudaMemcpyDefault);
+	Transpose<<<dimGrid,dimBlock>>>(out,holder,fast_in,fast_out);
+	//cublasCgeam(cublas_handle,CUBLAS_OP_T,CUBLAS_OP_N,fast_in,fast_out,(cuComplex *)&alpha,\
+	//(cuComplex *)out,fast_out,NULL,(cuComplex *)&beta,fast_out,(cuComplex *)holder,fast_out);
+	//cudaMemcpy(out,holder,fast_in*fast_out*sizeof(int),cudaMemcpyDefault);
+	cudaFree(holder);
+}
+
+template __global__ void Transpose<float>(float *, const float*, const int, const int);
+template __global__ void Transpose<double>(double *, const double*, const int, const int);
+template __global__ void Transpose<int>(int *, const int*, const int, const int);
+template __global__ void Transpose<unsigned int>(unsigned int *, const unsigned int*, const int, const int);
+template __global__ void Transpose<Complex_f>(Complex_f *, const Complex_f*, const int, const int);
+template __global__ void Transpose<Complex>(Complex *, const Complex*, const int, const int);

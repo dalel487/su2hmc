@@ -75,17 +75,17 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 #ifdef __NVCC__
 	//Get X1 in single precision, then swap to AoS format
 	cuComplex_convert(X1_f,X1,kferm2,true,dimBlock,dimGrid);
-	Transpose_f(X1_f,ndirac*nc,kvol,dimGrid,dimBlock);
+	Transpose_c(X1_f,ndirac*nc,kvol,dimGrid,dimBlock);
 
 	//And repeat for r
 	cuComplex_convert(r_f,r,kferm2,true,dimBlock,dimGrid);
-	Transpose_f(r_f,ndirac*nc,kvol,dimGrid,dimBlock);
+	Transpose_c(r_f,ndirac*nc,kvol,dimGrid,dimBlock);
 
 	//cudaMemcpy is blocking, so use async instead
 	cudaMemcpyAsync(p_f, X1_f, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice,NULL);
 	//Flip all the gauge fields around so memory is coalesced
-	Transpose_f(u11t,ndim,kvol,dimGrid,dimBlock);
-	Transpose_f(u12t,ndim,kvol,dimGrid,dimBlock);
+	Transpose_c(u11t,ndim,kvol,dimGrid,dimBlock);
+	Transpose_c(u12t,ndim,kvol,dimGrid,dimBlock);
 	Transpose_I(iu,ndim,kvol,dimGrid,dimBlock);
 	Transpose_I(id,ndim,kvol,dimGrid,dimBlock);
 #else
@@ -229,12 +229,12 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 	}
 #ifdef __NVCC__
 //Restore arrays back to their previous salyout
-	Transpose_f(X1_f,kvol,ndirac*nc,dimGrid,dimBlock);
+	Transpose_c(X1_f,kvol,ndirac*nc,dimGrid,dimBlock);
 	cuComplex_convert(X1_f,X1,kferm2,false,dimBlock,dimGrid);
-	Transpose_f(r_f,kvol,ndirac*nc,dimGrid,dimBlock);
+	Transpose_c(r_f,kvol,ndirac*nc,dimGrid,dimBlock);
 	cuComplex_convert(r_f,r,kferm2,false,dimBlock,dimGrid);
-	Transpose_f(u11t,kvol,ndim,dimGrid,dimBlock);
-	Transpose_f(u12t,kvol,ndim,dimGrid,dimBlock);
+	Transpose_c(u11t,kvol,ndim,dimGrid,dimBlock);
+	Transpose_c(u12t,kvol,ndim,dimGrid,dimBlock);
 	Transpose_I(iu,kvol,ndim,dimGrid,dimBlock);
 	Transpose_I(id,kvol,ndim,dimGrid,dimBlock);
 #else
@@ -322,16 +322,16 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 #ifdef __NVCC__
 	//Get xi  in single precision, then swap to AoS format
 	cuComplex_convert(p_f,xi,kferm,true,dimBlock,dimGrid);
-	Transpose_f(p_f,ngorkov*nc,kvol,dimGrid,dimBlock);
+	Transpose_c(p_f,ngorkov*nc,kvol,dimGrid,dimBlock);
 	cudaMemcpy(xi_f,p_f,kferm*sizeof(Complex_f),cudaMemcpyDefault);
 
 	//And repeat for r
 	cuComplex_convert(r_f,Phi+na*kferm,kferm,true,dimBlock,dimGrid);
-	Transpose_f(r_f,ngorkov*nc,kvol,dimGrid,dimBlock);
+	Transpose_c(r_f,ngorkov*nc,kvol,dimGrid,dimBlock);
 
 	//Flip all the gauge fields around so memory is coalesced
-	Transpose_f(u11t,ndim,kvol,dimGrid,dimBlock);
-	Transpose_f(u12t,ndim,kvol,dimGrid,dimBlock);
+	Transpose_c(u11t,ndim,kvol,dimGrid,dimBlock);
+	Transpose_c(u12t,ndim,kvol,dimGrid,dimBlock);
 #else
 #pragma omp parallel for simd aligned(p_f,xi_f,xi,r_f,Phi:AVX)
 	for(int i =0;i<kferm;i++){
@@ -474,11 +474,11 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 #endif
 	}
 #ifdef __NVCC__
-	Transpose_f(xi_f,kvol,ngorkov*nc,dimGrid,dimBlock);
-	Transpose_f(r_f,kvol,ngorkov*nc,dimGrid,dimBlock);
+	Transpose_c(xi_f,kvol,ngorkov*nc,dimGrid,dimBlock);
+	Transpose_c(r_f,kvol,ngorkov*nc,dimGrid,dimBlock);
 
-	Transpose_f(u11t,kvol,ndim,dimGrid,dimBlock);
-	Transpose_f(u12t,kvol,ndim,dimGrid,dimBlock);
+	Transpose_c(u11t,kvol,ndim,dimGrid,dimBlock);
+	Transpose_c(u12t,kvol,ndim,dimGrid,dimBlock);
 	cudaDeviceSynchronise();
 	cuComplex_convert(xi_f,xi,kferm,false,dimBlock,dimGrid);
 #else

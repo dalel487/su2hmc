@@ -224,20 +224,20 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 #ifdef __NVCC__
 				cudaMemPrefetchAsync(xi,kferm*sizeof(Complex),device,NULL);
 				//Transpose needed here for Dslash_f
-				Transpose_f(xi_f,ngorkov*nc,kvol,dimGrid,dimBlock);
-				Transpose_f(R1_f,ngorkov*nc,kvol,dimGrid,dimBlock);
+				Transpose_c(xi_f,ngorkov*nc,kvol,dimGrid,dimBlock);
+				Transpose_c(R1_f,ngorkov*nc,kvol,dimGrid,dimBlock);
 				//Flip all the gauge fields around so memory is coalesced
-				Transpose_f(u11t_f,ndim,kvol,dimGrid,dimBlock);
-				Transpose_f(u12t_f,ndim,kvol,dimGrid,dimBlock);
+				Transpose_c(u11t_f,ndim,kvol,dimGrid,dimBlock);
+				Transpose_c(u12t_f,ndim,kvol,dimGrid,dimBlock);
 				cudaDeviceSynchronise();
 #endif
 				Dslash_f(xi_f,R1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 #ifdef __NVCC__
-				Transpose_f(xi_f,kvol,ngorkov*nc,dimGrid,dimBlock);
+				Transpose_c(xi_f,kvol,ngorkov*nc,dimGrid,dimBlock);
 				cudaMemPrefetchAsync(xi_f,kferm*sizeof(Complex_f),device,NULL);
-				Transpose_f(R1_f,kvol,ngorkov*nc,dimGrid,dimBlock);
-				Transpose_f(u11t_f,kvol,ndim,dimGrid,dimBlock);
-				Transpose_f(u12t_f,kvol,ndim,dimGrid,dimBlock);
+				Transpose_c(R1_f,kvol,ngorkov*nc,dimGrid,dimBlock);
+				Transpose_c(u11t_f,kvol,ndim,dimGrid,dimBlock);
+				Transpose_c(u12t_f,kvol,ndim,dimGrid,dimBlock);
 				cudaDeviceSynchronise();
 #endif
 				output = fopen("dslash", "w");
@@ -305,20 +305,20 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 #ifdef __NVCC__
 				cudaMemPrefetchAsync(xi,kferm*sizeof(Complex),device,NULL);
 				//Transpose needed here for Dslashd_f
-				Transpose_f(xi_f,ngorkov*nc,kvol,dimGrid,dimBlock);
-				Transpose_f(R1_f,ngorkov*nc,kvol,dimGrid,dimBlock);
+				Transpose_c(xi_f,ngorkov*nc,kvol,dimGrid,dimBlock);
+				Transpose_c(R1_f,ngorkov*nc,kvol,dimGrid,dimBlock);
 				//Flip all the gauge fields around so memory is coalesced
-				Transpose_f(u11t_f,ndim,kvol,dimGrid,dimBlock);
-				Transpose_f(u12t_f,ndim,kvol,dimGrid,dimBlock);
+				Transpose_c(u11t_f,ndim,kvol,dimGrid,dimBlock);
+				Transpose_c(u12t_f,ndim,kvol,dimGrid,dimBlock);
 				cudaDeviceSynchronise();
 #endif
 				Dslashd_f(xi_f,R1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 #ifdef __NVCC__
-				Transpose_f(xi_f,kvol,ngorkov*nc,dimGrid,dimBlock);
+				Transpose_c(xi_f,kvol,ngorkov*nc,dimGrid,dimBlock);
 				cudaMemPrefetchAsync(xi_f,kferm*sizeof(Complex_f),device,NULL);
-				Transpose_f(R1_f,kvol,ngorkov*nc,dimGrid,dimBlock);
-				Transpose_f(u11t_f,kvol,ndim,dimGrid,dimBlock);
-				Transpose_f(u12t_f,kvol,ndim,dimGrid,dimBlock);
+				Transpose_c(R1_f,kvol,ngorkov*nc,dimGrid,dimBlock);
+				Transpose_c(u11t_f,kvol,ndim,dimGrid,dimBlock);
+				Transpose_c(u12t_f,kvol,ndim,dimGrid,dimBlock);
 				cudaDeviceSynchronise();
 #endif
 				output = fopen("dslashd", "w");
@@ -379,19 +379,19 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 				fclose(output_old);fclose(output_f_old);
 				#ifdef __NVCC__
 			//Transpose needed here for Dslashd
-			Transpose_f(X0_f,ndirac*nc,kvol,dimGrid,dimBlock);
-			Transpose_f(X1_f,ndirac*nc,kvol,dimGrid,dimBlock);
+			Transpose_c(X0_f,ndirac*nc,kvol,dimGrid,dimBlock);
+			Transpose_c(X1_f,ndirac*nc,kvol,dimGrid,dimBlock);
 			//Flip all the gauge fields around so memory is coalesced
-			Transpose_f(u11t_f,ndim,kvol,dimGrid,dimBlock);
-			Transpose_f(u12t_f,ndim,kvol,dimGrid,dimBlock);
+			Transpose_c(u11t_f,ndim,kvol,dimGrid,dimBlock);
+			Transpose_c(u12t_f,ndim,kvol,dimGrid,dimBlock);
 			#endif
 				Hdslash(X1,X0,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
 				Hdslash_f(X1_f,X0_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,akappa);
 #ifdef __NVCC__
-			Transpose_f(X0_f,kvol,ndirac*nc,dimGrid,dimBlock);
-			Transpose_f(X1_f,kvol,ndirac*nc,dimGrid,dimBlock);
-			Transpose_f(u11t_f,kvol,ndim,dimGrid,dimBlock);
-			Transpose_f(u12t_f,kvol,ndim,dimGrid,dimBlock);
+			Transpose_c(X0_f,kvol,ndirac*nc,dimGrid,dimBlock);
+			Transpose_c(X1_f,kvol,ndirac*nc,dimGrid,dimBlock);
+			Transpose_c(u11t_f,kvol,ndim,dimGrid,dimBlock);
+			Transpose_c(u12t_f,kvol,ndim,dimGrid,dimBlock);
 				cudaDeviceSynchronise();
 #endif
 				output = fopen("hdslash", "w");	output_f = fopen("hdslash_f", "w");
@@ -449,19 +449,19 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 				}
 				#ifdef __NVCC__
 			//Transpose needed here for Dslashd
-			Transpose_f(X0_f,ndirac*nc,kvol,dimGrid,dimBlock);
-			Transpose_f(X1_f,ndirac*nc,kvol,dimGrid,dimBlock);
+			Transpose_c(X0_f,ndirac*nc,kvol,dimGrid,dimBlock);
+			Transpose_c(X1_f,ndirac*nc,kvol,dimGrid,dimBlock);
 			//Flip all the gauge fields around so memory is coalesced
-			Transpose_f(u11t_f,ndim,kvol,dimGrid,dimBlock);
-			Transpose_f(u12t_f,ndim,kvol,dimGrid,dimBlock);
+			Transpose_c(u11t_f,ndim,kvol,dimGrid,dimBlock);
+			Transpose_c(u12t_f,ndim,kvol,dimGrid,dimBlock);
 			#endif
 				Hdslashd(X1,X0,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
 				Hdslashd_f(X1_f,X0_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,akappa);
 #ifdef __NVCC__
-			Transpose_f(X0_f,kvol,ndirac*nc,dimGrid,dimBlock);
-			Transpose_f(X1_f,kvol,ndirac*nc,dimGrid,dimBlock);
-			Transpose_f(u11t_f,kvol,ndim,dimGrid,dimBlock);
-			Transpose_f(u12t_f,kvol,ndim,dimGrid,dimBlock);
+			Transpose_c(X0_f,kvol,ndirac*nc,dimGrid,dimBlock);
+			Transpose_c(X1_f,kvol,ndirac*nc,dimGrid,dimBlock);
+			Transpose_c(u11t_f,kvol,ndim,dimGrid,dimBlock);
+			Transpose_c(u12t_f,kvol,ndim,dimGrid,dimBlock);
 				cudaDeviceSynchronise();
 #endif
 				output = fopen("hdslashd", "w");	output_f = fopen("hdslashd_f", "w");
