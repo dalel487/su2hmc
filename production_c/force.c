@@ -261,8 +261,18 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 		//  both these arrays, each of which has 8 cpts
 		//
 #ifdef __NVCC__
-		cudaDeviceSynchronise();
-		cuForce(dSdpi,u11t_f,u12t_f,X1,X2,gamval_f,dk4m_f,dk4p_f,iu,gamin,akappa,dimGrid,dimBlock);
+	Complex_f *X1_f, *X2_f;
+	cudaMallocAsync((void **)&X1_f,kferm2*sizeof(Complex_f),NULL);
+	cuComplex_convert(X1_f,X1,kferm2,true,dimBlock,dimGrid);
+	Transpose_c(X1_f,ndirac*nc,kvol,dimGrid,dimBlock);
+
+	cudaMallocAsync((void **)&X2_f,kferm2*sizeof(Complex_f),NULL);
+	cuComplex_convert(X2_f,X2,kferm2,true,dimBlock,dimGrid);
+	Transpose_c(X2_f,ndirac*nc,kvol,dimGrid,dimBlock);
+//	Transpose_z(X1,kvol,ndirac*nc,dimGrid,dimBlock); Transpose_z(X2,kvol,ndirac*nc,dimGrid,dimBlock);
+		cuForce(dSdpi,u11t_f,u12t_f,X1_f,X2_f,gamval_f,dk4m_f,dk4p_f,iu,gamin,akappa,dimGrid,dimBlock);
+	cudaDeviceSynchronise();
+	cudaFreeAsync(X1_f,NULL); cudaFreeAsync(X2_f,NULL);
 #else
 #pragma omp parallel for
 		for(int i=0;i<kvol;i++)

@@ -344,7 +344,7 @@ extern "C"
 			dim3 dimGrid, dim3 dimBlock);
 	void cuMinus_staple(int mu, int nu, unsigned int *iu, unsigned int *id, Complex_f *Sigma11, Complex_f *Sigma12,\
 			Complex_f *u11sh, Complex_f *u12sh,Complex_f *u11t, Complex_f*u12t,	dim3 dimGrid, dim3 dimBlock);
-	void cuForce(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Complex *X1, Complex *X2, \
+	void cuForce(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Complex_f *X1, Complex_f *X2, \
 			Complex_f *gamval,float *dk4m, float *dk4p,unsigned int *iu,int *gamin,\
 			float akappa, dim3 dimGrid, dim3 dimBlock);
 	//cuInit was taken already by CUDA (unsurprisingly)
@@ -380,9 +380,9 @@ __device__ float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int
 //Force Kernels. We've taken each nadj index and the spatial/temporal components and created a separate kernel for each
 //CPU code just has these as a huge blob that the vectoriser can't handle. May be worth splitting it there too?
 //It might not be a bad idea to make a seperate header for all these kernels...
-__global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Complex *X1, Complex *X2, Complex_f *gamval,
+__global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Complex_f *X1, Complex_f *X2, Complex_f *gamval,
 		unsigned int *iu, int *gamin,float akappa, int mu);
-__global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Complex *X1, Complex *X2, Complex_f *gamval,\
+__global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Complex_f *X1, Complex_f *X2, Complex_f *gamval,\
 		float *dk4m, float *dk4p, unsigned int *iu, int *gamin,float akappa);
 __global__ void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi);
 __global__ void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu);

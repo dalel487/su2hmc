@@ -21,7 +21,7 @@ void cuMinus_staple(int mu, int nu, unsigned int *iu, unsigned int *id, Complex_
 	const char *funcname="Minus_staple";
 	Minus_staple<<<dimGrid,dimBlock>>>(mu, nu, iu, id,Sigma11,Sigma12,u11sh,u12sh,u11t,u12t);
 }
-void cuForce(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Complex *X1, Complex *X2, \
+void cuForce(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Complex_f *X1, Complex_f *X2, \
 		Complex_f *gamval,float *dk4m, float *dk4p,unsigned int *iu,int *gamin,\
 		float akappa, dim3 dimGrid, dim3 dimBlock){
 	const char *funcname = "Force";
@@ -29,7 +29,7 @@ void cuForce(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Complex *X1, Compl
 	Transpose_U(iu,ndim,kvol,dimGrid,dimBlock);
 	Transpose_d(dSdpi,nadj*ndim,kvol,dimGrid,dimBlock);
 	Transpose_c(u11t,ndim,kvol,dimGrid,dimBlock); Transpose_c(u12t,ndim,kvol,dimGrid,dimBlock);
-	Transpose_z(X1,ndirac*nc,kvol,dimGrid,dimBlock); Transpose_z(X2,ndirac*nc,kvol,dimGrid,dimBlock);
+//	Transpose_z(X1,ndirac*nc,kvol,dimGrid,dimBlock); Transpose_z(X2,ndirac*nc,kvol,dimGrid,dimBlock);
 	cudaDeviceSynchronise();
 	for(int mu=0;mu<3;mu++){
 		cuForce_s<<<dimGrid,dimBlock,0,streams[mu]>>>(dSdpi,u11t,u12t,X1,X2,gamval,iu,gamin,akappa,mu);
@@ -40,7 +40,7 @@ void cuForce(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Complex *X1, Compl
 	int mu=3;
 	cuForce_t<<<dimGrid,dimBlock,0,streams[mu]>>>(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa);
 	cudaDeviceSynchronise();
-	Transpose_z(X1,kvol,ndirac*nc,dimGrid,dimBlock); Transpose_z(X2,kvol,ndirac*nc,dimGrid,dimBlock);
+//	Transpose_z(X1,kvol,ndirac*nc,dimGrid,dimBlock); Transpose_z(X2,kvol,ndirac*nc,dimGrid,dimBlock);
 	Transpose_c(u11t,kvol,ndim,dimGrid,dimBlock); Transpose_c(u12t,kvol,ndim,dimGrid,dimBlock);
 	Transpose_U(iu,kvol,ndim,dimGrid,dimBlock); 	
 	Transpose_d(dSdpi,kvol,nadj*ndim,dimGrid,dimBlock);
@@ -103,7 +103,7 @@ __global__ void cuGaugeForce(int mu, Complex_f *Sigma11, Complex_f *Sigma12,doub
 	}
 }
 
-__global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Complex *X1, Complex *X2, Complex_f *gamval,\
+__global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Complex_f *X1, Complex_f *X2, Complex_f *gamval,\
 		unsigned int *iu, int *gamin,float akappa, int mu){
 	const char *funcname = "cuForce";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
@@ -226,7 +226,7 @@ __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 		}
 	}
 }
-__global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Complex *X1, Complex *X2, Complex_f *gamval,\
+__global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Complex_f *X1, Complex_f *X2, Complex_f *gamval,\
 		float *dk4m, float *dk4p, unsigned int *iu, int *gamin,float akappa){
 	const char *funcname = "cuForce";
 	//Up indices
