@@ -85,7 +85,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 	//direction
 	if(ibound == -1 && pcoord[3+ndim*rank]==npt-1){
 #ifdef _DEBUG
-		printf("Implimenting antiperiodic boundary conditions on rank %i\n", rank);
+		printf("Implementing antiperiodic boundary conditions on rank %i\n", rank);
 #endif
 #pragma omp parallel for simd aligned(dk4m,dk4p:AVX)
 		for(int k= kvol-1; k>=kvol-kvol3; k--){
