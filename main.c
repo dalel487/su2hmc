@@ -443,6 +443,8 @@ int main(int argc, char *argv[]){
 			//Transpose needed here for Dslashd
 			Transpose_c(R1_f,ngorkov*nc,kvol,dimGrid,dimBlock);
 			Transpose_c(R,ngorkov*nc,kvol,dimGrid,dimBlock);
+			//R is random so this techincally isn't required. But it does keep the code output consistent with previous
+			//versions.
 			//Flip all the gauge fields around so memory is coalesced
 			Transpose_c(u11t_f,ndim,kvol,dimGrid,dimBlock);
 			Transpose_c(u12t_f,ndim,kvol,dimGrid,dimBlock);
