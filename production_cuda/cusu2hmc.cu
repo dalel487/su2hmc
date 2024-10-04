@@ -149,7 +149,7 @@ void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned
 void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu,dim3 dimBlock, dim3 dimGrid)
 {
 	const char *funcname = "cuZ_gather";
-	cuGgather<<<dimGrid,dimBlock>>>(x,y,n,table,mu);
+	cuGather<<<dimGrid,dimBlock>>>(x,y,n,table,mu);
 }
 void cuUpDownPart(int na, Complex *X0, Complex *R1,dim3 dimBlock, dim3 dimGrid){
 	cuUpDownPart<<<dimGrid,dimBlock>>>(na,X0,R1);	
@@ -211,8 +211,7 @@ __global__ void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
 				//	  PHI_index=i*16+j*2+k;
 				smallPhi[(i*ndirac+idirac)*nc+ic]=Phi[((na*kvol+i)*ngorkov+idirac)*nc+ic];
 }
-template <typename T>
-__global__ void cuGather(T *x, T *y, int n, unsigned int *table, unsigned int mu)
+template <typename T> __global__ void cuGather(T *x, T *y, int n, unsigned int *table, unsigned int mu)
 {
 	const char *funcname = "cuZ_gather";
 	//FORTRAN had a second parameter m giving the size of y (kvol+halo) normally
@@ -265,14 +264,7 @@ __global__ void cuReunitarise(Complex *u11t, Complex * u12t){
 	for(int i=gthreadId; i<kvol*ndim; i+=gsize*bsize){
 		//Declaring anorm inside the loop will hopefully let the compiler know it
 		//is safe to vectorise aggessively
-		double anorm=sqrt(conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]).real();
-		//		Exception handling code. May be faster to leave out as the exit prevents vectorisation.
-		//		if(anorm==0){
-		//			fprintf(stderr, "Error %i in %s on rank %i: anorm = 0 for μ=%i and i=%i.\nExiting...\n\n",
-		//					DIVZERO, funcname, rank, mu, i);
-		//			MPI_Finalise();
-		//			exit(DIVZERO);
-		//		}
+		double anorm=sqrt((conj(u11t[i])*u11t[i]).real()+(conj(u12t[i])*u12t[i]).real());
 		u11t[i]/=anorm;
 		u12t[i]/=anorm;
 	}
@@ -303,10 +295,3 @@ __global__ void cuGauge_Update(const double d, double *pp, Complex *u11t, Comple
 		u12t[i*ndim+mu] = a11*u12t[i*ndim+mu]+a12*conj(b11);
 	}
 }
-
-/*
-template <typename complex<float> > __global__ void cuGather(complex<float> *x, complex<float> *y, int n, unsigned int *table, unsigned int mu);
-template <typename complex<double> > __global__ void cuGather(complex<double> *x, complex<double> *y, int n, unsigned int *table, unsigned int mu);
-template <typename float> __global__ void cuGather(float *x, float *y, int n, unsigned int *table, unsigned int mu);
-template <typename double> __global__ void cuGather(double *x, double *y, int n, unsigned int *table, unsigned int mu);
-*/

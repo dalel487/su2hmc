@@ -385,8 +385,7 @@ __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Complex_f *X1, Complex_f *X2, Complex_f *gamval,\
 		float *dk4m, float *dk4p, unsigned int *iu, int *gamin,float akappa);
 __global__ void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi);
-__global__ void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu);
-__global__ void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu);
+template <typename T>__global__ void cuGather(T *x, T *y, int n, unsigned int *table, unsigned int mu);
 __global__ void cuComplex_convert(Complex_f *a, Complex *b, int len, bool dtof);
 __global__ void cuReal_convert(float *a, double *b, int len, bool dtof);
 __global__ void cuUpDownPart(int na, Complex *X0, Complex *R1);
