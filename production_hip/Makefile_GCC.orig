@@ -1,0 +1,148 @@
+MF=Makefile_GCC
+CC=		gcc-13
+<<<<<<< HEAD
+CXX=		hipify-clang
+=======
+CXX=		g++-13
+>>>>>>> f18c15a (Last commit may have worked better if I had added the renamed files)
+HIPCC=	hipcc
+HIP_PLATFORM='amd'
+
+IFLAGS=     -I../INCLUDE/ -I ${AOCL_ROOT}/include $(shell gsl-config --cflags)\
+				-I /opt/rocm/include/hipblas -I /opt/rocm/include/hip
+			#	-I /opt/nvidia/hpc_sdk/Linux_x86_64/2024/cuda/include/ \
+			#	-I /opt/nvidia/hpc_sdk/Linux_x86_64/2024/math_libs/include/ 
+
+<<<<<<< HEAD
+CFLAGS=	$(IFLAGS) -std=gnu11 -fcommon -D__HIPCC__ -march=native -D__HIPCC__\
+=======
+CFLAGS=	$(IFLAGS) -std=gnu11 -fcommon -D__HIPCC__ -march=native\
+>>>>>>> f18c15a (Last commit may have worked better if I had added the renamed files)
+		-fopenmp -fopenmp-simd -static-libgcc -DSA3AT -flto -D__HIP_PLATFORM_AMD__\
+		-foffload=disable #amdgcn-amdhsa="-march=gfx902" #-fopenacc\
+#		-pg -fprofile-arcs-foffload=amdgcn-amdhsa="-march=gfx90c"
+
+<<<<<<< HEAD
+HIPLFLAGS=	-L/opt/rocm/lib/ -lhipblas  #-lhip -lhiprt 
+
+LFLAGS=	-L${AOCL_ROOT}/lib -L/usr/local/lib64 -ldl -lamdlibm  \
+			-lm -lalm -lm -lblis -lamdalloc -latomic $(shell gsl-config --libs-without-cblas)
+
+HIPCCFLAGS=	${IFLAGS} -famd-opt -err-no -w #-expt-relaxed-constexpr 
+=======
+HIPLFLAGS=	-L/opt/rocm/lib/ -lhipblas #-lhip -lhiprt 
+
+LFLAGS=	-Wl -L${AOCL_ROOT}/lib -L/usr/local/lib64 -ldl -lamdlibm -fveclib=AMDLIBM \
+			-lm -lalm -lm -lblis -lamdalloc -latomic $(shell gsl-config --libs-without-cblas)
+
+HIPCCFLAGS=	${IFLAGS} -famd-opt -std=c++14 -err-no -w #-expt-relaxed-constexpr 
+>>>>>>> f18c15a (Last commit may have worked better if I had added the renamed files)
+			#Last flag is an experimental one used to call host functions in device code. Not sure
+			#if it does what we want because the error message suggesting it came up when declaring
+			#a11 and a12 in the Dslash routine
+#Replace first line of HIPCCFLAGS with below when done. Targets every platform since 2016
+#HIPCCFLAGS=	${IFLAGS}  -arch=compute_60 -code=sm_60,sm_61,sm_70,sm_75,sm_80,sm_86,sm_90 -err-no -w \
+
+EXE=	su2hmc_HIP
+
+CSRC_DIR=	../production_c
+CSRC=	\
+	    coord.c \
+	    congrad.c \
+		force.c \
+    	random.c \
+		par_mpi.c \
+		bosonic.c\
+		fermionic.c\
+		diagnostics.c
+
+HIPSRC_DIR=	../production_hip
+HIPSRC=	\
+		hipbosonic.hip\
+		hipmatrices.hip\
+		hipforce.hip\
+		hipsu2hmc.hip
+
+#HIPSRC= HIPDA_Compile.hip
+CINC=	\
+		su2hmc.h \
+		sizes.h \
+	    par_mpi.h \
+    	random.h \
+	    matrices.h \
+    	coord.h \
+<<<<<<< HEAD
+	    errorcodes.h 
+=======
+	    errorcodes.h \
+>>>>>>> f18c15a (Last commit may have worked better if I had added the renamed files)
+
+#
+# No need to edit below this line
+#
+
+.SUFFIXES: .c .hip .h .hpp .o 
+.PHONY: clean debug release profiler tar
+C_SOURCES:= $(wildcard $(CSRC_DIR)/*.c)
+HIP_SOURCES:= $(wildcard $(HIPSRC_DIR)/*.hip)
+COBJ=	$(patsubst $(CSRC_DIR)/%.c, $(CSRC_DIR)/%.o, $(C_SOURCES))
+HIPOBJ= $(patsubst $(HIPSRC_DIR)/%.hip, $(HIPSRC_DIR)/%.o, $(HIP_SOURCES))
+#CLIB= libc.a
+#HIPLIB= libhip.a
+#HIPLIB2= libhip2.a
+#OBJ=	$(CLIB) $(HIPLIB2)
+OBJ = $(COBJ) $(HIPOBJ) 
+
+#MOD=	$(CSRC:.c=.mod)
+MOD=	
+CEDT=	$(CSRC:.c=.c~)
+HIPEDT=	$(HIPSRC:.hip=.hip~)
+TMP=	$(MOD) $(CEDT) $(HIPEDT) core
+
+profiler:	CFLAGS += -g #-D_DEBUG
+profiler:	HIPCCFLAGS += -lineinfo # -D_DEBUG#-keep
+profiler:	release
+
+release:	CFLAGS +=  -Ofast -funroll-all-loops -fcf-protection=none #-fprofile-use=./gcc_pgo
+<<<<<<< HEAD
+release:	HIPCCFLAGS += --offload-arch=gfx1032 -G #-dopt=on
+=======
+release:	HIPCCFLAGS += --offload-arch=gfx1034 -G #-dopt=on
+>>>>>>> f18c15a (Last commit may have worked better if I had added the renamed files)
+release:	$(EXE)
+
+diagnostic: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
+diagnostic: HIPCCFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
+diagnostic: debug
+
+debug:		CFLAGS += -O0 -g -D_DEBUG -rdynamic 
+debug:		HIPCCFLAGS += -Xptxas -O0,-v -G -g -D_DEBUG -arch=sm_75 --maxrregcount=255  -keep 
+debug:		$(EXE)
+		 
+<<<<<<< HEAD
+$(EXE):   ../main.c $(OBJ)
+	$(CXX) $(HIPCCFLAGS) -Xcompiler "$(CFLAGS) -std=gnu11 -flto" $(LFLAGS) $(HIPLFLAGS) $(OBJ) -x c $< -o $@
+#	$(CXX)  $(CFLAGS) -std=gnu11 -flto $(LFLAGS) $(HIPLFLAGS) $(OBJ) -x c $< -o $@
+#	$(HIPCC) $(HIPCCFLAGS) -Xcompiler "$(CFLAGS) -std=gnu11 -flto" $(LFLAGS) $(HIPLFLAGS) $^ -o $@
+%.o: $(HIPSRC_DIR)/%.hip
+	$(HIPCC) $(HIPCCFLAGS) -std=c++14 -Xcompiler "$(CFLAGS) -flto" -c $^ -o $@
+%.o: $(CSRC_DIR)%.c
+	$(CC) -std=gnu11 -flto $(CFLAGS) -c $^  
+=======
+$(EXE): ../main.c $(OBJ)
+	$(HIPCC) $(HIPCCFLAGS) -Xcompiler "$(CFLAGS) -std=gnu11 -ipo" $(LFLAGS) $(HIPLFLAGS) $^ -o $@
+%.o: $(HIPSRC_DIR)/%.hip
+	$(HIPCC) $(HIPCCFLAGS) -Xcompiler "$(CFLAGS)" -c $^ -o $@
+%.o: $(CSRC_DIR)%.c
+	$(CC) -std=gnu11 -ipo $(CFLAGS) -c $^  
+>>>>>>> f18c15a (Last commit may have worked better if I had added the renamed files)
+
+clean:
+	rm -f $(OBJ) $(COBJ) $(HIPOBJ) $(HIPLIB) $(CLIB) $(TMP) *.cpp?.ii *.cudafe1.* *.*bin *.fatbin.c *.ptx *.sm_* *module_id \
+	*dlink* *.ltoir *.d i?_out
+
+INP=	\
+	midout \
+
+tar:
+	tar cvf $(EXE).tar $(MF) $(CSRC) $(HIPSRC) $(CINC) $(HIPINC) $(INP)
