@@ -179,10 +179,10 @@ __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 			dSdpi[i+kvol*(ndim+mu)]=dSdpis[1];
 
 			dSdpis[2]+=-(gamval[mu*ndirac+idirac]*
-					(conj(X1s[0])*(u11s *X2su[0]+u12s *X2su[1])
+					(conj(X1s[0])*(u11s*X2su[0]+u12s*X2su[1])
 					 +conj(X1s[1])*(conj(u12s)*X2su[0]-conj(u11s)*X2su[1])
-					 +conj(X1su[0])*(conj(u11s)*X2s[0]+u12s *X2s[1])
-					 +conj(X1su[1])*(conj(u12s)*X2s[0]-u11s *X2s[1]))).imag();
+					 +conj(X1su[0])*(conj(u11s)*X2s[0]+u12s*X2s[1])
+					 +conj(X1su[1])*(conj(u12s)*X2s[0]-u11s*X2s[1]))).imag();
 			//dSdpi[(i*nadj+2)*ndim+mu]=dSdpis[2];
 			dSdpi[i+kvol*(2*ndim+mu)]=dSdpis[2];
 		}

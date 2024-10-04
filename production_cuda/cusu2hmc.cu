@@ -144,12 +144,12 @@ void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi, dim3 dimBlock, di
 void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu,dim3 dimBlock, dim3 dimGrid)
 {
 	const char *funcname = "cuZ_gather";
-	cuC_gather<<<dimGrid,dimBlock>>>(x,y,n,table,mu);
+	cuGather<<<dimGrid,dimBlock>>>(x,y,n,table,mu);
 }
 void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu,dim3 dimBlock, dim3 dimGrid)
 {
 	const char *funcname = "cuZ_gather";
-	cuZ_gather<<<dimGrid,dimBlock>>>(x,y,n,table,mu);
+	cuGgather<<<dimGrid,dimBlock>>>(x,y,n,table,mu);
 }
 void cuUpDownPart(int na, Complex *X0, Complex *R1,dim3 dimBlock, dim3 dimGrid){
 	cuUpDownPart<<<dimGrid,dimBlock>>>(na,X0,R1);	
@@ -211,20 +211,8 @@ __global__ void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
 				//	  PHI_index=i*16+j*2+k;
 				smallPhi[(i*ndirac+idirac)*nc+ic]=Phi[((na*kvol+i)*ngorkov+idirac)*nc+ic];
 }
-__global__ void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu)
-{
-	const char *funcname = "cuZ_gather";
-	//FORTRAN had a second parameter m giving the size of y (kvol+halo) normally
-	//Pointers mean that's not an issue for us so I'm leaving it out
-	const int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	const int gthreadId= blockId * bsize+bthreadId;
-	for(int i = gthreadId; i<n;i+=gsize*bsize)
-		x[i]=y[table[i*ndim+mu]*ndim+mu];
-}
-__global__ void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu)
+template <typename T>
+__global__ void cuGather(T *x, T *y, int n, unsigned int *table, unsigned int mu)
 {
 	const char *funcname = "cuZ_gather";
 	//FORTRAN had a second parameter m giving the size of y (kvol+halo) normally
@@ -315,3 +303,10 @@ __global__ void cuGauge_Update(const double d, double *pp, Complex *u11t, Comple
 		u12t[i*ndim+mu] = a11*u12t[i*ndim+mu]+a12*conj(b11);
 	}
 }
+
+/*
+template <typename complex<float> > __global__ void cuGather(complex<float> *x, complex<float> *y, int n, unsigned int *table, unsigned int mu);
+template <typename complex<double> > __global__ void cuGather(complex<double> *x, complex<double> *y, int n, unsigned int *table, unsigned int mu);
+template <typename float> __global__ void cuGather(float *x, float *y, int n, unsigned int *table, unsigned int mu);
+template <typename double> __global__ void cuGather(double *x, double *y, int n, unsigned int *table, unsigned int mu);
+*/
