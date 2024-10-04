@@ -1,0 +1,123 @@
+MF=Makefile_AOCC
+CC=		clang
+CXX=		clang++ 
+HIPCC=	hipcc 
+HIP_PLATFORM='amd'
+HIP_PATH ?= $(shell hipconfig --path)
+
+IFLAGS=     -I../INCLUDE/ -I ${AOCL_ROOT}/include $(shell gsl-config --cflags)\
+				-I $(HIP_PATH)/include/hipblas -I $(HIP_PATH)/include/hip
+			#	-I /opt/nvidia/hpc_sdk/Linux_x86_64/2024/cuda/include/ \
+			#	-I /opt/nvidia/hpc_sdk/Linux_x86_64/2024/math_libs/include/ 
+
+CFLAGS=	$(IFLAGS) -std=gnu11 -fcommon -march=native  -DINT_OMP2 -D__HIPCC__\
+		-fopenmp=libgomp -fopenmp-simd -static-libgcc -DSA3AT  -D__HIP_PLATFORM_AMD__\
+		#-foffload=disable #amdgcn-amdhsa="-march=gfx902" #-fopenacc\
+
+ifdef AOCL_ROOT
+CFLAGS += -DAMD_BLAS -I ${AOCL_ROOT}/include 
+LFLAGS += -L${AOCL_ROOT}/lib/ -lblis -lamdlibm -lalm -lamdalloc  -lstdc++ -lpthread -ldl
+else ifdef LIBSCI_BASE_DIR
+#Automatic on LUMI?
+#LFLAGS = ‐L${LIBSCI_BASE_DIR}/gnu/91/x86_64/lib/ -lsci_comp
+else
+CFLAGS += -DUSE_BLAS 
+LFLAGS	+=	-lm $(shell gsl-config --libs)
+endif
+LFLAGS	+=	-lm -lomp -latomic -ldl $(shell gsl-config --libs-without-cblas)
+
+HIPLFLAGS=	-L$(HIP_PATH)/lib/ -lhipblas  #-lhip -lhiprt 
+
+LFLAGS+=	-lm -lm -latomic $(shell gsl-config --libs-without-cblas)
+
+HIPCCFLAGS=	${IFLAGS} -famd-opt -w -DINT_OMF2 #-expt-relaxed-constexpr 
+			#Last flag is an experimental one used to call host functions in device code. Not sure
+			#if it does what we want because the error message suggesting it came up when declaring
+			#a11 and a12 in the Dslash routine
+
+EXE=	su2hmc_HIP
+
+CSRC_DIR=	../production_c
+CSRC=	\
+	    coord.c \
+	    congrad.c \
+		force.c \
+    	random.c \
+		par_mpi.c \
+		bosonic.c\
+		fermionic.c\
+		diagnostics.c
+
+HIPSRC_DIR=	../production_hip
+HIPSRC=	\
+		hipbosonic.hip.cpp\
+		hipmatrices.hip.cpp\
+		hipforce.hip.cpp\
+		hipsu2hmc.hip.cpp
+
+#HIPSRC= HIPDA_Compile.hip
+CINC=	\
+		su2hmc.h \
+		sizes.h \
+	    par_mpi.h \
+    	random.h \
+	    matrices.h \
+    	coord.h \
+	    errorcodes.h 
+
+#
+# No need to edit below this line
+#
+
+.SUFFIXES: .c .hip.cpp .h .hpp .o 
+.PHONY: clean debug release profiler tar
+C_SOURCES:= $(wildcard $(CSRC_DIR)/*.c)
+HIP_SOURCES:= $(wildcard $(HIPSRC_DIR)/*.hip.cpp)
+COBJ=	$(patsubst $(CSRC_DIR)/%.c, $(CSRC_DIR)/%.o, $(C_SOURCES))
+HIPOBJ= $(patsubst $(HIPSRC_DIR)/%.hip.cpp, $(HIPSRC_DIR)/%.o, $(HIP_SOURCES))
+#CLIB= libc.a
+#HIPLIB= libhip.a
+#HIPLIB2= libhip2.a
+#OBJ=	$(CLIB) $(HIPLIB2)
+OBJ = $(COBJ) $(HIPOBJ) 
+
+#MOD=	$(CSRC:.c=.mod)
+MOD=	
+CEDT=	$(CSRC:.c=.c~)
+HIPEDT=	$(HIPSRC:.hip.cpp=.hip.cpp~)
+TMP=	$(MOD) $(CEDT) $(HIPEDT) core
+
+profiler:	CFLAGS += -g #-D_DEBUG
+profiler:	HIPCCFLAGS += -lineinfo # -D_DEBUG#-keep
+profiler:	release
+
+release:	CFLAGS +=  -Ofast -funroll-all-loops -fcf-protection=none #-fprofile-use=./gcc_pgo
+release:	HIPCCFLAGS += --offload-arch=gfx1032 #-dopt=on
+release:	$(EXE)
+
+diagnostic: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
+diagnostic: HIPCCFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
+diagnostic: debug
+
+debug:		CFLAGS += -O0 -g -D_DEBUG -rdynamic 
+debug:		HIPCCFLAGS += -Xptxas -O0,-v -G -g -D_DEBUG -arch=sm_75 --maxrregcount=255  -keep 
+debug:		$(EXE)
+		 
+$(EXE):   ../main.c $(OBJ)
+	$(HIPCC) $(HIPCCFLAGS)  -std=gnu11 -Xcompiler "$(CFLAGS) -flto" $(LFLAGS) $(HIPLFLAGS) $(OBJ) -x c $< -o $@
+#	$(CXX)  $(CFLAGS) -std=gnu11 -flto $(LFLAGS) $(HIPLFLAGS) $(OBJ) -x c $< -o $@
+#	$(CXX) $(HIPCCFLAGS) -Xcompiler "$(CFLAGS) -std=gnu11 -flto" $(LFLAGS) $(HIPLFLAGS) $(OBJ) -x c $< -o $@
+%.o: $(HIPSRC_DIR)/%.hip.cpp
+	$(HIPCC) -flto $(HIPCCFLAGS) -std=c++14 -Xcompiler "$(CFLAGS) -flto" -c $^ -o $@
+%.o: $(CSRC_DIR)%.c
+	$(CC) -std=gnu11 -flto $(CFLAGS) -c $^  
+
+clean:
+	rm -f $(OBJ) $(COBJ) $(HIPOBJ) $(HIPLIB) $(CLIB) $(TMP) *.cpp?.ii *.cudafe1.* *.*bin *.fatbin.c *.ptx *.sm_* *module_id \
+	*dlink* *.ltoir *.d i?_out
+
+INP=	\
+	midout \
+
+tar:
+	tar cvf $(EXE).tar $(MF) $(CSRC) $(HIPSRC) $(CINC) $(HIPINC) $(INP)
