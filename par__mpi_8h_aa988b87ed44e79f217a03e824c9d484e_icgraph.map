@@ -1,0 +1,17 @@
+<map id="Trial_Exchange" name="Trial_Exchange">
+<area shape="rect" id="Node000001" title="Exchanges the trial fields." alt="" coords="282,128,391,154"/>
+<area shape="rect" id="Node000002" href="$integrate_8c.html#aad98b6e55d3f033e15cffc5b53b173ee" title="Gauge update for the integration step of the HMC." alt="" coords="126,103,234,128"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="266,132,234,127,235,122,267,127"/>
+<area shape="rect" id="Node000006" href="$main_8c.html#a0ddf1224851353fc92bfbff6f499fa97" title=" " alt="" coords="155,152,204,178"/>
+<area shape="poly" id="edge9_Node000001_Node000006" title=" " alt="" coords="267,154,206,164,205,158,266,149"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="203,90,195,84,180,81,166,83,158,88,157,94,161,101,156,103,151,94,154,85,164,78,180,76,197,79,206,85"/>
+<area shape="rect" id="Node000003" href="$integrate_8c.html#ae4e13e66dc0e7130825c11648f2ad80c" title="Leapfrog integrator. Each trajectory step takes the form of p&#45;&gt;p+dt/2,u&#45;&gt;u+dt,p&#45;&gt;p+dt/2 In practice t..." alt="" coords="5,29,78,55"/>
+<area shape="poly" id="edge3_Node000002_Node000003" title=" " alt="" coords="139,97,66,58,69,53,142,93"/>
+<area shape="rect" id="Node000004" href="$integrate_8c.html#a44f16170b5e3c92646f2e649ee57da3d" title="OMF integrator. Each trajectory step takes the form of p&#45;&gt;p+dt/2,u&#45;&gt;u+dt,p&#45;&gt;p+dt/2 In practice this i..." alt="" coords="13,103,70,128"/>
+<area shape="poly" id="edge5_Node000002_Node000004" title=" " alt="" coords="110,118,71,118,71,113,110,113"/>
+<area shape="rect" id="Node000005" href="$integrate_8c.html#a5bbed189bcdd47d814585aa7e842bb8e" title=" " alt="" coords="13,176,70,202"/>
+<area shape="poly" id="edge7_Node000002_Node000005" title=" " alt="" coords="135,138,127,142,65,178,63,173,124,137,133,133"/>
+<area shape="poly" id="edge4_Node000003_Node000003" title=" " alt="" coords="64,16,57,10,41,8,27,10,20,14,18,20,22,28,17,30,13,21,16,11,26,5,42,3,59,5,68,12"/>
+<area shape="poly" id="edge6_Node000004_Node000004" title=" " alt="" coords="64,90,57,84,41,81,27,83,20,88,18,94,22,101,17,103,13,94,16,85,26,78,42,76,59,79,68,85"/>
+<area shape="poly" id="edge8_Node000005_Node000005" title=" " alt="" coords="64,163,57,157,41,155,27,157,20,161,18,167,22,174,17,177,13,167,16,158,26,152,42,149,59,152,68,159"/>
+</map>

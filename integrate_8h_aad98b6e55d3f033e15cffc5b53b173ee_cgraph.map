@@ -1,0 +1,10 @@
+<map id="Gauge_Update" name="Gauge_Update">
+<area shape="rect" id="Node000001" title="Gauge update for the integration step of the HMC." alt="" coords="5,31,114,56"/>
+<area shape="poly" id="edge1_Node000001_Node000001" title=" " alt="" coords="33,32,28,22,31,12,42,6,60,4,79,7,89,13,86,18,77,12,59,9,43,11,35,16,33,21,37,29"/>
+<area shape="rect" id="Node000002" href="$matrices_8c.html#a998120d21faa6bf801710ae86f3d918b" title="Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1." alt="" coords="173,5,260,31"/>
+<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="114,32,157,25,158,30,115,37"/>
+<area shape="rect" id="Node000003" href="$par__mpi_8c.html#aa988b87ed44e79f217a03e824c9d484e" title="Exchanges the trial fields." alt="" coords="162,55,271,80"/>
+<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="115,49,147,54,146,59,114,54"/>
+<area shape="rect" id="Node000004" href="$par__mpi_8h.html#a35d208a5a65e71101e71d3f0248aef03" title="Calls the functions to send data to both the up and down halos." alt="" coords="319,55,433,80"/>
+<area shape="poly" id="edge4_Node000003_Node000004" title=" " alt="" coords="271,65,304,65,304,70,271,70"/>
+</map>

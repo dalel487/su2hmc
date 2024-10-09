@@ -1,0 +1,30 @@
+<map id="INCLUDE/integrate.h" name="INCLUDE/integrate.h">
+<area shape="rect" id="Node000001" title="Integrators for the HMC." alt="" coords="288,5,431,31"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,226,79,252"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="343,34,73,219,70,215,340,29"/>
+<area shape="rect" id="Node000003" href="$random_8h.html" title="Header for random number configuration." alt="" coords="322,79,396,105"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="362,31,362,63,357,63,357,31"/>
+<area shape="rect" id="Node000007" href="$sizes_8h.html" title="Defines the constants of the code and other parameters for loop dimensions. Each subroutine includes ..." alt="" coords="523,300,585,326"/>
+<area shape="poly" id="edge16_Node000001_Node000007" title=" " alt="" coords="407,29,475,53,554,92,593,118,627,149,656,185,678,225,681,240,678,253,660,275,631,291,600,303,598,298,629,287,656,271,673,251,675,240,673,227,652,188,624,153,589,123,552,97,473,58,405,34"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="121,300,181,326"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="323,106,279,123,228,148,181,182,161,204,144,228,139,241,138,256,143,285,138,286,133,256,134,240,140,225,157,200,177,178,226,143,276,118,321,101"/>
+<area shape="rect" id="Node000005" href="$par__mpi_8h.html" title="MPI headers." alt="" coords="321,153,398,178"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="362,105,362,137,357,137,357,105"/>
+<area shape="poly" id="edge15_Node000003_Node000007" title=" " alt="" coords="397,95,457,106,529,129,566,146,600,168,631,194,656,225,661,237,661,248,648,268,626,285,600,298,598,293,623,280,645,264,656,247,656,238,652,228,627,197,597,172,563,151,527,134,456,112,396,100"/>
+<area shape="poly" id="edge11_Node000005_Node000002" title=" " alt="" coords="321,178,95,229,93,224,320,173"/>
+<area shape="rect" id="Node000006" href="$coord_8h.html" title="Header for routines related to lattice sites." alt="" coords="154,226,218,252"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="331,181,231,222,229,218,329,176"/>
+<area shape="poly" id="edge10_Node000005_Node000007" title=" " alt="" coords="373,177,409,211,456,250,519,290,516,294,452,254,405,215,369,181"/>
+<area shape="rect" id="Node000009" href="$errorcodes_8h.html" title="This header is intended to be a useful reference for error codes and their meanings." alt="" coords="466,226,559,252"/>
+<area shape="poly" id="edge9_Node000005_Node000009" title=" " alt="" coords="386,176,474,217,472,222,384,181"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="583,226,642,252"/>
+<area shape="poly" id="edge12_Node000005_Node000010" title=" " alt="" coords="399,175,568,223,567,228,398,180"/>
+<area shape="rect" id="Node000011" title=" " alt="" coords="241,226,304,252"/>
+<area shape="poly" id="edge13_Node000005_Node000011" title=" " alt="" coords="346,181,300,218,297,214,343,177"/>
+<area shape="rect" id="Node000012" title=" " alt="" coords="328,226,391,252"/>
+<area shape="poly" id="edge14_Node000005_Node000012" title=" " alt="" coords="362,179,362,211,357,211,357,179"/>
+<area shape="poly" id="edge6_Node000006_Node000004" title=" " alt="" coords="183,253,166,287,162,285,178,251"/>
+<area shape="poly" id="edge7_Node000006_Node000007" title=" " alt="" coords="219,247,231,249,383,280,509,302,508,307,382,285,229,255,218,252"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="514,374,594,399"/>
+<area shape="poly" id="edge8_Node000007_Node000008" title=" " alt="" coords="557,326,557,358,551,358,551,326"/>
+</map>

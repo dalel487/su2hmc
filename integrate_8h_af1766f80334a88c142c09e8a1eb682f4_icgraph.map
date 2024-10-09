@@ -1,0 +1,13 @@
+<map id="Momentum_Update" name="Momentum_Update">
+<area shape="rect" id="Node000001" title="Wrapper for the momentum update during the integration step of the HMC." alt="" coords="126,103,261,128"/>
+<area shape="poly" id="edge3_Node000001_Node000001" title=" " alt="" coords="219,90,210,84,193,81,178,83,169,88,168,94,172,101,167,104,162,94,165,84,176,78,193,76,212,79,222,85"/>
+<area shape="rect" id="Node000002" href="$integrate_8c.html#ae4e13e66dc0e7130825c11648f2ad80c" title="Leapfrog integrator. Each trajectory step takes the form of p&#45;&gt;p+dt/2,u&#45;&gt;u+dt,p&#45;&gt;p+dt/2 In practice t..." alt="" coords="5,29,78,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="150,98,69,58,71,53,152,93"/>
+<area shape="rect" id="Node000003" href="$integrate_8c.html#a44f16170b5e3c92646f2e649ee57da3d" title="OMF integrator. Each trajectory step takes the form of p&#45;&gt;p+dt/2,u&#45;&gt;u+dt,p&#45;&gt;p+dt/2 In practice this i..." alt="" coords="13,103,70,128"/>
+<area shape="poly" id="edge4_Node000001_Node000003" title=" " alt="" coords="110,118,71,118,71,113,110,113"/>
+<area shape="rect" id="Node000004" href="$integrate_8c.html#a5bbed189bcdd47d814585aa7e842bb8e" title=" " alt="" coords="13,176,70,202"/>
+<area shape="poly" id="edge6_Node000001_Node000004" title=" " alt="" coords="152,138,71,178,69,173,150,133"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="67,16,58,10,41,8,26,10,18,15,16,20,20,28,15,30,10,21,13,11,24,5,42,3,60,5,70,12"/>
+<area shape="poly" id="edge5_Node000003_Node000003" title=" " alt="" coords="67,90,58,84,41,81,26,83,18,88,16,94,20,101,15,104,10,94,13,84,24,78,42,76,60,79,70,85"/>
+<area shape="poly" id="edge7_Node000004_Node000004" title=" " alt="" coords="67,163,58,157,41,155,26,157,18,161,16,167,20,174,15,177,10,167,13,158,24,152,42,149,60,152,70,159"/>
+</map>

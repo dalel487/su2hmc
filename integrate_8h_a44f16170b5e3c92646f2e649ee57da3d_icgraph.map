@@ -1,0 +1,4 @@
+<map id="OMF2" name="OMF2">
+<area shape="rect" id="Node000001" title="OMF integrator. Each trajectory step takes the form of p&#45;&gt;p+dt/2,u&#45;&gt;u+dt,p&#45;&gt;p+dt/2 In practice this i..." alt="" coords="5,29,63,55"/>
+<area shape="poly" id="edge1_Node000001_Node000001" title=" " alt="" coords="42,15,39,10,34,8,29,10,27,14,28,29,22,29,22,12,26,5,34,3,42,6,46,12"/>
+</map>

@@ -1,0 +1,29 @@
+<map id="production_c/coord.c" name="production_c/coord.c">
+<area shape="rect" id="Node000001" title="functions for dealing with lattice and MPI coordinates" alt="" coords="186,5,328,31"/>
+<area shape="rect" id="Node000002" href="$coord_8h.html" title="Header for routines related to lattice sites." alt="" coords="12,153,75,178"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="195,34,144,52,119,65,96,81,72,109,56,140,51,137,67,106,92,77,116,61,142,47,194,29"/>
+<area shape="rect" id="Node000004" href="$sizes_8h.html" title="Defines the constants of the code and other parameters for loop dimensions. Each subroutine includes ..." alt="" coords="90,226,152,252"/>
+<area shape="poly" id="edge14_Node000001_Node000004" title=" " alt="" coords="244,33,192,82,164,116,141,154,130,183,125,211,120,210,125,181,136,152,160,113,188,79,240,29"/>
+<area shape="rect" id="Node000006" href="$errorcodes_8h.html" title="This header is intended to be a useful reference for error codes and their meanings." alt="" coords="151,153,243,178"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="254,32,210,139,205,137,249,30"/>
+<area shape="rect" id="Node000007" href="$par__mpi_8h.html" title="MPI headers." alt="" coords="273,79,350,105"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="268,30,295,65,291,68,264,33"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="503,153,562,178"/>
+<area shape="poly" id="edge16_Node000001_Node000009" title=" " alt="" coords="281,29,497,143,495,147,279,34"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="587,153,649,178"/>
+<area shape="poly" id="edge15_Node000001_Node000010" title=" " alt="" coords="290,29,415,77,577,144,575,148,413,81,289,34"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="5,226,66,252"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="45,179,41,211,36,211,40,178"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="58,177,99,214,95,218,55,181"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="81,300,160,326"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="124,252,124,284,118,284,118,252"/>
+<area shape="poly" id="edge7_Node000007_Node000002" title=" " alt="" coords="273,106,91,154,89,149,272,101"/>
+<area shape="poly" id="edge9_Node000007_Node000004" title=" " alt="" coords="309,106,289,142,275,162,257,180,213,209,167,228,165,223,210,204,254,176,271,159,285,139,304,104"/>
+<area shape="poly" id="edge8_Node000007_Node000006" title=" " alt="" coords="293,107,231,146,228,142,291,103"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="319,153,392,178"/>
+<area shape="poly" id="edge10_Node000007_Node000008" title=" " alt="" coords="321,103,342,138,338,141,316,106"/>
+<area shape="poly" id="edge11_Node000007_Node000009" title=" " alt="" coords="350,103,489,147,488,152,348,108"/>
+<area shape="poly" id="edge12_Node000007_Node000010" title=" " alt="" coords="351,99,573,150,571,155,350,104"/>
+<area shape="rect" id="Node000011" title=" " alt="" coords="416,153,479,178"/>
+<area shape="poly" id="edge13_Node000007_Node000011" title=" " alt="" coords="336,103,412,143,410,147,333,108"/>
+</map>
