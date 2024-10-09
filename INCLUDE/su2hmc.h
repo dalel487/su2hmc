@@ -55,10 +55,10 @@ extern "C"
 	 *	@param	gamin:			Gamma indices
 	 *	@param	gamval:			Double precision gamma matrices rescaled by kappa
 	 *	@param	gamval_f:		Single precision gamma matrices rescaled by kappa
-	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
-	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$
-	 * @param	dk4m_f:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ float
-	 * @param	dk4p_f:			@f$\left(1-\gamma_0\right)e^\mu@f$ float
+	 * @param	dk4m:				@f$e^{-\mu}@f$
+	 * @param	dk4p:				@f$e^\mu@f$
+	 * @param	dk4m_f:			@f$e^{-\mu}@f$ float
+	 * @param	dk4p_f:			@f$e^\mu@f$ float
 	 * @param 	jqq:				Diquark source
 	 *	@param	akappa:			Hopping parameter
 	 *	@param	beta:				Inverse gauge coupling
