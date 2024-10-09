@@ -53,8 +53,8 @@ extern "C"
 	 *	@param	u11t_f,u12t_f:	Single precision colour fields
 	 *	@param	iu,id:			Lattice indices
 	 *	@param	gamin:			Gamma indices
-	 *	@param	gamval:			Double precision gamma matrices
-	 *	@param	gamval_f:		Single precision gamma matrices
+	 *	@param	gamval:			Double precision gamma matrices rescaled by kappa
+	 *	@param	gamval_f:		Single precision gamma matrices rescaled by kappa
 	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
 	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$
 	 * @param	dk4m_f:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ float
@@ -100,8 +100,8 @@ extern "C"
 	 * @param	dk4p_f:				@f$\left(1-\gamma_0\right)e^\mu@f$ float 	
 	 * @param	iu,id:				Up halo indices
 	 * @param	gamin:				Gamma matrix indices
-	 * @param	gamval:				Gamma Matrices
-	 * @param	gamval_f:			Float Gamma matrices:
+	 *	@param	gamval:				Double precision gamma matrices rescaled by kappa
+	 *	@param	gamval_f:			Single precision gamma matrices rescaled by kappa
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
@@ -122,7 +122,7 @@ extern "C"
 	 * @param	u11t,u12t:			Gauge fields
 	 * @param	u11t_f,u12t_f:		Gauge fields (single precision)
 	 * @param	iu,id:				Lattice indices
-	 * @param	gamval_f:			Gamma matrices
+	 *	@param	gamval_f:			Single precision gamma matrices rescaled by kappa
 	 * @param	gamin:				Gamma indices
 	 * @param	dk4m_f:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$ float
 	 * @param	dk4p_f:				@f$\left(1-\gamma_0\right)e^\mu@f$ float
@@ -152,7 +152,7 @@ extern "C"
 	 * @param	u12t_f:		Second colour's trial field
 	 * @param	iu:			Upper halo indices
 	 * @param	id:			Lower halo indices
-	 * @param	gamval_f:	Gamma matrices
+	 *	@param	gamval_f:	Single precision gamma matrices rescaled by kappa
 	 * @param	gamin:		Dirac indices
 	 * @param	dk4m_f:		@f$\left(1+\gamma_0\right)e^{-\mu}@f$
 	 * @param	dk4p_f:		@f$\left(1-\gamma_0\right)e^\mu@f$
@@ -177,7 +177,7 @@ extern "C"
 	 * @param 	u12t:			Second colour's trial field
 	 * @param 	iu:			Upper halo indices
 	 * @param 	id:			Lower halo indices
-	 * @param 	gamval:		Gamma matrices
+	 *	@param	gamval_f:	Single precision gamma matrices rescaled by kappa
 	 * @param 	gamin:		Dirac indices
 	 * @param	dk4m:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$
 	 * @param	dk4p:			@f$\left(1-\gamma_0\right)e^\mu@f$
@@ -208,8 +208,8 @@ extern "C"
 	 * @param	u11t,u12t		Double precisiongauge field
 	 * @param	u11t_f,u12t_f:	Single precision gauge fields
 	 *	@param	iu,id				Lattice indices
-	 *	@param	gamval:			Gamma matrices
-	 *	@param	gamval_f:		Gamma matrices (float)
+	 *	@param	gamval:			Double precision gamma matrices rescaled by kappa
+	 *	@param	gamval_f:		Single precision gamma matrices rescaled by kappa
 	 *	@param	gamin:			Indices for Dirac terms
 	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
 	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$

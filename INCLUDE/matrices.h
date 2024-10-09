@@ -22,7 +22,7 @@ extern "C"
 	 * @param	u12t:		Second colour trial field
 	 *	@param	iu:			Upper halo indices
 	 *	@param	id:			Lower halo indices
-	 *	@param	gamval:	Gamma matrices
+	 *	@param	gamval:		Gamma matrices rescaled by kappa
 	 *	@param	gamin:		Indices for dirac terms
 	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
 	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$
@@ -42,7 +42,7 @@ extern "C"
 	 * @param	u12t:		Second colour trial field
 	 *	@param	iu:			Upper halo indices
 	 *	@param	id:			Lower halo indices
-	 *	@param	gamval:	Gamma matrices
+	 *	@param	gamval:	Gamma matrices rescaled by kappa
 	 *	@param	gamin:		Indices for dirac terms
 	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
 	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$
@@ -62,7 +62,7 @@ extern "C"
 	 * @param	u12t:	Second colour trial field
 	 *	@param	iu:		Upper halo indices
 	 *	@param	id:		Lower halo indices
-	 *	@param	gamval:	Gamma matrices
+	 *	@param	gamval:	Gamma matrices rescaled by kappa
 	 *	@param	gamin:	Indices for dirac terms
 	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
 	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$
@@ -81,7 +81,7 @@ extern "C"
 	 * @param	u12t:	Second colour trial field
 	 *	@param	iu:		Upper halo indices
 	 *	@param	id:		Lower halo indices
-	 *	@param	gamval:	Gamma matrices
+	 *	@param	gamval:	Gamma matrices rescaled by kappa
 	 *	@param	gamin:	Indices for dirac terms
 	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
 	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$
@@ -101,7 +101,7 @@ extern "C"
 	 * @param	u12t:		Second colour trial field
 	 *	@param	iu:			Upper halo indices
 	 *	@param	id:			Lower halo indices
-	 *	@param	gamval:	Gamma matrices
+	 *	@param	gamval:	Gamma matrices rescaled by kappa
 	 *	@param	gamin:		Indices for dirac terms
 	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
 	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$
@@ -121,7 +121,7 @@ extern "C"
 	 * @param	u12t:		Second colour trial field
 	 *	@param	iu:			Upper halo indices
 	 *	@param	id:			Lower halo indices
-	 *	@param	gamval:	Gamma matrices
+	 *	@param	gamval:	Gamma matrices rescaled by kappa
 	 *	@param	gamin:		Indices for dirac terms
 	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
 	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$
@@ -141,7 +141,7 @@ extern "C"
 	 * @param	u12t:	Second colour trial field
 	 *	@param	iu:		Upper halo indices
 	 *	@param	id:		Lower halo indices
-	 *	@param	gamval:	Gamma matrices
+	 *	@param	gamval:	Gamma matrices rescaled by kappa
 	 *	@param	gamin:	Indices for dirac terms
 	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
 	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$
@@ -160,7 +160,7 @@ extern "C"
 	 * @param	u12t:	Second colour trial field
 	 *	@param	iu:		Upper halo indices
 	 *	@param	id:		Lower halo indices
-	 *	@param	gamval:	Gamma matrices
+	 *	@param	gamval:	Gamma matrices rescaled by kappa
 	 *	@param	gamin:	Indices for dirac terms
 	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
 	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$

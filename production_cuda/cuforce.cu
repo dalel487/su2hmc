@@ -162,6 +162,8 @@ __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 			X2s[0]=X2[i+kvol*(nc*igork1)]; X2s[1]=X2[i+kvol*(1+nc*igork1)];
 			X2su[0]=X2[uid+kvol*(nc*igork1)]; X2su[1]=X2[uid+kvol*(1+nc*igork1)];
 
+			//If you are asked to rederive the force from Montvay and Munster you'll notice that it should be kappa*gamma
+			//but below is only gamma. We rescaled gamma by kappa already when we defined it so that's where it has gone
 			dSdpis[0]+=-(gamval[mu*ndirac+idirac]*
 					(conj(X1s[0])* (-conj(u12s)*X2su[0]+conj(u11s)*X2su[1])
 					 +conj(X1s[1])* (u11s *X2su[0]+u12s *X2su[1])

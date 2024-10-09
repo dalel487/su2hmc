@@ -51,8 +51,8 @@ extern "C"
 	 *	@param	pp:				Momentum field
 	 *	@param	iu,id:			Lattice indices
 	 *	@param	gamin:			Gamma indices
-	 *	@param	gamval:			Double precision gamma matrices
-	 *	@param	gamval_f:		Single precision gamma matrices
+	 *	@param	gamval:			Double precision gamma matrices rescaled by kappa
+	 *	@param	gamval_f:		Single precision gamma matrices rescaled by kappa
 	 * @param 	jqq:				Diquark source
 	 *	@param	akappa:			Hopping parameter
 	 *	@param	beta:				Inverse gauge coupling
@@ -86,8 +86,8 @@ extern "C"
 	 *	@param	pp:				Momentum field
 	 *	@param	iu,id:			Lattice indices
 	 *	@param	gamin:			Gamma indices
-	 *	@param	gamval:			Double precision gamma matrices
-	 *	@param	gamval_f:		Single precision gamma matrices
+	 *	@param	gamval:			Double precision gamma matrices rescaled by kappa
+	 *	@param	gamval_f:		Single precision gamma matrices rescaled by kappa
 	 * @param 	jqq:				Diquark source
 	 *	@param	akappa:			Hopping parameter
 	 *	@param	beta:				Inverse gauge coupling

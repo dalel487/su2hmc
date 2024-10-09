@@ -291,6 +291,9 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 					//Up indices
 					uid = iu[mu+ndim*i];
 					igork1 = gamin[mu*ndirac+idirac];	
+
+					//REMINDER. Gamma is already scaled by kappa when we defined them. So if yer trying to rederive this from
+					//Montvay and Munster and notice a missing kappa in the code, that is why.
 					dSdpi[(i*nadj)*ndim+mu]+=akappa*creal(I*
 							(conj(X1[(i*ndirac+idirac)*nc])*
 							 (-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
@@ -379,8 +382,6 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 				mu=3;
 				uid = iu[mu+ndim*i];
 				igork1 = gamin[mu*ndirac+idirac];	
-				//We are mutiplying terms by dk4?[i] Also there is no akappa or gamval factor in the time direction	
-				//for the "gamval" terms the sign of d4kp flips
 #ifndef NO_TIME
 				dSdpi[(i*nadj)*ndim+mu]+=creal(I*
 						(conj(X1[(i*ndirac+idirac)*nc])*

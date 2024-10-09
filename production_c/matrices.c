@@ -80,7 +80,7 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int 
 						u12t[i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc+1]+\
 						conj(u11t[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]-\
 						u12t[did*ndim+mu]*r[(did*ngorkov+igorkov)*nc+1])+\
-													  //Dirac term
+													  //Dirac term. Reminder! gamval was rescaled by kappa when we defined it
 													  gamval[mu*ndirac+idirac]*(u11t[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc]+\
 															  u12t[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc+1]-\
 															  conj(u11t[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]+\
@@ -197,6 +197,7 @@ int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int 
 				int igork1 = (igorkov<4) ? gamin[mu*ndirac+idirac] : gamin[mu*ndirac+idirac]+4;
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
+				//Reminder! gamval was rescaled by kappa when we defined it
 				phi[(i*ngorkov+igorkov)*nc]+=
 					-akappa*(      u11t[i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc]
 							+u12t[i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc+1]
@@ -337,6 +338,7 @@ int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int
 		for(int idirac=0; idirac<ndirac; idirac++){
 			int igork1 = gamin[3*ndirac+idirac];
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
+			//Reminder! gamval was rescaled by kappa when we defined it
 			phi[(i*ndirac+idirac)*nc]+=
 				-dk4p[i]*(u11t[i*ndim+3]*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
 						+u12t[i*ndim+3]*(r[(uid*ndirac+idirac)*nc+1]-r[(uid*ndirac+igork1)*nc+1]))
@@ -405,6 +407,7 @@ int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  in
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
 
+				//Reminder! gamval was rescaled by kappa when we defined it
 				phi[(i*ndirac+idirac)*nc]+=
 					-akappa*(u11t[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]
 							+u12t[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]
@@ -521,7 +524,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 						u12t_f[i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc+1]+\
 						conj(u11t_f[did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]-\
 						u12t_f[did*ndim+mu]*r[(did*ngorkov+igorkov)*nc+1])+\
-													  //Dirac term
+													  //Dirac term. Reminder! gamval was rescaled by kappa when we defined it
 													  gamval_f[mu*ndirac+idirac]*(u11t_f[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc]+\
 															  u12t_f[i*ndim+mu]*r[(uid*ngorkov+igork1)*nc+1]-\
 															  conj(u11t_f[did*ndim+mu])*r[(did*ngorkov+igork1)*nc]+\
@@ -638,6 +641,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 				int igork1 = (igorkov<4) ? gamin[mu*ndirac+idirac] : gamin[mu*ndirac+idirac]+4;
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
+				//Reminder! gamval was rescaled by kappa when we defined it
 				phi[(i*ngorkov+igorkov)*nc]+=
 					-akappa*(      u11t_f[i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc]
 							+u12t_f[i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc+1]
@@ -753,6 +757,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 						conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]-\
 						u12t_f[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1]);
 				//Dirac term
+				//Reminder! gamval was rescaled by kappa when we defined it
 				phi[(i*ndirac+idirac)*nc]+=gamval_f[mu*ndirac+idirac]*(u11t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]+\
 						u12t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]-\
 						conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]+\
@@ -846,6 +851,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
 
+				//Reminder! gamval was rescaled by kappa when we defined it
 				phi[(i*ndirac+idirac)*nc]+=
 					-akappa*(u11t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]
 							+u12t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]
