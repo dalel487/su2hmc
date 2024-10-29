@@ -103,12 +103,13 @@ debug:		CFLAGS += -O0 -g -D_DEBUG -rdynamic
 debug:		HIPCCFLAGS += -Xptxas -O0,-v -G -g -D_DEBUG -arch=sm_75 --maxrregcount=255  -keep 
 debug:		$(EXE)
 		 
-$(EXE):   ../main.c $(OBJ)
-	$(HIPCC) $(HIPCCFLAGS)  -std=gnu11 -Xcompiler "$(CFLAGS) -flto" $(LFLAGS) $(HIPLFLAGS) $(OBJ) -x c $< -o $@
+#$(EXE):   ../main.c $(OBJ)
+$(EXE): $(OBJ) ../main.c
+	$(HIPCC) $(HIPCCFLAGS)  -std=gnu11 -Xcompiler "$(CFLAGS) -flto" -o $@ $^  $(LFLAGS) $(HIPLFLAGS)
 #	$(CXX)  $(CFLAGS) -std=gnu11 -flto $(LFLAGS) $(HIPLFLAGS) $(OBJ) -x c $< -o $@
-#	$(CXX) $(HIPCCFLAGS) -Xcompiler "$(CFLAGS) -std=gnu11 -flto" $(LFLAGS) $(HIPLFLAGS) $(OBJ) -x c $< -o $@
+#	$(HIPCC) $(HIPCCFLAGS) -Xcompiler "$(CFLAGS) -std=gnu11 -flto" $(LFLAGS) $(HIPLFLAGS) $^ -o $@
 %.o: $(HIPSRC_DIR)/%.hip.cpp
-	$(HIPCC) -flto $(HIPCCFLAGS) -std=c++14 -Xcompiler "$(CFLAGS) -flto" -c $^ -o $@
+	$(HIPCC) $(HIPCCFLAGS) -std=c++14 -Xcompiler "$(CFLAGS) -flto" -c $^ -o $@
 %.o: $(CSRC_DIR)%.c
 	$(CC) -std=gnu11 -flto $(CFLAGS) -c $^  
 
