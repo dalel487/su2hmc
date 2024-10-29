@@ -331,9 +331,13 @@ extern "C"
 	int Reunitarise(Complex *u11t, Complex *u12t);
 	//CUDA Declarations:
 	//#################
-#ifdef __NVCC__
+#if defined __NVCC__ || defined __HIPCC__
 	//Not a function. An array of concurrent GPU streams to keep it busy
+	#ifdef __NVCC__
 	extern cudaStream_t streams[ndirac*ndim*nadj];
+	#else
+	extern hipStream_t streams[ndirac*ndim*nadj];
+	#endif
 	//Calling Functions:
 	//=================
 	void cuAverage_Plaquette(double *hgs, double *hgt, Complex_f *u11t, Complex_f *u12t, unsigned int *iu,dim3 dimGrid, dim3 dimBlock);
@@ -365,7 +369,7 @@ extern "C"
 #endif
 //CUDA Kernels:
 //============
-#ifdef __CUDACC__
+#if defined __CUDACC__ || __HIP__
 //__global__ void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
 //		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa);
 __global__ void Plus_staple(int mu, int nu,unsigned int *iu, Complex_f *Sigma11, Complex_f *Sigma12,\
@@ -391,5 +395,6 @@ __global__ void cuComplex_convert(Complex_f *a, Complex *b, int len, bool dtof);
 __global__ void cuReal_convert(float *a, double *b, int len, bool dtof);
 __global__ void cuUpDownPart(int na, Complex *X0, Complex *R1);
 __global__ void cuReunitarise(Complex *u11t, Complex *u12t);
+__global__ void cuGauge_Update(const double d, double *pp, Complex *u11t, Complex *u12t,int mu);
 #endif
 #endif

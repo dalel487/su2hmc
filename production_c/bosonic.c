@@ -34,8 +34,12 @@ int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u
 	  Should work since in the FORTRAN Sigma11[i] only depends on i components  for example
 	  Since the ν loop doesn't get called for μ=0 we'll start at μ=1
 	  */
+#if defined __NVCC__ || defined __HIPCC__
 #ifdef __NVCC__
 	__managed__ double hgs = 0; __managed__ double hgt = 0;
+	#else
+	double hgs = 0; double hgt = 0;
+	#endif
 	cuAverage_Plaquette(&hgs, &hgt, u11t, u12t, iu,dimGrid,dimBlock);
 #else
 	double hgs = 0; double hgt = 0;

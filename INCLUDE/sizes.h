@@ -43,10 +43,18 @@
 extern cublasHandle_t cublas_handle;
 extern cublasStatus_t cublas_status;
 extern cudaMemPool_t mempool;
-///@brief	Get rid of that bastardised yankee English
 #define cudaDeviceSynchronise() cudaDeviceSynchronize()
+#elif defined	__HIPCC__
+#include	<hip/hip_runtime.h>
+#include	<hip/hip_runtime_api.h>
+#include	<hipblas.h>
+extern hipblasHandle_t cublas_handle;
+extern hipblasStatus_t cublas_status;
+extern hipMemPool_t mempool;
+///@brief	Get rid of that bastardised yankee English
+#define cudaDeviceSynchronise() hipDeviceSynchronize()
 #endif
-#ifdef __CUDACC__
+#if defined __CUDACC__ || defined __HIP__
 #include	<thrust_complex.h>
 #include <thrust/reduce.h>
 #include <thrust/device_vector.h>
@@ -63,7 +71,7 @@ extern cudaMemPool_t mempool;
 // Common block definition for parallel variables
 
 ///	@brief Lattice x extent
-#define	nx 8
+#define	nx 12
 #if(nx<1)
 #error "nx is expected it to be greater than or equal to 1"
 #endif
@@ -268,7 +276,7 @@ extern cudaMemPool_t mempool;
 #define	AVX	16
 #endif
 
-#ifdef	__NVCC__
+#if defined	__NVCC__ || defined __HIPCC__
 /*
  * @section gridblock Grids and Blocks
  *
