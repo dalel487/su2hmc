@@ -396,5 +396,7 @@ __global__ void cuReal_convert(float *a, double *b, int len, bool dtof);
 __global__ void cuUpDownPart(int na, Complex *X0, Complex *R1);
 __global__ void cuReunitarise(Complex *u11t, Complex *u12t);
 __global__ void cuGauge_Update(const double d, double *pp, Complex *u11t, Complex *u12t,int mu);
+template <typename T> __device__ void warpReduce(volatile T *sdata, const unsigned int tid, const unsigned int blockSize );
+template <typename T> __global__ void reduce6(T *g_idata, T *g_odata, const unsigned int n) ;
 #endif
 #endif
