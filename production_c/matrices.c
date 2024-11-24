@@ -937,3 +937,61 @@ inline int Reunitarise(Complex *u11t, Complex *u12t){
 #endif
 	return 0;
 }
+
+void Transpose_c(Complex_f *out, const int fast_in, const int fast_out){
+	const volatile char *funcname="Transpose_c";
+
+	Complex_f *in = (Complex_f *)aligned_alloc(AVX,fast_in*fast_out*sizeof(Complex_f));
+	memcpy(in,out,fast_in*fast_out*sizeof(Complex_f));
+	//Typically this is used to write back to the AoS/Coalseced format
+	if(fast_out>fast_in){
+		for(int x=0;x<fast_out;x++)
+			for(int y=0; y<fast_in;y++)
+				out[y*fast_out+x]=in[x*fast_in+y];
+	}
+	//Typically this is used to write back to the SoA/saved config format
+	else{
+		for(int x=0; x<fast_out;x++)
+			for(int y=0;y<fast_in;y++)
+				out[y*fast_out+x]=in[x*fast_in+y];
+	}
+	free(in);
+}
+void Transpose_f(float *out, const int fast_in, const int fast_out){
+	const char *funcname="Transpose_f";
+
+	float *in = (float *)aligned_alloc(AVX,fast_in*fast_out*sizeof(float));
+	memcpy(in,out,fast_in*fast_out*sizeof(float));
+	//Typically this is used to write back to the AoS/Coalseced format
+	if(fast_out>fast_in){
+		for(int x=0;x<fast_out;x++)
+			for(int y=0; y<fast_in;y++)
+				out[y*fast_out+x]=in[x*fast_in+y];
+	}
+	//Typically this is used to write back to the SoA/saved config format
+	else{
+		for(int x=0; x<fast_out;x++)
+			for(int y=0;y<fast_in;y++)
+				out[y*fast_out+x]=in[x*fast_in+y];
+	}
+	free(in);
+}
+void Transpose_I(int *out, const int fast_in, const int fast_out){
+	const char *funcname="Transpose_I";
+
+	int *in = (int *)aligned_alloc(AVX,fast_in*fast_out*sizeof(int));
+	memcpy(in,out,fast_in*fast_out*sizeof(int));
+	//Typically this is used to write back to the AoS/Coalseced format
+	if(fast_out>fast_in){
+		for(int x=0;x<fast_out;x++)
+			for(int y=0; y<fast_in;y++)
+				out[y*fast_out+x]=in[x*fast_in+y];
+	}
+	//Typically this is used to write back to the SoA/saved config format
+	else{
+		for(int x=0; x<fast_out;x++)
+			for(int y=0;y<fast_in;y++)
+				out[y*fast_out+x]=in[x*fast_in+y];
+	}
+	free(in);
+}
