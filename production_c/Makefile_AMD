@@ -64,7 +64,7 @@ profiler:	CFLAGS += -g #-D_DEBUG #-fprofile-generate
 
 profiler:	release
 
-release:	CFLAGS +=  -Ofast -zopt -flto=full
+release:	CFLAGS +=  -O3 -zopt -flto=full
 
 release:	$(EXE)
 
