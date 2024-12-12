@@ -113,16 +113,17 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 		dk_f[0][i]=(float)dk[0][i];
 	}
 #endif
+	//What row of each dirac/sigma matrix contains the entry acting on element i of the spinor
 	int __attribute__((aligned(AVX))) gamin_t[4][4] =	{{3,2,1,0},{3,2,1,0},{2,3,0,1},{2,3,0,1}};
 	//Gamma Matrices in Chiral Representation
-	//Gattringer and Lang have a nice crash course in appendix A.2 of
-	//Quantum Chromodynamics on the Lattice (530.14 GAT)
+	//See Appendix 8.1.2 of Montvay and Munster
 	//_t is for temp. We copy these into the real gamvals later
 #ifdef __NVCC__
 	cudaMemcpy(gamin,gamin_t,4*4*sizeof(int),cudaMemcpyDefault);
 #else
 	memcpy(gamin,gamin_t,4*4*sizeof(int));
 #endif
+	//Each row of the dirac matrix contains only one non-zero entry, so that's all we encode here
 	Complex	__attribute__((aligned(AVX)))	gamval_t[5][4] =	{{-I,-I,I,I},{-1,1,1,-1},{-I,I,I,-I},{1,1,1,1},{1,1,-1,-1}};
 	//Each gamma matrix is rescaled by akappa by flattening the gamval array
 #if defined USE_BLAS
@@ -136,6 +137,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 			gamval_t[i][j]*=akappa;
 #endif
 
+
 #ifdef __NVCC__
 	cudaMemcpy(gamval,gamval_t,5*4*sizeof(Complex),cudaMemcpyDefault);
 	cuComplex_convert(gamval_f,gamval,20,true,dimBlockOne,dimGridOne);	
@@ -144,6 +146,39 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 	for(int i=0;i<5*4;i++)
 		gamval_f[i]=(Complex_f)gamval[i];
 #endif
+
+#ifdef __CLOVER__
+	int __attribute__((aligned(AVX))) sigin_t[7][4] =	{{0,1,2,3},{0,1,2,3},{1,0,3,2},{1,0,3,2},{1,0,3,2},{1,0,3,2},{0,1,2,3}};
+	//The sigma matrices are the commutators of the gamma matrices. These are antisymmetric when you swap the indices
+	//Zero is the identical index case.
+	//1 is sigma_1,2
+	//2 is sigma_1,3
+	//3 is sigma_1,4
+	//4 is sigma_2,3
+	//5 is sigma_2,4
+	//6 is sigma_3,4
+	//TODO: Do we mutiply by 1/2 and kappa here or not? I say yes to be consistent with gamma. It means the factor of 2
+	//in the sigma matrices get's droppeed here
+	Complex	__attribute__((aligned(AVX)))	sigval_t[7][4] =	{{0,0,0,0},{-1,1,-1,1},{-I,I,-I,I},{1,1,-1,-1},{-1,-1,-1,-1},{-I,I,I,-I},{1,-1,-1,1}};
+#if defined USE_BLAS
+	cblas_zdscal(6*4, akappa, sigval_t+4*sizeof(Complex), 1);
+#else
+#pragma omp parallel for simd collapse(2) aligned(sigval,sigval_f:AVX)
+	for(int i=1;i<7;i++)
+		for(int j=0;j<4;j++)
+			sigval_t[i][j]*=akappa;
+#endif
+
+#ifdef __NVCC__
+	cudaMemcpy(sigval,sigval_t,7*4*sizeof(Complex),cudaMemcpyDefault);
+	cuComplex_convert(sigval_f,sigval,28,true,dimBlockOne,dimGridOne);	
+#else
+	memcpy(sigval,sigval_t,7*4*sizeof(Complex));
+	for(int i=0;i<7*4;i++)
+		sigval_f[i]=(Complex_f)sigval[i];
+#endif
+#endif
+
 	if(iread){
 		if(!rank) printf("Calling Par_sread() for configuration: %i\n", iread);
 		Par_sread(iread, beta, fmu, akappa, ajq,u[0],u[1],ut[0],ut[1]);
