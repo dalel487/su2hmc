@@ -177,7 +177,7 @@ extern "C"
 			Complex_f jqq, float akappa, float beta, double ancg);
 #endif
 void Transpose_c(Complex_f *out, const int, const int);
-void Transpose_f(float *out, , const int, const int);
+void Transpose_f(float *out, const int, const int);
 void Transpose_I(int *out, const int, const int);
 #ifdef __NVCC__
 	//Calling Functions
