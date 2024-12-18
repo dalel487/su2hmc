@@ -13,6 +13,7 @@
 #include <complex.h>
 #include <matrices.h>
 #include <string.h>
+#include <stdalign.h>
 //TO DO: Check and see are there any terms we are evaluating twice in the same loop
 //and use a variable to hold them instead to reduce the number of evaluations.
 int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int *iu,unsigned int *id,\
@@ -708,8 +709,8 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 #endif
 	return 0;
 }
-int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned  int *iu,unsigned  int *id,\
-		Complex_f *gamval_f, int *gamin, float *dk4m_f, float *dk4p_f, float akappa){
+int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned  int *iu,unsigned  int *id,\
+		Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, float akappa){
 	/*
 	 * @brief Evaluates @f(\Phi=M r@f) in single precision.
 	 *
@@ -740,67 +741,119 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	//Mass term
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
 #pragma omp parallel for
-	for(int i=0;i<kvol;i++){
-		//Spacelike term
-#ifndef NO_SPACE
+	for(int i=0;i<kvol;i+=AVX){
+		alignas(AVX) Complex_f u11s[AVX];	 alignas(AVX) Complex_f u12s[AVX];
+		alignas(AVX) Complex_f u11sd[AVX];	 alignas(AVX) Complex_f u12sd[AVX];
+		alignas(AVX) Complex_f ru[2][AVX];   alignas(AVX) Complex_f rd[2][AVX];
+		alignas(AVX) Complex_f rgu[2][AVX];  alignas(AVX) Complex_f rgd[2][AVX];
+		alignas(AVX) Complex_f phi_s[ndirac*nc][AVX];
+		//Do we need to sync threads if each thread only accesses the value it put in shared memory?
+#pragma unroll(2)
+		for(int idirac=0; idirac<ndirac; idirac++)
+			for(int c=0; c<nc; c++)
+#pragma omp simd aligned(phi_s,phi:AVX)
+				for(int j=0;j<AVX;j++)
+					phi_s[idirac*nc+c][j]=phi[((i+j)*ndirac+idirac)*nc+c];
+		alignas(AVX) int did[AVX], uid[AVX];
+#pragma unroll
 		for(int mu = 0; mu <3; mu++){
-			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
-#pragma omp simd aligned(phi,r,u11t_f,u12t_f,gamval_f:AVX)
+#pragma omp simd aligned(u11s,u12s,u11t,u12t,did,uid,id,iu,u11sd,u12sd:AVX)
+			for(int j =0;j<AVX;j++){
+				did[j]=id[(i+j)*ndim+mu]; uid[j] = iu[(i+j)*ndim+mu];
+				u11s[j]=u11t[(i+j)*ndim+mu];	u12s[j]=u12t[(i+j)*ndim+mu];
+				u11sd[j]=u11t[did[j]*ndim+mu];	u12sd[j]=u12t[did[j]*ndim+mu];
+			}
+#pragma unroll
 			for(int idirac=0; idirac<ndirac; idirac++){
-				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
 				int igork1 = gamin[mu*ndirac+idirac];
+#pragma unroll
+				for(int c=0; c<nc; c++)
+#pragma omp simd aligned(ru,rd,rgu,rgd,r,uid,did:AVX)
+					for(int j =0;j<AVX;j++){
+						ru[c][j]=r[(uid[j]*ndirac+idirac)*nc+c];
+						rd[c][j]=r[(did[j]*ndirac+idirac)*nc+c];
+						rgu[c][j]=r[(uid[j]*ndirac+igork1)*nc+c];
+						rgd[c][j]=r[(did[j]*ndirac+igork1)*nc+c];
+					}
+				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
 				//Can manually vectorise with a pragma?
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
-				phi[(i*ndirac+idirac)*nc]+=-akappa*(u11t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]+\
-						u12t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]+\
-						conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]-\
-						u12t_f[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1]);
-				//Dirac term
-				//Reminder! gamval was rescaled by kappa when we defined it
-				phi[(i*ndirac+idirac)*nc]+=gamval_f[mu*ndirac+idirac]*(u11t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]+\
-						u12t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]-\
-						conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]+\
-						u12t_f[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
+#pragma omp simd aligned(phi_s,u11s,u12s,u11sd,u12sd,ru,rd,rgu,rgd:AVX)
+				for(int j =0;j<AVX;j++){
+					phi_s[idirac*nc][j]+=-akappa*(u11s[j]*ru[0][j]+\
+							u12s[j]*ru[1][j]+\
+							conj(u11sd[j])*rd[0][j]-\
+							u12sd[j]*rd[1][j]);
+					//Dirac term
+					phi_s[idirac*nc][j]+=gamval[mu*ndirac+idirac]*(u11s[j]*rgu[0][j]+\
+							u12s[j]*rgu[1][j]-\
+							conj(u11sd[j])*rgd[0][j]+\
+							u12sd[j]*rgd[1][j]);
 
-				phi[(i*ndirac+idirac)*nc+1]+=-akappa*(-conjf(u12t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]+\
-						conjf(u11t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]+\
-						conjf(u12t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]+\
-						u11t_f[did*ndim+mu]*r[(did*ndirac+idirac)*nc+1]);
-				//Dirac term
-				phi[(i*ndirac+idirac)*nc+1]+=gamval_f[mu*ndirac+idirac]*(-conjf(u12t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]+\
-						conjf(u11t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]-\
-						conjf(u12t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]-\
-						u11t_f[did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
+					phi_s[idirac*nc+1][j]+=-akappa*(-conj(u12s[j])*ru[0][j]+\
+							conj(u11s[j])*ru[1][j]+\
+							conj(u12sd[j])*rd[0][j]+\
+							u11sd[j]*rd[1][j]);
+					//Dirac term
+					phi_s[idirac*nc+1][j]+=gamval[mu*ndirac+idirac]*(-conj(u12s[j])*rgu[0][j]+\
+							conj(u11s[j])*rgu[1][j]-\
+							conj(u12sd[j])*rgd[0][j]-\
+							u11sd[j]*rgd[1][j]);
+				}
 			}
 		}
 #endif
-		//Timelike terms
-		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
 #ifndef NO_TIME
-#pragma omp simd aligned(phi,r,u11t_f,u12t_f,dk4m_f,dk4p_f:AVX)
+		//Timelike terms
+		alignas(AVX) float dk4ms[AVX],dk4ps[AVX];
+#pragma omp simd
+		for(int j=0;j<AVX;j++){
+			u11s[j]=u11t[(i+j)*ndim+3];	u12s[j]=u12t[(i+j)*ndim+3];
+			did[j]=id[(i+j)*ndim+3];uid[j]= iu[(i+j)*ndim+3];
+			u11sd[j]=u11t[did[j]*ndim+3];	u12sd[j]=u12t[did[j]*ndim+3];
+			dk4ms[j]=dk4m[did[j]];   dk4ps[j]=dk4p[i+j];
+		}
+
+#pragma unroll
 		for(int idirac=0; idirac<ndirac; idirac++){
 			int igork1 = gamin[3*ndirac+idirac];
-			//Factorising for performance, we get dk4?*(float)u1?*(+/-r_wilson -/+ r_dirac)
-			phi[(i*ndirac+idirac)*nc]+=
-				-dk4p_f[i]*(u11t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
-						+u12t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc+1]-r[(uid*ndirac+igork1)*nc+1]))
-				-dk4m_f[did]*(conjf(u11t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]+r[(did*ndirac+igork1)*nc])
-						-u12t_f[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]+r[(did*ndirac+igork1)*nc+1]));
+#pragma unroll
+			for(int c=0; c<nc; c++)
+#pragma omp simd aligned(ru,rd,rgu,rgd,r,uid,did:AVX)
+				for(int j =0;j<AVX;j++){
+					ru[c][j]=r[(uid[j]*ndirac+idirac)*nc+c];
+					rd[c][j]=r[(did[j]*ndirac+idirac)*nc+c];
+					rgu[c][j]=r[(uid[j]*ndirac+igork1)*nc+c];
+					rgd[c][j]=r[(did[j]*ndirac+igork1)*nc+c];
+				}
+			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 
-			phi[(i*ndirac+idirac)*nc+1]+=
-				-dk4p_f[i]*(-conjf(u12t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
-						+conjf(u11t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc+1]-r[(uid*ndirac+igork1)*nc+1]))
-				-dk4m_f[did]*(conjf(u12t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]+r[(did*ndirac+igork1)*nc])
-						+u11t_f[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]+r[(did*ndirac+igork1)*nc+1]));
+#pragma omp simd aligned(phi_s,u11s,u12s,u11sd,u12sd,ru,rd,rgu,rgd,dk4ms,dk4ps,phi:AVX)
+			for(int j =0;j<AVX;j++){
+				phi_s[idirac*nc+0][j]-=
+					dk4ps[j]*(u11s[j]*(ru[0][j]-rgu[0][j])
+							+u12s[j]*(ru[1][j]-rgu[1][j]));
+				phi_s[idirac*nc+0][j]-=
+					dk4ms[j]*(conj(u11sd[j])*(rd[0][j]+rgd[0][j])
+							-u12sd[j]*(rd[1][j]+rgd[1][j]));
+				phi[((i+j)*ndirac+idirac)*nc]=phi_s[idirac*nc][j];
+
+				phi_s[idirac*nc+1][j]-=
+					dk4ps[j]*(-conj(u12s[j])*(ru[0][j]-rgu[0][j])
+							+conj(u11s[j])*(ru[1][j]-rgu[1][j]));
+				phi_s[idirac*nc+1][j]-=
+					dk4ms[j]*(conj(u12sd[j])*(rd[0][j]+rgd[0][j])
+							+u11sd[j]*(rd[1][j]+rgd[1][j]));
+				phi[((i+j)*ndirac+idirac)*nc+1]=phi_s[idirac*nc+1][j];
+			}
 		}
 #endif
 	}
-#endif
 	return 0;
 }
-int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
-		Complex_f *gamval_f, int *gamin, float *dk4m_f, float *dk4p_f, float akappa){
+int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
+		Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, float akappa){
 	/*
 	 * @brief Evaluates @f(\Phi=M^\dagger r@f) in single precision
 	 *
@@ -834,69 +887,124 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_
 
 	//Mass term
 #ifdef __NVCC__
-	cuHdslashd_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,akappa,dimGrid,dimBlock);
+	cuHdslashd_f(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
+
 	//Spacelike term
+	//Enough room on L1 data cache for Zen 2 to hold 160 elements at a time
+	//Vectorise with 128 maybe?
 #pragma omp parallel for
-	for(int i=0;i<kvol;i++){
+	for(int i=0;i<kvol;i+=AVX){
+		//Right. Time to prefetch
+		alignas(AVX) Complex_f u11s[AVX];		alignas(AVX) Complex_f u12s[AVX];
+		alignas(AVX) Complex_f u11sd[AVX];		alignas(AVX) Complex_f u12sd[AVX];
+		alignas(AVX) Complex_f ru[2][AVX]; 		alignas(AVX) Complex_f rd[2][AVX];
+		alignas(AVX) Complex_f rgu[2][AVX];		alignas(AVX) Complex_f rgd[2][AVX];
+		alignas(AVX) Complex_f phi_s[ndirac*nc][AVX];
+#pragma unroll
+		for(int idirac=0; idirac<ndirac; idirac++)
+#pragma unroll
+			for(int c=0; c<nc; c++)
+#pragma omp simd aligned(phi_s,phi:AVX)
+				for(int j=0;j<AVX;j++)
+					phi_s[idirac*nc+c][j]=phi[((i+j)*ndirac+idirac)*nc+c];
+		alignas(AVX) int did[AVX], uid[AVX];
 #ifndef NO_SPACE
+#pragma unroll
 		for(int mu = 0; mu <ndim-1; mu++){
-			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
-#pragma omp simd aligned(phi,r,u11t_f,u12t_f,gamval_f:AVX)
+			//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
+#pragma omp simd aligned(u11s,u12s,u11t,u12t,did,uid,id,iu,u11sd,u12sd:AVX)
+			for(int j =0;j<AVX;j++){
+				did[j]=id[(i+j)*ndim+mu]; uid[j] = iu[(i+j)*ndim+mu];
+				u11s[j]=u11t[(i+j)*ndim+mu];	u12s[j]=u12t[(i+j)*ndim+mu];
+				u11sd[j]=u11t[did[j]*ndim+mu];	u12sd[j]=u12t[did[j]*ndim+mu];
+			}
+#pragma unroll
 			for(int idirac=0; idirac<ndirac; idirac++){
-				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
 				int igork1 = gamin[mu*ndirac+idirac];
+#pragma unroll
+				for(int c=0; c<nc; c++)
+#pragma omp simd aligned(ru,rd,rgu,rgd,r,uid,did:AVX)
+					for(int j =0;j<AVX;j++){
+						ru[c][j]=r[(uid[j]*ndirac+idirac)*nc+c];
+						rd[c][j]=r[(did[j]*ndirac+idirac)*nc+c];
+						rgu[c][j]=r[(uid[j]*ndirac+igork1)*nc+c];
+						rgd[c][j]=r[(did[j]*ndirac+igork1)*nc+c];
+					}
 				//Can manually vectorise with a pragma?
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
+#pragma omp simd aligned(phi_s,u11s,u12s,u11sd,u12sd,ru,rd,rgu,rgd:AVX)
+				for(int j =0;j<AVX;j++){
+					phi_s[idirac*nc][j]-=akappa*(u11s[j]*ru[0][j]
+							+u12s[j]*ru[1][j]
+							+conj(u11sd[j])*rd[0][j]
+							-u12sd[j] *rd[1][j]);
+					//Dirac term
+					phi_s[idirac*nc][j]-=gamval[mu*ndirac+idirac]*
+						(u11s[j]*rgu[0][j]
+						 +u12s[j]*rgu[1][j]
+						 -conj(u11sd[j])*rgd[0][j]
+						 +u12sd[j] *rgd[1][j]);
 
-				//Reminder! gamval was rescaled by kappa when we defined it
-				phi[(i*ndirac+idirac)*nc]+=
-					-akappa*(u11t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]
-							+u12t_f[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]
-							+conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
-							-u12t_f[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
-					-gamval_f[mu*ndirac+idirac]*
-					(          u11t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]
-								  +u12t_f[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]
-								  -conjf(u11t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
-								  +u12t_f[did*ndim+mu] *r[(did*ndirac+igork1)*nc+1]);
-
-				phi[(i*ndirac+idirac)*nc+1]+=
-					-akappa*(-conjf(u12t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]
-							+conjf(u11t_f[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]
-							+conjf(u12t_f[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
-							+u11t_f[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
-					-gamval_f[mu*ndirac+idirac]*
-					(-conjf(u12t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]
-					 +conjf(u11t_f[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]
-					 -conjf(u12t_f[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
-					 -u11t_f[did*ndim+mu] *r[(did*ndirac+igork1)*nc+1]);
+					phi_s[idirac*nc+1][j]-=akappa*(-conj(u12s[j])*ru[0][j]
+							+conj(u11s[j])*ru[1][j]
+							+conj(u12sd[j])*rd[0][j]
+							+u11sd[j] *rd[1][j]);
+					//Dirac term
+					phi_s[idirac*nc+1][j]-=gamval[mu*ndirac+idirac]*(-conj(u12s[j])*rgu[0][j]
+							+conj(u11s[j])*rgu[1][j]
+							-conj(u12sd[j])*rgd[0][j]
+							-u11sd[j] *rgd[1][j]);
+				}
 			}
 		}
 #endif
-		//Timelike terms
-		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
 #ifndef NO_TIME
-#pragma omp simd aligned(phi,r,u11t_f,u12t_f,gamval_f:AVX)
+		//Timelike terms
+		alignas(AVX) float dk4ms[AVX],dk4ps[AVX];
+#pragma omp simd aligned(u11s,u12s,u11t,u12t,did,uid,id,iu,u11sd,u12sd,dk4m,dk4ms,dk4p,dk4ps:AVX)
+		for(int j=0;j<AVX;j++){
+			u11s[j]=u11t[(i+j)*ndim+3];	u12s[j]=u12t[(i+j)*ndim+3];
+			did[j]=id[(i+j)*ndim+3];		uid[j]= iu[(i+j)*ndim+3];
+			u11sd[j]=u11t[did[j]*ndim+3];	u12sd[j]=u12t[did[j]*ndim+3];
+			dk4ms[j]=dk4m[i+j];   			dk4ps[j]=dk4p[did[j]];
+		}
+#pragma unroll
 		for(int idirac=0; idirac<ndirac; idirac++){
 			int igork1 = gamin[3*ndirac+idirac];
-			//Factorising for performance, we get (float)dk4?*(float)u1?*(+/-r_wilson -/+ r_dirac)
-			//(float)dk4m and dk4p_f swap under dagger
-			phi[(i*ndirac+idirac)*nc]+=
-				-dk4m_f[i]*(u11t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc]+r[(uid*ndirac+igork1)*nc])
-						+u12t_f[i*ndim+3]*(r[(uid*ndirac+idirac)*nc+1]+r[(uid*ndirac+igork1)*nc+1]))
-				-dk4p_f[did]*(conjf(u11t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]-r[(did*ndirac+igork1)*nc])
-						-u12t_f[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]-r[(did*ndirac+igork1)*nc+1]));
+#pragma unroll
+			for(int c=0; c<nc; c++)
+#pragma omp simd aligned(ru,rd,rgu,rgd,r,uid,did:AVX)
+				for(int j =0;j<AVX;j++){
+					ru[c][j]=r[(uid[j]*ndirac+idirac)*nc+c];
+					rd[c][j]=r[(did[j]*ndirac+idirac)*nc+c];
+					rgu[c][j]=r[(uid[j]*ndirac+igork1)*nc+c];
+					rgd[c][j]=r[(did[j]*ndirac+igork1)*nc+c];
+				}
+			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
+			//dk4m and dk4p swap under dagger
+#pragma omp simd aligned(phi_s,u11s,u12s,u11sd,u12sd,ru,rd,rgu,rgd,dk4ms,dk4ps,phi:AVX)
+			for(int j =0;j<AVX;j++){
+				phi_s[idirac*nc][j]+=
+					-dk4ms[j]*(u11s[j]*(ru[0][j]+rgu[0][j])
+							+u12s[j]*(ru[1][j]+rgu[1][j]));
+				phi_s[idirac*nc][j]+=
+					-dk4ps[j]*(conj(u11sd[j])*(rd[0][j]-rgd[0][j])
+							-u12sd[j] *(rd[1][j]-rgd[1][j]));
+				phi[((i+j)*ndirac+idirac)*nc]=phi_s[idirac*nc][j];
 
-			phi[(i*ndirac+idirac)*nc+1]+=
-				-dk4m_f[i]*(-conjf(u12t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc]+r[(uid*ndirac+igork1)*nc])
-						+conjf(u11t_f[i*ndim+3])*(r[(uid*ndirac+idirac)*nc+1]+r[(uid*ndirac+igork1)*nc+1]))
-				-dk4p_f[did]*(conjf(u12t_f[did*ndim+3])*(r[(did*ndirac+idirac)*nc]-r[(did*ndirac+igork1)*nc])
-						+u11t_f[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]-r[(did*ndirac+igork1)*nc+1]));
-		}
+				phi_s[idirac*nc+1][j]-=
+					dk4ms[j]*(-conj(u12s[j])*(ru[0][j]+rgu[0][j])
+							+conj(u11s[j])*(ru[1][j]+rgu[1][j]));
+				phi_s[idirac*nc+1][j]-=
+					+dk4ps[j]*(conj(u12sd[j])*(rd[0][j]-rgd[0][j])
+							+u11sd[j] *(rd[1][j]-rgd[1][j]));
+				phi[((i+j)*ndirac+idirac)*nc+1]=phi_s[idirac*nc+1][j];
+			}
 #endif
+		}
 	}
 #endif
 	return 0;
