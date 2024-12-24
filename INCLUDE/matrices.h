@@ -1,4 +1,5 @@
-/** * @file matrices.h
+/**
+ * @file matrices.h
  *
  * @brief Matrix multiplication and related declarations
  */
@@ -149,8 +150,8 @@ extern "C"
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
-	int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
-			Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, float akappa);
+	int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,unsigned int *id,\
+			Complex_f *gamval, int *gamin, float *dk[2], float akappa);
 	/**
 	 * @brief Evaluates @f$\Phi=M^\dagger r@f$ in single precision
 	 *
@@ -168,17 +169,22 @@ extern "C"
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
-	int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
-			Complex_f *gamval,int *gamin, float *dk4m, float *dk4p, float akappa);
+	int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,unsigned int *id,\
+			Complex_f *gamval,int *gamin, float *dk[2], float akappa);
 #ifdef DIAGNOSTIC
 	int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f,\
 			unsigned int *iu, unsigned int *id, int *hu, int *hd, double *dk4m, double *dk4p,\
 			float *dk4m_f, float *dk4p_f, int *gamin, Complex *gamval, Complex_f *gamval_f,\
 			Complex_f jqq, float akappa, float beta, double ancg);
 #endif
+
+void Transpose_z(Complex *out, const int, const int);
 void Transpose_c(Complex_f *out, const int, const int);
+void Transpose_d(double *out, const int, const int);
 void Transpose_f(float *out, const int, const int);
 void Transpose_I(int *out, const int, const int);
+void Transpose_U(unsigned int *out, const int, const int);
+
 #ifdef __NVCC__
 	//Calling Functions
 	void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\

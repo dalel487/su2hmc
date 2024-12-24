@@ -1135,7 +1135,7 @@ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t
 	cuHdslashd_f<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
 }
 
-void Transpose_z(Complex *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
+void cuTranspose_z(Complex *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
 	Complex *holder;
 	cudaMalloc((void **)&holder,fast_in*fast_out*sizeof(Complex));
 	cudaMemcpy(holder,out,fast_in*fast_out*sizeof(Complex),cudaMemcpyDefault);
@@ -1145,7 +1145,7 @@ void Transpose_z(Complex *out, const int fast_in, const int fast_out, const dim3
 	//cudaMemcpy(out,holder,fast_in*fast_out*sizeof(Complex_f),cudaMemcpyDefault);
 	cudaFree(holder);
 }
-void Transpose_c(Complex_f *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
+void cuTranspose_c(Complex_f *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
 	Complex_f *holder;
 	cudaMalloc((void **)&holder,fast_in*fast_out*sizeof(Complex_f));
 	cudaMemcpy(holder,out,fast_in*fast_out*sizeof(Complex_f),cudaMemcpyDefault);
@@ -1156,7 +1156,7 @@ void Transpose_c(Complex_f *out, const int fast_in, const int fast_out, const di
 	//cudaMemcpy(out,holder,fast_in*fast_out*sizeof(Complex_f),cudaMemcpyDefault);
 	cudaFree(holder);
 }
-void Transpose_d(double *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
+void cuTranspose_d(double *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
 	double *holder;
 	cudaMalloc((void **)&holder,fast_in*fast_out*sizeof(double));
 	cudaMemcpy(holder,out,fast_in*fast_out*sizeof(double),cudaMemcpyDefault);
@@ -1166,7 +1166,7 @@ void Transpose_d(double *out, const int fast_in, const int fast_out, const dim3 
 	//cudaMemcpy(out,holder,fast_in*fast_out*sizeof(double),cudaMemcpyDefault);
 	cudaFree(holder);
 }
-void Transpose_f(float *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
+void cuTranspose_f(float *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
 	float *holder;
 	cudaMalloc((void **)&holder,fast_in*fast_out*sizeof(float));
 	cudaMemcpy(holder,out,fast_in*fast_out*sizeof(float),cudaMemcpyDefault);
@@ -1176,7 +1176,7 @@ void Transpose_f(float *out, const int fast_in, const int fast_out, const dim3 d
 	//cudaMemcpy(out,holder,fast_in*fast_out*sizeof(float),cudaMemcpyDefault);
 	cudaFree(holder);
 }
-void Transpose_I(int *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
+void cuTranspose_I(int *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
 	int *holder;
 	cudaMalloc((void **)&holder,fast_in*fast_out*sizeof(int));
 	cudaMemcpy(holder,out,fast_in*fast_out*sizeof(int),cudaMemcpyDefault);
@@ -1186,7 +1186,7 @@ void Transpose_I(int *out, const int fast_in, const int fast_out, const dim3 dim
 	//cudaMemcpy(out,holder,fast_in*fast_out*sizeof(int),cudaMemcpyDefault);
 	cudaFree(holder);
 }
-void Transpose_U(unsigned int *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
+void cuTranspose_U(unsigned int *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
 	unsigned int *holder;
 	cudaMalloc((void **)&holder,fast_in*fast_out*sizeof(unsigned int));
 	cudaMemcpy(holder,out,fast_in*fast_out*sizeof(unsigned int),cudaMemcpyDefault);

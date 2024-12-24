@@ -116,9 +116,7 @@ int main(int argc, char *argv[]){
 	__managed__ 
 #endif
 		Complex_f jqq = 0;
-	float fmu = 0.0f;
-	int iread = 0;
-	int istart = 1;
+	float fmu = 0.0f;	int iread = 0;	int istart = 1;
 	int iprint = 1; //How often are measurements made
 	int icheck = 5; //How often are configurations saved
 	int ibound = -1;
@@ -127,10 +125,8 @@ int main(int argc, char *argv[]){
 #else
 	const double tpi = 2*acos(-1.0);
 #endif
-	float dt=0.004; float ajq = 0.0;
-	float delb=0; //Not used?
-	float athq = 0.0;
-	int stepl = 250; int ntraj = 10;
+	float dt=0.004;	float ajq = 0.0;	float delb=0; //Not used?
+	float athq = 0.0;	int stepl = 250;	int ntraj = 10;
 	//rank is zero means it must be the "master process"
 	if(!rank){
 		FILE *midout;
@@ -187,24 +183,32 @@ int main(int argc, char *argv[]){
 	//You'll notice that there are two different allocation/free statements
 	//One for CUDA and one for everything else depending on what's
 	//being used
-	Complex *u11, *u12, *u11t, *u12t;
-	Complex_f *u11t_f, *u12t_f;
-	double *dk4m, *dk4p, *pp;
-	float	*dk4m_f, *dk4p_f;
+	/***	Let's take a quick moment to compare this to the analysis code.
+	 *	The analysis code stores the gauge field as a 4 component real valued vector, whereas the produciton code
+	 *	used two complex numbers.
+	 *
+	 *	Analysis code: u=(Re(u[0]),Im(u[1]),Re(u[1]),Im(u[0]))
+	 *	Production code: u[0]=u[0]+I*u[3]	u[1]=u[2]+I*u[1]
+	 *
+	 */
+	Complex *u[2], *ut[2];
+	Complex_f *ut_f[2];
+	double *dk[2], *pp;
+	float	*dk_f[2];
 	//Halo index arrays
 	unsigned int *iu, *id;
 #ifdef __NVCC__
 	cudaMallocManaged((void**)&iu,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
 	cudaMallocManaged((void**)&id,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
 
-	cudaMallocManaged(&dk4m,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
-	cudaMallocManaged(&dk4p,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
+	cudaMallocManaged(&dk[0],(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
+	cudaMallocManaged(&dk[1],(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
 #ifdef _DEBUG
-	cudaMallocManaged(&dk4m_f,(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
-	cudaMallocManaged(&dk4p_f,(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
+	cudaMallocManaged(&dk_f[0],(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
+	cudaMallocManaged(&dk_f[1],(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
 #else
-	cudaMalloc(&dk4m_f,(kvol+halo)*sizeof(float));
-	cudaMalloc(&dk4p_f,(kvol+halo)*sizeof(float));
+	cudaMalloc(&dk_f[0],(kvol+halo)*sizeof(float));
+	cudaMalloc(&dk_f[1],(kvol+halo)*sizeof(float));
 #endif
 
 	int	*gamin;
@@ -217,16 +221,16 @@ int main(int argc, char *argv[]){
 #else
 	cudaMalloc(&gamval_f,5*4*sizeof(Complex_f));
 #endif
-	cudaMallocManaged(&u11,ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&u12,ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&u11t,ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&u12t,ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&u[0],ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&u[1],ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&ut[0],ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&ut[1],ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
 #ifdef _DEBUG
-	cudaMallocManaged(&u11t_f,ndim*(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged(&u12t_f,ndim*(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged(&ut_f[0],ndim*(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged(&ut_f[1],ndim*(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
 #else
-	cudaMalloc(&u11t_f,ndim*(kvol+halo)*sizeof(Complex_f));
-	cudaMalloc(&u12t_f,ndim*(kvol+halo)*sizeof(Complex_f));
+	cudaMalloc(&ut_f[0],ndim*(kvol+halo)*sizeof(Complex_f));
+	cudaMalloc(&ut_f[1],ndim*(kvol+halo)*sizeof(Complex_f));
 #endif
 #else
 	id = (unsigned int*)aligned_alloc(AVX,ndim*kvol*sizeof(int));
@@ -236,17 +240,17 @@ int main(int argc, char *argv[]){
 	Complex	*gamval=(Complex *)aligned_alloc(AVX,5*4*sizeof(Complex));
 	Complex_f *gamval_f=(Complex_f *)aligned_alloc(AVX,5*4*sizeof(Complex_f));;
 
-	dk4m = (double *)aligned_alloc(AVX,(kvol+halo)*sizeof(double));
-	dk4p = (double *)aligned_alloc(AVX,(kvol+halo)*sizeof(double));
-	dk4m_f = (float *)aligned_alloc(AVX,(kvol+halo)*sizeof(float));
-	dk4p_f = (float *)aligned_alloc(AVX,(kvol+halo)*sizeof(float));
+	dk[0] = (double *)aligned_alloc(AVX,(kvol+halo)*sizeof(double));
+	dk[1] = (double *)aligned_alloc(AVX,(kvol+halo)*sizeof(double));
+	dk_f[0] = (float *)aligned_alloc(AVX,(kvol+halo)*sizeof(float));
+	dk_f[1] = (float *)aligned_alloc(AVX,(kvol+halo)*sizeof(float));
 
-	u11 = (Complex *)aligned_alloc(AVX,ndim*kvol*sizeof(Complex));
-	u12 = (Complex *)aligned_alloc(AVX,ndim*kvol*sizeof(Complex));
-	u11t = (Complex *)aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex));
-	u12t = (Complex *)aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex));
-	u11t_f = (Complex_f *)aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex_f));
-	u12t_f = (Complex_f *)aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex_f));
+	u[0] = (Complex *)aligned_alloc(AVX,ndim*kvol*sizeof(Complex));
+	u[1] = (Complex *)aligned_alloc(AVX,ndim*kvol*sizeof(Complex));
+	ut[0] = (Complex *)aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex));
+	ut[1] = (Complex *)aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex));
+	ut_f[0] = (Complex_f *)aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex_f));
+	ut_f[1] = (Complex_f *)aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex_f));
 #endif
 	/**
 	 * \subsection initialise Initialisation
@@ -261,32 +265,32 @@ int main(int argc, char *argv[]){
 	 *
 	 * istart > 0: Random/Hot Start
 	 */
-	Init(istart,ibound,iread,beta,fmu,akappa,ajq,u11,u12,u11t,u12t,u11t_f,u12t_f,gamval,gamval_f,gamin,dk4m,dk4p,dk4m_f,dk4p_f,iu,id);
+	Init(istart,ibound,iread,beta,fmu,akappa,ajq,u,ut,ut_f,gamval,gamval_f,gamin,dk,dk_f,iu,id);
 #ifdef __NVCC__
 	//GPU Initialisation stuff
-	Init_CUDA(u11t,u12t,gamval,gamval_f,gamin,dk4m,dk4p,iu,id);//&dimBlock,&dimGrid);
+	Init_CUDA(ut[0],ut[1],gamval,gamval_f,gamin,dk[0],dk[1],iu,id);//&dimBlock,&dimGrid);
 #endif
 	//Send trials to accelerator for reunitarisation
-	Reunitarise(u11t,u12t);
+	Reunitarise(ut);
 	//Get trials back
-	memcpy(u11, u11t, ndim*kvol*sizeof(Complex));
-	memcpy(u12, u12t, ndim*kvol*sizeof(Complex));
+	memcpy(u[0], ut[0], ndim*kvol*sizeof(Complex));
+	memcpy(u[1], ut[1], ndim*kvol*sizeof(Complex));
 #ifdef DIAGNOSTIC
 	double ancg_diag=0;
-	Diagnostics(istart, u11, u12, u11t, u12t, u11t_f, u12t_f, iu, id, hu, hd, dk4m, dk4p,\
-			dk4m_f, dk4p_f, gamin, gamval, gamval_f, jqq, akappa, beta, ancg_diag);
+	Diagnostics(istart, u[0], u[1], ut[0], ut[1], ut_f[0], ut_f[1], iu, id, hu, hd, dk[0], dk[1],\
+			dk_f[0], dk_f[1], gamin, gamval, gamval_f, jqq, akappa, beta, ancg_diag);
 #endif
 
 	//Initial Measurements
 	//====================
-	Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
-	double poly = Polyakov(u11t_f,u12t_f);
+	Trial_Exchange(ut,ut_f);
+	double poly = Polyakov(ut_f);
 #ifdef _DEBUG
 	if(!rank) printf("Initial Polyakov loop evaluated as %e\n", poly);
 #endif
 	double hg, avplaqs, avplaqt;
 	//Halo exchange of the trial fields
-	Average_Plaquette(&hg,&avplaqs,&avplaqt,u11t_f,u12t_f,iu,beta);
+	Average_Plaquette(&hg,&avplaqs,&avplaqt,ut_f,iu,beta);
 	//Trajectory length
 	double traj=stepl*dt;
 	//Acceptance probability
@@ -441,24 +445,24 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 			cudaMemPrefetchAsync(R,kfermHalo*sizeof(Complex_f),device,NULL);
 			//Transpose needed here for Dslashd
-			Transpose_c(R1_f,ngorkov*nc,kvol,dimGrid,dimBlock);
-			Transpose_c(R,ngorkov*nc,kvol,dimGrid,dimBlock);
+			Transpose_c(R1_f,ngorkov*nc,kvol);
+			Transpose_c(R,ngorkov*nc,kvol);
 			//R is random so this techincally isn't required. But it does keep the code output consistent with previous
 			//versions.
 			//Flip all the gauge fields around so memory is coalesced
-			Transpose_c(u11t_f,ndim,kvol,dimGrid,dimBlock);
-			Transpose_c(u12t_f,ndim,kvol,dimGrid,dimBlock);
+			Transpose_c(ut_f[0],ndim,kvol);
+			Transpose_c(ut_f[1],ndim,kvol);
 			cudaDeviceSynchronise();
 #endif
-			Dslashd_f(R1_f,R,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
+			Dslashd_f(R1_f,R,ut_f[0],ut_f[1],iu,id,gamval_f,gamin,dk_f[0],dk_f[1],jqq,akappa);
 #ifdef __NVCC__
 			//Make sure the multiplication is finished before freeing its input!!
 			cudaFree(R);//cudaDeviceSynchronise(); 
 							//cudaFree is blocking so don't need to synchronise
-			Transpose_c(R1_f,kvol,ngorkov*nc,dimGrid,dimBlock);
+			Transpose_c(R1_f,kvol,ngorkov*nc);
 			cuComplex_convert(R1_f,R1,kferm,false,dimBlock,dimGrid);
-			Transpose_c(u11t_f,kvol,ndim,dimGrid,dimBlock);
-			Transpose_c(u12t_f,kvol,ndim,dimGrid,dimBlock);
+			Transpose_c(ut_f[0],kvol,ndim);
+			Transpose_c(ut_f[1],kvol,ndim);
 			//cudaDeviceSynchronise();
 			//cudaFreeAsync(R1_f,NULL);
 			cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,0);
@@ -486,11 +490,11 @@ int main(int argc, char *argv[]){
 		//We're going to make the most of the new Gauss_d routine to send a flattened array
 		//and do this all in one step.
 #ifdef __NVCC__
-		cudaMemcpyAsync(u11t, u11, ndim*kvol*sizeof(Complex),cudaMemcpyHostToDevice,streams[1]);
-		cudaMemcpyAsync(u12t, u12, ndim*kvol*sizeof(Complex),cudaMemcpyHostToDevice,streams[2]);
+		cudaMemcpyAsync(ut[0], u[0], ndim*kvol*sizeof(Complex),cudaMemcpyHostToDevice,streams[1]);
+		cudaMemcpyAsync(ut[1], u[1], ndim*kvol*sizeof(Complex),cudaMemcpyHostToDevice,streams[2]);
 #else
-		memcpy(u11t, u11, ndim*kvol*sizeof(Complex));
-		memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
+		memcpy(ut[0], u[0], ndim*kvol*sizeof(Complex));
+		memcpy(ut[1], u[1], ndim*kvol*sizeof(Complex));
 #endif
 #if (defined(USE_RAN2)||defined(__RANLUX__)||!defined(__INTEL_MKL__))
 		Gauss_d(pp, kmom, 0, 1);
@@ -500,16 +504,10 @@ int main(int argc, char *argv[]){
 		//Initialise Trial Fields
 #ifdef __NVCC__
 		cudaMemPrefetchAsync(pp,kmom*sizeof(double),device,streams[1]);
-		cudaMemcpy(u11t, u11, ndim*kvol*sizeof(Complex),cudaMemcpyDefault);
-		cudaMemcpy(u12t, u12, ndim*kvol*sizeof(Complex),cudaMemcpyDefault);
-#else
-		memcpy(u11t, u11, ndim*kvol*sizeof(Complex));
-		memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
 #endif
-		Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
+		Trial_Exchange(ut,ut_f);
 		double H0, S0;
-		Hamilton(&H0, &S0, rescga,pp,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval_f,gamin,\
-				dk4m_f,dk4p_f,jqq,akappa,beta,&ancgh,itraj);
+		Hamilton(&H0,&S0,rescga,pp,X0,X1,Phi,ut_f,iu,id,gamval_f,gamin,dk_f,jqq,akappa,beta,&ancgh,itraj);
 #ifdef _DEBUG
 		if(!rank) printf("H0: %e S0: %e\n", H0, S0);
 #endif
@@ -521,14 +519,11 @@ int main(int argc, char *argv[]){
 #if (defined INT_LPFR && defined INT_OMF2) ||(defined INT_LPFR && defined INT_OMF4)||(defined INT_OMF2 && defined INT_OMF4)
 #error "Only one integrator may be defined"
 #elif defined INT_LPFR
-		Leapfrog(u11t, u12t, u11t_f, u12t_f, X0, X1, Phi, dk4m, dk4p, dk4m_f, dk4p_f, dSdpi, pp,iu, id, gamval,
-				gamval_f, gamin, jqq, beta,akappa,stepl,dt,&ancg,&itot,proby);
+		Leapfrog(ut,ut_f,X0,X1,Phi,dk,dk_f,dSdpi,pp,iu,id,gamval,gamval_f,gamin,jqq,beta,akappa,stepl,dt,&ancg,&itot,proby);
 #elif defined INT_OMF2
-		OMF2(u11t, u12t, u11t_f, u12t_f, X0, X1, Phi, dk4m, dk4p, dk4m_f, dk4p_f, dSdpi, pp,iu, id, gamval,
-				gamval_f, gamin, jqq, beta,akappa,stepl,dt,&ancg,&itot,proby);
+		OMF2(ut,ut_f,X0,X1,Phi,dk,dk_f,dSdpi,pp,iu,id,gamval,gamval_f,gamin,jqq,beta,akappa,stepl,dt,&ancg,&itot,proby);
 #elif defined INT_OMF4
-		OMF4(u11t, u12t, u11t_f, u12t_f, X0, X1, Phi, dk4m, dk4p, dk4m_f, dk4p_f, dSdpi, pp,iu, id, gamval,
-				gamval_f, gamin, jqq, beta,akappa,stepl,dt,&ancg,&itot,proby);
+		OMF4(ut,ut_f,X0,X1,Phi,dk,dk_f,dSdpi,pp,iu,id,gamval,gamval_f,gamin,jqq,beta,akappa,stepl,dt,&ancg,&itot,proby);
 #else
 #error "No integrator defined. Please define {INT_LPFR.INT_OMF2,INT_OMF4}"
 #endif
@@ -536,10 +531,9 @@ int main(int argc, char *argv[]){
 		totancg+=ancg;
 		//Monte Carlo step: Accept new fields with the probability of min(1,exp(H0-X0))
 		//Kernel Call needed here?
-		Reunitarise(u11t,u12t);
+		Reunitarise(ut);
 		double H1, S1;
-		Hamilton(&H1, &S1, rescga,pp,X0,X1,Phi,u11t,u12t,u11t_f,u12t_f,iu,id,gamval_f,gamin,\
-				dk4m_f,dk4p_f,jqq,akappa,beta,&ancgh,itraj);
+		Hamilton(&H1,&S1,rescga,pp,X0,X1,Phi,ut_f,iu,id,gamval_f,gamin,dk_f,jqq,akappa,beta,&ancgh,itraj);
 		ancgh/=2.0; //Hamilton is called at start and end of trajectory
 		totancgh+=ancgh;
 #ifdef _DEBUG
@@ -570,8 +564,8 @@ int main(int argc, char *argv[]){
 			//Original FORTRAN Comment:
 			//JIS 20100525: write config here to preempt troubles during measurement!
 			//JIS 20100525: remove when all is ok....
-			memcpy(u11,u11t,ndim*kvol*sizeof(Complex));
-			memcpy(u12,u12t,ndim*kvol*sizeof(Complex));
+			memcpy(u[0],ut[0],ndim*kvol*sizeof(Complex));
+			memcpy(u[1],ut[1],ndim*kvol*sizeof(Complex));
 			naccp++;
 			//Divide by gvol since we've summed over all lattice sites
 			action=S1/gvol;
@@ -604,13 +598,13 @@ int main(int argc, char *argv[]){
 			//If rejected, copy the previously accepted field in for measurements
 			if(!acc){
 #ifdef __NVCC__
-				cudaMemcpyAsync(u11t, u11, ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[0]);
-				cudaMemcpyAsync(u12t, u12, ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[1]);
+				cudaMemcpyAsync(ut[0], u[0], ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[0]);
+				cudaMemcpyAsync(ut[1], u[1], ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[1]);
 #else
-				memcpy(u11t, u11, ndim*kvol*sizeof(Complex));
-				memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
+				memcpy(ut[0], u[0], ndim*kvol*sizeof(Complex));
+				memcpy(ut[1], u[1], ndim*kvol*sizeof(Complex));
 #endif
-				Trial_Exchange(u11t,u12t,u11t_f,u12t_f);
+				Trial_Exchange(ut,ut_f);
 			}
 #ifdef _DEBUG
 			if(!rank)
@@ -623,15 +617,15 @@ int main(int argc, char *argv[]){
 			//If the Congrad in Measure fails, don't measure the Diquark or PBP-Density observables for
 			//that trajectory
 			int measure_check=0;
-			measure_check = Measure(&pbp,&endenf,&denf,&qq,&qbqb,respbp,&itercg,u11t,u12t,u11t_f,u12t_f,iu,id,\
-					gamval,gamval_f,gamin,dk4m,dk4p,dk4m_f,dk4p_f,jqq,akappa,Phi,R1);
+			measure_check = Measure(&pbp,&endenf,&denf,&qq,&qbqb,respbp,&itercg,ut[0],ut[1],ut_f[0],ut_f[1],iu,id,\
+					gamval,gamval_f,gamin,dk[0],dk[1],dk_f[0],dk_f[1],jqq,akappa,Phi,R1);
 #ifdef _DEBUG
 			if(!rank)
 				printf("Finished measurements\n");
 #endif
 			pbpa+=pbp; endenfa+=endenf; denfa+=denf; ipbp++;
-			Average_Plaquette(&hg,&avplaqs,&avplaqt,u11t_f,u12t_f,iu,beta);
-			poly = Polyakov(u11t_f,u12t_f);
+			Average_Plaquette(&hg,&avplaqs,&avplaqt,ut_f,iu,beta);
+			poly = Polyakov(ut_f);
 			//We have four output files, so may as well get the other ranks to help out
 			//and abuse scoping rules while we're at it.
 			//Can use either OpenMP or MPI to do this
@@ -723,7 +717,7 @@ int main(int argc, char *argv[]){
 						}
 		}
 		if(itraj%icheck==0){
-			Par_swrite(itraj,icheck,beta,fmu,akappa,ajq,u11,u12);
+			Par_swrite(itraj,icheck,beta,fmu,akappa,ajq,u[0],u[1]);
 		}
 		if(!rank)
 			fflush(output);
@@ -742,19 +736,19 @@ int main(int argc, char *argv[]){
 	//Free arrays
 #ifdef __NVCC__
 	//Make a routine that does this for us
-	cudaFree(dk4m); cudaFree(dk4p); cudaFree(R1); cudaFree(dSdpi); cudaFree(pp);
-	cudaFree(Phi); cudaFree(u11t); cudaFree(u12t);
-	cudaFree(X0); cudaFree(X1); cudaFree(u11); cudaFree(u12);
+	cudaFree(dk[0]); cudaFree(dk[1]); cudaFree(R1); cudaFree(dSdpi); cudaFree(pp);
+	cudaFree(Phi); cudaFree(ut[0]); cudaFree(ut[1]);
+	cudaFree(X0); cudaFree(X1); cudaFree(u[0]); cudaFree(u[1]);
 	cudaFree(id); cudaFree(iu); 
-	cudaFree(dk4m_f); cudaFree(dk4p_f); cudaFree(u11t_f); cudaFree(u12t_f);
+	cudaFree(dk_f[0]); cudaFree(dk_f[1]); cudaFree(ut_f[0]); cudaFree(ut_f[1]);
 	cudaFree(gamin); cudaFree(gamval); cudaFree(gamval_f);
 	cublasDestroy(cublas_handle);
 #else
-	free(dk4m); free(dk4p); free(R1); free(dSdpi); free(pp);
-	free(Phi); free(u11t); free(u12t);
-	free(X0); free(X1); free(u11); free(u12);
+	free(dk[0]); free(dk[1]); free(R1); free(dSdpi); free(pp);
+	free(Phi); free(ut[0]); free(ut[1]);
+	free(X0); free(X1); free(u[0]); free(u[1]);
 	free(id); free(iu);
-	free(dk4m_f); free(dk4p_f); free(u11t_f); free(u12t_f);
+	free(dk_f[0]); free(dk_f[1]); free(ut_f[0]); free(ut_f[1]);
 	free(gamin); free(gamval); free(gamval_f);
 #endif
 	free(hd); free(hu);free(h1u); free(h1d); free(halosize); free(pcoord);
@@ -770,7 +764,7 @@ int main(int argc, char *argv[]){
 		char *version[256];
 		int cuversion; cudaRuntimeGetVersion(&cuversion);
 		sprintf(version,"CUDA %d\tBlock: (%d,%d,%d)\tGrid: (%d,%d,%d)\n%s\n",cuversion,\
-					dimBlock.x,dimBlock.y,dimBlock.z,dimGrid.x,dimGrid.y,dimGrid.z,__VERSION__);
+				dimBlock.x,dimBlock.y,dimBlock.z,dimGrid.x,dimGrid.y,dimGrid.z,__VERSION__);
 #else
 		char *version=__VERSION__;
 #endif

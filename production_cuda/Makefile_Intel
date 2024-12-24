@@ -1,26 +1,25 @@
 MF=Makefile_Intel
 CC=		icc 
-CXX=		icpc 
+CXX=		icpc
 NVCC=		nvcc
 
 IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include" -I ./ -I../production_c\
+				$(shell gsl-config --cflags) \
 				-I /opt/nvidia/hpc_sdk/Linux_x86_64/2024/cuda/include/ \
 				-I /opt/nvidia/hpc_sdk/Linux_x86_64/2024/math_libs/include/ 
 
-CFLAGS=  -qmkl -qopt-zmm-usage=high -MD -D__NVCC__ -static-intel -static-libgcc \
-			-xCOFFEELAKE -ax'SKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,ALDERLAKE'\
-			-DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__ -qopenmp -qno-openmp-offload \
-			-DINT_OMF2 \
-			-qopenmp-simd -DSA3AT -use-intel-optimized-headers -diag-disable=10441 $(IFLAGS) 
+CFLAGS=  -qmkl -qopt-zmm-usage=high -MD -D__NVCC__-ipo -static-intel -static-libgcc \
+			-xHOST -DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__ -qopenmp -qno-openmp-offload \
+			-DINT_OMF2 -qopenmp-simd -DSA3AT -use-intel-optimized-headers -diag-disable=10441 $(IFLAGS) 
 
 MKLFLAGS=	-qmkl -L${MKLROOT}/lib/intel64 -limf #-DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
 CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/2024/cuda/lib64/ \
 				-L/opt/nvidia/hpc_sdk/Linux_x86_64/2024/math_libs/lib64/ \
 				-lcuda -lcudart -lcublas 
 
-LFLAGS=		-liomp5 -lstdc++ -lpthread -ldl -limf -lgsl  #${CULFLAGS}
+LFLAGS=		-liomp5 $(shell gsl-config --libs-without-cblas) -lpthread -ldl -limf  #${CULFLAGS}
 
-NVCCFLAGS=	${IFLAGS} --resource-usage -std=c++14 -err-no -w #-expt-relaxed-constexpr 
+NVCCFLAGS=	${IFLAGS} -std=c++14 -err-no --diag-suppress 550,177,2464  #--resource-usage -allow-unsupported-compiler #-expt-relaxed-constexpr 
 			#Last flag is an experimental one used to call host functions in device code. Not sure
 			#if it does what we want because the error message suggesting it came up when declaring
 			#a11 and a12 in the Dslash routine
@@ -81,12 +80,12 @@ CEDT=	$(CSRC:.c=.c~)
 CUEDT=	$(CUSRC:.cu=.cu~)
 TMP=	$(MOD) $(CEDT) $(CUEDT) core
 
-profiler:	CFLAGS += -g #-D_DEBUGCG
-profiler:	NVCCFLAGS += -lineinfo #-D_DEBUGCG #-keep
+profiler:	CFLAGS += -g -rdynamic #-D_DEBUGCG
+profiler:	NVCCFLAGS += -Xptxas -O0,-v -lineinfo #-D_DEBUGCG #-keep
 profiler:	release
 
-release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high -rdynamic
-release:	NVCCFLAGS += -Xptxas -O3,-v -arch=native #--maxrregcount=64 -G -dopt=on
+release:	CFLAGS +=  -O3 -inline-level=2 -qopt-zmm-usage=high 
+release:	NVCCFLAGS += -arch=native #--maxrregcount=64 -G -dopt=on
 release:	$(EXE)
 
 diagnostic: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE

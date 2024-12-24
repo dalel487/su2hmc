@@ -296,7 +296,7 @@ extern "C"
 	 *
 	 *  @return Zero on success, Integer Error code otherwise
 	 */
-	int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f);
+	int Trial_Exchange(Complex *ut[2], Complex_f *ut_f[2]);
 	//If we have more than two processors on the time axis, there's an extra step in the Polyakov loop calculation
 #if(npt>1)
 	/**

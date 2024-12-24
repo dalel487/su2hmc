@@ -21,29 +21,32 @@ void cuMinus_staple(int mu, int nu, unsigned int *iu, unsigned int *id, Complex_
 	const char *funcname="Minus_staple";
 	Minus_staple<<<dimGrid,dimBlock>>>(mu, nu, iu, id,Sigma11,Sigma12,u11sh,u12sh,u11t,u12t);
 }
-void cuForce(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Complex_f *X1, Complex_f *X2, \
-		Complex_f *gamval,float *dk4m, float *dk4p,unsigned int *iu,int *gamin,\
+void cuForce(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, \
+		Complex_f *gamval,float *dk[2],unsigned int *iu,int *gamin,\
 		float akappa, dim3 dimGrid, dim3 dimBlock){
 	const char *funcname = "Force";
 	//X1=(M†M)^{1} Phi
-	Transpose_U(iu,ndim,kvol,dimGrid,dimBlock);
-	Transpose_d(dSdpi,nadj*ndim,kvol,dimGrid,dimBlock);
-	Transpose_c(u11t,ndim,kvol,dimGrid,dimBlock); Transpose_c(u12t,ndim,kvol,dimGrid,dimBlock);
-//	Transpose_z(X1,ndirac*nc,kvol,dimGrid,dimBlock); Transpose_z(X2,ndirac*nc,kvol,dimGrid,dimBlock);
+	cuTranspose_U(iu,ndim,kvol,dimGrid,dimBlock);
+	cuTranspose_d(dSdpi,nadj*ndim,kvol,dimGrid,dimBlock);
+	cuTranspose_c(ut[0],ndim,kvol,dimGrid,dimBlock);
+	cuTranspose_c(ut[1],ndim,kvol,dimGrid,dimBlock);
+//	Transpose_z(X1,ndirac*nc,kvol); Transpose_z(X2,ndirac*nc,kvol);
 	cudaDeviceSynchronise();
+#pragma unroll
 	for(int mu=0;mu<3;mu++){
-		cuForce_s<<<dimGrid,dimBlock,0,streams[mu]>>>(dSdpi,u11t,u12t,X1,X2,gamval,iu,gamin,akappa,mu);
-		//			cuForce_s1<<<dimGrid,dimBlock,0,streams[mu*nadj+1]>>>(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac,mu);
-		//			cuForce_s2<<<dimGrid,dimBlock,0,streams[mu*nadj+2]>>>(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa,idirac,mu);
+		cuForce_s<<<dimGrid,dimBlock,0,streams[mu]>>>(dSdpi,ut[0],ut[1],X1,X2,gamval,iu,gamin,akappa,mu);
+		//			cuForce_s1<<<dimGrid,dimBlock,0,streams[mu*nadj+1]>>>(dSdpi,ut[0],ut[1],X1,X2,gamval,dk[1],dk[1],iu,gamin,akappa,idirac,mu);
+		//			cuForce_s2<<<dimGrid,dimBlock,0,streams[mu*nadj+2]>>>(dSdpi,ut[0],ut[1],X1,X2,gamval,dk[1],dk[1],iu,gamin,akappa,idirac,mu);
 	}
 	//Set stream for time direction
 	int mu=3;
-	cuForce_t<<<dimGrid,dimBlock,0,streams[mu]>>>(dSdpi,u11t,u12t,X1,X2,gamval,dk4m,dk4p,iu,gamin,akappa);
+	cuForce_t<<<dimGrid,dimBlock,0,streams[mu]>>>(dSdpi,ut[0],ut[1],X1,X2,gamval,dk[0],dk[1],iu,gamin,akappa);
 	cudaDeviceSynchronise();
-//	Transpose_z(X1,kvol,ndirac*nc,dimGrid,dimBlock); Transpose_z(X2,kvol,ndirac*nc,dimGrid,dimBlock);
-	Transpose_c(u11t,kvol,ndim,dimGrid,dimBlock); Transpose_c(u12t,kvol,ndim,dimGrid,dimBlock);
-	Transpose_U(iu,kvol,ndim,dimGrid,dimBlock); 	
-	Transpose_d(dSdpi,kvol,nadj*ndim,dimGrid,dimBlock);
+//	Transpose_z(X1,kvol,ndirac*nc); Transpose_z(X2,kvol,ndirac*nc);
+	cuTranspose_c(ut[0],kvol,ndim,dimGrid,dimBlock);
+	cuTranspose_c(ut[1],kvol,ndim,dimGrid,dimBlock);
+	cuTranspose_U(iu,kvol,ndim,dimGrid,dimBlock); 	
+	cuTranspose_d(dSdpi,kvol,nadj*ndim,dimGrid,dimBlock);
 	cudaDeviceSynchronise();
 }
 
@@ -113,7 +116,8 @@ __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 	const int gthreadId= blockId * bsize+bthreadId;
 	for(int i=gthreadId;i<kvol;i+=gsize*bsize){
 		//Complex_f u11s=u11t[i*ndim+mu];	Complex_f u12s=u12t[i*ndim+mu];
-		const Complex_f u11s=u11t[i+kvol*mu];	const Complex_f u12s=u12t[i+kvol*mu];
+		const Complex_f u11s=u11t[i+kvol*mu];
+		const Complex_f u12s=u12t[i+kvol*mu];
 		//const int uid = iu[mu+ndim*i];
 		const int uid = iu[mu*kvol+i];
 		for(int idirac=0;idirac<ndirac;idirac++){
@@ -190,7 +194,7 @@ __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 		}
 	}
 }
-__global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Complex_f *X1, Complex_f *X2, Complex_f *gamval,\
+__global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t,Complex_f *X1, Complex_f *X2, Complex_f *gamval,\
 		float *dk4m, float *dk4p, unsigned int *iu, int *gamin,float akappa){
 	const char *funcname = "cuForce";
 	//Up indices

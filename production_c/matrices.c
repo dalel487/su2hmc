@@ -709,15 +709,15 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 #endif
 	return 0;
 }
-int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned  int *iu,unsigned  int *id,\
-		Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, float akappa){
+int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned  int *iu,unsigned  int *id,\
+		Complex_f *gamval, int *gamin, float *dk[2], float akappa){
 	/*
 	 * @brief Evaluates @f(\Phi=M r@f) in single precision.
 	 *
 	 * @param	phi:		The product
 	 * @param	r:			The array being acted on by M
-	 * @param	u11t_f:	First colour trial field
-	 * @param	u12t_f:	Second colour trial field
+	 * @param	ut[0]_f:	First colour trial field
+	 * @param	ut[1]_f:	Second colour trial field
 	 *	@param	iu:		Upper halo indices
 	 *	@param	id:		Lower halo indices
 	 *	@param	gamval_f:	Gamma matrices
@@ -736,7 +736,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,uns
 	CHalo_swap_all(r, 8);
 #endif
 #ifdef __NVCC__
-	cuHdslash_f(phi,r,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,akappa,dimGrid,dimBlock);
+	cuHdslash_f(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa,dimGrid,dimBlock);
 #else
 	//Mass term
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
@@ -757,11 +757,11 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,uns
 		alignas(AVX) int did[AVX], uid[AVX];
 #pragma unroll
 		for(int mu = 0; mu <3; mu++){
-#pragma omp simd aligned(u11s,u12s,u11t,u12t,did,uid,id,iu,u11sd,u12sd:AVX)
+#pragma omp simd aligned(u11s,u12s,did,uid,id,iu,u11sd,u12sd:AVX)
 			for(int j =0;j<AVX;j++){
 				did[j]=id[(i+j)*ndim+mu]; uid[j] = iu[(i+j)*ndim+mu];
-				u11s[j]=u11t[(i+j)*ndim+mu];	u12s[j]=u12t[(i+j)*ndim+mu];
-				u11sd[j]=u11t[did[j]*ndim+mu];	u12sd[j]=u12t[did[j]*ndim+mu];
+				u11s[j]=ut[0][(i+j)*ndim+mu];	u12s[j]=ut[1][(i+j)*ndim+mu];
+				u11sd[j]=ut[0][did[j]*ndim+mu];	u12sd[j]=ut[1][did[j]*ndim+mu];
 			}
 #pragma unroll
 			for(int idirac=0; idirac<ndirac; idirac++){
@@ -803,16 +803,15 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,uns
 				}
 			}
 		}
-#endif
 #ifndef NO_TIME
 		//Timelike terms
 		alignas(AVX) float dk4ms[AVX],dk4ps[AVX];
 #pragma omp simd
 		for(int j=0;j<AVX;j++){
-			u11s[j]=u11t[(i+j)*ndim+3];	u12s[j]=u12t[(i+j)*ndim+3];
+			u11s[j]=ut[0][(i+j)*ndim+3];	u12s[j]=ut[1][(i+j)*ndim+3];
 			did[j]=id[(i+j)*ndim+3];uid[j]= iu[(i+j)*ndim+3];
-			u11sd[j]=u11t[did[j]*ndim+3];	u12sd[j]=u12t[did[j]*ndim+3];
-			dk4ms[j]=dk4m[did[j]];   dk4ps[j]=dk4p[i+j];
+			u11sd[j]=ut[0][did[j]*ndim+3];	u12sd[j]=ut[1][did[j]*ndim+3];
+			dk4ms[j]=dk[0][did[j]];   dk4ps[j]=dk[1][i+j];
 		}
 
 #pragma unroll
@@ -850,17 +849,18 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,uns
 		}
 #endif
 	}
+#endif
 	return 0;
 }
-int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
-		Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, float akappa){
+int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,unsigned int *id,\
+		Complex_f *gamval, int *gamin, float *dk[2], float akappa){
 	/*
 	 * @brief Evaluates @f(\Phi=M^\dagger r@f) in single precision
 	 *
 	 * @param	phi:		The product
 	 * @param	r:			The array being acted on by M
-	 * @param	u11t_f:	First colour trial field
-	 * @param	u12t_f:	Second colour trial field
+	 * @param	ut[0]_f:	First colour trial field
+	 * @param	ut[1]_f:	Second colour trial field
 	 *	@param	iu:		Upper halo indices
 	 *	@param	id:		Lower halo indices
 	 *	@param	gamval_f:	Gamma matrices
@@ -887,7 +887,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,un
 
 	//Mass term
 #ifdef __NVCC__
-	cuHdslashd_f(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa,dimGrid,dimBlock);
+	cuHdslashd_f(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
 
@@ -914,11 +914,11 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,un
 #pragma unroll
 		for(int mu = 0; mu <ndim-1; mu++){
 			//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
-#pragma omp simd aligned(u11s,u12s,u11t,u12t,did,uid,id,iu,u11sd,u12sd:AVX)
+#pragma omp simd aligned(u11s,u12s,did,uid,id,iu,u11sd,u12sd:AVX)
 			for(int j =0;j<AVX;j++){
 				did[j]=id[(i+j)*ndim+mu]; uid[j] = iu[(i+j)*ndim+mu];
-				u11s[j]=u11t[(i+j)*ndim+mu];	u12s[j]=u12t[(i+j)*ndim+mu];
-				u11sd[j]=u11t[did[j]*ndim+mu];	u12sd[j]=u12t[did[j]*ndim+mu];
+				u11s[j]=ut[0][(i+j)*ndim+mu];	u12s[j]=ut[1][(i+j)*ndim+mu];
+				u11sd[j]=ut[0][did[j]*ndim+mu];	u12sd[j]=ut[1][did[j]*ndim+mu];
 			}
 #pragma unroll
 			for(int idirac=0; idirac<ndirac; idirac++){
@@ -964,12 +964,12 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,un
 #ifndef NO_TIME
 		//Timelike terms
 		alignas(AVX) float dk4ms[AVX],dk4ps[AVX];
-#pragma omp simd aligned(u11s,u12s,u11t,u12t,did,uid,id,iu,u11sd,u12sd,dk4m,dk4ms,dk4p,dk4ps:AVX)
+#pragma omp simd aligned(u11s,u12s,did,uid,id,iu,u11sd,u12sd,dk4ms,dk4ps:AVX)
 		for(int j=0;j<AVX;j++){
-			u11s[j]=u11t[(i+j)*ndim+3];	u12s[j]=u12t[(i+j)*ndim+3];
+			u11s[j]=ut[0][(i+j)*ndim+3];	u12s[j]=ut[1][(i+j)*ndim+3];
 			did[j]=id[(i+j)*ndim+3];		uid[j]= iu[(i+j)*ndim+3];
-			u11sd[j]=u11t[did[j]*ndim+3];	u12sd[j]=u12t[did[j]*ndim+3];
-			dk4ms[j]=dk4m[i+j];   			dk4ps[j]=dk4p[did[j]];
+			u11sd[j]=ut[0][did[j]*ndim+3];	u12sd[j]=ut[1][did[j]*ndim+3];
+			dk4ms[j]=dk[0][i+j];   			dk4ps[j]=dk[1][did[j]];
 		}
 #pragma unroll
 		for(int idirac=0; idirac<ndirac; idirac++){
@@ -1003,35 +1003,35 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,un
 							+u11sd[j] *(rd[1][j]-rgd[1][j]));
 				phi[((i+j)*ndirac+idirac)*nc+1]=phi_s[idirac*nc+1][j];
 			}
-#endif
 		}
+#endif
 	}
 #endif
 	return 0;
 }
-inline int Reunitarise(Complex *u11t, Complex *u12t){
+inline int Reunitarise(Complex *ut[2]){
 	/*
-	 * @brief Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1
+	 * @brief Reunitarises ut[0] and ut[1] as in conj(ut[0][i])*ut[0][i]+conj(ut[1][i])*ut[1][i]=1
 	 *
 	 * If you're looking at the FORTRAN code be careful. There are two header files
 	 * for the /trial/ header. One with u11 u12 (which was included here originally)
-	 * and the other with u11t and u12t.
+	 * and the other with ut[0] and ut[1].
 	 *
 	 * @see cuReunitarise (CUDA Wrapper)
 	 *
-	 * @param u11t, u12t Trial fields to be reunitarised
+	 * @param ut[0], ut[1] Trial fields to be reunitarised
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
 	const char *funcname = "Reunitarise";
 #ifdef __NVCC__
-	cuReunitarise(u11t,u12t,dimGrid,dimBlock);
+	cuReunitarise(ut[0],ut[1],dimGrid,dimBlock);
 #else
-#pragma omp parallel for simd aligned(u11t,u12t:AVX)
+#pragma omp parallel for simd
 	for(int i=0; i<kvol*ndim; i++){
 		//Declaring anorm inside the loop will hopefully let the compiler know it
 		//is safe to vectorise aggressively
-		double anorm=sqrt(conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]);
+		double anorm=sqrt(conj(ut[0][i])*ut[0][i]+conj(ut[1][i])*ut[1][i]);
 		//		Exception handling code. May be faster to leave out as the exit prevents vectorisation.
 		//		if(anorm==0){
 		//			fprintf(stderr, "Error %i in %s on rank %i: anorm = 0 for μ=%i and i=%i.\nExiting...\n\n",
@@ -1039,16 +1039,20 @@ inline int Reunitarise(Complex *u11t, Complex *u12t){
 		//			MPI_Finalise();
 		//			exit(DIVZERO);
 		//		}
-		u11t[i]/=anorm;
-		u12t[i]/=anorm;
+		ut[0][i]/=anorm;
+		ut[1][i]/=anorm;
 	}
 #endif
 	return 0;
 }
 
-void Transpose_c(Complex_f *out, const int fast_in, const int fast_out){
+
+inline void Transpose_c(Complex_f *out, const int fast_in, const int fast_out){
 	const volatile char *funcname="Transpose_c";
 
+#ifdef __NVCC__
+	cuTranspose_c(out,fast_in,fast_out,dimGrid,dimBlock);
+#else
 	Complex_f *in = (Complex_f *)aligned_alloc(AVX,fast_in*fast_out*sizeof(Complex_f));
 	memcpy(in,out,fast_in*fast_out*sizeof(Complex_f));
 	//Typically this is used to write back to the AoS/Coalseced format
@@ -1064,10 +1068,14 @@ void Transpose_c(Complex_f *out, const int fast_in, const int fast_out){
 				out[y*fast_out+x]=in[x*fast_in+y];
 	}
 	free(in);
+#endif
 }
-void Transpose_f(float *out, const int fast_in, const int fast_out){
+inline void Transpose_f(float *out, const int fast_in, const int fast_out){
 	const char *funcname="Transpose_f";
 
+#ifdef __NVCC__
+	cuTranspose_f(out,fast_in,fast_out,dimGrid,dimBlock);
+#else
 	float *in = (float *)aligned_alloc(AVX,fast_in*fast_out*sizeof(float));
 	memcpy(in,out,fast_in*fast_out*sizeof(float));
 	//Typically this is used to write back to the AoS/Coalseced format
@@ -1083,10 +1091,37 @@ void Transpose_f(float *out, const int fast_in, const int fast_out){
 				out[y*fast_out+x]=in[x*fast_in+y];
 	}
 	free(in);
+#endif
 }
-void Transpose_I(int *out, const int fast_in, const int fast_out){
+inline void Transpose_d(double *out, const int fast_in, const int fast_out){
+	const char *funcname="Transpose_f";
+
+#ifdef __NVCC__
+	cuTranspose_d(out,fast_in,fast_out,dimGrid,dimBlock);
+#else
+	double *in = (double *)aligned_alloc(AVX,fast_in*fast_out*sizeof(double));
+	memcpy(in,out,fast_in*fast_out*sizeof(double));
+	//Typically this is used to write back to the AoS/Coalseced format
+	if(fast_out>fast_in){
+		for(int x=0;x<fast_out;x++)
+			for(int y=0; y<fast_in;y++)
+				out[y*fast_out+x]=in[x*fast_in+y];
+	}
+	//Typically this is used to write back to the SoA/saved config format
+	else{
+		for(int x=0; x<fast_out;x++)
+			for(int y=0;y<fast_in;y++)
+				out[y*fast_out+x]=in[x*fast_in+y];
+	}
+	free(in);
+#endif
+}
+inline void Transpose_I(int *out, const int fast_in, const int fast_out){
 	const char *funcname="Transpose_I";
 
+#ifdef __NVCC__
+	cuTranspose_I(out,fast_in,fast_out,dimGrid,dimBlock);
+#else
 	int *in = (int *)aligned_alloc(AVX,fast_in*fast_out*sizeof(int));
 	memcpy(in,out,fast_in*fast_out*sizeof(int));
 	//Typically this is used to write back to the AoS/Coalseced format
@@ -1102,4 +1137,28 @@ void Transpose_I(int *out, const int fast_in, const int fast_out){
 				out[y*fast_out+x]=in[x*fast_in+y];
 	}
 	free(in);
+#endif
+}
+inline void Transpose_U(unsigned int *out, const int fast_in, const int fast_out){
+	const char *funcname="Transpose_I";
+
+#ifdef __NVCC__
+	cuTranspose_U(out,fast_in,fast_out,dimGrid,dimBlock);
+#else
+	unsigned int *in = (unsigned int *)aligned_alloc(AVX,fast_in*fast_out*sizeof(unsigned int));
+	memcpy(in,out,fast_in*fast_out*sizeof(unsigned int));
+	//Typically this is used to write back to the AoS/Coalseced format
+	if(fast_out>fast_in){
+		for(unsigned int x=0;x<fast_out;x++)
+			for(unsigned int y=0; y<fast_in;y++)
+				out[y*fast_out+x]=in[x*fast_in+y];
+	}
+	//Typically this is used to write back to the SoA/saved config format
+	else{
+		for(unsigned int x=0; x<fast_out;x++)
+			for(unsigned int y=0;y<fast_in;y++)
+				out[y*fast_out+x]=in[x*fast_in+y];
+	}
+	free(in);
+#endif
 }

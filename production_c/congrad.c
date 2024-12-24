@@ -4,8 +4,8 @@
  * @brief Conjugate gradients. Congradq for the solver and Congradp for the inversion
  */
 #include	<matrices.h>
-int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f *u12t,unsigned int *iu,unsigned int *id,\
-		Complex_f *gamval_f,int *gamin,float *dk4m,float *dk4p,Complex_f jqq,float akappa,int *itercg){
+int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],unsigned int *iu,unsigned int *id,\
+		Complex_f *gamval_f,int *gamin,float *dk[2],Complex_f jqq,float akappa,int *itercg){
 	/*
 	 * @brief Matrix Inversion via Mixed Precision Conjugate Gradient
 	 * Solves @f$(M^\dagger)Mx=\Phi@f$
@@ -16,14 +16,14 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 	 * @param  res:			Limit for conjugate gradient
 	 * @param  X1:				@f(\Phi@f) initially, returned as @f((M^\dagger M)^{-1} \Phi@f)
 	 * @param  r:				Partition of @f(\Phi@f) being used. Gets recycled as the residual vector
-	 * @param  u11t:			First colour's trial field
-	 * @param  u12t:			Second colour's trial field
+	 * @param  ut[0]:			First colour's trial field
+	 * @param  ut[1]:			Second colour's trial field
 	 * @param  iu:				Upper halo indices
 	 * @param  id:				Lower halo indices
 	 * @param  gamval_f:		Gamma matrices
 	 * @param  gamin:			Dirac indices
-	 * @param  dk4m:
-	 * @param  dk4p:
+	 * @param  dk[0]:
+	 * @param  dk[1]:
 	 * @param  jqq:			Diquark source
 	 * @param  akappa:		Hopping Parameter
 	 * @param  itercg:		Counts the iterations of the conjugate gradient
@@ -75,19 +75,19 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 #ifdef __NVCC__
 	//Get X1 in single precision, then swap to AoS format
 	cuComplex_convert(X1_f,X1,kferm2,true,dimBlock,dimGrid);
-	Transpose_c(X1_f,ndirac*nc,kvol,dimGrid,dimBlock);
+	Transpose_c(X1_f,ndirac*nc,kvol);
 
 	//And repeat for r
 	cuComplex_convert(r_f,r,kferm2,true,dimBlock,dimGrid);
-	Transpose_c(r_f,ndirac*nc,kvol,dimGrid,dimBlock);
+	Transpose_c(r_f,ndirac*nc,kvol);
 
 	//cudaMemcpy is blocking, so use async instead
 	cudaMemcpyAsync(p_f, X1_f, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice,NULL);
 	//Flip all the gauge fields around so memory is coalesced
-	Transpose_c(u11t,ndim,kvol,dimGrid,dimBlock);
-	Transpose_c(u12t,ndim,kvol,dimGrid,dimBlock);
-	Transpose_I(iu,ndim,kvol,dimGrid,dimBlock);
-	Transpose_I(id,ndim,kvol,dimGrid,dimBlock);
+	Transpose_c(ut[0],ndim,kvol);
+	Transpose_c(ut[1],ndim,kvol);
+	Transpose_I(iu,ndim,kvol);
+	Transpose_I(id,ndim,kvol);
 #else
 #pragma omp parallel for simd
 	for(int i=0;i<kferm2;i++){
@@ -103,8 +103,8 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 	for(*itercg=0; *itercg<niterc; (*itercg)++){
 		//x2 =  (M^†M)p 
 		//No need to synchronise here. The memcpy in Hdslash is blocking
-		Hdslash_f(x1_f,p_f,u11t,u12t,iu,id,gamval_f,gamin,dk4m,dk4p,akappa);
-		Hdslashd_f(x2_f,x1_f,u11t,u12t,iu,id,gamval_f,gamin,dk4m,dk4p,akappa);
+		Hdslash_f(x1_f,p_f,ut,iu,id,gamval_f,gamin,dk,akappa);
+		Hdslashd_f(x2_f,x1_f,ut,iu,id,gamval_f,gamin,dk,akappa);
 #ifdef	__NVCC__
 		cudaDeviceSynchronise();
 #endif
@@ -229,14 +229,14 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 	}
 #ifdef __NVCC__
 //Restore arrays back to their previous salyout
-	Transpose_c(X1_f,kvol,ndirac*nc,dimGrid,dimBlock);
+	Transpose_c(X1_f,kvol,ndirac*nc);
 	cuComplex_convert(X1_f,X1,kferm2,false,dimBlock,dimGrid);
-	Transpose_c(r_f,kvol,ndirac*nc,dimGrid,dimBlock);
+	Transpose_c(r_f,kvol,ndirac*nc);
 	cuComplex_convert(r_f,r,kferm2,false,dimBlock,dimGrid);
-	Transpose_c(u11t,kvol,ndim,dimGrid,dimBlock);
-	Transpose_c(u12t,kvol,ndim,dimGrid,dimBlock);
-	Transpose_I(iu,kvol,ndim,dimGrid,dimBlock);
-	Transpose_I(id,kvol,ndim,dimGrid,dimBlock);
+	Transpose_c(ut[0],kvol,ndim);
+	Transpose_c(ut[1],kvol,ndim);
+	Transpose_I(iu,kvol,ndim);
+	Transpose_I(id,kvol,ndim);
 #else
 	for(int i=0;i<kferm2;i++){
 		X1[i]=(Complex)X1_f[i];
@@ -322,16 +322,16 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 #ifdef __NVCC__
 	//Get xi  in single precision, then swap to AoS format
 	cuComplex_convert(p_f,xi,kferm,true,dimBlock,dimGrid);
-	Transpose_c(p_f,ngorkov*nc,kvol,dimGrid,dimBlock);
+	Transpose_c(p_f,ngorkov*nc,kvol);
 	cudaMemcpy(xi_f,p_f,kferm*sizeof(Complex_f),cudaMemcpyDefault);
 
 	//And repeat for r
 	cuComplex_convert(r_f,Phi+na*kferm,kferm,true,dimBlock,dimGrid);
-	Transpose_c(r_f,ngorkov*nc,kvol,dimGrid,dimBlock);
+	Transpose_c(r_f,ngorkov*nc,kvol);
 
 	//Flip all the gauge fields around so memory is coalesced
-	Transpose_c(u11t,ndim,kvol,dimGrid,dimBlock);
-	Transpose_c(u12t,ndim,kvol,dimGrid,dimBlock);
+	Transpose_c(u11t,ndim,kvol);
+	Transpose_c(u12t,ndim,kvol);
 #else
 #pragma omp parallel for simd aligned(p_f,xi_f,xi,r_f,Phi:AVX)
 	for(int i =0;i<kferm;i++){
@@ -474,11 +474,11 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 #endif
 	}
 #ifdef __NVCC__
-	Transpose_c(xi_f,kvol,ngorkov*nc,dimGrid,dimBlock);
-	Transpose_c(r_f,kvol,ngorkov*nc,dimGrid,dimBlock);
+	Transpose_c(xi_f,kvol,ngorkov*nc);
+	Transpose_c(r_f,kvol,ngorkov*nc);
 
-	Transpose_c(u11t,kvol,ndim,dimGrid,dimBlock);
-	Transpose_c(u12t,kvol,ndim,dimGrid,dimBlock);
+	Transpose_c(u11t,kvol,ndim);
+	Transpose_c(u12t,kvol,ndim);
 	cudaDeviceSynchronise();
 	cuComplex_convert(xi_f,xi,kferm,false,dimBlock,dimGrid);
 #else
