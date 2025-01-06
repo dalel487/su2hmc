@@ -179,8 +179,8 @@ extern "C"
 	 * 
 	 * @return 0 on success, integer error code otherwise
 	 */
-	int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_f *u12t,unsigned int *iu,unsigned int *id,\
-			Complex_f *gamval,int *gamin,float *dk4m,float *dk4p,Complex_f jqq,float akappa,int *itercg);
+	int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigned int *iu,unsigned int *id,\
+			Complex_f *gamval,int *gamin,float *dk[2],Complex_f jqq,float akappa,int *itercg);
 	/**
 	 * @brief	Calculate fermion expectation values via a noisy estimator
 	 * 
@@ -197,16 +197,14 @@ extern "C"
 	 *	@param	qbqb:				Antidiquark condensate
 	 *	@param	res:				Conjugate Gradient Residue
 	 *	@param	itercg:			Iterations of Conjugate Gradient
-	 * @param	u11t,u12t		Double precisiongauge field
-	 * @param	u11t_f,u12t_f:	Single precision gauge fields
+	 * @param	ut:				Double precisiongauge field
+	 * @param	ut_f:				Single precision gauge fields
 	 *	@param	iu,id				Lattice indices
 	 *	@param	gamval:			Double precision gamma matrices rescaled by kappa
 	 *	@param	gamval_f:		Single precision gamma matrices rescaled by kappa
 	 *	@param	gamin:			Indices for Dirac terms
-	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
-	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$
-	 * @param	dk4m_f:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$
-	 * @param	dk4p_f:			@f$\left(1-\gamma_0\right)e^\mu@f$
+	 * @param	dk:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$ double
+	 * @param	dk_f:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and	@f$\left(1-\gamma_0\right)e^\mu@f$ float
 	 *	@param	jqq:				Diquark source
 	 *	@param	akappa:			Hopping parameter
 	 *	@param	Phi:				Pseudofermion field	
@@ -218,9 +216,9 @@ extern "C"
 	 * @return Zero on success, integer error code otherwise
 	 */
 	int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbqb, double res, int *itercg,\
-			Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f, unsigned int *iu, unsigned int *id,\
-			Complex *gamval, Complex_f *gamval_f,	int *gamin, double *dk4m, double *dk4p,\
-			float *dk4m_f, float *dk4p_f, Complex_f jqq, float akappa,	Complex *Phi, Complex *R1);
+			Complex *ut[2], Complex_f *ut_f[2], unsigned int *iu, unsigned int *id,\
+			Complex *gamval, Complex_f *gamval_f,	int *gamin, double *dk[2],\
+			float *dk_f[2], Complex_f jqq, float akappa,	Complex *Phi, Complex *R1);
 	/** 
 	 * @brief	Calculates the gauge action using new (how new?) lookup table
 	 * @brief	Follows a routine called qedplaq in some QED3 code
@@ -251,9 +249,9 @@ extern "C"
 	 * @return double corresponding to the plaquette value
 	 *
 	 */
-	#ifndef __NVCC__
+#ifndef __NVCC__
 	int SU2plaq(Complex_f *ut[2], Complex_f Sigma[2], unsigned int *iu, int i, int mu, int nu);
-	#endif
+#endif
 	/**
 	 * @brief Calculate the Polyakov loop (no prizes for guessing that one...)
 	 * 

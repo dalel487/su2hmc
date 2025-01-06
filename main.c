@@ -454,7 +454,7 @@ int main(int argc, char *argv[]){
 			Transpose_c(ut_f[1],ndim,kvol);
 			cudaDeviceSynchronise();
 #endif
-			Dslashd_f(R1_f,R,ut_f[0],ut_f[1],iu,id,gamval_f,gamin,dk_f[0],dk_f[1],jqq,akappa);
+			Dslashd_f(R1_f,R,ut_f[0],ut_f[1],iu,id,gamval_f,gamin,dk_f,jqq,akappa);
 #ifdef __NVCC__
 			//Make sure the multiplication is finished before freeing its input!!
 			cudaFree(R);//cudaDeviceSynchronise(); 
@@ -617,8 +617,8 @@ int main(int argc, char *argv[]){
 			//If the Congrad in Measure fails, don't measure the Diquark or PBP-Density observables for
 			//that trajectory
 			int measure_check=0;
-			measure_check = Measure(&pbp,&endenf,&denf,&qq,&qbqb,respbp,&itercg,ut[0],ut[1],ut_f[0],ut_f[1],iu,id,\
-					gamval,gamval_f,gamin,dk[0],dk[1],dk_f[0],dk_f[1],jqq,akappa,Phi,R1);
+			measure_check = Measure(&pbp,&endenf,&denf,&qq,&qbqb,respbp,&itercg,ut,ut_f,iu,id,\
+					gamval,gamval_f,gamin,dk,dk_f,jqq,akappa,Phi,R1);
 #ifdef _DEBUG
 			if(!rank)
 				printf("Finished measurements\n");

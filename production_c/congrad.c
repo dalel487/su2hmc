@@ -259,8 +259,8 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],unsigned 
 #endif
 	return ret_val;
 }
-int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_f *u12t,unsigned int *iu,unsigned int *id,\
-		Complex_f *gamval,int *gamin, float *dk4m,float *dk4p,Complex_f jqq,float akappa,int *itercg){
+int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigned int *iu,unsigned int *id,\
+		Complex_f *gamval,int *gamin, float *dk[2],Complex_f jqq,float akappa,int *itercg){
 	/*
 	 * @brief Matrix Inversion via Conjugate Gradient
 	 * Solves @f$(M^\dagger)Mx=\Phi@f$
@@ -271,14 +271,14 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 	 * @param 	res:			Limit for conjugate gradient
 	 * @param 	Phi:			@f(\Phi@f) initially, 
 	 * @param 	xi:			Returned as @f((M^\dagger M)^{-1} \Phi@f)
-	 * @param 	u11t:			First colour's trial field
-	 * @param 	u12t:			Second colour's trial field
+	 * @param 	ut[0]:			First colour's trial field
+	 * @param 	ut[1]:			Second colour's trial field
 	 * @param 	iu:			Upper halo indices
 	 * @param 	id:			Lower halo indices
 	 * @param 	gamval:		Gamma matrices
 	 * @param 	gamin:		Dirac indices
-	 * @param 	dk4m:
-	 * @param 	dk4p:
+	 * @param 	dk[0]:
+	 * @param 	dk[1]:
 	 * @param 	jqq:			Diquark source
 	 * @param 	akappa:		Hopping Parameter
 	 * @param 	itercg:		Counts the iterations of the conjugate gradient
@@ -330,8 +330,8 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 	Transpose_c(r_f,ngorkov*nc,kvol);
 
 	//Flip all the gauge fields around so memory is coalesced
-	Transpose_c(u11t,ndim,kvol);
-	Transpose_c(u12t,ndim,kvol);
+	Transpose_c(ut[0],ndim,kvol);
+	Transpose_c(ut[1],ndim,kvol);
 #else
 #pragma omp parallel for simd aligned(p_f,xi_f,xi,r_f,Phi:AVX)
 	for(int i =0;i<kferm;i++){
@@ -353,8 +353,8 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 	for((*itercg)=0; (*itercg)<=niterc; (*itercg)++){
 		//Don't overwrite on first run. 
 		//x2=(M^†)x1=(M^†)Mp
-		Dslash_f(x1_f,p_f,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
-		Dslashd_f(x2_f,x1_f,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
+		Dslash_f(x1_f,p_f,ut[0],ut[1],iu,id,gamval,gamin,dk,jqq,akappa);
+		Dslashd_f(x2_f,x1_f,ut[0],ut[1],iu,id,gamval,gamin,dk,jqq,akappa);
 #ifdef __NVCC__
 		cudaDeviceSynchronise();
 #endif
@@ -477,8 +477,8 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 	Transpose_c(xi_f,kvol,ngorkov*nc);
 	Transpose_c(r_f,kvol,ngorkov*nc);
 
-	Transpose_c(u11t,kvol,ndim);
-	Transpose_c(u12t,kvol,ndim);
+	Transpose_c(ut[0],kvol,ndim);
+	Transpose_c(ut[1],kvol,ndim);
 	cudaDeviceSynchronise();
 	cuComplex_convert(xi_f,xi,kferm,false,dimBlock,dimGrid);
 #else

@@ -71,8 +71,8 @@ extern "C"
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
-	int Hdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
-			Complex *gamval, int *gamin, double *dk4m, double *dk4p, float akappa);
+	int Hdslash(Complex *phi, Complex *r, Complex *u11t[2],unsigned int *iu,unsigned  int *id,\
+			Complex *gamval, int *gamin, double *dk[2], float akappa);
 	/**
 	 * @brief Evaluates @f$\Phi=M^\dagger r@f$ in double precision
 	 *
@@ -112,7 +112,7 @@ extern "C"
 	 * @return Zero on success, integer error code otherwise
 	 */
 	int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
-			Complex_f *gamval,int *gamin, float *dk4m, float *dk4p, Complex_f jqq, float akappa);
+			Complex_f *gamval,int *gamin, float *dk[2], Complex_f jqq, float akappa);
 	/**
 	 * @brief Evaluates @f$\Phi=M^\dagger r@f$ in single precision.
 	 *
@@ -132,7 +132,7 @@ extern "C"
 	 * @return Zero on success, integer error code otherwise
 	 */
 	int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
-			Complex_f *gamval,int *gamin, float *dk4m, float *dk4p, Complex_f jqq, float akappa);
+			Complex_f *gamval,int *gamin, float *dk[2], Complex_f jqq, float akappa);
 	/**
 	 * @brief Evaluates @f$\Phi=M r@f$ in single precision.
 	 *
