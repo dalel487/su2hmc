@@ -1064,9 +1064,8 @@ void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,
 	}
 	cuDslashd_f<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 }
-void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
-		Complex_f *gamval,int *gamin,	float *dk4m, float *dk4p, float akappa,\ 
-		dim3 dimGrid, dim3 dimBlock){
+void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,unsigned int *id, Complex_f *gamval,
+					int *gamin,	float *dk[2], float akappa, dim3 dimGrid, dim3 dimBlock){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -1097,11 +1096,10 @@ void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,
 	}
 	const int bsize=dimGrid.x*dimGrid.y*dimGrid.z;
 	const int shareSize= ndim*bsize*nc*sizeof(Complex_f);
-	cuHdslash_f<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
+	cuHdslash_f<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa);
 }
-void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
-		Complex_f *gamval,int *gamin,	float *dk4m, float *dk4p, float akappa,\
-		dim3 dimGrid, dim3 dimBlock){
+void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,unsigned int *id,
+						Complex_f*gamval,int *gamin,float *dk[2], float akappa,dim3 dimGrid, dim3 dimBlock){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -1132,7 +1130,7 @@ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t
 				CPYERROR,funcname,cuCpyStat);
 		exit(cuCpyStat);
 	}
-	cuHdslashd_f<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
+	cuHdslashd_f<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa);
 }
 
 void cuTranspose_z(Complex *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){

@@ -204,10 +204,10 @@ void Transpose_U(unsigned int *out, const int, const int);
 	void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
 			Complex_f *gamval_f,int *gamin, float *dk4m_f, float *dk4p_f, Complex_f jqq_f, float akappa_f,\
 			dim3 dimGrid, dim3 dimBlock);
-	void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
-			Complex_f *gamval_f,int *gamin, float *dk4m_f, float *dk4p_f, float akappa_f,dim3 dimGrid, dim3 dimBlock);
-	void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
-			Complex_f *gamval_f,int *gamin, float *dk4m_f, float *dk4p_f, float akappa_f, dim3 dimGrid, dim3 dimBlock);
+	void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut_f[2],unsigned int *iu,unsigned int *id,\
+			Complex_f *gamval_f,int *gamin, float *dk_f[2], float akappa_f,dim3 dimGrid, dim3 dimBlock);
+	void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut_f[2],unsigned int *iu,unsigned int *id,\
+			Complex_f *gamval_f,int *gamin, float *dk_f[2], float akappa_f, dim3 dimGrid, dim3 dimBlock);
 
 /**
  * @brief In place transpose

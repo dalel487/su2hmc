@@ -736,7 +736,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned  int *iu,u
 	CHalo_swap_all(r, 8);
 #endif
 #ifdef __NVCC__
-	cuHdslash_f(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa,dimGrid,dimBlock);
+	cuHdslash_f(phi,r,ut,iu,id,gamval,gamin,dk,akappa,dimGrid,dimBlock);
 #else
 	//Mass term
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
@@ -887,7 +887,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,u
 
 	//Mass term
 #ifdef __NVCC__
-	cuHdslashd_f(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa,dimGrid,dimBlock);
+	cuHdslashd_f(phi,r,ut,iu,id,gamval,gamin,dk,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
 
