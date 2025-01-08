@@ -145,7 +145,7 @@ int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 		Gauge_Update(dU,pp,ut,ut_f);
 
 		//Calculate force for middle momentum update
-	Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,dk,dk_f,jqq,akappa,beta,ancg);
+		Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,dk,dk_f,jqq,akappa,beta,ancg);
 		//Now do the middle momentum update
 		Momentum_Update(dpm,dSdpi,pp);
 
@@ -153,7 +153,7 @@ int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 		Gauge_Update(dU,pp,ut,ut_f);
 
 		//Calculate force for second momentum update
-	Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,dk,dk_f,jqq,akappa,beta,ancg);
+		Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,dk,dk_f,jqq,akappa,beta,ancg);
 
 		//if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
 		if(step==stepl){

@@ -4,11 +4,12 @@
  */
 #include	<par_mpi.h>
 #include	<su2hmc.h>
+#include <matrices.h>
 #include <thrust/reduce.h>
 //#include <thrust/execution_policy.h>
 
 __host__ void cuAverage_Plaquette(double *hgs, double *hgt, Complex_f *u11t, Complex_f *u12t, unsigned int *iu,dim3 dimGrid, dim3 dimBlock){
-//	float *hgs_d, *hgt_d;
+	//	float *hgs_d, *hgt_d;
 	int device=-1;
 	cudaGetDevice(&device);
 	float *hgs_d, *hgt_d;
@@ -24,17 +25,21 @@ __host__ void cuAverage_Plaquette(double *hgs, double *hgt, Complex_f *u11t, Com
 	*hgt= (double)thrust::reduce(hgt_T,hgt_T+kvol,(float)0);
 	//Temporary holders to keep OMP happy.
 	/*
-	double hgs_t=0; double hgt_t=0;
+		double hgs_t=0; double hgt_t=0;
 #pragma omp parallel for simd reduction(+:hgs_t,hgt_t)
-	for(int i=0;i<kvol;i++){
-		hgs_t+=hgs_d[i]; hgt_t+=hgt_d[i];
-	}
-	*hgs=hgs_t; *hgt=hgt_t;
-	*/
-	cudaFreeAsync(hgs_d,streams[0]); cudaFreeAsync(hgt_d,streams[1]);
+for(int i=0;i<kvol;i++){
+hgs_t+=hgs_d[i]; hgt_t+=hgt_d[i];
 }
+	 *hgs=hgs_t; *hgt=hgt_t;
+	 */
+	cudaFreeAsync(hgs_d,streams[0]); cudaFreeAsync(hgt_d,streams[1]);
+	}
 void cuPolyakov(Complex_f *Sigma11, Complex_f * Sigma12, Complex_f *u11t, Complex_f *u12t, dim3 dimGrid, dim3 dimBlock){
+	Transpose_c(u11t,ndim,kvol);
+	Transpose_c(u12t,ndim,kvol);
 	cuPolyakov<<<dimGrid,dimBlock>>>(Sigma11,Sigma12,u11t,u12t);
+	Transpose_c(u11t,kvol,ndim);
+	Transpose_c(u12t,kvol,ndim);
 }
 //CUDA Kernels
 __global__ void cuAverage_Plaquette(float *hgs_d, float *hgt_d, Complex_f *u11t, Complex_f *u12t, unsigned int *iu){
@@ -101,13 +106,18 @@ __global__ void cuPolyakov(Complex_f *Sigma11, Complex_f * Sigma12, Complex_f * 
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	for(int it=1;it<ksizet;it++)
 	//RACE CONDITION? gsize*bsize?
-		for(int i=threadId;i<kvol3;i+=gsize*bsize){
+	for(int i=threadId;i<kvol3;i+=gsize*bsize){
+		Complex_f Sig[2]; Sig[0]=Sigma11[i]; Sig[1]=Sigma12[i];
+		Complex_f u[2];
+		for(int it=1;it<ksizet;it++){
 			int indexu=it*kvol3+i;
-			Complex_f a11=Sigma11[i]*u11t[indexu*ndim+3]-Sigma12[i]*conj(u12t[indexu*ndim+3]);
+			u[0]=u11t[indexu+3*kvol];u[1]=u12t[indexu+3*kvol];
+			Complex_f a11=Sig[0]*u[0]-Sig[1]*conj(u[1]);
 			//Instead of having to store a second buffer just assign it directly
-			Sigma12[i]=Sigma11[i]*u12t[indexu*ndim+3]+Sigma12[i]*conj(u11t[indexu*ndim+3]);
-			Sigma11[i]=a11;
+			Sig[1]=Sig[0]*u[1]+Sig[1]*conj(u[0]);
+			Sig[0]=a11;
 		}
+		Sigma11[i]=Sig[0]; Sigma12[i]=Sig[1];
+	}
 }

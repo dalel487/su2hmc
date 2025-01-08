@@ -123,12 +123,7 @@ __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 		for(int idirac=0;idirac<ndirac;idirac++){
 			Complex_f X1s[nc];	 Complex_f X1su[nc];
 			Complex_f X2s[nc];	 Complex_f X2su[nc];
-			//	phi[(i*ndirac+idirac)*nc]+=
-			//phi_s[idirac*nc+c]=phi[i+kvol*(c+nc*idirac)];
-			//X1s[0]=X1[(i*ndirac+idirac)*nc];	X1s[1]=X1[(i*ndirac+idirac)*nc+1];
-			//X1su[0]=X1[(uid*ndirac+idirac)*nc];	X1su[1]=X1[(uid*ndirac+idirac)*nc+1];
-			//X2s[0]=X2[(i*ndirac+idirac)*nc];	X2s[1]=X2[(i*ndirac+idirac)*nc+1];
-			//X2su[0]=X2[(uid*ndirac+idirac)*nc];	X2su[1]=X2[(uid*ndirac+idirac)*nc+1];
+
 			X1s[0]=X1[i+kvol*(nc*idirac)]; X1s[1]=X1[i+kvol*(1+nc*idirac)];
 			X1su[0]=X1[uid+kvol*(nc*idirac)]; X1su[1]=X1[uid+kvol*(1+nc*idirac)];
 			X2s[0]=X2[i+kvol*(nc*idirac)]; X2s[1]=X2[i+kvol*(1+nc*idirac)];

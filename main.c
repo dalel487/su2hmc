@@ -503,6 +503,8 @@ int main(int argc, char *argv[]){
 #endif
 		//Initialise Trial Fields
 #ifdef __NVCC__
+//pp is random at this point so swapping the order isn't really necessary. But it does ensure that it matches for CPU and GPU
+		Transpose_d(pp,nadj*ndim,kvol);
 		cudaMemPrefetchAsync(pp,kmom*sizeof(double),device,streams[1]);
 #endif
 		Trial_Exchange(ut,ut_f);
