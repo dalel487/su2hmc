@@ -26,10 +26,6 @@ void cuForce(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, \
 		float akappa, dim3 dimGrid, dim3 dimBlock){
 	const char *funcname = "Force";
 	//X1=(M†M)^{1} Phi
-	cuTranspose_U(iu,ndim,kvol,dimGrid,dimBlock);
-	cuTranspose_d(dSdpi,nadj*ndim,kvol,dimGrid,dimBlock);
-	cuTranspose_c(ut[0],ndim,kvol,dimGrid,dimBlock);
-	cuTranspose_c(ut[1],ndim,kvol,dimGrid,dimBlock);
 //	Transpose_z(X1,ndirac*nc,kvol); Transpose_z(X2,ndirac*nc,kvol);
 	cudaDeviceSynchronise();
 #pragma unroll
@@ -43,10 +39,6 @@ void cuForce(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, \
 	cuForce_t<<<dimGrid,dimBlock,0,streams[mu]>>>(dSdpi,ut[0],ut[1],X1,X2,gamval,dk[0],dk[1],iu,gamin,akappa);
 	cudaDeviceSynchronise();
 //	Transpose_z(X1,kvol,ndirac*nc); Transpose_z(X2,kvol,ndirac*nc);
-	cuTranspose_c(ut[0],kvol,ndim,dimGrid,dimBlock);
-	cuTranspose_c(ut[1],kvol,ndim,dimGrid,dimBlock);
-	cuTranspose_U(iu,kvol,ndim,dimGrid,dimBlock); 	
-	cuTranspose_d(dSdpi,kvol,nadj*ndim,dimGrid,dimBlock);
 	cudaDeviceSynchronise();
 }
 
@@ -257,8 +249,7 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t,Comple
 			//dSdpi[(i*nadj)*ndim+mu]=dSdpis[0];
 			dSdpi[i+kvol*(mu)]=dSdpis[0];
 
-			dSdpis[1]+=(
-					dk4ms*(conj(X1s[0])*(-conj(u12s)*X2su[0]+conj(u11s)*X2su[1])
+			dSdpis[1]+=(dk4ms*(conj(X1s[0])*(-conj(u12s)*X2su[0]+conj(u11s)*X2su[1])
 					 +conj(X1s[1])*(-u11s*X2su[0]-u12s *X2su[1]))
 					 -dk4ps*(conj(X1su[0])*(-u12s *X2s[0]-conj(u11s)*X2s[1])
 					 +conj(X1su[1])*(u11s*X2s[0]-conj(u12s)*X2s[1]))).real();

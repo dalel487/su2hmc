@@ -35,12 +35,12 @@ void blockInit(int x, int y, int z, int t, dim3 *dimBlock, dim3 *dimGrid){
 		//If the block size neatly divides the lattice size we can create
 		//extra blocks safely
 		int res= ((nx*ny)/(bx*by) > 1) ? (nx*ny)/(bx*by) :1;
-//		int res = 1;
+		//		int res = 1;
 		*dimGrid=dim3(nz,nt,res);
 	}
 	else{
 		int bz=1;
-	//Set by to be the largest power of 2 less than y such that bx*by fits in an optimal block
+		//Set by to be the largest power of 2 less than y such that bx*by fits in an optimal block
 		while(bz<z/2 && bx*by*bz<tpb)
 			bz*=2;
 		*dimBlock=dim3(bx,by,bz);
@@ -213,7 +213,7 @@ __global__ void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
 }
 __global__ void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu)
 {
-	const char *funcname = "cuZ_gather";
+	const char *funcname = "cuC_gather";
 	//FORTRAN had a second parameter m giving the size of y (kvol+halo) normally
 	//Pointers mean that's not an issue for us so I'm leaving it out
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
@@ -221,7 +221,7 @@ __global__ void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *tabl
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	const int gthreadId= blockId * bsize+bthreadId;
-	for(int i = gthreadId; i<n;i+=gsize*bsize)
+	for(int i = gthreadId; i<kvol;i+=gsize*bsize)
 		x[i]=y[table[i+kvol*mu]+kvol*mu];
 }
 __global__ void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu)
@@ -234,7 +234,7 @@ __global__ void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, u
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	const int gthreadId= blockId * bsize+bthreadId;
-	for(int i = gthreadId; i<n;i+=gsize*bsize)
+	for(int i = gthreadId; i<kvol;i+=gsize*bsize)
 		x[i]=y[table[i+kvol*mu]+kvol*mu];
 }
 __global__ void cuUpDownPart(int na, Complex *X0, Complex *R1){
@@ -301,17 +301,17 @@ __global__ void cuGauge_Update(const double d, double *pp, Complex *u11t, Comple
 		//CCC for cosine SSS for sine AAA for...
 		//Re-exponentiating the force field. Can be done analytically in SU(2)
 		//using sine and cosine which is nice
-		double AAA = d*sqrt(pp[i*nadj*ndim+mu]*pp[i*nadj*ndim+mu]\
-				+pp[(i*nadj+1)*ndim+mu]*pp[(i*nadj+1)*ndim+mu]\
-				+pp[(i*nadj+2)*ndim+mu]*pp[(i*nadj+2)*ndim+mu]);
+		double AAA = d*sqrt(pp[i+kvol*(mu)]*pp[i+kvol*(mu)]\
+				+pp[i+kvol*(1*ndim+mu)]*pp[i+kvol*(1*ndim+mu)]\
+				+pp[i+kvol*(2*ndim+mu)]*pp[i+kvol*(2*ndim+mu)]);
 		double CCC = cos(AAA);
 		double SSS = d*sin(AAA)/AAA;
-		Complex a11 = CCC+I*SSS*pp[(i*nadj+2)*ndim+mu];
-		Complex a12 = pp[(i*nadj+1)*ndim+mu]*SSS + I*SSS*pp[i*nadj*ndim+mu];
+		Complex a11 = CCC+I*SSS*pp[i+kvol*(2*ndim+mu)];
+		Complex a12 = pp[i+kvol*(1*ndim+mu)]*SSS + I*SSS*pp[i+kvol*(mu)];
 		//b11 and b12 are u11t and u12t terms, so we'll use u12t directly
 		//but use b11 for u11t to prevent RAW dependency
-		Complex b11 = u11t[i+kvol*mu];
-		u11t[i+kvol*mu] = a11*b11-a12*conj(u12t[i+kvol*mu]);
-		u12t[i+kvol*mu] = a11*u12t[i+kvol*mu]+a12*conj(b11);
+		Complex b11 = u11t[i*ndim+mu];
+		u11t[i*ndim+mu] = a11*b11-a12*conj(u12t[i*ndim+mu]);
+		u12t[i*ndim+mu] = a11*u12t[i*ndim+mu]+a12*conj(b11);
 	}
 }

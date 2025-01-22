@@ -285,14 +285,14 @@ int main(int argc, char *argv[]){
 	//====================
 	Trial_Exchange(ut,ut_f);
 #ifdef __NVCC__
-			//Flip all the gauge fields around so memory is coalesced
-			Transpose_c(ut_f[0],ndim,kvol);
-			Transpose_c(ut_f[1],ndim,kvol);
-			//And the index arrays
-			Transpose_U(iu,ndim,kvol);
-			Transpose_U(id,ndim,kvol);
-			cudaDeviceSynchronise();
-			#endif
+	//Flip all the gauge fields around so memory is coalesced
+	Transpose_c(ut_f[0],ndim,kvol);
+	Transpose_c(ut_f[1],ndim,kvol);
+	//And the index arrays
+	Transpose_U(iu,ndim,kvol);
+	Transpose_U(id,ndim,kvol);
+	cudaDeviceSynchronise();
+#endif
 	double poly = Polyakov(ut_f);
 #ifdef _DEBUG
 	if(!rank) printf("Initial Polyakov loop evaluated as %e\n", poly);
@@ -498,8 +498,8 @@ int main(int argc, char *argv[]){
 #endif
 		Trial_Exchange(ut,ut_f);
 #ifdef __NVCC__
-			Transpose_c(ut_f[0],ndim,kvol);
-			Transpose_c(ut_f[1],ndim,kvol);
+		Transpose_c(ut_f[0],ndim,kvol);
+		Transpose_c(ut_f[1],ndim,kvol);
 #endif
 #if (defined(USE_RAN2)||defined(__RANLUX__)||!defined(__INTEL_MKL__))
 		Gauss_d(pp, kmom, 0, 1);
@@ -508,8 +508,8 @@ int main(int argc, char *argv[]){
 #endif
 		//Initialise Trial Fields
 #ifdef __NVCC__
-//pp is random at this point so swapping the order isn't really necessary. But it does ensure that it matches for CPU and GPU
-//		Transpose_d(pp,nadj*ndim,kvol);
+		//pp is random at this point so swapping the order isn't really necessary. But it does ensure that it matches for CPU and GPU
+		Transpose_d(pp,nadj*ndim,kvol);
 		cudaMemPrefetchAsync(pp,kmom*sizeof(double),device,streams[1]);
 #endif
 		double H0, S0;
@@ -806,4 +806,4 @@ int main(int argc, char *argv[]){
 #endif
 	fflush(stdout);
 	return 0;
-	}
+}

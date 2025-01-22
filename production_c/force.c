@@ -36,8 +36,13 @@ int Gauge_force(double *dSdpi, Complex_f *ut[2],unsigned int *iu,unsigned int *i
 #ifdef __NVCC__
 	int device=-1;
 	cudaGetDevice(&device);
+#ifdef _DEBUG
+	cudaMallocManaged((void **)&Sigma[0],kvol*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&Sigma[1],kvol*sizeof(Complex_f),cudaMemAttachGlobal);
+#else
 	cudaMallocAsync((void **)&Sigma[0],kvol*sizeof(Complex_f),streams[0]);
 	cudaMallocAsync((void **)&Sigma[1],kvol*sizeof(Complex_f),streams[1]);
+#endif
 	cudaMallocManaged((void **)&ush[0],(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&ush[1],(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
 #else
@@ -122,7 +127,12 @@ int Gauge_force(double *dSdpi, Complex_f *ut[2],unsigned int *iu,unsigned int *i
 	}
 #ifdef __NVCC__
 	cudaDeviceSynchronise();
-	cudaFreeAsync(Sigma[0],streams[0]); cudaFreeAsync(Sigma[1],streams[1]); cudaFree(ush[0]); cudaFree(ush[1]);
+#ifdef _DEBUG
+	cudaFree(Sigma[0]); cudaFree(Sigma[1]);
+#else
+	cudaFreeAsync(Sigma[0],streams[0]); cudaFreeAsync(Sigma[1],streams[1]);
+#endif
+	cudaFree(ush[0]); cudaFree(ush[1]);
 #else
 	free(ush[0]); free(ush[1]); free(Sigma[0]); free(Sigma[1]);
 #endif

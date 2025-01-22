@@ -44,6 +44,10 @@ int Gauge_Update(const double d, double *pp, Complex *ut[2],Complex_f *ut_f[2]){
 	Reunitarise(ut);
 	//Get trial fields from accelerator for halo exchange
 	Trial_Exchange(ut,ut_f);
+#ifdef __NVCC__
+		Transpose_c(ut_f[0],ndim,kvol);
+		Transpose_c(ut_f[1],ndim,kvol);
+		#endif
 	return 0;
 }
 inline int Momentum_Update(const double d, const double *dSdpi, double *pp)
@@ -53,6 +57,7 @@ inline int Momentum_Update(const double d, const double *dSdpi, double *pp)
 #elif defined USE_BLAS
 	cblas_daxpy(kmom, d, dSdpi, 1, pp, 1);
 #else
+#pragma omp parallel for simd
 	for(int i=0;i<kmom;i++)
 		pp[i]+=d*dSdpi[i];
 #endif
