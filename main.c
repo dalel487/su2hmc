@@ -284,6 +284,15 @@ int main(int argc, char *argv[]){
 	//Initial Measurements
 	//====================
 	Trial_Exchange(ut,ut_f);
+#ifdef __NVCC__
+			//Flip all the gauge fields around so memory is coalesced
+			Transpose_c(ut_f[0],ndim,kvol);
+			Transpose_c(ut_f[1],ndim,kvol);
+			//And the index arrays
+			Transpose_U(iu,ndim,kvol);
+			Transpose_U(id,ndim,kvol);
+			cudaDeviceSynchronise();
+			#endif
 	double poly = Polyakov(ut_f);
 #ifdef _DEBUG
 	if(!rank) printf("Initial Polyakov loop evaluated as %e\n", poly);
@@ -445,13 +454,9 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 			cudaMemPrefetchAsync(R,kfermHalo*sizeof(Complex_f),device,NULL);
 			//Transpose needed here for Dslashd
-			Transpose_c(R1_f,ngorkov*nc,kvol);
 			Transpose_c(R,ngorkov*nc,kvol);
 			//R is random so this techincally isn't required. But it does keep the code output consistent with previous
 			//versions.
-			//Flip all the gauge fields around so memory is coalesced
-			Transpose_c(ut_f[0],ndim,kvol);
-			Transpose_c(ut_f[1],ndim,kvol);
 			cudaDeviceSynchronise();
 #endif
 			Dslashd_f(R1_f,R,ut_f[0],ut_f[1],iu,id,gamval_f,gamin,dk_f,jqq,akappa);
@@ -461,19 +466,14 @@ int main(int argc, char *argv[]){
 							//cudaFree is blocking so don't need to synchronise
 			Transpose_c(R1_f,kvol,ngorkov*nc);
 			cuComplex_convert(R1_f,R1,kferm,false,dimBlock,dimGrid);
-			Transpose_c(ut_f[0],kvol,ndim);
-			Transpose_c(ut_f[1],kvol,ndim);
-			//cudaDeviceSynchronise();
-			//cudaFreeAsync(R1_f,NULL);
-			cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,0);
-			//cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,streams[1]);
-			cudaDeviceSynchronise();
 #ifdef _DEBUG
 			cudaFree(R1_f);
 #else
-			cudaFreeAsync(R1_f,0);
+			cudaFreeAsync(R1_f,NULL);
 #endif
-			//cudaFree is blocking so don't need cudaDeviceSynchronise()
+			cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,NULL);
+			//cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,streams[1]);
+			cudaDeviceSynchronise();
 #else
 			free(R); 
 #pragma omp simd aligned(R1_f,R1:AVX)
@@ -490,11 +490,16 @@ int main(int argc, char *argv[]){
 		//We're going to make the most of the new Gauss_d routine to send a flattened array
 		//and do this all in one step.
 #ifdef __NVCC__
-		cudaMemcpyAsync(ut[0], u[0], ndim*kvol*sizeof(Complex),cudaMemcpyHostToDevice,streams[1]);
-		cudaMemcpyAsync(ut[1], u[1], ndim*kvol*sizeof(Complex),cudaMemcpyHostToDevice,streams[2]);
+		cudaMemcpyAsync(ut[0], u[0], ndim*kvol*sizeof(Complex),cudaMemcpyHostToDevice,NULL);
+		cudaMemcpyAsync(ut[1], u[1], ndim*kvol*sizeof(Complex),cudaMemcpyHostToDevice,NULL);
 #else
 		memcpy(ut[0], u[0], ndim*kvol*sizeof(Complex));
 		memcpy(ut[1], u[1], ndim*kvol*sizeof(Complex));
+#endif
+		Trial_Exchange(ut,ut_f);
+#ifdef __NVCC__
+			Transpose_c(ut_f[0],ndim,kvol);
+			Transpose_c(ut_f[1],ndim,kvol);
 #endif
 #if (defined(USE_RAN2)||defined(__RANLUX__)||!defined(__INTEL_MKL__))
 		Gauss_d(pp, kmom, 0, 1);
@@ -504,10 +509,9 @@ int main(int argc, char *argv[]){
 		//Initialise Trial Fields
 #ifdef __NVCC__
 //pp is random at this point so swapping the order isn't really necessary. But it does ensure that it matches for CPU and GPU
-		Transpose_d(pp,nadj*ndim,kvol);
+//		Transpose_d(pp,nadj*ndim,kvol);
 		cudaMemPrefetchAsync(pp,kmom*sizeof(double),device,streams[1]);
 #endif
-		Trial_Exchange(ut,ut_f);
 		double H0, S0;
 		Hamilton(&H0,&S0,rescga,pp,X0,X1,Phi,ut_f,iu,id,gamval_f,gamin,dk_f,jqq,akappa,beta,&ancgh,itraj);
 #ifdef _DEBUG

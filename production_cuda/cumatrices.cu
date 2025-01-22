@@ -195,7 +195,7 @@ __global__ void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t
 	for(int i=threadId;i<kvol;i+=gsize*bsize){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
-			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
+			int did=id[mu*kvol+i]; int uid = iu[mu*kvol+i];
 			for(int idirac=0; idirac<ndirac; idirac++){
 				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
 				int igork1 = gamin_d[mu*ndirac+idirac];
@@ -225,7 +225,7 @@ __global__ void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t
 		}
 #endif
 		//Timelike terms
-		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
+		int did=id[3*kvol+i]; int uid = iu[3*kvol+i];
 #ifndef NO_TIME
 		for(int idirac=0; idirac<ndirac; idirac++){
 			int igork1 = gamin_d[3*ndirac+idirac];
@@ -476,7 +476,7 @@ __global__ void cuDslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 #ifndef NO_SPACE
 #pragma unroll
 		for(int mu = 0; mu <3; mu++){
-			did=id[mu+ndim*i]; uid = iu[mu+ndim*i];
+			did=id[mu*kvol+i]; uid = iu[mu*kvol+i];
 			u11s=u11t[i+kvol*mu]; u12s=u12t[i+kvol*mu];
 			u11sd=u11t[did+kvol*mu]; u12sd=u12t[did+kvol*mu];
 #pragma unroll
@@ -530,7 +530,7 @@ __global__ void cuDslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 		//Note that for the igorkov 4..7 loop idirac=igorkov-4, so we don't need to declare idiracPP separately
 		//Under dagger, dk4p and dk4m get swapped and the dirac component flips sign.
 #ifndef NO_TIME
-		did=id[3+ndim*i]; uid = iu[3+ndim*i];
+		did=id[3*kvol+i]; uid = iu[3*kvol+i];
 		u11s=u11t[i+kvol*3]; u12s=u12t[i+kvol*3];
 		u11sd=u11t[did+kvol*3]; u12sd=u12t[did+kvol*3];
 		Complex_f dk4msd=dk4m[did];	Complex_f dk4psd=dk4p[did];

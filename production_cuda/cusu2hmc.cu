@@ -222,7 +222,7 @@ __global__ void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *tabl
 	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	const int gthreadId= blockId * bsize+bthreadId;
 	for(int i = gthreadId; i<n;i+=gsize*bsize)
-		x[i]=y[table[i*ndim+mu]*ndim+mu];
+		x[i]=y[table[i+kvol*mu]+kvol*mu];
 }
 __global__ void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu)
 {
@@ -235,7 +235,7 @@ __global__ void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, u
 	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	const int gthreadId= blockId * bsize+bthreadId;
 	for(int i = gthreadId; i<n;i+=gsize*bsize)
-		x[i]=y[table[i*ndim+mu]*ndim+mu];
+		x[i]=y[table[i+kvol*mu]+kvol*mu];
 }
 __global__ void cuUpDownPart(int na, Complex *X0, Complex *R1){
 
@@ -310,8 +310,8 @@ __global__ void cuGauge_Update(const double d, double *pp, Complex *u11t, Comple
 		Complex a12 = pp[(i*nadj+1)*ndim+mu]*SSS + I*SSS*pp[i*nadj*ndim+mu];
 		//b11 and b12 are u11t and u12t terms, so we'll use u12t directly
 		//but use b11 for u11t to prevent RAW dependency
-		Complex b11 = u11t[i*ndim+mu];
-		u11t[i*ndim+mu] = a11*b11-a12*conj(u12t[i*ndim+mu]);
-		u12t[i*ndim+mu] = a11*u12t[i*ndim+mu]+a12*conj(b11);
+		Complex b11 = u11t[i+kvol*mu];
+		u11t[i+kvol*mu] = a11*b11-a12*conj(u12t[i+kvol*mu]);
+		u12t[i+kvol*mu] = a11*u12t[i+kvol*mu]+a12*conj(b11);
 	}
 }

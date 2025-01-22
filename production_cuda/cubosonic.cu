@@ -86,17 +86,17 @@ __device__  void cuSU2plaq(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11,
 	 *
 	 */
 	const char *funcname = "SU2plaq";
-	int uidm = iu[mu+ndim*i]; 
+	int uidm = iu[i+kvol*mu]; 
 
-	*Sigma11=u11t[i*ndim+mu]*u11t[uidm*ndim+nu]-u12t[i*ndim+mu]*conj(u12t[uidm*ndim+nu]);
-	*Sigma12=u11t[i*ndim+mu]*u12t[uidm*ndim+nu]+u12t[i*ndim+mu]*conj(u11t[uidm*ndim+nu]);
+	*Sigma11=u11t[i+kvol*mu]*u11t[uidm+kvol*nu]-u12t[i+kvol*mu]*conj(u12t[uidm+kvol*nu]);
+	*Sigma12=u11t[i+kvol*mu]*u12t[uidm+kvol*nu]+u12t[i+kvol*mu]*conj(u11t[uidm+kvol*nu]);
 
-	int uidn = iu[nu+ndim*i]; 
-	Complex_f a11=*Sigma11*conj(u11t[uidn*ndim+mu])+*Sigma12*conj(u12t[uidn*ndim+mu]);
-	Complex_f a12=-*Sigma11*u12t[uidn*ndim+mu]+*Sigma12*u11t[uidn*ndim+mu];
+	int uidn = iu[i+kvol*nu]; 
+	Complex_f a11=*Sigma11*conj(u11t[uidn+kvol*mu])+*Sigma12*conj(u12t[uidn+kvol*mu]);
+	Complex_f a12=-*Sigma11*u12t[uidn+kvol*mu]+*Sigma12*u11t[uidn+kvol*mu];
 
-	*Sigma11=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
-	*Sigma12=-a11*u12t[i*ndim+nu]+a12*u11t[i*ndim+mu];
+	*Sigma11=a11*conj(u11t[i+kvol*nu])+a12*conj(u12t[i+kvol*nu]);
+	*Sigma12=-a11*u12t[i+kvol*nu]+a12*u11t[i+kvol*mu];
 }
 __global__ void cuPolyakov(Complex_f *Sigma11, Complex_f * Sigma12, Complex_f * u11t,Complex_f *u12t){
 	char * funcname = "cuPolyakov";

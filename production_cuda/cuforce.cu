@@ -61,14 +61,14 @@ __global__ void Plus_staple(int mu, int nu,unsigned int *iu, Complex_f *Sigma11,
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	for(int i=threadId;i<kvol;i+=gsize*bsize){
-		int uidm = iu[mu+ndim*i];
-		int uidn = iu[nu+ndim*i];
-		Complex_f	a11=u11t[uidm*ndim+nu]*conj(u11t[uidn*ndim+mu])+\
-							 u12t[uidm*ndim+nu]*conj(u12t[uidn*ndim+mu]);
-		Complex_f	a12=-u11t[uidm*ndim+nu]*u12t[uidn*ndim+mu]+\
-							 u12t[uidm*ndim+nu]*u11t[uidn*ndim+mu];
-		Sigma11[i]+=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
-		Sigma12[i]+=-a11*u12t[i*ndim+nu]+a12*u11t[i*ndim+nu];
+		int uidm = iu[mu*kvol+i];
+		int uidn = iu[nu*kvol+i];
+		Complex_f	a11=u11t[uidm+kvol*nu]*conj(u11t[uidn+kvol*mu])+\
+							 u12t[uidm+kvol*nu]*conj(u12t[uidn+kvol*mu]);
+		Complex_f	a12=-u11t[uidm+kvol*nu]*u12t[uidn+kvol*mu]+\
+							 u12t[uidm+kvol*nu]*u11t[uidn+kvol*mu];
+		Sigma11[i]+=a11*conj(u11t[i+kvol*nu])+a12*conj(u12t[i+kvol*nu]);
+		Sigma12[i]+=-a11*u12t[i+kvol*nu]+a12*u11t[i+kvol*nu];
 	}
 }
 __global__ void Minus_staple(int mu,int nu,unsigned int *iu,unsigned int *id, Complex_f *Sigma11, Complex_f *Sigma12,\
@@ -79,15 +79,15 @@ __global__ void Minus_staple(int mu,int nu,unsigned int *iu,unsigned int *id, Co
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	for(int i=threadId;i<kvol;i+=gsize*bsize){
-		int uidm = iu[mu+ndim*i];
-		int didn = id[nu+ndim*i];
+		int uidm = iu[mu*kvol+i];
+		int didn = id[nu*kvol+i];
 		//uidm is correct here
-		Complex_f a11=conj(u11sh[uidm])*conj(u11t[didn*ndim+mu])-\
-						  u12sh[uidm]*conj(u12t[didn*ndim+mu]);
-		Complex_f a12=-conj(u11sh[uidm])*u12t[didn*ndim+mu]-\
-						  u12sh[uidm]*u11t[didn*ndim+mu];
-		Sigma11[i]+=a11*u11t[didn*ndim+nu]-a12*conj(u12t[didn*ndim+nu]);
-		Sigma12[i]+=a11*u12t[didn*ndim+nu]+a12*conj(u11t[didn*ndim+nu]);
+		Complex_f a11=conj(u11sh[uidm])*conj(u11t[didn+kvol*mu])-\
+						  u12sh[uidm]*conj(u12t[didn+kvol*mu]);
+		Complex_f a12=-conj(u11sh[uidm])*u12t[didn+kvol*mu]-\
+						  u12sh[uidm]*u11t[didn+kvol*mu];
+		Sigma11[i]+=a11*u11t[didn+kvol*nu]-a12*conj(u12t[didn+kvol*nu]);
+		Sigma12[i]+=a11*u12t[didn+kvol*nu]+a12*conj(u11t[didn+kvol*nu]);
 	}
 }
 __global__ void cuGaugeForce(int mu, Complex_f *Sigma11, Complex_f *Sigma12,double* dSdpi,Complex_f *u11t, Complex_f *u12t, float beta){
@@ -97,12 +97,12 @@ __global__ void cuGaugeForce(int mu, Complex_f *Sigma11, Complex_f *Sigma12,doub
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	for(int i=threadId;i<kvol;i+=gsize*bsize){
-		Complex_f a11 = u11t[i*ndim+mu]*Sigma12[i]+u12t[i*ndim+mu]*conj(Sigma11[i]);
-		Complex_f a12 = u11t[i*ndim+mu]*Sigma11[i]+conj(u12t[i*ndim+mu])*Sigma12[i];
+		Complex_f a11 = u11t[i+kvol*mu]*Sigma12[i]+u12t[i+kvol*mu]*conj(Sigma11[i]);
+		Complex_f a12 = u11t[i+kvol*mu]*Sigma11[i]+conj(u12t[i+kvol*mu])*Sigma12[i];
 		//Not worth splitting into different streams, before we get ideas...
-		dSdpi[(i*nadj)*ndim+mu]=beta*a11.imag();
-		dSdpi[(i*nadj+1)*ndim+mu]=beta*a11.real();
-		dSdpi[(i*nadj+2)*ndim+mu]=beta*a12.imag();
+		dSdpi[i+kvol*(mu)]=beta*a11.imag();
+		dSdpi[i+kvol*(1*ndim+mu)]=beta*a11.real();
+		dSdpi[i+kvol*(2*ndim+mu)]=beta*a12.imag();
 	}
 }
 

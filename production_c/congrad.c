@@ -84,10 +84,6 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],unsigned 
 	//cudaMemcpy is blocking, so use async instead
 	cudaMemcpyAsync(p_f, X1_f, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice,NULL);
 	//Flip all the gauge fields around so memory is coalesced
-	Transpose_c(ut[0],ndim,kvol);
-	Transpose_c(ut[1],ndim,kvol);
-	Transpose_I(iu,ndim,kvol);
-	Transpose_I(id,ndim,kvol);
 #else
 #pragma omp parallel for simd
 	for(int i=0;i<kferm2;i++){
@@ -233,10 +229,6 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],unsigned 
 	cuComplex_convert(X1_f,X1,kferm2,false,dimBlock,dimGrid);
 	Transpose_c(r_f,kvol,ndirac*nc);
 	cuComplex_convert(r_f,r,kferm2,false,dimBlock,dimGrid);
-	Transpose_c(ut[0],kvol,ndim);
-	Transpose_c(ut[1],kvol,ndim);
-	Transpose_I(iu,kvol,ndim);
-	Transpose_I(id,kvol,ndim);
 #else
 	for(int i=0;i<kferm2;i++){
 		X1[i]=(Complex)X1_f[i];
