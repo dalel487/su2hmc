@@ -140,24 +140,13 @@ double Polyakov(Complex_f *ut[2]){
 	double poly = 0;
 	Complex_f *Sigma[2];
 #ifdef __NVCC__
-	int device=-1;
-	cudaGetDevice(&device);
-	cudaMallocManaged((void **)&Sigma[0],kvol3*sizeof(Complex_f),cudaMemAttachGlobal);
-#ifdef _DEBUG
-	cudaMallocManaged((void **)&Sigma[1],kvol3*sizeof(Complex_f),cudaMemAttachGlobal);
-#else
-	cudaMallocAsync((void **)&Sigma[1],kvol3*sizeof(Complex_f),streams[0]);
-#endif
+	cuPolyakov(Sigma,ut,dimGrid,dimBlock);
 #else
 	Sigma[0] = (Complex_f *)aligned_alloc(AVX,kvol3*sizeof(Complex_f));
 	Sigma[1] = (Complex_f *)aligned_alloc(AVX,kvol3*sizeof(Complex_f));
-#endif
 
 	//Extract the time component from each site and save in corresponding Sigma
-#ifdef __NVCC__
-	cublasCcopy(cublas_handle,kvol3, (cuComplex *)(ut[0])+3*kvol, 1, (cuComplex *)Sigma[0], 1);
-	cublasCcopy(cublas_handle,kvol3, (cuComplex *)(ut[1])+3*kvol, 1, (cuComplex *)Sigma[1], 1);
-#elif defined USE_BLAS
+#ifdef USE_BLAS
 	cblas_ccopy(kvol3, ut[0]+3, ndim, Sigma[0], 1);
 	cblas_ccopy(kvol3, ut[1]+3, ndim, Sigma[1], 1);
 #else
@@ -180,12 +169,6 @@ double Polyakov(Complex_f *ut[2]){
 		Buffers
 		There is a dependency. Can only parallelise the inner loop
 		*/
-#ifdef __NVCC__
-	cudaDeviceSynchronise();
-	cuPolyakov(Sigma[0],Sigma[1],ut[0],ut[1],dimGrid,dimBlock);
-	cudaDeviceSynchronise();
-	cudaMemPrefetchAsync(Sigma[0],kvol3*sizeof(Complex_f),cudaCpuDeviceId,NULL);
-#else
 #pragma unroll
 	for(int it=1;it<ksizet;it++)
 #pragma omp parallel for simd
@@ -198,10 +181,11 @@ double Polyakov(Complex_f *ut[2]){
 			Sigma[1][i]=Sigma[0][i]*ut[1][indexu*ndim+3]+Sigma[1][i]*conj(ut[0][indexu*ndim+3]);
 			Sigma[0][i]=a11;
 		}
+	free(Sigma[1]);
+#endif
+
 	//Multiply this partial loop with the contributions of the other cores in the
 	//Time-like dimension
-#endif
-	//End of CUDA-CPU pre-processor for evaluating Polyakov
 	//
 	//Par_tmul does nothing if there is only a single processor in the time direction. So we only compile
 	//its call if it is required
@@ -228,13 +212,8 @@ double Polyakov(Complex_f *ut[2]){
 			poly+=creal(Sigma[0][i]);
 #ifdef __NVCC__
 	cudaFree(Sigma[0]);
-#ifdef _DEBUG
-	cudaFree(Sigma[1]);
 #else
-	cudaFreeAsync(Sigma[1],streams[0]);
-#endif
-#else
-	free(Sigma[0]); free(Sigma[1]);
+	free(Sigma[0]); 
 #endif
 
 #if(nproc>1)

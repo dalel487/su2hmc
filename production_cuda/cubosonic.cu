@@ -35,8 +35,28 @@ hgs_t+=hgs_d[i]; hgt_t+=hgt_d[i];
 	 */
 	cudaFreeAsync(hgs_d,streams[0]); cudaFreeAsync(hgt_d,streams[1]);
 	}
-void cuPolyakov(Complex_f *Sigma11, Complex_f * Sigma12, Complex_f *u11t, Complex_f *u12t, dim3 dimGrid, dim3 dimBlock){
-	cuPolyakov<<<dimGrid,dimBlock>>>(Sigma11,Sigma12,u11t,u12t);
+void cuPolyakov(Complex_f *Sigma[2], Complex_f *ut[2], dim3 dimGrid, dim3 dimBlock){
+	int device=-1;
+	cudaGetDevice(&device);
+	cudaMallocManaged((void **)&Sigma[0],kvol3*sizeof(Complex_f),cudaMemAttachGlobal);
+#ifdef _DEBUG
+	cudaMallocManaged((void **)&Sigma[1],kvol3*sizeof(Complex_f),cudaMemAttachGlobal);
+#else
+	cudaMallocAsync((void **)&Sigma[1],kvol3*sizeof(Complex_f),streams[0]);
+#endif
+	//Extract the time component from each site and save in corresponding Sigma
+	cublasCcopy(cublas_handle,kvol3, (cuComplex *)(ut[0])+3*kvol, 1, (cuComplex *)Sigma[0], 1);
+	cublasCcopy(cublas_handle,kvol3, (cuComplex *)(ut[1])+3*kvol, 1, (cuComplex *)Sigma[1], 1);
+
+	cudaDeviceSynchronise();
+	cuPolyakov<<<dimGrid,dimBlock>>>(Sigma[0],Sigma[1],ut[0],ut[1]);
+	cudaMemPrefetchAsync(Sigma[0],kvol3*sizeof(Complex_f),cudaCpuDeviceId,streams[0]);
+#ifdef _DEBUG
+	cudaFree(Sigma[1]);
+#else
+	cudaFreeAsync(Sigma[1],streams[1]);
+#endif
+	cudaDeviceSynchronise();
 }
 //CUDA Kernels
 __global__ void cuAverage_Plaquette(float *hgs_d, float *hgt_d, Complex_f *u11t, Complex_f *u12t, unsigned int *iu){
