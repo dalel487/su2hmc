@@ -36,11 +36,7 @@ hgs_t+=hgs_d[i]; hgt_t+=hgt_d[i];
 	cudaFreeAsync(hgs_d,streams[0]); cudaFreeAsync(hgt_d,streams[1]);
 	}
 void cuPolyakov(Complex_f *Sigma11, Complex_f * Sigma12, Complex_f *u11t, Complex_f *u12t, dim3 dimGrid, dim3 dimBlock){
-	Transpose_c(u11t,ndim,kvol);
-	Transpose_c(u12t,ndim,kvol);
 	cuPolyakov<<<dimGrid,dimBlock>>>(Sigma11,Sigma12,u11t,u12t);
-	Transpose_c(u11t,kvol,ndim);
-	Transpose_c(u12t,kvol,ndim);
 }
 //CUDA Kernels
 __global__ void cuAverage_Plaquette(float *hgs_d, float *hgt_d, Complex_f *u11t, Complex_f *u12t, unsigned int *iu){
@@ -104,7 +100,6 @@ __global__ void cuPolyakov(Complex_f *Sigma11, Complex_f * Sigma12, Complex_f * 
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	//RACE CONDITION? gsize*bsize?
 	for(int i=threadId;i<kvol3;i+=gsize*bsize){
 		Complex_f Sig[2]; Sig[0]=Sigma11[i]; Sig[1]=Sigma12[i];
 		Complex_f u[2];

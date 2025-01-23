@@ -268,8 +268,8 @@ xi[i]=(Complex)R1_f[i];
 #ifdef __NVCC__
 	cudaFree(x); cudaFree(xi);
 	//Revert index and gauge arrays
-	Transpose_c(ut_f[0],ndim,kvol);
-	Transpose_c(ut_f[1],ndim,kvol);
+	Transpose_z(ut[0],ndim,kvol);
+	Transpose_z(ut[1],ndim,kvol);
 	Transpose_U(iu,ndim,kvol);
 	Transpose_U(id,ndim,kvol);
 #else

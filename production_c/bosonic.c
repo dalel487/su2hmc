@@ -155,8 +155,8 @@ double Polyakov(Complex_f *ut[2]){
 
 	//Extract the time component from each site and save in corresponding Sigma
 #ifdef __NVCC__
-	cublasCcopy(cublas_handle,kvol3, (cuComplex *)(ut[0]+3), ndim, (cuComplex *)Sigma[0], 1);
-	cublasCcopy(cublas_handle,kvol3, (cuComplex *)(ut[1]+3), ndim, (cuComplex *)Sigma[1], 1);
+	cublasCcopy(cublas_handle,kvol3, (cuComplex *)(ut[0])+3*kvol, 1, (cuComplex *)Sigma[0], 1);
+	cublasCcopy(cublas_handle,kvol3, (cuComplex *)(ut[1])+3*kvol, 1, (cuComplex *)Sigma[1], 1);
 #elif defined USE_BLAS
 	cblas_ccopy(kvol3, ut[0]+3, ndim, Sigma[0], 1);
 	cblas_ccopy(kvol3, ut[1]+3, ndim, Sigma[1], 1);
@@ -183,6 +183,7 @@ double Polyakov(Complex_f *ut[2]){
 #ifdef __NVCC__
 	cudaDeviceSynchronise();
 	cuPolyakov(Sigma[0],Sigma[1],ut[0],ut[1],dimGrid,dimBlock);
+	cudaDeviceSynchronise();
 	cudaMemPrefetchAsync(Sigma[0],kvol3*sizeof(Complex_f),cudaCpuDeviceId,NULL);
 #else
 #pragma unroll
@@ -222,12 +223,9 @@ double Polyakov(Complex_f *ut[2]){
 	  for this case rather than calculating everything just to set it to zero
 	  */
 	if(!pcoord[3+rank*ndim])
-#ifdef __NVCC__
-		cudaDeviceSynchronise();
-#endif
 #pragma omp parallel for simd reduction(+:poly)
-	for(int i=0;i<kvol3;i++)
-		poly+=creal(Sigma[0][i]);
+		for(int i=0;i<kvol3;i++)
+			poly+=creal(Sigma[0][i]);
 #ifdef __NVCC__
 	cudaFree(Sigma[0]);
 #ifdef _DEBUG
@@ -316,9 +314,9 @@ int Leaf(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11, Complex_f *Sigma1
 			int dim_didn=id[nu+ndim*didm];
 			*Sigma11=conj(u11t[didm*ndim+mu])*conj(u11t[dim_didn*ndim+nu])+conj(u12t[didm*ndim+mu])*conj(u12t[dim_didn*ndim+nu]);
 
-	Sigma11=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
-	//				Sigma12[i]=-a11[i]*u12t[i*ndim+nu]+a12*u11t[i*ndim+mu];
-	//				Not needed in final result as it traces out
-	return creal(Sigma11);
-}
+			Sigma11=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
+			//				Sigma12[i]=-a11[i]*u12t[i*ndim+nu]+a12*u11t[i*ndim+mu];
+			//				Not needed in final result as it traces out
+			return creal(Sigma11);
+	}
 #endif
