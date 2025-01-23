@@ -49,11 +49,11 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	int device=-1;
 	cudaGetDevice(&device);
 	Complex	*x, *xi; Complex_f *xi_f, *R1_f;
-	#ifdef _DEBUG
+#ifdef _DEBUG
 	cudaMallocManaged((void **)&R1_f,kfermHalo*sizeof(Complex_f), cudaMemAttachGlobal);
-	#else
+#else
 	cudaMallocAsync((void **)&R1_f,kfermHalo*sizeof(Complex_f),streams[1]);
-	#endif
+#endif
 	cudaMallocManaged((void **)&x,kfermHalo*sizeof(Complex), cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&xi,kferm*sizeof(Complex), cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&xi_f,kfermHalo*sizeof(Complex_f), cudaMemAttachGlobal);
@@ -75,8 +75,6 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	//Transpose needed here for Dslashd
 	Transpose_c(xi_f,ngorkov*nc,kvol);
 	//Flip all the gauge fields around so memory is coalesced
-	Transpose_c(ut_f[0],ndim,kvol);
-	Transpose_c(ut_f[1],ndim,kvol);
 	cudaMemcpyAsync(x, xi, kferm*sizeof(Complex),cudaMemcpyDefault,0);
 #else
 #pragma omp parallel for simd aligned(xi,xi_f:AVX)
@@ -92,8 +90,6 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	cudaDeviceSynchronise();
 	cudaFree(xi_f);	
 	Transpose_c(R1_f,kvol,ngorkov*nc);
-	Transpose_c(ut_f[0],kvol,ndim);
-	Transpose_c(ut_f[1],kvol,ndim);
 	cuComplex_convert(R1_f,R1,kferm,false,dimBlock,dimGrid);
 	cudaMemcpy(Phi, R1, kferm*sizeof(Complex),cudaMemcpyDefault);
 #else
@@ -122,11 +118,11 @@ xi[i]=(Complex)R1_f[i];
 */
 #ifdef __NVCC__
 	cudaMemcpyAsync(xi,R1,kferm*sizeof(Complex),cudaMemcpyDefault,streams[0]);
-	#ifdef _DEBUG
+#ifdef _DEBUG
 	cudaFree(R1_f);
-	#else
+#else
 	cudaFreeAsync(R1_f,streams[1]);
-	#endif
+#endif
 #else
 	memcpy(xi,R1,kferm*sizeof(Complex));
 	free(xi_f);	free(R1_f);
@@ -209,7 +205,15 @@ xi[i]=(Complex)R1_f[i];
 	//Idea. One loop instead of two loops but for xuu and xdd just use ngorkov-(igorkov+1) instead
 	//Dirty CUDA work around since it won't convert thrust<complex> to double
 	//TODO: get a reduction routine ready for CUDA
-#ifndef __NVCC__
+#ifdef __NVCC__
+	//Swapping back the gauge fields to SoA since the rest of the code is running on CPU and hasn't been ported
+	Transpose_z(ut[0],kvol,ndim);
+	Transpose_z(ut[1],kvol,ndim);
+	//Set up  index arrays for CPU
+	Transpose_U(iu,kvol,ndim);
+	Transpose_U(id,kvol,ndim);
+	cudaDeviceSynchronise();
+#else
 #pragma omp parallel for reduction(+:xd,xu,xdd,xuu) 
 #endif
 	for(int i = 0; i<kvol; i++){
@@ -263,6 +267,11 @@ xi[i]=(Complex)R1_f[i];
 	//Future task. Chiral susceptibility measurements
 #ifdef __NVCC__
 	cudaFree(x); cudaFree(xi);
+	//Revert index and gauge arrays
+	Transpose_c(ut_f[0],ndim,kvol);
+	Transpose_c(ut_f[1],ndim,kvol);
+	Transpose_U(iu,ndim,kvol);
+	Transpose_U(id,ndim,kvol);
 #else
 	free(x); free(xi);
 #endif

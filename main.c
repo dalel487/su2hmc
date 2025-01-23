@@ -277,13 +277,13 @@ int main(int argc, char *argv[]){
 	memcpy(u[1], ut[1], ndim*kvol*sizeof(Complex));
 #ifdef __NVCC__
 	//Flip all the gauge fields around so memory is coalesced
-		Transpose_z(ut[0],ndim,kvol);
-		Transpose_z(ut[1],ndim,kvol);
+	Transpose_z(ut[0],ndim,kvol);
+	Transpose_z(ut[1],ndim,kvol);
 	//And the index arrays
 	Transpose_U(iu,ndim,kvol);
 	Transpose_U(id,ndim,kvol);
 	cudaDeviceSynchronise();
-		#endif
+#endif
 #ifdef DIAGNOSTIC
 	double ancg_diag=0;
 	Diagnostics(istart, u[0], u[1], ut[0], ut[1], ut_f[0], ut_f[1], iu, id, hu, hd, dk[0], dk[1],\
@@ -608,6 +608,9 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 				cudaMemcpyAsync(ut[0], u[0], ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[0]);
 				cudaMemcpyAsync(ut[1], u[1], ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[1]);
+				cudaDeviceSynchronise();
+				Transpose_z(ut[0],ndim,kvol);
+				Transpose_z(ut[1],ndim,kvol);
 #else
 				memcpy(ut[0], u[0], ndim*kvol*sizeof(Complex));
 				memcpy(ut[1], u[1], ndim*kvol*sizeof(Complex));

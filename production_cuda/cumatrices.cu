@@ -342,7 +342,7 @@ __global__ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comple
 		//Spacelike terms. Here's hoping I haven't put time as the zeroth component somewhere!
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
-			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
+			int did=id[mu*kvol+i]; int uid = iu[mu*kvol+i];
 			u11s=u11t[i+kvol*mu]; u12s=u12t[i+kvol*mu];
 			u11sd=u11t[did+kvol*mu]; u12sd=u12t[did+kvol*mu];
 			for(int igorkov=0; igorkov<ngorkov; igorkov++){
@@ -388,7 +388,7 @@ __global__ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comple
 #ifndef NO_TIME
 		u11s=u11t[i+kvol*3]; u12s=u12t[i+kvol*3];
 		float dk4ms=dk4m[i];	float dk4ps=dk4p[i];
-		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
+		int did=id[3*kvol+i]; int uid = iu[3*kvol+i];
 		u11sd=u11t[did+kvol*3]; u12sd=u12t[did+kvol*3];
 		float dk4msd=dk4m[did];	float dk4psd=dk4p[did];
 		for(int igorkov=0;igorkov<ndirac;igorkov++){

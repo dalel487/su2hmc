@@ -316,10 +316,6 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigne
 	//And repeat for r
 	cuComplex_convert(r_f,Phi+na*kferm,kferm,true,dimBlock,dimGrid);
 	Transpose_c(r_f,ngorkov*nc,kvol);
-
-	//Flip all the gauge fields around so memory is coalesced
-	Transpose_c(ut[0],ndim,kvol);
-	Transpose_c(ut[1],ndim,kvol);
 #else
 #pragma omp parallel for simd aligned(p_f,xi_f,xi,r_f,Phi:AVX)
 	for(int i =0;i<kferm;i++){
@@ -465,8 +461,6 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigne
 	Transpose_c(xi_f,kvol,ngorkov*nc);
 	Transpose_c(r_f,kvol,ngorkov*nc);
 
-	Transpose_c(ut[0],kvol,ndim);
-	Transpose_c(ut[1],kvol,ndim);
 	cudaDeviceSynchronise();
 	cuComplex_convert(xi_f,xi,kferm,false,dimBlock,dimGrid);
 #else
