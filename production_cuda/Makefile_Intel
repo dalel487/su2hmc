@@ -4,8 +4,8 @@ CXX=		icpc
 NVCC=		nvcc
 
 IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include" -I ./ -I../production_c\
-				-I /opt/nvidia/hpc_sdk/Linux_x86_64/2024/cuda/include/ \
-				-I /opt/nvidia/hpc_sdk/Linux_x86_64/2024/math_libs/include/ 
+				-I /opt/nvidia/hpc_sdk/Linux_x86_64/latest/cuda/include/ \
+				-I /opt/nvidia/hpc_sdk/Linux_x86_64/latest/math_libs/include/ 
 
 CFLAGS=  -qmkl -qopt-zmm-usage=high -MD -D__NVCC__ -static-intel -static-libgcc \
 			-xCOFFEELAKE -ax'SKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,ALDERLAKE'\
@@ -14,8 +14,8 @@ CFLAGS=  -qmkl -qopt-zmm-usage=high -MD -D__NVCC__ -static-intel -static-libgcc 
 			-qopenmp-simd -DSA3AT -use-intel-optimized-headers -diag-disable=10441 $(IFLAGS) 
 
 MKLFLAGS=	-qmkl -L${MKLROOT}/lib/intel64 -limf #-DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
-CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/2024/cuda/lib64/ \
-				-L/opt/nvidia/hpc_sdk/Linux_x86_64/2024/math_libs/lib64/ \
+CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/latest/cuda/lib64/ \
+				-L/opt/nvidia/hpc_sdk/Linux_x86_64/latest/math_libs/lib64/ \
 				-lcuda -lcudart -lcublas 
 
 LFLAGS=		-liomp5 -lstdc++ -lpthread -ldl -limf -lgsl  #${CULFLAGS}

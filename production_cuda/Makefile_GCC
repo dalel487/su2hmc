@@ -4,8 +4,8 @@ CXX=		g++
 NVCC=		nvcc
 
 IFLAGS=     -I../INCLUDE -I ./ -I../production_c $(shell gsl-config --cflags)\
-				-I /opt/nvidia/hpc_sdk/Linux_x86_64/2024/cuda/include/ \
-				-I /opt/nvidia/hpc_sdk/Linux_x86_64/2024/math_libs/include/ 
+				-I /opt/nvidia/hpc_sdk/Linux_x86_64/latest/cuda/include/ \
+				-I /opt/nvidia/hpc_sdk/Linux_x86_64/latest/math_libs/include/ 
 
 CFLAGS=	$(IFLAGS) -std=gnu11 -fcommon -D__NVCC__\
 		-march=core-avx2 -mtune=native -D__RANLUX__ \
@@ -25,8 +25,8 @@ LFLAGS	+=	-lm $(shell gsl-config --libs)
 endif
 LFLAGS	+=	-lm $(shell gsl-config --libs-without-cblas)
 
-CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/2024/cuda/lib64/ \
-				-L/opt/nvidia/hpc_sdk/Linux_x86_64/2024/math_libs/lib64/ \
+CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/latest/cuda/lib64/ \
+				-L/opt/nvidia/hpc_sdk/Linux_x86_64/latest/math_libs/lib64/ \
 				-lcuda -lcudart -lcublas 
 
 LFLAGS +=		-lstdc++ -lpthread -ldl #${CULFLAGS}
