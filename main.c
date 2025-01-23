@@ -275,6 +275,15 @@ int main(int argc, char *argv[]){
 	//Get trials back
 	memcpy(u[0], ut[0], ndim*kvol*sizeof(Complex));
 	memcpy(u[1], ut[1], ndim*kvol*sizeof(Complex));
+#ifdef __NVCC__
+	//Flip all the gauge fields around so memory is coalesced
+		Transpose_z(ut[0],ndim,kvol);
+		Transpose_z(ut[1],ndim,kvol);
+	//And the index arrays
+	Transpose_U(iu,ndim,kvol);
+	Transpose_U(id,ndim,kvol);
+	cudaDeviceSynchronise();
+		#endif
 #ifdef DIAGNOSTIC
 	double ancg_diag=0;
 	Diagnostics(istart, u[0], u[1], ut[0], ut[1], ut_f[0], ut_f[1], iu, id, hu, hd, dk[0], dk[1],\
@@ -284,15 +293,6 @@ int main(int argc, char *argv[]){
 	//Initial Measurements
 	//====================
 	Trial_Exchange(ut,ut_f);
-#ifdef __NVCC__
-	//Flip all the gauge fields around so memory is coalesced
-	Transpose_c(ut_f[0],ndim,kvol);
-	Transpose_c(ut_f[1],ndim,kvol);
-	//And the index arrays
-	Transpose_U(iu,ndim,kvol);
-	Transpose_U(id,ndim,kvol);
-	cudaDeviceSynchronise();
-#endif
 	double poly = Polyakov(ut_f);
 #ifdef _DEBUG
 	if(!rank) printf("Initial Polyakov loop evaluated as %e\n", poly);
@@ -464,7 +464,6 @@ int main(int argc, char *argv[]){
 			//Make sure the multiplication is finished before freeing its input!!
 			cudaFree(R);//cudaDeviceSynchronise(); 
 							//cudaFree is blocking so don't need to synchronise
-			Transpose_c(R1_f,kvol,ngorkov*nc);
 			cuComplex_convert(R1_f,R1,kferm,false,dimBlock,dimGrid);
 #ifdef _DEBUG
 			cudaFree(R1_f);
@@ -492,15 +491,14 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 		cudaMemcpyAsync(ut[0], u[0], ndim*kvol*sizeof(Complex),cudaMemcpyHostToDevice,NULL);
 		cudaMemcpyAsync(ut[1], u[1], ndim*kvol*sizeof(Complex),cudaMemcpyHostToDevice,NULL);
+		//Convert to SoA
+		Transpose_z(ut[0],ndim,kvol);
+		Transpose_z(ut[1],ndim,kvol);
 #else
 		memcpy(ut[0], u[0], ndim*kvol*sizeof(Complex));
 		memcpy(ut[1], u[1], ndim*kvol*sizeof(Complex));
 #endif
 		Trial_Exchange(ut,ut_f);
-#ifdef __NVCC__
-		Transpose_c(ut_f[0],ndim,kvol);
-		Transpose_c(ut_f[1],ndim,kvol);
-#endif
 #if (defined(USE_RAN2)||defined(__RANLUX__)||!defined(__INTEL_MKL__))
 		Gauss_d(pp, kmom, 0, 1);
 #else
@@ -572,6 +570,10 @@ int main(int argc, char *argv[]){
 			//JIS 20100525: remove when all is ok....
 			memcpy(u[0],ut[0],ndim*kvol*sizeof(Complex));
 			memcpy(u[1],ut[1],ndim*kvol*sizeof(Complex));
+#ifdef __NVCC__
+			Transpose_z(u[0],kvol,ndim);
+			Transpose_z(u[1],kvol,ndim);
+#endif
 			naccp++;
 			//Divide by gvol since we've summed over all lattice sites
 			action=S1/gvol;

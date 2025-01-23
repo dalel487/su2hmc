@@ -209,7 +209,7 @@ __global__ void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
 		for(int idirac = 0; idirac<ndirac; idirac++)
 			for(int ic= 0; ic<nc; ic++)
 				//	  PHI_index=i*16+j*2+k;
-				smallPhi[(i*ndirac+idirac)*nc+ic]=Phi[((na*kvol+i)*ngorkov+idirac)*nc+ic];
+				smallPhi[i + kvol * (ic + nc * idirac)] = Phi[i + kvol * (ic + idirac * (nc + ngorkov * na))];
 }
 __global__ void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu)
 {
@@ -247,8 +247,8 @@ __global__ void cuUpDownPart(int na, Complex *X0, Complex *R1){
 	//Up/down partitioning (using only pseudofermions of flavour 1)
 	for(int i = gthreadId; i<kvol;i+=gsize*bsize)
 		for(int idirac = 0; idirac < ndirac; idirac++){
-			X0[((na*kvol+i)*ndirac+idirac)*nc]=R1[(i*ngorkov+idirac)*nc];
-			X0[((na*kvol+i)*ndirac+idirac)*nc+1]=R1[(i*ngorkov+idirac)*nc+1];
+			X0[i + kvol * (0 + nc * (idirac + ndirac * na))] = R1[i + kvol * (0 + nc * idirac)];
+			X0[i + kvol * (1 + nc * (idirac + ndirac * na))] = R1[i + kvol * (1 + nc * idirac)];
 		}
 }
 
@@ -310,8 +310,8 @@ __global__ void cuGauge_Update(const double d, double *pp, Complex *u11t, Comple
 		Complex a12 = pp[i+kvol*(1*ndim+mu)]*SSS + I*SSS*pp[i+kvol*(mu)];
 		//b11 and b12 are u11t and u12t terms, so we'll use u12t directly
 		//but use b11 for u11t to prevent RAW dependency
-		Complex b11 = u11t[i*ndim+mu];
-		u11t[i*ndim+mu] = a11*b11-a12*conj(u12t[i*ndim+mu]);
-		u12t[i*ndim+mu] = a11*u12t[i*ndim+mu]+a12*conj(b11);
+		Complex b11 = u11t[i+kvol*mu];
+		u11t[i+kvol*mu] = a11*b11-a12*conj(u12t[i+kvol*mu]);
+		u12t[i+kvol*mu] = a11*u12t[i+kvol*mu]+a12*conj(b11);
 	}
 }

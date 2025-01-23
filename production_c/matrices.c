@@ -1070,6 +1070,29 @@ inline void Transpose_c(Complex_f *out, const int fast_in, const int fast_out){
 	free(in);
 #endif
 }
+inline void Transpose_z(Complex *out, const int fast_in, const int fast_out){
+	const volatile char *funcname="Transpose_c";
+
+#ifdef __NVCC__
+	cuTranspose_z(out,fast_in,fast_out,dimGrid,dimBlock);
+#else
+	Complex *in = (Complex *)aligned_alloc(AVX,fast_in*fast_out*sizeof(Complex));
+	memcpy(in,out,fast_in*fast_out*sizeof(Complex));
+	//Typically this is used to write back to the AoS/Coalseced format
+	if(fast_out>fast_in){
+		for(int x=0;x<fast_out;x++)
+			for(int y=0; y<fast_in;y++)
+				out[y*fast_out+x]=in[x*fast_in+y];
+	}
+	//Typically this is used to write back to the SoA/saved config format
+	else{
+		for(int x=0; x<fast_out;x++)
+			for(int y=0;y<fast_in;y++)
+				out[y*fast_out+x]=in[x*fast_in+y];
+	}
+	free(in);
+#endif
+}
 inline void Transpose_f(float *out, const int fast_in, const int fast_out){
 	const char *funcname="Transpose_f";
 

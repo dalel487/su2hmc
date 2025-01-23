@@ -75,11 +75,9 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],unsigned 
 #ifdef __NVCC__
 	//Get X1 in single precision, then swap to AoS format
 	cuComplex_convert(X1_f,X1,kferm2,true,dimBlock,dimGrid);
-	Transpose_c(X1_f,ndirac*nc,kvol);
 
 	//And repeat for r
 	cuComplex_convert(r_f,r,kferm2,true,dimBlock,dimGrid);
-	Transpose_c(r_f,ndirac*nc,kvol);
 
 	//cudaMemcpy is blocking, so use async instead
 	cudaMemcpyAsync(p_f, X1_f, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice,NULL);
@@ -225,9 +223,6 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],unsigned 
 	}
 #ifdef __NVCC__
 //Restore arrays back to their previous salyout
-	Transpose_c(X1_f,kvol,ndirac*nc);
-	Transpose_c(r_f,kvol,ndirac*nc);
-	cudaDeviceSynchronise();
 	cuComplex_convert(X1_f,X1,kferm2,false,dimBlock,dimGrid);
 	cuComplex_convert(r_f,r,kferm2,false,dimBlock,dimGrid);
 #else

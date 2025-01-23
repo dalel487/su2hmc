@@ -5,16 +5,16 @@ NVCC=		nvcc
 
 IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include" -I ./ -I../production_c\
 				$(shell gsl-config --cflags) \
-				-I /opt/nvidia/hpc_sdk/Linux_x86_64/2024/cuda/include/ \
-				-I /opt/nvidia/hpc_sdk/Linux_x86_64/2024/math_libs/include/ 
+				-I /opt/nvidia/hpc_sdk/Linux_x86_64/latest/cuda/include/ \
+				-I /opt/nvidia/hpc_sdk/Linux_x86_64/latest/math_libs/include/ 
 
 CFLAGS=  -qmkl -qopt-zmm-usage=high -MD -D__NVCC__-ipo -static-intel -static-libgcc \
 			-xHOST -DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__ -qopenmp -qno-openmp-offload \
 			-DINT_OMF2 -qopenmp-simd -DSA3AT -use-intel-optimized-headers -diag-disable=10441 $(IFLAGS) 
 
 MKLFLAGS=	-qmkl -L${MKLROOT}/lib/intel64 -limf #-DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
-CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/2024/cuda/lib64/ \
-				-L/opt/nvidia/hpc_sdk/Linux_x86_64/2024/math_libs/lib64/ \
+CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/latest/cuda/lib64/ \
+				-L/opt/nvidia/hpc_sdk/Linux_x86_64/latest/math_libs/lib64/ \
 				-lcuda -lcudart -lcublas 
 
 LFLAGS=		-liomp5 $(shell gsl-config --libs-without-cblas) -lpthread -ldl -limf  #${CULFLAGS}
