@@ -84,7 +84,6 @@ profiler:	HIPCCFLAGS += -lineinfo # -D_DEBUG#-keep
 profiler:	release
 
 release:	CFLAGS +=  -Ofast -funroll-all-loops -fcf-protection=none #-fprofile-use=./gcc_pgo
-release:	HIPCCFLAGS += --offload-arch=gfx1032 #-dopt=on
 release:	$(EXE)
 
 diagnostic: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
@@ -92,10 +91,11 @@ diagnostic: HIPCCFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 diagnostic: debug
 
 debug:		CFLAGS += -O0 -g -D_DEBUG -rdynamic 
-debug:		HIPCCFLAGS += -Xptxas -O0,-v -G -g -D_DEBUG -arch=sm_75 --maxrregcount=255  -keep 
+debug:		HIPCCFLAGS += -O0 -g -D_DEBUG
 debug:		$(EXE)
 		 
 #$(EXE):   ../main.c $(OBJ)
+$(EXE):	HIPCCFLAGS += --offload-arch=gfx1034 #-dopt=on
 $(EXE): $(OBJ) ../main.c
 	$(HIPCC) $(HIPCCFLAGS)  -std=gnu11 -Xcompiler "$(CFLAGS) " -o $@ $^  $(LFLAGS) $(HIPLFLAGS)
 $(EXE): $(OBJ) ../main.c
