@@ -211,9 +211,7 @@ int main(int argc, char *argv[]){
 	cudaMalloc(&dk_f[1],(kvol+halo)*sizeof(float));
 #endif
 
-	int	*gamin;
-	Complex	*gamval;
-	Complex_f *gamval_f;
+	int	*gamin;	Complex	*gamval;	Complex_f *gamval_f;
 	cudaMallocManaged(&gamin,4*4*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&gamval,5*4*sizeof(Complex),cudaMemAttachGlobal);
 #ifdef _DEBUG
