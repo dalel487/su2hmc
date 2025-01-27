@@ -4,6 +4,33 @@
  * @brief Conjugate gradients. Congradq for the solver and Congradp for the inversion
  */
 #include	<matrices.h>
+//TODO: Define csw properly elsewhere
+
+void Q_allocate(Complex_f *p_f, Complex_f *x1_f, Complex_f x2_f, Complex_f *r_f, Complex_f X1_f){
+#ifdef __NVCC__
+#ifdef _DEBUG
+	cudaMallocManaged((void **)&p_f, kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&x1_f, kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&x2_f, kferm2*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&r_f, kferm2*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&X1_f, kferm2*sizeof(Complex_f),cudaMemAttachGlobal);
+#else
+	//First two have halo exchanges, so getting NCCL working is important
+	cudaMallocAsync((void **)&p_f, kferm2Halo*sizeof(Complex_f),streams[0]);
+	cudaMallocAsync((void **)&x1_f, kferm2Halo*sizeof(Complex_f),streams[1]);
+	cudaMallocAsync((void **)&x2_f, kferm2*sizeof(Complex_f),streams[2]);
+	cudaMallocAsync((void **)&r_f, kferm2*sizeof(Complex_f),streams[3]);
+	cudaMallocAsync((void **)&X1_f, kferm2*sizeof(Complex_f),streams[4]);
+#endif
+#else
+	p_f=aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
+	x1_f=aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
+	x2_f=aligned_alloc(AVX,kferm2*sizeof(Complex_f));
+	X1_f=aligned_alloc(AVX,kferm2*sizeof(Complex_f));
+	r_f=aligned_alloc(AVX,kferm2*sizeof(Complex_f));
+#endif
+
+}
 int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],unsigned int *iu,unsigned int *id,\
 		Complex_f *gamval_f,int *gamin,float *dk[2],Complex_f jqq,float akappa,int *itercg){
 	/*
@@ -47,30 +74,11 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],unsigned 
 	double betad = 1.0; Complex_f alphad=0; Complex alpha = 1;
 	//Because we're dealing with flattened arrays here we can call cblas safely without the halo
 #ifdef __NVCC__
-	Complex_f *p_f, *x1_f, *x2_f, *r_f, *X1_f;
 	int device=-1; cudaGetDevice(&device);
+#endif
+	Complex_f *p_f, *x1_f, *x2_f, *r_f, *X1_f;
+	Q_allocate(p_f,x1_f,x2_f,r_f,X1_f);
 
-#ifdef _DEBUG
-	cudaMallocManaged((void **)&p_f, kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&x1_f, kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&x2_f, kferm2*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&r_f, kferm2*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&X1_f, kferm2*sizeof(Complex_f),cudaMemAttachGlobal);
-#else
-	//First two have halo exchanges, so getting NCCL working is important
-	cudaMallocAsync((void **)&p_f, kferm2Halo*sizeof(Complex_f),streams[0]);
-	cudaMallocAsync((void **)&x1_f, kferm2Halo*sizeof(Complex_f),streams[1]);
-	cudaMallocAsync((void **)&x2_f, kferm2*sizeof(Complex_f),streams[2]);
-	cudaMallocAsync((void **)&r_f, kferm2*sizeof(Complex_f),streams[3]);
-	cudaMallocAsync((void **)&X1_f, kferm2*sizeof(Complex_f),streams[4]);
-#endif
-#else
-	Complex_f *p_f=aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
-	Complex_f *x1_f=aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
-	Complex_f *x2_f=aligned_alloc(AVX,kferm2*sizeof(Complex_f));
-	Complex_f *X1_f=aligned_alloc(AVX,kferm2*sizeof(Complex_f));
-	Complex_f *r_f=aligned_alloc(AVX,kferm2*sizeof(Complex_f));
-#endif
 	//Instead of copying element-wise in a loop, use memcpy.
 #ifdef __NVCC__
 	//Get X1 in single precision, then swap to AoS format
@@ -222,7 +230,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],unsigned 
 #endif
 	}
 #ifdef __NVCC__
-//Restore arrays back to their previous salyout
+	//Restore arrays back to their previous salyout
 	cuComplex_convert(X1_f,X1,kferm2,false,dimBlock,dimGrid);
 	cuComplex_convert(r_f,r,kferm2,false,dimBlock,dimGrid);
 #else

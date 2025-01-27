@@ -44,7 +44,7 @@ int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u
 	  The FORTRAN code used several consecutive loops to get the plaquette
 	  Instead we'll just make the arrays variables and do everything in one loop
 	  Should work since in the FORTRAN Sigma11[i] only depends on i components  for example
-	  Since the ν loop doesn't get called for μ=0 we'll start at μ=1
+	  Since the \nu loop doesn't get called for \mu=0 we'll start at \mu=1
 	  */
 #ifdef __NVCC__
 	__managed__ double hgs = 0; __managed__ double hgt = 0;
@@ -84,7 +84,7 @@ int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u
 #pragma omp declare simd
 inline int SU2plaq(Complex_f *ut[2], Complex_f Sigma[2], unsigned int *iu,  int i, int mu, int nu){
 	/**
-	 * @brief Calculates the trace of the plaquette at site i in the μ-ν direction
+	 * @brief Calculates the trace of the plaquette at site i in the \mu-ν direction
 	 *
 	 * @param ut[0], ut[1]:			Trial fields
 	 * @param Sigma11, Sigma12:	Trial fields
@@ -223,19 +223,61 @@ double Polyakov(Complex_f *ut[2]){
 	return poly;	
 }
 #ifdef _CLOVER
-int Leaf(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11, Complex_f *Sigma12,
-		unsigned int *iu, unsigned int *id, int i, int mu, int nu, short leaf){
+inline int Clover_SU2plaq(Complex_f *ut[2], Complex_f *Leaves[2], unsigned int *iu,  int i, int mu, int nu){
+	/**
+	 * @brief Calculates the trace of the plaquette at site i in the \mu-ν direction
+	 *
+	 * @param ut[0], ut[1]:			Trial fields
+	 * @param Leaves11, Leaves12:	Trial fields
+	 * @param *iu:						Upper halo indices
+	 * @param i:						site index
+	 * @param mu, nu:					Plaquette direction. Note that mu and nu can be negative
+	 * 									to facilitate calculating plaquettes for Clover terms. No
+	 * 									sanity checks are conducted on them in this routine.
+	 *
+	 * Return:
+	 * =======
+	 * double corresponding to the plaquette value
+	 *
+	 */
+	const char *funcname = "SU2plaq";
+	int uidm = iu[mu+ndim*i]; 
+	/***
+	 *	Let's take a quick moment to compare this to the analysis code.
+	 *	The analysis code stores the gauge field as a 4 component real valued vector, whereas the produciton code
+	 *	used two complex numbers.
+	 *
+	 *	Analysis code: u=(Re(u11),Im(u12),Re(u12),Im(u11))
+	 *	Production code: u11=u[0]+I*u[3]	u12=u[2]+I*u[1]
+	 *
+	 *	This applies to the Leavess and a's below too
+	 */
+
+//TODO: Figure out how we want to label the leaves. 12 clovers in total. Each with 4 leaves. The below should work for
+//the plaquette as the first leaf
+	Leaves[0][i*ndim]=ut[0][i*ndim+mu]*ut[0][uidm*ndim+nu]-ut[1][i*ndim+mu]*conj(ut[1][uidm*ndim+nu]);
+	Leaves[1][i*ndim]=ut[0][i*ndim+mu]*ut[1][uidm*ndim+nu]+ut[1][i*ndim+mu]*conj(ut[0][uidm*ndim+nu]);
+
+	int uidn = iu[nu+ndim*i]; 
+	Complex_f a11=Leaves[0][i*ndim]*conj(ut[0][uidn*ndim+mu])+Leaves[1][i*ndim]*conj(ut[1][uidn*ndim+mu]);
+	Complex_f a12=-Leaves[0][i*ndim]*ut[1][uidn*ndim+mu]+Leaves[1][i*ndim]*ut[0][uidn*ndim+mu];
+
+	Leaves[0][i*ndim]=a11*conj(ut[0][i*ndim+nu])+a12*conj(ut[1][i*ndim+nu]);
+	Leaves[1][i*ndim]=-a11*ut[1][i*ndim+nu]+a12*ut[0][i*ndim+mu];
+	return 0;
+}
+int Leaf(Complex_f *ut[2], Complex_f *Leaves[2], unsigned int *iu, unsigned int *id, int i, int mu, int nu, short leaf){
 	/** @brief Evaluates the required clover leaf
 	 *
-	 * @param u11t, u12t:			Trial fields
-	 * @param Sigma11, Sigma12:	Plaquette terms
-	 * @param iu, id:					Upper/lower halo indices
-	 * @param mu, nu:					Plaquette direction. Note that mu and nu can be negative
-	 *										to facilitate calculating plaquettes for Clover terms. No
-	 *										sanity checks are conducted on them in this routine.
-	 *	@param i:						Centre of plaquette
-	 * @param leaf:					Which leaf of the halo are we looking for. Based on the
-	 * 									signs of μ and ν
+	 * @param ut:			Trial fields
+	 * @param Leaves:		Plaquette terms
+	 * @param iu, id:		Upper/lower halo indices
+	 * @param mu, nu:		Plaquette direction. Note that mu and nu can be negative
+	 *					  		to facilitate calculating plaquettes for Clover terms. No
+	 *					  		sanity checks are conducted on them in this routine.
+	 *	@param i:	  		Centre of plaquette
+	 * @param leaf:  		Which leaf of the halo are we looking for. Based on the
+	 * 				  		signs of \mu and ν
 	 *
 	 * Calls:
 	 * ======
@@ -244,58 +286,109 @@ int Leaf(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11, Complex_f *Sigma1
 	 * @return Zero on success, integer error code otherwise
 	 */
 	char *funcname="Leaf";
-	Complex_f a11,a12;
+	Complex_f a[2];
 	unsigned int didm,didn,uidn,uidm;
 	switch(leaf){
 		case(0):
 			//Both positive is just a standard plaquette
-			SU2plaq(u11t,u12t,Sigma11,Sigma12,iu,i,mu,nu);
-			return 0;
+			return SU2plaq(ut,Leaves,iu,i,mu,nu);
 		case(1):
-			//μ<0 and ν>=0
+			//\mu<0 and \nu>=0
 			didm = id[mu+ndim*i]; uidn = iu[nu+ndim*i]; 
-			//U_ν(x)*U_-μ(x+ν)=U_ν(x)*U^† _μ(x-μ+ν)
-			//Awkward index here unfortunately. Seems safer than trying to find -μ
+			/// @f$U_\nu(x)*U_-\mu(x+\nu)=U_\nu(x)*U^\dagger _\mu(x-\mu+\nu)@f$
+			//Awkward index here unfortunately. Seems safer than trying to find -\mu
 			int uin_didm=id[mu+ndim*uidn];
-			*Sigma11=u11t[i*ndim+nu]*conj(u11t[uin_didm*ndim+mu])+u12t[i*ndim+nu]*conj(u12t[uin_didm*ndim+mu]);
-			*Sigma12=-u11t[i*ndim+nu]*conj(u12t[uin_didm*ndim+mu])+u12t[i*ndim+nu]*u11t[uin_didm*ndim+mu];
+			Leaves[0][i*ndim+leaf]=ut[0][i*ndim+nu]*conj(ut[0][uin_didm*ndim+mu])+conj(ut[1][i*ndim+nu])*ut[1][uin_didm*ndim+mu];
+			Leaves[1][i*ndim+leaf]=ut[1][i*ndim+nu]*conj(ut[0][uin_didm*ndim+mu])-ut[0][i*ndim+nu]*ut[1][uin_didm*ndim+mu];
 
-			//(U_ν(x)*U_-μ(x+ν))*U_-ν(x-μ+ν)=(U_ν(x)*U^† _μ(x-μ+ν))*U^†_ν(x-μ)
-			a11=*Sigma11*conj(u11t[didm*ndim+nu])+*Sigma12*conj(u12t[didm*ndim+nu]);
-			a12=-*Sigma11*u12t[didm*ndim+nu]+*Sigma12*u11t[didm*ndim+nu];
+			/// @f$(U_\nu(x)*U_-\mu(x+\nu))*U_-\nu(x-\mu+\nu)=(U_\nu(x)*U^\dagger _\mu(x-\mu+\nu))*U^\dagger_\nu(x-\mu)@f$
+			a[0]=Leaves[0][i*ndim+leaf]*conj(ut[0][didm*ndim+nu])+conj(Leaves[1][i*ndim+leaf])*conj(ut[1][didm*ndim+nu]);
+			a[1]=Leaves[1][i*ndim+leaf]*conj(ut[0][didm*ndim+nu])-Leaves[0][i*ndim+leaf]*ut[1][didm*ndim+nu]+;
 
-			//((U_ν(x)*U_-μ(x+ν))*U_-ν(x-μ+ν))*U_μ(x-μ)=((U_ν(x)*U^† _μ(x-μ_ν))*U^† _ν(x-μ))*U_μ(x-μ)
-			*Sigma11=a11*u11t[didm*ndim+mu]-a12*conj(u12t[didm*ndim+mu]);
-			*Sigma12=a11*u12t[didm*ndim+mu]+a12*conj(u11t[didm*ndim+mu]);
+			/// @f$((U_\nu(x)*U_-\mu(x+\nu))*U_-\nu(x-\mu+\nu))*U_\mu(x-\mu)=((U_\nu(x)*U^\dagger _\mu(x-\mu_\nu))*U^\dagger _\nu(x-\mu))*U_\mu(x-\mu)@f$
+			Leaves[0][i*ndim+leaf]=a[0]*ut[0][didm*ndim+mu]-conj(a[1])*ut[1][didm*ndim+mu];
+			Leaves[1][i*ndim+leaf]=a[1]*ut[0][didm*ndim+mu]-a[0]*ut[1][didm*ndim+mu];
 			return 0;
 		case(2):
-			//μ>=0 and ν<0
+			//\mu>=0 and \nu<0
 			//TODO: Figure out down site index
 			uidm = iu[mu+ndim*i]; didn = id[nu+ndim*i]; 
-			//U_-ν(x)*U_μ(x-ν)=U^†_ν(x-ν)*U_μ(x-ν)
-			*Sigma11=conj(u11t[didn*ndim+nu])*u11t[didn*ndim+mu]+conj(u12t[didn*ndim+nu])*u12t[didn*ndim+mu];
-			*Sigma12=conj(u11t[didn*ndim+nu])*u12t[didn*ndim+mu]-u12t[didn*ndim+mu]*conj(u11t[didn*ndim+nu]);
+			/// @f$U_-\nu(x)*U_\mu(x-\nu)=U^\dagger_\nu(x-\nu)*U_\mu(x-\nu)@f$
+			Leaves[0][i*ndim+leaf]=conj(ut[0][didn*ndim+nu])*ut[0][didn*ndim+mu]+conj(ut[1][didn*ndim+nu])*ut[1][didn*ndim+mu];
+			Leaves[1][i*ndim+leaf]=-ut[1][didn*ndim+mu]*conj(ut[0][didn*ndim+nu])+ut[0][didn*ndim+nu]*ut[1][didn*ndim+mu];
 
-			//(U_-ν(x)*U_μ(x-ν))*U_ν(x+μ-ν)=(U^†_ν(x-ν)*U_μ(x-ν))*U_ν(x+μ-ν)
+			/// @f$(U_-\nu(x)*U_\mu(x-\nu))*U_\nu(x+\mu-\nu)=(U^\dagger_\nu(x-\nu)*U_\mu(x-\nu))*U_\nu(x+\mu-\nu)@f$
 			//Another awkward index
 			int uim_didn=id[nu+ndim*uidm];
-			a11=*Sigma11*u11t[uim_didn*ndim+nu]-*Sigma12*conj(u12t[uim_didn*ndim+nu]);
-			a12=*Sigma11*u12t[uim_didn*ndim+nu]+*Sigma12*conj(u11t[uim_didn*ndim+nu]);
+			a[0]=Leaves[0][i*ndim+leaf]*ut[0][uim_didn*ndim+nu]-conj(Leaves[1][i*ndim+leaf])*ut[1][uim_didn*ndim+nu];
+			a[1]=-Leaves[1][i*ndim+leaf]*ut[0][uim_didn*ndim+nu]+Leaves[0][i*ndim+leaf]*ut[1][uim_didn*ndim+nu];
 
-			//((U_-ν(x)*U_μ(x-ν))*U_ν(x+μ-ν))*U_-μ(x+μ)=(U^†_ν(x-ν)*U_μ(x-ν))*U_ν(x+μ-ν)
-			*Sigma11=a11*conj(u11t[i*ndim+mu])+a12*conj(u12t[i*ndim+mu]);
-			*Sigma12=-a11*u12t[i*ndim+mu]+a12*u11t[i*ndim+mu];
+			/// @f$((U_-\nu(x)*U_\mu(x-\nu))*U_ν(x+\mu-\nu))*U_-\mu(x+\mu)=((U^\dagger_\nu(x-\nu)*U_\mu(x-ν))*U_\nu(x+\mu-\nu))*U^\dagger_\mu(x)@f$
+			Leaves[0][i*ndim+leaf]=a[0]*ut[0][i*ndim+mu]-conj(a[1])*ut[1][i*ndim+mu];
+			Leaves[1][i*ndim+leaf]=a[1]*ut[0][i*ndim+mu]+a[0]*ut[1][i*ndim+mu];
 			return 0;
 		case(3):
-			//μ<0 and ν<0
+			//\mu<0 and \nu<0
 			didm = id[mu+ndim*i]; didn = id[nu+ndim*i]; 
-			//U_-μ(x)*U_-ν(x-μ)=U^†_μ(x-μ)*U^†_ν(x-μ-ν)
+			/// @f$U_-\mu(x)*U_-\nu(x-\mu)=U^\dagger_\mu(x-\mu)*U^\dagger_\nu(x-\mu-\nu)@f$
 			int dim_didn=id[nu+ndim*didm];
-			*Sigma11=conj(u11t[didm*ndim+mu])*conj(u11t[dim_didn*ndim+nu])+conj(u12t[didm*ndim+mu])*conj(u12t[dim_didn*ndim+nu]);
+			Leaves[0][i*ndim+leaf]=conj(ut[0][didm*ndim+mu])*conj(ut[0][dim_didn*ndim+nu])-conj(ut[1][didm*ndim+mu])*ut[1][dim_didn*ndim+nu];
+			Leaves[0][i*ndim+leaf]=-ut[1][didm*ndim+mu]*conj(ut[0][dim_didn*ndim+nu])-ut[0][didm*ndim+mu]*ut[1][dim_didn*ndim+nu];
 
-			Sigma11=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
-			//				Sigma12[i]=-a11[i]*u12t[i*ndim+nu]+a12*u11t[i*ndim+mu];
-			//				Not needed in final result as it traces out
-			return creal(Sigma11);
+			/// @f$(U_-\mu(x)*U_-\nu(x-\mu))U_\mu(x-\mu-\nu)=(U^\dagger_\mu(x-\mu)*U^\dagger_\nu(x-\mu-\nu))U_\mu(x-\mu-\nu)@f$
+			a[0]=Leaves[0][i*ndim+leaf]*ut[0][uim_didn*ndim+mu]-\conj(Leaves[1][i*ndim+leaf])*ut[1][uim_didn*ndim+mu];
+			a[1]=-Leaves[1][i*ndim+leaf]*ut[0][uim_didn*ndim+mu]+-Leaves[0][i*ndim+leaf]*ut[0][uim_didn*ndim+mu];
+
+			/// @f$((U_-\mu(x)*U_-\nu(x-\mu))U_\mu(x-\mu-\nu))U_\nu(x-\nu)=((U^\dagger_\mu(x-\mu)*U^\dagger_\nu(x-\mu-\nu))U_\mu(x-\mu-\nu))U_\nu(x-\nu)@f$
+			Leaves[0][i*ndim+leaf]=a[0]*ut[0][didn*ndim+nu]-conj(a[1])*ut[1][didn*ndim+nu];
+			Leaves[1][i*ndim+leaf]=-a[1]*ut[0][didn*ndim+nu]+a[0]*ut[1][didn*ndim+nu];
+			return 0;
 	}
+}
+inline int Half_Clover(Complex_f *clover[2],	Complex_f *Leaves[2], Complex_f *ut[2], unsigned int *iu, unsigned int *id, int i, int mu, int nu){
+ 	/** @brief Calculate one clover leaf \f(Q_{μν}\f), which is half the full clover term
+ 	 *
+ 	 * @param u11t, u12t:			Trial fields
+ 	 * @param clover11, clover12:	Clover fields
+ 	 * @param *iu, *id:				Upper/lower halo indices
+ 	 *	@param i:						Centre of plaquette
+ 	 * @param mu, nu:					Plaquette direction. 
+ 	 *
+ 	 * Calls:
+ 	 * ======
+ 	 * Leaf()
+ 	 *
+ 	 * @return Zero on success, integer error code otherwise
+ 	 */
+ 	const char funcname[] ="Half_Clover";
+ 	for(short leaf=0;i<ndim;leaf++)
+ 	{
+ 		Leaf(ut,Leaves,iu,id,i,mu,nu,leaf);
+ 		clover[0][i]+=Sigma[0]; clover[1][i]+=Sigma[1];
+ 	}
+ 	return 0;
+
+inline int Clover(Complex_f *clover[2],Complex_f *Leaves[2],Complex_f *ut[2], unsigned int *iu, unsigned int *id, int i, int mu, int nu){
+	/** @brief Calculate the clover term in the μ-ν direction
+	 *	\f$F_{\mu\nu}(n)=\frac{-i}{8a^2}\left(Q_{\mu\nu}(n)-{Q_{\nu\mu}(n)\right)\f$
+	 *	
+	 * @param u11t, u12t:			Trial fields
+	 * @param clover11, clover12:	Clover fields
+	 * @param *iu, *id:				Upper/lower halo indices
+	 *	@param i:						Centre of plaquette
+	 * @param mu, nu:					Plaquette direction. 
+	 *
+	 * Calls:
+	 * =====
+	 * Half_Clover()
+	 *
+	 * @return Zero on success, integer error code otherwise
+	 */
+	const char funcname[]="Clover";
+	Half_Clover(clover,Leaves,ut,iu,id,i,mu,nu);	
+	//Hmm, creal(clover[0]) drops out. And clover[1] just gets doubled (as does cimag(clover[1])
+	clover[0][i]-=conj(clover[0][i]);	clover[1][i]+=clover[1][i];
+	clover[0][i]*=(-I/8.0); 				clover[1][i]*=(-I/8.0);
+	return 0;
+}
 #endif

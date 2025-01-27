@@ -148,33 +148,32 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 #endif
 
 #ifdef __CLOVER__
-	int __attribute__((aligned(AVX))) sigin_t[7][4] =	{{0,1,2,3},{0,1,2,3},{1,0,3,2},{1,0,3,2},{1,0,3,2},{1,0,3,2},{0,1,2,3}};
+	int __attribute__((aligned(AVX))) sigin_t[0][4] =	{{0,1,2,3},{1,0,3,2},{1,0,3,2},{1,0,3,2},{1,0,3,2},{0,1,2,3}};
 	//The sigma matrices are the commutators of the gamma matrices. These are antisymmetric when you swap the indices
-	//Zero is the identical index case.
-	//1 is sigma_1,2
-	//2 is sigma_1,3
-	//3 is sigma_1,4
-	//4 is sigma_2,3
-	//5 is sigma_2,4
-	//6 is sigma_3,4
+	//0 is sigma_0,1
+	//1 is sigma_0,2
+	//2 is sigma_0,3
+	//3 is sigma_1,2
+	//4 is sigma_1,3
+	//5 is sigma_2,3
 	//TODO: Do we mutiply by 1/2 and kappa here or not? I say yes to be consistent with gamma. It means the factor of 2
 	//in the sigma matrices get's droppeed here
-	Complex	__attribute__((aligned(AVX)))	sigval_t[7][4] =	{{0,0,0,0},{-1,1,-1,1},{-I,I,-I,I},{1,1,-1,-1},{-1,-1,-1,-1},{-I,I,I,-I},{1,-1,-1,1}};
+	Complex	__attribute__((aligned(AVX)))	sigval_t[6][4] =	{{-1,1,-1,1},{-I,I,-I,I},{1,1,-1,-1},{-1,-1,-1,-1},{-I,I,I,-I},{1,-1,-1,1}};
 #if defined USE_BLAS
-	cblas_zdscal(6*4, akappa, sigval_t+4*sizeof(Complex), 1);
+	cblas_zdscal(6*4, akappa, sigval_t, 1);
 #else
 #pragma omp parallel for simd collapse(2) aligned(sigval,sigval_f:AVX)
-	for(int i=1;i<7;i++)
+	for(int i=1;i<6;i++)
 		for(int j=0;j<4;j++)
 			sigval_t[i][j]*=akappa;
 #endif
 
 #ifdef __NVCC__
-	cudaMemcpy(sigval,sigval_t,7*4*sizeof(Complex),cudaMemcpyDefault);
-	cuComplex_convert(sigval_f,sigval,28,true,dimBlockOne,dimGridOne);	
+	cudaMemcpy(sigval,sigval_t,6*4*sizeof(Complex),cudaMemcpyDefault);
+	cuComplex_convert(sigval_f,sigval,24,true,dimBlockOne,dimGridOne);	
 #else
-	memcpy(sigval,sigval_t,7*4*sizeof(Complex));
-	for(int i=0;i<7*4;i++)
+	memcpy(sigval,sigval_t,6*4*sizeof(Complex));
+	for(int i=0;i<6*4;i++)
 		sigval_f[i]=(Complex_f)sigval[i];
 #endif
 #endif
