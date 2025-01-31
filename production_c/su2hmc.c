@@ -160,12 +160,12 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 	//in the sigma matrices get's droppeed here
 	Complex	__attribute__((aligned(AVX)))	sigval_t[6][4] =	{{-1,1,-1,1},{-I,I,-I,I},{1,1,-1,-1},{-1,-1,-1,-1},{-I,I,I,-I},{1,-1,-1,1}};
 #if defined USE_BLAS
-	cblas_zdscal(6*4, akappa, sigval_t, 1);
+	cblas_zdscal(6*4, c_sw, sigval_t, 1);
 #else
 #pragma omp parallel for simd collapse(2) aligned(sigval,sigval_f:AVX)
 	for(int i=1;i<6;i++)
 		for(int j=0;j<4;j++)
-			sigval_t[i][j]*=akappa;
+			sigval_t[i][j]*=c_sw;
 #endif
 
 #ifdef __NVCC__
