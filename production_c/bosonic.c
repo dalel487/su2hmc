@@ -253,8 +253,8 @@ inline int Clover_SU2plaq(Complex_f *ut[2], Complex_f *Leaves[2], unsigned int *
 	 *	This applies to the Leavess and a's below too
 	 */
 
-//TODO: Figure out how we want to label the leaves. 12 clovers in total. Each with 4 leaves. The below should work for
-//the plaquette as the first leaf
+	//TODO: Figure out how we want to label the leaves. 12 clovers in total. Each with 4 leaves. The below should work for
+	//the plaquette as the first leaf
 	Leaves[0][i*ndim]=ut[0][i*ndim+mu]*ut[0][uidm*ndim+nu]-ut[1][i*ndim+mu]*conj(ut[1][uidm*ndim+nu]);
 	Leaves[1][i*ndim]=ut[0][i*ndim+mu]*ut[1][uidm*ndim+nu]+ut[1][i*ndim+mu]*conj(ut[0][uidm*ndim+nu]);
 
@@ -346,29 +346,31 @@ int Leaf(Complex_f *ut[2], Complex_f *Leaves[2], unsigned int *iu, unsigned int 
 	}
 }
 inline int Half_Clover(Complex_f *clover[2],	Complex_f *Leaves[2], Complex_f *ut[2], unsigned int *iu, unsigned int *id, int i, int mu, int nu){
- 	/** @brief Calculate one clover leaf \f(Q_{μν}\f), which is half the full clover term
- 	 *
- 	 * @param u11t, u12t:			Trial fields
- 	 * @param clover11, clover12:	Clover fields
- 	 * @param *iu, *id:				Upper/lower halo indices
- 	 *	@param i:						Centre of plaquette
- 	 * @param mu, nu:					Plaquette direction. 
- 	 *
- 	 * Calls:
- 	 * ======
- 	 * Leaf()
- 	 *
- 	 * @return Zero on success, integer error code otherwise
- 	 */
- 	const char funcname[] ="Half_Clover";
- 	for(short leaf=0;i<ndim;leaf++)
- 	{
- 		Leaf(ut,Leaves,iu,id,i,mu,nu,leaf);
- 		clover[0][i]+=Sigma[0]; clover[1][i]+=Sigma[1];
- 	}
- 	return 0;
+	/** @brief Calculate one clover leaf \f(Q_{μν}\f), which is half the full clover term
+	 *
+	 * @param u11t, u12t:			Trial fields
+	 * @param clover11, clover12:	Clover fields
+	 * @param *iu, *id:				Upper/lower halo indices
+	 *	@param i:						Centre of plaquette
+	 * @param mu, nu:					Plaquette direction. 
+	 *
+	 * Calls:
+	 * ======
+	 * Leaf()
+	 *
+	 * @return Zero on success, integer error code otherwise
+	 */
+	const char funcname[] ="Half_Clover";
+	for(short leaf=0;i<ndim;leaf++)
+	{
+		Leaf(ut,Leaves,iu,id,i,mu,nu,leaf);
+		//TODO: Site indices for leaf!
+		clover[0][i]+=Leaves[0]; clover[1][i]+=Leaves[1];
+	}
+	return 0;
+}
 
-inline int Clover(Complex_f *clover[2],Complex_f *Leaves[2],Complex_f *ut[2], unsigned int *iu, unsigned int *id, int i, int mu, int nu){
+inline int Clover(Complex_f *clover[6][2],Complex_f *Leaves[6][2],Complex_f *ut[2], unsigned int *iu, unsigned int *id){
 	/** @brief Calculate the clover term in the μ-ν direction
 	 *	\f$F_{\mu\nu}(n)=\frac{-i}{8a^2}\left(Q_{\mu\nu}(n)-{Q_{\nu\mu}(n)\right)\f$
 	 *	
@@ -385,10 +387,21 @@ inline int Clover(Complex_f *clover[2],Complex_f *Leaves[2],Complex_f *ut[2], un
 	 * @return Zero on success, integer error code otherwise
 	 */
 	const char funcname[]="Clover";
-	Half_Clover(clover,Leaves,ut,iu,id,i,mu,nu);	
-	//Hmm, creal(clover[0]) drops out. And clover[1] just gets doubled (as does cimag(clover[1])
-	clover[0][i]-=conj(clover[0][i]);	clover[1][i]+=clover[1][i];
-	clover[0][i]*=(-I/8.0); 				clover[1][i]*=(-I/8.0);
+	for(unsigned int mu=0;mu<ndim-1;mu++)
+		for(unsigned int nu=mu+1;nu<ndim;nu++){
+			if(mu!=nu){
+				//Clover index
+				unsigned int clov = (mu==0) ? nu :mu+nu;
+#pragma omp parallel for
+				for(unsigned int i=0;i<kvol;i++)
+				{
+					Half_Clover(clover[clov],Leaves[clov],ut,iu,id,i,mu,nu);	
+					//Hmm, creal(clover[0]) drops out. And clover[1] just gets doubled (as does cimag(clover[1])
+					clover[clov][0][i]-=conj(clover[clov][0][i]);	clover[clov][1][i]+=clover[clov][1][i];
+					clover[clov][0][i]*=(-I/8.0); 				clover[clov][1][i]*=(-I/8.0);
+				}
+			}
+		}
 	return 0;
 }
 #endif

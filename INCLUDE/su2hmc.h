@@ -154,8 +154,8 @@ extern "C"
 	 *
 	 * @return 0 on success, integer error code otherwise
 	 */
-	int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],unsigned int *iu,unsigned int *id,\
-			Complex_f *gamval_f,int *gamin,float *dk[2],Complex_f jqq,float akappa,int *itercg);
+	int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f *clover[6][2],unsigned int *iu,unsigned int *id,\
+			Complex_f *gamval_f,int *gamin,Complex_f sigval,float *dk[2],Complex_f jqq,float akappa,float c_sw,int *itercg);
 	/**
 	 * @brief Matrix Inversion via Conjugate Gradient (no up/down flavour partitioning).
 	 * Solves @f$(M^\dagger)Mx=\Phi@f$

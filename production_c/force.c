@@ -3,6 +3,9 @@
  * @brief Code for force calculations.
  */
 #include	<matrices.h>
+#if 1
+float c_sw=0
+#endif
 int Gauge_force(double *dSdpi, Complex_f *ut[2],unsigned int *iu,unsigned int *id, float beta){
 	/*
 	 * Calculates dSdpi due to the Wilson Action at each intermediate time
@@ -132,14 +135,26 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 		return 0;
 	//X1=(M†M)^{1} Phi
 	int itercg=1;
+	Complex_f *leaves[(ndim-1)*(ndim-2)][2], *clover[(ndim-1)*(ndim-2)][2]
 #ifdef __NVCC__
-	Complex_f *X1_f, *X2_f;
+		Complex_f *X1_f, *X2_f;
 	cudaMallocAsync((void **)&X2_f,kferm2*sizeof(Complex_f),streams[0]);
 	cudaMallocAsync((void **)&X1_f,kferm2*sizeof(Complex_f),NULL);
 	cuComplex_convert(X1_f,X1,kferm2,true,dimBlock,dimGrid);
 #else
 	Complex *X2= (Complex *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex));
 #endif
+	if(c_sw!=0){
+#pragma omp parallel for
+		for(unsigned int clov=0;clov<(ndim-1)*(ndim-2);clov++){
+			clover[clov][0]=(Complex_f *)aligned_alloc(AVX,(kvol+halo)*sizeof(Complex_f));
+			clover[clov][1]=(Complex_f *)aligned_alloc(AVX,(kvol+halo)*sizeof(Complex_f));
+			leaves[clov][0]=(Complex_f *)aligned_alloc(AVX,(kvol+halo)*ndim*sizeof(Complex_f));
+			leaves[clov][1]=(Complex_f *)aligned_alloc(AVX,(kvol+halo)*ndim*sizeof(Complex_f));
+		}
+		Clover(clover[clov],leaves[clov],ut,iu,id,i,mu,nu);
+
+	}
 	for(int na = 0; na<nf; na++){
 #ifdef __NVCC__
 		cudaMemcpyAsync(X1,X0+na*kferm2,kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice,NULL);
@@ -154,8 +169,8 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 			Complex *smallPhi = (Complex *)aligned_alloc(AVX,kferm2*sizeof(Complex)); 
 #endif
 			Fill_Small_Phi(na, smallPhi, Phi);
-			//	Congradq(na, res1,smallPhi, &itercg );
-			Congradq(na,res1,X1,smallPhi,ut_f,iu,id,gamval_f,gamin,dk_f,jqq,akappa,&itercg);
+			///@f$(X1=(M\dagger M)^{-1} \Phi@f$
+			Congradq(na,res1,X1,smallPhi,ut_f,clover,iu,id,gamval_f,gamin,sigval,dk_f,jqq,akappa,c_sw,&itercg);
 #ifdef __NVCC__
 			cudaFreeAsync(smallPhi,streams[0]);
 #else
@@ -167,7 +182,6 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 			cublasZdscal(cublas_handle,kferm2,&blasb,(cuDoubleComplex *)(X0+na*kferm2),1);
 			cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&blasa,(cuDoubleComplex *)X1,1,(cuDoubleComplex *)(X0+na*kferm2),1);
 			cuComplex_convert(X1_f,X1,kferm2,true,dimBlock,dimGrid);
-			//HDslash launches a different stream so we need a barrieer
 			cudaDeviceSynchronise();
 #elif (defined __INTEL_MKL__)
 			Complex blasa=2.0; Complex blasb=-1.0;
@@ -189,11 +203,12 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 				}
 #endif
 		}
-		#ifdef __NVCC__
+#ifdef __NVCC__
 		Hdslash_f(X2_f,X1_f,ut_f,iu,id,gamval_f,gamin,dk_f,akappa);
-		#else
+#else
 		Hdslash(X2,X1,ut,iu,id,gamval,gamin,dk,akappa);
-		#endif
+#endif
+		//TODO: Clover product also needed here?
 #ifdef __NVCC__
 		float blasd=2.0;
 		cudaDeviceSynchronise();
