@@ -1009,6 +1009,36 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,u
 #endif
 	return 0;
 }
+int HbyClover(Complex_f *phi, Complex_f *r, Complex_f *clover[6][2],unsigned int *iu, unsigned int *id,\
+		Complex_f *sigval, Complex_f c_sw){
+	const char funcname[] = "HbyClover";
+#pragma omp parallel for
+	for(int i=0;i<kvol;i+=AVX){
+		//Prefetched r and Phi array
+		alignas(AVX) Complex_f rl[2][AVX];
+		alignas(AVX) Complex_f phi_s[ndirac*nc][AVX];
+#pragma omp simd
+		for(int j =0;j<AVX;j++)
+			for(int idirac=0; idirac<ndirac; idirac++){
+			#pragma unroll
+				for(int c=0; c<nc; c++){
+					r[c][j]=r[((i+j)*ndirac+idirac)*nc+c];
+					phi_s[idirac*nc+c][j]=phi[((i+j)*ndirac+idirac)*nc+c];
+				}
+				for(unsigned int clov=0;clov<6;clov++){
+			#pragma unroll
+					for(int c=0; c<nc; c++)
+						clov_s[c][j]=clover[clov][c][i+j];
+					phi_s[idirac*nc+0][j]+=sigval[clov*ndirac+idirac]*(clov_s[0][j]*r[0][j]-conj(clov_s[1][j])*r[1][j]);
+					phi_s[idirac*nc+1][j]+=sigval[clov*ndirac+idirac]*(clov_s[1][j]*r[0][j]+conj(clov_s[0][j])*r[1][j]);
+				}
+
+			}
+					phi[((i+j)*ndirac+idirac)*nc+0]=phi_s[idirac*nc+0][j];
+					phi[((i+j)*ndirac+idirac)*nc+1]=phi_s[idirac*nc+1][j];
+	}
+	return 0;
+}
 inline int Reunitarise(Complex *ut[2]){
 	/*
 	 * @brief Reunitarises ut[0] and ut[1] as in conj(ut[0][i])*ut[0][i]+conj(ut[1][i])*ut[1][i]=1
