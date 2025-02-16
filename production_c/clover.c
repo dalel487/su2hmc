@@ -271,7 +271,7 @@ inline int GenLeafd(Complex_f Fleaf[2], Complex_f *Leaves[2],const unsigned int 
 }
 //initialisation
 //
-unsigned int Init_clover(Complex *sigval, Complex_f *sigval_f,unsigned int *sigin, float c_sw){
+int Init_clover(Complex *sigval, Complex_f *sigval_f,unsigned int *sigin, float c_sw){
 	const char funcname = "Init_clover";
 	unsigned int __attribute__((aligned(AVX))) sigin_t[0][4] =	{{0,1,2,3},{1,0,3,2},{1,0,3,2},{1,0,3,2},{1,0,3,2},{0,1,2,3}};
 	//The sigma matrices are the commutators of the gamma matrices. These are antisymmetric when you swap the indices
@@ -303,4 +303,3 @@ unsigned int Init_clover(Complex *sigval, Complex_f *sigval_f,unsigned int *sigi
 		sigval_f[i]=(Complex_f)sigval[i];
 #endif
 }
-

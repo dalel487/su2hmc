@@ -10,6 +10,7 @@
 #include	<cuda_runtime.h>
 //Fix this later
 #endif
+#include <clover.h>
 #include	<matrices.h>
 #include	<par_mpi.h>
 #include	<random.h>
@@ -18,46 +19,7 @@
 
 int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa, Complex_f ajq,\
 		Complex *u[2], Complex *ut[2], Complex_f *ut_f[2], Complex *gamval, Complex_f *gamval_f,
-		Complex *sigval, Complex_f *sigval_f, unsigned int *sigin, float c_sw,
 		int *gamin, double *dk[2], float *dk_f[2], unsigned int *iu, unsigned int *id){
-	/*
-	 * Initialises the system
-	 *
-	 * Calls:
-	 * ======
-	 * Addrc, Check_addr, ran2, DHalo_swap_dir, Par_sread, Par_ranset, Reunitarise
-	 *
-	 * Globals:
-	 * =======
-	 * Complex gamval:		Gamma Matrices
-	 * Complex_f gamval_f:	Float Gamma matrices:
-	 *
-	 * Parameters:
-	 * ==========
-	 * int istart:				Zero for cold, >1 for hot, <1 for none
-	 * int ibound:				Periodic boundary conditions
-	 * int iread:				Read configuration from file
-	 * float beta:				beta
-	 * float fmu:				Chemical potential
-	 * float akappa:			Hopping parameter
-	 * Complex_f ajq:			Diquark source
-	 * Complex *u[0]:			First colour field
-	 * Complex *u[1]:			Second colour field
-	 * Complex *ut[0]:			First colour trial field
-	 * Complex *ut[1]:			Second colour trial field
-	 * Complex_f *ut_f[0]:	First float trial field
-	 * Complex_f *ut_f[1]:	Second float trial field
-	 * double	*dk[0]			$exp(-\mu)$
-	 * double	*dk[1]:		$exp(\mu)$
-	 * float		*dk_f[0]:		$exp(-\mu)$ float
-	 * float		*dk_f[1]:		$exp(\mu)$ float
-	 * unsigned int *iu:		Up halo indices
-	 * unsigned int *id:		Down halo indices
-	 *
-	 * Returns:
-	 * =======
-	 * Zero on success, integer error code otherwise
-	 */
 	const char *funcname = "Init";
 
 #ifdef _OPENMP
@@ -144,9 +106,6 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 	for(int i=0;i<5*4;i++)
 		gamval_f[i]=(Complex_f)gamval[i];
 #endif
-/// @f$\sigma_{\mu\nu}@f$ if we're using clover fermions
-if(c_sw)
-	Init_clover(sigval,sigval_f,sigin,c_sw);
 
 	if(iread){
 		if(!rank) printf("Calling Par_sread() for configuration: %i\n", iread);
@@ -215,30 +174,6 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 				unsigned int *iu,unsigned int *id, Complex_f *gamval_f,int *gamin, Complex_f *sigval_f,
 				unsigned short *sigin, float *dk[2],Complex_f jqq,float akappa,float beta,float c_sw, double *ancgh,
 				int traj){
-	/*
-	 * @brief Calculate the Hamiltonian
-	 * 
-	 *
-	 * @param	h:						Hamiltonian
-	 * @param	s:						Action
-	 * @param	res2:					Limit for conjugate gradient
-	 * @param	X0:
-	 * @param	X1:
-	 * @param	Phi:
-	 * @param	ut[0],ut[1]:			Gauge fields
-	 * @param	ut[0],ut[1]:		Gauge fields
-	 * @param	iu,id:				Lattice indices
-	 * @param	gamval_f:			Gamma matrices
-	 * @param	gamin:				Gamma indices
-	 * @param	dk_f[0]:				$exp(-\mu)$ float
-	 * @param	dk_f[1]:				$exp(\mu)$ float
-	 * @param	jqq:					Diquark source
-	 * @param	akappa:				Hopping parameter
-	 * @param	beta:					Inverse gauge coupling
-	 * @param	ancgh:				Conjugate gradient iterations counter 
-	 *
-	 * @return	Zero on success. Integer Error code otherwise.
-	 */	
 	const char *funcname = "Hamilton";
 	//Iterate over momentum terms.
 #ifdef __NVCC__
@@ -359,21 +294,6 @@ inline int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned
 }
 inline int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
 {
-	/*Copies necessary (2*4*kvol) elements of Phi into a vector variable
-	 *
-	 * Globals:
-	 * =======
-	 * Phi:	  The source array
-	 * 
-	 * Parameters:
-	 * ==========
-	 * int na: flavour index
-	 * Complex *smallPhi:	  The target array
-	 *
-	 * Returns:
-	 * =======
-	 * Zero on success, integer error code otherwise
-	 */
 	const char *funcname = "Fill_Small_Phi";
 	//BIG and small phi index
 #ifdef __NVCC__
@@ -393,7 +313,6 @@ inline int UpDownPart(const int na, Complex *X0, Complex *R1){
 	cuUpDownPart(na,X0,R1,dimBlock,dimGrid);
 	cudaDeviceSynchronise();
 #else
-	//The only reason this was removed from the original function is for diagnostics
 #pragma omp parallel for simd collapse(2) aligned(X0,R1:AVX)
 	for(int i=0; i<kvol; i++)
 		for(int idirac = 0; idirac < ndirac; idirac++){

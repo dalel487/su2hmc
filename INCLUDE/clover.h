@@ -1,5 +1,7 @@
 #pragma once
-#include <su2hmc.h>
+#include <coord.h>
+#include	<errorcodes.h>
+#include	<stdbool.h>
 /**
  *	@file		clover.h
  *
@@ -27,7 +29,7 @@ int Clover_SU2plaq(Complex_f *ut[2], Complex_f *Leaves[2], unsigned int *iu,  in
  *	@param	Leaves:	Array of leaves
  *	@param	iu,id:	Upper and lower site indices
  *	@param	i:			Lattice index of the clover in question
- *	@param	mu.nu:	Direction in which we're evaluating the leaf
+ *	@param	mu,nu:	Direction in which we're evaluating the leaf
  *	@param	leaf:		Which leaf of the clover is being calculated
  *	
  */
@@ -61,9 +63,9 @@ int Clover(Complex_f *clover[6][2],Complex_f *Leaves[6][2],Complex_f *ut[2], uns
  *
  *	@param	phi:		Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
  *	@param	r:			Pseudofermion field before multiplication. The thing we want to multiply by the clover
- *	@param	sigval:	@$f \sigma_{\mu\nu}@$f entries scaled by c_sw
+ *	@param	clover:	Array of clovers
+ *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by c_sw
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
- *	@param	c_sw:		Clover coefficient. Don't think we need to pass this
  */
 int HbyClover(Complex_f *phi, Complex_f *r, Complex_f *clover[6][2], Complex_f *sigval, unsigned short *sigin);
 /**
@@ -72,9 +74,8 @@ int HbyClover(Complex_f *phi, Complex_f *r, Complex_f *clover[6][2], Complex_f *
  *	@param	dSdpi:	Force
  *	@param	Leaves:	Clover leaves. We don't need the full clover for the force as most get killed in the derivative
  *							We do however need the individual leaves making up the clover
- *	@param	sigval:	@$f \sigma_{\mu\nu}@$f entries scaled by c_sw
+ *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by c_sw
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
- *	@param	c_sw:		Clover coefficient. Don't think we need to pass this
  */
 int Clover_Force(float *dSdpi, Complex_f *Leaves[6][2], Complex_f *sigval,unsigned short *sigin);
 /**
@@ -108,11 +109,11 @@ int GenLeafd(Complex_f Fleaf[2], Complex_f *Leaves[2],const unsigned int i,const
  *	@param	sigin:				Which column does row idirac of @f$(\sigma_{\mu\nu}@f$ act on
  *	@param	c_sw:					Clover coefficient
  */
-unsigned int Init_clover(Complex *sigval, Complex_f *sigval_f,unsigned int *sigin, float c_sw);
+int Init_clover(Complex *sigval, Complex_f *sigval_f,unsigned int *sigin, float c_sw);
 /**
  *	@brief	Free's memory used for clover terms and leaves
  *
  *	@param	clover:	Clovers
- *	@pram		Leaves:	Leaves
+ *	@param		Leaves:	Leaves
  */
-inline int Clover_free(Complex_f *clover[6][2],Complex_f *Leaves[6][2]){
+int Clover_free(Complex_f *clover[6][2],Complex_f *Leaves[6][2]){
