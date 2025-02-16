@@ -1,3 +1,10 @@
+/**
+ *	@file 	integrate.c
+ *
+ *	@brief	Molecular dynamics integrators and support routines
+ *
+ *	@author	D. Lawlor
+ */
 #include <su2hmc.h>
 
 int Gauge_Update(const double d, double *pp, Complex *ut[2],Complex_f *ut_f[2]){

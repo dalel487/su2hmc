@@ -18,9 +18,7 @@
 
 int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa, Complex_f ajq,\
 		Complex *u[2], Complex *ut[2], Complex_f *ut_f[2], Complex *gamval, Complex_f *gamval_f,
-#ifdef __CLOVER__
-		Complex *sigval, Complex_f *sigval_f,
-#endif
+		Complex *sigval, Complex_f *sigval_f, unsigned int *sigin, float c_sw,
 		int *gamin, double *dk[2], float *dk_f[2], unsigned int *iu, unsigned int *id){
 	/*
 	 * Initialises the system
@@ -146,37 +144,9 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 	for(int i=0;i<5*4;i++)
 		gamval_f[i]=(Complex_f)gamval[i];
 #endif
-
-#ifdef __CLOVER__
-	int __attribute__((aligned(AVX))) sigin_t[0][4] =	{{0,1,2,3},{1,0,3,2},{1,0,3,2},{1,0,3,2},{1,0,3,2},{0,1,2,3}};
-	//The sigma matrices are the commutators of the gamma matrices. These are antisymmetric when you swap the indices
-	//0 is sigma_0,1
-	//1 is sigma_0,2
-	//2 is sigma_0,3
-	//3 is sigma_1,2
-	//4 is sigma_1,3
-	//5 is sigma_2,3
-	//TODO: Do we mutiply by 1/2 and kappa here or not? I say yes to be consistent with gamma. It means the factor of 2
-	//in the sigma matrices get's droppeed here
-	Complex	__attribute__((aligned(AVX)))	sigval_t[6][4] =	{{-1,1,-1,1},{-I,I,-I,I},{1,1,-1,-1},{-1,-1,-1,-1},{-I,I,I,-I},{1,-1,-1,1}};
-#if defined USE_BLAS
-	cblas_zdscal(6*4, c_sw, sigval_t, 1);
-#else
-#pragma omp parallel for simd collapse(2) aligned(sigval,sigval_f:AVX)
-	for(int i=1;i<6;i++)
-		for(int j=0;j<4;j++)
-			sigval_t[i][j]*=c_sw;
-#endif
-
-#ifdef __NVCC__
-	cudaMemcpy(sigval,sigval_t,6*4*sizeof(Complex),cudaMemcpyDefault);
-	cuComplex_convert(sigval_f,sigval,24,true,dimBlockOne,dimGridOne);	
-#else
-	memcpy(sigval,sigval_t,6*4*sizeof(Complex));
-	for(int i=0;i<6*4;i++)
-		sigval_f[i]=(Complex_f)sigval[i];
-#endif
-#endif
+/// @f$\sigma_{\mu\nu}@f$ if we're using clover fermions
+if(c_sw)
+	Init_clover(sigval,sigval_f,sigin,c_sw);
 
 	if(iread){
 		if(!rank) printf("Calling Par_sread() for configuration: %i\n", iread);
@@ -241,9 +211,10 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 #endif
 	return 0;
 }
-int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,Complex *Phi,
-				Complex_f *ut[2],unsigned int *iu,unsigned int *id, Complex_f *gamval_f,int *gamin,
-				float *dk[2],Complex_f jqq,float akappa,float beta,double *ancgh,int traj){
+int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,Complex *Phi, Complex_f *ut[2],
+				unsigned int *iu,unsigned int *id, Complex_f *gamval_f,int *gamin, Complex_f *sigval_f,
+				unsigned short *sigin, float *dk[2],Complex_f jqq,float akappa,float beta,float c_sw, double *ancgh,
+				int traj){
 	/*
 	 * @brief Calculate the Hamiltonian
 	 * 
@@ -298,6 +269,9 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 #else
 	Complex *smallPhi = aligned_alloc(AVX,kferm2*sizeof(Complex));
 #endif
+	Complex_f *leaves[(ndim-1)*(ndim-2)][2], *clover[(ndim-1)*(ndim-2)][2]
+	if(c_sw)
+		Clover(clover,leaves,ut,iu,id);
 	//Iterating over flavours
 	for(int na=0;na<nf;na++){
 #ifdef __NVCC__
@@ -312,7 +286,7 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 		memcpy(X1,X0+na*kferm2,kferm2*sizeof(Complex));
 #endif
 		Fill_Small_Phi(na, smallPhi, Phi);
-		if(Congradq(na,res2,X1,smallPhi,ut,iu,id,gamval_f,gamin,dk,jqq,akappa,&itercg))
+		if(Congradq(na,res2,X1,smallPhi,ut,clover,iu,id,gamval_f,gamin,sigval,sigin,dk,jqq,akappa,c_sw,&itercg))
 			fprintf(stderr,"Trajectory %d\n", traj);
 
 		*ancgh+=itercg;
@@ -337,6 +311,8 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 			hf+=creal(conj(smallPhi[j])*X1[j]);
 #endif
 	}
+	if(c_sw)
+		Clover_free(clover,leaves);
 #ifdef __NVCC__
 	cudaFreeAsync(smallPhi,NULL);
 #else

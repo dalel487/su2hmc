@@ -45,28 +45,32 @@ extern "C"
 	 *	
 	 *	@param	dSdpi:			The force
 	 *	@param	iflag:			Invert before evaluating the force. 0 to invert, one not to. Blame FORTRAN...	
-	 *	@param	res1:				Conjugate gradient residule
+	 *	@param	res1:				Conjugate gradient residue
 	 *	@param	X0:				Up/down partitioned pseudofermion field
-	 *	@param	X1:				Holder for the partitioned fermion field, then the conjugate gradient output
+	 *	@param	X1:				Holder for the partitioned fermion field, then the inverted dield
 	 *	@param	Phi:				Pseudofermion field
 	 *	@param	ut					Double precision colour fields
-	 *	@param	u2t_f:			Single precision colour fields
+	 *	@param	ut_f:				Single precision colour fields
 	 *	@param	iu,id:			Lattice indices
 	 *	@param	gamin:			Gamma indices
-	 *	@param	gamval:			Double precision gamma matrices rescaled by kappa
-	 *	@param	gamval_f:		Single precision gamma matrices rescaled by kappa
+	 *	@param	gamval:			Double precision gamma matrices rescaled by @f$\kappa@f$
+	 *	@param	gamval_f:		Single precision gamma matrices rescaled by @f$\kappa@f$
+	 *	@param	sigval_f:		Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/2@f$
+	 * @param	sigin:			What element of the spinor is multiplied by row idirac each sigma matrix?
 	 * @param	dk:				@f$e^{-\mu}@f$ and @f$e^\mu@f$
 	 * @param	dk_f:				@f$e^{-\mu}@f$ and @f$e^\mu@f$ float
 	 * @param 	jqq:				Diquark source
 	 *	@param	akappa:			Hopping parameter
 	 *	@param	beta:				Inverse gauge coupling
+	 *	@param	c_sw:				Clover coefficient. If non-zero calculate the clover contribution
 	 *	@param	ancg:				Counter for conjugate gradient iterations
 	 *
 	 *	@return Zero on success, integer error code otherwise
 	 */
-	int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Complex *Phi,Complex *ut[2],\
+int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Complex *Phi,Complex *ut[2],\
 			Complex_f *ut_f[2],unsigned int *iu,unsigned int *id,Complex *gamval,Complex_f *gamval_f,\
-			int *gamin,double *dk[2], float *dk_f[2],Complex_f jqq, float akappa,float beta,double *ancg);
+			int *gamin,Complex_f *sigval, unsigned short *sigin, double *dk[2], float *dk_f[2],Complex_f jqq,\
+			float akappa,float beta,float c_sw,double *ancg);
 	/**
 	 * @brief	Calculates the gauge force due to the Wilson Action at each intermediate time
 	 *
@@ -109,29 +113,33 @@ extern "C"
 	/**
 	 * @brief Calculate the Hamiltonian
 	 *
-	 * @param	h:						Hamiltonian
-	 * @param	s:						Action
-	 * @param	res2:					Limit for conjugate gradient
-	 * @param	pp:					Momentum field
-	 *	@param	X0:					Up/down partitioned pseudofermion field
-	 *	@param	X1:					Holder for the partitioned fermion field, then the conjugate gradient output
-	 * @param	Phi:					Pseudofermion field
-	 * @param	ut:					Gauge fields (single precision)
-	 * @param	iu,id:				Lattice indices
-	 *	@param	gamval_f:			Single precision gamma matrices rescaled by kappa
-	 * @param	gamin:				Gamma indices
-	 * @param	dk_f:					@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$ float
-	 * @param	jqq:					Diquark source
-	 * @param	akappa:				Hopping parameter
-	 * @param	beta:					Inverse gauge coupling
-	 * @param	ancgh:				Conjugate gradient iterations counter 
-	 * @param	traj:					Calling trajectory for error reporting
+	 * @param	h:				Hamiltonian
+	 * @param	s:				Action
+	 * @param	res2:			Limit for conjugate gradient
+	 * @param	pp:			Momentum field
+	 *	@param	X0:			Up/down partitioned pseudofermion field
+	 *	@param	X1:			Holder for the partitioned fermion field, then the conjugate gradient output
+	 * @param	Phi:			Pseudofermion field
+	 * @param	ut:			Gauge fields (single precision)
+	 * @param	iu,id:		Lattice indices
+	 *	@param	gamval_f:	Single precision gamma matrices rescaled by kappa
+	 * @param	gamin:		Gamma indices
+	 *	@param	sigval_f:	Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/2@f$
+	 * @param	sigin:		What element of the spinor is multiplied by row idirac each sigma matrix?
+	 * @param	dk_f:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$ float
+	 * @param	jqq:			Diquark source
+	 * @param	akappa:		Hopping parameter
+	 * @param	beta:			Inverse gauge coupling
+	 * @param	c_sw:			Clover coefficient. If non-zero calculate the clover contribution
+	 * @param	ancgh:		Conjugate gradient iterations counter 
+	 * @param	traj:			Calling trajectory for error reporting
 	 *
 	 * @return	Zero on success. Integer Error code otherwise.
 	 */	
-	int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,Complex *Phi,\
-			Complex_f *ut[2],unsigned int *iu,unsigned int *id, Complex_f *gamval_f,int *gamin,\
-			float *dk[2],Complex_f jqq,float akappa,float beta,double *ancgh,int traj);
+	int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,Complex *Phi, Complex_f *ut[2],
+			unsigned int *iu,unsigned int *id, Complex_f *gamval_f,int *gamin, Complex_f *sigval_f,
+			unsigned short *sigin, float *dk[2],Complex_f jqq,float akappa,float beta,float c_sw, double *ancgh,
+			int traj);
 	/**
 	 * @brief Matrix Inversion via Conjugate Gradient (up/down flavour partitioning).
 	 * Solves @f$(M^\dagger)Mx=\Phi@f$
@@ -146,16 +154,20 @@ extern "C"
 	 * @param	iu:			Upper halo indices
 	 * @param	id:			Lower halo indices
 	 *	@param	gamval_f:	Single precision gamma matrices rescaled by kappa
-	 * @param	gamin:		Dirac indices
+	 * @param	gamin:		What element of the spinor is multiplied by row idirac each gamma matrix?
+	 *	@param	sigval_f:	Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/2@f$
+	 * @param	sigin:		What element of the spinor is multiplied by row idirac each sigma matrix?
 	 * @param	dk:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$
 	 * @param	jqq:			Diquark source
 	 * @param	akappa:		Hopping Parameter
+	 * @param	c_sw:			Clover coefficient. If non-zero calculate the clover contribution
 	 * @param	itercg:		Counts the iterations of the conjugate gradient
 	 *
 	 * @return 0 on success, integer error code otherwise
 	 */
-	int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f *clover[6][2],unsigned int *iu,unsigned int *id,\
-			Complex_f *gamval_f,int *gamin,Complex_f sigval,float *dk[2],Complex_f jqq,float akappa,float c_sw,int *itercg);
+int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f *clover[6][2],unsigned int *iu,
+				unsigned int *id, Complex_f *gamval_f,int *gamin,Complex_f sigval,unsigned short *sigin, float *dk[2],
+				Complex_f jqq,float akappa,float c_sw,int *itercg);
 	/**
 	 * @brief Matrix Inversion via Conjugate Gradient (no up/down flavour partitioning).
 	 * Solves @f$(M^\dagger)Mx=\Phi@f$
@@ -238,7 +250,7 @@ extern "C"
 	/**
 	 * @brief Calculates the plaquette at site i in the @f$\mu--\nu@f$ direction
 	 *
-	 * @param	u2t:			Trial fields
+	 * @param	ut:			Trial fields
 	 * @param	Sigma:		Plaquette components
 	 * @param	i:				Lattice site
 	 * @param	iu:			Upper halo indices
@@ -255,7 +267,7 @@ extern "C"
 	/**
 	 * @brief Calculate the Polyakov loop (no prizes for guessing that one...)
 	 * 
-	 * @param	u11t, u12t	The gauge fields
+	 * @param	ut:	The gauge fields
 	 *
 	 * @see Par_tmul, Par_dsum
 	 * 

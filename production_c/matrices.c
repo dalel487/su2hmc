@@ -14,30 +14,10 @@
 #include <matrices.h>
 #include <string.h>
 #include <stdalign.h>
-//TO DO: Check and see are there any terms we are evaluating twice in the same loop
+//TODO: Check and see are there any terms we are evaluating twice in the same loop
 //and use a variable to hold them instead to reduce the number of evaluations.
 int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int *iu,unsigned int *id,\
 		Complex *gamval, int *gamin, double *dk4m, double *dk4p, Complex_f jqq, float akappa){
-	/*
-	 * @brief Evaluates @f(\Phi=M r@f) in double precision.
-	 *
-	 * @param	phi:			The product
-	 * @param	r:				The array being acted on by M
-	 * @param	u11t:		First colour trial field
-	 * @param	u12t:		Second colour trial field
-	 *	@param	iu:			Upper halo indices
-	 *	@param	id:			Lower halo indices
-	 *	@param	gamval:	Gamma matrices
-	 *	@param	gamin:		Indices for dirac terms
-	 *	@param	dk4m:		
-	 *	@param	dk4p:		
-	 *	@param	jqq:			Diquark source
-	 *	@param	akappa:		Hopping parameter
-	 *
-	 * @see ZHalo_swap_all (MPI only)
-	 *
-	 * @return Zero on success, integer error code otherwise
-	 */
 	const char *funcname = "Dslash";
 	//Get the halos in order
 #if(nproc>1)
@@ -140,26 +120,6 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int 
 }
 int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
 		Complex *gamval, int *gamin, double *dk4m, double *dk4p, Complex_f jqq, float akappa){
-	/*
-	 * @brief Evaluates @f(\Phi=M^\dagger r@f) in double precision.
-	 *
-	 * @param	phi:			The product
-	 * @param	r:				The array being acted on by M
-	 * @param	u11t:		First colour trial field
-	 * @param	u12t:		Second colour trial field
-	 *	@param	iu:			Upper halo indices
-	 *	@param	id:			Lower halo indices
-	 *	@param	gamval:	Gamma matrices
-	 *	@param	gamin:		Indices for dirac terms
-	 *	@param	dk4m:		
-	 *	@param	dk4p:		
-	 *	@param	jqq:			Diquark source
-	 *	@param	akappa:		Hopping parameter
-	 *
-	 * @see ZHalo_swap_all (MPI only)
-	 *
-	 * @return Zero on success, integer error code otherwise
-	 */
 	const char *funcname = "Dslashd";
 	//Get the halos in order
 #if(nproc>1)
@@ -267,25 +227,6 @@ int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int 
 }
 int Hdslash(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned  int *id,\
 		Complex *gamval, int *gamin, double *dk[2], float akappa){
-	/*
-	 * @brief Evaluates @f(\Phi=M r@f) in double precision
-	 *
-	 * @param	phi:		The product
-	 * @param	r:			The array being acted on by M
-	 * @param	ut[0]:	First colour trial field
-	 * @param	ut[1]:	Second colour trial field
-	 *	@param	iu:		Upper halo indices
-	 *	@param	id:		Lower halo indices
-	 *	@param	gamval:	Gamma matrices
-	 *	@param	gamin:	Indices for dirac terms
-	 *	@param	dk[0]:	
-	 *	@param	dk[1]:	
-	 *	@param	akappa:	Hopping parameter
-	 *
-	 * @see ZHalo_swap_all (MPI only)
-	 *
-	 * @return Zero on success, integer error code otherwise
-	 */
 	const char *funcname = "Hdslash";
 	//Get the halos in order
 #if(nproc>1)
@@ -358,25 +299,6 @@ int Hdslash(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned 
 }
 int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int *iu,unsigned  int *id,\
 		Complex *gamval, int *gamin, double *dk4m, double *dk4p, float akappa){
-	/*
-	 * @brief Evaluates @f(\Phi=M^\dagger r@f) in double precision
-	 *
-	 * @param	phi:		The product
-	 * @param	r:			The array being acted on by M
-	 * @param	u11t:	First colour trial field
-	 * @param	u12t:	Second colour trial field
-	 *	@param	iu:		Upper halo indices
-	 *	@param	id:		Lower halo indices
-	 *	@param	gamval:	Gamma matrices
-	 *	@param	gamin:	Indices for dirac terms
-	 *	@param	dk4m:	
-	 *	@param	dk4p:	
-	 *	@param	akappa:	Hopping parameter
-	 *
-	 * @see ZHalo_swap_all (MPI only)
-	 *
-	 * @return Zero on success, integer error code otherwise
-	 */
 	const char *funcname = "Hdslashd";
 	//Get the halos in order. Because C is row major, we need to extract the correct
 	//terms for each halo first. Changing the indices was considered but that caused
@@ -462,26 +384,6 @@ int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  in
 //int Dslash_f(Complex_f *phi, Complex_f *r){
 int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu, unsigned int *id,\
 		Complex_f *gamval_f,	int *gamin,	float *dk_f[2], Complex_f jqq, float akappa){
-	/*
-	 * @brief Evaluates @f(\Phi=M r@f) in single precision.
-	 *
-	 * @param	phi:			The product
-	 * @param	r:				The array being acted on by M
-	 * @param	u11t_f:		First colour trial field
-	 * @param	u12t_f:		Second colour trial field
-	 *	@param	iu:			Upper halo indices
-	 *	@param	id:			Lower halo indices
-	 *	@param	gamval_f:	Gamma matrices
-	 *	@param	gamin:		Indices for dirac terms
-	 *	@param	dk_f[0]:		
-	 *	@param	dk_f[1]:		
-	 *	@param	jqq:			Diquark source
-	 *	@param	akappa:		Hopping parameter
-	 *
-	 * @see CHalo_swap_all (MPI only)
-	 *
-	 * @return Zero on success, integer error code otherwise
-	 */
 	const char *funcname = "Dslash_f";
 	//Get the halos in order
 #if(nproc>1)
@@ -584,26 +486,6 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 }
 int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
 		Complex_f *gamval_f, int *gamin, float *dk_f[2], Complex_f jqq, float akappa){
-	/*
-	 * @brief Evaluates @f(\Phi=M^\dagger r@f) in single precision.
-	 *
-	 * @param	phi:			The product
-	 * @param	r:				The array being acted on by M
-	 * @param	u11t_f:		First colour trial field
-	 * @param	u12t_f:		Second colour trial field
-	 *	@param	iu:			Upper halo indices
-	 *	@param	id:			Lower halo indices
-	 *	@param	gamval_f:	Gamma matrices
-	 *	@param	gamin:		Indices for dirac terms
-	 *	@param	dk_f[0]:		
-	 *	@param	dk_f[1]:		
-	 *	@param	jqq:			Diquark source
-	 *	@param	akappa:		Hopping parameter
-	 *
-	 * @see CHalo_swap_all (MPI only)
-	 *
-	 * @return Zero on success, integer error code otherwise
-	 */
 	const char *funcname = "Dslashd_f";
 	//Get the halos in order
 #if(nproc>1)
@@ -711,25 +593,6 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 }
 int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned  int *iu,unsigned  int *id,\
 		Complex_f *gamval, int *gamin, float *dk[2], float akappa){
-	/*
-	 * @brief Evaluates @f(\Phi=M r@f) in single precision.
-	 *
-	 * @param	phi:		The product
-	 * @param	r:			The array being acted on by M
-	 * @param	ut[0]_f:	First colour trial field
-	 * @param	ut[1]_f:	Second colour trial field
-	 *	@param	iu:		Upper halo indices
-	 *	@param	id:		Lower halo indices
-	 *	@param	gamval_f:	Gamma matrices
-	 *	@param	gamin:	Indices for dirac terms
-	 *	@param	dk4m_f:	
-	 *	@param	dk4p_f:	
-	 *	@param	akappa:	Hopping parameter
-	 *
-	 * @see CHalo_swap_all (MPI only)
-	 *
-	 * @return Zero on success, integer error code otherwise
-	 */
 	const char *funcname = "Hdslash_f";
 	//Get the halos in order
 #if(nproc>1)
@@ -854,25 +717,6 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned  int *iu,u
 }
 int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,unsigned int *id,\
 		Complex_f *gamval, int *gamin, float *dk[2], float akappa){
-	/*
-	 * @brief Evaluates @f(\Phi=M^\dagger r@f) in single precision
-	 *
-	 * @param	phi:		The product
-	 * @param	r:			The array being acted on by M
-	 * @param	ut[0]_f:	First colour trial field
-	 * @param	ut[1]_f:	Second colour trial field
-	 *	@param	iu:		Upper halo indices
-	 *	@param	id:		Lower halo indices
-	 *	@param	gamval_f:	Gamma matrices
-	 *	@param	gamin:	Indices for dirac terms
-	 *	@param	dk4m_f:	
-	 *	@param	dk4p_f:	
-	 *	@param	akappa:	Hopping parameter
-	 *
-	 * @see CHalo_swap_all (MPI only)
-	 *
-	 * @return Zero on success, integer error code otherwise
-	 */
 	const char *funcname = "Hdslashd_f";
 	//Get the halos in order. Because C is row major, we need to extract the correct
 	//terms for each halo first. Changing the indices was considered but that caused
@@ -1009,50 +853,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,u
 #endif
 	return 0;
 }
-int HbyClover(Complex_f *phi, Complex_f *r, Complex_f *clover[6][2],unsigned int *iu, unsigned int *id,\
-		Complex_f *sigval, Complex_f c_sw){
-	const char funcname[] = "HbyClover";
-#pragma omp parallel for
-	for(int i=0;i<kvol;i+=AVX){
-		//Prefetched r and Phi array
-		alignas(AVX) Complex_f rl[2][AVX];
-		alignas(AVX) Complex_f phi_s[ndirac*nc][AVX];
-#pragma omp simd
-		for(int j =0;j<AVX;j++)
-			for(int idirac=0; idirac<ndirac; idirac++){
-			#pragma unroll
-				for(int c=0; c<nc; c++){
-					r[c][j]=r[((i+j)*ndirac+idirac)*nc+c];
-					phi_s[idirac*nc+c][j]=phi[((i+j)*ndirac+idirac)*nc+c];
-				}
-				for(unsigned int clov=0;clov<6;clov++){
-			#pragma unroll
-					for(int c=0; c<nc; c++)
-						clov_s[c][j]=clover[clov][c][i+j];
-					phi_s[idirac*nc+0][j]+=sigval[clov*ndirac+idirac]*(clov_s[0][j]*r[0][j]-conj(clov_s[1][j])*r[1][j]);
-					phi_s[idirac*nc+1][j]+=sigval[clov*ndirac+idirac]*(clov_s[1][j]*r[0][j]+conj(clov_s[0][j])*r[1][j]);
-				}
-
-			}
-					phi[((i+j)*ndirac+idirac)*nc+0]=phi_s[idirac*nc+0][j];
-					phi[((i+j)*ndirac+idirac)*nc+1]=phi_s[idirac*nc+1][j];
-	}
-	return 0;
-}
 inline int Reunitarise(Complex *ut[2]){
-	/*
-	 * @brief Reunitarises ut[0] and ut[1] as in conj(ut[0][i])*ut[0][i]+conj(ut[1][i])*ut[1][i]=1
-	 *
-	 * If you're looking at the FORTRAN code be careful. There are two header files
-	 * for the /trial/ header. One with u11 u12 (which was included here originally)
-	 * and the other with ut[0] and ut[1].
-	 *
-	 * @see cuReunitarise (CUDA Wrapper)
-	 *
-	 * @param ut[0], ut[1] Trial fields to be reunitarised
-	 *
-	 * @return Zero on success, integer error code otherwise
-	 */
 	const char *funcname = "Reunitarise";
 #ifdef __NVCC__
 	cuReunitarise(ut[0],ut[1],dimGrid,dimBlock);

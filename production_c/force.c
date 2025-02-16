@@ -1,11 +1,12 @@
 /**
- * @file force.c
- * @brief Code for force calculations.
+ * @file 	force.c
+ *
+ * @brief 	Code for force calculations.
+ *
+ * @author	D. Lawlor
  */
 #include	<matrices.h>
-#if 1
-float c_sw=0
-#endif
+
 int Gauge_force(double *dSdpi, Complex_f *ut[2],unsigned int *iu,unsigned int *id, float beta){
 	/*
 	 * Calculates dSdpi due to the Wilson Action at each intermediate time
@@ -95,8 +96,9 @@ int Gauge_force(double *dSdpi, Complex_f *ut[2],unsigned int *iu,unsigned int *i
 	return 0;
 }
 int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Complex *Phi,Complex *ut[2],\
-		Complex_f *ut_f[2],unsigned int *iu,unsigned int *id,Complex *gamval,Complex_f *gamval_f,\
-		int *gamin,double *dk[2], float *dk_f[2],Complex_f jqq,float akappa,float beta,double *ancg){
+			Complex_f *ut_f[2],unsigned int *iu,unsigned int *id,Complex *gamval,Complex_f *gamval_f,\
+			int *gamin,Complex_f *sigval, unsigned short *sigin, double *dk[2], float *dk_f[2],Complex_f jqq,\
+			float akappa,float beta,float c_sw,double *ancg){
 	/*
 	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
 	 *	
@@ -144,17 +146,9 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 #else
 	Complex *X2= (Complex *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex));
 #endif
-	if(c_sw!=0){
-#pragma omp parallel for
-		for(unsigned int clov=0;clov<(ndim-1)*(ndim-2);clov++){
-			clover[clov][0]=(Complex_f *)aligned_alloc(AVX,(kvol+halo)*sizeof(Complex_f));
-			clover[clov][1]=(Complex_f *)aligned_alloc(AVX,(kvol+halo)*sizeof(Complex_f));
-			leaves[clov][0]=(Complex_f *)aligned_alloc(AVX,(kvol+halo)*ndim*sizeof(Complex_f));
-			leaves[clov][1]=(Complex_f *)aligned_alloc(AVX,(kvol+halo)*ndim*sizeof(Complex_f));
-		}
-		Clover(clover[clov],leaves[clov],ut,iu,id,i,mu,nu);
+	if(c_sw)
+		Clover(clover,leaves,ut,iu,id);
 
-	}
 	for(int na = 0; na<nf; na++){
 #ifdef __NVCC__
 		cudaMemcpyAsync(X1,X0+na*kferm2,kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice,NULL);
@@ -170,7 +164,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 #endif
 			Fill_Small_Phi(na, smallPhi, Phi);
 			///@f$(X1=(M\dagger M)^{-1} \Phi@f$
-			Congradq(na,res1,X1,smallPhi,ut_f,clover,iu,id,gamval_f,gamin,sigval,dk_f,jqq,akappa,c_sw,&itercg);
+			Congradq(na,res1,X1,smallPhi,ut_f,clover,iu,id,gamval_f,gamin,sigval,sigin,dk_f,jqq,akappa,c_sw,&itercg);
 #ifdef __NVCC__
 			cudaFreeAsync(smallPhi,streams[0]);
 #else
@@ -266,6 +260,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 
 					//Up indices
 					uid = iu[mu+ndim*i];
+					//Which entry of the spinor is being multiplied by row idirac of the gamma matrix mu
 					igork1 = gamin[mu*ndirac+idirac];	
 
 					//REMINDER. Gamma is already scaled by kappa when we defined them. So if yer trying to rederive this from
@@ -441,9 +436,13 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 											 +ut[0][i*ndim+mu] *X2[(i*ndirac+igork1)*nc+1]))));
 
 #endif
+				if(c_sw)
+					Clover_Force(dSdpi,Leaves,sigval,sigin);
 			}
 #endif
 	}
+	if(c_sw)
+		Clover_free(clover,leaves);
 #ifdef __NVCC__
 	cudaFreeAsync(X1_f,streams[0]); cudaFreeAsync(X2_f,streams[1]);
 #else
