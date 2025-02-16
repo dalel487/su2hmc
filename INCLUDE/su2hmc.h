@@ -6,7 +6,6 @@
 #define SU2HEAD
 //ARM Based machines. BLAS routines should work with other libraries, so we can set a compiler
 //flag to sort them out. But the PRNG routines etc. are MKL exclusive
-#include <errorcodes.h>
 #include <integrate.h>
 #ifdef	__INTEL_MKL__
 #define	USE_BLAS
@@ -18,14 +17,11 @@
 #define	USE_BLAS
 #include	<cblas.h>
 #endif
-#include	<sizes.h>
 #ifdef __cplusplus
 #include	<cstdio>
 #include	<cstdlib>
 #include	<ctime>
 #else
-#include	<stdio.h>
-#include	<stdlib.h>
 #include	<time.h>
 #endif
 
@@ -55,7 +51,7 @@ extern "C"
 	 *	@param	gamin:			Gamma indices
 	 *	@param	gamval:			Double precision gamma matrices rescaled by @f$\kappa@f$
 	 *	@param	gamval_f:		Single precision gamma matrices rescaled by @f$\kappa@f$
-	 *	@param	sigval_f:		Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/2@f$
+	 *	@param	sigval:			Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/2@f$
 	 * @param	sigin:			What element of the spinor is multiplied by row idirac each sigma matrix?
 	 * @param	dk:				@f$e^{-\mu}@f$ and @f$e^\mu@f$
 	 * @param	dk_f:				@f$e^{-\mu}@f$ and @f$e^\mu@f$ float
@@ -99,16 +95,16 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 	 * @param	dk_f					@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)^\mu@f$ float
 	 * @param	iu,id:				Up halo indices
 	 * @param	gamin:				Gamma matrix indices
-	 *	@param	gamval:				Double precision gamma matrices rescaled by kappa
-	 *	@param	gamval_f:			Single precision gamma matrices rescaled by kappa
+	 *	@param	gamval,gamval_f:	Double precision gamma matrices rescaled by kappa
+	 *	@param	sigval,sigval_f:	@f$ \sigma_{\mu\nu}=\frac{1}{2i}[\gamma_\mu,\gamma_\nu]@f$ in double and single
+	 *										precision
+	 *	@param	sigin:				Which column does row idirac of @f$(\sigma_{\mu\nu}@f$ act on
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
 	int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa, Complex_f ajq,\
 			Complex *u[2], Complex *ut[2], Complex_f *ut_f[2], Complex *gamval, Complex_f *gamval_f,int *gamin, 
-#ifdef __CLOVER__
 			Complex *sigval, Complex_f *sigval_f, int *sigin,
-#endif
 			double *dk[2], float *dk_f[2], unsigned int *iu, unsigned int *id);
 	/**
 	 * @brief Calculate the Hamiltonian
@@ -126,7 +122,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 	 * @param	gamin:		Gamma indices
 	 *	@param	sigval_f:	Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/2@f$
 	 * @param	sigin:		What element of the spinor is multiplied by row idirac each sigma matrix?
-	 * @param	dk_f:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$ float
+	 * @param	dk:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$ float
 	 * @param	jqq:			Diquark source
 	 * @param	akappa:		Hopping parameter
 	 * @param	beta:			Inverse gauge coupling
@@ -155,7 +151,8 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 	 * @param	id:			Lower halo indices
 	 *	@param	gamval_f:	Single precision gamma matrices rescaled by kappa
 	 * @param	gamin:		What element of the spinor is multiplied by row idirac each gamma matrix?
-	 *	@param	sigval_f:	Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/2@f$
+	 *	@param	clover:		Array of clover fields
+	 *	@param	sigval:		Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/2@f$
 	 * @param	sigin:		What element of the spinor is multiplied by row idirac each sigma matrix?
 	 * @param	dk:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$
 	 * @param	jqq:			Diquark source
@@ -177,14 +174,12 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f
 	 * @param 	res:			Limit for conjugate gradient
 	 * @param 	Phi:			Pseudofermion field.
 	 * @param 	xi:			Returned as @f$(M^\dagger M)^{-1} \Phi@f$
-	 * @param 	u11t:			First colour's trial field
-	 * @param 	u12t:			Second colour's trial field
+	 * @param 	ut:			Gauge fields
 	 * @param 	iu:			Upper halo indices
 	 * @param 	id:			Lower halo indices
-	 *	@param	gamval_f:	Single precision gamma matrices rescaled by kappa
+	 *	@param	gamval:		Single precision gamma matrices rescaled by kappa
 	 * @param 	gamin:		Dirac indices
-	 * @param	dk4m:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$
-	 * @param	dk4p:			@f$\left(1-\gamma_0\right)e^\mu@f$
+	 * @param	dk:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$
 	 * @param 	jqq:			Diquark source
 	 * @param 	akappa:		Hopping Parameter
 	 * @param 	itercg:		Counts the iterations of the conjugate gradient
@@ -309,7 +304,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f
 	 * @return Zero on success, integer error code otherwise
 	 */
 	int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi);
-	/*
+	/**
 	 *	@brief Up/Down partitioning of the pseudofermion field
 	 *
 	 *	@param	na:	Flavour index

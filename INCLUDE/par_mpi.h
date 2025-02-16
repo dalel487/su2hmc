@@ -14,7 +14,6 @@
 #include	<omp.h>
 #endif
 //#include	<random.h>
-#include	<sizes.h>
 #ifdef __cplusplus
 #include	<cstdio>
 #include	<cstdlib>
@@ -291,8 +290,8 @@ extern "C"
 	 *	I'm making a function that does the halo exchange and only calling it after
 	 *	the trial fields get updated.
 	 *
-	 *	@param u11t,u12t			Double precision trial fields
-	 *	@param u11t_f,u12t_f		Single precision trial fields
+	 *	@param ut		Double precision trial fields
+	 *	@param ut_f:	Single precision trial fields
 	 *
 	 *  @return Zero on success, Integer Error code otherwise
 	 */

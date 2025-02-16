@@ -42,6 +42,7 @@
  ******************************************************************/
 #include	<assert.h>
 #include	<coord.h>
+#include	<clover.h>
 #include	<math.h>
 #include	<matrices.h>
 #include	<par_mpi.h>
@@ -125,7 +126,7 @@ int main(int argc, char *argv[]){
 #else
 	const double tpi = 2*acos(-1.0);
 #endif
-	float dt=0.004;	float ajq = 0.0;	float delb=0; //Not used?
+	float dt=0.004;	float c_sw = 0.0;	float delb=0; //Not used?
 	float athq = 0.0;	int stepl = 250;	int ntraj = 10;
 	//rank is zero means it must be the "master process"
 	if(!rank){
@@ -143,14 +144,14 @@ int main(int argc, char *argv[]){
 		}
 		//See the README for what each entry means
 		fscanf(midout, "%f %f %f %f %f %f %f %d %d %d %d %d", &dt, &beta, &akappa,\
-				&ajq, &athq, &fmu, &delb, &stepl, &ntraj, &istart, &icheck, &iread);
+				&ajq, &c_sw, &fmu, &delb, &stepl, &ntraj, &istart, &icheck, &iread);
 		fclose(midout);
 		assert(stepl>0);	assert(ntraj>0);	  assert(istart>=0);  assert(icheck>0);  assert(iread>=0); 
 	}
 	//Send inputs to other ranks
 #if(nproc>1)
 	Par_fcopy(&dt); Par_fcopy(&beta); Par_fcopy(&akappa); Par_fcopy(&ajq);
-	Par_fcopy(&athq); Par_fcopy(&fmu); Par_fcopy(&delb); //Not used?
+	Par_fcopy(&c_sw); Par_fcopy(&fmu); Par_fcopy(&delb); //Not used?
 	Par_icopy(&stepl); Par_icopy(&ntraj); Par_icopy(&istart); Par_icopy(&icheck);
 	Par_icopy(&iread); 
 #endif
@@ -197,6 +198,8 @@ int main(int argc, char *argv[]){
 	float	*dk_f[2];
 	//Halo index arrays
 	unsigned int *iu, *id;
+	//And slover arrays. These only get assigned if @f$c_\text{SW}>0@f$
+	Complex *sigval; Complex_f *sigval_f; unsigned short *sigin;
 #ifdef __NVCC__
 	cudaMallocManaged((void**)&iu,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
 	cudaMallocManaged((void**)&id,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
@@ -212,7 +215,7 @@ int main(int argc, char *argv[]){
 #endif
 
 	int	*gamin;	Complex	*gamval;	Complex_f *gamval_f;
-	cudaMallocManaged(&gamin,4*4*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&gamin,4*4*sizeof(int),cudaMemAttachGlobal);
 	cudaMallocManaged(&gamval,5*4*sizeof(Complex),cudaMemAttachGlobal);
 #ifdef _DEBUG
 	cudaMallocManaged(&gamval_f,5*4*sizeof(Complex_f),cudaMemAttachGlobal);
@@ -264,9 +267,17 @@ int main(int argc, char *argv[]){
 	 * istart > 0: Random/Hot Start
 	 */
 	Init(istart,ibound,iread,beta,fmu,akappa,ajq,u,ut,ut_f,gamval,gamval_f,gamin,dk,dk_f,iu,id);
+
+	/// @f$\sigma_{\mu\nu}@f$ if we're using clover fermions
 #ifdef __NVCC__
 	//GPU Initialisation stuff
 	Init_CUDA(ut[0],ut[1],gamval,gamval_f,gamin,dk[0],dk[1],iu,id);//&dimBlock,&dimGrid);
+	if(c_sw){
+		sigin = (unsigned short *)aligned_alloc(AVX,6*4*sizeof(short));
+		sigval=(Complex *)aligned_alloc(AVX,6*4*sizeof(Complex));
+		sigval_f=(Complex_f *)aligned_alloc(AVX,6*4*sizeof(Complex_f));;
+		Init_clover(sigval,sigval_f,sigin,c_sw);
+		}
 #endif
 	//Send trials to accelerator for reunitarisation
 	Reunitarise(ut);
@@ -760,6 +771,9 @@ int main(int argc, char *argv[]){
 	free(id); free(iu);
 	free(dk_f[0]); free(dk_f[1]); free(ut_f[0]); free(ut_f[1]);
 	free(gamin); free(gamval); free(gamval_f);
+	if(c_sw){
+		free(sigval); free(sigval_f); free(sigin);
+	}
 #endif
 	free(hd); free(hu);free(h1u); free(h1d); free(halosize); free(pcoord);
 #ifdef __RANLUX__

@@ -6,6 +6,7 @@
  * @author	D. Lawlor
  */
 #include	<matrices.h>
+#include	<clover.h>
 
 int Gauge_force(double *dSdpi, Complex_f *ut[2],unsigned int *iu,unsigned int *id, float beta){
 	/*
@@ -96,9 +97,9 @@ int Gauge_force(double *dSdpi, Complex_f *ut[2],unsigned int *iu,unsigned int *i
 	return 0;
 }
 int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Complex *Phi,Complex *ut[2],\
-			Complex_f *ut_f[2],unsigned int *iu,unsigned int *id,Complex *gamval,Complex_f *gamval_f,\
-			int *gamin,Complex_f *sigval, unsigned short *sigin, double *dk[2], float *dk_f[2],Complex_f jqq,\
-			float akappa,float beta,float c_sw,double *ancg){
+		Complex_f *ut_f[2],unsigned int *iu,unsigned int *id,Complex *gamval,Complex_f *gamval_f,\
+		int *gamin,Complex_f *sigval, unsigned short *sigin, double *dk[2], float *dk_f[2],Complex_f jqq,\
+		float akappa,float beta,float c_sw,double *ancg){
 	/*
 	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
 	 *	
@@ -146,8 +147,9 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 #else
 	Complex *X2= (Complex *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex));
 #endif
-	if(c_sw)
+	if(c_sw){
 		Clover(clover,leaves,ut,iu,id);
+	}
 
 	for(int na = 0; na<nf; na++){
 #ifdef __NVCC__

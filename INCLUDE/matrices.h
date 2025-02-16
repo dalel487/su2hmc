@@ -9,7 +9,6 @@
 #include <curand.h>
 #endif
 #include <par_mpi.h>
-#include <su2hmc.h>
 #if (defined __cplusplus)
 extern "C"
 {
@@ -59,33 +58,31 @@ extern "C"
 	 *
 	 * @param	phi:		The product
 	 * @param	r:			The array being acted on by M
-	 * @param	u11t:	First colour trial field
-	 * @param	u12t:	Second colour trial field
+	 * @param	ut:		Gauge trial field
 	 *	@param	iu:		Upper halo indices
 	 *	@param	id:		Lower halo indices
 	 *	@param	gamval:	Gamma matrices rescaled by kappa
 	 *	@param	gamin:	Indices for dirac terms
-	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
-	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$
+	 * @param	dk:		@f$\left(1+\gamma_0\right)e^{-\mu}@f$
 	 *	@param	akappa:	Hopping parameter
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
-	int Hdslash(Complex *phi, Complex *r, Complex *u11t[2],unsigned int *iu,unsigned  int *id,\
+	int Hdslash(Complex *phi, Complex *r, Complex *ut[2],unsigned int *iu,unsigned  int *id,\
 			Complex *gamval, int *gamin, double *dk[2], float akappa);
 	/**
 	 * @brief Evaluates @f$\Phi=M^\dagger r@f$ in double precision
 	 *
 	 * @param	phi:		The product
 	 * @param	r:			The array being acted on by M
-	 * @param	u11t:	First colour trial field
-	 * @param	u12t:	Second colour trial field
+	 * @param	u11t:		First colour trial field
+	 * @param	u12t:		Second colour trial field
 	 *	@param	iu:		Upper halo indices
 	 *	@param	id:		Lower halo indices
 	 *	@param	gamval:	Gamma matrices rescaled by kappa
 	 *	@param	gamin:	Indices for dirac terms
-	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
-	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$
+	 * @param	dk4m:		@f$\left(1+\gamma_0\right)e^{-\mu}@f$
+	 * @param	dk4p:		@f$\left(1+\gamma_0\right)e^{+\mu}@f$
 	 *	@param	akappa:	Hopping parameter
 	 *
 	 * @return Zero on success, integer error code otherwise
@@ -104,8 +101,7 @@ extern "C"
 	 *	@param	id:			Lower halo indices
 	 *	@param	gamval:	Gamma matrices rescaled by kappa
 	 *	@param	gamin:		Indices for dirac terms
-	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
-	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$
+	 * @param	dk:		@f$\left(1+\gamma_0\right)e^{-\mu}@f$
 	 *	@param	jqq:			Diquark source
 	 *	@param	akappa:		Hopping parameter
 	 *
@@ -124,8 +120,7 @@ extern "C"
 	 *	@param	id:			Lower halo indices
 	 *	@param	gamval:	Gamma matrices rescaled by kappa
 	 *	@param	gamin:		Indices for dirac terms
-	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
-	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$
+	 * @param	dk:		@f$\left(1+\gamma_0\right)e^{-\mu}@f$
 	 *	@param	jqq:			Diquark source
 	 *	@param	akappa:		Hopping parameter
 	 *
@@ -138,14 +133,12 @@ extern "C"
 	 *
 	 * @param	phi:		The product
 	 * @param	r:			The array being acted on by M
-	 * @param	u11t:	First colour trial field
-	 * @param	u12t:	Second colour trial field
+	 * @param	ut:		Gauge trial field
 	 *	@param	iu:		Upper halo indices
 	 *	@param	id:		Lower halo indices
 	 *	@param	gamval:	Gamma matrices rescaled by kappa
 	 *	@param	gamin:	Indices for dirac terms
-	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
-	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$
+	 * @param	dk:		@f$\left(1+\gamma_0\right)e^{-\mu}@f$
 	 *	@param	akappa:	Hopping parameter
 	 *
 	 * @return Zero on success, integer error code otherwise
@@ -157,14 +150,12 @@ extern "C"
 	 *
 	 * @param	phi:		The product
 	 * @param	r:			The array being acted on by M
-	 * @param	u11t:	First colour trial field
-	 * @param	u12t:	Second colour trial field
+	 * @param	ut:		Gauge trial field
 	 *	@param	iu:		Upper halo indices
 	 *	@param	id:		Lower halo indices
 	 *	@param	gamval:	Gamma matrices rescaled by kappa
 	 *	@param	gamin:	Indices for dirac terms
-	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
-	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$
+	 * @param	dk:		@f$\left(1+\gamma_0\right)e^{-\mu}@f$
 	 *	@param	akappa:	Hopping parameter
 	 *
 	 * @return Zero on success, integer error code otherwise

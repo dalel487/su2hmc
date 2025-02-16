@@ -4,9 +4,7 @@
  */
 #ifndef INTEGRATE_H
 #define INTEGRATE_H
-#include <stdbool.h>
 #include <random.h>
-#include <sizes.h>
 
 #if (defined __cplusplus)
 extern "C"
@@ -15,7 +13,7 @@ extern "C"
 	/**
 	 * @brief Gauge update for the integration step of the HMC
 	 *
-	 * @param dt:		Gauge step size
+	 * @param d:		Gauge step size
 	 * @param pp:		Momentum field
 	 * @param ut:		Double precision gauge fields
 	 * @param ut_f:	Single precision gauge fields
@@ -26,8 +24,8 @@ extern "C"
 	/**
 	 * @brief Wrapper for the momentum update during the integration step of the HMC
 	 *
-	 * @param dt:	Gauge step size
-	 * @param pp:	Momentum field
+	 * @param d:		Step size
+	 * @param pp:		Momentum field
 	 * @param dSdpi:	Force field
 	 *
 	 * @return Zero on success, integer error code otherwise.

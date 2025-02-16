@@ -17,12 +17,10 @@
 #ifdef __RANLUX__
 #include <gsl/gsl_rng.h>
 #endif
-#include <math.h>
 #if (defined__INTEL_COMPILER || __INTEL_LLVM_COMPILER)
 #include <mathimf.h>
 #endif
 #include <par_mpi.h>
-#include <sizes.h>
 //Configuration for existing generators if called
 //===============================================
 #if (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))

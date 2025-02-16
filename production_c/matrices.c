@@ -307,10 +307,6 @@ int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  in
 	ZHalo_swap_all(r, 8);
 #endif
 
-	//Looks like flipping the array ordering for C has meant a lot
-	//of for loops. Sense we're jumping around quite a bit the cache is probably getting refreshed
-	//anyways so memory access patterns mightn't be as big of an limiting factor here anyway
-
 	//Mass term
 #ifdef __NVCC__
 	cuHdslashd(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa,dimGrid,dimBlock);
@@ -639,7 +635,6 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned  int *iu,u
 						rgd[c][j]=r[(did[j]*ndirac+igork1)*nc+c];
 					}
 				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
-				//Can manually vectorise with a pragma?
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
 #pragma omp simd aligned(phi_s,u11s,u12s,u11sd,u12sd,ru,rd,rgu,rgd:AVX)
@@ -724,10 +719,6 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,u
 #if(nproc>1)
 	CHalo_swap_all(r, 8);
 #endif
-
-	//Looks like flipping the array ordering for C has meant a lot
-	//of for loops. Sense we're jumping around quite a bit the cache is probably getting refreshed
-	//anyways so memory access patterns mightn't be as big of an limiting factor here anyway
 
 	//Mass term
 #ifdef __NVCC__
@@ -863,13 +854,6 @@ inline int Reunitarise(Complex *ut[2]){
 		//Declaring anorm inside the loop will hopefully let the compiler know it
 		//is safe to vectorise aggressively
 		double anorm=sqrt(conj(ut[0][i])*ut[0][i]+conj(ut[1][i])*ut[1][i]);
-		//		Exception handling code. May be faster to leave out as the exit prevents vectorisation.
-		//		if(anorm==0){
-		//			fprintf(stderr, "Error %i in %s on rank %i: anorm = 0 for μ=%i and i=%i.\nExiting...\n\n",
-		//					DIVZERO, funcname, rank, mu, i);
-		//			MPI_Finalise();
-		//			exit(DIVZERO);
-		//		}
 		ut[0][i]/=anorm;
 		ut[1][i]/=anorm;
 	}
