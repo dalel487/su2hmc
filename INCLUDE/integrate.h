@@ -61,8 +61,9 @@ extern "C"
 	 *	@return Zero on success, integer error code otherwise
 	 */
 int Leapfrog(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi,double *dk[2],float *dk_f[2],
-				double *dSdpi,double *pp, int *iu,int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, Complex jqq,
-				float beta, float akappa, int stepl, float dt, double *ancg, int *itot, float proby);
+				double *dSdpi,double *pp, int *iu,int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, 
+				Complex_f *sigval, unsigned short *sigin, Complex jqq, float beta, float akappa, float c_sw, int stepl,
+				float dt, double *ancg, int *itot, float proby);
 	/**
 	 *	@brief	OMF second order five step integrator.
 	 *	
@@ -91,8 +92,9 @@ int Leapfrog(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex 
 	 *	@return Zero on success, integer error code otherwise
 	 */
 int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi,double *dk[2],float *dk_f[2],
-				double *dSdpi,double *pp, int *iu,int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, Complex jqq,
-				float beta, float akappa, int stepl, float dt, double *ancg, int *itot, float proby);
+				double *dSdpi,double *pp, int *iu,int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, 
+				Complex_f *sigval, unsigned short *sigin, Complex jqq, float beta, float akappa, float c_sw, int stepl,
+				float dt, double *ancg, int *itot, float proby);
 	/**
 	 *	@brief	OMF fourth order eleven step integrator.
 	 *	
@@ -121,8 +123,9 @@ int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 	 *	@return Zero on success, integer error code otherwise
 	 */
 int OMF4(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi,double *dk[2],float *dk_f[2],
-				double *dSdpi,double *pp, int *iu,int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, Complex jqq,
-				float beta, float akappa, int stepl, float dt, double *ancg, int *itot, float proby);
+				double *dSdpi,double *pp, int *iu,int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, 
+				Complex_f *sigval, unsigned short *sigin, Complex jqq, float beta, float akappa, float c_sw, int stepl,
+				float dt, double *ancg, int *itot, float proby);
 	//CUDA Calling functions
 #ifdef __NVCC__
 	void cuGauge_Update(const double d, double *pp, Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock);

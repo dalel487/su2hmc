@@ -66,8 +66,9 @@ inline int Momentum_Update(const double d, const double *dSdpi, double *pp)
 #endif
 }
 int Leapfrog(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi,double *dk[2],float *dk_f[2],
-				double *dSdpi,double *pp, int *iu,int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, Complex jqq,
-				float beta, float akappa, int stepl, float dt, double *ancg, int *itot, float proby)
+				double *dSdpi,double *pp, int *iu,int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, 
+				Complex_f *sigval, unsigned short *sigin, Complex jqq, float beta, float akappa, float c_sw, int stepl,
+				float dt, double *ancg, int *itot, float proby)
 {
 	//This was originally in the half-step of the FORTRAN code, but it makes more sense to declare
 	//it outside the loop. Since it's always being subtracted we'll define it as negative
@@ -77,7 +78,7 @@ int Leapfrog(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex 
 #ifdef _DEBUG
 	printf("Evaluating force on rank %i\n", rank);
 #endif
-	Force(dSdpi, 1, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,dk,dk_f,jqq,akappa,beta,ancg);
+	Force(dSdpi, 1, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
 	Momentum_Update(d,dSdpi,pp);
 	//Main loop for classical time evolution
 	//======================================
@@ -96,7 +97,7 @@ int Leapfrog(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex 
 
 		//p(t+3et/2)=p(t+dt/2)-dSds(t+dt)*dt
 		//	Force(dSdpi, 0, rescgg);
-		Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,dk,dk_f,jqq,akappa,beta,ancg);
+		Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
 
 	//	if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
 		if(step==stepl){
@@ -117,8 +118,9 @@ int Leapfrog(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex 
 	return 0;
 }
 int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi,double *dk[2],float *dk_f[2],
-				double *dSdpi,double *pp, int *iu,int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, Complex jqq,
-				float beta, float akappa, int stepl, float dt, double *ancg, int *itot, float proby)
+				double *dSdpi,double *pp, int *iu,int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, 
+				Complex_f *sigval, unsigned short *sigin, Complex jqq, float beta, float akappa, float c_sw, int stepl,
+				float dt, double *ancg, int *itot, float proby)
 {
 	const double lambda=0.5-(pow(2.0*sqrt(326.0)+36.0,1.0/3.0)/12.0)+1.0/(6*pow(2.0*sqrt(326.0) + 36.0,1.0/3.0));
 	//const double lambda=1.0/6.0;
@@ -136,7 +138,7 @@ int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 #ifdef _DEBUG
 	printf("Evaluating force on rank %i\n", rank);
 #endif
-	Force(dSdpi, 1, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,dk,dk_f,jqq,akappa,beta,ancg);
+	Force(dSdpi, 1, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
 #ifdef _DEBUG
 	 printf("Initial force dSdpi[0]=%e\n", dSdpi[0]);
 #endif
@@ -159,7 +161,7 @@ int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 		Gauge_Update(dU,pp,ut,ut_f);
 
 		//Calculate force for middle momentum update
-		Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,dk,dk_f,jqq,akappa,beta,ancg);
+		Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
 		//Now do the middle momentum update
 		Momentum_Update(dpm,dSdpi,pp);
 #ifdef _DEBUG
@@ -170,7 +172,7 @@ int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 		Gauge_Update(dU,pp,ut,ut_f);
 
 		//Calculate force for second momentum update
-		Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,dk,dk_f,jqq,akappa,beta,ancg);
+		Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
 
 		//if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
 		if(step==stepl){
@@ -195,8 +197,9 @@ int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 	return 0;
 }
 int OMF4(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi,double *dk[2],float *dk_f[2],
-				double *dSdpi,double *pp, int *iu,int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, Complex jqq,
-				float beta, float akappa, int stepl, float dt, double *ancg, int *itot, float proby)
+				double *dSdpi,double *pp, int *iu,int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, 
+				Complex_f *sigval, unsigned short *sigin, Complex jqq, float beta, float akappa, float c_sw, int stepl,
+				float dt, double *ancg, int *itot, float proby)
 {
 	//These values were lifted from openqcd-fastsum, and should probably be tuned for QC2D. They also probably never
 	//will be...
@@ -226,7 +229,7 @@ int OMF4(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 #ifdef _DEBUG
 	printf("Evaluating force on rank %i\n", rank);
 #endif
-	Force(dSdpi, 1, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,dk,dk_f,jqq,akappa,beta,ancg);
+		Force(dSdpi, 1, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
 	Momentum_Update(dpO,dSdpi,pp);
 
 	//Main loop for classical time evolution
@@ -242,7 +245,7 @@ int OMF4(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 		Gauge_Update(duO,pp,ut,ut_f);
 
 		//Calculate force for first middle momentum update
-	Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,dk,dk_f,jqq,akappa,beta,ancg);
+		Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
 		//Now do the first middle momentum update
 		Momentum_Update(dpM,dSdpi,pp);
 
@@ -250,7 +253,7 @@ int OMF4(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 		Gauge_Update(duM,pp,ut,ut_f);
 
 		//Calculate force for first inner momentum update
-	Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,dk,dk_f,jqq,akappa,beta,ancg);
+		Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
 		//Now do the first inner momentum update
 		Momentum_Update(dpI,dSdpi,pp);
 
@@ -258,7 +261,7 @@ int OMF4(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 		Gauge_Update(duI,pp,ut,ut_f);
 
 		//Calculate force for second inner momentum update
-	Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,dk,dk_f,jqq,akappa,beta,ancg);
+		Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
 		//Now do the second inner momentum update
 		Momentum_Update(dpI,dSdpi,pp);
 
@@ -266,7 +269,7 @@ int OMF4(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 		Gauge_Update(duM,pp,ut,ut_f);
 
 		//Calculate force for second middle momentum update
-	Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,dk,dk_f,jqq,akappa,beta,ancg);
+		Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
 		//Now do the second middle momentum update
 		Momentum_Update(dpM,dSdpi,pp);
 
@@ -274,7 +277,7 @@ int OMF4(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 		Gauge_Update(duO,pp,ut,ut_f);
 
 		//Calculate force for outer momentum update
-	Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,dk,dk_f,jqq,akappa,beta,ancg);
+		Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
 
 		//Outer momentum update depends on if we've finished the trajectory
 		//if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){

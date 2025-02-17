@@ -204,7 +204,7 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 #else
 	Complex *smallPhi = aligned_alloc(AVX,kferm2*sizeof(Complex));
 #endif
-	Complex_f *leaves[(ndim-1)*(ndim-2)][2], *clover[(ndim-1)*(ndim-2)][2]
+	Complex_f *leaves[(ndim-1)*(ndim-2)][2], *clover[(ndim-1)*(ndim-2)][2];
 	if(c_sw)
 		Clover(clover,leaves,ut,iu,id);
 	//Iterating over flavours
@@ -221,7 +221,7 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 		memcpy(X1,X0+na*kferm2,kferm2*sizeof(Complex));
 #endif
 		Fill_Small_Phi(na, smallPhi, Phi);
-		if(Congradq(na,res2,X1,smallPhi,ut,clover,iu,id,gamval_f,gamin,sigval,sigin,dk,jqq,akappa,c_sw,&itercg))
+		if(Congradq(na,res2,X1,smallPhi,ut,clover,iu,id,gamval_f,gamin,sigval_f,sigin,dk,jqq,akappa,c_sw,&itercg))
 			fprintf(stderr,"Trajectory %d\n", traj);
 
 		*ancgh+=itercg;
@@ -319,6 +319,22 @@ inline int UpDownPart(const int na, Complex *X0, Complex *R1){
 			X0[((na*kvol+i)*ndirac+idirac)*nc]=R1[(i*ngorkov+idirac)*nc];
 			X0[((na*kvol+i)*ndirac+idirac)*nc+1]=R1[(i*ngorkov+idirac)*nc+1];
 		}
+#endif
+	return 0;
+}
+inline int Reunitarise(Complex *ut[2]){
+	const char *funcname = "Reunitarise";
+#ifdef __NVCC__
+	cuReunitarise(ut[0],ut[1],dimGrid,dimBlock);
+#else
+#pragma omp parallel for simd
+	for(int i=0; i<kvol*ndim; i++){
+		//Declaring anorm inside the loop will hopefully let the compiler know it
+		//is safe to vectorise aggressively
+		double anorm=sqrt(conj(ut[0][i])*ut[0][i]+conj(ut[1][i])*ut[1][i]);
+		ut[0][i]/=anorm;
+		ut[1][i]/=anorm;
+	}
 #endif
 	return 0;
 }

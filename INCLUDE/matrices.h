@@ -3,8 +3,7 @@
  *
  * @brief Matrix multiplication and related declarations
  */
-#ifndef MATRICES
-#define MATRICES
+#pragma once
 #ifdef __NVCC__
 #include <curand.h>
 #endif
@@ -240,5 +239,4 @@ __global__ void cuHdslash_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 __global__ void cuHdslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f *u11t, const Complex_f *u12t,const unsigned int *iu, const unsigned int *id,\
 		const __shared__ Complex_f gamval[20], const __shared__ int gamin[16], const float *dk4m, const float *dk4p, const float akappa);
 template <typename T> __global__ void Transpose(T *out, const T *in, const int fast_in, const int fast_out);
-#endif
 #endif

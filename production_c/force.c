@@ -5,6 +5,7 @@
  *
  * @author	D. Lawlor
  */
+#include <su2hmc.h>
 #include	<matrices.h>
 #include	<clover.h>
 
@@ -138,18 +139,17 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 		return 0;
 	//X1=(M†M)^{1} Phi
 	int itercg=1;
-	Complex_f *leaves[(ndim-1)*(ndim-2)][2], *clover[(ndim-1)*(ndim-2)][2]
+	Complex_f *leaves[(ndim-1)*(ndim-2)][2], *clover[(ndim-1)*(ndim-2)][2];
 #ifdef __NVCC__
-		Complex_f *X1_f, *X2_f;
+	Complex_f *X1_f, *X2_f;
 	cudaMallocAsync((void **)&X2_f,kferm2*sizeof(Complex_f),streams[0]);
 	cudaMallocAsync((void **)&X1_f,kferm2*sizeof(Complex_f),NULL);
 	cuComplex_convert(X1_f,X1,kferm2,true,dimBlock,dimGrid);
 #else
 	Complex *X2= (Complex *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex));
 #endif
-	if(c_sw){
-		Clover(clover,leaves,ut,iu,id);
-	}
+	if(c_sw)
+		Clover(clover,leaves,ut_f,iu,id);
 
 	for(int na = 0; na<nf; na++){
 #ifdef __NVCC__
@@ -438,13 +438,20 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 											 +ut[0][i*ndim+mu] *X2[(i*ndirac+igork1)*nc+1]))));
 
 #endif
-				if(c_sw)
-					Clover_Force(dSdpi,Leaves,sigval,sigin);
 			}
 #endif
+		if(c_sw){
+			Complex_f *X1_f= (Complex_f *)aligned_alloc(AVX,kferm2*sizeof(Complex_f));
+			Complex_f *X2_f= (Complex_f *)aligned_alloc(AVX,kferm2*sizeof(Complex_f));
+			for(unsigned int i=0;i<kferm2;i++){
+				X1_f[i]=(Complex_f)X1[i]; X2_f[i]=(Complex_f)X2[i];
+			}
+			Clover_Force(dSdpi,leaves,X1_f,X2_f,sigval,sigin);
+			free(X1_f); free(X2_f);
+		}
 	}
 	if(c_sw)
-		Clover_free(clover,leaves);
+		Clover_free(clover, leaves);
 #ifdef __NVCC__
 	cudaFreeAsync(X1_f,streams[0]); cudaFreeAsync(X2_f,streams[1]);
 #else

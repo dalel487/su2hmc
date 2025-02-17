@@ -2,8 +2,7 @@
  * @file		su2hmc.h
  * @brief	Function declarations for most of the routines
  */
-#ifndef SU2HEAD
-#define SU2HEAD
+#pragma once
 //ARM Based machines. BLAS routines should work with other libraries, so we can set a compiler
 //flag to sort them out. But the PRNG routines etc. are MKL exclusive
 #include <integrate.h>
@@ -104,7 +103,6 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 	 */
 	int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa, Complex_f ajq,\
 			Complex *u[2], Complex *ut[2], Complex_f *ut_f[2], Complex *gamval, Complex_f *gamval_f,int *gamin, 
-			Complex *sigval, Complex_f *sigval_f, int *sigin,
 			double *dk[2], float *dk_f[2], unsigned int *iu, unsigned int *id);
 	/**
 	 * @brief Calculate the Hamiltonian
@@ -163,7 +161,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 	 * @return 0 on success, integer error code otherwise
 	 */
 int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f *clover[6][2],unsigned int *iu,
-				unsigned int *id, Complex_f *gamval_f,int *gamin,Complex_f sigval,unsigned short *sigin, float *dk[2],
+				unsigned int *id, Complex_f *gamval_f,int *gamin,Complex_f *sigval,unsigned short *sigin, float *dk[2],
 				Complex_f jqq,float akappa,float c_sw,int *itercg);
 	/**
 	 * @brief Matrix Inversion via Conjugate Gradient (no up/down flavour partitioning).
@@ -387,5 +385,4 @@ __global__ void cuComplex_convert(Complex_f *a, Complex *b, int len, bool dtof);
 __global__ void cuReal_convert(float *a, double *b, int len, bool dtof);
 __global__ void cuUpDownPart(int na, Complex *X0, Complex *R1);
 __global__ void cuReunitarise(Complex *u11t, Complex *u12t);
-#endif
 #endif

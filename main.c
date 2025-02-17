@@ -127,7 +127,7 @@ int main(int argc, char *argv[]){
 	const double tpi = 2*acos(-1.0);
 #endif
 	float dt=0.004;	float c_sw = 0.0;	float delb=0; //Not used?
-	float athq = 0.0;	int stepl = 250;	int ntraj = 10;
+	float ajq = 0.0;	int stepl = 250;	int ntraj = 10;
 	//rank is zero means it must be the "master process"
 	if(!rank){
 		FILE *midout;
@@ -155,7 +155,9 @@ int main(int argc, char *argv[]){
 	Par_icopy(&stepl); Par_icopy(&ntraj); Par_icopy(&istart); Par_icopy(&icheck);
 	Par_icopy(&iread); 
 #endif
-	jqq=ajq*cexp(athq*I);
+//	Thetaq was never used so depreciated. It's position in midout is now c_sw
+//	jqq=ajq*cexp(athq*I);
+	jqq=ajq;
 	//End of input
 #ifdef __NVCC__
 	//CUBLAS Handle
@@ -351,15 +353,15 @@ int main(int argc, char *argv[]){
 		}
 		printf("hg = %e, <Ps> = %e, <Pt> = %e, <Poly> = %e\n", hg, avplaqs, avplaqt, poly);
 		fprintf(output, "ksize = %i ksizet = %i Nf = %i Halo =%i\nTime step dt = %e Trajectory length = %e\n"\
-				"No. of Trajectories = %i β = %e\nκ = %e μ = %e\nDiquark source = %e Diquark phase angle = %e\n"\
+				"No. of Trajectories = %i β = %e\nκ = %e μ = %e\nDiquark source = %e Clover coefficient = %e\n"\
 				"Stopping Residuals: Guidance: %e Acceptance: %e, Estimator: %e\nSeed = %ld\n",
-				ksize, ksizet, nf, halo, dt, traj, ntraj, beta, akappa, fmu, ajq, athq, rescgg, rescga, respbp, seed);
+				ksize, ksizet, nf, halo, dt, traj, ntraj, beta, akappa, fmu, ajq, c_sw, rescgg, rescga, respbp, seed);
 #ifdef _DEBUG
 		//Print to terminal during debugging
 		printf("ksize = %i ksizet = %i Nf = %i Halo = %i\nTime step dt = %e Trajectory length = %e\n"\
-				"No. of Trajectories = %i β = %e\nκ = %e μ = %e\nDiquark source = %e Diquark phase angle = %e\n"\
+				"No. of Trajectories = %i β = %e\nκ = %e μ = %e\nDiquark source = %e Clover coefficient = %e\n"\
 				"Stopping Residuals: Guidance: %e Acceptance: %e, Estimator: %e\nSeed = %ld\n",
-				ksize, ksizet, nf, halo, dt, traj, ntraj, beta, akappa, fmu, ajq, athq, rescgg, rescga, respbp, seed);
+				ksize, ksizet, nf, halo, dt, traj, ntraj, beta, akappa, fmu, ajq, c_sw, rescgg, rescga, respbp, seed);
 #endif
 	}
 	//Initialise for averages
@@ -521,7 +523,7 @@ int main(int argc, char *argv[]){
 		cudaMemPrefetchAsync(pp,kmom*sizeof(double),device,streams[1]);
 #endif
 		double H0, S0;
-		Hamilton(&H0,&S0,rescga,pp,X0,X1,Phi,ut_f,iu,id,gamval_f,gamin,dk_f,jqq,akappa,beta,&ancgh,itraj);
+		Hamilton(&H0,&S0,rescga,pp,X0,X1,Phi,ut_f,iu,id,gamval_f,gamin,sigval_f,sigin,dk_f,jqq,akappa,beta,c_sw,&ancgh,itraj);
 #ifdef _DEBUG
 		if(!rank) printf("H0: %e S0: %e\n", H0, S0);
 #endif
@@ -533,11 +535,11 @@ int main(int argc, char *argv[]){
 #if (defined INT_LPFR && defined INT_OMF2) ||(defined INT_LPFR && defined INT_OMF4)||(defined INT_OMF2 && defined INT_OMF4)
 #error "Only one integrator may be defined"
 #elif defined INT_LPFR
-		Leapfrog(ut,ut_f,X0,X1,Phi,dk,dk_f,dSdpi,pp,iu,id,gamval,gamval_f,gamin,jqq,beta,akappa,stepl,dt,&ancg,&itot,proby);
+		Leapfrog(ut,ut_f,X0,X1,Phi,dk,dk_f,dSdpi,pp,iu,id,gamval,gamval_f,gamin,sigval_f,sigin,jqq,beta,akappa,c_sw,stepl,dt,&ancg,&itot,proby);
 #elif defined INT_OMF2
-		OMF2(ut,ut_f,X0,X1,Phi,dk,dk_f,dSdpi,pp,iu,id,gamval,gamval_f,gamin,jqq,beta,akappa,stepl,dt,&ancg,&itot,proby);
+		OMF2(ut,ut_f,X0,X1,Phi,dk,dk_f,dSdpi,pp,iu,id,gamval,gamval_f,gamin,sigval_f,sigin,jqq,beta,akappa,c_sw,stepl,dt,&ancg,&itot,proby);
 #elif defined INT_OMF4
-		OMF4(ut,ut_f,X0,X1,Phi,dk,dk_f,dSdpi,pp,iu,id,gamval,gamval_f,gamin,jqq,beta,akappa,stepl,dt,&ancg,&itot,proby);
+		OMF4(ut,ut_f,X0,X1,Phi,dk,dk_f,dSdpi,pp,iu,id,gamval,gamval_f,gamin,sigval_f,sigin,jqq,beta,akappa,c_sw,stepl,dt,&ancg,&itot,proby);
 #else
 #error "No integrator defined. Please define {INT_LPFR.INT_OMF2,INT_OMF4}"
 #endif
@@ -547,7 +549,7 @@ int main(int argc, char *argv[]){
 		//Kernel Call needed here?
 		Reunitarise(ut);
 		double H1, S1;
-		Hamilton(&H1,&S1,rescga,pp,X0,X1,Phi,ut_f,iu,id,gamval_f,gamin,dk_f,jqq,akappa,beta,&ancgh,itraj);
+		Hamilton(&H1,&S1,rescga,pp,X0,X1,Phi,ut_f,iu,id,gamval_f,gamin,sigval_f,sigin,dk_f,jqq,akappa,beta,c_sw,&ancgh,itraj);
 		ancgh/=2.0; //Hamilton is called at start and end of trajectory
 		totancgh+=ancgh;
 #ifdef _DEBUG

@@ -4,6 +4,7 @@
  * @brief Conjugate gradients. Congradq for the solver and Congradp for the inversion
  */
 #include	<matrices.h>
+#include <clover.h>
 //TODO: Define csw properly elsewhere
 
 /**
@@ -71,7 +72,7 @@ void Q_free(Complex_f **p_f, Complex_f **x1_f, Complex_f **x2_f, Complex_f **r_f
 	return;
 }
 int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f *clover[6][2],unsigned int *iu,
-				unsigned int *id, Complex_f *gamval_f,int *gamin,Complex_f sigval,unsigned short *sigin, float *dk[2],
+				unsigned int *id, Complex_f *gamval_f,int *gamin,Complex_f *sigval,unsigned short *sigin, float *dk[2],
 				Complex_f jqq,float akappa,float c_sw,int *itercg){
 	/*
 	 * @brief Matrix Inversion via Mixed Precision Conjugate Gradient
@@ -165,7 +166,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f
 		}
 		///@f$(x2 =  M^\dagger M+clover+J^2)p@f$
 		if(c_sw)
-			HbyClover(x2_f,clover,p_f,sigval,sigin);
+			HbyClover(x2_f,p_f,clover,sigval,sigin);
 		//We can't evaluate α on the first *itercg because we need to get β_n.
 		if(*itercg){
 			//α_d= p* (M^†M+J^2)p

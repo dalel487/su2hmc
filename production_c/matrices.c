@@ -844,22 +844,6 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,u
 #endif
 	return 0;
 }
-inline int Reunitarise(Complex *ut[2]){
-	const char *funcname = "Reunitarise";
-#ifdef __NVCC__
-	cuReunitarise(ut[0],ut[1],dimGrid,dimBlock);
-#else
-#pragma omp parallel for simd
-	for(int i=0; i<kvol*ndim; i++){
-		//Declaring anorm inside the loop will hopefully let the compiler know it
-		//is safe to vectorise aggressively
-		double anorm=sqrt(conj(ut[0][i])*ut[0][i]+conj(ut[1][i])*ut[1][i]);
-		ut[0][i]/=anorm;
-		ut[1][i]/=anorm;
-	}
-#endif
-	return 0;
-}
 
 
 inline void Transpose_c(Complex_f *out, const int fast_in, const int fast_out){
