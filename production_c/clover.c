@@ -6,6 +6,7 @@
  * @author	D. Lawlor
  */
 #include <clover.h>
+#include <stdalign.h>
 
 //Calculating the clover and the leaves
 //=====================================
@@ -43,7 +44,7 @@ int Leaf(Complex_f *ut[2], Complex_f *Leaves[2], unsigned int *iu, unsigned int 
 	switch(leaf){
 		case(0):
 			//Both positive is just a standard plaquette
-			return SU2plaq(ut,Leaves,iu,i,mu,nu);
+			return Clover_SU2plaq(ut,Leaves,iu,i,mu,nu);
 		case(1):
 			//\mu<0 and \nu>=0
 			didm = id[mu+ndim*i]; uidn = iu[nu+ndim*i]; 
@@ -55,7 +56,7 @@ int Leaf(Complex_f *ut[2], Complex_f *Leaves[2], unsigned int *iu, unsigned int 
 
 			/// @f$(U_\nu(x)*U_-\mu(x+\nu))*U_-\nu(x-\mu+\nu)=(U_\nu(x)*U^\dagger _\mu(x-\mu+\nu))*U^\dagger_\nu(x-\mu)@f$
 			a[0]=Leaves[0][i*ndim+leaf]*conj(ut[0][didm*ndim+nu])+conj(Leaves[1][i*ndim+leaf])*conj(ut[1][didm*ndim+nu]);
-			a[1]=Leaves[1][i*ndim+leaf]*conj(ut[0][didm*ndim+nu])-Leaves[0][i*ndim+leaf]*ut[1][didm*ndim+nu]+;
+			a[1]=Leaves[1][i*ndim+leaf]*conj(ut[0][didm*ndim+nu])-Leaves[0][i*ndim+leaf]*ut[1][didm*ndim+nu];
 
 			/// @f$((U_\nu(x)*U_-\mu(x+\nu))*U_-\nu(x-\mu+\nu))*U_\mu(x-\mu)=((U_\nu(x)*U^\dagger _\mu(x-\mu_\nu))*U^\dagger _\nu(x-\mu))*U_\mu(x-\mu)@f$
 			Leaves[0][i*ndim+leaf]=a[0]*ut[0][didm*ndim+mu]-conj(a[1])*ut[1][didm*ndim+mu];
@@ -88,7 +89,7 @@ int Leaf(Complex_f *ut[2], Complex_f *Leaves[2], unsigned int *iu, unsigned int 
 			Leaves[0][i*ndim+leaf]=-ut[1][didm*ndim+mu]*conj(ut[0][dim_didn*ndim+nu])-ut[0][didm*ndim+mu]*ut[1][dim_didn*ndim+nu];
 
 			/// @f$(U_-\mu(x)*U_-\nu(x-\mu))U_\mu(x-\mu-\nu)=(U^\dagger_\mu(x-\mu)*U^\dagger_\nu(x-\mu-\nu))U_\mu(x-\mu-\nu)@f$
-			a[0]=Leaves[0][i*ndim+leaf]*ut[0][uim_didn*ndim+mu]-\conj(Leaves[1][i*ndim+leaf])*ut[1][uim_didn*ndim+mu];
+			a[0]=Leaves[0][i*ndim+leaf]*ut[0][uim_didn*ndim+mu]-conj(Leaves[1][i*ndim+leaf])*ut[1][uim_didn*ndim+mu];
 			a[1]=-Leaves[1][i*ndim+leaf]*ut[0][uim_didn*ndim+mu]+-Leaves[0][i*ndim+leaf]*ut[0][uim_didn*ndim+mu];
 
 			/// @f$((U_-\mu(x)*U_-\nu(x-\mu))U_\mu(x-\mu-\nu))U_\nu(x-\nu)=((U^\dagger_\mu(x-\mu)*U^\dagger_\nu(x-\mu-\nu))U_\mu(x-\mu-\nu))U_\nu(x-\nu)@f$
@@ -102,8 +103,7 @@ inline int Half_Clover(Complex_f *clover[2],	Complex_f *Leaves[2], Complex_f *ut
 	for(short leaf=0;i<ndim;leaf++)
 	{
 		Leaf(ut,Leaves,iu,id,i,mu,nu,leaf);
-		//TODO: Site indices for leaf!
-		clover[0][i]+=Leaves[0]; clover[1][i]+=Leaves[1];
+		clover[0][i]+=Leaves[0][i*ndim+leaf]; clover[1][i]+=Leaves[1][i*ndim+leaf];
 	}
 	return 0;
 }
@@ -118,8 +118,8 @@ int Clover(Complex_f *clover[6][2],Complex_f *Leaves[6][2],Complex_f *ut[2], uns
 				//Note that the clover is completely local, so doesn't need a halo for MPI
 				clover[clov][0]=(Complex_f *)aligned_alloc(AVX,kvol*sizeof(Complex_f));
 				clover[clov][1]=(Complex_f *)aligned_alloc(AVX,kvol*sizeof(Complex_f));
-				leaves[clov][0]=(Complex_f *)aligned_alloc(AVX,kvol*ndim*sizeof(Complex_f));
-				leaves[clov][1]=(Complex_f *)aligned_alloc(AVX,kvol*ndim*sizeof(Complex_f));
+				Leaves[clov][0]=(Complex_f *)aligned_alloc(AVX,kvol*ndim*sizeof(Complex_f));
+				Leaves[clov][1]=(Complex_f *)aligned_alloc(AVX,kvol*ndim*sizeof(Complex_f));
 #pragma omp parallel for
 				for(unsigned int i=0;i<kvol;i++)
 				{
@@ -146,20 +146,22 @@ int HbyClover(Complex_f *phi, Complex_f *r, Complex_f *clover[6][2], Complex_f *
 		for(int j =0;j<AVX;j++)
 			for(int idirac=0; idirac<ndirac; idirac++){
 				alignas(AVX) Complex_f phi_s[nc][AVX];
-				alignas(AVX) Complex_f rl[nc][AVX];
-				const unsigned short igork1 = sigin[clov*ndirac+idirac];	
+				alignas(AVX) Complex_f r_s[nc][AVX];
+				alignas(AVX) Complex_f clov_s[nc][AVX];
 #pragma unroll
 				for(int c=0; c<nc; c++){
-					r[c][j]=r[((i+j)*ndirac+igork1)*nc+c];
 					phi_s[c][j]=0;
 				}
 				for(unsigned int clov=0;clov<6;clov++){
+					const unsigned short igork1 = sigin[clov*ndirac+idirac];	
 #pragma unroll
-					for(int c=0; c<nc; c++)
+					for(int c=0; c<nc; c++){
+						r_s[c][j]=r[((i+j)*ndirac+igork1)*nc+c];
 						clov_s[c][j]=clover[clov][c][i+j];
+					}
 					///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
-					phi_s[0][j]=sigval[clov*ndirac+idirac]*(clov_s[0][j]*r[0][j]-conj(clov_s[1][j])*r[1][j]);
-					phi_s[1][j]=sigval[clov*ndirac+idirac]*(clov_s[1][j]*r[0][j]+conj(clov_s[0][j])*r[1][j]);
+					phi_s[0][j]=sigval[clov*ndirac+idirac]*(clov_s[0][j]*r_s[0][j]-conj(clov_s[1][j])*r_s[1][j]);
+					phi_s[1][j]=sigval[clov*ndirac+idirac]*(clov_s[1][j]*r_s[0][j]+conj(clov_s[0][j])*r_s[1][j]);
 				}
 #pragma unroll
 				for(int c=0; c<nc; c++)
@@ -173,7 +175,7 @@ int HbyClover(Complex_f *phi, Complex_f *r, Complex_f *clover[6][2], Complex_f *
 //=================================
 //Calling function
 //TODO: X1 and X2 contributions
-int Clover_Force(float *dSdpi, Complex_f *Leaves[6][2], Complex_f *sigval,unsigned short *sigin){
+int Clover_Force(double *dSdpi, Complex_f *Leaves[6][2], Complex_f *X1, Complex_f *X2, Complex_f *sigval,unsigned short *sigin){
 	const char funcname[]="Clover_Force";
 	//TODO: Make this more CUDA friendly? Or just have a CUDA call above
 #pragma omp parallel for
@@ -236,6 +238,7 @@ inline int Clover_free(Complex_f *clover[6][2],Complex_f *Leaves[6][2]){
 		for(unsigned short c=0;c<nc;c++){
 			free(clover[clov][c]); free(Leaves[clov][c]);
 		}
+	return 0;	
 }
 
 //Generator by Leaf
@@ -272,7 +275,7 @@ inline int GenLeafd(Complex_f Fleaf[2], Complex_f *Leaves[2],const unsigned int 
 //initialisation
 //
 int Init_clover(Complex *sigval, Complex_f *sigval_f,unsigned int *sigin, float c_sw){
-	const char funcname = "Init_clover";
+	const char funcname[] = "Init_clover";
 	unsigned int __attribute__((aligned(AVX))) sigin_t[0][4] =	{{0,1,2,3},{1,0,3,2},{1,0,3,2},{1,0,3,2},{1,0,3,2},{0,1,2,3}};
 	//The sigma matrices are the commutators of the gamma matrices. These are antisymmetric when you swap the indices
 	//0 is sigma_0,1
@@ -298,7 +301,7 @@ int Init_clover(Complex *sigval, Complex_f *sigval_f,unsigned int *sigin, float 
 	cuComplex_convert(sigval_f,sigval,24,true,dimBlockOne,dimGridOne);	
 #else
 	memcpy(sigval,sigval_t,6*4*sizeof(Complex));
-	memcpy(sigin,sigint,6*4*sizeof(int));
+	memcpy(sigin,sigin_t,6*4*sizeof(int));
 	for(int i=0;i<6*4;i++)
 		sigval_f[i]=(Complex_f)sigval[i];
 #endif

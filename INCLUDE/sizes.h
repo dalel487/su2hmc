@@ -24,8 +24,7 @@
  *    @author D. Lawlor September 2020
  *
  ******************************************************************/
-#ifndef	SIZES
-#define	SIZES
+#pragma once
 #ifdef	__INTEL_MKL__
 #define	USE_BLAS
 #include	<mkl.h>
@@ -284,5 +283,4 @@ extern dim3	dimGrid;//	=dim3(nt,1,1);
 extern dim3	dimBlockOne;//	=dim3(nx,ny,nz);
 extern dim3	dimGridOne;//	=dim3(nt,1,1);
 #define	USE_BLAS
-#endif
 #endif
