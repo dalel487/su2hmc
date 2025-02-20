@@ -52,15 +52,15 @@ int Leaf(Complex_f *ut[2], Complex_f *Leaves[2], unsigned int *iu, unsigned int 
 			//Awkward index here unfortunately. Seems safer than trying to find -\mu
 			int uin_didm=id[mu+ndim*uidn];
 			Leaves[0][i*ndim+leaf]=ut[0][i*ndim+nu]*conj(ut[0][uin_didm*ndim+mu])+conj(ut[1][i*ndim+nu])*ut[1][uin_didm*ndim+mu];
-			Leaves[1][i*ndim+leaf]=ut[1][i*ndim+nu]*conj(ut[0][uin_didm*ndim+mu])-ut[0][i*ndim+nu]*ut[1][uin_didm*ndim+mu];
+			Leaves[1][i*ndim+leaf]=ut[1][i*ndim+nu]*conj(ut[0][uin_didm*ndim+mu])-conj(ut[0][i*ndim+nu])*ut[1][uin_didm*ndim+mu];
 
 			/// @f$(U_\nu(x)*U_-\mu(x+\nu))*U_-\nu(x-\mu+\nu)=(U_\nu(x)*U^\dagger _\mu(x-\mu+\nu))*U^\dagger_\nu(x-\mu)@f$
-			a[0]=Leaves[0][i*ndim+leaf]*conj(ut[0][didm*ndim+nu])+conj(Leaves[1][i*ndim+leaf])*conj(ut[1][didm*ndim+nu]);
-			a[1]=Leaves[1][i*ndim+leaf]*conj(ut[0][didm*ndim+nu])-Leaves[0][i*ndim+leaf]*ut[1][didm*ndim+nu];
+			a[0]=Leaves[0][i*ndim+leaf]*conj(ut[0][didm*ndim+nu])+conj(Leaves[1][i*ndim+leaf])*ut[1][didm*ndim+nu];
+			a[1]=Leaves[1][i*ndim+leaf]*conj(ut[0][didm*ndim+nu])-conj(Leaves[0][i*ndim+leaf])*ut[1][didm*ndim+nu];
 
 			/// @f$((U_\nu(x)*U_-\mu(x+\nu))*U_-\nu(x-\mu+\nu))*U_\mu(x-\mu)=((U_\nu(x)*U^\dagger _\mu(x-\mu_\nu))*U^\dagger _\nu(x-\mu))*U_\mu(x-\mu)@f$
 			Leaves[0][i*ndim+leaf]=a[0]*ut[0][didm*ndim+mu]-conj(a[1])*ut[1][didm*ndim+mu];
-			Leaves[1][i*ndim+leaf]=a[1]*ut[0][didm*ndim+mu]-a[0]*ut[1][didm*ndim+mu];
+			Leaves[1][i*ndim+leaf]=a[1]*ut[0][didm*ndim+mu]+conj(a[0])*ut[1][didm*ndim+mu];
 			return 0;
 		case(2):
 			//\mu>=0 and \nu<0
@@ -68,17 +68,17 @@ int Leaf(Complex_f *ut[2], Complex_f *Leaves[2], unsigned int *iu, unsigned int 
 			uidm = iu[mu+ndim*i]; didn = id[nu+ndim*i]; 
 			/// @f$U_-\nu(x)*U_\mu(x-\nu)=U^\dagger_\nu(x-\nu)*U_\mu(x-\nu)@f$
 			Leaves[0][i*ndim+leaf]=conj(ut[0][didn*ndim+nu])*ut[0][didn*ndim+mu]+conj(ut[1][didn*ndim+nu])*ut[1][didn*ndim+mu];
-			Leaves[1][i*ndim+leaf]=-ut[1][didn*ndim+mu]*conj(ut[0][didn*ndim+nu])+ut[0][didn*ndim+nu]*ut[1][didn*ndim+mu];
+			Leaves[1][i*ndim+leaf]=-ut[1][didn*ndim+mu]*ut[0][didn*ndim+nu]+ut[0][didn*ndim+nu]*ut[1][didn*ndim+mu];
 
 			/// @f$(U_-\nu(x)*U_\mu(x-\nu))*U_\nu(x+\mu-\nu)=(U^\dagger_\nu(x-\nu)*U_\mu(x-\nu))*U_\nu(x+\mu-\nu)@f$
 			//Another awkward index
 			int uim_didn=id[nu+ndim*uidm];
 			a[0]=Leaves[0][i*ndim+leaf]*ut[0][uim_didn*ndim+nu]-conj(Leaves[1][i*ndim+leaf])*ut[1][uim_didn*ndim+nu];
-			a[1]=-Leaves[1][i*ndim+leaf]*ut[0][uim_didn*ndim+nu]+Leaves[0][i*ndim+leaf]*ut[1][uim_didn*ndim+nu];
+			a[1]=Leaves[1][i*ndim+leaf]*ut[0][uim_didn*ndim+nu]+conj(Leaves[0][i*ndim+leaf])*ut[1][uim_didn*ndim+nu];
 
 			/// @f$((U_-\nu(x)*U_\mu(x-\nu))*U_ν(x+\mu-\nu))*U_-\mu(x+\mu)=((U^\dagger_\nu(x-\nu)*U_\mu(x-ν))*U_\nu(x+\mu-\nu))*U^\dagger_\mu(x)@f$
-			Leaves[0][i*ndim+leaf]=a[0]*ut[0][i*ndim+mu]-conj(a[1])*ut[1][i*ndim+mu];
-			Leaves[1][i*ndim+leaf]=a[1]*ut[0][i*ndim+mu]+a[0]*ut[1][i*ndim+mu];
+			Leaves[0][i*ndim+leaf]=a[0]*conj(ut[0][i*ndim+mu])+conj(a[1])*ut[1][i*ndim+mu];
+			Leaves[1][i*ndim+leaf]=a[1]*conj(ut[0][i*ndim+mu])-conj(a[0])*ut[1][i*ndim+mu];
 			return 0;
 		case(3):
 			//\mu<0 and \nu<0
@@ -90,17 +90,17 @@ int Leaf(Complex_f *ut[2], Complex_f *Leaves[2], unsigned int *iu, unsigned int 
 
 			/// @f$(U_-\mu(x)*U_-\nu(x-\mu))U_\mu(x-\mu-\nu)=(U^\dagger_\mu(x-\mu)*U^\dagger_\nu(x-\mu-\nu))U_\mu(x-\mu-\nu)@f$
 			a[0]=Leaves[0][i*ndim+leaf]*ut[0][uim_didn*ndim+mu]-conj(Leaves[1][i*ndim+leaf])*ut[1][uim_didn*ndim+mu];
-			a[1]=-Leaves[1][i*ndim+leaf]*ut[0][uim_didn*ndim+mu]+-Leaves[0][i*ndim+leaf]*ut[0][uim_didn*ndim+mu];
+			a[1]=Leaves[1][i*ndim+leaf]*ut[0][uim_didn*ndim+mu]+conj(Leaves[0][i*ndim+leaf])*ut[0][uim_didn*ndim+mu];
 
 			/// @f$((U_-\mu(x)*U_-\nu(x-\mu))U_\mu(x-\mu-\nu))U_\nu(x-\nu)=((U^\dagger_\mu(x-\mu)*U^\dagger_\nu(x-\mu-\nu))U_\mu(x-\mu-\nu))U_\nu(x-\nu)@f$
 			Leaves[0][i*ndim+leaf]=a[0]*ut[0][didn*ndim+nu]-conj(a[1])*ut[1][didn*ndim+nu];
-			Leaves[1][i*ndim+leaf]=-a[1]*ut[0][didn*ndim+nu]+a[0]*ut[1][didn*ndim+nu];
+			Leaves[1][i*ndim+leaf]=a[1]*ut[0][didn*ndim+nu]+conj(a[0])*ut[1][didn*ndim+nu];
 	}
 	return 0;
 }
 inline int Half_Clover(Complex_f *clover[2],	Complex_f *Leaves[2], Complex_f *ut[2], unsigned int *iu, unsigned int *id, int i, int mu, int nu){
 	const char funcname[] ="Half_Clover";
-	for(short leaf=0;i<ndim;leaf++)
+	for(short leaf=0;leaf<ndim;leaf++)
 	{
 		Leaf(ut,Leaves,iu,id,i,mu,nu,leaf);
 		clover[0][i]+=Leaves[0][i*ndim+leaf]; clover[1][i]+=Leaves[1][i*ndim+leaf];
@@ -110,7 +110,7 @@ inline int Half_Clover(Complex_f *clover[2],	Complex_f *Leaves[2], Complex_f *ut
 int Clover(Complex_f *clover[6][2],Complex_f *Leaves[6][2],Complex_f *ut[2], unsigned int *iu, unsigned int *id){
 	const char funcname[]="Clover";
 	for(unsigned int mu=0;mu<ndim-1;mu++)
-		for(unsigned int nu=mu+1;nu<ndim;nu++){
+		for(unsigned int nu=mu+1;nu<ndim;nu++)
 			if(mu!=nu){
 				//Clover index
 				unsigned short clov = (mu==0) ? nu-1 :mu+nu;
@@ -124,13 +124,14 @@ int Clover(Complex_f *clover[6][2],Complex_f *Leaves[6][2],Complex_f *ut[2], uns
 				for(unsigned int i=0;i<kvol;i++)
 				{
 					Half_Clover(clover[clov],Leaves[clov],ut,iu,id,i,mu,nu);	
-					//Hmm, creal(clover[0]) drops out. And clover[1] just gets doubled (as does cimag(clover[1])
+					//Hmm, creal(clover[0]) drops out. And clover[1] just gets doubled
 					clover[clov][0][i]-=conj(clover[clov][0][i]);	clover[clov][1][i]+=clover[clov][1][i];
 					//Don't forget the factor out front!
+					//Uh Oh. G&L says -i/8 here. But hep-lat/9605038 and other sources say +1/8
+					//It gets worse in the C_sw definition. We have a 1/2. They have +i/4
 					clover[clov][0][i]*=(-I/8.0);	clover[clov][1][i]*=(-I/8.0);
 				}
 			}
-		}
 	return 0;
 }
 
@@ -140,7 +141,7 @@ int Clover(Complex_f *clover[6][2],Complex_f *Leaves[6][2],Complex_f *ut[2], uns
 int HbyClover(Complex_f *phi, Complex_f *r, Complex_f *clover[6][2], Complex_f *sigval, unsigned short *sigin){
 	const char funcname[] = "HbyClover";
 #pragma omp parallel for
-	for(int i=0;i<kvol;i+=AVX){
+	for(int i=0;i<kvol;i+=AVX)
 		//Prefetched r and Phi array
 #pragma omp simd
 		for(int j =0;j<AVX;j++)
@@ -160,14 +161,13 @@ int HbyClover(Complex_f *phi, Complex_f *r, Complex_f *clover[6][2], Complex_f *
 						clov_s[c][j]=clover[clov][c][i+j];
 					}
 					///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
-					phi_s[0][j]=sigval[clov*ndirac+idirac]*(clov_s[0][j]*r_s[0][j]-conj(clov_s[1][j])*r_s[1][j]);
-					phi_s[1][j]=sigval[clov*ndirac+idirac]*(clov_s[1][j]*r_s[0][j]+conj(clov_s[0][j])*r_s[1][j]);
+					phi_s[0][j]+=sigval[clov*ndirac+idirac]*(clov_s[0][j]*r_s[0][j]-conj(clov_s[1][j])*r_s[1][j]);
+					phi_s[1][j]+=sigval[clov*ndirac+idirac]*(clov_s[1][j]*r_s[0][j]+conj(clov_s[0][j])*r_s[1][j]);
 				}
 #pragma unroll
 				for(int c=0; c<nc; c++)
 					phi[((i+j)*ndirac+idirac)*nc+c]+=phi_s[c][j];
 			}
-	}
 	return 0;
 }
 
@@ -274,9 +274,9 @@ inline int GenLeafd(Complex_f Fleaf[2], Complex_f *Leaves[2],const unsigned int 
 }
 //initialisation
 //
-int Init_clover(Complex *sigval, Complex_f *sigval_f,unsigned int *sigin, float c_sw){
+int Init_clover(Complex *sigval, Complex_f *sigval_f,unsigned short *sigin, float c_sw){
 	const char funcname[] = "Init_clover";
-	unsigned int __attribute__((aligned(AVX))) sigin_t[0][4] =	{{0,1,2,3},{1,0,3,2},{1,0,3,2},{1,0,3,2},{1,0,3,2},{0,1,2,3}};
+	unsigned int __attribute__((aligned(AVX))) sigin_t[6][4] =	{{0,1,2,3},{1,0,3,2},{1,0,3,2},{1,0,3,2},{1,0,3,2},{0,1,2,3}};
 	//The sigma matrices are the commutators of the gamma matrices. These are antisymmetric when you swap the indices
 	//0 is sigma_0,1
 	//1 is sigma_0,2

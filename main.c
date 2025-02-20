@@ -269,17 +269,17 @@ int main(int argc, char *argv[]){
 	 * istart > 0: Random/Hot Start
 	 */
 	Init(istart,ibound,iread,beta,fmu,akappa,ajq,u,ut,ut_f,gamval,gamval_f,gamin,dk,dk_f,iu,id);
-
-	/// @f$\sigma_{\mu\nu}@f$ if we're using clover fermions
-#ifdef __NVCC__
-	//GPU Initialisation stuff
-	Init_CUDA(ut[0],ut[1],gamval,gamval_f,gamin,dk[0],dk[1],iu,id);//&dimBlock,&dimGrid);
-	if(c_sw){
+	if(c_sw!=0){
 		sigin = (unsigned short *)aligned_alloc(AVX,6*4*sizeof(short));
 		sigval=(Complex *)aligned_alloc(AVX,6*4*sizeof(Complex));
 		sigval_f=(Complex_f *)aligned_alloc(AVX,6*4*sizeof(Complex_f));;
 		Init_clover(sigval,sigval_f,sigin,c_sw);
 		}
+
+	/// @f$\sigma_{\mu\nu}@f$ if we're using clover fermions
+#ifdef __NVCC__
+	//GPU Initialisation stuff
+	Init_CUDA(ut[0],ut[1],gamval,gamval_f,gamin,dk[0],dk[1],iu,id);//&dimBlock,&dimGrid);
 #endif
 	//Send trials to accelerator for reunitarisation
 	Reunitarise(ut);
@@ -333,6 +333,12 @@ int main(int argc, char *argv[]){
 	buffer = (int)round(1000*ajq);
 	sprintf(buff2,"j%03d",buffer);
 	strcat(suffix,buff2);
+	//c_sw
+	if(c_sw){
+	buffer = (int)round(100*c_sw);
+	sprintf(buff2,"c%03d",buffer);
+	strcat(suffix,buff2);
+	}
 	//nx
 	sprintf(buff2,"s%02d",nx);
 	strcat(suffix,buff2);

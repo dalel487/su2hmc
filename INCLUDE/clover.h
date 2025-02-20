@@ -109,7 +109,7 @@ int GenLeafd(Complex_f Fleaf[2], Complex_f *Leaves[2],const unsigned int i,const
  *	@param	sigin:				Which column does row idirac of @f$(\sigma_{\mu\nu}@f$ act on
  *	@param	c_sw:					Clover coefficient
  */
-int Init_clover(Complex *sigval, Complex_f *sigval_f,unsigned int *sigin, float c_sw);
+int Init_clover(Complex *sigval, Complex_f *sigval_f,unsigned short *sigin, float c_sw);
 /**
  *	@brief	Free's memory used for clover terms and leaves
  *
