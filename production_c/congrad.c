@@ -103,15 +103,15 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f
 	const char *funcname = "Congradq";
 	int ret_val=0;
 	const double resid = res*res;
-	//The κ^2 factor is needed to normalise the fields correctly
-	//jqq is the diquark condensate and is global scope.
+	/// The @f$\kappa^2@f$ factor is needed to normalise the fields correctly
+	/// @f$j_{qq}@f$ is the diquark condensate and is global scope.
 	const Complex_f fac_f = conj(jqq)*jqq*akappa*akappa;
 	//These were evaluated only in the first loop of niterx so we'll just do it outside of the loop.
 	//n suffix is numerator, d is denominator
 	double alphan=1;
-	//The alpha and beta terms should be double, but that causes issues with BLAS pointers. Instead we declare
-	//them complex and work with the real part (especially for α_d)
-	//Give initial values Will be overwritten if niterx>0
+	///The alpha and beta terms should be double, but that causes issues with BLAS pointers. Instead we declare
+	///them complex and work with the real part (especially for @f$\alpha_d@f$)
+	///Give initial values Will be overwritten if niterx>0
 	double betad = 1.0; Complex_f alphad=0; Complex alpha = 1;
 	//Because we're dealing with flattened arrays here we can call cblas safely without the halo
 #ifdef __NVCC__
@@ -140,18 +140,16 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f
 	memcpy(p_f, X1_f, kferm2*sizeof(Complex_f));
 #endif
 
-	//niterx isn't called as an index but we'll start from zero with the C code to make the
-	//if statements quicker to type
 	double betan; bool pf=true;
 	for(*itercg=0; *itercg<niterc; (*itercg)++){
-		///@f$(x2 =  (M^\dagger M)p @f$
+		///@f$x2 =  (M^\dagger M)p @f$
 		//No need to synchronise here. The memcpy in Hdslash is blocking
 		Hdslash_f(x1_f,p_f,ut,iu,id,gamval_f,gamin,dk,akappa);
 		Hdslashd_f(x2_f,x1_f,ut,iu,id,gamval_f,gamin,dk,akappa);
 #ifdef	__NVCC__
 		cudaDeviceSynchronise();
 #endif
-		///@f$(x2 =  (M^\dagger M+J^2)p@f$
+		///@f$x2 =  (M^\dagger M+J^2)p@f$
 		//No point adding zero a couple of hundred times if the diquark source is zero
 		if(fac_f!=0){
 #ifdef	__NVCC__
@@ -164,12 +162,12 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f
 				x2_f[i]+=fac_f*p_f[i];
 #endif
 		}
-		///@f$(x2 =  M^\dagger M+clover+J^2)p@f$
+		///@f$x2 =  (M^\dagger M+c_\text{SW} \sum\limits_{\mu\ne\nu}\frac{1}{2}\sigma_{\mu\nu}F_{\mu\nu}+J^2)p@f$
 		if(c_sw)
 			HbyClover(x2_f,p_f,clover,sigval,sigin);
-		//We can't evaluate α on the first *itercg because we need to get β_n.
+		//We can't evaluate \alpha on the first *itercg because we need to get \beta_n.
 		if(*itercg){
-			//α_d= p* (M^†M+J^2)p
+			/// @f$\alpha_d= p* (M^\dagger M+c_\text{SW} \sum\limits_{\mu\ne\nu}\frac{1}{2}\sigma_{\mu\nu}F_{\mu\nu}+J^2)p@f$
 #ifdef __NVCC__
 			cublasCdotc(cublas_handle,kferm2,(cuComplex *)p_f,1,(cuComplex *)x2_f,1,(cuComplex *)&alphad);
 #elif defined USE_BLAS
@@ -185,9 +183,9 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f
 #if(nproc>1)
 			Par_fsum((float *)&alphad);
 #endif
-			//α=α_n/α_d = (r.r)/p(M^†M)p 
+			///@f$\alpha=\frac{\alpha_n}{\alpha_d}=\frac{r\cdot r}{p(M^\dagger M+c_\text{SW} \sum\limits_{\mu\ne\nu}\frac{1}{2}\sigma_{\mu\nu}F_{\mu\nu}+J^2)p}@f$
 			alpha=alphan/creal(alphad);
-			//x-αp, 
+			/// @f$x-\alpha p@f$ 
 #ifdef __NVCC__
 			Complex_f alpha_f = (Complex_f)alpha;
 			cublasCaxpy(cublas_handle,kferm2,(cuComplex *)&alpha_f,(cuComplex *)p_f,1,(cuComplex *)X1_f,1);
@@ -199,7 +197,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f
 				X1_f[i]+=alpha*p_f[i];
 #endif
 		}			
-		// r_n+1 = r_n-α(M^† M)p_n and β_n=r*.r
+		/// @f$r_{n+1} = r_n-\alpha(M^\dagger M)p_n@f$ and @f$\beta_n=r^\dagger r@f$
 #ifdef	__NVCC__
 		Complex_f alpha_m=(Complex_f)(-alpha);
 		cublasCaxpy(cublas_handle, kferm2,(cuComplex *)&alpha_m,(cuComplex *)x2_f,1,(cuComplex *)r_f,1);
@@ -225,14 +223,15 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f
 #if(nproc>1)
 		Par_dsum(&betan);
 #endif
-#ifdef _DEBUGCG
+#ifdef _DEBUG
 #warning "CG Debugging"
 		char *endline = "\n";
 #else
 		char *endline = "\r";
 #endif
 #ifdef _DEBUG
-		if(!rank) printf("Iter(CG)=%i\tβ_n=%e\tα=%e%s", *itercg, betan, alpha,endline);
+		if(!rank) printf("Iter(CG)=%i\t\beta_n=%e\t\alpha=%e%s", *itercg, betan, alpha,endline);
+		fflush(stdout);
 #endif
 		if(betan<resid){ 
 			(*itercg)++;
@@ -242,16 +241,16 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f
 			ret_val=0;	break;
 		}
 		else if(*itercg==niterc-1){
-			if(!rank) fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i β_n=%e\n", ITERLIM, funcname, *itercg, betan);
+			if(!rank) fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i \beta_n=%e\n", ITERLIM, funcname, *itercg, betan);
 			ret_val=ITERLIM;	break;
 		}
-		//Here we evaluate β=(r_{k+1}.r_{k+1})/(r_k.r_k) and then shuffle our indices down the line.
+		//Here we evaluate \beta=(r_{k+1}.r_{k+1})/(r_k.r_k) and then shuffle our indices down the line.
 		//On the first iteration we define beta to be zero.
 		//Note that beta below is not the global beta and scoping is used to avoid conflict between them
 		Complex beta = (*itercg) ?  betan/betad : 0;
 		betad=betan; alphan=betan;
-		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multiplying y by
-		//β instead of x.
+		//BLAS for p=r+\betap doesn't exist in standard BLAS. This is NOT an axpy case as we're multiplying y by
+		//\beta instead of x.
 #ifdef __NVCC__
 		Complex_f beta_f=(Complex_f)beta;
 		__managed__ Complex_f a = 1.0;
@@ -260,8 +259,8 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f
 #elif (defined __INTEL_MKL__)
 		Complex_f a = 1.0;
 		Complex_f beta_f=(Complex_f)beta;
-		//There is cblas_?axpby in the MKL and AMD though, set a = 1 and b = β.
-		//If we get a small enough β_n before hitting the iteration cap we break
+		//There is cblas_?axpby in the MKL and AMD though, set a = 1 and b = \beta.
+		//If we get a small enough \beta_n before hitting the iteration cap we break
 		cblas_caxpby(kferm2, &a, r_f, 1, &beta_f,  p_f, 1);
 #elif defined USE_BLAS
 		Complex_f beta_f=(Complex_f)beta;
@@ -318,7 +317,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigne
 	const double resid = res*res;
 	//These were evaluated only in the first loop of niterx so we'll just do it outside of the loop.
 	//These alpha and beta terms should be double, but that causes issues with BLAS. Instead we declare
-	//them Complex and work with the real part (especially for α_d)
+	//them Complex and work with the real part (especially for \alpha_d)
 	//Give initial values Will be overwritten if niterx>0
 #ifdef __NVCC__
 	Complex_f *p_f, *r_f, *xi_f, *x1_f, *x2_f;
@@ -375,13 +374,13 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigne
 #endif
 	for((*itercg)=0; (*itercg)<=niterc; (*itercg)++){
 		//Don't overwrite on first run. 
-		//x2=(M^†)x1=(M^†)Mp
+		//x2=(M^\dagger)x1=(M^\dagger)Mp
 		Dslash_f(x1_f,p_f,ut[0],ut[1],iu,id,gamval,gamin,dk,jqq,akappa);
 		Dslashd_f(x2_f,x1_f,ut[0],ut[1],iu,id,gamval,gamin,dk,jqq,akappa);
 #ifdef __NVCC__
 		cudaDeviceSynchronise();
 #endif
-		//We can't evaluate α on the first niterx because we need to get β_n.
+		//We can't evaluate \alpha on the first niterx because we need to get \beta_n.
 		if(*itercg){
 			//x*.x
 #ifdef USE_BLAS
@@ -401,10 +400,10 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigne
 #if(nproc>1)
 			Par_fsum((float *)&alphad);
 #endif
-			//α=(r.r)/p(M^†)Mp
+			//\alpha=(r.r)/p(M^\dagger)Mp
 			alpha=alphan/creal(alphad);
 			//			Complex_f alpha_f = (Complex_f)alpha;
-			//x+αp
+			//x+\alpha p
 #ifdef USE_BLAS
 			Complex_f alpha_f=(float)alpha;
 #ifdef __NVCC__
@@ -419,7 +418,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigne
 #endif
 		}
 
-		//r=α(M^†)Mp and β_n=r*.r
+		//r=\alpha(M^\dagger)Mp and \beta_n=r*.r
 #if defined USE_BLAS
 		Complex_f alpha_m=(Complex_f)(-alpha);
 		float betan_f=0;
@@ -439,7 +438,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigne
 		//Just like Congradq, this loop could be unrolled but will need a reduction to deal with the betan 
 		//addition.
 		betan = 0;
-		//If we get a small enough β_n before hitting the iteration cap we break
+		//If we get a small enough \beta_n before hitting the iteration cap we break
 #pragma omp parallel for simd aligned(x2_f,r_f:AVX) reduction(+:betan)
 		for(int i = 0; i<kferm;i++){
 			r_f[i]-=alpha*x2_f[i];
@@ -456,7 +455,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigne
 #else
 		char *endline = "\r";
 #endif
-		if(!rank) printf("Iter (CG) = %i β_n= %e α= %e%s", *itercg, betan, alpha,endline);
+		if(!rank) printf("Iter (CG) = %i \beta_n= %e \alpha= %e%s", *itercg, betan, alpha,endline);
 #endif
 		if(betan<resid){
 			//Started counting from zero so add one to make it accurate
@@ -467,16 +466,16 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigne
 			ret_val=0;	break;
 		}
 		else if(*itercg==niterc-1){
-			if(!rank) fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i β_n=%e\n",
+			if(!rank) fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i \beta_n=%e\n",
 					ITERLIM, funcname, niterc, betan);
 			ret_val=ITERLIM;	break;
 		}
 		//Note that beta below is not the global beta and scoping is used to avoid conflict between them
 		Complex beta = (*itercg) ? betan/betad : 0;
 		betad=betan; alphan=betan;
-		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multiplying y by 
-		//β instead of x.
-		//There is cblas_zaxpby in the MKL though, set a = 1 and b = β.
+		//BLAS for p=r+\betap doesn't exist in standard BLAS. This is NOT an axpy case as we're multiplying y by 
+		//\beta instead of x.
+		//There is cblas_zaxpby in the MKL though, set a = 1 and b = \beta.
 #ifdef USE_BLAS
 		Complex_f beta_f = (Complex_f)beta;
 		Complex_f a = 1.0;
