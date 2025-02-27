@@ -130,12 +130,12 @@ int Clover(Complex_f *clover[6][2],Complex_f *Leaves[6][2],Complex_f *ut[2], uns
 				for(unsigned int i=0;i<kvol;i++)
 				{
 					Half_Clover(clover[clov],Leaves[clov],ut,iu,id,i,mu,nu);	
-					//Hmm, creal(clover[0]) drops out. And clover[1] just gets doubled
+					//creal(clover[0]) drops so we are traceless. And everything else just gets doubled
 					clover[clov][0][i]-=conj(clover[clov][0][i]);	clover[clov][1][i]+=clover[clov][1][i];
 					//Don't forget the factor out front!
 					//Uh Oh. G&L says -i/8 here. But hep-lat/9605038 and other sources say +1/8
 					//It gets worse in the C_sw definition. We have a 1/2. They have +i/4
-					clover[clov][0][i]*=(-I/8.0);	clover[clov][1][i]*=(-I/8.0);
+					clover[clov][0][i]*=(-I/16.0);	clover[clov][1][i]*=(-I/16.0);
 				}
 			}
 	return 0;
