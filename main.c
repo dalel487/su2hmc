@@ -269,12 +269,12 @@ int main(int argc, char *argv[]){
 	 * istart > 0: Random/Hot Start
 	 */
 	Init(istart,ibound,iread,beta,fmu,akappa,ajq,u,ut,ut_f,gamval,gamval_f,gamin,dk,dk_f,iu,id);
-	if(c_sw!=0){
+//	if(c_sw){
 		sigin = (unsigned short *)aligned_alloc(AVX,6*4*sizeof(short));
 		sigval=(Complex *)aligned_alloc(AVX,6*4*sizeof(Complex));
 		sigval_f=(Complex_f *)aligned_alloc(AVX,6*4*sizeof(Complex_f));;
 		Init_clover(sigval,sigval_f,sigin,c_sw);
-		}
+//		}
 
 	/// @f$\sigma_{\mu\nu}@f$ if we're using clover fermions
 #ifdef __NVCC__
@@ -334,11 +334,11 @@ int main(int argc, char *argv[]){
 	sprintf(buff2,"j%03d",buffer);
 	strcat(suffix,buff2);
 	//c_sw
-	if(c_sw){
+	//if(c_sw){
 	buffer = (int)round(100*c_sw);
 	sprintf(buff2,"c%03d",buffer);
 	strcat(suffix,buff2);
-	}
+//	}
 	//nx
 	sprintf(buff2,"s%02d",nx);
 	strcat(suffix,buff2);
@@ -779,9 +779,9 @@ int main(int argc, char *argv[]){
 	free(id); free(iu);
 	free(dk_f[0]); free(dk_f[1]); free(ut_f[0]); free(ut_f[1]);
 	free(gamin); free(gamval); free(gamval_f);
-	if(c_sw){
+	//if(c_sw){
 		free(sigval); free(sigval_f); free(sigin);
-	}
+	//}
 #endif
 	free(hd); free(hu);free(h1u); free(h1d); free(halosize); free(pcoord);
 #ifdef __RANLUX__

@@ -140,7 +140,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f
 	memcpy(p_f, X1_f, kferm2*sizeof(Complex_f));
 #endif
 
-	double betan; bool pf=true;
+	double betan=1; bool pf=true;
 	for(*itercg=0; *itercg<niterc; (*itercg)++){
 		///@f$x2 =  (M^\dagger M)p @f$
 		//No need to synchronise here. The memcpy in Hdslash is blocking
@@ -163,7 +163,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f
 #endif
 		}
 		///@f$x2 =  (M^\dagger M+c_\text{SW} \sum\limits_{\mu\ne\nu}\frac{1}{2}\sigma_{\mu\nu}F_{\mu\nu}+J^2)p@f$
-		if(c_sw)
+		//if(c_sw)
 			HbyClover(x2_f,p_f,clover,sigval,sigin);
 		//We can't evaluate \alpha on the first *itercg because we need to get \beta_n.
 		if(*itercg){
@@ -183,7 +183,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f
 #if(nproc>1)
 			Par_fsum((float *)&alphad);
 #endif
-			///@f$\alpha=\frac{\alpha_n}{\alpha_d}=\frac{r\cdot r}{p(M^\dagger M+c_\text{SW} \sum\limits_{\mu\ne\nu}\frac{1}{2}\sigma_{\mu\nu}F_{\mu\nu}+J^2)p}@f$
+			///@f$alpha=\frac{\alpha_n}{\alpha_d}=\frac{r\cdot r}{p(M^\dagger M+c_\text{SW} \sum\limits_{\mu\ne\nu}\frac{1}{2}\sigma_{\mu\nu}F_{\mu\nu}+J^2)p}@f$
 			alpha=alphan/creal(alphad);
 			/// @f$x-\alpha p@f$ 
 #ifdef __NVCC__
@@ -230,7 +230,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f
 		char *endline = "\r";
 #endif
 #ifdef _DEBUG
-		if(!rank) printf("Iter(CG)=%i\t\beta_n=%e\t\alpha=%e%s", *itercg, betan, alpha,endline);
+		if(!rank) printf("Iter(CG)=%i\tbeta_n=%e\talpha=%e%s", *itercg, betan, alpha,endline);
 		fflush(stdout);
 #endif
 		if(betan<resid){ 
@@ -241,10 +241,10 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f
 			ret_val=0;	break;
 		}
 		else if(*itercg==niterc-1){
-			if(!rank) fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i \beta_n=%e\n", ITERLIM, funcname, *itercg, betan);
+			if(!rank) fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i beta_n=%e\n", ITERLIM, funcname, *itercg, betan);
 			ret_val=ITERLIM;	break;
 		}
-		//Here we evaluate \beta=(r_{k+1}.r_{k+1})/(r_k.r_k) and then shuffle our indices down the line.
+		//Here we evaluate beta=(r_{k+1}.r_{k+1})/(r_k.r_k) and then shuffle our indices down the line.
 		//On the first iteration we define beta to be zero.
 		//Note that beta below is not the global beta and scoping is used to avoid conflict between them
 		Complex beta = (*itercg) ?  betan/betad : 0;
@@ -400,7 +400,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigne
 #if(nproc>1)
 			Par_fsum((float *)&alphad);
 #endif
-			//\alpha=(r.r)/p(M^\dagger)Mp
+			//alpha=(r.r)/p(M^\dagger)Mp
 			alpha=alphan/creal(alphad);
 			//			Complex_f alpha_f = (Complex_f)alpha;
 			//x+\alpha p
@@ -455,7 +455,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigne
 #else
 		char *endline = "\r";
 #endif
-		if(!rank) printf("Iter (CG) = %i \beta_n= %e \alpha= %e%s", *itercg, betan, alpha,endline);
+		if(!rank) printf("Iter (CG) = %i beta_n= %e alpha= %e%s", *itercg, betan, alpha,endline);
 #endif
 		if(betan<resid){
 			//Started counting from zero so add one to make it accurate
@@ -466,7 +466,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigne
 			ret_val=0;	break;
 		}
 		else if(*itercg==niterc-1){
-			if(!rank) fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i \beta_n=%e\n",
+			if(!rank) fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i beta_n=%e\n",
 					ITERLIM, funcname, niterc, betan);
 			ret_val=ITERLIM;	break;
 		}
