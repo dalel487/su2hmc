@@ -34,6 +34,7 @@ SRC= \
 	coord.c \
 	random.c \
 	matrices.c \
+	clover.c \
 	integrate.c
 
 INC= \
@@ -44,6 +45,7 @@ INC= \
     matrices.h \
     coord.h \
     errorcodes.h \
+	clover.h\
 	 integrate.h
 
 #

@@ -26,15 +26,21 @@ inline int Clover_SU2plaq(Complex_f *ut[2], Complex_f *Leaves[2], unsigned int *
 
 	//TODO: Figure out how we want to label the leaves. 12 clovers in total. Each with 4 leaves. The below should work for
 	//the plaquette as the first leaf
-	Leaves[0][i*ndim]=ut[0][i*ndim+mu]*ut[0][uidm*ndim+nu]-ut[1][i*ndim+mu]*conj(ut[1][uidm*ndim+nu]);
-	Leaves[1][i*ndim]=ut[0][i*ndim+mu]*ut[1][uidm*ndim+nu]+ut[1][i*ndim+mu]*conj(ut[0][uidm*ndim+nu]);
+	//	Leaves[0][i*ndim]=ut[0][i*ndim+mu]*ut[0][uidm*ndim+nu]-ut[1][i*ndim+mu]*conj(ut[1][uidm*ndim+nu]);
+	Leaves[0][i*ndim]=ut[0][i*ndim+mu]*ut[0][uidm*ndim+nu]-conj(ut[1][i*ndim+mu])*ut[1][uidm*ndim+nu];
+	//	Leaves[1][i*ndim]=ut[0][i*ndim+mu]*ut[1][uidm*ndim+nu]+ut[1][i*ndim+mu]*conj(ut[0][uidm*ndim+nu]);
+	Leaves[1][i*ndim]=ut[1][i*ndim+mu]*ut[0][uidm*ndim+nu]+conj(ut[0][i*ndim+mu])*ut[1][uidm*ndim+nu];
 
 	int uidn = iu[nu+ndim*i]; 
-	Complex_f a11=Leaves[0][i*ndim]*conj(ut[0][uidn*ndim+mu])+Leaves[1][i*ndim]*conj(ut[1][uidn*ndim+mu]);
-	Complex_f a12=-Leaves[0][i*ndim]*ut[1][uidn*ndim+mu]+Leaves[1][i*ndim]*ut[0][uidn*ndim+mu];
+	//Complex_f a11=Leaves[0][i*ndim]*conj(ut[0][uidn*ndim+mu])+Leaves[1][i*ndim]*conj(ut[1][uidn*ndim+mu]);
+	Complex_f a11=Leaves[0][i*ndim]*conj(ut[0][uidn*ndim+mu])+conj(Leaves[1][i*ndim])*ut[1][uidn*ndim+mu];
+	//Complex_f a12=-Leaves[0][i*ndim]*ut[1][uidn*ndim+mu]+Leaves[1][i*ndim]*ut[0][uidn*ndim+mu];
+	Complex_f a12=Leaves[1][i*ndim]*conj(ut[0][uidn*ndim+mu])-conj(Leaves[0][i*ndim])*ut[1][uidn*ndim+mu];
 
-	Leaves[0][i*ndim]=a11*conj(ut[0][i*ndim+nu])+a12*conj(ut[1][i*ndim+nu]);
-	Leaves[1][i*ndim]=-a11*ut[1][i*ndim+nu]+a12*ut[0][i*ndim+mu];
+	//	Leaves[0][i*ndim]=a11*conj(ut[0][i*ndim+nu])+a12*conj(ut[1][i*ndim+nu]);
+	Leaves[0][i*ndim]=a11*conj(ut[0][i*ndim+nu])+conj(a12)*ut[1][i*ndim+nu];
+	//	Leaves[1][i*ndim]=-a11*ut[1][i*ndim+nu]+a12*ut[0][i*ndim+mu];
+	Leaves[1][i*ndim]=a12*conj(ut[0][i*ndim+nu])-conj(a11)*ut[1][i*ndim+mu];
 	return 0;
 }
 int Leaf(Complex_f *ut[2], Complex_f *Leaves[2], unsigned int *iu, unsigned int *id, int i, int mu, int nu, short leaf){
@@ -95,8 +101,8 @@ int Leaf(Complex_f *ut[2], Complex_f *Leaves[2], unsigned int *iu, unsigned int 
 			/// @f$((U_-\mu(x)*U_-\nu(x-\mu))U_\mu(x-\mu-\nu))U_\nu(x-\nu)=((U^\dagger_\mu(x-\mu)*U^\dagger_\nu(x-\mu-\nu))U_\mu(x-\mu-\nu))U_\nu(x-\nu)@f$
 			Leaves[0][i*ndim+leaf]=a[0]*ut[0][didn*ndim+nu]-conj(a[1])*ut[1][didn*ndim+nu];
 			Leaves[1][i*ndim+leaf]=a[1]*ut[0][didn*ndim+nu]+conj(a[0])*ut[1][didn*ndim+nu];
+			return 0;
 	}
-	return 0;
 }
 inline int Half_Clover(Complex_f *clover[2],	Complex_f *Leaves[2], Complex_f *ut[2], unsigned int *iu, unsigned int *id, int i, int mu, int nu){
 	const char funcname[] ="Half_Clover";
@@ -276,7 +282,7 @@ inline int GenLeafd(Complex_f Fleaf[2], Complex_f *Leaves[2],const unsigned int 
 //
 int Init_clover(Complex *sigval, Complex_f *sigval_f,unsigned short *sigin, float c_sw){
 	const char funcname[] = "Init_clover";
-	unsigned int __attribute__((aligned(AVX))) sigin_t[6][4] =	{{0,1,2,3},{1,0,3,2},{1,0,3,2},{1,0,3,2},{1,0,3,2},{0,1,2,3}};
+	unsigned short __attribute__((aligned(AVX))) sigin_t[6][4] =	{{0,1,2,3},{1,0,3,2},{1,0,3,2},{1,0,3,2},{1,0,3,2},{0,1,2,3}};
 	//The sigma matrices are the commutators of the gamma matrices. These are antisymmetric when you swap the indices
 	//0 is sigma_0,1
 	//1 is sigma_0,2
@@ -297,11 +303,11 @@ int Init_clover(Complex *sigval, Complex_f *sigval_f,unsigned short *sigin, floa
 
 #ifdef __NVCC__
 	cudaMemcpy(sigval,sigval_t,6*4*sizeof(Complex),cudaMemcpyDefault);
-	cudaMemcpy(sigin,sigin,6*4*sizeof(int),cudaMemcpyDefault);
+	cudaMemcpy(sigin,sigin_t,6*4*sizeof(short),cudaMemcpyDefault);
 	cuComplex_convert(sigval_f,sigval,24,true,dimBlockOne,dimGridOne);	
 #else
 	memcpy(sigval,sigval_t,6*4*sizeof(Complex));
-	memcpy(sigin,sigin_t,6*4*sizeof(int));
+	memcpy(sigin,sigin_t,6*4*sizeof(short));
 	for(int i=0;i<6*4;i++)
 		sigval_f[i]=(Complex_f)sigval[i];
 #endif
