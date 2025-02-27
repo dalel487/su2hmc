@@ -22,6 +22,7 @@ SRC= \
 	force.c\
 	par_mpi.c \
 	su2hmc.c \
+	clover.c \
 	integrate.c\
 
 INC= \
@@ -32,6 +33,7 @@ INC= \
 	matrices.h \
 	par_mpi.h \
 	integrate.h\
+	clover.h \
 	su2hmc.h \
 #
 # No need to edit below this line
