@@ -145,7 +145,12 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f
 		///@f$x2 =  (M^\dagger M)p @f$
 		//No need to synchronise here. The memcpy in Hdslash is blocking
 		Hdslash_f(x1_f,p_f,ut,iu,id,gamval_f,gamin,dk,akappa);
+		//Clover contribution
+		if(c_sw)
+			HbyClover(x1_f,p_f,clover,sigval,sigin);
 		Hdslashd_f(x2_f,x1_f,ut,iu,id,gamval_f,gamin,dk,akappa);
+		if(c_sw)
+			HbyClover(x2_f,x1_f,clover,sigval,sigin);
 #ifdef	__NVCC__
 		cudaDeviceSynchronise();
 #endif
@@ -162,9 +167,6 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f
 				x2_f[i]+=fac_f*p_f[i];
 #endif
 		}
-		///@f$x2 =  (M^\dagger M+c_\text{SW} \sum\limits_{\mu\ne\nu}\frac{1}{2}\sigma_{\mu\nu}F_{\mu\nu}+J^2)p@f$
-		//if(c_sw)
-			HbyClover(x2_f,p_f,clover,sigval,sigin);
 		//We can't evaluate \alpha on the first *itercg because we need to get \beta_n.
 		if(*itercg){
 			/// @f$\alpha_d= p* (M^\dagger M+c_\text{SW} \sum\limits_{\mu\ne\nu}\frac{1}{2}\sigma_{\mu\nu}F_{\mu\nu}+J^2)p@f$
