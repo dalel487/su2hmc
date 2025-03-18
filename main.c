@@ -155,8 +155,8 @@ int main(int argc, char *argv[]){
 	Par_icopy(&stepl); Par_icopy(&ntraj); Par_icopy(&istart); Par_icopy(&icheck);
 	Par_icopy(&iread); 
 #endif
-//	Thetaq was never used so depreciated. It's position in midout is now c_sw
-//	jqq=ajq*cexp(athq*I);
+	//	Thetaq was never used so depreciated. It's position in midout is now c_sw
+	//	jqq=ajq*cexp(athq*I);
 	jqq=ajq;
 	//End of input
 #ifdef __NVCC__
@@ -269,12 +269,12 @@ int main(int argc, char *argv[]){
 	 * istart > 0: Random/Hot Start
 	 */
 	Init(istart,ibound,iread,beta,fmu,akappa,ajq,u,ut,ut_f,gamval,gamval_f,gamin,dk,dk_f,iu,id);
-//	if(c_sw){
-		sigin = (unsigned short *)aligned_alloc(AVX,6*4*sizeof(short));
-		sigval=(Complex *)aligned_alloc(AVX,6*4*sizeof(Complex));
-		sigval_f=(Complex_f *)aligned_alloc(AVX,6*4*sizeof(Complex_f));;
-		Init_clover(sigval,sigval_f,sigin,c_sw);
-//		}
+	//	if(c_sw){
+	sigin = (unsigned short *)aligned_alloc(AVX,6*4*sizeof(short));
+	sigval=(Complex *)aligned_alloc(AVX,6*4*sizeof(Complex));
+	sigval_f=(Complex_f *)aligned_alloc(AVX,6*4*sizeof(Complex_f));;
+	Init_clover(sigval,sigval_f,sigin,c_sw);
+	//		}
 
 	/// @f$\sigma_{\mu\nu}@f$ if we're using clover fermions
 #ifdef __NVCC__
@@ -338,7 +338,7 @@ int main(int argc, char *argv[]){
 	buffer = (int)round(100*c_sw);
 	sprintf(buff2,"c%03d",buffer);
 	strcat(suffix,buff2);
-//	}
+	//	}
 	//nx
 	sprintf(buff2,"s%02d",nx);
 	strcat(suffix,buff2);
@@ -437,6 +437,9 @@ int main(int argc, char *argv[]){
 		if(!rank)
 			printf("Starting itraj %i\n", itraj);
 #endif
+		Complex_f *leaves[(ndim-1)*(ndim-2)][2], *clover[(ndim-1)*(ndim-2)][2];
+		if(c_sw)
+			Clover(clover,leaves,ut_f,iu,id);
 		for(int na=0; na<nf; na++){
 			//Probably makes sense to declare this outside the loop
 			//but I do like scoping/don't want to break anything else just teat
@@ -478,6 +481,8 @@ int main(int argc, char *argv[]){
 			cudaDeviceSynchronise();
 #endif
 			Dslashd_f(R1_f,R,ut_f[0],ut_f[1],iu,id,gamval_f,gamin,dk_f,jqq,akappa);
+			if(c_sw)
+				ByClover(R1_f,R,clover,sigval_f,sigin);
 #ifdef __NVCC__
 			//Make sure the multiplication is finished before freeing its input!!
 			cudaFree(R);//cudaDeviceSynchronise(); 
@@ -502,6 +507,8 @@ int main(int argc, char *argv[]){
 #endif
 			UpDownPart(na, X0, R1);
 		}	
+		if(c_sw)
+			Clover_free(clover, leaves);
 		//Heatbath
 		//========
 		//We're going to make the most of the new Gauss_d routine to send a flattened array
@@ -780,7 +787,7 @@ int main(int argc, char *argv[]){
 	free(dk_f[0]); free(dk_f[1]); free(ut_f[0]); free(ut_f[1]);
 	free(gamin); free(gamval); free(gamval_f);
 	//if(c_sw){
-		free(sigval); free(sigval_f); free(sigin);
+	free(sigval); free(sigval_f); free(sigin);
 	//}
 #endif
 	free(hd); free(hu);free(h1u); free(h1d); free(halosize); free(pcoord);
