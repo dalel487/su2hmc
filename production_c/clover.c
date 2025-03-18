@@ -143,15 +143,51 @@ int Clover(Complex_f *clover[6][2],Complex_f *Leaves[6][2],Complex_f *ut[2], uns
 					//Don't forget the factor out front!
 					//Uh Oh. G&L says -i/8 here. But hep-lat/9605038 and other sources say +1/8
 					//It gets worse in the C_sw definition. We have a 1/2. They have +i/4
-					clover[clov][0][i]*=(-I/16.0);	clover[clov][1][i]*=(-I/16.0);
+					//Other concern. Multiplying by -I makes it hermitian, but then the third generator disappears
+					clover[clov][0][i]*=(-I/8.0);	clover[clov][1][i]*=(-I/8.0);
 				}
 			}
 	return 0;
 }
 
-//Multiplication for Congrad
+//Multiplication for Congradq
 //=========================
 // Congradq only acts on flavour 1
+int ByClover(Complex_f *phi, Complex_f *r, Complex_f *clover[6][2], Complex_f *sigval, unsigned short *sigin){
+	const char funcname[] = "ByClover";
+#pragma omp parallel for
+	for(int i=0;i<kvol;i+=AVX)
+		//Prefetched r and Phi array
+#pragma omp simd
+		for(int j =0;j<AVX;j++)
+			for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
+				unsigned short idirac = igorkov%4;
+				alignas(AVX) Complex_f phi_s[nc][AVX];
+				alignas(AVX) Complex_f r_s[nc][AVX];
+				alignas(AVX) Complex_f clov_s[nc][AVX];
+#pragma unroll
+				for(unsigned short c=0; c<nc; c++)
+					phi_s[c][j]=0;
+
+				for(unsigned short clov=0;clov<6;clov++){
+					const unsigned short igork1 = (igorkov<4) ? sigin[clov*ndirac+idirac] : sigin[clov*ndirac+idirac]+4;
+#pragma unroll
+					for(unsigned short c=0; c<nc; c++){
+						//						rg_s[c][j]=r[((i+j)*ngorkov+igorkov)*nc+c];
+						r_s[c][j]=r[((i+j)*ngorkov+igork1)*nc+c];
+						clov_s[c][j]=clover[clov][c][i+j];
+					}
+
+					///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
+					phi_s[0][j]+=sigval[clov*ndirac+idirac]*(clov_s[0][j]*r_s[0][j]-conj(clov_s[1][j])*r_s[1][j]);
+					phi_s[1][j]+=sigval[clov*ndirac+idirac]*(clov_s[1][j]*r_s[0][j]+conj(clov_s[0][j])*r_s[1][j]);
+				}
+#pragma unroll
+				for(int c=0; c<nc; c++)
+					phi[((i+j)*ngorkov+igorkov)*nc+c]+=phi_s[c][j];
+			}
+	return 0;
+}
 int HbyClover(Complex_f *phi, Complex_f *r, Complex_f *clover[6][2], Complex_f *sigval, unsigned short *sigin){
 	const char funcname[] = "HbyClover";
 #pragma omp parallel for

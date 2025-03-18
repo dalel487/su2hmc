@@ -58,6 +58,17 @@ int Half_Clover(Complex_f *clover[2],	Complex_f *Leaves[2], Complex_f *ut[2], un
  */
 int Clover(Complex_f *clover[6][2],Complex_f *Leaves[6][2],Complex_f *ut[2], unsigned int *iu, unsigned int *id);
 /**
+ *	@brief Clover analogue of the Dslash operation. This version acts on all flavours simiilar to Dslash and Dslash_d
+ *	
+ *
+ *	@param	phi:		Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
+ *	@param	r:			Pseudofermion field before multiplication. The thing we want to multiply by the clover
+ *	@param	clover:	Array of clovers
+ *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by c_sw
+ * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
+ */
+int ByClover(Complex_f *phi, Complex_f *r, Complex_f *clover[6][2], Complex_f *sigval, unsigned short *sigin);
+/**
  *	@brief Clover analogue of the Dslash operation. The H in front is for half, as we only act on the fermions of flavour
  *	1
  *

@@ -149,6 +149,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f
 		if(c_sw)
 			HbyClover(x1_f,p_f,clover,sigval,sigin);
 		Hdslashd_f(x2_f,x1_f,ut,iu,id,gamval_f,gamin,dk,akappa);
+		//Clover contribution
 		if(c_sw)
 			HbyClover(x2_f,x1_f,clover,sigval,sigin);
 #ifdef	__NVCC__
