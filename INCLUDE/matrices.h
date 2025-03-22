@@ -4,9 +4,6 @@
  */
 #ifndef MATRICES
 #define MATRICES
-#ifdef __NVCC__
-#include <curand.h>
-#endif
 #include <par_mpi.h>
 #include <su2hmc.h>
 #if (defined __cplusplus)
@@ -176,7 +173,7 @@ extern "C"
 			float *dk4m_f, float *dk4p_f, int *gamin, Complex *gamval, Complex_f *gamval_f,\
 			Complex_f jqq, float akappa, float beta, double ancg);
 #endif
-#ifdef __NVCC__
+#ifdef __GPU__
 	//Calling Functions
 	void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
 			Complex *gamval, int *gamin, double *dk4m, double *dk4p, Complex_f jqq, float akappa,\
@@ -219,7 +216,7 @@ extern "C"
 #if (defined __cplusplus)
 }
 #endif
-#ifdef __CUDACC__
+#if defined __CUDACC__ || defined __HIP__
 //Actual CUDA
 __global__ void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
 		Complex *gamval, int *gamin, double *dk4m, double *dk4p, Complex_f jqq, float akappa);

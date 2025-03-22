@@ -36,6 +36,11 @@
 #define	USE_BLAS
 #include	<cblas.h>
 #endif
+
+#if defined __HIPCC__ || defined __NVCC__
+#define __GPU__
+#endif
+
 #ifdef	__NVCC__
 #include	<cuda.h>
 #include	<cuda_runtime_api.h>
@@ -43,6 +48,7 @@
 extern cublasHandle_t cublas_handle;
 extern cublasStatus_t cublas_status;
 extern cudaMemPool_t mempool;
+///@brief	Get rid of that bastardised yankee English
 #define cudaDeviceSynchronise() cudaDeviceSynchronize()
 #elif defined	__HIPCC__
 #include	<hip/hip_runtime.h>
@@ -71,7 +77,7 @@ extern hipMemPool_t mempool;
 // Common block definition for parallel variables
 
 ///	@brief Lattice x extent
-#define	nx 8
+#define	nx 24
 #if(nx<1)
 #error "nx is expected it to be greater than or equal to 1"
 #endif
@@ -91,7 +97,7 @@ extern hipMemPool_t mempool;
 #endif
 
 ///	@brief	Lattice temporal extent. This also corresponds to the inverse temperature
-#define	nt	16
+#define	nt	32
 #if(nt<1)
 #error "nt is expected it to be greater than or equal to 1"
 #endif
@@ -140,7 +146,7 @@ extern hipMemPool_t mempool;
 #define	nproc	(npx*npy*npz*npt)
 
 ///	@brief Number of threads for OpenMP, which can be overwritten at runtime
-#define	nthreads	16
+#define	nthreads	32
 
 //    Existing parameter definitions.
 ///	@brief Sublattice x extent
@@ -276,7 +282,7 @@ extern hipMemPool_t mempool;
 #define	AVX	16
 #endif
 
-#if defined	__NVCC__ || defined __HIPCC__
+#ifdef __GPU__
 /*
  * @section gridblock Grids and Blocks
  *

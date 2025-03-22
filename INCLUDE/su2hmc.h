@@ -246,7 +246,7 @@ extern "C"
 	 */
 	int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u11t, Complex_f *u12t,\
 			unsigned int *iu, float beta);
-#if (!defined __NVCC__ && !defined __HIPCC__)
+#ifndef __GPU__
 	/**
 	 * @brief Calculates the plaquette at site i in the @f$\mu--\nu@f$ direction
 	 *
@@ -331,7 +331,7 @@ extern "C"
 	int Reunitarise(Complex *u11t, Complex *u12t);
 	//CUDA Declarations:
 	//#################
-#if defined __NVCC__ || defined __HIPCC__
+#ifdef __GPU__
 	//Not a function. An array of concurrent GPU streams to keep it busy
 	#ifdef __NVCC__
 	extern cudaStream_t streams[ndirac*ndim*nadj];

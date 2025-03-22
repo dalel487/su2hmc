@@ -55,12 +55,12 @@
 #include <hipifly.h>
 #endif
 
-#include <cublas_v2.h>
-#include	<cuda.h>
-#include	<cuda_runtime.h>
-cublasHandle_t cublas_handle;
-cublasStatus_t cublas_status;
-cudaMemPool_t mempool;
+#include <hipblas.h>
+#include	<hip/hip_runtime.h>
+#include	<hip/hip_runtime.h>
+hipblasHandle_t cublas_handle;
+hipblasStatus_t cublas_status;
+hipMemPool_t mempool;
 //Fix this later
 #endif
 /**
@@ -168,17 +168,17 @@ int main(int argc, char *argv[]){
 	//End of input
 #ifdef __NVCC__
 	//CUBLAS Handle
-	cublasCreate(&cublas_handle);
+	hipblasCreate(&cublas_handle);
 	//Set up grid and blocks
 	blockInit(nx, ny, nz, nt, &dimBlock, &dimGrid);
 	//CUDA device
 	int device=-1;
-	cudaGetDevice(&device);
+	hipGetDevice(&device);
 	//For asynchronous memory, when CUDA syncs any unused memory in the pool is released back to the OS
 	//unless a threshold is given. We'll base our threshold off of Congradq
-	cudaDeviceGetDefaultMemPool(&mempool, device);
+	hipDeviceGetDefaultMemPool(&mempool, device);
 	int threshold=2*kferm2*sizeof(Complex_f);
-	cudaMemPoolSetAttribute(mempool, cudaMemPoolAttrReleaseThreshold, &threshold);
+	hipMemPoolSetAttribute(mempool, hipMemPoolAttrReleaseThreshold, &threshold);
 #endif
 #ifdef _DEBUG
 	printf("jqq=%f+(%f)I\n",creal(jqq),cimag(jqq));
@@ -200,39 +200,39 @@ int main(int argc, char *argv[]){
 	//Halo index arrays
 	unsigned int *iu, *id;
 #ifdef __NVCC__
-	cudaMallocManaged((void**)&iu,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
-	cudaMallocManaged((void**)&id,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
+	hipMallocManaged((void**)&iu,ndim*kvol*sizeof(int),hipMemAttachGlobal);
+	hipMallocManaged((void**)&id,ndim*kvol*sizeof(int),hipMemAttachGlobal);
 
-	cudaMallocManaged(&dk4m,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
-	cudaMallocManaged(&dk4p,(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
+	hipMallocManaged(&dk4m,(kvol+halo)*sizeof(double),hipMemAttachGlobal);
+	hipMallocManaged(&dk4p,(kvol+halo)*sizeof(double),hipMemAttachGlobal);
 #ifdef _DEBUG
-	cudaMallocManaged(&dk4m_f,(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
-	cudaMallocManaged(&dk4p_f,(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
+	hipMallocManaged(&dk4m_f,(kvol+halo)*sizeof(float),hipMemAttachGlobal);
+	hipMallocManaged(&dk4p_f,(kvol+halo)*sizeof(float),hipMemAttachGlobal);
 #else
-	cudaMalloc(&dk4m_f,(kvol+halo)*sizeof(float));
-	cudaMalloc(&dk4p_f,(kvol+halo)*sizeof(float));
+	hipMalloc(&dk4m_f,(kvol+halo)*sizeof(float));
+	hipMalloc(&dk4p_f,(kvol+halo)*sizeof(float));
 #endif
 
 	int	*gamin;
 	Complex	*gamval;
 	Complex_f *gamval_f;
-	cudaMallocManaged(&gamin,4*4*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&gamval,5*4*sizeof(Complex),cudaMemAttachGlobal);
+	hipMallocManaged(&gamin,4*4*sizeof(Complex),hipMemAttachGlobal);
+	hipMallocManaged(&gamval,5*4*sizeof(Complex),hipMemAttachGlobal);
 #ifdef _DEBUG
-	cudaMallocManaged(&gamval_f,5*4*sizeof(Complex_f),cudaMemAttachGlobal);
+	hipMallocManaged(&gamval_f,5*4*sizeof(Complex_f),hipMemAttachGlobal);
 #else
-	cudaMalloc(&gamval_f,5*4*sizeof(Complex_f));
+	hipMalloc(&gamval_f,5*4*sizeof(Complex_f));
 #endif
-	cudaMallocManaged(&u11,ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&u12,ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&u11t,ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&u12t,ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
+	hipMallocManaged(&u11,ndim*kvol*sizeof(Complex),hipMemAttachGlobal);
+	hipMallocManaged(&u12,ndim*kvol*sizeof(Complex),hipMemAttachGlobal);
+	hipMallocManaged(&u11t,ndim*(kvol+halo)*sizeof(Complex),hipMemAttachGlobal);
+	hipMallocManaged(&u12t,ndim*(kvol+halo)*sizeof(Complex),hipMemAttachGlobal);
 #ifdef _DEBUG
-	cudaMallocManaged(&u11t_f,ndim*(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged(&u12t_f,ndim*(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
+	hipMallocManaged(&u11t_f,ndim*(kvol+halo)*sizeof(Complex_f),hipMemAttachGlobal);
+	hipMallocManaged(&u12t_f,ndim*(kvol+halo)*sizeof(Complex_f),hipMemAttachGlobal);
 #else
-	cudaMalloc(&u11t_f,ndim*(kvol+halo)*sizeof(Complex_f));
-	cudaMalloc(&u12t_f,ndim*(kvol+halo)*sizeof(Complex_f));
+	hipMalloc(&u11t_f,ndim*(kvol+halo)*sizeof(Complex_f));
+	hipMalloc(&u12t_f,ndim*(kvol+halo)*sizeof(Complex_f));
 #endif
 #else
 	id = (unsigned int*)aligned_alloc(AVX,ndim*kvol*sizeof(int));
@@ -366,17 +366,17 @@ int main(int argc, char *argv[]){
 	//Initialise Arrays. Leaving it late for scoping
 	//check the sizes in sizes.h
 #ifdef __NVCC__
-	cudaMallocManaged(&R1, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMalloc(&Phi, nf*kferm*sizeof(Complex));
+	hipMallocManaged(&R1, kfermHalo*sizeof(Complex),hipMemAttachGlobal);
+	hipMalloc(&Phi, nf*kferm*sizeof(Complex));
 #ifdef _DEBUG
-	cudaMallocManaged(&X0, nf*kferm2*sizeof(Complex),cudaMemAttachGlobal);
+	hipMallocManaged(&X0, nf*kferm2*sizeof(Complex),hipMemAttachGlobal);
 #else
-	cudaMalloc(&X0, nf*kferm2*sizeof(Complex));
+	hipMalloc(&X0, nf*kferm2*sizeof(Complex));
 #endif
 
-	cudaMallocManaged(&X1, kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&pp, kmom*sizeof(double),cudaMemAttachGlobal);
-	cudaMalloc(&dSdpi, kmom*sizeof(double));
+	hipMallocManaged(&X1, kferm2Halo*sizeof(Complex),hipMemAttachGlobal);
+	hipMallocManaged(&pp, kmom*sizeof(double),hipMemAttachGlobal);
+	hipMalloc(&dSdpi, kmom*sizeof(double));
 	cudaDeviceSynchronise();
 #else
 	R1= aligned_alloc(AVX,kfermHalo*sizeof(Complex));
@@ -420,13 +420,13 @@ int main(int argc, char *argv[]){
 			//or stick with MKL and synchronise/copy over the array
 #ifdef __NVCC__
 			Complex_f *R1_f,*R;
-			cudaMallocManaged(&R,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
+			hipMallocManaged(&R,kfermHalo*sizeof(Complex_f),hipMemAttachGlobal);
 #ifdef _DEBUG
-			cudaMallocManaged(&R1_f,kferm*sizeof(Complex_f),cudaMemAttachGlobal);
-			cudaMemset(R1_f,0,kferm*sizeof(Complex_f));
+			hipMallocManaged(&R1_f,kferm*sizeof(Complex_f),hipMemAttachGlobal);
+			hipMemset(R1_f,0,kferm*sizeof(Complex_f));
 #else
-			cudaMallocAsync(&R1_f,kferm*sizeof(Complex_f),streams[0]);
-			cudaMemsetAsync(R1_f,0,kferm*sizeof(Complex_f),streams[0]);
+			hipMallocAsync(&R1_f,kferm*sizeof(Complex_f),streams[0]);
+			hipMemsetAsync(R1_f,0,kferm*sizeof(Complex_f),streams[0]);
 #endif
 #else
 			Complex_f *R1_f=aligned_alloc(AVX,kferm*sizeof(Complex_f));
@@ -437,7 +437,7 @@ int main(int argc, char *argv[]){
 			//gaussp was the normal Box-Muller and gauss0 didn't have 2 inside the square root
 			//Using σ=1/sqrt(2) in these routines has the same effect as gauss0
 #if (defined __NVCC__ && defined _DEBUG)
-			cudaMemPrefetchAsync(R1_f,kferm*sizeof(Complex_f),device,streams[1]);
+			hipMemPrefetchAsync(R1_f,kferm*sizeof(Complex_f),device,streams[1]);
 #endif
 #if (defined(USE_RAN2)||defined(__RANLUX__)||!defined(__INTEL_MKL__))
 			Gauss_c(R, kferm, 0, 1/sqrt(2));
@@ -445,7 +445,7 @@ int main(int argc, char *argv[]){
 			vsRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, R, 0, 1/sqrt(2));
 #endif
 #ifdef __NVCC__
-			cudaMemPrefetchAsync(R,kfermHalo*sizeof(Complex_f),device,NULL);
+			hipMemPrefetchAsync(R,kfermHalo*sizeof(Complex_f),device,NULL);
 			//Transpose needed here for Dslashd
 			Transpose_c(R1_f,ngorkov*nc,kvol,dimGrid,dimBlock);
 			Transpose_c(R,ngorkov*nc,kvol,dimGrid,dimBlock);
@@ -459,23 +459,23 @@ int main(int argc, char *argv[]){
 			Dslashd_f(R1_f,R,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 #ifdef __NVCC__
 			//Make sure the multiplication is finished before freeing its input!!
-			cudaFree(R);//cudaDeviceSynchronise(); 
-							//cudaFree is blocking so don't need to synchronise
+			hipFree(R);//cudaDeviceSynchronise(); 
+							//hipFree is blocking so don't need to synchronise
 			Transpose_c(R1_f,kvol,ngorkov*nc,dimGrid,dimBlock);
 			cuComplex_convert(R1_f,R1,kferm,false,dimBlock,dimGrid);
 			Transpose_c(u11t_f,kvol,ndim,dimGrid,dimBlock);
 			Transpose_c(u12t_f,kvol,ndim,dimGrid,dimBlock);
 			//cudaDeviceSynchronise();
-			//cudaFreeAsync(R1_f,NULL);
-			cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,0);
-			//cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,streams[1]);
+			//hipFreeAsync(R1_f,NULL);
+			hipMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),hipMemcpyDefault,0);
+			//hipMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),hipMemcpyDefault,streams[1]);
 			cudaDeviceSynchronise();
 #ifdef _DEBUG
-			cudaFree(R1_f);
+			hipFree(R1_f);
 #else
-			cudaFreeAsync(R1_f,0);
+			hipFreeAsync(R1_f,0);
 #endif
-			//cudaFree is blocking so don't need cudaDeviceSynchronise()
+			//hipFree is blocking so don't need cudaDeviceSynchronise()
 #else
 			free(R); 
 #pragma omp simd aligned(R1_f,R1:AVX)
@@ -492,8 +492,8 @@ int main(int argc, char *argv[]){
 		//We're going to make the most of the new Gauss_d routine to send a flattened array
 		//and do this all in one step.
 #ifdef __NVCC__
-		cudaMemcpyAsync(u11t, u11, ndim*kvol*sizeof(Complex),cudaMemcpyHostToDevice,streams[1]);
-		cudaMemcpyAsync(u12t, u12, ndim*kvol*sizeof(Complex),cudaMemcpyHostToDevice,streams[2]);
+		hipMemcpyAsync(u11t, u11, ndim*kvol*sizeof(Complex),hipMemcpyHostToDevice,streams[1]);
+		hipMemcpyAsync(u12t, u12, ndim*kvol*sizeof(Complex),hipMemcpyHostToDevice,streams[2]);
 #else
 		memcpy(u11t, u11, ndim*kvol*sizeof(Complex));
 		memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
@@ -505,9 +505,9 @@ int main(int argc, char *argv[]){
 #endif
 		//Initialise Trial Fields
 #ifdef __NVCC__
-		cudaMemPrefetchAsync(pp,kmom*sizeof(double),device,streams[1]);
-		cudaMemcpy(u11t, u11, ndim*kvol*sizeof(Complex),cudaMemcpyDefault);
-		cudaMemcpy(u12t, u12, ndim*kvol*sizeof(Complex),cudaMemcpyDefault);
+		hipMemPrefetchAsync(pp,kmom*sizeof(double),device,streams[1]);
+		hipMemcpy(u11t, u11, ndim*kvol*sizeof(Complex),hipMemcpyDefault);
+		hipMemcpy(u12t, u12, ndim*kvol*sizeof(Complex),hipMemcpyDefault);
 #else
 		memcpy(u11t, u11, ndim*kvol*sizeof(Complex));
 		memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
@@ -591,7 +591,7 @@ int main(int argc, char *argv[]){
 		actiona+=action; 
 		double vel2=0.0;
 #ifdef __NVCC__
-		cublasDnrm2(cublas_handle,kmom, pp, 1,&vel2);
+		hipblasDnrm2(cublas_handle,kmom, pp, 1,&vel2);
 		vel2*=vel2;
 #elif defined USE_BLAS
 		vel2 = cblas_dnrm2(kmom, pp, 1);
@@ -610,8 +610,8 @@ int main(int argc, char *argv[]){
 			//If rejected, copy the previously accepted field in for measurements
 			if(!acc){
 #ifdef __NVCC__
-				cudaMemcpyAsync(u11t, u11, ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[0]);
-				cudaMemcpyAsync(u12t, u12, ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[1]);
+				hipMemcpyAsync(u11t, u11, ndim*kvol*sizeof(Complex),hipMemcpyDefault,streams[0]);
+				hipMemcpyAsync(u12t, u12, ndim*kvol*sizeof(Complex),hipMemcpyDefault,streams[1]);
 #else
 				memcpy(u11t, u11, ndim*kvol*sizeof(Complex));
 				memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
@@ -748,13 +748,13 @@ int main(int argc, char *argv[]){
 	//Free arrays
 #ifdef __NVCC__
 	//Make a routine that does this for us
-	cudaFree(dk4m); cudaFree(dk4p); cudaFree(R1); cudaFree(dSdpi); cudaFree(pp);
-	cudaFree(Phi); cudaFree(u11t); cudaFree(u12t);
-	cudaFree(X0); cudaFree(X1); cudaFree(u11); cudaFree(u12);
-	cudaFree(id); cudaFree(iu); 
-	cudaFree(dk4m_f); cudaFree(dk4p_f); cudaFree(u11t_f); cudaFree(u12t_f);
-	cudaFree(gamin); cudaFree(gamval); cudaFree(gamval_f);
-	cublasDestroy(cublas_handle);
+	hipFree(dk4m); hipFree(dk4p); hipFree(R1); hipFree(dSdpi); hipFree(pp);
+	hipFree(Phi); hipFree(u11t); hipFree(u12t);
+	hipFree(X0); hipFree(X1); hipFree(u11); hipFree(u12);
+	hipFree(id); hipFree(iu); 
+	hipFree(dk4m_f); hipFree(dk4p_f); hipFree(u11t_f); hipFree(u12t_f);
+	hipFree(gamin); hipFree(gamval); hipFree(gamval_f);
+	hipblasDestroy(cublas_handle);
 #else
 	free(dk4m); free(dk4p); free(R1); free(dSdpi); free(pp);
 	free(Phi); free(u11t); free(u12t);
@@ -774,7 +774,7 @@ int main(int argc, char *argv[]){
 		FILE *sa3at = fopen("Bench_times.csv", "a");
 #ifdef __NVCC__
 		char *version[256];
-		int cuversion; cudaRuntimeGetVersion(&cuversion);
+		int cuversion; hipRuntimeGetVersion(&cuversion);
 		sprintf(version,"CUDA %d\tBlock: (%d,%d,%d)\tGrid: (%d,%d,%d)\n%s\n",cuversion,\
 					dimBlock.x,dimBlock.y,dimBlock.z,dimGrid.x,dimGrid.y,dimGrid.z,__VERSION__);
 #else

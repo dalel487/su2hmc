@@ -6,11 +6,12 @@ HIP_PLATFORM='amd'
 HIP_PATH ?= $(shell hipconfig --path)
 
 IFLAGS=     -I../INCLUDE/ -I ${AOCL_ROOT}/include $(shell gsl-config --cflags)\
-				-I $(HIP_PATH)/include/hipblas -I $(HIP_PATH)/include/
+				-I $(HIP_PATH)/include/hipblas -I $(HIP_PATH)/include/\
+				-I /opt/rocmplus-6.3.3/hipifly/
 			#	-I /opt/nvidia/hpc_sdk/Linux_x86_64/2024/cuda/include/ \
 			#	-I /opt/nvidia/hpc_sdk/Linux_x86_64/2024/math_libs/include/ 
 
-CFLAGS=	$(IFLAGS) -fcommon -D__HIPCC__ -march=native -D__HIPCC__ -DINT_OMF2 \
+CFLAGS=	$(IFLAGS) -fcommon -D__HIPCC__ -march=native -DINT_OMF2 \
 		-fopenmp -fopenmp-simd -static-libgcc -DSA3AT  -D__HIP_PLATFORM_AMD__\
 		-foffload=disable #amdgcn-amdhsa="-march=gfx902" #-fopenacc\
 #		-pg -fprofile-arcs-foffload=amdgcn-amdhsa="-march=gfx90c"
@@ -31,14 +32,14 @@ EXE=	su2hmc_HIP
 
 CSRC_DIR=	../production_c
 CSRC=	\
-	    coord.c \
-	    congrad.c \
-		force.c \
-    	random.c \
-		par_mpi.c \
-		bosonic.c\
-		fermionic.c\
-		diagnostics.c
+	    coord.hip.c \
+	    congrad.hip.c \
+		force.hip.c \
+    	random.hip.c \
+		par_mpi.hip.c \
+		bosonic.hip.c\
+		fermionic.hip.c\
+		diagnostics.hip.c
 
 HIPSRC_DIR=	../production_hip
 HIPSRC=	\
@@ -63,9 +64,9 @@ CINC=	\
 
 .SUFFIXES: .c .hip.cpp .h .hpp .o 
 .PHONY: clean debug release profiler tar
-C_SOURCES:= $(wildcard $(CSRC_DIR)/*.c)
+C_SOURCES:= $(wildcard $(CSRC_DIR)/*.hip.c)
 HIP_SOURCES:= $(wildcard $(HIPSRC_DIR)/*.hip.cpp)
-COBJ=	$(patsubst $(CSRC_DIR)/%.c, $(CSRC_DIR)/%.o, $(C_SOURCES))
+COBJ=	$(patsubst $(CSRC_DIR)/%.hip.c, $(CSRC_DIR)/%.o, $(C_SOURCES))
 HIPOBJ= $(patsubst $(HIPSRC_DIR)/%.hip.cpp, $(HIPSRC_DIR)/%.o, $(HIP_SOURCES))
 #CLIB= libc.a
 #HIPLIB= libhip.a
@@ -95,11 +96,11 @@ debug:		HIPCCFLAGS += -O0 -g -D_DEBUG
 debug:		$(EXE)
 		 
 #$(EXE):   ../main.c $(OBJ)
-$(EXE):	HIPCCFLAGS += --offload-arch=gfx1034 #-dopt=on
-$(EXE): $(OBJ) ../main.c
+$(EXE):	HIPCCFLAGS += --offload-arch=native #-dopt=on
+$(EXE): $(OBJ) ../main.hip.c
 	$(HIPCC) $(HIPCCFLAGS)  -std=gnu11 -Xcompiler "$(CFLAGS) " -o $@ $^  $(LFLAGS) $(HIPLFLAGS)
-$(EXE): $(OBJ) ../main.c
-	$(HIPCC) $(HIPCCFLAGS)  -std=gnu11 -Xcompiler "$(CFLAGS) " -o $@ $^  $(LFLAGS) $(HIPLFLAGS)
+# $(EXE): $(OBJ) ../main.hip.c
+# 	$(HIPCC) $(HIPCCFLAGS)  -std=gnu11 -Xcompiler "$(CFLAGS) " -o $@ $^  $(LFLAGS) $(HIPLFLAGS)
 #	$(CXX)  $(CFLAGS) -std=gnu11  $(LFLAGS) $(HIPLFLAGS) $(OBJ) -x c $< -o $@
 #	$(HIPCC) $(HIPCCFLAGS) -Xcompiler "$(CFLAGS) -std=gnu11 " $(LFLAGS) $(HIPLFLAGS) $^ -o $@
 %.o: $(HIPSRC_DIR)/%.hip.cpp

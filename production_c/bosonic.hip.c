@@ -122,13 +122,13 @@ double Polyakov(Complex_f *u11t, Complex_f *u12t){
 	double poly = 0;
 #ifdef __NVCC__
 	int device=-1;
-	cudaGetDevice(&device);
+	hipGetDevice(&device);
 	Complex_f *Sigma11,*Sigma12;
-	cudaMallocManaged((void **)&Sigma11,kvol3*sizeof(Complex_f),cudaMemAttachGlobal);
+	hipMallocManaged((void **)&Sigma11,kvol3*sizeof(Complex_f),hipMemAttachGlobal);
 #ifdef _DEBUG
-	cudaMallocManaged((void **)&Sigma12,kvol3*sizeof(Complex_f),cudaMemAttachGlobal);
+	hipMallocManaged((void **)&Sigma12,kvol3*sizeof(Complex_f),hipMemAttachGlobal);
 #else
-	cudaMallocAsync((void **)&Sigma12,kvol3*sizeof(Complex_f),streams[0]);
+	hipMallocAsync((void **)&Sigma12,kvol3*sizeof(Complex_f),streams[0]);
 #endif
 #else
 	Complex_f *Sigma11 = aligned_alloc(AVX,kvol3*sizeof(Complex_f));
@@ -137,8 +137,8 @@ double Polyakov(Complex_f *u11t, Complex_f *u12t){
 
 	//Extract the time component from each site and save in corresponding Sigma
 #ifdef __NVCC__
-	cublasCcopy(cublas_handle,kvol3, (cuComplex *)(u11t+3), ndim, (cuComplex *)Sigma11, 1);
-	cublasCcopy(cublas_handle,kvol3, (cuComplex *)(u12t+3), ndim, (cuComplex *)Sigma12, 1);
+	hipblasCcopy_v2(cublas_handle,kvol3, (hipComplex *)(u11t+3), ndim, (hipComplex *)Sigma11, 1);
+	hipblasCcopy_v2(cublas_handle,kvol3, (hipComplex *)(u12t+3), ndim, (hipComplex *)Sigma12, 1);
 #elif defined USE_BLAS
 	cblas_ccopy(kvol3, u11t+3, ndim, Sigma11, 1);
 	cblas_ccopy(kvol3, u12t+3, ndim, Sigma12, 1);
@@ -165,7 +165,7 @@ double Polyakov(Complex_f *u11t, Complex_f *u12t){
 #ifdef __NVCC__
 	cudaDeviceSynchronise();
 	cuPolyakov(Sigma11,Sigma12,u11t,u12t,dimGrid,dimBlock);
-	cudaMemPrefetchAsync(Sigma11,kvol3*sizeof(Complex_f),cudaCpuDeviceId,NULL);
+	hipMemPrefetchAsync(Sigma11,kvol3*sizeof(Complex_f),hipCpuDeviceId,NULL);
 #else
 #pragma unroll
 	for(int it=1;it<ksizet;it++)
@@ -213,11 +213,11 @@ double Polyakov(Complex_f *u11t, Complex_f *u12t){
 	for(int i=0;i<kvol3;i++)
 		poly+=creal(Sigma11[i]);
 #ifdef __NVCC__
-	cudaFree(Sigma11);
+	hipFree(Sigma11);
 #ifdef _DEBUG
-	cudaFree(Sigma12);
+	hipFree(Sigma12);
 #else
-	cudaFreeAsync(Sigma12,streams[0]);
+	hipFreeAsync(Sigma12,streams[0]);
 #endif
 #else
 	free(Sigma11); free(Sigma12);
