@@ -38,6 +38,7 @@
 #endif
 
 #if defined __HIPCC__ || defined __NVCC__
+#warning	"Compiling for GPU and defining __GPU__"
 #define __GPU__
 #endif
 

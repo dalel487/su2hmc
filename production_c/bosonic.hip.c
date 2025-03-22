@@ -120,7 +120,7 @@ double Polyakov(Complex_f *u11t, Complex_f *u12t){
 	 */
 	const char *funcname = "Polyakov";
 	double poly = 0;
-#ifdef __NVCC__
+#ifdef __GPU__
 	int device=-1;
 	hipGetDevice(&device);
 	Complex_f *Sigma11,*Sigma12;
@@ -136,7 +136,7 @@ double Polyakov(Complex_f *u11t, Complex_f *u12t){
 #endif
 
 	//Extract the time component from each site and save in corresponding Sigma
-#ifdef __NVCC__
+#ifdef __GPU__
 	hipblasCcopy_v2(cublas_handle,kvol3, (hipComplex *)(u11t+3), ndim, (hipComplex *)Sigma11, 1);
 	hipblasCcopy_v2(cublas_handle,kvol3, (hipComplex *)(u12t+3), ndim, (hipComplex *)Sigma12, 1);
 #elif defined USE_BLAS
@@ -162,7 +162,7 @@ double Polyakov(Complex_f *u11t, Complex_f *u12t){
 		Buffers
 		There is a dependency. Can only parallelise the inner loop
 		*/
-#ifdef __NVCC__
+#ifdef __GPU__
 	cudaDeviceSynchronise();
 	cuPolyakov(Sigma11,Sigma12,u11t,u12t,dimGrid,dimBlock);
 	hipMemPrefetchAsync(Sigma11,kvol3*sizeof(Complex_f),hipCpuDeviceId,NULL);
@@ -187,8 +187,8 @@ double Polyakov(Complex_f *u11t, Complex_f *u12t){
 	//Par_tmul does nothing if there is only a single processor in the time direction. So we only compile
 	//its call if it is required
 #if (npt>1)
-#ifdef __NVCC_
-#error Par_tmul is not yet implimented in CUDA as Sigma12 is device only memory
+#ifdef __GPU__
+#error Par_tmul is not yet implimented on GPU as Sigma12 is device only memory
 #endif
 #ifdef _DEBUG
 	printf("Multiplying with MPI\n");
@@ -204,7 +204,7 @@ double Polyakov(Complex_f *u11t, Complex_f *u12t){
 	  for this case rather than calculating everything just to set it to zero
 	  */
 	if(!pcoord[3+rank*ndim])
-#ifdef __NVCC__
+#ifdef __GPU__
 		cudaDeviceSynchronise();
 #pragma omp parallel for simd reduction(+:poly)
 #else
@@ -212,7 +212,7 @@ double Polyakov(Complex_f *u11t, Complex_f *u12t){
 #endif
 	for(int i=0;i<kvol3;i++)
 		poly+=creal(Sigma11[i]);
-#ifdef __NVCC__
+#ifdef __GPU__
 	hipFree(Sigma11);
 #ifdef _DEBUG
 	hipFree(Sigma12);

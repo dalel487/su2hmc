@@ -20,8 +20,10 @@ void blockInit(int x, int y, int z, int t, dim3 *dimBlock, dim3 *dimGrid){
 	hipDeviceProp_t prop;	hipGetDeviceProperties(&prop, device);
 	//Threads per block
 	int tpb=prop.maxThreadsPerBlock/8;
+	printf("Max threads per block=%d\tThreads per block=%d\t",tpb*8,tpb);
 	//Warp size
 	int tpw=prop.warpSize;
+	printf("Warp size=%d\n",tpw);
 	int bx=1;
 	//Set bx to be the largest power of 2 less than x that fits in a block
 	while(bx<x/2 && bx<tpb)

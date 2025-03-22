@@ -46,7 +46,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 	//Give initial values Will be overwritten if niterx>0
 	double betad = 1.0; Complex_f alphad=0; Complex alpha = 1;
 	//Because we're dealing with flattened arrays here we can call cblas safely without the halo
-#ifdef __NVCC__
+#ifdef __GPU__
 	Complex_f *p_f, *x1_f, *x2_f, *r_f, *X1_f;
 	int device=-1; hipGetDevice(&device);
 
@@ -72,7 +72,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 	Complex_f *r_f=aligned_alloc(AVX,kferm2*sizeof(Complex_f));
 #endif
 	//Instead of copying element-wise in a loop, use memcpy.
-#ifdef __NVCC__
+#ifdef __GPU__
 	//Get X1 in single precision, then swap to AoS format
 	cuComplex_convert(X1_f,X1,kferm2,true,dimBlock,dimGrid);
 	Transpose_c(X1_f,ndirac*nc,kvol,dimGrid,dimBlock);
@@ -105,13 +105,13 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 		//No need to synchronise here. The memcpy in Hdslash is blocking
 		Hdslash_f(x1_f,p_f,u11t,u12t,iu,id,gamval_f,gamin,dk4m,dk4p,akappa);
 		Hdslashd_f(x2_f,x1_f,u11t,u12t,iu,id,gamval_f,gamin,dk4m,dk4p,akappa);
-#ifdef	__NVCC__
+#ifdef	__GPU__
 		cudaDeviceSynchronise();
 #endif
 		//x2 =  (M^†M+J^2)p 
 		//No point adding zero a couple of hundred times if the diquark source is zero
 		if(fac_f!=0){
-#ifdef	__NVCC__
+#ifdef	__GPU__
 			hipblasCaxpy_v2(cublas_handle,kferm2,(hipComplex *)&fac_f,(hipComplex *)p_f,1,(hipComplex *)x2_f,1);
 #elif defined USE_BLAS
 			cblas_caxpy(kferm2, &fac_f, p_f, 1, x2_f, 1);
@@ -124,7 +124,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 		//We can't evaluate α on the first *itercg because we need to get β_n.
 		if(*itercg){
 			//α_d= p* (M^†M+J^2)p
-#ifdef __NVCC__
+#ifdef __GPU__
 			hipblasCdotc_v2(cublas_handle,kferm2,(hipComplex *)p_f,1,(hipComplex *)x2_f,1,(hipComplex *)&alphad);
 #elif defined USE_BLAS
 			cblas_cdotc_sub(kferm2, p_f, 1, x2_f, 1, &alphad);
@@ -142,7 +142,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 			//α=α_n/α_d = (r.r)/p(M^†M)p 
 			alpha=alphan/creal(alphad);
 			//x-αp, 
-#ifdef __NVCC__
+#ifdef __GPU__
 			Complex_f alpha_f = (Complex_f)alpha;
 			hipblasCaxpy_v2(cublas_handle,kferm2,(hipComplex *)&alpha_f,(hipComplex *)p_f,1,(hipComplex *)X1_f,1);
 #elif defined USE_BLAS
@@ -154,7 +154,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 #endif
 		}			
 		// r_n+1 = r_n-α(M^† M)p_n and β_n=r*.r
-#ifdef	__NVCC__
+#ifdef	__GPU__
 		Complex_f alpha_m=(Complex_f)(-alpha);
 		hipblasCaxpy_v2(cublas_handle, kferm2,(hipComplex *)&alpha_m,(hipComplex *)x2_f,1,(hipComplex *)r_f,1);
 		float betan_f;
@@ -206,7 +206,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 		betad=betan; alphan=betan;
 		//BLAS for p=r+βp doesn't exist in standard BLAS. This is NOT an axpy case as we're multiplying y by
 		//β instead of x.
-#ifdef __NVCC__
+#ifdef __GPU__
 		Complex_f beta_f=(Complex_f)beta;
 		__managed__ Complex_f a = 1.0;
 		hipblasCscal_v2(cublas_handle,kferm2,(hipComplex *)&beta_f,(hipComplex *)p_f,1);
@@ -227,7 +227,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 			p_f[i]=r_f[i]+beta*p_f[i];
 #endif
 	}
-#ifdef __NVCC__
+#ifdef __GPU__
 //Restore arrays back to their previous salyout
 	Transpose_c(X1_f,kvol,ndirac*nc,dimGrid,dimBlock);
 	cuComplex_convert(X1_f,X1,kferm2,false,dimBlock,dimGrid);
@@ -243,7 +243,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 		r[i]=(Complex)r_f[i];
 	}
 #endif
-#ifdef __NVCC__
+#ifdef __GPU__
 #ifdef _DEBUG
 	cudaDeviceSynchronise();
 	hipFree(x1_f);hipFree(x2_f); hipFree(p_f);
@@ -293,7 +293,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 	//These alpha and beta terms should be double, but that causes issues with BLAS. Instead we declare
 	//them Complex and work with the real part (especially for α_d)
 	//Give initial values Will be overwritten if niterx>0
-#ifdef __NVCC__
+#ifdef __GPU__
 	Complex_f *p_f, *r_f, *xi_f, *x1_f, *x2_f;
 	int device; hipGetDevice(&device);
 #ifdef _DEBUG
@@ -319,7 +319,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 	double betad = 1.0; Complex_f alphad=0; Complex alpha = 1;
 	double alphan=0.0;
 	//Instead of copying element-wise in a loop, use memcpy.
-#ifdef __NVCC__
+#ifdef __GPU__
 	//Get xi  in single precision, then swap to AoS format
 	cuComplex_convert(p_f,xi,kferm,true,dimBlock,dimGrid);
 	Transpose_c(p_f,ngorkov*nc,kvol,dimGrid,dimBlock);
@@ -347,7 +347,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
 	//if statements quicker to type
 	double betan;
-#ifdef __NVCC__
+#ifdef __GPU__
 	cudaDeviceSynchronise();
 #endif
 	for((*itercg)=0; (*itercg)<=niterc; (*itercg)++){
@@ -355,7 +355,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 		//x2=(M^†)x1=(M^†)Mp
 		Dslash_f(x1_f,p_f,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 		Dslashd_f(x2_f,x1_f,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
-#ifdef __NVCC__
+#ifdef __GPU__
 		cudaDeviceSynchronise();
 #endif
 		//We can't evaluate α on the first niterx because we need to get β_n.
@@ -363,7 +363,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 			//x*.x
 #ifdef USE_BLAS
 			float alphad_f;
-#ifdef __NVCC__
+#ifdef __GPU__
 			hipblasScnrm2_v2(cublas_handle,kferm,(hipComplex*) x1_f, 1,(float *)&alphad_f);
 			alphad = alphad_f*alphad_f;
 #else
@@ -384,7 +384,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 			//x+αp
 #ifdef USE_BLAS
 			Complex_f alpha_f=(float)alpha;
-#ifdef __NVCC__
+#ifdef __GPU__
 			hipblasCaxpy_v2(cublas_handle,kferm,(hipComplex*) &alpha_f,(hipComplex*) p_f,1,(hipComplex*) xi_f,1);
 #else
 			cblas_caxpy(kferm, (Complex_f*)&alpha_f,(Complex_f*)p_f, 1, (Complex_f*)xi_f, 1);
@@ -400,7 +400,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 #if defined USE_BLAS
 		Complex_f alpha_m=(Complex_f)(-alpha);
 		float betan_f=0;
-#ifdef __NVCC__
+#ifdef __GPU__
 		hipblasCaxpy_v2(cublas_handle,kferm, (hipComplex *)&alpha_m,(hipComplex *) x2_f, 1,(hipComplex *) r_f, 1);
 		//cudaDeviceSynchronise();
 		//r*.r
@@ -457,7 +457,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 #ifdef USE_BLAS
 		Complex_f beta_f = (Complex_f)beta;
 		Complex_f a = 1.0;
-#ifdef __NVCC__
+#ifdef __GPU__
 		hipblasCscal_v2(cublas_handle,kferm,(hipComplex *)&beta_f,(hipComplex *)p_f,1);
 		hipblasCaxpy_v2(cublas_handle,kferm,(hipComplex *)&a,(hipComplex *)r_f,1,(hipComplex *)p_f,1);
 		cudaDeviceSynchronise();
@@ -473,7 +473,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 			p_f[i]=r_f[i]+beta*p_f[i];
 #endif
 	}
-#ifdef __NVCC__
+#ifdef __GPU__
 	Transpose_c(xi_f,kvol,ngorkov*nc,dimGrid,dimBlock);
 	Transpose_c(r_f,kvol,ngorkov*nc,dimGrid,dimBlock);
 
@@ -487,7 +487,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 		xi[i]=(Complex)xi_f[i];
 	}
 #endif
-#ifdef	__NVCC__
+#ifdef	__GPU__
 	hipFree(p_f); hipFree(r_f);hipFree(x1_f); hipFree(x2_f); hipFree(xi_f); 
 #else
 	free(p_f); free(r_f); free(x1_f); free(x2_f); free(xi_f); 
@@ -498,7 +498,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
  * Pre mult
 #ifdef _DEBUGCG
 memset(x1_f,0,kferm2Halo*sizeof(Complex_f));
-#ifdef __NVCC__
+#ifdef __GPU__
 hipMemPrefetchAsync(x1_f,kferm2*sizeof(Complex_f),device,NULL);
 cudaDeviceSynchronise();
 #endif

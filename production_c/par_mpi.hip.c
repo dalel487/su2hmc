@@ -665,7 +665,7 @@ inline int Par_csum(Complex_f *cval){
 	Complex_f ctmp;
 
 	if(MPI_Allreduce(cval, &ctmp, 1, MPI_C_FLOAT_COMPLEX, MPI_SUM, comm)){
-#ifndef __NVCC__
+#ifndef __GPU__
 		fprintf(stderr, "Error %i in %s: Couldn't complete reduction for %f+%f i.\nExiting...\n\n",
 				REDUCERR, funcname, creal(*cval), cimag(*cval));
 #endif
@@ -694,7 +694,7 @@ inline int Par_zsum(Complex *zval){
 	Complex ztmp;
 
 	if(MPI_Allreduce(zval, &ztmp, 1, MPI_C_DOUBLE_COMPLEX, MPI_SUM, comm)){
-#ifndef __NVCC__
+#ifndef __GPU__
 		fprintf(stderr, "Error %i in %s: Couldn't complete reduction for %f+%f i.\nExiting...\n\n",
 				REDUCERR, funcname, creal(*zval), cimag(*zval));
 #endif
@@ -777,7 +777,7 @@ inline int Par_ccopy(Complex *cval){
 	 */
 	const char *funcname = "Par_ccopy";
 	if(MPI_Bcast(cval,1,MPI_C_FLOAT_COMPLEX,masterproc,comm)){
-#ifndef __NVCC__
+#ifndef __GPU__
 		fprintf(stderr, "Error %i in %s: Failed to broadcast %f+i%f from %i.\nExiting...\n\n",
 				BROADERR, funcname, creal(*cval), cimag(*cval), rank);
 #endif
@@ -799,7 +799,7 @@ inline int Par_zcopy(Complex *zval){
 	 */
 	const char *funcname = "Par_zcopy";
 	if(MPI_Bcast(zval,1,MPI_C_DOUBLE_COMPLEX,masterproc,comm)){
-#ifndef __NVCC__
+#ifndef __GPU__
 		fprintf(stderr, "Error %i in %s: Failed to broadcast %f+i%f from %i.\nExiting...\n\n",
 				BROADERR, funcname, creal(*zval), cimag(*zval), rank);
 #endif
@@ -1185,7 +1185,7 @@ int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u
 	const char *funchame = "Trial_Exchange";
 	//Prefetch the trial fields from the GPU, halos come later
 #if(nproc>1)
-#ifdef __NVCC__
+#ifdef __GPU__
 	int device=-1;
 	hipGetDevice(&device);
 	hipMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),hipCpuDeviceId,NULL);
@@ -1206,7 +1206,7 @@ int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u
 #ifdef USE_BLAS
 		cblas_zcopy(kvol+halo, z, 1, &u11t[mu], ndim);
 		//Now we prefetch the halo
-#ifdef __NVCC__
+#ifdef __GPU__
 		hipMemPrefetchAsync(u11t+ndim*kvol, ndim*halo*sizeof(Complex),device,NULL);
 #endif
 		//Repeat for u12t
@@ -1226,13 +1226,13 @@ int Trial_Exchange(Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u
 #endif
 	}
 	//Now we prefetch the halo
-#ifdef __NVCC__
+#ifdef __GPU__
 	hipMemPrefetchAsync(u12t+ndim*kvol, ndim*halo*sizeof(Complex),device,NULL);
 #endif
 	free(z);
 #endif
 //And get the single precision gauge fields preppeed
-#ifdef __NVCC__
+#ifdef __GPU__
 	cuComplex_convert(u11t_f,u11t,ndim*(kvol+halo),true,dimBlock,dimGrid);
 	cuComplex_convert(u12t_f,u12t,ndim*(kvol+halo),true,dimBlock,dimGrid);
 	cudaDeviceSynchronise();

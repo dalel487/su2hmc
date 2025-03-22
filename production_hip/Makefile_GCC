@@ -16,7 +16,7 @@ CFLAGS=	$(IFLAGS) -fcommon -D__HIPCC__ -march=native -DINT_OMF2 \
 		-foffload=disable #amdgcn-amdhsa="-march=gfx902" #-fopenacc\
 #		-pg -fprofile-arcs-foffload=amdgcn-amdhsa="-march=gfx90c"
 
-HIPLFLAGS=	-L$(HIP_PATH)/lib/ -lhipblas  -lomp #-lhip -lhiprt 
+HIPLFLAGS=	-L$(HIP_PATH)/lib/ -D__HIPCC__ -D__HIP_PLATFORM_AMD__ -lhipblas  -lomp #-lhip -lhiprt 
 
 LFLAGS=	-L${AOCL_ROOT}/lib -L/usr/local/lib64 -ldl -lamdlibm  -lomp\
 			-lm -lalm -lm -lblis -lamdalloc -latomic $(shell gsl-config --libs-without-cblas)

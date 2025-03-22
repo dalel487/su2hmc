@@ -49,11 +49,8 @@
 #include	<string.h>
 #include	<su2hmc.h>
 #ifdef	__GPU__
-
+#warning	"main.hip.c is targeting GPU"
 //Get AMD to convert the CUDA for us
-#ifdef __HIPCC__
-#include <hipifly.h>
-#endif
 
 #include <hipblas.h>
 #include	<hip/hip_runtime.h>
@@ -118,7 +115,7 @@ int main(int argc, char *argv[]){
 	 */
 	float beta = 1.7f;
 	float akappa = 0.1780f;
-#ifdef __GPU__
+#ifdef __NVCC__
 	__managed__ 
 #endif
 		Complex_f jqq = 0;
@@ -166,7 +163,7 @@ int main(int argc, char *argv[]){
 #endif
 	jqq=ajq*cexp(athq*I);
 	//End of input
-#ifdef __NVCC__
+#ifdef __GPU__
 	//CUBLAS Handle
 	hipblasCreate(&cublas_handle);
 	//Set up grid and blocks
@@ -199,7 +196,7 @@ int main(int argc, char *argv[]){
 	float	*dk4m_f, *dk4p_f;
 	//Halo index arrays
 	unsigned int *iu, *id;
-#ifdef __NVCC__
+#ifdef __GPU__
 	hipMallocManaged((void**)&iu,ndim*kvol*sizeof(int),hipMemAttachGlobal);
 	hipMallocManaged((void**)&id,ndim*kvol*sizeof(int),hipMemAttachGlobal);
 
@@ -268,7 +265,7 @@ int main(int argc, char *argv[]){
 	 * istart > 0: Random/Hot Start
 	 */
 	Init(istart,ibound,iread,beta,fmu,akappa,ajq,u11,u12,u11t,u12t,u11t_f,u12t_f,gamval,gamval_f,gamin,dk4m,dk4p,dk4m_f,dk4p_f,iu,id);
-#ifdef __NVCC__
+#ifdef __GPU__
 	//GPU Initialisation stuff
 	Init_CUDA(u11t,u12t,gamval,gamval_f,gamin,dk4m,dk4p,iu,id);//&dimBlock,&dimGrid);
 #endif
@@ -365,7 +362,7 @@ int main(int argc, char *argv[]){
 	Complex *Phi, *R1, *X0, *X1;
 	//Initialise Arrays. Leaving it late for scoping
 	//check the sizes in sizes.h
-#ifdef __NVCC__
+#ifdef __GPU__
 	hipMallocManaged(&R1, kfermHalo*sizeof(Complex),hipMemAttachGlobal);
 	hipMalloc(&Phi, nf*kferm*sizeof(Complex));
 #ifdef _DEBUG
@@ -418,7 +415,7 @@ int main(int argc, char *argv[]){
 			//
 			//How do we optimise this for use in CUDA? Do we use CUDA's PRNG
 			//or stick with MKL and synchronise/copy over the array
-#ifdef __NVCC__
+#ifdef __GPU__
 			Complex_f *R1_f,*R;
 			hipMallocManaged(&R,kfermHalo*sizeof(Complex_f),hipMemAttachGlobal);
 #ifdef _DEBUG
@@ -436,7 +433,7 @@ int main(int argc, char *argv[]){
 			//The FORTRAN code had two Gaussian routines.
 			//gaussp was the normal Box-Muller and gauss0 didn't have 2 inside the square root
 			//Using σ=1/sqrt(2) in these routines has the same effect as gauss0
-#if (defined __NVCC__ && defined _DEBUG)
+#if (defined __GPU__ && defined _DEBUG)
 			hipMemPrefetchAsync(R1_f,kferm*sizeof(Complex_f),device,streams[1]);
 #endif
 #if (defined(USE_RAN2)||defined(__RANLUX__)||!defined(__INTEL_MKL__))
@@ -444,7 +441,7 @@ int main(int argc, char *argv[]){
 #else
 			vsRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, R, 0, 1/sqrt(2));
 #endif
-#ifdef __NVCC__
+#ifdef __GPU__
 			hipMemPrefetchAsync(R,kfermHalo*sizeof(Complex_f),device,NULL);
 			//Transpose needed here for Dslashd
 			Transpose_c(R1_f,ngorkov*nc,kvol,dimGrid,dimBlock);
@@ -457,7 +454,7 @@ int main(int argc, char *argv[]){
 			cudaDeviceSynchronise();
 #endif
 			Dslashd_f(R1_f,R,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
-#ifdef __NVCC__
+#ifdef __GPU__
 			//Make sure the multiplication is finished before freeing its input!!
 			hipFree(R);//cudaDeviceSynchronise(); 
 							//hipFree is blocking so don't need to synchronise
@@ -491,7 +488,7 @@ int main(int argc, char *argv[]){
 		//========
 		//We're going to make the most of the new Gauss_d routine to send a flattened array
 		//and do this all in one step.
-#ifdef __NVCC__
+#ifdef __GPU__
 		hipMemcpyAsync(u11t, u11, ndim*kvol*sizeof(Complex),hipMemcpyHostToDevice,streams[1]);
 		hipMemcpyAsync(u12t, u12, ndim*kvol*sizeof(Complex),hipMemcpyHostToDevice,streams[2]);
 #else
@@ -504,7 +501,7 @@ int main(int argc, char *argv[]){
 		vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, kmom, pp, 0, 1);
 #endif
 		//Initialise Trial Fields
-#ifdef __NVCC__
+#ifdef __GPU__
 		hipMemPrefetchAsync(pp,kmom*sizeof(double),device,streams[1]);
 		hipMemcpy(u11t, u11, ndim*kvol*sizeof(Complex),hipMemcpyDefault);
 		hipMemcpy(u12t, u12, ndim*kvol*sizeof(Complex),hipMemcpyDefault);
@@ -590,7 +587,7 @@ int main(int argc, char *argv[]){
 		}
 		actiona+=action; 
 		double vel2=0.0;
-#ifdef __NVCC__
+#ifdef __GPU__
 		hipblasDnrm2(cublas_handle,kmom, pp, 1,&vel2);
 		vel2*=vel2;
 #elif defined USE_BLAS
@@ -609,7 +606,7 @@ int main(int argc, char *argv[]){
 		if(itraj%iprint==0){
 			//If rejected, copy the previously accepted field in for measurements
 			if(!acc){
-#ifdef __NVCC__
+#ifdef __GPU__
 				hipMemcpyAsync(u11t, u11, ndim*kvol*sizeof(Complex),hipMemcpyDefault,streams[0]);
 				hipMemcpyAsync(u12t, u12, ndim*kvol*sizeof(Complex),hipMemcpyDefault,streams[1]);
 #else
@@ -746,7 +743,7 @@ int main(int argc, char *argv[]){
 #endif
 	//End of main loop
 	//Free arrays
-#ifdef __NVCC__
+#ifdef __GPU__
 	//Make a routine that does this for us
 	hipFree(dk4m); hipFree(dk4p); hipFree(R1); hipFree(dSdpi); hipFree(pp);
 	hipFree(Phi); hipFree(u11t); hipFree(u12t);
@@ -772,7 +769,7 @@ int main(int argc, char *argv[]){
 #if (defined SA3AT)
 	if(!rank){
 		FILE *sa3at = fopen("Bench_times.csv", "a");
-#ifdef __NVCC__
+#ifdef __GPU__
 		char *version[256];
 		int cuversion; hipRuntimeGetVersion(&cuversion);
 		sprintf(version,"CUDA %d\tBlock: (%d,%d,%d)\tGrid: (%d,%d,%d)\n%s\n",cuversion,\

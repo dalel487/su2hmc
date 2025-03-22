@@ -5,7 +5,7 @@
  */
 #include	<assert.h>
 #include	<coord.h>
-#ifdef	__NVCC__
+#ifdef	__GPU__
 #include	<hip/hip_runtime.h>
 #include	<hip/hip_runtime.h>
 //Fix this later
@@ -101,7 +101,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 	DHalo_swap_dir(dk4m, 1, 3, UP);
 #endif
 	//Float versions
-#ifdef __NVCC__
+#ifdef __GPU__
 	cuReal_convert(dk4p_f,dk4p,kvol+halo,true,dimBlock,dimGrid);
 	cuReal_convert(dk4m_f,dk4m,kvol+halo,true,dimBlock,dimGrid);
 #else
@@ -116,7 +116,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 	//Gattringer and Lang have a nice crash course in appendix A.2 of
 	//Quantum Chromodynamics on the Lattice (530.14 GAT)
 	//_t is for temp. We copy these into the real gamvals later
-#ifdef __NVCC__
+#ifdef __GPU__
 	hipMemcpy(gamin,gamin_t,4*4*sizeof(int),hipMemcpyDefault);
 #else
 	memcpy(gamin,gamin_t,4*4*sizeof(int));
@@ -134,7 +134,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 			gamval_t[i][j]*=akappa;
 #endif
 
-#ifdef __NVCC__
+#ifdef __GPU__
 	hipMemcpy(gamval,gamval_t,5*4*sizeof(Complex),hipMemcpyDefault);
 	cuComplex_convert(gamval_f,gamval,20,true,dimBlockOne,dimGridOne);	
 #else
@@ -181,7 +181,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 		else
 			fprintf(stderr,"Warning %i in %s: Gauge fields are not initialised.\n", NOINIT, funcname);
 
-#ifdef __NVCC__
+#ifdef __GPU__
 		int device=-1;
 		hipGetDevice(&device);
 		hipMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),device,streams[0]);
@@ -190,7 +190,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 		//Send trials to accelerator for reunitarisation
 		Reunitarise(u11t,u12t);
 		//Get trials back
-#ifdef __NVCC__
+#ifdef __GPU__
 		hipMemcpyAsync(u11,u11t,ndim*kvol*sizeof(Complex),hipMemcpyDefault,streams[0]);
 		hipMemPrefetchAsync(u11, ndim*kvol*sizeof(Complex),device,streams[0]);
 		hipMemcpyAsync(u12,u12t,ndim*kvol*sizeof(Complex),hipMemcpyDefault,streams[1]);
@@ -235,7 +235,7 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 	 */	
 	const char *funcname = "Hamilton";
 	//Iterate over momentum terms.
-#ifdef __NVCC__
+#ifdef __GPU__
 	double hp;
 	int device=-1;
 	hipGetDevice(&device);
@@ -257,7 +257,7 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 	Average_Plaquette(&hg,&avplaqs,&avplaqt,u11t_f,u12t_f,iu,beta);
 
 	double hf = 0; int itercg = 0;
-#ifdef __NVCC__
+#ifdef __GPU__
 	Complex *smallPhi;
 	hipMallocAsync((void **)&smallPhi,kferm2*sizeof(Complex),NULL);
 #else
@@ -265,7 +265,7 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 #endif
 	//Iterating over flavours
 	for(int na=0;na<nf;na++){
-#ifdef __NVCC__
+#ifdef __GPU__
 #ifdef _DEBUG
 		cudaDeviceSynchronise();
 #endif
@@ -281,13 +281,13 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 			fprintf(stderr,"Trajectory %d\n", traj);
 
 		*ancgh+=itercg;
-#ifdef __NVCC__
+#ifdef __GPU__
 		hipMemcpyAsync(X0+na*kferm2,X1,kferm2*sizeof(Complex),hipMemcpyDeviceToDevice,streams[0]);
 #else
 		memcpy(X0+na*kferm2,X1,kferm2*sizeof(Complex));
 #endif
 		Fill_Small_Phi(na, smallPhi,Phi);
-#ifdef __NVCC__
+#ifdef __GPU__
 		Complex dot;
 		hipblasZdotc_v2(cublas_handle,kferm2,(hipDoubleComplex *)smallPhi,1,(hipDoubleComplex *) X1,1,(hipDoubleComplex *) &dot);
 		hf+=creal(dot);
@@ -302,7 +302,7 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 			hf+=creal(conj(smallPhi[j])*X1[j]);
 #endif
 	}
-#ifdef __NVCC__
+#ifdef __GPU__
 	hipFreeAsync(smallPhi,NULL);
 #else
 	free(smallPhi);
@@ -323,7 +323,7 @@ inline int C_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsi
 	const char *funcname = "C_gather";
 	//FORTRAN had a second parameter m giving the size of y (kvol+halo) normally
 	//Pointers mean that's not an issue for us so I'm leaving it out
-#ifdef __NVCC__
+#ifdef __GPU__
 	cuC_gather(x,y,n,table,mu,dimBlock,dimGrid);
 #else
 #pragma omp parallel for simd aligned (x,y,table:AVX)
@@ -337,7 +337,7 @@ inline int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned
 	const char *funcname = "Z_gather";
 	//FORTRAN had a second parameter m giving the size of y (kvol+halo) normally
 	//Pointers mean that's not an issue for us so I'm leaving it out
-#ifdef __NVCC__
+#ifdef __GPU__
 	cuZ_gather(x,y,n,table,mu,dimBlock,dimGrid);
 #else
 #pragma omp parallel for simd aligned (x,y,table:AVX)
@@ -365,7 +365,7 @@ inline int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
 	 */
 	const char *funcname = "Fill_Small_Phi";
 	//BIG and small phi index
-#ifdef __NVCC__
+#ifdef __GPU__
 	cuFill_Small_Phi(na,smallPhi,Phi,dimBlock,dimGrid);
 #else
 #pragma omp parallel for simd aligned(smallPhi,Phi:AVX) collapse(3)
@@ -378,7 +378,7 @@ inline int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
 	return 0;
 }
 inline int UpDownPart(const int na, Complex *X0, Complex *R1){
-#ifdef __NVCC__
+#ifdef __GPU__
 	cuUpDownPart(na,X0,R1,dimBlock,dimGrid);
 	cudaDeviceSynchronise();
 #else
