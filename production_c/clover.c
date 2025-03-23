@@ -53,7 +53,7 @@ int Leaf(Complex_f *ut[2], Complex_f *Leaves[2], unsigned int *iu, unsigned int 
 	switch(leaf){
 		case(0):
 			//Both positive is just a standard plaquette
-			return Clover_SU2plaq(ut,Leaves,iu,i,mu,nu);
+			Clover_SU2plaq(ut,Leaves,iu,i,mu,nu);
 		case(1):
 			//\mu<0 and \nu>=0
 			didm = id[mu+ndim*i];
@@ -74,7 +74,6 @@ int Leaf(Complex_f *ut[2], Complex_f *Leaves[2], unsigned int *iu, unsigned int 
 			//Leaves[0][i*ndim+leaf]=a[0]*ut[0][didm*ndim+mu]-conj(a[1])*ut[1][didm*ndim+mu];
 			Leaves[0][i*ndim+leaf]=conj(ut[0][i*ndim+nu])*a[0]+conj(ut[1][i*ndim+nu])*a[1];
 			Leaves[1][i*ndim+leaf]=ut[0][i*ndim+nu]*a[1]-ut[1][i*ndim+nu]*conj(a[0]);
-			return 0;
 		case(2):
 			//\mu>=0 and \nu<0
 			//TODO: Figure out down site index
@@ -94,7 +93,6 @@ int Leaf(Complex_f *ut[2], Complex_f *Leaves[2], unsigned int *iu, unsigned int 
 			/// @f$((U_-\nu(x)*U_\mu(x-\nu))*U_ν(x+\mu-\nu))*U_-\mu(x+\mu)=((U^\dagger_\nu(x-\nu)*U_\mu(x-ν))*U_\nu(x+\mu-\nu))*U^\dagger_\mu(x)@f$
 			Leaves[0][i*ndim+leaf]=ut[0][didn*ndim+nu]*a[0]-conj(ut[1][didn*ndim+nu])*a[1];
 			Leaves[1][i*ndim+leaf]=ut[1][didn*ndim+nu]*a[0]+conj(ut[0][didn*ndim+nu])*a[1];
-			return 0;
 		case(3):
 			//\mu<0 and \nu<0
 			/// @f$U_\nu^\dagger\left(x-\hat{\mu}-\hat{\nu}\right)U_\mu^\dagger\left(x-\hat{\mu}\right)@f$
@@ -110,8 +108,15 @@ int Leaf(Complex_f *ut[2], Complex_f *Leaves[2], unsigned int *iu, unsigned int 
 			/// @f$U_\nu\left(x-\hat{\nu}\right)U_\mu\left(x-\hat{\mu}-\hat{\nu}\right)U_\nu^\dagger\left(x-\hat{\mu}-\hat{\nu}\right)U_\mu^\dagger\left(x-\hat{\mu}\right)@f$
 			Leaves[0][i*ndim+leaf]=ut[0][didn*ndim+nu]*a[0]-conj(ut[1][didn*ndim+nu])*a[1];
 			Leaves[1][i*ndim+leaf]=ut[1][didn*ndim+nu]*a[0]+conj(ut[0][didn*ndim+nu])*a[1];
-			return 0;
 	}
+	if(isnan(creal(Leaves[0][i*ndim+leaf]))||isnan(cimag(Leaves[0][i*ndim+leaf]))||isnan(creal(Leaves[1][i*ndim+leaf]))||isnan(cimag(Leaves[1][i*ndim+leaf]))){
+		printf("Leaves: Index %d, mu %d, nu %d, leaf %d is NaN\n"\
+				"Leaf 0=%e+i%e\tLeaf 1=%e+i%e\n",i,mu,nu,leaf,\
+				creal(Leaves[0][i*ndim+leaf]),cimag(Leaves[0][i*ndim+leaf]),\
+				creal(Leaves[1][i*ndim+leaf]),cimag(Leaves[1][i*ndim+leaf]));
+		abort();
+	}
+	return 0;
 }
 inline int Half_Clover(Complex_f *clover[2],	Complex_f *Leaves[2], Complex_f *ut[2], unsigned int *iu, unsigned int *id, int i, int mu, int nu){
 	const char funcname[] ="Half_Clover";
@@ -119,6 +124,16 @@ inline int Half_Clover(Complex_f *clover[2],	Complex_f *Leaves[2], Complex_f *ut
 	{
 		Leaf(ut,Leaves,iu,id,i,mu,nu,leaf);
 		clover[0][i]+=Leaves[0][i*ndim+leaf]; clover[1][i]+=Leaves[1][i*ndim+leaf];
+		if(isnan(creal(clover[0][i]))||isnan(cimag(clover[0][i]))||isnan(creal(clover[1][i]))||isnan(cimag(clover[1][i]))){
+			printf("Half Clover: Index %d, mu %d, nu %d, leaf %dis NaN\n"\
+					"Leaf 0=%e+i%e\tLeaf 1=%e+i%e\n"\
+					"Clover 0=%e+i%e\tClover 1=%e+i%e\n",i,mu,nu,leaf,\
+					creal(Leaves[0][i*ndim+leaf]),cimag(Leaves[0][i*ndim+leaf]),\
+					creal(Leaves[1][i*ndim+leaf]),cimag(Leaves[1][i*ndim+leaf]),\
+					creal(clover[0][i]),cimag(clover[0][i]),\
+					creal(clover[1][i]),cimag(clover[1][i]));
+			abort();
+		}
 	}
 	return 0;
 }
@@ -138,6 +153,7 @@ int Clover(Complex_f *clover[6][2],Complex_f *Leaves[6][2],Complex_f *ut[2], uns
 #pragma omp parallel for
 				for(unsigned int i=0;i<kvol;i++)
 				{
+					clover[clov][0][i]=0;clover[clov][1][i]=0;
 					Half_Clover(clover[clov],Leaves[clov],ut,iu,id,i,mu,nu);	
 					//creal(clover[0]) drops so we are traceless. And everything else just gets doubled
 					clover[clov][0][i]-=conj(clover[clov][0][i]);	clover[clov][1][i]+=clover[clov][1][i];
@@ -146,6 +162,13 @@ int Clover(Complex_f *clover[6][2],Complex_f *Leaves[6][2],Complex_f *ut[2], uns
 					//It gets worse in the C_sw definition. We have a 1/2. They have +i/4
 					//Other concern. Multiplying by -I makes it hermitian, but then the third generator disappears
 					clover[clov][0][i]*=(-I/8.0);	clover[clov][1][i]*=(-I/8.0);
+					if(isnan(creal(clover[clov][0][i]))||isnan(cimag(clover[clov][0][i]))||isnan(creal(clover[clov][1][i]))||isnan(cimag(clover[clov][1][i]))){
+						printf("Clover: Index %d, mu %d, nu %d, clover %d is NaN\n"\
+								"Clover 0=%e+i%e\tClover 1=%e+i%e\n",i,mu,nu,clov,\
+								creal(clover[clov][0][i]),cimag(clover[clov][0][i]),\
+								creal(clover[clov][1][i]),cimag(clover[clov][1][i]));
+						abort();
+					}
 				}
 			}
 	return 0;
@@ -156,15 +179,15 @@ int Clover(Complex_f *clover[6][2],Complex_f *Leaves[6][2],Complex_f *ut[2], uns
 // Congradq only acts on flavour 1
 int ByClover(Complex_f *phi, Complex_f *r, Complex_f *clover[6][2], Complex_f *sigval, unsigned short *sigin){
 	const char funcname[] = "ByClover";
-//#pragma omp parallel for
+	//#pragma omp parallel for
 	for(int i=0;i<kvol;i+=AVX){
 		//Prefetched r and Phi array
-//#pragma omp simd
+		//#pragma omp simd
 		for(unsigned short j =0;j<AVX;j++)
 			for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
-		Complex_f phi_s[nc];
-		Complex_f r_s[nc];
-		Complex_f clov_s[nc];
+				Complex_f phi_s[nc];
+				Complex_f r_s[nc];
+				Complex_f clov_s[nc];
 				unsigned short idirac = igorkov%4;
 #pragma unroll
 				for(unsigned short c=0; c<nc; c++)
@@ -177,6 +200,17 @@ int ByClover(Complex_f *phi, Complex_f *r, Complex_f *clover[6][2], Complex_f *s
 						//						rg_s[c][j]=r[((i+j)*ngorkov+igorkov)*nc+c];
 						r_s[c]=r[((i+j)*ngorkov+igork1)*nc+c];
 						clov_s[c]=clover[clov][c][i+j];
+
+						if(isnan(creal(r_s[c]))||isnan(cimag(r_s[c]))){
+							printf("r_s: Index %d, colour %d c and gorkov index %d (idirac %d and igork1 %d) is NaN\n"\
+									"Sigma matrices = %e+%e\n"\
+									"Clover: %e+i%e\\n"\
+									"r_s 0=%e+i%e\tr_s 1=%e+i%e\n",i+j,igorkov,idirac,igork1,
+									creal(sigval[clov*ndirac+idirac]),cimag(sigval[clov*ndirac+idirac]),
+									creal(clov_s[c]),cimag(clov_s[c]),
+									creal(r_s[c]),cimag(r_s[c]));
+							abort();
+						}
 					}
 
 					///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
@@ -189,6 +223,7 @@ int ByClover(Complex_f *phi, Complex_f *r, Complex_f *clover[6][2], Complex_f *s
 								"r_s 0=%e+i%e\tr_s 1=%e+i%e\n"\
 								"phi_s 0=%e+i%e\tphi_s 1=%e+i%e\n",i+j,igorkov,idirac,igork1,
 								creal(sigval[clov*ndirac+idirac]),cimag(sigval[clov*ndirac+idirac]),
+								creal(clov_s[0]),cimag(clov_s[0]),creal(clov_s[1]),cimag(clov_s[1]),
 								creal(r_s[0]),cimag(r_s[0]),creal(r_s[1]),cimag(r_s[1]),
 								creal(phi_s[0]),cimag(phi_s[0]),creal(phi_s[1]),cimag(phi_s[1]));
 						abort();
