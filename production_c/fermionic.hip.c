@@ -45,7 +45,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	const char *funcname = "Measure";
 	//This x is just a storage container
 
-#ifdef __NVCC__
+#ifdef __GPU__
 	int device=-1;
 	hipGetDevice(&device);
 	Complex	*x, *xi; Complex_f *xi_f, *R1_f;
@@ -69,7 +69,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #else
 	vsRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, xi_f, 0, 1/sqrt(2));
 #endif
-#ifdef __NVCC__
+#ifdef __GPU__
 	hipMemPrefetchAsync(xi_f,kferm*sizeof(Complex_f),device,streams[0]);
 	cuComplex_convert(xi_f,xi,kferm,false,dimBlock,dimGrid);
 	//Transpose needed here for Dslashd
@@ -88,7 +88,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	//R1 is local in FORTRAN but since its going to be reset anyway I'm going to recycle the
 	//global
 	Dslashd_f(R1_f,xi_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
-#ifdef __NVCC__
+#ifdef __GPU__
 	cudaDeviceSynchronise();
 	hipFree(xi_f);	
 	Transpose_c(R1_f,kvol,ngorkov*nc,dimGrid,dimBlock);
@@ -120,7 +120,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 for(int i=0;i<kferm;i++)
 xi[i]=(Complex)R1_f[i];
 */
-#ifdef __NVCC__
+#ifdef __GPU__
 	hipMemcpyAsync(xi,R1,kferm*sizeof(Complex),hipMemcpyDefault,streams[0]);
 	#ifdef _DEBUG
 	hipFree(R1_f);
@@ -133,7 +133,7 @@ xi[i]=(Complex)R1_f[i];
 #endif
 #ifdef USE_BLAS
 	Complex buff;
-#ifdef __NVCC__
+#ifdef __GPU__
 	hipblasZdotc_v2(cublas_handle,kferm,(hipDoubleComplex *)x,1,(hipDoubleComplex *)xi,1,(hipDoubleComplex *)&buff);
 	cudaDeviceSynchronise();
 #elif defined USE_BLAS
@@ -162,13 +162,13 @@ xi[i]=(Complex)R1_f[i];
 			//Because we have kvol on the outer index and are summing over it, we set the
 			//step for BLAS to be ngorkov*nc=16. 
 			//Does this make sense to do on the GPU?
-#ifdef __NVCC__
+#ifdef __GPU__
 			hipblasZdotc_v2(cublas_handle,kvol,(hipDoubleComplex *)(x+idirac*nc+ic),ngorkov*nc,(hipDoubleComplex *)(xi+igork*nc+ic), ngorkov*nc,(hipDoubleComplex *)&dot);
 #else
 			cblas_zdotc_sub(kvol, &x[idirac*nc+ic], ngorkov*nc, &xi[igork*nc+ic], ngorkov*nc, &dot);
 #endif
 			*qbqb+=gamval[4*ndirac+idirac]*dot;
-#ifdef __NVCC__
+#ifdef __GPU__
 			hipblasZdotc_v2(cublas_handle,kvol,(hipDoubleComplex *)(x+igork*nc+ic),ngorkov*nc,(hipDoubleComplex *)(xi+idirac*nc+ic), ngorkov*nc,(hipDoubleComplex *)&dot);
 #else
 			cblas_zdotc_sub(kvol, &x[igork*nc+ic], ngorkov*nc, &xi[idirac*nc+ic], ngorkov*nc, &dot);
@@ -209,13 +209,13 @@ xi[i]=(Complex)R1_f[i];
 	//Idea. One loop instead of two loops but for xuu and xdd just use ngorkov-(igorkov+1) instead
 	//Dirty CUDA work around since it won't convert thrust<complex> to double
 	//TODO: get a reduction routine ready for CUDA
-#ifndef __NVCC__
+#ifndef __GPU__
 #pragma omp parallel for reduction(+:xd,xu,xdd,xuu) 
 #endif
 	for(int i = 0; i<kvol; i++){
 		int did=id[3+ndim*i];
 		int uid=iu[3+ndim*i];
-#ifndef __NVCC__
+#ifndef __GPU__
 #pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX) reduction(+:xu)
 #endif
 		for(int igorkov=0; igorkov<4; igorkov++){
@@ -228,7 +228,7 @@ xi[i]=(Complex)R1_f[i];
 						conj(u11t[did*ndim+3])*(xi[(i*ngorkov+igork1)*nc+1]-xi[(i*ngorkov+igorkov)*nc+1])+\
 						conj(u12t[did*ndim+3])*(xi[(i*ngorkov+igorkov)*nc]-xi[(i*ngorkov+igork1)*nc])));
 		}
-#ifndef __NVCC__
+#ifndef __GPU__
 #pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX) reduction(+:xd)
 #endif
 		for(int igorkov=0; igorkov<4; igorkov++){
@@ -240,7 +240,7 @@ xi[i]=(Complex)R1_f[i];
 						u11t[i*ndim+3]*(xi[(i*ngorkov+igork1)*nc+1]+xi[(i*ngorkov+igorkov)*nc+1])+\
 						conj(u12t[i*ndim+3])*(xi[(i*ngorkov+igorkov)*nc]+xi[(i*ngorkov+igork1)*nc]) ) );
 		}
-#ifndef __NVCC__
+#ifndef __GPU__
 #pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX) reduction(+:xuu)
 #endif
 		for(int igorkovPP=4; igorkovPP<8; igorkovPP++){
@@ -252,7 +252,7 @@ xi[i]=(Complex)R1_f[i];
 						conj(u11t[did*ndim+3])*(xi[(i*ngorkov+igork1PP)*nc+1]-xi[(i*ngorkov+igorkovPP)*nc+1])+\
 						conj(u12t[did*ndim+3])*(xi[(i*ngorkov+igorkovPP)*nc]-xi[(i*ngorkov+igork1PP)*nc]) ) );
 		}
-#ifndef __NVCC__
+#ifndef __GPU__
 #pragma omp simd aligned(u11t,u12t,xi,x,dk4m,dk4p:AVX) reduction(+:xdd)
 #endif
 		for(int igorkovPP=4; igorkovPP<8; igorkovPP++){
@@ -273,7 +273,7 @@ xi[i]=(Complex)R1_f[i];
 #endif
 	*endenf/=2*gvol; *denf/=2*gvol;
 	//Future task. Chiral susceptibility measurements
-#ifdef __NVCC__
+#ifdef __GPU__
 	hipFree(x); hipFree(xi);
 #else
 	free(x); free(xi);

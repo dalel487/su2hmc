@@ -12,16 +12,16 @@ IFLAGS=     -I../INCLUDE/ -I ${AOCL_ROOT}/include $(shell gsl-config --cflags)\
 			#	-I /opt/nvidia/hpc_sdk/Linux_x86_64/2024/math_libs/include/ 
 
 CFLAGS=	$(IFLAGS) -fcommon -D__HIPCC__ -march=native -DINT_OMF2 \
-		-fopenmp -fopenmp-simd -static-libgcc -DSA3AT  -D__HIP_PLATFORM_AMD__\
-		-foffload=disable #amdgcn-amdhsa="-march=gfx902" #-fopenacc\
+		-static-libgcc -DSA3AT  -D__HIP_PLATFORM_AMD__\
+		-DAMD_BLAS #amdgcn-amdhsa="-march=gfx902" #-fopenacc\-foffload=disable 
 #		-pg -fprofile-arcs-foffload=amdgcn-amdhsa="-march=gfx90c"
 
-HIPLFLAGS=	-L$(HIP_PATH)/lib/ -D__HIPCC__ -D__HIP_PLATFORM_AMD__ -lhipblas  -lomp #-lhip -lhiprt 
+HIPLFLAGS=	-L$(HIP_PATH)/lib/ -lhipblas  -lomp #-lhip -lhiprt 
 
 LFLAGS=	-L${AOCL_ROOT}/lib -L/usr/local/lib64 -ldl -lamdlibm  -lomp\
 			-lm -lalm -lm -lblis -lamdalloc -latomic $(shell gsl-config --libs-without-cblas)
 
-HIPCCFLAGS=	${IFLAGS} -famd-opt -w -DINT_OMF2 #-expt-relaxed-constexpr 
+HIPCCFLAGS=	${IFLAGS} -famd-opt -D__HIP_PLATFORM_AMD__  -DINT_OMF2 #-expt-relaxed-constexpr 
 			#Last flag is an experimental one used to call host functions in device code. Not sure
 			#if it does what we want because the error message suggesting it came up when declaring
 			#a11 and a12 in the Dslash routine
@@ -92,21 +92,17 @@ diagnostic: HIPCCFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 diagnostic: debug
 
 debug:		CFLAGS += -O0 -g -D_DEBUG -rdynamic 
-debug:		HIPCCFLAGS += -O0 -g -D_DEBUG
+debug:		HIPCCFLAGS += -O0 -ggdb -D_DEBUG
 debug:		$(EXE)
 		 
 #$(EXE):   ../main.c $(OBJ)
 $(EXE):	HIPCCFLAGS += --offload-arch=native #-dopt=on
 $(EXE): $(OBJ) ../main.hip.c
-	$(HIPCC) $(HIPCCFLAGS)  -std=gnu11 -Xcompiler "$(CFLAGS) " -o $@ $^  $(LFLAGS) $(HIPLFLAGS)
-# $(EXE): $(OBJ) ../main.hip.c
-# 	$(HIPCC) $(HIPCCFLAGS)  -std=gnu11 -Xcompiler "$(CFLAGS) " -o $@ $^  $(LFLAGS) $(HIPLFLAGS)
-#	$(CXX)  $(CFLAGS) -std=gnu11  $(LFLAGS) $(HIPLFLAGS) $(OBJ) -x c $< -o $@
-#	$(HIPCC) $(HIPCCFLAGS) -Xcompiler "$(CFLAGS) -std=gnu11 " $(LFLAGS) $(HIPLFLAGS) $^ -o $@
+	$(HIPCC) $(HIPCCFLAGS) -std=gnu11 -fopenmp -fopenmp-simd $(CFLAGS) -o $@ $^  $(LFLAGS) $(HIPLFLAGS)
 %.o: $(HIPSRC_DIR)/%.hip.cpp
-	$(HIPCC) $(HIPCCFLAGS) -std=c++14 -Xcompiler "$(CFLAGS) " -c $^ -o $@
+	$(HIPCC) $(HIPCCFLAGS) -std=c++14 $(CFLAGS) -c $^ -o $@
 %.o: $(CSRC_DIR)%.c
-	$(CC) -std=gnu11  $(CFLAGS) -c $^  
+	$(CC) -std=gnu11  -fopenmp -fopenmp-simd $(CFLAGS) -c $^  
 
 clean:
 	rm -f $(OBJ) $(COBJ) $(HIPOBJ) $(HIPLIB) $(CLIB) $(TMP) *.cpp?.ii *.cudafe1.* *.*bin *.fatbin.c *.ptx *.sm_* *module_id \

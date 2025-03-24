@@ -4,7 +4,7 @@
  * @brief Random number generator related routines
  */
 #include "coord.h"
-#ifdef	__NVCC__
+#ifdef	__GPU__
 #include <hiprand.h>
 #endif
 #include "errorcodes.h"

@@ -913,7 +913,7 @@ void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned in
 	cuDslash<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 }
 void cuDslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
-		Complex *gamval, int *gamin,	double *dk4m, double *dk4p, Complex_f jqq, float akappa,\ 
+		Complex *gamval, int *gamin,	double *dk4m, double *dk4p, Complex_f jqq, float akappa,\
 		dim3 dimGrid, dim3 dimBlock){
 	/*
 	 * Evaluates phi= M*r
@@ -941,7 +941,7 @@ void cuDslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned i
 	cuDslashd<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 }
 void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
-		Complex *gamval, int *gamin,	double *dk4m, double *dk4p, float akappa,\ 
+		Complex *gamval, int *gamin,	double *dk4m, double *dk4p, float akappa,\
 		dim3 dimGrid, dim3 dimBlock){
 	/*
 	 * Evaluates phi= M*r
@@ -969,7 +969,7 @@ void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned i
 	cuHdslash<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
 }
 void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
-		Complex *gamval, int *gamin,double *dk4m, double *dk4p, float akappa,\ 
+		Complex *gamval, int *gamin,double *dk4m, double *dk4p, float akappa,\
 		dim3 dimGrid, dim3 dimBlock){
 	/*
 	 * Evaluates phi= M*r
@@ -1000,7 +1000,7 @@ void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned 
 
 //Float editions
 void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
-		Complex_f *gamval,int *gamin,	float *dk4m, float *dk4p, Complex_f jqq, float akappa,\ 
+		Complex_f *gamval,int *gamin,	float *dk4m, float *dk4p, Complex_f jqq, float akappa,\
 		dim3 dimGrid, dim3 dimBlock){
 	/*
 	 * Evaluates phi= M*r
@@ -1033,7 +1033,7 @@ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,u
 	cuDslash_f<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 }
 void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
-		Complex_f *gamval,int *gamin,	float *dk4m, float *dk4p, Complex_f jqq, float akappa,\ 
+		Complex_f *gamval,int *gamin,	float *dk4m, float *dk4p, Complex_f jqq, float akappa,\
 		dim3 dimGrid, dim3 dimBlock){
 	/*
 	 * Evaluates phi= M*r
@@ -1066,7 +1066,7 @@ void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,
 	cuDslashd_f<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 }
 void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
-		Complex_f *gamval,int *gamin,	float *dk4m, float *dk4p, float akappa,\ 
+		Complex_f *gamval,int *gamin,	float *dk4m, float *dk4p, float akappa,\
 		dim3 dimGrid, dim3 dimBlock){
 	/*
 	 * Evaluates phi= M*r

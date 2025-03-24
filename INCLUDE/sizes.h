@@ -147,7 +147,7 @@ extern hipMemPool_t mempool;
 #define	nproc	(npx*npy*npz*npt)
 
 ///	@brief Number of threads for OpenMP, which can be overwritten at runtime
-#define	nthreads	32
+#define	nthreads	1
 
 //    Existing parameter definitions.
 ///	@brief Sublattice x extent

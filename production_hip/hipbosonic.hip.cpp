@@ -39,7 +39,7 @@ void cuPolyakov(Complex_f *Sigma11, Complex_f * Sigma12, Complex_f *u11t, Comple
 }
 //CUDA Kernels
 __global__ void cuAverage_Plaquette(float *hgs_d, float *hgt_d, Complex_f *u11t, Complex_f *u12t, unsigned int *iu){
-	const char *funcname = "cuSU2plaq";
+	const char funcname[] = "cuAverage_Plaquette";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -81,7 +81,7 @@ __device__ float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int
 	 * double corresponding to the plaquette value
 	 *
 	 */
-	const char *funcname = "SU2plaq";
+	const char funcname[] = "SU2plaq";
 	int uidm = iu[mu+ndim*i]; 
 
 	Complex_f Sigma11=u11t[i*ndim+mu]*u11t[uidm*ndim+nu]-u12t[i*ndim+mu]*conj(u12t[uidm*ndim+nu]);
@@ -97,7 +97,7 @@ __device__ float SU2plaq(Complex_f *u11t, Complex_f *u12t, unsigned int *iu, int
 	return creal(Sigma11);
 }
 __global__ void cuPolyakov(Complex_f *Sigma11, Complex_f * Sigma12, Complex_f * u11t,Complex_f *u12t){
-	char * funcname = "cuPolyakov";
+	const char funcname[] = "cuPolyakov";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;

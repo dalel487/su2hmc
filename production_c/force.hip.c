@@ -32,7 +32,7 @@ int Gauge_force(double *dSdpi, Complex_f *u11t, Complex_f *u12t,unsigned int *iu
 	//		memset(u12t[kvol], 0, ndim*halo*sizeof(Complex_f));	
 	//	#endif
 	//Was a trial field halo exchange here at one point.
-#ifdef __NVCC__
+#ifdef __GPU__
 	int device=-1;
 	hipGetDevice(&device);
 	Complex_f *Sigma11, *Sigma12, *u11sh, *u12sh;
@@ -48,7 +48,7 @@ int Gauge_force(double *dSdpi, Complex_f *u11t, Complex_f *u12t,unsigned int *iu
 #endif
 	//Holders for directions
 	for(int mu=0; mu<ndim; mu++){
-#ifdef __NVCC__
+#ifdef __GPU__
 		hipMemset(Sigma11,0, kvol*sizeof(Complex_f));
 		hipMemset(Sigma12,0, kvol*sizeof(Complex_f));
 #else
@@ -58,7 +58,7 @@ int Gauge_force(double *dSdpi, Complex_f *u11t, Complex_f *u12t,unsigned int *iu
 		for(int nu=0; nu<ndim; nu++)
 			if(nu!=mu){
 				//The +ν Staple
-#ifdef __NVCC__
+#ifdef __GPU__
 				cuPlus_staple(mu,nu,iu,Sigma11,Sigma12,u11t,u12t,dimGrid,dimBlock);
 #else
 #pragma omp parallel for simd aligned(u11t,u12t,Sigma11,Sigma12,iu:AVX)
@@ -76,19 +76,19 @@ int Gauge_force(double *dSdpi, Complex_f *u11t, Complex_f *u12t,unsigned int *iu
 				C_gather(u11sh, u11t, kvol, id, nu);
 				C_gather(u12sh, u12t, kvol, id, nu);
 #if(nproc>1)
-#ifdef __NVCC__
+#ifdef __GPU__
 				//Prefetch to the CPU for until we get NCCL working
 				hipMemPrefetchAsync(u11sh, kvol*sizeof(Complex_f),hipCpuDeviceId,streams[0]);
 				hipMemPrefetchAsync(u12sh, kvol*sizeof(Complex_f),hipCpuDeviceId,streams[1]);
 #endif
 				CHalo_swap_dir(u11sh, 1, mu, DOWN); CHalo_swap_dir(u12sh, 1, mu, DOWN);
-#ifdef __NVCC__
+#ifdef __GPU__
 				hipMemPrefetchAsync(u11sh+kvol, halo*sizeof(Complex_f),device,streams[0]);
 				hipMemPrefetchAsync(u12sh+kvol, halo*sizeof(Complex_f),device,streams[1]);
 #endif
 #endif
 				//Next up, the -ν staple
-#ifdef __NVCC__
+#ifdef __GPU__
 				cudaDeviceSynchronise();
 				cuMinus_staple(mu,nu,iu,id,Sigma11,Sigma12,u11sh,u12sh,u11t,u12t,dimGrid,dimBlock);
 #else
@@ -106,7 +106,7 @@ int Gauge_force(double *dSdpi, Complex_f *u11t, Complex_f *u12t,unsigned int *iu
 				}
 #endif
 			}
-#ifdef __NVCC__
+#ifdef __GPU__
 		cuGauge_force(mu,Sigma11,Sigma12,u11t,u12t,dSdpi,beta,dimGrid,dimBlock);
 #else
 #pragma omp parallel for simd aligned(u11t,u12t,Sigma11,Sigma12,dSdpi:AVX)
@@ -120,7 +120,7 @@ int Gauge_force(double *dSdpi, Complex_f *u11t, Complex_f *u12t,unsigned int *iu
 		}
 #endif
 	}
-#ifdef __NVCC__
+#ifdef __GPU__
 	cudaDeviceSynchronise();
 	hipFreeAsync(Sigma11,streams[0]); hipFreeAsync(Sigma12,streams[1]); hipFree(u11sh); hipFree(u12sh);
 #else
@@ -159,7 +159,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 	 *	@return Zero on success, integer error code otherwise
 	 */
 	const char *funcname = "Force";
-#ifdef __NVCC__
+#ifdef __GPU__
 	int device=-1;
 	hipGetDevice(&device);
 #endif
@@ -168,20 +168,20 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 #endif
 	//X1=(M†M)^{1} Phi
 	int itercg=1;
-#ifdef __NVCC__
+#ifdef __GPU__
 	Complex *X2;
 	hipMallocManaged((void **)&X2,kferm2Halo*sizeof(Complex),hipMemAttachGlobal);
 #else
 	Complex *X2= (Complex *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex));
 #endif
 	for(int na = 0; na<nf; na++){
-#ifdef __NVCC__
+#ifdef __GPU__
 		hipMemcpyAsync(X1,X0+na*kferm2,kferm2*sizeof(Complex),hipMemcpyDeviceToDevice,NULL);
 #else
 		memcpy(X1,X0+na*kferm2,kferm2*sizeof(Complex));
 #endif
 		if(!iflag){
-#ifdef __NVCC__
+#ifdef __GPU__
 			Complex *smallPhi;
 			hipMallocAsync((void **)&smallPhi,kferm2*sizeof(Complex),streams[0]);
 #else
@@ -190,13 +190,13 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 			Fill_Small_Phi(na, smallPhi, Phi);
 			//	Congradq(na, res1,smallPhi, &itercg );
 			Congradq(na,res1,X1,smallPhi,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,&itercg);
-#ifdef __NVCC__
+#ifdef __GPU__
 			hipFreeAsync(smallPhi,streams[0]);
 #else
 			free(smallPhi);
 #endif
 			*ancg+=itercg;
-#ifdef __NVCC__
+#ifdef __GPU__
 			Complex blasa=2.0; double blasb=-1.0;
 			hipblasZdscal_v2(cublas_handle,kferm2,&blasb,(hipDoubleComplex *)(X0+na*kferm2),1);
 			hipblasZaxpy_v2(cublas_handle,kferm2,(hipDoubleComplex *)&blasa,(hipDoubleComplex *)X1,1,(hipDoubleComplex *)(X0+na*kferm2),1);
@@ -223,7 +223,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 #endif
 		}
 		Hdslash(X2,X1,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
-#ifdef __NVCC__
+#ifdef __GPU__
 		double blasd=2.0;
 		cudaDeviceSynchronise();
 		hipblasZdscal_v2(cublas_handle,kferm2, &blasd, (hipDoubleComplex *)X2, 1);
@@ -260,7 +260,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 		//  as a result, need to swap the DOWN halos in all dirs for
 		//  both these arrays, each of which has 8 cpts
 		//
-#ifdef __NVCC__
+#ifdef __GPU__
 	Complex_f *X1_f, *X2_f;
 	hipMallocAsync((void **)&X1_f,kferm2*sizeof(Complex_f),NULL);
 	cuComplex_convert(X1_f,X1,kferm2,true,dimBlock,dimGrid);
@@ -468,7 +468,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 			}
 #endif
 	}
-#ifdef __NVCC__
+#ifdef __GPU__
 	hipFree(X2);
 #else
 	free(X2); 

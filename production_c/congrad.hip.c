@@ -498,7 +498,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
  * Pre mult
 #ifdef _DEBUGCG
 memset(x1_f,0,kferm2Halo*sizeof(Complex_f));
-#ifdef __GPU__
+#ifdef __NVCC__
 hipMemPrefetchAsync(x1_f,kferm2*sizeof(Complex_f),device,NULL);
 cudaDeviceSynchronise();
 #endif
