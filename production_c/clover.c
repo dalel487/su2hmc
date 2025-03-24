@@ -179,10 +179,10 @@ int Clover(Complex_f *clover[6][2],Complex_f *Leaves[6][2],Complex_f *ut[2], uns
 // Congradq only acts on flavour 1
 int ByClover(Complex_f *phi, Complex_f *r, Complex_f *clover[6][2], Complex_f *sigval, unsigned short *sigin){
 	const char funcname[] = "ByClover";
-	//#pragma omp parallel for
+	#pragma omp parallel for
 	for(int i=0;i<kvol;i+=AVX){
 		//Prefetched r and Phi array
-		//#pragma omp simd
+		#pragma omp simd
 		for(unsigned short j =0;j<AVX;j++)
 			for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
 				Complex_f phi_s[nc];
