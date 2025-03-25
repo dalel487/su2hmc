@@ -5,7 +5,7 @@
 #include	<thrust_complex.h>
 __global__ void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
 		Complex *gamval_d, int *gamin_d,	double *dk4m, double *dk4p, Complex_f jqq, float akappa){
-	const char *funcname = "cuDslash";
+	const char funcname[] = "cuDslash";
 	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -94,7 +94,7 @@ __global__ void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,
 }
 __global__ void cuDslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
 		Complex *gamval_d, int *gamin_d,	double *dk4m, double *dk4p, Complex_f jqq, float akappa){
-	const char *funcname = "cuDslashd";
+	const char funcname[] = "cuDslashd";
 	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -188,7 +188,7 @@ __global__ void cuDslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t
 }
 __global__ void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
 		Complex *gamval_d, int *gamin_d,	double *dk4m, double *dk4p, float akappa){
-	const char *funcname = "cuHdslash";
+	const char funcname[] = "cuHdslash";
 	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -247,7 +247,7 @@ __global__ void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t
 }
 __global__ void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
 		Complex *gamval_d, int *gamin_d,	double *dk4m, double *dk4p, float akappa){
-	const char *funcname = "cuHdslashd";
+	const char funcname[] = "cuHdslashd";
 	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -317,7 +317,7 @@ __global__ void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12
 
 __global__ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
 		__shared__ Complex_f *gamval_d,	int *gamin_d,	float *dk4m, float *dk4p, Complex_f jqq, float akappa){
-	const char *funcname = "cuDslash_f";
+	const char funcname[] = "cuDslash_f";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -445,7 +445,7 @@ __global__ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comple
 }
 __global__ void cuDslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f *u11t, const Complex_f *u12t,const unsigned int *iu, const unsigned int *id,\
 		__shared__ Complex_f *gamval_d,	int *gamin_d,	const float *dk4m, const float *dk4p, const Complex_f jqq, const float akappa){
-	const char *funcname = "cuDslashd_f";
+	const char funcname[] = "cuDslashd_f";
 	const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const volatile int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const volatile int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -908,7 +908,7 @@ void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned in
 	 * Returns:
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "Dslash";
+	const char funcname[] = "Dslash";
 	hipMemcpy(phi, r, kferm*sizeof(Complex),hipMemcpyDeviceToDevice);
 	cuDslash<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 }
@@ -936,7 +936,7 @@ void cuDslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned i
 	 * Returns:
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "Dslashd";
+	const char funcname[] = "Dslashd";
 	hipMemcpy(phi, r, kferm*sizeof(Complex),hipMemcpyDeviceToDevice);
 	cuDslashd<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 }
@@ -964,7 +964,7 @@ void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned i
 	 * Returns:
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "Hdslash";
+	const char funcname[] = "Hdslash";
 	hipMemcpy(phi, r, kferm2*sizeof(Complex),hipMemcpyDeviceToDevice);
 	cuHdslash<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
 }
@@ -992,7 +992,7 @@ void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned 
 	 * Returns:
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "Hdslashd";
+	const char funcname[] = "Hdslashd";
 	//Spacelike term
 	hipMemcpy(phi, r, kferm2*sizeof(Complex),hipMemcpyDeviceToDevice);
 	cuHdslashd<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
@@ -1023,7 +1023,7 @@ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,u
 	 * Returns:
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "Dslash_f";
+	const char funcname[] = "Dslash_f";
 	int cuCpyStat=0;
 	if((cuCpyStat=hipMemcpy(phi, r, kferm*sizeof(Complex_f),hipMemcpyDefault))){
 		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
@@ -1056,7 +1056,7 @@ void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,
 	 * Returns:
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "Dslashd_f";
+	const char funcname[] = "Dslashd_f";
 	int cuCpyStat=0;
 	if((cuCpyStat=hipMemcpy(phi, r, kferm*sizeof(Complex_f),hipMemcpyDefault))){
 		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
@@ -1089,7 +1089,7 @@ void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,
 	 * Returns:
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "Hdslash_f";
+	const char funcname[] = "Hdslash_f";
 	int cuCpyStat=0;
 	if((cuCpyStat=hipMemcpy(phi, r, kferm2*sizeof(Complex_f),hipMemcpyDefault))){
 		fprintf(stderr,"Error %d in %s: Cuda failed to copy r into device Phi with code %d.\nExiting,,,\n\n",\
@@ -1097,7 +1097,6 @@ void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,
 		exit(cuCpyStat);
 	}
 	const int bsize=dimGrid.x*dimGrid.y*dimGrid.z;
-	const int shareSize= ndim*bsize*nc*sizeof(Complex_f);
 	cuHdslash_f<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
 }
 void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
@@ -1124,7 +1123,7 @@ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t
 	 * Returns:
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "Hdslashd_f";
+	const char funcname[] = "Hdslashd_f";
 	int cuCpyStat=0;
 	//__shared__ int gamin_s[16]; __shared__ Complex_f gamval_s[20];
 	//intShare(gamin_s,gamin,16); floatShare(gamval_s,gamval,2*20);

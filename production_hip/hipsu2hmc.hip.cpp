@@ -14,7 +14,7 @@ dim3 dimGrid= dim3(1,1,1);
 hipStream_t streams[ndirac*ndim*nadj];
 void blockInit(int x, int y, int z, int t, dim3 *dimBlock, dim3 *dimGrid){
 
-	const char *funcname = "blockInit";
+	const char funcname[] = "blockInit";
 
 	int device=-1;	hipGetDevice(&device);
 	hipDeviceProp_t prop;	hipGetDeviceProperties(&prop, device);
@@ -95,7 +95,7 @@ void	Init_CUDA(Complex *u11t, Complex *u12t,Complex *gamval, Complex_f *gamval_f
 	 * =======
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "Init_CUDA";
+	const char funcname[] = "Init_CUDA";
 	int device=-1;
 	hipGetDevice(&device);
 	//Initialise streams for concurrent kernels
@@ -129,14 +129,14 @@ void cuReal_convert(float *a, double *b, int len, bool dtof, dim3 dimBlock, dim3
 	/* 
 	 * Kernel wrapper for conversion between sp and dp complex on the GPU.
 	 */
-	const char *funcname = "cuComplex_convert";
+	const char funcname[] = "cuComplex_convert";
 	cuReal_convert<<<dimGrid,dimBlock>>>(a,b,len,dtof);
 }
 void cuComplex_convert(Complex_f *a, Complex *b, int len, bool dtof, dim3 dimBlock, dim3 dimGrid){
 	/* 
 	 * Kernel wrapper for conversion between sp and dp complex on the GPU.
 	 */
-	const char *funcname = "cuComplex_convert";
+	const char funcname[] = "cuComplex_convert";
 	cuReal_convert<<<dimGrid,dimBlock>>>((float *)a,(double *)b,2*len,dtof);
 }
 void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi, dim3 dimBlock, dim3 dimGrid){
@@ -144,12 +144,12 @@ void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi, dim3 dimBlock, di
 }
 void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu,dim3 dimBlock, dim3 dimGrid)
 {
-	const char *funcname = "cuZ_gather";
+	const char funcname[] = "cuZ_gather";
 	cuC_gather<<<dimGrid,dimBlock>>>(x,y,n,table,mu);
 }
 void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu,dim3 dimBlock, dim3 dimGrid)
 {
-	const char *funcname = "cuZ_gather";
+	const char funcname[] = "cuZ_gather";
 	cuZ_gather<<<dimGrid,dimBlock>>>(x,y,n,table,mu);
 }
 void cuUpDownPart(int na, Complex *X0, Complex *R1,dim3 dimBlock, dim3 dimGrid){
@@ -165,7 +165,7 @@ void cuGauge_Update(const double d, double *pp, Complex *u11t, Complex *u12t, di
 }
 //CUDA Kernels
 __global__ void cuReal_convert(float *a, double *b, int len, bool dtof){
-	const char *funcname = "cuReal_convert";
+	const char funcname[] = "cuReal_convert";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -198,7 +198,7 @@ __global__ void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
 	 * =======
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "cuFill_Small_Phi";
+	const char funcname[] = "cuFill_Small_Phi";
 	//BIG and small phi index
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -214,7 +214,7 @@ __global__ void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
 }
 __global__ void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu)
 {
-	const char *funcname = "cuZ_gather";
+	const char funcname[] = "cuZ_gather";
 	//FORTRAN had a second parameter m giving the size of y (kvol+halo) normally
 	//Pointers mean that's not an issue for us so I'm leaving it out
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
@@ -227,7 +227,7 @@ __global__ void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *tabl
 }
 __global__ void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu)
 {
-	const char *funcname = "cuZ_gather";
+	const char funcname[] = "cuZ_gather";
 	//FORTRAN had a second parameter m giving the size of y (kvol+halo) normally
 	//Pointers mean that's not an issue for us so I'm leaving it out
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
@@ -269,7 +269,7 @@ __global__ void cuReunitarise(Complex *u11t, Complex * u12t){
 	 * ========
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "Reunitarise";
+	const char funcname[] = "Reunitarise";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -291,7 +291,7 @@ __global__ void cuReunitarise(Complex *u11t, Complex * u12t){
 	}
 }
 __global__ void cuGauge_Update(const double d, double *pp, Complex *u11t, Complex *u12t,int mu){
-	char *funcname = "Gauge_Update";
+	const char funcname[] = "Gauge_Update";
 	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;

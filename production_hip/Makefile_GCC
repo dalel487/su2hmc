@@ -97,12 +97,12 @@ debug:		$(EXE)
 		 
 #$(EXE):   ../main.c $(OBJ)
 $(EXE):	HIPCCFLAGS += --offload-arch=native #-dopt=on
-$(EXE): $(OBJ) ../main.hip.c
-	$(HIPCC) $(HIPCCFLAGS) -std=gnu11 -fopenmp -fopenmp-simd $(CFLAGS) -o $@ $^  $(LFLAGS) $(HIPLFLAGS)
+$(EXE): $(OBJ) 
+	$(HIPCC)  $(HIPCCFLAGS) -std=gnu11 -fopenmp -fopenmp-simd $(CFLAGS) -o $@ $^  -x c ../main.hip.c $(LFLAGS) $(HIPLFLAGS)
 %.o: $(HIPSRC_DIR)/%.hip.cpp
-	$(HIPCC) $(HIPCCFLAGS) -std=c++14 $(CFLAGS) -c $^ -o $@
+	$(HIPCC) $(HIPCCFLAGS) -std=c++14 -fopenmp $(CFLAGS) -c $^ -o $@
 %.o: $(CSRC_DIR)%.c
-	$(CC) -std=gnu11  -fopenmp -fopenmp-simd $(CFLAGS) -c $^  
+	$(HIPCC) -x c -std=gnu11  -fopenmp -fopenmp-simd $(CFLAGS) -c $^  
 
 clean:
 	rm -f $(OBJ) $(COBJ) $(HIPOBJ) $(HIPLIB) $(CLIB) $(TMP) *.cpp?.ii *.cudafe1.* *.*bin *.fatbin.c *.ptx *.sm_* *module_id \
