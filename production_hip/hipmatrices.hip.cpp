@@ -595,7 +595,7 @@ __global__ void cuHdslash_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 	/*
 	 * Half Dslash float precision
 	 */
-	const volatile char *funcname = "cuHdslash0_f";
+	const char funcname[] = "cuHdslash0_f";
 	const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const volatile int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const volatile int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -701,7 +701,7 @@ __global__ void cuHdslashd_f(Complex_f *phi, const Complex_f* r, const Complex_f
 	/*
 	 * Half Dslash Dagger float precision 
 	 */
-	const volatile char *funcname = "cuHdslashd0_f";
+	const char funcname[] = "cuHdslashd0_f";
 	const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const volatile int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const volatile int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -814,7 +814,7 @@ __global__ void cuHdslashd_f(Complex_f *phi, const Complex_f* r, const Complex_f
  */
 template <typename T>
 __global__ void Transpose(T *out, const T *in, const int fast_in, const int fast_out){
-	const volatile char *funcname="Transpose_f";
+	const char funcname[]="Transpose_f";
 	const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const volatile int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const volatile int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -837,7 +837,7 @@ __global__ void Transpose(T *out, const T *in, const int fast_in, const int fast
 }
 /*
 __global__ void Transpose_f(Complex_f *out, Complex_f *in, const int fast_in, const int fast_out){
-	const volatile char *funcname="Transpose_f";
+	const char funcname[]="Transpose_f";
 	const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const volatile int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const volatile int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -859,7 +859,7 @@ __global__ void Transpose_f(Complex_f *out, Complex_f *in, const int fast_in, co
 	}
 }
 __global__ void Transpose_I(int *out, int *in, const int fast_in, const int fast_out){
-	const volatile char *funcname="Transpose_I";
+	const char funcname[]="Transpose_I";
 	const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const volatile int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const volatile int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;

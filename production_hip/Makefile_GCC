@@ -62,7 +62,7 @@ CINC=	\
 # No need to edit below this line
 #
 
-.SUFFIXES: .c .hip.cpp .h .hpp .o 
+.SUFFIXES: .hip.c .hip.cpp .h .hpp .o 
 .PHONY: clean debug release profiler tar
 C_SOURCES:= $(wildcard $(CSRC_DIR)/*.hip.c)
 HIP_SOURCES:= $(wildcard $(HIPSRC_DIR)/*.hip.cpp)
@@ -76,7 +76,7 @@ OBJ = $(COBJ) $(HIPOBJ)
 
 #MOD=	$(CSRC:.c=.mod)
 MOD=	
-CEDT=	$(CSRC:.c=.c~)
+CEDT=	$(CSRC:.hip.c=.hip.c~)
 HIPEDT=	$(HIPSRC:.hip.cpp=.hip.cpp~)
 TMP=	$(MOD) $(CEDT) $(HIPEDT) core
 
@@ -101,8 +101,8 @@ $(EXE): $(OBJ)
 	$(HIPCC)  $(HIPCCFLAGS) -std=gnu11 -fopenmp -fopenmp-simd $(CFLAGS) -o $@ $^  -x c ../main.hip.c $(LFLAGS) $(HIPLFLAGS)
 %.o: $(HIPSRC_DIR)/%.hip.cpp
 	$(HIPCC) $(HIPCCFLAGS) -std=c++14 -fopenmp $(CFLAGS) -c $^ -o $@
-%.o: $(CSRC_DIR)%.c
-	$(HIPCC) -x c -std=gnu11  -fopenmp -fopenmp-simd $(CFLAGS) -c $^  
+%.o: $(CSRC_DIR)%.hip.c
+	$(HIPCC) -std=gnu11  -fopenmp -fopenmp-simd $(CFLAGS) -c $^  
 
 clean:
 	rm -f $(OBJ) $(COBJ) $(HIPOBJ) $(HIPLIB) $(CLIB) $(TMP) *.cpp?.ii *.cudafe1.* *.*bin *.fatbin.c *.ptx *.sm_* *module_id \
