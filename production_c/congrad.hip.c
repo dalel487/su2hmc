@@ -208,7 +208,10 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 		//β instead of x.
 #ifdef __GPU__
 		Complex_f beta_f=(Complex_f)beta;
-		__managed__ Complex_f a = 1.0;
+		#ifdef __NVCC__
+		__managed__
+		#endif
+		Complex_f a = 1.0;
 		hipblasCscal_v2(cublas_handle,kferm2,(hipComplex *)&beta_f,(hipComplex *)p_f,1);
 		hipblasCaxpy_v2(cublas_handle,kferm2,(hipComplex *)&a,(hipComplex *)r_f,1,(hipComplex *)p_f,1);
 #elif (defined __INTEL_MKL__)

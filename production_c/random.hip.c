@@ -4,9 +4,6 @@
  * @brief Random number generator related routines
  */
 #include "coord.h"
-#ifdef	__GPU__
-#include <hiprand.h>
-#endif
 #include "errorcodes.h"
 #ifdef	__INTEL_MKL__
 #include <mkl.h>

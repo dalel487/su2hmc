@@ -1,6 +1,6 @@
 MF=Makefile_GCC
-CC=		gcc-13
-CXX=		g++-13
+CC=		hipcc -x c
+CXX=		hipcc
 HIPCC=	hipcc
 HIP_PLATFORM='amd'
 HIP_PATH ?= $(shell hipconfig --path)
@@ -101,7 +101,7 @@ $(EXE): $(OBJ)
 	$(HIPCC)  $(HIPCCFLAGS) -std=gnu11 -fopenmp -fopenmp-simd $(CFLAGS) -o $@ $^  -x c ../main.hip.c $(LFLAGS) $(HIPLFLAGS)
 %.o: $(HIPSRC_DIR)/%.hip.cpp
 	$(HIPCC) $(HIPCCFLAGS) -std=c++14 -fopenmp $(CFLAGS) -c $^ -o $@
-%.o: $(CSRC_DIR)%.hip.c
+%.o: $(CSRC_DIR)/%.hip.c
 	$(HIPCC) -std=gnu11  -fopenmp -fopenmp-simd $(CFLAGS) -c $^  
 
 clean:
