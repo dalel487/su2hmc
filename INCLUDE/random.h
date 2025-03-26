@@ -25,19 +25,49 @@
 #include <sizes.h>
 //Configuration for existing generators if called
 //===============================================
-#if (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))
-extern long seed;
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-/**
- * @brief Dummy seed the ran2 generator
- *
- * @param seed pointer to seed
- * 
- *	@return 0
- */
+#ifdef __RANLUX__
+	extern gsl_rng *ranlux_instd;
+	//Need to get a float version that uses a different seed for performance reasons.
+	//Otherwise we get two generators (one float, one double) starting from the same seed. Not good
+	//For now, the float generator will be a cast of the double one.
+	//gsl_rng *ranlux_instf;
+	extern unsigned long seed;
+	/**
+	 * @brief Seed the ranlux generator from GSL
+	 *
+	 * @param seed pointer to seed
+	 * 
+	 *	@return 0
+	 */
+	int ranset(unsigned long *seed);
+	/**
+	 * @brief Uses the rank to get a new seed.
+	 * Copying from the FORTRAN description here 
+	 * c     create new seeds in range seed to 9*seed
+	 * c     having a range of 0*seed gave an unfortunate pattern
+	 * c     in the underlying value of ds(1) (it was always 10 times bigger
+	 * c     on the last processor). This does not appear to happen with 9.
+	 *
+	 * @param	seed:	The seed from the rank in question.
+	 * @param	iread:	Do we read from file or not. Don't remember why it's here as it's not used	
+	 *
+	 * @return Zero on success, integer error code otherwise
+	 */
+	int Par_ranset(unsigned long *seed, int iread);
+	void Free_ranlux();
+#elif (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))
+	extern long seed;
+	/**
+	 * @brief Dummy seed the ran2 generator
+	 *
+	 * @param seed pointer to seed
+	 * 
+	 *	@return 0
+	 */
 	int ranset(long *seed);
 	/**
 	 * @brief Uses the rank to get a new seed.
@@ -63,94 +93,8 @@ extern "C"
 	 *
 	 */
 	double ran2(long *idum); 
-#ifdef __cplusplus
-}
 #endif
-#elif defined __RANLUX__
-extern gsl_rng *ranlux_instd;
-//Need to get a float version that uses a different seed for performance reasons.
-//Otherwise we get two generators (one float, one double) starting from the same seed. Not good
-//For now, the float generator will be a cast of the double one.
-//gsl_rng *ranlux_instf;
-extern unsigned long seed;
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-/**
- * @brief Seed the ranlux generator from GSL
- *
- * @param seed pointer to seed
- * 
- *	@return 0
- */
-	int ranset(unsigned long *seed);
-	/**
-	 * @brief Uses the rank to get a new seed.
-	 * Copying from the FORTRAN description here 
-	 * c     create new seeds in range seed to 9*seed
-	 * c     having a range of 0*seed gave an unfortunate pattern
-	 * c     in the underlying value of ds(1) (it was always 10 times bigger
-	 * c     on the last processor). This does not appear to happen with 9.
-	 *
-	 * @param	seed:	The seed from the rank in question.
-	 * @param	iread:	Do we read from file or not. Don't remember why it's here as it's not used	
-	 *
-	 * @return Zero on success, integer error code otherwise
-	 */
-	int Par_ranset(unsigned long *seed, int iread);
-#ifdef __cplusplus
-}
-#endif
-#elif defined __INTEL_MKL__
-extern VSLStreamStatePtr stream;
-extern unsigned int seed;
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-/**
- * @brief Seed the Intel Mersenne twister generator
- *
- * @param seed pointer to seed
- *
- *	@return 0
- */
-	int ranset(unsigned int *seed);
-	/**
-	 * @brief Uses the rank to get a new seed.
-	 * Copying from the FORTRAN description here 
-	 * c     create new seeds in range seed to 9*seed
-	 * c     having a range of 0*seed gave an unfortunate pattern
-	 * c     in the underlying value of ds(1) (it was always 10 times bigger
-	 * c     on the last processor). This does not appear to happen with 9.
-	 *
-	 * @param	seed:	The seed from the rank in question.
-	 * @param	iread:	Do we read from file or not. Don't remember why it's here as it's not used	
-	 *
-	 * @return Zero on success, integer error code otherwise
-	 */
-	int Par_ranset(unsigned int *seed, int iread);
-#ifdef __cplusplus
-}
-#endif
-#else
-extern int seed;
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-	//Mersenne Twister
-	int ranset(int *seed);
-	int Par_ranset(int *seed);
-#ifdef __cplusplus
-}
-#endif
-#endif
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+
 	//Generators:
 	//==========
 	//Distributions

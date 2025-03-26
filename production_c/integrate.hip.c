@@ -36,7 +36,7 @@ int Gauge_Update(const double d, double *pp, Complex *u11t, Complex *u12t,Comple
 			Complex a12 = pp[(i*nadj+1)*ndim+mu]*SSS + I*SSS*pp[i*nadj*ndim+mu];
 			//b11 and b12 are u11t and u12t terms, so we'll use u12t directly
 			//but use b11 for u11t to prevent RAW dependency
-			complex b11 = u11t[i*ndim+mu];
+			Complex b11 = u11t[i*ndim+mu];
 			u11t[i*ndim+mu] = a11*b11-a12*conj(u12t[i*ndim+mu]);
 			u12t[i*ndim+mu] = a11*u12t[i*ndim+mu]+a12*conj(b11);
 		}

@@ -762,9 +762,7 @@ int main(int argc, char *argv[]){
 #endif
 	free(hd); free(hu);free(h1u); free(h1d); free(halosize); free(pcoord);
 #ifdef __RANLUX__
-	gsl_rng_free(ranlux_instd);
-#elif (defined __INTEL_MKL__ &&!defined USE_RAN2)
-	vslDeleteStream(&stream);
+	Free_ranlux();
 #endif
 #if (defined SA3AT)
 	if(!rank){

@@ -486,6 +486,11 @@ double ran2(long *idum) {
 	else return temp;
 
 }
+#else
+void Free_ranlux(){
+	gsl_rng_free(ranlux_instd);
+	return;
+	}
 #endif
 
 /*

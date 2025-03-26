@@ -12,16 +12,16 @@ IFLAGS=     -I../INCLUDE/ -I ${AOCL_ROOT}/include $(shell gsl-config --cflags)\
 			#	-I /opt/nvidia/hpc_sdk/Linux_x86_64/2024/math_libs/include/ 
 
 CFLAGS=	$(IFLAGS) -fcommon -D__HIPCC__ -march=native -DINT_OMF2 \
-		-static-libgcc -DSA3AT  -D__HIP_PLATFORM_AMD__\
+		-static-libgcc -DSA3AT  -D__HIP_PLATFORM_AMD__ -D__RANLUX__\
 		-DAMD_BLAS #amdgcn-amdhsa="-march=gfx902" #-fopenacc\-foffload=disable 
 #		-pg -fprofile-arcs-foffload=amdgcn-amdhsa="-march=gfx90c"
 
-HIPLFLAGS=	-L$(HIP_PATH)/lib/ -lhipblas  -lomp #-lhip -lhiprt 
+HIPLFLAGS=	-L$(HIP_PATH)/lib/ -lhipblas -D__RANLUX__ -lomp #-lhip -lhiprt 
 
 LFLAGS=	-L${AOCL_ROOT}/lib -L/usr/local/lib64 -ldl -lamdlibm  -lomp\
 			-lm -lalm -lm -lblis -lamdalloc -latomic $(shell gsl-config --libs-without-cblas)
 
-HIPCCFLAGS=	${IFLAGS} -famd-opt -D__HIP_PLATFORM_AMD__  -DINT_OMF2 #-expt-relaxed-constexpr 
+HIPCCFLAGS=	${IFLAGS} -famd-opt -D__HIP_PLATFORM_AMD__ -D__RANLUX__  -DINT_OMF2 #-expt-relaxed-constexpr 
 			#Last flag is an experimental one used to call host functions in device code. Not sure
 			#if it does what we want because the error message suggesting it came up when declaring
 			#a11 and a12 in the Dslash routine
@@ -66,7 +66,7 @@ CINC=	\
 .PHONY: clean debug release profiler tar
 C_SOURCES:= $(wildcard $(CSRC_DIR)/*.hip.c)
 HIP_SOURCES:= $(wildcard $(HIPSRC_DIR)/*.hip.cpp)
-COBJ=	$(patsubst $(CSRC_DIR)/%.hip.c, $(CSRC_DIR)/%.o, $(C_SOURCES))
+COBJ=	$(patsubst $(CSRC_DIR)/%.hip.c, $(HIPSRC_DIR)/%.o, $(C_SOURCES))
 HIPOBJ= $(patsubst $(HIPSRC_DIR)/%.hip.cpp, $(HIPSRC_DIR)/%.o, $(HIP_SOURCES))
 #CLIB= libc.a
 #HIPLIB= libhip.a
@@ -102,7 +102,7 @@ $(EXE): $(OBJ)
 %.o: $(HIPSRC_DIR)/%.hip.cpp
 	$(HIPCC) $(HIPCCFLAGS) -std=c++14 -fopenmp $(CFLAGS) -c $^ -o $@
 %.o: $(CSRC_DIR)/%.hip.c
-	$(HIPCC) -std=gnu11  -fopenmp -fopenmp-simd $(CFLAGS) -c $^  
+	$(HIPCC) -std=gnu11  -fopenmp -fopenmp-simd $(CFLAGS) -c $^ -o $@
 
 clean:
 	rm -f $(OBJ) $(COBJ) $(HIPOBJ) $(HIPLIB) $(CLIB) $(TMP) *.cpp?.ii *.cudafe1.* *.*bin *.fatbin.c *.ptx *.sm_* *module_id \
