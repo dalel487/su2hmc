@@ -590,6 +590,7 @@ __global__ void cuDslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 	}
 }
 
+__launch_bounds__(128)
 __global__ void cuHdslash_f(Complex_f *phi, const Complex_f *r, const Complex_f *u11t, const Complex_f *u12t,unsigned int *iu, unsigned int *id,\
 		Complex_f gamval[20],	int gamin_d[16],	const float *dk4m, const float *dk4p, const float akappa){
 	/*
@@ -696,6 +697,7 @@ __global__ void cuHdslash_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 		}
 	}
 }
+__launch_bounds__(128)
 __global__ void cuHdslashd_f(Complex_f *phi, const Complex_f* r, const Complex_f* u11t, const Complex_f* u12t,unsigned int* iu, unsigned int* id,\
 		Complex_f gamval[20],	int gamin_d[16],	const float* dk4m, const float* dk4p, const float akappa){
 	/*

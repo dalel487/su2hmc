@@ -155,7 +155,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 #pragma omp parallel for simd aligned(u11t:AVX) 
 			//Leave it to the GPU?
 			for(int i=0; i<kvol*ndim;i++){
-				u11t[i]=1;	u12t[i]=0;
+				u11t[i]=-1;	u12t[i]=0;
 			}
 		}
 		else if(istart>0){

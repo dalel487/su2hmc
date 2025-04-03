@@ -1,6 +1,5 @@
 #include "hip/hip_runtime.h"
 #include	<hip/hip_runtime.h>
-#include	<hip/hip_runtime.h>
 #include	<su2hmc.h>
 #define MIN(x,y) (x<y?x:y)
 #define MAX(x,y) (x>y?x:y)

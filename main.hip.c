@@ -122,7 +122,7 @@ int main(int argc, char *argv[]){
 	float fmu = 0.0f;
 	int iread = 0;
 	int istart = 1;
-	int iprint = 1; //How often are measurements made
+	int iprint = 1e5; //How often are measurements made
 	int icheck = 5; //How often are configurations saved
 	int ibound = -1;
 #ifdef USE_MATH_DEFINES
@@ -152,7 +152,7 @@ int main(int argc, char *argv[]){
 		fscanf(midout, "%f %f %f %f %f %f %f %d %d %d %d %d", &dt, &beta, &akappa,\
 				&ajq, &athq, &fmu, &delb, &stepl, &ntraj, &istart, &icheck, &iread);
 		fclose(midout);
-		assert(stepl>0);	assert(ntraj>0);	  assert(istart>=0);  assert(icheck>0);  assert(iread>=0); 
+		assert(stepl>0);	assert(ntraj>0);	   assert(icheck>0);  assert(iread>=0); 
 	}
 	//Send inputs to other ranks
 #if(nproc>1)
@@ -180,11 +180,11 @@ int main(int argc, char *argv[]){
 #ifdef _DEBUG
 	printf("jqq=%f+(%f)I\n",creal(jqq),cimag(jqq));
 #endif
-#ifdef _DEBUG
+//#ifdef _DEBUG
 	seed = 967580161;
-#else
-	seed = time(NULL);
-#endif
+//#else
+//	seed = time(NULL);
+//#endif
 
 	//Gauge, trial and momentum fields 
 	//You'll notice that there are two different allocation/free statements

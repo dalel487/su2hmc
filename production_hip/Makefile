@@ -81,7 +81,7 @@ HIPEDT=	$(HIPSRC:.hip.cpp=.hip.cpp~)
 TMP=	$(MOD) $(CEDT) $(HIPEDT) core
 
 profiler:	CFLAGS += -g #-D_DEBUG
-profiler:	HIPCCFLAGS += -lineinfo # -D_DEBUG#-keep
+profiler:	HIPCCFLAGS += -ggdb -Rpass-analysis=kernel-resource-usage # -D_DEBUG#-keep
 profiler:	release
 
 release:	CFLAGS +=  -Ofast -funroll-all-loops -fcf-protection=none #-fprofile-use=./gcc_pgo
@@ -91,8 +91,8 @@ diagnostic: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 diagnostic: HIPCCFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 diagnostic: debug
 
-debug:		CFLAGS += -O0 -g -D_DEBUG -rdynamic 
-debug:		HIPCCFLAGS += -O0 -ggdb -D_DEBUG
+debug:		CFLAGS += -O1 -g -D_DEBUG -D_DEBUGCG -rdynamic 
+debug:		HIPCCFLAGS += -O1 -ggdb -D_DEBUG
 debug:		$(EXE)
 		 
 #$(EXE):   ../main.c $(OBJ)

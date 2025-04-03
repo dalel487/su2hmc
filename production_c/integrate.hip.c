@@ -14,7 +14,7 @@ int Gauge_Update(const double d, double *pp, Complex *u11t, Complex *u12t,Comple
 	 * @returns	Zero on success, integer error code otherwise
 	 */
 	char *funcname = "Gauge_Update"; 
-#ifdef __NVCC__
+#ifdef __GPU__
 	cuGauge_Update(d,pp,u11t,u12t,dimGrid,dimBlock);
 #else
 #pragma omp parallel for simd collapse(2) aligned(pp,u11t,u12t:AVX) 
@@ -48,7 +48,7 @@ int Gauge_Update(const double d, double *pp, Complex *u11t, Complex *u12t,Comple
 }
 inline int Momentum_Update(const double d, const double *dSdpi, double *pp)
 {
-#ifdef __NVCC__
+#ifdef __GPU__
 	hipblasDaxpy(cublas_handle,kmom, &d, dSdpi, 1, pp, 1);
 #elif defined USE_BLAS
 	cblas_daxpy(kmom, d, dSdpi, 1, pp, 1);
@@ -175,6 +175,7 @@ int OMF2(Complex *u11t,Complex *u12t,Complex_f *u11t_f,Complex_f *u12t_f,Complex
 		else{
 			//Since we apply the momentum at the start and end of a step we instead apply a double step here
 			Momentum_Update(dp2,dSdpi,pp);
+	//printf("Final OMF2 momentum pp[0]=%e\n", pp[0]);
 			step++;
 		}
 	}while(!end_traj);

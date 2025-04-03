@@ -334,6 +334,7 @@ extern "C"
 	void cuPolyakov(Complex_f *Sigma11, Complex_f * Sigma12, Complex_f *u11t, Complex_f *u12t,dim3 dimGrid, dim3 dimBlock);
 	void cuGauge_force(int mu,Complex_f *Sigma11, Complex_f *Sigma12, Complex_f *u11t,Complex_f *u12t,double *dSdpi,float beta,\
 			dim3 dimGrid, dim3 dimBlock);
+	void cuGauge_Update(const double d, double *pp, Complex *u11t, Complex *u12t,dim3 dimGrid,dim3 dimBlock);
 	void cuPlus_staple(int mu, int nu, unsigned int *iu, Complex_f *Sigma11, Complex_f *Sigma12, Complex_f *u11t, Complex_f *u12t,\
 			dim3 dimGrid, dim3 dimBlock);
 	void cuMinus_staple(int mu, int nu, unsigned int *iu, unsigned int *id, Complex_f *Sigma11, Complex_f *Sigma12,\

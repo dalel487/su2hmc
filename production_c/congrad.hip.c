@@ -208,9 +208,6 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *u11t,Complex_f 
 		//β instead of x.
 #ifdef __GPU__
 		Complex_f beta_f=(Complex_f)beta;
-		#ifdef __NVCC__
-		__managed__
-		#endif
 		Complex_f a = 1.0;
 		hipblasCscal_v2(cublas_handle,kferm2,(hipComplex *)&beta_f,(hipComplex *)p_f,1);
 		hipblasCaxpy_v2(cublas_handle,kferm2,(hipComplex *)&a,(hipComplex *)r_f,1,(hipComplex *)p_f,1);
@@ -497,38 +494,3 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *u11t,Complex_
 #endif
 	return ret_val;
 }
-/* Old clutter for debugging CG
- * Pre mult
-#ifdef _DEBUGCG
-memset(x1_f,0,kferm2Halo*sizeof(Complex_f));
-#ifdef __NVCC__
-hipMemPrefetchAsync(x1_f,kferm2*sizeof(Complex_f),device,NULL);
-cudaDeviceSynchronise();
-#endif
-printf("\nPre mult:\tp_f[kferm2-1]=%.5e+%.5ei\tx1_f[kferm2-1]=%.5e+%.5ei\tx2_f[kferm2-1]=%.5e+%.5ei\t",\
-creal(p_f[kferm2-1]),cimag(p_f[kferm2-1]),creal(x1_f[kferm2-1]),cimag(x1_f[kferm2-1]),creal(x2_f[kferm2-1]),cimag(x2_f[kferm2-1]));
-#endif
-
-First mult
-#ifdef _DEBUGCG
-printf("\nHdslash_f:\tp_f[kferm2-1]=%.5e+%.5ei\tx1_f[kferm2-1]=%.5e+%.5ei\tx2_f[kferm2-1]=%.5e+%.5ei",\
-creal(p_f[kferm2-1]),cimag(p_f[kferm2-1]),creal(x1_f[kferm2-1]),cimag(x1_f[kferm2-1]),creal(x2_f[kferm2-1]),cimag(x2_f[kferm2-1]));
-#endif
-Post mult
-#ifdef _DEBUGCG
-printf("\nHdslashd_f:\tp_f[kferm2-1]=%.5e+%.5ei\tx1_f[kferm2-1]=%.5e+%.5ei\tx2_f[kferm2-1]=%.5e+%.5ei\n",\
-creal(p_f[kferm2-1]),cimag(p_f[kferm2-1]),creal(x1_f[kferm2-1]),cimag(x1_f[kferm2-1]),creal(x2_f[kferm2-1]),cimag(x2_f[kferm2-1]));
-#endif
-
-GAmmas
-#ifdef _DEBUGCG
-printf("Gammas:\n");
-for(int i=0;i<5;i++){
-for(int j=0;j<4;j++)
-printf("%.5e+%.5ei\t",creal(gamval_f[i*4+j]),cimag(gamval_f[i*4+j]));
-printf("\n");
-}
-printf("\nConstants (index %d):\nu11t[kvol-1]=%e+%.5ei\tu12t[kvol-1]=%e+%.5ei\tdk4m=%.5e\tdk4p=%.5e\tjqq=%.5e+I%.5f\tkappa=%.5f\n",\
-kvol-1,creal(u11t[kvol-1]),cimag(u11t[kvol-1]),creal(u12t[kvol-1]),cimag(u12t[kvol-1]),dk4m[kvol-1],dk4p[kvol-1],creal(jqq),cimag(jqq),akappa);
-#endif
-*/
