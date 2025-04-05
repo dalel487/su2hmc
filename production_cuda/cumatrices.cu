@@ -591,7 +591,7 @@ __global__ void cuDslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 
 //__maxnreg__(64)
 __global__ void cuHdslash_f(Complex_f *phi, const Complex_f *r, const Complex_f *u11t, const Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		__constant__ Complex_f gamval[20],	__constant__ int gamin_d[16],	const float *dk4m, const float *dk4p, const float akappa){
+		__constant__ Complex_f gamval[20],	__constant__ int gamin_d[16],	const float *dk4m, const float *dk4p, const __grid_constant__ float akappa){
 	/*
 	 * Half Dslash float precision
 	 */
@@ -603,8 +603,8 @@ __global__ void cuHdslash_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 	const volatile int gthreadId= blockId * bsize+bthreadId;
 
 	//Right. Time to prefetch
-	Complex_f u11s;	 Complex_f u12s;
-	Complex_f u11sd;	 Complex_f u12sd;
+//	Complex_f u11s;	 Complex_f u12s;
+//	Complex_f u11sd;	 Complex_f u12sd;
 	Complex_f ru[2];  Complex_f rd[2];
 	Complex_f rgu[2];  Complex_f rgd[2];
 	Complex_f phi_s[ndirac*nc];
@@ -619,19 +619,21 @@ __global__ void cuHdslash_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 		//#pragma unroll
 		for(int mu = 0; mu <ndim; mu++){
 			unsigned int ind=i+kvol*mu;
-			u11s=u11t[ind];	u12s=u12t[ind];
+			const Complex_f u11s=u11t[ind];	const Complex_f u12s=u12t[ind];
 			const int did=id[ind];	const int uid = iu[ind];
 			ind=did+kvol*mu;
-			u11sd=u11t[ind];	u12sd=u12t[ind];
+			const Complex_f u11sd=u11t[ind];	const Complex_f u12sd=u12t[ind];
 #pragma unroll
 			for(int idirac=0; idirac<ndirac*nc; idirac+=nc){
 				const int igork1 = gamin_d[mu*ndirac+(idirac>>1)] << (nc-1);
 #pragma unroll
 				for(int c=0;c<nc;c++){
-					ru[c]=r[uid+kvol*(idirac+c)];
-					rd[c]=r[did+kvol*(idirac+c)];
-					rgu[c]=r[uid+kvol*(igork1+c)];
-					rgd[c]=r[did+kvol*(igork1+c)];
+					unsigned int rind =kvol*(idirac+c);
+					ru[c]=r[uid+rind];
+					rd[c]=r[did+rind];
+					rind =kvol*(igork1+c);
+					rgu[c]=r[uid+rind];
+					rgd[c]=r[did+rind];
 				}
 				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
 				//Can manually vectorise with a pragma?
@@ -639,7 +641,7 @@ __global__ void cuHdslash_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 				//to read when split into different loops, but should be faster this way
 				//Spacelike terms
 				if(mu<3){
-					const const Complex_f gam=gamval[mu*ndirac+(idirac>>1)];
+					const Complex_f gam=gamval[mu*ndirac+(idirac>>1)];
 					phi_s[idirac]+=-akappa*(u11s*ru[0]+\
 							u12s*ru[1]+\
 							conj(u11sd)*rd[0]-\
@@ -687,7 +689,7 @@ __global__ void cuHdslash_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 }
 //__maxnreg__(64)
 __global__ void cuHdslashd_f(Complex_f *phi, const Complex_f* r, const Complex_f* u11t, const Complex_f* u12t,unsigned int* iu, unsigned int* id,\
-		__constant__ Complex_f gamval[20],	__constant__ int gamin_d[16],	const float* dk4m, const float* dk4p, const float akappa){
+		__constant__ Complex_f gamval[20],	__constant__ int gamin_d[16],	const float* dk4m, const float* dk4p, const __grid_constant__ float akappa){
 	/*
 	 * Half Dslash Dagger float precision 
 	 */
@@ -699,8 +701,6 @@ __global__ void cuHdslashd_f(Complex_f *phi, const Complex_f* r, const Complex_f
 	const volatile int gthreadId= blockId * bsize+bthreadId;
 
 	//Right. Time to prefetch
-	Complex_f u11s;	 Complex_f u12s;
-	Complex_f u11sd;	 Complex_f u12sd;
 	Complex_f ru[2];  Complex_f rd[2];
 	Complex_f rgu[2];  Complex_f rgd[2];
 	Complex_f phi_s[ndirac*nc];
@@ -715,19 +715,21 @@ __global__ void cuHdslashd_f(Complex_f *phi, const Complex_f* r, const Complex_f
 		for(int mu = 0; mu <ndim; mu++){
 			//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
 			unsigned int ind=i+kvol*mu;
-			u11s=u11t[ind];	u12s=u12t[ind];
+			const Complex_f u11s=u11t[ind];	const Complex_f u12s=u12t[ind];
 			const int did=id[ind];	const int uid = iu[ind];
 			ind=did+kvol*mu;
-			u11sd=u11t[ind];	u12sd=u12t[ind];
+			const Complex_f u11sd=u11t[ind];	const Complex_f u12sd=u12t[ind];
 #pragma unroll
 			for(int idirac=0; idirac<nc*ndirac; idirac+=nc){
 				int igork1 = gamin_d[mu*ndirac+(idirac>>1)] << (nc-1);
 #pragma unroll
 				for(int c=0;c<nc;c++){
-					ru[c]=r[uid+kvol*(idirac+c)];
-					rd[c]=r[did+kvol*(idirac+c)];
-					rgu[c]=r[uid+kvol*(igork1+c)];
-					rgd[c]=r[did+kvol*(igork1+c)];
+					unsigned int rind =kvol*(idirac+c);
+					ru[c]=r[uid+rind];
+					rd[c]=r[did+rind];
+					rind =kvol*(igork1+c);
+					rgu[c]=r[uid+rind];
+					rgd[c]=r[did+rind];
 				}
 				//Can manually vectorise with a pragma?
 				//Wilson + Dirac term in that order. Definitely easier
