@@ -56,11 +56,19 @@ void cuPlus_staple(int mu, int nu, unsigned int *iu, Complex_f *Sigma11, Complex
 		dim3 dimGrid, dim3 dimBlock){
 	const char *funcname="Plus_staple";
 	Plus_staple<<<dimGrid,dimBlock>>>(mu, nu, iu, Sigma11, Sigma12,u11t,u12t);
+	#ifdef _DEBUG
+	cudaDeviceSynchronise();
+	printf("Sigma after plus staple: %e\n",*Sigma11);
+	#endif
 }
 void cuMinus_staple(int mu, int nu, unsigned int *iu, unsigned int *id, Complex_f *Sigma11, Complex_f *Sigma12,\
 		Complex_f *u11sh, Complex_f *u12sh,Complex_f *u11t, Complex_f *u12t,dim3 dimGrid, dim3 dimBlock){
 	const char *funcname="Minus_staple";
 	Minus_staple<<<dimGrid,dimBlock>>>(mu, nu, iu, id,Sigma11,Sigma12,u11sh,u12sh,u11t,u12t);
+	#ifdef _DEBUG
+	cudaDeviceSynchronise();
+	printf("Sigma after minus staple: %e\n",*Sigma11);
+	#endif
 }
 void cuForce(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, \
 		Complex_f *gamval,float *dk[2],unsigned int *iu,int *gamin,\

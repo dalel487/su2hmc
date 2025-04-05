@@ -1,6 +1,6 @@
 MF=Makefile_GCC
-CC=		gcc 
-CXX=		g++
+CC=		gcc-13
+CXX=		g++-13
 NVCC=		nvcc
 
 IFLAGS=     -I../INCLUDE -I ./ -I../production_c $(shell gsl-config --cflags)\
@@ -105,7 +105,7 @@ diagnostic: NVCCFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 diagnostic: debug
 
 debug:		CFLAGS += -g -O0 -D_DEBUG #-DDIAGNOSTIC -DNO_TIME -DNO_SPACE
-debug:		NVCCFLAGS += -Xptxas -O0,-v -G -g -D_DEBUG -arch=sm_75 --maxrregcount=255  -keep 
+debug:		NVCCFLAGS += -Xptxas -O0,-v -G -g -D_DEBUG -arch=sm_75 
 debug:		$(EXE)
 		 
 $(EXE): $(OBJ) ../main.c

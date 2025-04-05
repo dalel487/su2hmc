@@ -23,9 +23,9 @@ using thrust::complex;
 #define	cimag(z)	z.imag()
 ///@brief	Extract Real Component
 #define	creal(z)	z.real()
-///@brief	Complex Conjugation
-#define	conj(z)	thrust::conj(z)
 ///@brief 	Define I
 #define	I	Complex(0.0,1.0)	
 #define	I_f	Complex_f(0.0,1.0f)	
+///@brief	Complex Conjugation
+#define	conj(z)	thrust::conj(z)
 #endif
