@@ -364,13 +364,14 @@ int main(int argc, char *argv[]){
 	cudaMalloc(&Phi, nf*kferm*sizeof(Complex));
 #ifdef _DEBUG
 	cudaMallocManaged(&X0, nf*kferm2*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged(&dSdpi, kmom*sizeof(double),cudaMemAttachGlobal);
 #else
 	cudaMalloc(&X0, nf*kferm2*sizeof(Complex));
+	cudaMalloc(&dSdpi, kmom*sizeof(double));
 #endif
 
 	cudaMallocManaged(&X1, kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged(&pp, kmom*sizeof(double),cudaMemAttachGlobal);
-	cudaMalloc(&dSdpi, kmom*sizeof(double));
 	cudaDeviceSynchronise();
 #else
 	R1= aligned_alloc(AVX,kfermHalo*sizeof(Complex));

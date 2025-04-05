@@ -36,8 +36,13 @@ int Gauge_force(double *dSdpi, Complex_f *u11t, Complex_f *u12t,unsigned int *iu
 	int device=-1;
 	cudaGetDevice(&device);
 	Complex_f *Sigma11, *Sigma12, *u11sh, *u12sh;
+	#ifdef _DEBUG
+	cudaMallocManaged((void **)&Sigma11,kvol*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&Sigma12,kvol*sizeof(Complex_f),cudaMemAttachGlobal);
+	#else
 	cudaMallocAsync((void **)&Sigma11,kvol*sizeof(Complex_f),streams[0]);
 	cudaMallocAsync((void **)&Sigma12,kvol*sizeof(Complex_f),streams[1]);
+	#endif
 	cudaMallocManaged((void **)&u11sh,(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&u12sh,(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
 #else
