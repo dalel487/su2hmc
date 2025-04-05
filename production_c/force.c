@@ -3,7 +3,7 @@
  * @brief Code for force calculations.
  */
 #include	<matrices.h>
-int Gauge_force(double *dSdpi, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id, float beta){
+int Gauge_force(double *dSdpi, Complex_f *ut[2],unsigned int *iu,unsigned int *id, float beta){
 	/*
 	 * Calculates dSdpi due to the Wilson Action at each intermediate time
 	 *
@@ -14,8 +14,8 @@ int Gauge_force(double *dSdpi, Complex_f *u11t, Complex_f *u12t,unsigned int *iu
 	 * Parameters:
 	 * =======
 	 * double			*dSdpi
-	 * Complex_f 			*u11t
-	 * Complex_f			*u12t
+	 * Complex_f 			*ut[0]
+	 * Complex_f			*ut[1]
 	 * unsigned int	*iu 
 	 * unsigned int	*id 
 	 * float				beta
@@ -28,115 +28,72 @@ int Gauge_force(double *dSdpi, Complex_f *u11t, Complex_f *u12t,unsigned int *iu
 
 	//We define zero halos for debugging
 	//	#ifdef _DEBUG
-	//		memset(u11t[kvol], 0, ndim*halo*sizeof(Complex_f));	
-	//		memset(u12t[kvol], 0, ndim*halo*sizeof(Complex_f));	
+	//		memset(ut[0][kvol], 0, ndim*halo*sizeof(Complex_f));	
+	//		memset(ut[1][kvol], 0, ndim*halo*sizeof(Complex_f));	
 	//	#endif
 	//Was a trial field halo exchange here at one point.
 #ifdef __NVCC__
-	int device=-1;
-	cudaGetDevice(&device);
-	Complex_f *Sigma11, *Sigma12, *u11sh, *u12sh;
-	#ifdef _DEBUG
-	cudaMallocManaged((void **)&Sigma11,kvol*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&Sigma12,kvol*sizeof(Complex_f),cudaMemAttachGlobal);
-	#else
-	cudaMallocAsync((void **)&Sigma11,kvol*sizeof(Complex_f),streams[0]);
-	cudaMallocAsync((void **)&Sigma12,kvol*sizeof(Complex_f),streams[1]);
-	#endif
-	cudaMallocManaged((void **)&u11sh,(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&u12sh,(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
+	cuGauge_force(ut,dSdpi,beta,iu,id,dimGrid,dimBlock);
 #else
-	Complex_f *Sigma11 = (Complex_f *)aligned_alloc(AVX,kvol*sizeof(Complex_f)); 
-	Complex_f *Sigma12= (Complex_f *)aligned_alloc(AVX,kvol*sizeof(Complex_f)); 
-	Complex_f *u11sh = (Complex_f *)aligned_alloc(AVX,(kvol+halo)*sizeof(Complex_f)); 
-	Complex_f *u12sh = (Complex_f *)aligned_alloc(AVX,(kvol+halo)*sizeof(Complex_f)); 
-#endif
+	Complex_f *Sigma[2], *ush[2];
+	Sigma[0] = (Complex_f *)aligned_alloc(AVX,kvol*sizeof(Complex_f)); 
+	Sigma[1]= (Complex_f *)aligned_alloc(AVX,kvol*sizeof(Complex_f)); 
+	ush[0] = (Complex_f *)aligned_alloc(AVX,(kvol+halo)*sizeof(Complex_f)); 
+	ush[1] = (Complex_f *)aligned_alloc(AVX,(kvol+halo)*sizeof(Complex_f)); 
 	//Holders for directions
 	for(int mu=0; mu<ndim; mu++){
-#ifdef __NVCC__
-		cudaMemset(Sigma11,0, kvol*sizeof(Complex_f));
-		cudaMemset(Sigma12,0, kvol*sizeof(Complex_f));
-#else
-		memset(Sigma11,0, kvol*sizeof(Complex_f));
-		memset(Sigma12,0, kvol*sizeof(Complex_f));
-#endif
+		memset(Sigma[0],0, kvol*sizeof(Complex_f));
+		memset(Sigma[1],0, kvol*sizeof(Complex_f));
 		for(int nu=0; nu<ndim; nu++)
 			if(nu!=mu){
 				//The +ν Staple
-#ifdef __NVCC__
-				cuPlus_staple(mu,nu,iu,Sigma11,Sigma12,u11t,u12t,dimGrid,dimBlock);
-#else
-#pragma omp parallel for simd aligned(u11t,u12t,Sigma11,Sigma12,iu:AVX)
+#pragma omp parallel for simd //aligned(ut[0],ut[1],Sigma[0],Sigma[1],iu:AVX)
 				for(int i=0;i<kvol;i++){
 					int uidm = iu[mu+ndim*i];
 					int uidn = iu[nu+ndim*i];
-					Complex_f	a11=u11t[uidm*ndim+nu]*conj(u11t[uidn*ndim+mu])+\
-										 u12t[uidm*ndim+nu]*conj(u12t[uidn*ndim+mu]);
-					Complex_f	a12=-u11t[uidm*ndim+nu]*u12t[uidn*ndim+mu]+\
-										 u12t[uidm*ndim+nu]*u11t[uidn*ndim+mu];
-					Sigma11[i]+=a11*conj(u11t[i*ndim+nu])+a12*conj(u12t[i*ndim+nu]);
-					Sigma12[i]+=-a11*u12t[i*ndim+nu]+a12*u11t[i*ndim+nu];
+					Complex_f	a11=ut[0][uidm*ndim+nu]*conj(ut[0][uidn*ndim+mu])+\
+										 ut[1][uidm*ndim+nu]*conj(ut[1][uidn*ndim+mu]);
+					Complex_f	a12=-ut[0][uidm*ndim+nu]*ut[1][uidn*ndim+mu]+\
+										 ut[1][uidm*ndim+nu]*ut[0][uidn*ndim+mu];
+					Sigma[0][i]+=a11*conj(ut[0][i*ndim+nu])+a12*conj(ut[1][i*ndim+nu]);
+					Sigma[1][i]+=-a11*ut[1][i*ndim+nu]+a12*ut[0][i*ndim+nu];
 				}
-#endif
-				C_gather(u11sh, u11t, kvol, id, nu);
-				C_gather(u12sh, u12t, kvol, id, nu);
+				C_gather(ush[0], ut[0], kvol, id, nu);
+				C_gather(ush[1], ut[1], kvol, id, nu);
 #if(nproc>1)
-#ifdef __NVCC__
-				//Prefetch to the CPU for until we get NCCL working
-				cudaMemPrefetchAsync(u11sh, kvol*sizeof(Complex_f),cudaCpuDeviceId,streams[0]);
-				cudaMemPrefetchAsync(u12sh, kvol*sizeof(Complex_f),cudaCpuDeviceId,streams[1]);
-#endif
-				CHalo_swap_dir(u11sh, 1, mu, DOWN); CHalo_swap_dir(u12sh, 1, mu, DOWN);
-#ifdef __NVCC__
-				cudaMemPrefetchAsync(u11sh+kvol, halo*sizeof(Complex_f),device,streams[0]);
-				cudaMemPrefetchAsync(u12sh+kvol, halo*sizeof(Complex_f),device,streams[1]);
-#endif
+				CHalo_swap_dir(ush[0], 1, mu, DOWN); CHalo_swap_dir(ush[1], 1, mu, DOWN);
 #endif
 				//Next up, the -ν staple
-#ifdef __NVCC__
-				cudaDeviceSynchronise();
-				cuMinus_staple(mu,nu,iu,id,Sigma11,Sigma12,u11sh,u12sh,u11t,u12t,dimGrid,dimBlock);
-#else
-#pragma omp parallel for simd aligned(u11t,u12t,u11sh,u12sh,Sigma11,Sigma12,iu,id:AVX)
+#pragma omp parallel for simd //aligned(ut[0],ut[1],ush[0],ush[1],Sigma[0],Sigma[1],iu,id:AVX)
 				for(int i=0;i<kvol;i++){
 					int uidm = iu[mu+ndim*i];
 					int didn = id[nu+ndim*i];
 					//uidm is correct here
-					Complex_f a11=conj(u11sh[uidm])*conj(u11t[didn*ndim+mu])-\
-									  u12sh[uidm]*conj(u12t[didn*ndim+mu]);
-					Complex_f a12=-conj(u11sh[uidm])*u12t[didn*ndim+mu]-\
-									  u12sh[uidm]*u11t[didn*ndim+mu];
-					Sigma11[i]+=a11*u11t[didn*ndim+nu]-a12*conj(u12t[didn*ndim+nu]);
-					Sigma12[i]+=a11*u12t[didn*ndim+nu]+a12*conj(u11t[didn*ndim+nu]);
+					Complex_f a11=conj(ush[0][uidm])*conj(ut[0][didn*ndim+mu])-\
+									  ush[1][uidm]*conj(ut[1][didn*ndim+mu]);
+					Complex_f a12=-conj(ush[0][uidm])*ut[1][didn*ndim+mu]-\
+									  ush[1][uidm]*ut[0][didn*ndim+mu];
+					Sigma[0][i]+=a11*ut[0][didn*ndim+nu]-a12*conj(ut[1][didn*ndim+nu]);
+					Sigma[1][i]+=a11*ut[1][didn*ndim+nu]+a12*conj(ut[0][didn*ndim+nu]);
 				}
-#endif
 			}
-#ifdef __NVCC__
-		cuGauge_force(mu,Sigma11,Sigma12,u11t,u12t,dSdpi,beta,dimGrid,dimBlock);
-#else
-#pragma omp parallel for simd aligned(u11t,u12t,Sigma11,Sigma12,dSdpi:AVX)
+#pragma omp parallel for simd //aligned(ut[0],ut[1],Sigma[0],Sigma[1],dSdpi:AVX)
 		for(int i=0;i<kvol;i++){
-			Complex_f a11 = u11t[i*ndim+mu]*Sigma12[i]+u12t[i*ndim+mu]*conj(Sigma11[i]);
-			Complex_f a12 = u11t[i*ndim+mu]*Sigma11[i]+conj(u12t[i*ndim+mu])*Sigma12[i];
+			Complex_f a11 = ut[0][i*ndim+mu]*Sigma[1][i]+ut[1][i*ndim+mu]*conj(Sigma[0][i]);
+			Complex_f a12 = ut[0][i*ndim+mu]*Sigma[0][i]+conj(ut[1][i*ndim+mu])*Sigma[1][i];
 
 			dSdpi[(i*nadj)*ndim+mu]=(double)(beta*cimag(a11));
 			dSdpi[(i*nadj+1)*ndim+mu]=(double)(beta*creal(a11));
 			dSdpi[(i*nadj+2)*ndim+mu]=(double)(beta*cimag(a12));
 		}
-#endif
 	}
-#ifdef __NVCC__
-	cudaDeviceSynchronise();
-	cudaFreeAsync(Sigma11,streams[0]); cudaFreeAsync(Sigma12,streams[1]); cudaFree(u11sh); cudaFree(u12sh);
-#else
-	free(u11sh); free(u12sh); free(Sigma11); free(Sigma12);
+	free(ush[0]); free(ush[1]); free(Sigma[0]); free(Sigma[1]);
 #endif
 	return 0;
 }
-int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Complex *Phi,Complex *u11t, Complex *u12t,\
-		Complex_f *u11t_f,Complex_f *u12t_f,unsigned int *iu,unsigned int *id,Complex *gamval,Complex_f *gamval_f,\
-		int *gamin,double *dk4m, double *dk4p, float *dk4m_f,float *dk4p_f,Complex_f jqq,\
-		float akappa,float beta,double *ancg){
+int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Complex *Phi,Complex *ut[2],\
+		Complex_f *ut_f[2],unsigned int *iu,unsigned int *id,Complex *gamval,Complex_f *gamval_f,\
+		int *gamin,double *dk[2], float *dk_f[2],Complex_f jqq,float akappa,float beta,double *ancg){
 	/*
 	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
 	 *	
@@ -146,16 +103,16 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 	 *	@param	X0:				Up/down partitioned pseudofermion field
 	 *	@param	X1:				Holder for the partitioned fermion field, then the conjugate gradient output
 	 *	@param	Phi:				Pseudofermion field
-	 *	@param	u11t,u12t		Double precision colour fields
-	 *	@param	u11t_f,u12t_f:	Single precision colour fields
+	 *	@param	ut[0],ut[1]		Double precision colour fields
+	 *	@param	ut_f[0],ut_f[1]:	Single precision colour fields
 	 *	@param	iu,id:			Lattice indices
 	 *	@param	gamin:			Gamma indices
 	 *	@param	gamval:			Double precision gamma matrices
 	 *	@param	gamval_f:		Single precision gamma matrices
-	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
-	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$
-	 * @param	dk4m_f:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ float
-	 * @param	dk4p_f:			@f$\left(1-\gamma_0\right)e^\mu@f$ float
+	 * @param	dk[0]:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
+	 * @param	dk[1]:				@f$\left(1-\gamma_0\right)e^\mu@f$
+	 * @param	dk_f[0]:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ float
+	 * @param	dk_f[1]:			@f$\left(1-\gamma_0\right)e^\mu@f$ float
 	 * @param 	jqq:				Diquark source
 	 *	@param	akappa:			Hopping parameter
 	 *	@param	beta:				Inverse gauge coupling
@@ -169,13 +126,15 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 	cudaGetDevice(&device);
 #endif
 #ifndef NO_GAUGE
-	Gauge_force(dSdpi,u11t_f,u12t_f,iu,id,beta);
+	Gauge_force(dSdpi,ut_f,iu,id,beta);
 #endif
 	//X1=(M†M)^{1} Phi
 	int itercg=1;
 #ifdef __NVCC__
-	Complex *X2;
-	cudaMallocManaged((void **)&X2,kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
+	Complex_f *X1_f, *X2_f;
+	cudaMallocAsync((void **)&X2_f,kferm2*sizeof(Complex_f),streams[0]);
+	cudaMallocAsync((void **)&X1_f,kferm2*sizeof(Complex_f),NULL);
+	cuComplex_convert(X1_f,X1,kferm2,true,dimBlock,dimGrid);
 #else
 	Complex *X2= (Complex *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex));
 #endif
@@ -194,7 +153,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 #endif
 			Fill_Small_Phi(na, smallPhi, Phi);
 			//	Congradq(na, res1,smallPhi, &itercg );
-			Congradq(na,res1,X1,smallPhi,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,&itercg);
+			Congradq(na,res1,X1,smallPhi,ut_f,iu,id,gamval_f,gamin,dk_f,jqq,akappa,&itercg);
 #ifdef __NVCC__
 			cudaFreeAsync(smallPhi,streams[0]);
 #else
@@ -205,6 +164,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 			Complex blasa=2.0; double blasb=-1.0;
 			cublasZdscal(cublas_handle,kferm2,&blasb,(cuDoubleComplex *)(X0+na*kferm2),1);
 			cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&blasa,(cuDoubleComplex *)X1,1,(cuDoubleComplex *)(X0+na*kferm2),1);
+			cuComplex_convert(X1_f,X1,kferm2,true,dimBlock,dimGrid);
 			//HDslash launches a different stream so we need a barrieer
 			cudaDeviceSynchronise();
 #elif (defined __INTEL_MKL__)
@@ -227,11 +187,11 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 				}
 #endif
 		}
-		Hdslash(X2,X1,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
+		Hdslash_f(X2_f,X1_f,ut_f,iu,id,gamval_f,gamin,dk_f,akappa);
 #ifdef __NVCC__
-		double blasd=2.0;
+		float blasd=2.0;
 		cudaDeviceSynchronise();
-		cublasZdscal(cublas_handle,kferm2, &blasd, (cuDoubleComplex *)X2, 1);
+		cublasCsscal(cublas_handle,kferm2, &blasd, (cuComplex *)X2_f, 1);
 #elif defined USE_BLAS
 		double blasd=2.0;
 		cblas_zdscal(kferm2, blasd, X2, 1);
@@ -266,25 +226,15 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 		//  both these arrays, each of which has 8 cpts
 		//
 #ifdef __NVCC__
-	Complex_f *X1_f, *X2_f;
-	cudaMallocAsync((void **)&X1_f,kferm2*sizeof(Complex_f),NULL);
-	cuComplex_convert(X1_f,X1,kferm2,true,dimBlock,dimGrid);
-	Transpose_c(X1_f,ndirac*nc,kvol,dimGrid,dimBlock);
-
-	cudaMallocAsync((void **)&X2_f,kferm2*sizeof(Complex_f),NULL);
-	cuComplex_convert(X2_f,X2,kferm2,true,dimBlock,dimGrid);
-	Transpose_c(X2_f,ndirac*nc,kvol,dimGrid,dimBlock);
-//	Transpose_z(X1,kvol,ndirac*nc,dimGrid,dimBlock); Transpose_z(X2,kvol,ndirac*nc,dimGrid,dimBlock);
-		cuForce(dSdpi,u11t_f,u12t_f,X1_f,X2_f,gamval_f,dk4m_f,dk4p_f,iu,gamin,akappa,dimGrid,dimBlock);
-	cudaDeviceSynchronise();
-	cudaFreeAsync(X1_f,NULL); cudaFreeAsync(X2_f,NULL);
+		cuForce(dSdpi,ut_f,X1_f,X2_f,gamval_f,dk_f,iu,gamin,akappa,dimGrid,dimBlock);
+		cudaDeviceSynchronise();
 #else
 #pragma omp parallel for
 		for(int i=0;i<kvol;i++)
 			for(int idirac=0;idirac<ndirac;idirac++){
 				int mu, uid, igork1;
 #ifndef NO_SPACE
-#pragma omp simd aligned(dSdpi,X1,X2,u11t,u12t,iu:AVX)
+#pragma omp simd //aligned(dSdpi,X1,X2,ut[0],ut[1],iu:AVX)
 				for(mu=0; mu<3; mu++){
 					//Long term ambition. I used the diff command on the different
 					//spacial components of dSdpi and saw a lot of the values required
@@ -301,84 +251,84 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 					//Montvay and Munster and notice a missing kappa in the code, that is why.
 					dSdpi[(i*nadj)*ndim+mu]+=akappa*creal(I*
 							(conj(X1[(i*ndirac+idirac)*nc])*
-							 (-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
-							  +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1])
+							 (-conj(ut[1][i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
+							  +conj(ut[0][i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc])*
-							 ( u12t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
-								-conj(u11t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])
+							 ( ut[1][i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
+								-conj(ut[0][i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])
 							 +conj(X1[(i*ndirac+idirac)*nc+1])*
-							 (u11t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
-							  +u12t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1])
+							 (ut[0][i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
+							  +ut[1][i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-							 (-u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
-							  -conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])));
+							 (-ut[0][i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
+							  -conj(ut[1][i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])));
 					dSdpi[(i*nadj)*ndim+mu]+=creal(I*gamval[mu*ndirac+idirac]*
 							(conj(X1[(i*ndirac+idirac)*nc])*
-							 (-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
-							  +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1])
+							 (-conj(ut[1][i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
+							  +conj(ut[0][i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc])*
-							 (-u12t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
-							  +conj(u11t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1])
+							 (-ut[1][i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
+							  +conj(ut[0][i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1])
 							 +conj(X1[(i*ndirac+idirac)*nc+1])*
-							 (u11t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
-							  +u12t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1])
+							 (ut[0][i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
+							  +ut[1][i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-							 (u11t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
-							  +conj(u12t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1])));
+							 (ut[0][i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
+							  +conj(ut[1][i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1])));
 
 					dSdpi[(i*nadj+1)*ndim+mu]+=akappa*creal(
 							(conj(X1[(i*ndirac+idirac)*nc])*
-							 (-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
-							  +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1])
+							 (-conj(ut[1][i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
+							  +conj(ut[0][i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc])*
-							 (-u12t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
-							  -conj(u11t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])
+							 (-ut[1][i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
+							  -conj(ut[0][i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])
 							 +conj(X1[(i*ndirac+idirac)*nc+1])*
-							 (-u11t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
-							  -u12t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1])
+							 (-ut[0][i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
+							  -ut[1][i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-							 (u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
-							  -conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])));
+							 (ut[0][i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
+							  -conj(ut[1][i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])));
 					dSdpi[(i*nadj+1)*ndim+mu]+=creal(gamval[mu*ndirac+idirac]*
 							(conj(X1[(i*ndirac+idirac)*nc])*
-							 (-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
-							  +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1])
+							 (-conj(ut[1][i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
+							  +conj(ut[0][i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc])*
-							 (u12t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
-							  +conj(u11t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1])
+							 (ut[1][i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
+							  +conj(ut[0][i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1])
 							 +conj(X1[(i*ndirac+idirac)*nc+1])*
-							 (-u11t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
-							  -u12t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1])
+							 (-ut[0][i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
+							  -ut[1][i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-							 (-u11t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
-							  +conj(u12t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1])));
+							 (-ut[0][i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
+							  +conj(ut[1][i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1])));
 
 					dSdpi[(i*nadj+2)*ndim+mu]+=akappa*creal(I*
 							(conj(X1[(i*ndirac+idirac)*nc])*
-							 (u11t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
-							  +u12t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1])
+							 (ut[0][i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
+							  +ut[1][i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc])*
-							 (-conj(u11t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc]
-							  -u12t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc+1])
+							 (-conj(ut[0][i*ndim+mu])*X2[(i*ndirac+idirac)*nc]
+							  -ut[1][i*ndim+mu] *X2[(i*ndirac+idirac)*nc+1])
 							 +conj(X1[(i*ndirac+idirac)*nc+1])*
-							 (conj(u12t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
-							  -conj(u11t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1])
+							 (conj(ut[1][i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
+							  -conj(ut[0][i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-							 (-conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc]
-							  +u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc+1])));
+							 (-conj(ut[1][i*ndim+mu])*X2[(i*ndirac+idirac)*nc]
+							  +ut[0][i*ndim+mu] *X2[(i*ndirac+idirac)*nc+1])));
 					dSdpi[(i*nadj+2)*ndim+mu]+=creal(I*gamval[mu*ndirac+idirac]*
 							(conj(X1[(i*ndirac+idirac)*nc])*
-							 (u11t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
-							  +u12t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1])
+							 (ut[0][i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
+							  +ut[1][i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc])*
-							 (conj(u11t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc]
-							  +u12t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc+1])
+							 (conj(ut[0][i*ndim+mu])*X2[(i*ndirac+igork1)*nc]
+							  +ut[1][i*ndim+mu] *X2[(i*ndirac+igork1)*nc+1])
 							 +conj(X1[(i*ndirac+idirac)*nc+1])*
-							 (conj(u12t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
-							  -conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1])
+							 (conj(ut[1][i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
+							  -conj(ut[0][i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-							 (conj(u12t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc]
-							  -u11t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc+1])));
+							 (conj(ut[1][i*ndim+mu])*X2[(i*ndirac+igork1)*nc]
+							  -ut[0][i*ndim+mu] *X2[(i*ndirac+igork1)*nc+1])));
 
 				}
 #endif
@@ -390,91 +340,91 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 #ifndef NO_TIME
 				dSdpi[(i*nadj)*ndim+mu]+=creal(I*
 						(conj(X1[(i*ndirac+idirac)*nc])*
-						 (dk4m[i]*(-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
-									  +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1]))
+						 (dk[0][i]*(-conj(ut[1][i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
+										+conj(ut[0][i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1]))
 						 +conj(X1[(uid*ndirac+idirac)*nc])*
-						 (dk4p[i]*      (+u12t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
-											  -conj(u11t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1]))
+						 (dk[1][i]*      (+ut[1][i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
+												-conj(ut[0][i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1]))
 						 +conj(X1[(i*ndirac+idirac)*nc+1])*
-						 (dk4m[i]*       (u11t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
-												+u12t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1]))
+						 (dk[0][i]*       (ut[0][i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
+												 +ut[1][i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1]))
 						 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-						 (dk4p[i]*      (-u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
-											  -conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1]))))
+						 (dk[1][i]*      (-ut[0][i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
+												-conj(ut[1][i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1]))))
 					+creal(I*
 							(conj(X1[(i*ndirac+idirac)*nc])*
-							 (dk4m[i]*(-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
-										  +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1]))
+							 (dk[0][i]*(-conj(ut[1][i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
+											+conj(ut[0][i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1]))
 							 +conj(X1[(uid*ndirac+idirac)*nc])*
-							 (-dk4p[i]*       (u12t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
-													 -conj(u11t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1]))
+							 (-dk[1][i]*       (ut[1][i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
+													  -conj(ut[0][i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1]))
 							 +conj(X1[(i*ndirac+idirac)*nc+1])*
-							 (dk4m[i]*       (u11t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
-													+u12t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1]))
+							 (dk[0][i]*       (ut[0][i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
+													 +ut[1][i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1]))
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-							 (-dk4p[i]*      (-u11t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
-													-conj(u12t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1]))));
+							 (-dk[1][i]*      (-ut[0][i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
+													 -conj(ut[1][i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1]))));
 
 				dSdpi[(i*nadj+1)*ndim+mu]+=creal(
 						conj(X1[(i*ndirac+idirac)*nc])*
-						(dk4m[i]*(-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
-									 +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1]))
+						(dk[0][i]*(-conj(ut[1][i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
+									  +conj(ut[0][i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1]))
 						+conj(X1[(uid*ndirac+idirac)*nc])*
-						(dk4p[i]*      (-u12t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
-											 -conj(u11t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1]))
+						(dk[1][i]*      (-ut[1][i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
+											  -conj(ut[0][i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1]))
 						+conj(X1[(i*ndirac+idirac)*nc+1])*
-						(dk4m[i]*      (-u11t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
-											 -u12t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1]))
+						(dk[0][i]*      (-ut[0][i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
+											  -ut[1][i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1]))
 						+conj(X1[(uid*ndirac+idirac)*nc+1])*
-						(dk4p[i]*      ( u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
-											  -conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])))
+						(dk[1][i]*      ( ut[0][i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
+												-conj(ut[1][i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])))
 					+creal(
 							(conj(X1[(i*ndirac+idirac)*nc])*
-							 (dk4m[i]*(-conj(u12t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
-										  +conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1]))
+							 (dk[0][i]*(-conj(ut[1][i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
+											+conj(ut[0][i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1]))
 							 +conj(X1[(uid*ndirac+idirac)*nc])*
-							 (-dk4p[i]*      (-u12t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
-													-conj(u11t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1]))
+							 (-dk[1][i]*      (-ut[1][i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
+													 -conj(ut[0][i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1]))
 							 +conj(X1[(i*ndirac+idirac)*nc+1])*
-							 (dk4m[i]*      (-u11t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
-												  -u12t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1]))
+							 (dk[0][i]*      (-ut[0][i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
+													-ut[1][i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1]))
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-							 (-dk4p[i]*       (u11t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
-													 -conj(u12t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1]))));
+							 (-dk[1][i]*       (ut[0][i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
+													  -conj(ut[1][i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1]))));
 
 				dSdpi[(i*nadj+2)*ndim+mu]+=creal(I*
 						(conj(X1[(i*ndirac+idirac)*nc])*
-						 (dk4m[i]*       (u11t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
-												+u12t[i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1]))
+						 (dk[0][i]*       (ut[0][i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
+												 +ut[1][i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1]))
 						 +conj(X1[(uid*ndirac+idirac)*nc])*
-						 (dk4p[i]*(-conj(u11t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc]
-									  -u12t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc+1]))
+						 (dk[1][i]*(-conj(ut[0][i*ndim+mu])*X2[(i*ndirac+idirac)*nc]
+										-ut[1][i*ndim+mu] *X2[(i*ndirac+idirac)*nc+1]))
 						 +conj(X1[(i*ndirac+idirac)*nc+1])*
-						 (dk4m[i]* (conj(u12t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
-										-conj(u11t[i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1]))
+						 (dk[0][i]* (conj(ut[1][i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
+										 -conj(ut[0][i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1]))
 						 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-						 (dk4p[i]*(-conj(u12t[i*ndim+mu])*X2[(i*ndirac+idirac)*nc]
-									  +u11t[i*ndim+mu] *X2[(i*ndirac+idirac)*nc+1]))))
+						 (dk[1][i]*(-conj(ut[1][i*ndim+mu])*X2[(i*ndirac+idirac)*nc]
+										+ut[0][i*ndim+mu] *X2[(i*ndirac+idirac)*nc+1]))))
 					+creal(I*
 							(conj(X1[(i*ndirac+idirac)*nc])*
-							 (dk4m[i]*       (u11t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
-													+u12t[i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1]))
+							 (dk[0][i]*       (ut[0][i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
+													 +ut[1][i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1]))
 							 +conj(X1[(uid*ndirac+idirac)*nc])*
-							 (-dk4p[i]*(-conj(u11t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc]
-											-u12t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc+1]))
+							 (-dk[1][i]*(-conj(ut[0][i*ndim+mu])*X2[(i*ndirac+igork1)*nc]
+											 -ut[1][i*ndim+mu] *X2[(i*ndirac+igork1)*nc+1]))
 							 +conj(X1[(i*ndirac+idirac)*nc+1])*
-							 (dk4m[i]* (conj(u12t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
-											-conj(u11t[i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1]))
+							 (dk[0][i]* (conj(ut[1][i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
+											 -conj(ut[0][i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1]))
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-							 (-dk4p[i]*(-conj(u12t[i*ndim+mu])*X2[(i*ndirac+igork1)*nc]
-											+u11t[i*ndim+mu] *X2[(i*ndirac+igork1)*nc+1]))));
+							 (-dk[1][i]*(-conj(ut[1][i*ndim+mu])*X2[(i*ndirac+igork1)*nc]
+											 +ut[0][i*ndim+mu] *X2[(i*ndirac+igork1)*nc+1]))));
 
 #endif
 			}
 #endif
 	}
 #ifdef __NVCC__
-	cudaFree(X2);
+	cudaFreeAsync(X1_f,streams[0]); cudaFreeAsync(X2_f,streams[1]);
 #else
 	free(X2); 
 #endif

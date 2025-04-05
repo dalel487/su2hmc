@@ -4,7 +4,7 @@ CC=	mpiicc
 IFLAGS=	-I../INCLUDE  $(shell gsl-config --cflags)
 
 CFLAGS=     $(IFLAGS) -qmkl -std=gnu11 -ipo -qopt-zmm-usage=high -MD\
-			-xSKYLAKE -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE,RAPTORLAKE\
+			-xHOST -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE,RAPTORLAKE\
 			-DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__ -DINT_OMF2\
 			-qopenmp -qno-openmp-offload -qopenmp-simd -DSA3AT -diag-disable=10441
 
@@ -23,7 +23,6 @@ SRC= \
 	par_mpi.c \
 	su2hmc.c \
 	integrate.c\
-	diagnostics.c
 
 INC= \
 	sizes.h \

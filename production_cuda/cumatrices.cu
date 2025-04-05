@@ -195,7 +195,7 @@ __global__ void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t
 	for(int i=threadId;i<kvol;i+=gsize*bsize){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
-			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
+			int did=id[mu*kvol+i]; int uid = iu[mu*kvol+i];
 			for(int idirac=0; idirac<ndirac; idirac++){
 				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
 				int igork1 = gamin_d[mu*ndirac+idirac];
@@ -225,7 +225,7 @@ __global__ void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t
 		}
 #endif
 		//Timelike terms
-		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
+		int did=id[3*kvol+i]; int uid = iu[3*kvol+i];
 #ifndef NO_TIME
 		for(int idirac=0; idirac<ndirac; idirac++){
 			int igork1 = gamin_d[3*ndirac+idirac];
@@ -342,7 +342,7 @@ __global__ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comple
 		//Spacelike terms. Here's hoping I haven't put time as the zeroth component somewhere!
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
-			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
+			int did=id[mu*kvol+i]; int uid = iu[mu*kvol+i];
 			u11s=u11t[i+kvol*mu]; u12s=u12t[i+kvol*mu];
 			u11sd=u11t[did+kvol*mu]; u12sd=u12t[did+kvol*mu];
 			for(int igorkov=0; igorkov<ngorkov; igorkov++){
@@ -388,7 +388,7 @@ __global__ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Comple
 #ifndef NO_TIME
 		u11s=u11t[i+kvol*3]; u12s=u12t[i+kvol*3];
 		float dk4ms=dk4m[i];	float dk4ps=dk4p[i];
-		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
+		int did=id[3*kvol+i]; int uid = iu[3*kvol+i];
 		u11sd=u11t[did+kvol*3]; u12sd=u12t[did+kvol*3];
 		float dk4msd=dk4m[did];	float dk4psd=dk4p[did];
 		for(int igorkov=0;igorkov<ndirac;igorkov++){
@@ -476,7 +476,7 @@ __global__ void cuDslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 #ifndef NO_SPACE
 #pragma unroll
 		for(int mu = 0; mu <3; mu++){
-			did=id[mu+ndim*i]; uid = iu[mu+ndim*i];
+			did=id[mu*kvol+i]; uid = iu[mu*kvol+i];
 			u11s=u11t[i+kvol*mu]; u12s=u12t[i+kvol*mu];
 			u11sd=u11t[did+kvol*mu]; u12sd=u12t[did+kvol*mu];
 #pragma unroll
@@ -530,7 +530,7 @@ __global__ void cuDslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f 
 		//Note that for the igorkov 4..7 loop idirac=igorkov-4, so we don't need to declare idiracPP separately
 		//Under dagger, dk4p and dk4m get swapped and the dirac component flips sign.
 #ifndef NO_TIME
-		did=id[3+ndim*i]; uid = iu[3+ndim*i];
+		did=id[3*kvol+i]; uid = iu[3*kvol+i];
 		u11s=u11t[i+kvol*3]; u12s=u12t[i+kvol*3];
 		u11sd=u11t[did+kvol*3]; u12sd=u12t[did+kvol*3];
 		Complex_f dk4msd=dk4m[did];	Complex_f dk4psd=dk4p[did];
@@ -1042,9 +1042,8 @@ void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,
 	}
 	cuDslashd_f<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 }
-void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
-		Complex_f *gamval,int *gamin,	float *dk4m, float *dk4p, float akappa,\ 
-		dim3 dimGrid, dim3 dimBlock){
+void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,unsigned int *id, Complex_f *gamval,
+					int *gamin,	float *dk[2], float akappa, dim3 dimGrid, dim3 dimBlock){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -1075,11 +1074,10 @@ void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,
 	}
 	const int bsize=dimGrid.x*dimGrid.y*dimGrid.z;
 	const int shareSize= ndim*bsize*nc*sizeof(Complex_f);
-	cuHdslash_f<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
+	cuHdslash_f<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa);
 }
-void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
-		Complex_f *gamval,int *gamin,	float *dk4m, float *dk4p, float akappa,\
-		dim3 dimGrid, dim3 dimBlock){
+void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,unsigned int *id,
+						Complex_f*gamval,int *gamin,float *dk[2], float akappa,dim3 dimGrid, dim3 dimBlock){
 	/*
 	 * Evaluates phi= M*r
 	 *
@@ -1110,10 +1108,10 @@ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t
 				CPYERROR,funcname,cuCpyStat);
 		exit(cuCpyStat);
 	}
-	cuHdslashd_f<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
+	cuHdslashd_f<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa);
 }
 
-void Transpose_z(Complex *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
+void cuTranspose_z(Complex *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
 	Complex *holder;
 	cudaMalloc((void **)&holder,fast_in*fast_out*sizeof(Complex));
 	cudaMemcpy(holder,out,fast_in*fast_out*sizeof(Complex),cudaMemcpyDefault);
@@ -1123,7 +1121,7 @@ void Transpose_z(Complex *out, const int fast_in, const int fast_out, const dim3
 	//cudaMemcpy(out,holder,fast_in*fast_out*sizeof(Complex_f),cudaMemcpyDefault);
 	cudaFree(holder);
 }
-void Transpose_c(Complex_f *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
+void cuTranspose_c(Complex_f *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
 	Complex_f *holder;
 	cudaMalloc((void **)&holder,fast_in*fast_out*sizeof(Complex_f));
 	cudaMemcpy(holder,out,fast_in*fast_out*sizeof(Complex_f),cudaMemcpyDefault);
@@ -1134,7 +1132,7 @@ void Transpose_c(Complex_f *out, const int fast_in, const int fast_out, const di
 	//cudaMemcpy(out,holder,fast_in*fast_out*sizeof(Complex_f),cudaMemcpyDefault);
 	cudaFree(holder);
 }
-void Transpose_d(double *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
+void cuTranspose_d(double *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
 	double *holder;
 	cudaMalloc((void **)&holder,fast_in*fast_out*sizeof(double));
 	cudaMemcpy(holder,out,fast_in*fast_out*sizeof(double),cudaMemcpyDefault);
@@ -1144,7 +1142,7 @@ void Transpose_d(double *out, const int fast_in, const int fast_out, const dim3 
 	//cudaMemcpy(out,holder,fast_in*fast_out*sizeof(double),cudaMemcpyDefault);
 	cudaFree(holder);
 }
-void Transpose_f(float *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
+void cuTranspose_f(float *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
 	float *holder;
 	cudaMalloc((void **)&holder,fast_in*fast_out*sizeof(float));
 	cudaMemcpy(holder,out,fast_in*fast_out*sizeof(float),cudaMemcpyDefault);
@@ -1154,7 +1152,7 @@ void Transpose_f(float *out, const int fast_in, const int fast_out, const dim3 d
 	//cudaMemcpy(out,holder,fast_in*fast_out*sizeof(float),cudaMemcpyDefault);
 	cudaFree(holder);
 }
-void Transpose_I(int *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
+void cuTranspose_I(int *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
 	int *holder;
 	cudaMalloc((void **)&holder,fast_in*fast_out*sizeof(int));
 	cudaMemcpy(holder,out,fast_in*fast_out*sizeof(int),cudaMemcpyDefault);
@@ -1164,7 +1162,7 @@ void Transpose_I(int *out, const int fast_in, const int fast_out, const dim3 dim
 	//cudaMemcpy(out,holder,fast_in*fast_out*sizeof(int),cudaMemcpyDefault);
 	cudaFree(holder);
 }
-void Transpose_U(unsigned int *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
+void cuTranspose_U(unsigned int *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
 	unsigned int *holder;
 	cudaMalloc((void **)&holder,fast_in*fast_out*sizeof(unsigned int));
 	cudaMemcpy(holder,out,fast_in*fast_out*sizeof(unsigned int),cudaMemcpyDefault);

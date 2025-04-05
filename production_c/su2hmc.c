@@ -17,9 +17,11 @@
 #include	<su2hmc.h>
 
 int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa, Complex_f ajq,\
-		Complex *u11, Complex *u12, Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f,\
-		Complex *gamval, Complex_f *gamval_f, int *gamin, double *dk4m, double *dk4p, float *dk4m_f, float *dk4p_f,\
-		unsigned int *iu, unsigned int *id){
+		Complex *u[2], Complex *ut[2], Complex_f *ut_f[2], Complex *gamval, Complex_f *gamval_f,
+#ifdef __CLOVER__
+		Complex *sigval, Complex_f *sigval_f,
+#endif
+		int *gamin, double *dk[2], float *dk_f[2], unsigned int *iu, unsigned int *id){
 	/*
 	 * Initialises the system
 	 *
@@ -41,16 +43,16 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 	 * float fmu:				Chemical potential
 	 * float akappa:			Hopping parameter
 	 * Complex_f ajq:			Diquark source
-	 * Complex *u11:			First colour field
-	 * Complex *u12:			Second colour field
-	 * Complex *u11t:			First colour trial field
-	 * Complex *u12t:			Second colour trial field
-	 * Complex_f *u11t_f:	First float trial field
-	 * Complex_f *u12t_f:	Second float trial field
-	 * double	*dk4m			$exp(-\mu)$
-	 * double	*dk4p:		$exp(\mu)$
-	 * float		*dk4m_f:		$exp(-\mu)$ float
-	 * float		*dk4p_f:		$exp(\mu)$ float
+	 * Complex *u[0]:			First colour field
+	 * Complex *u[1]:			Second colour field
+	 * Complex *ut[0]:			First colour trial field
+	 * Complex *ut[1]:			Second colour trial field
+	 * Complex_f *ut_f[0]:	First float trial field
+	 * Complex_f *ut_f[1]:	Second float trial field
+	 * double	*dk[0]			$exp(-\mu)$
+	 * double	*dk[1]:		$exp(\mu)$
+	 * float		*dk_f[0]:		$exp(-\mu)$ float
+	 * float		*dk_f[1]:		$exp(\mu)$ float
 	 * unsigned int *iu:		Up halo indices
 	 * unsigned int *id:		Down halo indices
 	 *
@@ -76,10 +78,10 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 #endif
 	double chem1=exp(fmu); double chem2 = 1/chem1;
 	//CUDA this. Only limit will be the bus speed
-#pragma omp parallel for simd aligned(dk4m,dk4p:AVX)
+#pragma omp parallel for simd //aligned(dk[0],dk[1]:AVX)
 	for(int i = 0; i<kvol; i++){
-		dk4p[i]=akappa*chem1;
-		dk4m[i]=akappa*chem2;
+		dk[1][i]=akappa*chem1;
+		dk[0][i]=akappa*chem2;
 	}
 	//Anti periodic Boundary Conditions. Flip the terms at the edge of the time
 	//direction
@@ -87,40 +89,41 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 #ifdef _DEBUG
 		printf("Implementing antiperiodic boundary conditions on rank %i\n", rank);
 #endif
-#pragma omp parallel for simd aligned(dk4m,dk4p:AVX)
+#pragma omp parallel for simd //aligned(dk[0],dk[1]:AVX)
 		for(int k= kvol-1; k>=kvol-kvol3; k--){
 			//int k = kvol - kvol3 + i;
-			dk4p[k]*=-1;
-			dk4m[k]*=-1;
+			dk[1][k]*=-1;
+			dk[0][k]*=-1;
 		}
 	}
 	//These are constant so swap the halos when initialising and be done with it
 	//May need to add a synchronisation statement here first
 #if(npt>1)
-	DHalo_swap_dir(dk4p, 1, 3, UP);
-	DHalo_swap_dir(dk4m, 1, 3, UP);
+	DHalo_swap_dir(dk[1], 1, 3, UP);
+	DHalo_swap_dir(dk[0], 1, 3, UP);
 #endif
 	//Float versions
 #ifdef __NVCC__
-	cuReal_convert(dk4p_f,dk4p,kvol+halo,true,dimBlock,dimGrid);
-	cuReal_convert(dk4m_f,dk4m,kvol+halo,true,dimBlock,dimGrid);
+	cuReal_convert(dk_f[1],dk[1],kvol+halo,true,dimBlock,dimGrid);
+	cuReal_convert(dk_f[0],dk[0],kvol+halo,true,dimBlock,dimGrid);
 #else
-#pragma omp parallel for simd aligned(dk4m,dk4p,dk4m_f,dk4p_f:AVX)
+#pragma omp parallel for simd //aligned(dk[0],dk[1],dk_f[0],dk_f[1]:AVX)
 	for(int i=0;i<kvol+halo;i++){
-		dk4p_f[i]=(float)dk4p[i];
-		dk4m_f[i]=(float)dk4m[i];
+		dk_f[1][i]=(float)dk[1][i];
+		dk_f[0][i]=(float)dk[0][i];
 	}
 #endif
+	//What row of each dirac/sigma matrix contains the entry acting on element i of the spinor
 	int __attribute__((aligned(AVX))) gamin_t[4][4] =	{{3,2,1,0},{3,2,1,0},{2,3,0,1},{2,3,0,1}};
 	//Gamma Matrices in Chiral Representation
-	//Gattringer and Lang have a nice crash course in appendix A.2 of
-	//Quantum Chromodynamics on the Lattice (530.14 GAT)
+	//See Appendix 8.1.2 of Montvay and Munster
 	//_t is for temp. We copy these into the real gamvals later
 #ifdef __NVCC__
 	cudaMemcpy(gamin,gamin_t,4*4*sizeof(int),cudaMemcpyDefault);
 #else
 	memcpy(gamin,gamin_t,4*4*sizeof(int));
 #endif
+	//Each row of the dirac matrix contains only one non-zero entry, so that's all we encode here
 	Complex	__attribute__((aligned(AVX)))	gamval_t[5][4] =	{{-I,-I,I,I},{-1,1,1,-1},{-I,I,I,-I},{1,1,1,1},{1,1,-1,-1}};
 	//Each gamma matrix is rescaled by akappa by flattening the gamval array
 #if defined USE_BLAS
@@ -134,6 +137,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 			gamval_t[i][j]*=akappa;
 #endif
 
+
 #ifdef __NVCC__
 	cudaMemcpy(gamval,gamval_t,5*4*sizeof(Complex),cudaMemcpyDefault);
 	cuComplex_convert(gamval_f,gamval,20,true,dimBlockOne,dimGridOne);	
@@ -142,9 +146,42 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 	for(int i=0;i<5*4;i++)
 		gamval_f[i]=(Complex_f)gamval[i];
 #endif
+
+#ifdef __CLOVER__
+	int __attribute__((aligned(AVX))) sigin_t[7][4] =	{{0,1,2,3},{0,1,2,3},{1,0,3,2},{1,0,3,2},{1,0,3,2},{1,0,3,2},{0,1,2,3}};
+	//The sigma matrices are the commutators of the gamma matrices. These are antisymmetric when you swap the indices
+	//Zero is the identical index case.
+	//1 is sigma_1,2
+	//2 is sigma_1,3
+	//3 is sigma_1,4
+	//4 is sigma_2,3
+	//5 is sigma_2,4
+	//6 is sigma_3,4
+	//TODO: Do we mutiply by 1/2 and kappa here or not? I say yes to be consistent with gamma. It means the factor of 2
+	//in the sigma matrices get's droppeed here
+	Complex	__attribute__((aligned(AVX)))	sigval_t[7][4] =	{{0,0,0,0},{-1,1,-1,1},{-I,I,-I,I},{1,1,-1,-1},{-1,-1,-1,-1},{-I,I,I,-I},{1,-1,-1,1}};
+#if defined USE_BLAS
+	cblas_zdscal(6*4, akappa, sigval_t+4*sizeof(Complex), 1);
+#else
+#pragma omp parallel for simd collapse(2) aligned(sigval,sigval_f:AVX)
+	for(int i=1;i<7;i++)
+		for(int j=0;j<4;j++)
+			sigval_t[i][j]*=akappa;
+#endif
+
+#ifdef __NVCC__
+	cudaMemcpy(sigval,sigval_t,7*4*sizeof(Complex),cudaMemcpyDefault);
+	cuComplex_convert(sigval_f,sigval,28,true,dimBlockOne,dimGridOne);	
+#else
+	memcpy(sigval,sigval_t,7*4*sizeof(Complex));
+	for(int i=0;i<7*4;i++)
+		sigval_f[i]=(Complex_f)sigval[i];
+#endif
+#endif
+
 	if(iread){
 		if(!rank) printf("Calling Par_sread() for configuration: %i\n", iread);
-		Par_sread(iread, beta, fmu, akappa, ajq,u11,u12,u11t,u12t);
+		Par_sread(iread, beta, fmu, akappa, ajq,u[0],u[1],ut[0],ut[1]);
 		Par_ranset(&seed,iread);
 	}
 	else{
@@ -152,29 +189,29 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 		if(istart==0){
 			//Initialise a cold start to zero
 			//memset is safe to use here because zero is zero 
-#pragma omp parallel for simd aligned(u11t:AVX) 
+#pragma omp parallel for simd //aligned(ut[0]:AVX) 
 			//Leave it to the GPU?
 			for(int i=0; i<kvol*ndim;i++){
-				u11t[i]=1;	u12t[i]=0;
+				ut[0][i]=1;	ut[1][i]=0;
 			}
 		}
 		else if(istart>0){
 			//Ideally, we can use gsl_ranlux as the PRNG
 #ifdef __RANLUX__
 			for(int i=0; i<kvol*ndim;i++){
-				u11t[i]=2*(gsl_rng_uniform(ranlux_instd)-0.5+I*(gsl_rng_uniform(ranlux_instd)-0.5));
-				u12t[i]=2*(gsl_rng_uniform(ranlux_instd)-0.5+I*(gsl_rng_uniform(ranlux_instd)-0.5));
+				ut[0][i]=2*(gsl_rng_uniform(ranlux_instd)-0.5+I*(gsl_rng_uniform(ranlux_instd)-0.5));
+				ut[1][i]=2*(gsl_rng_uniform(ranlux_instd)-0.5+I*(gsl_rng_uniform(ranlux_instd)-0.5));
 			}
 			//If not, the Intel Vectorise Mersenne Twister
 #elif (defined __INTEL_MKL__&&!defined USE_RAN2)
 			//Good news, casting works for using a double to create random complex numbers
-			vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*kvol, u11t, -1, 1);
-			vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*kvol, u12t, -1, 1);
+			vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*kvol, ut[0], -1, 1);
+			vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*kvol, ut[1], -1, 1);
 			//Last resort, Numerical Recipes' Ran2
 #else
 			for(int i=0; i<kvol*ndim;i++){
-				u11t[i]=2*(ran2(&seed)-0.5+I*(ran2(&seed)-0.5));
-				u12t[i]=2*(ran2(&seed)-0.5+I*(ran2(&seed)-0.5));
+				ut[0][i]=2*(ran2(&seed)-0.5+I*(ran2(&seed)-0.5));
+				ut[1][i]=2*(ran2(&seed)-0.5+I*(ran2(&seed)-0.5));
 			}
 #endif
 		}
@@ -184,20 +221,20 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 #ifdef __NVCC__
 		int device=-1;
 		cudaGetDevice(&device);
-		cudaMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),device,streams[0]);
-		cudaMemPrefetchAsync(u12t, ndim*kvol*sizeof(Complex),device,streams[1]);
+		cudaMemPrefetchAsync(ut[0], ndim*kvol*sizeof(Complex),device,streams[0]);
+		cudaMemPrefetchAsync(ut[1], ndim*kvol*sizeof(Complex),device,streams[1]);
 #endif
 		//Send trials to accelerator for reunitarisation
-		Reunitarise(u11t,u12t);
+		Reunitarise(ut);
 		//Get trials back
 #ifdef __NVCC__
-		cudaMemcpyAsync(u11,u11t,ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[0]);
-		cudaMemPrefetchAsync(u11, ndim*kvol*sizeof(Complex),device,streams[0]);
-		cudaMemcpyAsync(u12,u12t,ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[1]);
-		cudaMemPrefetchAsync(u12, ndim*kvol*sizeof(Complex),device,streams[1]);
+		cudaMemcpyAsync(u[0],ut[0],ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[0]);
+		cudaMemPrefetchAsync(u[0], ndim*kvol*sizeof(Complex),device,streams[0]);
+		cudaMemcpyAsync(u[1],ut[1],ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[1]);
+		cudaMemPrefetchAsync(u[1], ndim*kvol*sizeof(Complex),device,streams[1]);
 #else
-		memcpy(u11, u11t, ndim*kvol*sizeof(Complex));
-		memcpy(u12, u12t, ndim*kvol*sizeof(Complex));
+		memcpy(u[0], ut[0], ndim*kvol*sizeof(Complex));
+		memcpy(u[1], ut[1], ndim*kvol*sizeof(Complex));
 #endif
 	}
 #ifdef _DEBUG
@@ -205,10 +242,9 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 #endif
 	return 0;
 }
-int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex *X1, Complex *Phi,\
-		Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f, unsigned int * iu, unsigned int *id,\
-		Complex_f *gamval_f, int *gamin, float *dk4m_f, float * dk4p_f, Complex_f jqq,\
-		float akappa, float beta, double *ancgh,int traj){
+int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,Complex *Phi,
+				Complex_f *ut[2],unsigned int *iu,unsigned int *id, Complex_f *gamval_f,int *gamin,
+				float *dk[2],Complex_f jqq,float akappa,float beta,double *ancgh,int traj){
 	/*
 	 * @brief Calculate the Hamiltonian
 	 * 
@@ -219,13 +255,13 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 	 * @param	X0:
 	 * @param	X1:
 	 * @param	Phi:
-	 * @param	u11t,u12t:			Gauge fields
-	 * @param	u11t_f,u12t_f:		Gauge fields
+	 * @param	ut[0],ut[1]:			Gauge fields
+	 * @param	ut[0],ut[1]:		Gauge fields
 	 * @param	iu,id:				Lattice indices
 	 * @param	gamval_f:			Gamma matrices
 	 * @param	gamin:				Gamma indices
-	 * @param	dk4m_f:				$exp(-\mu)$ float
-	 * @param	dk4p_f:				$exp(\mu)$ float
+	 * @param	dk_f[0]:				$exp(-\mu)$ float
+	 * @param	dk_f[1]:				$exp(\mu)$ float
 	 * @param	jqq:					Diquark source
 	 * @param	akappa:				Hopping parameter
 	 * @param	beta:					Inverse gauge coupling
@@ -254,7 +290,7 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 	double avplaqs, avplaqt;
 	double hg = 0;
 	//avplaq? isn't seen again here.
-	Average_Plaquette(&hg,&avplaqs,&avplaqt,u11t_f,u12t_f,iu,beta);
+	Average_Plaquette(&hg,&avplaqs,&avplaqt,ut,iu,beta);
 
 	double hf = 0; int itercg = 0;
 #ifdef __NVCC__
@@ -277,7 +313,7 @@ int Hamilton(double *h, double *s, double res2, double *pp, Complex *X0, Complex
 		memcpy(X1,X0+na*kferm2,kferm2*sizeof(Complex));
 #endif
 		Fill_Small_Phi(na, smallPhi, Phi);
-		if(Congradq(na,res2,X1,smallPhi,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa,&itercg))
+		if(Congradq(na,res2,X1,smallPhi,ut,iu,id,gamval_f,gamin,dk,jqq,akappa,&itercg))
 			fprintf(stderr,"Trajectory %d\n", traj);
 
 		*ancgh+=itercg;
