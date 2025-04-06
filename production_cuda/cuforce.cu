@@ -250,25 +250,27 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t,Comple
 	for(int i=gthreadId;i<kvol;i+=gsize*bsize){
 		//Up indices
 		//const int uid = iu[mu+ndim*i];
-		const int uid = iu[mu*kvol+i];
+		int ind=i+kvol*mu;
+		const int uid = iu[ind];
 		//	Complex_f u11s=u11t[i*ndim+mu];	Complex_f u12s=u12t[i*ndim+mu];
-		const Complex_f u11s=u11t[i+kvol*mu];	const Complex_f u12s=u12t[i+kvol*mu];
+		const Complex_f u11s=u11t[ind];	const Complex_f u12s=u12t[ind];
 		//TODO: The only diffrence with these is that the sign flips for the temporal components
 		//			Can we figure out a way of doing this without having to read in a large array. 
 		//			Will result in a conditional inside a CUDA loop. If i>kvol3
 		const float dk4ms=dk4m[i];	const float dk4ps=dk4p[i];
 
-		for(int idirac=0;idirac<ndirac;idirac++){
-			Complex X1s[nc];	 Complex X1su[nc];
+		//Similarly to Hdslash we always see idirac*nc so we do that here too.
+		for(int idirac=0;idirac<ndirac*nc;idirac+=nc){
+			Complex_f X1s[nc];	 Complex_f X1su[nc];
 			Complex_f X2s[nc];	 Complex_f X2su[nc];
 			//X1s[0]=X1[(i*ndirac+idirac)*nc];	X1s[1]=X1[(i*ndirac+idirac)*nc+1];
 			//X1su[0]=X1[(uid*ndirac+idirac)*nc];	X1su[1]=X1[(uid*ndirac+idirac)*nc+1];
 			//X2s[0]=X2[(i*ndirac+idirac)*nc];	X2s[1]=X2[(i*ndirac+idirac)*nc+1];
 			//X2su[0]=X2[(uid*ndirac+idirac)*nc];	X2su[1]=X2[(uid*ndirac+idirac)*nc+1];
-			X1s[0]=X1[i+kvol*(nc*idirac)]; X1s[1]=X1[i+kvol*(1+nc*idirac)];
-			X1su[0]=X1[uid+kvol*(nc*idirac)]; X1su[1]=X1[uid+kvol*(1+nc*idirac)];
-			X2s[0]=X2[i+kvol*(nc*idirac)]; X2s[1]=X2[i+kvol*(1+nc*idirac)];
-			X2su[0]=X2[uid+kvol*(nc*idirac)]; X2su[1]=X2[uid+kvol*(1+nc*idirac)];
+			X1s[0]=X1[i+kvol*(idirac)]; X1s[1]=X1[i+kvol*(1+idirac)];
+			X1su[0]=X1[uid+kvol*(idirac)]; X1su[1]=X1[uid+kvol*(1+idirac)];
+			X2s[0]=X2[i+kvol*(idirac)]; X2s[1]=X2[i+kvol*(1+idirac)];
+			X2su[0]=X2[uid+kvol*(idirac)]; X2su[1]=X2[uid+kvol*(1+idirac)];
 
 			float dSdpis[3];
 			//	dSdpis[0]=dSdpi[(i*nadj)*ndim+mu];
@@ -292,11 +294,12 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t,Comple
 					+dk4ps*(conj(X1su[0])*(-conj(u11s)*X2s[0]-u12s *X2s[1])
 						+conj(X1su[1])* (-conj(u12s)*X2s[0]+u11s *X2s[1]))).imag();
 
-			const int igork1 = gamin[mu*ndirac+idirac];	
+			//rescaling igork1 by nc
+			const int igork1 = gamin[mu*ndirac+(idirac>>1)]<<1;	
 			//X2s[0]=X2[(i*ndirac+igork1)*nc];	X2s[1]=X2[(i*ndirac+igork1)*nc+1];
 			//X2su[0]=X2[(uid*ndirac+igork1)*nc];	X2su[1]=X2[(uid*ndirac+igork1)*nc+1];
-			X2s[0]=X2[i+kvol*(nc*igork1)]; X2s[1]=X2[i+kvol*(1+nc*igork1)];
-			X2su[0]=X2[uid+kvol*(nc*igork1)]; X2su[1]=X2[uid+kvol*(1+nc*igork1)];
+			X2s[0]=X2[i+kvol*(igork1)]; X2s[1]=X2[i+kvol*(1+igork1)];
+			X2su[0]=X2[uid+kvol*(igork1)]; X2su[1]=X2[uid+kvol*(1+igork1)];
 
 			dSdpis[0]+=-(dk4ms*(conj(X1s[0])*(-conj(u12s)*X2su[0]+conj(u11s)*X2su[1])
 						+conj(X1s[1])*(u11s *X2su[0]+u12s *X2su[1]))
