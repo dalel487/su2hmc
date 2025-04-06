@@ -14,12 +14,14 @@ void cuGauge_force(Complex_f *ut[2],double *dSdpi,float beta,unsigned int *iu,un
 #ifdef _DEBUG
 	cudaMallocManaged((void **)&Sigma[0],kvol*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&Sigma[1],kvol*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&ush[0],(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&ush[1],(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
 #else
 	cudaMallocAsync((void **)&Sigma[0],kvol*sizeof(Complex_f),streams[0]);
 	cudaMallocAsync((void **)&Sigma[1],kvol*sizeof(Complex_f),streams[1]);
+	cudaMallocAsync((void **)&ush[0],(kvol+halo)*sizeof(Complex_f),streams[2]);
+	cudaMallocAsync((void **)&ush[1],(kvol+halo)*sizeof(Complex_f),streams[3]);
 #endif
-	cudaMallocManaged((void **)&ush[0],(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&ush[1],(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
 	for(int mu=0; mu<ndim; mu++){
 		cudaMemset(Sigma[0],0, kvol*sizeof(Complex_f));
 		cudaMemset(Sigma[1],0, kvol*sizeof(Complex_f));
@@ -30,10 +32,10 @@ void cuGauge_force(Complex_f *ut[2],double *dSdpi,float beta,unsigned int *iu,un
 				C_gather(ush[0], ut[0], kvol, id, nu);
 				C_gather(ush[1], ut[1], kvol, id, nu);
 
+#if(nproc>1)
 				//Prefetch to the CPU for until we get NCCL working
 				cudaMemPrefetchAsync(ush[0], kvol*sizeof(Complex_f),cudaCpuDeviceId,streams[0]);
 				cudaMemPrefetchAsync(ush[1], kvol*sizeof(Complex_f),cudaCpuDeviceId,streams[1]);
-#if(nproc>1)
 				CHalo_swap_dir(ush[0], 1, mu, DOWN); CHalo_swap_dir(ush[1], 1, mu, DOWN);
 				cudaMemPrefetchAsync(ush[0]+kvol, halo*sizeof(Complex_f),device,streams[0]);
 				cudaMemPrefetchAsync(ush[1]+kvol, halo*sizeof(Complex_f),device,streams[1]);
@@ -47,10 +49,11 @@ void cuGauge_force(Complex_f *ut[2],double *dSdpi,float beta,unsigned int *iu,un
 	}
 #ifdef _DEBUG
 	cudaFree(Sigma[0]); cudaFree(Sigma[1]);
+	cudaFree(ush[0]); cudaFree(ush[1]);
 #else
 	cudaFreeAsync(Sigma[0],streams[0]); cudaFreeAsync(Sigma[1],streams[1]);
+	cudaFreeAsync(ush[0],streams[2]); cudaFreeAsync(ush[1],streams[3]);
 #endif
-	cudaFree(ush[0]); cudaFree(ush[1]);
 }
 void cuPlus_staple(int mu, int nu, unsigned int *iu, Complex_f *Sigma11, Complex_f *Sigma12, Complex_f *u11t, Complex_f *u12t,\
 		dim3 dimGrid, dim3 dimBlock){
@@ -95,15 +98,15 @@ void cuForce(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, \
 //TODO: Split cuForce into seperateable streams. Twelve in total I Believe?
 //A stream for each nadj index,dirac index and each μ (ndim) value
 //3*4*4=36 streams total... Pass dirac and μ spatial indices as arguments
-__global__ void Plus_staple(int mu, int nu,unsigned int *iu, Complex_f *Sigma11, Complex_f *Sigma12, Complex_f *u11t, Complex_f *u12t){
+__global__ void Plus_staple(const int mu, const int nu,unsigned int *iu, Complex_f *Sigma11, Complex_f *Sigma12, Complex_f *u11t, Complex_f *u12t){
 	const char *funcname = "Plus_staple";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	for(int i=threadId;i<kvol;i+=gsize*bsize){
-		int uidm = iu[mu*kvol+i];
-		int uidn = iu[nu*kvol+i];
+		const int uidm = iu[mu*kvol+i];
+		const int uidn = iu[nu*kvol+i];
 		Complex_f	a11=u11t[uidm+kvol*nu]*conj(u11t[uidn+kvol*mu])+\
 							 u12t[uidm+kvol*nu]*conj(u12t[uidn+kvol*mu]);
 		Complex_f	a12=-u11t[uidm+kvol*nu]*u12t[uidn+kvol*mu]+\
@@ -112,7 +115,7 @@ __global__ void Plus_staple(int mu, int nu,unsigned int *iu, Complex_f *Sigma11,
 		Sigma12[i]+=-a11*u12t[i+kvol*nu]+a12*u11t[i+kvol*nu];
 	}
 }
-__global__ void Minus_staple(int mu,int nu,unsigned int *iu,unsigned int *id, Complex_f *Sigma11, Complex_f *Sigma12,\
+__global__ void Minus_staple(const int mu,const int nu,unsigned int *iu,unsigned int *id, Complex_f *Sigma11, Complex_f *Sigma12,\
 		Complex_f *u11sh, Complex_f *u12sh, Complex_f *u11t, Complex_f *u12t){
 	const char *funcname = "Minus_staple";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
@@ -120,15 +123,19 @@ __global__ void Minus_staple(int mu,int nu,unsigned int *iu,unsigned int *id, Co
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	for(int i=threadId;i<kvol;i+=gsize*bsize){
-		int uidm = iu[mu*kvol+i];
-		int didn = id[nu*kvol+i];
+		const int uidm = iu[mu*kvol+i];
+		const int didn = id[nu*kvol+i];
 		//uidm is correct here
-		Complex_f a11=conj(u11sh[uidm])*conj(u11t[didn+kvol*mu])-\
-						  u12sh[uidm]*conj(u12t[didn+kvol*mu]);
-		Complex_f a12=-conj(u11sh[uidm])*u12t[didn+kvol*mu]-\
-						  u12sh[uidm]*u11t[didn+kvol*mu];
-		Sigma11[i]+=a11*u11t[didn+kvol*nu]-a12*conj(u12t[didn+kvol*nu]);
-		Sigma12[i]+=a11*u12t[didn+kvol*nu]+a12*conj(u11t[didn+kvol*nu]);
+		unsigned int ind=didn+kvol*mu;
+		Complex_f u11s=u11t[ind]; Complex_f u12s=u12t[ind];
+		Complex_f a11=conj(u11sh[uidm])*conj(u11s)-\
+						  u12sh[uidm]*conj(u12s);
+		Complex_f a12=-conj(u11sh[uidm])*u12s-\
+						  u12sh[uidm]*u11s;
+		ind=didn+kvol*nu;
+		u11s=u11t[ind]; u12s=u12t[ind];
+		Sigma11[i]+=a11*u11s-a12*conj(u12s);
+		Sigma12[i]+=a11*u12s+a12*conj(u11s);
 	}
 }
 __global__ void cuGaugeForce(int mu, Complex_f *Sigma11, Complex_f *Sigma12,double* dSdpi,Complex_f *u11t, Complex_f *u12t, float beta){
