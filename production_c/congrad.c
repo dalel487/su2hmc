@@ -379,7 +379,11 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigne
 		//Don't overwrite on first run. 
 		//x2=(M^\dagger)x1=(M^\dagger)Mp
 		Dslash_f(x1_f,p_f,ut[0],ut[1],iu,id,gamval,gamin,dk,jqq,akappa);
+		//if(c_sw)
+		//	ByClover(x1_f,p_f,clover,sigval,sigin);
 		Dslashd_f(x2_f,x1_f,ut[0],ut[1],iu,id,gamval,gamin,dk,jqq,akappa);
+		//if(c_sw)
+		//	ByClover(x1_f,p_f,clover,sigval,sigin);
 #ifdef __NVCC__
 		cudaDeviceSynchronise();
 #endif

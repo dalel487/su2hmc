@@ -78,7 +78,7 @@ inline int SU2plaq(Complex_f *ut[2], Complex_f Sigma[2], unsigned int *iu,  int 
 	Complex_f a12=-Sigma[0]*ut[1][uidn*ndim+mu]+Sigma[1]*ut[0][uidn*ndim+mu];
 
 	Sigma[0]=a11*conj(ut[0][i*ndim+nu])+a12*conj(ut[1][i*ndim+nu]);
-	Sigma[1]=-a11*ut[1][i*ndim+nu]+a12*ut[0][i*ndim+mu];
+	Sigma[1]=-a11*ut[1][i*ndim+nu]+a12*ut[0][i*ndim+nu];
 	return 0;
 }
 #endif

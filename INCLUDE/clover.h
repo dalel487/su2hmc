@@ -2,6 +2,9 @@
 #include <coord.h>
 #include	<errorcodes.h>
 #include	<stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 /**
  *	@file		clover.h
  *
@@ -69,6 +72,17 @@ int Clover(Complex_f *clover[6][2],Complex_f *Leaves[6][2],Complex_f *ut[2], uns
  */
 int ByClover(Complex_f *phi, Complex_f *r, Complex_f *clover[6][2], Complex_f *sigval, unsigned short *sigin);
 /**
+ *	@brief Clover analogue of the Dslashd operation. This version acts on all flavours simiilar to Dslash and Dslash_d
+ *	
+ *
+ *	@param	phi:		Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
+ *	@param	r:			Pseudofermion field before multiplication. The thing we want to multiply by the clover
+ *	@param	clover:	Array of clovers
+ *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by c_sw
+ * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
+ */
+int ByCloverd(Complex_f *phi, Complex_f *r, Complex_f *clover[6][2], Complex_f *sigval, unsigned short *sigin);
+/**
  *	@brief Clover analogue of the Dslash operation. The H in front is for half, as we only act on the fermions of flavour
  *	1
  *
@@ -79,6 +93,17 @@ int ByClover(Complex_f *phi, Complex_f *r, Complex_f *clover[6][2], Complex_f *s
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
  */
 int HbyClover(Complex_f *phi, Complex_f *r, Complex_f *clover[6][2], Complex_f *sigval, unsigned short *sigin);
+/**
+ *	@brief Clover analogue of the Dslashd operation. The H in front is for half, as we only act on the fermions of flavour
+ *	1
+ *
+ *	@param	phi:		Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
+ *	@param	r:			Pseudofermion field before multiplication. The thing we want to multiply by the clover
+ *	@param	clover:	Array of clovers
+ *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by c_sw
+ * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
+ */
+int HbyCloverd(Complex_f *phi, Complex_f *r, Complex_f *clover[6][2], Complex_f *sigval, unsigned short *sigin);
 /**
  *	@brief	Clover contribution to the Molecular Dynamics force
  *
