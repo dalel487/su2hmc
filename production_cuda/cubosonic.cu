@@ -112,7 +112,7 @@ __device__  void cuSU2plaq(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11,
 	Complex_f a12=-*Sigma11*u12t[uidn+kvol*mu]+*Sigma12*u11t[uidn+kvol*mu];
 
 	*Sigma11=a11*conj(u11t[i+kvol*nu])+a12*conj(u12t[i+kvol*nu]);
-	*Sigma12=-a11*u12t[i+kvol*nu]+a12*u11t[i+kvol*mu];
+	*Sigma12=-a11*u12t[i+kvol*nu]+a12*u11t[i+kvol*nu];
 }
 __global__ void cuPolyakov(Complex_f *Sigma11, Complex_f * Sigma12, Complex_f * u11t,Complex_f *u12t){
 	char * funcname = "cuPolyakov";

@@ -128,6 +128,8 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 #ifndef NO_GAUGE
 	Gauge_force(dSdpi,ut_f,iu,id,beta);
 #endif
+	if(!akappa)
+		return 0;
 	//X1=(M†M)^{1} Phi
 	int itercg=1;
 #ifdef __NVCC__

@@ -1,6 +1,6 @@
 MF=Makefile_GCC
-CC=		gcc
-CXX=		g++
+CC=		gcc-13
+CXX=		g++-13
 NVCC=		nvcc
 
 IFLAGS=     -I../INCLUDE -I ./ -I../production_c $(shell gsl-config --cflags)\
