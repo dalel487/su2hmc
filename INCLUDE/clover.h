@@ -4,6 +4,7 @@
 #include	<stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <su2hmc.h>
 
 /**
  *	@file		clover.h
@@ -24,7 +25,7 @@
  * 					to facilitate calculating plaquettes for Clover terms. No
  * 					sanity checks are conducted on them in this routine.
  */
-int Clover_SU2plaq(Complex_f *ut[2], Complex_f *Leaves[2], unsigned int *iu,  int i, int mu, int nu);
+int Clover_SU2plaq(Complex_f *ut[nc], Complex_f *Leaves[nc], unsigned int *iu,  int i, int mu, int nu);
 /**
  *	@brief	Calculates a leaf for a clover term.
  *
@@ -36,7 +37,7 @@ int Clover_SU2plaq(Complex_f *ut[2], Complex_f *Leaves[2], unsigned int *iu,  in
  *	@param	leaf:		Which leaf of the clover is being calculated
  *	
  */
-int Leaf(Complex_f *ut[2], Complex_f *Leaves[2], unsigned int *iu, unsigned int *id, int i, int mu, int nu, short leaf);
+int Leaf(Complex_f *ut[nc], Complex_f *Leaves[nc], unsigned int *iu, unsigned int *id, int i, int mu, int nu, short leaf);
 /**
  *	@brief	Calculates the clover in the forward direction and the leaves. Subtracting the conjugate of this yields the
  *	full clover
@@ -49,7 +50,7 @@ int Leaf(Complex_f *ut[2], Complex_f *Leaves[2], unsigned int *iu, unsigned int 
  *	@param	mu,nu:	Direction of the clover
  *
  */
-int Half_Clover(Complex_f *clover[2],	Complex_f *Leaves[2], Complex_f *ut[2], unsigned int *iu, unsigned int *id, int i, int mu, int nu);
+int Half_Clover(Complex_f *clover[nc],	Complex_f *Leaves[nc], Complex_f *ut[nc], unsigned int *iu, unsigned int *id, int i, int mu, int nu,short clov);
 /**
  *	@brief Calculates the clovers in all directions at all sites
  *	@f$ F_{\mu\nu}(n)=\frac{-i}{8a^2}\left(Q_{\mu\nu}(n)-Q_{\nu\mu}(n)\right)@f$
@@ -59,7 +60,7 @@ int Half_Clover(Complex_f *clover[2],	Complex_f *Leaves[2], Complex_f *ut[2], un
  *	@param	ut:		Gauge fields
  *	@param	iu,id:	Upper and lower indices
  */
-int Clover(Complex_f *clover[6][2],Complex_f *Leaves[6][2],Complex_f *ut[2], unsigned int *iu, unsigned int *id);
+int Clover(Complex_f *clover[nc],Complex_f *Leaves[6][nc],Complex_f *ut[nc], unsigned int *iu, unsigned int *id);
 /**
  *	@brief Clover analogue of the Dslash operation. This version acts on all flavours simiilar to Dslash and Dslash_d
  *	
@@ -70,7 +71,7 @@ int Clover(Complex_f *clover[6][2],Complex_f *Leaves[6][2],Complex_f *ut[2], uns
  *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by c_sw
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
  */
-int ByClover(Complex_f *phi, Complex_f *r, Complex_f *clover[6][2], Complex_f *sigval, unsigned short *sigin);
+int ByClover(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval, unsigned short *sigin);
 /**
  *	@brief Clover analogue of the Dslashd operation. This version acts on all flavours simiilar to Dslash and Dslash_d
  *	
@@ -81,7 +82,7 @@ int ByClover(Complex_f *phi, Complex_f *r, Complex_f *clover[6][2], Complex_f *s
  *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by c_sw
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
  */
-int ByCloverd(Complex_f *phi, Complex_f *r, Complex_f *clover[6][2], Complex_f *sigval, unsigned short *sigin);
+int ByCloverd(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval, unsigned short *sigin);
 /**
  *	@brief Clover analogue of the Dslash operation. The H in front is for half, as we only act on the fermions of flavour
  *	1
@@ -92,7 +93,7 @@ int ByCloverd(Complex_f *phi, Complex_f *r, Complex_f *clover[6][2], Complex_f *
  *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by c_sw
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
  */
-int HbyClover(Complex_f *phi, Complex_f *r, Complex_f *clover[6][2], Complex_f *sigval, unsigned short *sigin);
+int HbyClover(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval, unsigned short *sigin);
 /**
  *	@brief Clover analogue of the Dslashd operation. The H in front is for half, as we only act on the fermions of flavour
  *	1
@@ -103,7 +104,7 @@ int HbyClover(Complex_f *phi, Complex_f *r, Complex_f *clover[6][2], Complex_f *
  *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by c_sw
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
  */
-int HbyCloverd(Complex_f *phi, Complex_f *r, Complex_f *clover[6][2], Complex_f *sigval, unsigned short *sigin);
+int HbyCloverd(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval, unsigned short *sigin);
 /**
  *	@brief	Clover contribution to the Molecular Dynamics force
  *
@@ -113,7 +114,7 @@ int HbyCloverd(Complex_f *phi, Complex_f *r, Complex_f *clover[6][2], Complex_f 
  *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by c_sw
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
  */
-int Clover_Force(double *dSdpi, Complex_f *Leaves[6][2], Complex_f *X1, Complex_f *X2, Complex_f *sigval,unsigned short *sigin);
+int Clover_Force(double *dSdpi, Complex_f *Leaves[6][nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,unsigned short *sigin);
 /**
  *	@brief	Scales a clover leaf by the relevant SU(2) generator
  *
@@ -125,7 +126,7 @@ int Clover_Force(double *dSdpi, Complex_f *Leaves[6][2], Complex_f *X1, Complex_
  *	@param	pm:		Are we adding or subtracting this contribution from Fleaf? The force only needs the sum of the
  *							Fleaf terms so I've done it here.
  */
-int GenLeaf(Complex_f Fleaf[2], Complex_f *Leaves[2],const unsigned int i,const unsigned short leaf,const unsigned short adj,const bool pm);
+int GenLeaf(Complex_f Fleaf[nc], Complex_f *Leaves[nc],const unsigned int i,const unsigned short leaf,const unsigned short adj,const bool pm);
 /**
  *	@brief	Scales the hermitian conjugate of a clover leaf by the relevant SU(2) generator
  *
@@ -137,7 +138,7 @@ int GenLeaf(Complex_f Fleaf[2], Complex_f *Leaves[2],const unsigned int i,const 
  *	@param	pm:		Are we adding or subtracting this contribution from Fleaf? The force only needs the sum of the
  *							Fleaf terms so I've done it here.
  */
-int GenLeafd(Complex_f Fleaf[2], Complex_f *Leaves[2],const unsigned int i,const unsigned short leaf,const unsigned short adj,const bool pm);
+int GenLeafd(Complex_f Fleaf[nc], Complex_f *Leaves[nc],const unsigned int i,const unsigned short leaf,const unsigned short adj,const bool pm);
 /**
  *	@brief	Initialise values needed for the clover terms
  *
@@ -152,4 +153,18 @@ int Init_clover(Complex *sigval, Complex_f *sigval_f,unsigned short *sigin, floa
  *	@param	clover:	Clovers
  *	@param		Leaves:	Leaves
  */
-int Clover_free(Complex_f *clover[6][2],Complex_f *Leaves[6][2]);
+int Clover_free(Complex_f *clover[nc],Complex_f *Leaves[6][nc]);
+
+#ifdef __NVCC__
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+int cuClover(Complex_f *clover[nc],Complex_f *Leaves[6][nc],Complex_f *ut[nc], unsigned int *iu, unsigned int *id);
+void cuByClover(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f *sigval, unsigned short *sigin);
+void cuHbyClover(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f *sigval, unsigned short *sigin);
+int cuClover_Force(double *dSdpi, Complex_f *Leaves[6][nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,unsigned short *sigin);
+#ifdef __cplusplus
+}
+#endif
+#endif

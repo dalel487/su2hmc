@@ -55,6 +55,7 @@ CSRC=	\
 CUSRC_DIR=	../production_cuda
 CUSRC=	\
 		cubosonic.cu\
+		cuclover.cu\
 		cumatrices.cu\
 		cuforce.cu\
 		cusu2hmc.cu

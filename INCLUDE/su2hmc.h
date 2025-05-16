@@ -160,7 +160,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 	 *
 	 * @return 0 on success, integer error code otherwise
 	 */
-int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f *clover[6][2],unsigned int *iu,
+int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f *clover[nc],unsigned int *iu,
 				unsigned int *id, Complex_f *gamval_f,int *gamin,Complex_f *sigval,unsigned short *sigin, float *dk[2],
 				Complex_f jqq,float akappa,float c_sw,int *itercg);
 	/**

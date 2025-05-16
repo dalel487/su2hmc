@@ -206,34 +206,34 @@ int main(int argc, char *argv[]){
 	cudaMallocManaged((void**)&iu,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
 	cudaMallocManaged((void**)&id,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
 
-	cudaMallocManaged(&dk[0],(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
-	cudaMallocManaged(&dk[1],(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&dk[0],(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&dk[1],(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
 #ifdef _DEBUG
-	cudaMallocManaged(&dk_f[0],(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
-	cudaMallocManaged(&dk_f[1],(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&dk_f[0],(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&dk_f[1],(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
 #else
-	cudaMalloc(&dk_f[0],(kvol+halo)*sizeof(float));
-	cudaMalloc(&dk_f[1],(kvol+halo)*sizeof(float));
+	cudaMalloc((void **)&dk_f[0],(kvol+halo)*sizeof(float));
+	cudaMalloc((void **)&dk_f[1],(kvol+halo)*sizeof(float));
 #endif
 
 	int	*gamin;	Complex	*gamval;	Complex_f *gamval_f;
-	cudaMallocManaged(&gamin,4*4*sizeof(int),cudaMemAttachGlobal);
-	cudaMallocManaged(&gamval,5*4*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&gamin,4*4*sizeof(int),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&gamval,5*4*sizeof(Complex),cudaMemAttachGlobal);
 #ifdef _DEBUG
-	cudaMallocManaged(&gamval_f,5*4*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&gamval_f,5*4*sizeof(Complex_f),cudaMemAttachGlobal);
 #else
-	cudaMalloc(&gamval_f,5*4*sizeof(Complex_f));
+	cudaMalloc((void **)&gamval_f,5*4*sizeof(Complex_f));
 #endif
-	cudaMallocManaged(&u[0],ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&u[1],ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&ut[0],ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&ut[1],ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&u[0],ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&u[1],ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&ut[0],ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&ut[1],ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
 #ifdef _DEBUG
-	cudaMallocManaged(&ut_f[0],ndim*(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged(&ut_f[1],ndim*(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&ut_f[0],ndim*(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&ut_f[1],ndim*(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
 #else
-	cudaMalloc(&ut_f[0],ndim*(kvol+halo)*sizeof(Complex_f));
-	cudaMalloc(&ut_f[1],ndim*(kvol+halo)*sizeof(Complex_f));
+	cudaMalloc((void **)&ut_f[0],ndim*(kvol+halo)*sizeof(Complex_f));
+	cudaMalloc((void **)&ut_f[1],ndim*(kvol+halo)*sizeof(Complex_f));
 #endif
 #else
 	id = (unsigned int*)aligned_alloc(AVX,ndim*kvol*sizeof(int));
@@ -390,18 +390,17 @@ int main(int argc, char *argv[]){
 	//Initialise Arrays. Leaving it late for scoping
 	//check the sizes in sizes.h
 #ifdef __NVCC__
-	cudaMallocManaged(&R1, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMalloc(&Phi, nf*kferm*sizeof(Complex));
+	cudaMallocManaged((void **)&R1, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMalloc((void **)&Phi, nf*kferm*sizeof(Complex));
 #ifdef _DEBUG
-	cudaMallocManaged(&X0, nf*kferm2*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&dSdpi, kmom*sizeof(double),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&X0, nf*kferm2*sizeof(Complex),cudaMemAttachGlobal);
 #else
-	cudaMalloc(&X0, nf*kferm2*sizeof(Complex));
-	cudaMalloc(&dSdpi, kmom*sizeof(double));
+	cudaMalloc((void **)&X0, nf*kferm2*sizeof(Complex));
 #endif
 
-	cudaMallocManaged(&X1, kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&pp, kmom*sizeof(double),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&X1, kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&pp, kmom*sizeof(double),cudaMemAttachGlobal);
+	cudaMalloc((void **)&dSdpi, kmom*sizeof(double));
 	cudaDeviceSynchronise();
 #else
 	R1= aligned_alloc(AVX,kfermHalo*sizeof(Complex));
@@ -437,7 +436,7 @@ int main(int argc, char *argv[]){
 		if(!rank)
 			printf("Starting itraj %i\n", itraj);
 #endif
-		Complex_f *leaves[(ndim-1)*(ndim-2)][2], *clover[(ndim-1)*(ndim-2)][2];
+		Complex_f *leaves[(ndim-1)*(ndim-2)][2], *clover[2];
 		if(c_sw)
 			Clover(clover,leaves,ut_f,iu,id);
 		for(int na=0; na<nf; na++){
@@ -448,12 +447,12 @@ int main(int argc, char *argv[]){
 			//or stick with MKL and synchronise/copy over the array
 #ifdef __NVCC__
 			Complex_f *R1_f,*R;
-			cudaMallocManaged(&R,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
+			cudaMallocManaged((void **)&R,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
 #ifdef _DEBUG
-			cudaMallocManaged(&R1_f,kferm*sizeof(Complex_f),cudaMemAttachGlobal);
+			cudaMallocManaged((void **)&R1_f,kferm*sizeof(Complex_f),cudaMemAttachGlobal);
 			cudaMemset(R1_f,0,kferm*sizeof(Complex_f));
 #else
-			cudaMallocAsync(&R1_f,kferm*sizeof(Complex_f),streams[0]);
+			cudaMallocAsync((void **)&R1_f,kferm*sizeof(Complex_f),streams[0]);
 			cudaMemsetAsync(R1_f,0,kferm*sizeof(Complex_f),streams[0]);
 #endif
 #else
@@ -800,7 +799,7 @@ int main(int argc, char *argv[]){
 	if(!rank){
 		FILE *sa3at = fopen("Bench_times.csv", "a");
 #ifdef __NVCC__
-		char *version[256];
+		char version[256];
 		int cuversion; cudaRuntimeGetVersion(&cuversion);
 		sprintf(version,"CUDA %d\tBlock: (%d,%d,%d)\tGrid: (%d,%d,%d)\n%s\n",cuversion,\
 				dimBlock.x,dimBlock.y,dimBlock.z,dimGrid.x,dimGrid.y,dimGrid.z,__VERSION__);

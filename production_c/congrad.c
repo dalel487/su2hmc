@@ -71,7 +71,7 @@ void Q_free(Complex_f **p_f, Complex_f **x1_f, Complex_f **x2_f, Complex_f **r_f
 #endif
 	return;
 }
-int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f *clover[6][2],unsigned int *iu,
+int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f *clover[nc],unsigned int *iu,
 				unsigned int *id, Complex_f *gamval_f,int *gamin,Complex_f *sigval,unsigned short *sigin, float *dk[2],
 				Complex_f jqq,float akappa,float c_sw,int *itercg){
 	/*
@@ -146,12 +146,12 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f
 		//No need to synchronise here. The memcpy in Hdslash is blocking
 		Hdslash_f(x1_f,p_f,ut,iu,id,gamval_f,gamin,dk,akappa);
 		//Clover contribution
-		if(c_sw)
-			HbyClover(x1_f,p_f,clover,sigval,sigin);
+//		if(c_sw)
+//			HbyClover(x1_f,p_f,clover,sigval,sigin);
 		Hdslashd_f(x2_f,x1_f,ut,iu,id,gamval_f,gamin,dk,akappa);
 		//Clover contribution
-		if(c_sw)
-			HbyClover(x2_f,x1_f,clover,sigval,sigin);
+//		if(c_sw)
+//			HbyClover(x2_f,x1_f,clover,sigval,sigin);
 #ifdef	__NVCC__
 		cudaDeviceSynchronise();
 #endif

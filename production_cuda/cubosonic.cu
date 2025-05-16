@@ -116,33 +116,6 @@ __device__  void cuSU2plaq(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11,
 }
 
 //For clover we need to store the leaves at each site. Only difference to above is Sigmas have indices now.
-__device__  void cuSU2plaq(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11, Complex_f *Sigma12, unsigned int *iu, int i, int mu, int nu){
-	/*
-	 * Calculates the plaquette at site i in the μ-ν direction
-	 *
-	 * Parameters:
-	 * ==========
-	 * Complex u11t, u12t:	Trial fields
-	 * Comples Sigma11, Sigma12: Plaquette components
-	 * unsigned int *iu:	Upper halo indices
-	 * int mu, nu:				Plaquette direction. Note that mu and nu can be negative
-	 * 							to facilitate calculating plaquettes for Clover terms. No
-	 * 							sanity checks are conducted on them in this routine.
-	 *
-	 */
-	const char *funcname = "SU2plaq";
-	int uidm = iu[i+kvol*mu]; 
-
-	Sigma11[i]=u11t[i+kvol*mu]*u11t[uidm+kvol*nu]-u12t[i+kvol*mu]*conj(u12t[uidm+kvol*nu]);
-	Sigma12[i]=u11t[i+kvol*mu]*u12t[uidm+kvol*nu]+u12t[i+kvol*mu]*conj(u11t[uidm+kvol*nu]);
-
-	int uidn = iu[i+kvol*nu]; 
-	Complex_f a11=*Sigma11*conj(u11t[uidn+kvol*mu])+*Sigma12*conj(u12t[uidn+kvol*mu]);
-	Complex_f a12=-*Sigma11*u12t[uidn+kvol*mu]+*Sigma12*u11t[uidn+kvol*mu];
-
-	Sigma11[i]=a11*conj(u11t[i+kvol*nu])+a12*conj(u12t[i+kvol*nu]);
-	Sigma12[i]=-a11*u12t[i+kvol*nu]+a12*u11t[i+kvol*mu];
-}
 __global__ void cuPolyakov(Complex_f *Sigma11, Complex_f * Sigma12, Complex_f * u11t,Complex_f *u12t){
 	char * funcname = "cuPolyakov";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
