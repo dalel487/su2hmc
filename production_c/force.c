@@ -136,7 +136,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 	Gauge_force(dSdpi,ut_f,iu,id,beta);
 #endif
 	int itercg=1;
-	Complex_f *leaves[(ndim-1)*(ndim-2)][2], *clover[(ndim-1)*(ndim-2)][2];
+	Complex_f *leaves[(ndim-1)*(ndim-2)][nc], *clover[2];
 #ifdef __NVCC__
 	Complex_f *X1_f, *X2_f;
 	cudaMallocAsync((void **)&X2_f,kferm2*sizeof(Complex_f),streams[0]);
@@ -437,15 +437,17 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 #endif
 			}
 #endif
-		//if(c_sw){
+		if(c_sw){
+		#ifndef __NVCC__
 			Complex_f *X1_f= (Complex_f *)aligned_alloc(AVX,kferm2*sizeof(Complex_f));
 			Complex_f *X2_f= (Complex_f *)aligned_alloc(AVX,kferm2*sizeof(Complex_f));
 			for(unsigned int i=0;i<kferm2;i++){
 				X1_f[i]=(Complex_f)X1[i]; X2_f[i]=(Complex_f)X2[i];
 			}
+			#endif
 			Clover_Force(dSdpi,leaves,X1_f,X2_f,sigval,sigin);
 			free(X1_f); free(X2_f);
-	//	}
+		}
 	}
 	if(c_sw)
 		Clover_free(clover, leaves);

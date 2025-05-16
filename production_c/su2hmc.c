@@ -204,7 +204,7 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 #else
 	Complex *smallPhi = aligned_alloc(AVX,kferm2*sizeof(Complex));
 #endif
-	Complex_f *leaves[(ndim-1)*(ndim-2)][2], *clover[(ndim-1)*(ndim-2)][2];
+	Complex_f *leaves[(ndim-1)*(ndim-2)][2], *clover[2];
 	//if(c_sw)
 		Clover(clover,leaves,ut,iu,id);
 	//Iterating over flavours
