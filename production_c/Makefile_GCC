@@ -26,12 +26,16 @@ CFLAGS=	$(IFLAGS) -std=gnu11 -fcommon \
 ifdef AOCL_ROOT
 CFLAGS += -DAMD_BLAS
 LFLAGS = -L${AOCL_ROOT}/lib/ -lblis 
+LFLAGS	+=	 -lm $(shell gsl-config --libs-without-cblas)
 else ifdef LIBSCI_BASE_DIR
 CFLAGS += -DUSE_BLAS
 #Automatic on LUMI?
 #LFLAGS = ‐L${LIBSCI_BASE_DIR}/gnu/91/x86_64/lib/ -lsci_comp
+LFLAGS	+=	 -lm $(shell gsl-config --libs-without-cblas)
+else
+CFLAGS += -DGSL_BLAS
+LFLAGS	+=	 -lm $(shell gsl-config --libs)
 endif
-LFLAGS	+=	-lalm -lm $(shell gsl-config --libs-without-cblas)
 
 EXE=	su2hmc_GCC
 

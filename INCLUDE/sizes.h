@@ -132,7 +132,7 @@ extern cudaMemPool_t mempool;
 #define	nproc	(npx*npy*npz*npt)
 
 ///	@brief Number of threads for OpenMP, which can be overwritten at runtime
-#define	nthreads	16
+#define	nthreads	8
 
 //    Existing parameter definitions.
 ///	@brief Sublattice x extent
