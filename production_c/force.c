@@ -189,7 +189,11 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 				}
 #endif
 		}
+		#ifdef __NVCC__
 		Hdslash_f(X2_f,X1_f,ut_f,iu,id,gamval_f,gamin,dk_f,akappa);
+		#else
+		Hdslash(X2,X1,ut,iu,id,gamval,gamin,dk,akappa);
+		#endif
 #ifdef __NVCC__
 		float blasd=2.0;
 		cudaDeviceSynchronise();
