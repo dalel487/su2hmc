@@ -7,7 +7,7 @@ HIP_PATH ?= $(shell hipconfig --path)
 
 IFLAGS=     -I../INCLUDE/ -I ${AOCL_ROOT}/include $(shell gsl-config --cflags)\
 				-I $(HIP_PATH)/include/hipblas -I $(HIP_PATH)/include/\
-				-I /opt/rocmplus-6.3.3/hipifly/
+				-I /opt/rocmplus-6.3.3/hipifly/ 
 			#	-I /opt/nvidia/hpc_sdk/Linux_x86_64/2024/cuda/include/ \
 			#	-I /opt/nvidia/hpc_sdk/Linux_x86_64/2024/math_libs/include/ 
 
