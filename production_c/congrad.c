@@ -44,6 +44,39 @@ void Q_allocate(Complex_f **p_f, Complex_f **x1_f, Complex_f **x2_f, Complex_f *
 	return;
 }
 /**
+ * @brief Allocates memory needed for Congradq. Just to improve readability
+ * 		Note that since C does not modify it's arguments, you need to pass a pointer to the pointer you want to assign
+ * 		the memory to. This is similar behaviour to cudaMalloc
+ * 		
+ * @param	p_f			Holder for fermion field during inversion
+ * @param	x1_f,x2_f	@f$M@f$ and @f$M^\dagger M@f$
+ * @param	r_f			Redidue vector for conjugate gradient
+ */
+void Q_allocate(Complex **p, Complex **x1, Complex **x2, Complex **r){
+	const char funcname[] = "Q_allocate";
+#ifdef __NVCC__
+#ifdef _DEBUG
+	cudaMallocManaged((void **)p, kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)x1, kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)x2, kferm2*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)r, kferm2*sizeof(Complex),cudaMemAttachGlobal);
+#else
+	//First two have halo exchanges, so getting NCCL working is important
+	cudaMallocAsync((void **)p, kferm2Halo*sizeof(Complex),streams[0]);
+	cudaMallocAsync((void **)x1, kferm2Halo*sizeof(Complex),streams[1]);
+	cudaMallocAsync((void **)x2, kferm2*sizeof(Complex),streams[2]);
+	cudaMallocAsync((void **)r, kferm2*sizeof(Complex),streams[3]);
+#endif
+#else
+	*p=(Complex *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex));
+	*x1=(Complex *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex));
+	*x2=(Complex *)aligned_alloc(AVX,kferm2*sizeof(Complex));
+	*X1=(Complex *)aligned_alloc(AVX,kferm2*sizeof(Complex));
+#endif
+	return;
+}
+
+/**
  * @brief Frees memory needed for Congradq. Just to improve readability
  * 		Note that since C does not modify it's arguments, you need to pass a pointer to the pointer you want to assign
  * 		the memory to. This is similar behaviour to cudaMalloc
@@ -53,27 +86,55 @@ void Q_allocate(Complex_f **p_f, Complex_f **x1_f, Complex_f **x2_f, Complex_f *
  * @param	r_f			Redidue vector for conjugate gradient
  * @param	X1_f			Pseudofermion field
  */
-void Q_free(Complex_f **p_f, Complex_f **x1_f, Complex_f **x2_f, Complex_f **r_f, Complex_f **X1_f){
+void Q_free_f(Complex_f **p_f, Complex_f **x1_f, Complex_f **x2_f, Complex_f **r_f, Complex_f **X1_f){
 	const char funcname[] = "Q_free";
 #ifdef __NVCC__
 #ifdef _DEBUG
 	cudaDeviceSynchronise();
 	cudaFree(*x1_f);cudaFree(*x2_f); cudaFree(*p_f);
-	cudaFree(*r_f);cudaFree(*X1_f);
+	cudaFree(*r_f);
 #else
 	//streams match the ones that allocated them.
 	cudaFreeAsync(*p_f,streams[0]);cudaFreeAsync(*x1_f,streams[1]);cudaFreeAsync(*x2_f,streams[2]);
 	cudaDeviceSynchronise();
-	cudaFreeAsync(*r_f,streams[3]);cudaFreeAsync(*X1_f,streams[4]);
+	cudaFreeAsync(*r_f,streams[3]);
 #endif
 #else
-	free(*x1_f);free(*x2_f); free(*p_f);  free(*r_f); free(*X1_f);
+	free(*x1_f);free(*x2_f); free(*p_f);  free(*r_f);;
+#endif
+	return;
+}
+/**
+ * @brief Frees memory needed for Congradq. Just to improve readability
+ * 		Note that since C does not modify it's arguments, you need to pass a pointer to the pointer you want to assign
+ * 		the memory to. This is similar behaviour to cudaMalloc
+ * 		
+ * @param	p			Holder for fermion field during inversion
+ * @param	x1,x2	@f$M@f$ and @f$M^\dagger M@f$
+ * @param	r			Redidue vector for conjugate gradient
+ * @param	X1			Pseudofermion field
+ */
+void Q_free(Complex **p, Complex **x1, Complex **x2, Complex **r){
+	const char funcname[] = "Qree";
+#ifdef __NVCC__
+#ifdef _DEBUG
+	cudaDeviceSynchronise();
+	cudaFree(*x1);cudaFree(*x2); cudaFree(*p);
+	cudaFree(*r);cudaFree(*X1);
+#else
+	//streams match the ones that allocated them.
+	cudaFreeAsync(*p,streams[0]);cudaFreeAsync(*x1,streams[1]);cudaFreeAsync(*x2,streams[2]);
+	cudaDeviceSynchronise();
+	cudaFreeAsync(*r,streams[3]);cudaFreeAsync(*X1,streams[4]);
+#endif
+#else
+	free(*x1);free(*x2); free(*p);  free(*r); free(*X1);
 #endif
 	return;
 }
 int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f *clover[nc],unsigned int *iu,
-				unsigned int *id, Complex_f *gamval_f,int *gamin,Complex_f *sigval,unsigned short *sigin, float *dk[2],
-				Complex_f jqq,float akappa,float c_sw,int *itercg){
+		unsigned int *id, Complex_f *gamval_f,int *gamin,Complex_f *sigval,unsigned short *sigin, float *dk[2],
+		Complex_f jqq,float akappa,float c_sw,int *itercg){
 	/*
 	 * @brief Matrix Inversion via Mixed Precision Conjugate Gradient
 	 * Solves @f$(M^\dagger)Mx=\Phi@f$
@@ -103,6 +164,10 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f
 	const char *funcname = "Congradq";
 	int ret_val=0;
 	const double resid = res*res;
+
+	///TODO: Set this as an argument
+	///How much does the residue have to shrink by before we do a double precision update
+	const float d_prec=1.0f/100.f;
 	/// The @f$\kappa^2@f$ factor is needed to normalise the fields correctly
 	/// @f$j_{qq}@f$ is the diquark condensate and is global scope.
 	const Complex_f fac_f = conj(jqq)*jqq*akappa*akappa;
@@ -118,7 +183,8 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f
 	int device=-1; cudaGetDevice(&device);
 #endif
 	Complex_f *p_f, *x1_f, *x2_f, *r_f, *X1_f;
-	Q_allocate(&p_f,&x1_f,&x2_f,&r_f,&X1_f);
+	Complex	 *p_f, *x1_f, *x2_f, *r_f;
+	Q_allocate(&p_f,&x1_f,&x2_f,&r_f);
 
 	//Instead of copying element-wise in a loop, use memcpy.
 #ifdef __NVCC__
@@ -146,12 +212,12 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f
 		//No need to synchronise here. The memcpy in Hdslash is blocking
 		Hdslash_f(x1_f,p_f,ut,iu,id,gamval_f,gamin,dk,akappa);
 		//Clover contribution
-//		if(c_sw)
-//			HbyClover(x1_f,p_f,clover,sigval,sigin);
+		//		if(c_sw)
+		//			HbyClover(x1_f,p_f,clover,sigval,sigin);
 		Hdslashd_f(x2_f,x1_f,ut,iu,id,gamval_f,gamin,dk,akappa);
 		//Clover contribution
-//		if(c_sw)
-//			HbyClover(x2_f,x1_f,clover,sigval,sigin);
+		//		if(c_sw)
+		//			HbyClover(x2_f,x1_f,clover,sigval,sigin);
 #ifdef	__NVCC__
 		cudaDeviceSynchronise();
 #endif
@@ -226,6 +292,27 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f
 #if(nproc>1)
 		Par_dsum(&betan);
 #endif
+		//Double precision step
+		if(betan<d_prec*beta_max){
+			cuComplex_convert(r,r_f,kferm2,false,dimBlock,dimGrid);
+			cuComplex_convert(p,p_f,kferm2,false,dimBlock,dimGrid);
+			cuComplex_convert(x1,x1_f,kferm2,false,dimBlock,dimGrid);
+			cuComplex_convert(x2,x2_f,kferm2,false,dimBlock,dimGrid);
+			///@f$x2 =  (M^\dagger M)p @f$
+			//No need to synchronise here. The memcpy in Hdslash is blocking
+			Hdslash(x1,p,ut,iu,id,gamval,gamin,dk,akappa);
+			//Clover contribution
+			//		if(c_sw)
+			//			HbyClover(x1,p,clover,sigval,sigin);
+			Hdslashd(x2,x1,ut,iu,id,gamval,gamin,dk,akappa);
+			//Clover contribution
+			//		if(c_sw)
+			//			HbyClover(x2_f,x1_f,clover,sigval,sigin);
+#ifdef	__NVCC__
+			cudaDeviceSynchronise();
+#endif
+		}
+
 #ifdef _DEBUG
 #warning "CG Debugging"
 		char *endline = "\n";
@@ -285,7 +372,8 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f
 		r[i]=(Complex)r_f[i];
 	}
 #endif
-	Q_free(&p_f,&x1_f,&x2_f,&r_f,&X1_f);
+	Q_free_f(&p_f,&x1_f,&x2_f,&r_f,&X1_f);
+	Q_free(&p_f,&x1_f,&x2_f,&r_f);
 	return ret_val;
 }
 int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigned int *iu,unsigned int *id,\
