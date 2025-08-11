@@ -93,11 +93,11 @@ CUEDT=	$(CUSRC:.cu=.cu~)
 TMP=	$(MOD) $(CEDT) $(CUEDT) core
 
 profiler:	CFLAGS += -g #-D_DEBUGCG
-profiler:	NVCCFLAGS += -lineinfo #-D_DEBUGCG #-keep
+profiler:	NVCCFLAGS += -Xptxas -O3,-v -lineinfo #-D_DEBUGCG #-keep
 profiler:	release
 
 release:	CFLAGS +=  -Ofast -funroll-all-loops -fcf-protection=none #-fprofile-use=./gcc_pgo
-release:	NVCCFLAGS += -Xptxas -O3,-v -arch=native #--maxrregcount=64 -G -dopt=on
+release:	NVCCFLAGS += -arch=native #--maxrregcount=64 -G -dopt=on
 release:	$(EXE)
 
 diagnostic: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
