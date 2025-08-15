@@ -495,10 +495,10 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 #else
 	memcpy(phi, r, kferm*sizeof(Complex_f));
 #pragma omp parallel for
-	for(int i=0;i<kvol;i++){
+	for(unsigned int i=0;i<kvol;i++){
 #pragma omp simd aligned(phi,r,gamval_f:AVX)
-		for(int idirac = 0; idirac<ndirac; idirac++){
-			int igork = idirac+4;
+		for(unsigned short idirac = 0; idirac<ndirac; idirac++){
+			unsigned short igork = idirac+4;
 			Complex_f a_1, a_2;
 			a_1=conj(jqq)*gamval_f[4*ndirac+idirac];
 			//We subtract a_2, hence the minus
@@ -511,13 +511,13 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 
 		//Spacelike terms. Here's hoping I haven't put time as the zeroth component somewhere!
 #ifndef NO_SPACE
-		for(int mu = 0; mu <3; mu++){
-			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
+		for(unsigned short mu = 0; mu <3; mu++){
+			unsigned int did=id[mu+ndim*i]; unsigned int uid = iu[mu+ndim*i];
 #pragma omp simd aligned(phi,r,u11t_f,u12t_f,gamval_f,gamin:AVX)
-			for(int igorkov=0; igorkov<ngorkov; igorkov++){
+			for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing in the dirac term.
-				int idirac=igorkov%4;		
-				int igork1 = (igorkov<4) ? gamin[mu*ndirac+idirac] : gamin[mu*ndirac+idirac]+4;
+				unsigned short idirac=igorkov%4;		
+				unsigned short igork1 = (igorkov<4) ? gamin[mu*ndirac+idirac] : gamin[mu*ndirac+idirac]+4;
 				//Can manually vectorise with a pragma?
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
@@ -546,13 +546,13 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 		//We can fit it into a single loop by declaring igorkovPP=igorkov+4 instead of looping igorkov=4..7  separately
 		//Note that for the igorkov 4..7 loop idirac=igorkov-4, so we don't need to declare idiracPP separately
 #endif
-		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
+		unsigned int did=id[3+ndim*i]; unsigned int uid = iu[3+ndim*i];
 #ifndef NO_TIME
 #pragma omp simd aligned(phi,r,u11t_f,u12t_f,gamin:AVX)
-		for(int igorkov=0; igorkov<4; igorkov++){
-			int igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
+		for(unsigned short igorkov=0; igorkov<4; igorkov++){
+			unsigned short igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
 												//the FORTRAN code did it.
-			int igork1 = gamin[3*ndirac+igorkov];	int igork1PP = igork1+4;
+			unsigned short igork1 = gamin[3*ndirac+igorkov];	unsigned short igork1PP = igork1+4;
 
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			phi[(i*ngorkov+igorkov)*nc]+=
@@ -616,11 +616,11 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 #else
 	memcpy(phi, r, kferm*sizeof(Complex_f));
 #pragma omp parallel for
-	for(int i=0;i<kvol;i++){
+	for(unsigned int i=0;i<kvol;i++){
 #pragma omp simd aligned(phi,r,gamval_f:AVX)
 		//Diquark Term (antihermitian) The signs of a_1 and a_2 below flip under dagger
-		for(int idirac = 0; idirac<ndirac; idirac++){
-			int igork = idirac+4;
+		for(unsigned short idirac = 0; idirac<ndirac; idirac++){
+			unsigned short igork = idirac+4;
 			Complex_f a_1, a_2;
 			//We subtract a_1, hence the minus
 			a_1=-conj(jqq)*gamval_f[4*ndirac+idirac];
@@ -633,13 +633,13 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 
 		//Spacelike terms. Here's hoping I haven't put time as the zeroth component somewhere!
 #ifndef NO_SPACE
-		for(int mu = 0; mu <3; mu++){
-			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
+		for(unsigned short mu = 0; mu <3; mu++){
+			unsigned int did=id[mu+ndim*i]; unsigned int uid = iu[mu+ndim*i];
 #pragma omp simd aligned(phi,r,u11t_f,u12t_f,gamval_f:AVX)
-			for(int igorkov=0; igorkov<ngorkov; igorkov++){
+			for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing.
-				int idirac=igorkov%4;		
-				int igork1 = (igorkov<4) ? gamin[mu*ndirac+idirac] : gamin[mu*ndirac+idirac]+4;
+				unsigned short idirac=igorkov%4;		
+				unsigned short igork1 = (igorkov<4) ? gamin[mu*ndirac+idirac] : gamin[mu*ndirac+idirac]+4;
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
 				//Reminder! gamval was rescaled by kappa when we defined it
@@ -671,12 +671,12 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 		//We can fit it into a single loop by declaring igorkovPP=igorkov+4 instead of looping igorkov=4..7  separately
 		//Note that for the igorkov 4..7 loop idirac=igorkov-4, so we don't need to declare idiracPP separately
 		//Under dagger, dk_f[1] and dk_f[0] get swapped and the dirac component flips sign.
-		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
+		unsigned int did=id[3+ndim*i]; unsigned int uid = iu[3+ndim*i];
 #ifndef NO_TIME
 #pragma omp simd aligned(phi,r,u11t_f,u12t_f:AVX)
-		for(int igorkov=0; igorkov<4; igorkov++){
+		for(unsigned short igorkov=0; igorkov<4; igorkov++){
 			//the FORTRAN code did it.
-			int igork1 = gamin[3*ndirac+igorkov];	
+			unsigned short igork1 = gamin[3*ndirac+igorkov];	
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			phi[(i*ngorkov+igorkov)*nc]+=
 				-dk_f[0][i]*(u11t_f[i*ndim+3]*(r[(uid*ngorkov+igorkov)*nc]+r[(uid*ngorkov+igork1)*nc])
@@ -690,8 +690,8 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 						+u11t_f[did*ndim+3] *(r[(did*ngorkov+igorkov)*nc+1]-r[(did*ngorkov+igork1)*nc+1]));
 
 
-			int igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
-			int igork1PP = igork1+4;
+			unsigned short igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
+			unsigned short igork1PP = igork1+4;
 			//And the +4 terms. Note that dk_f[1] and dk_f[0] swap positions compared to the above				
 			phi[(i*ngorkov+igorkovPP)*nc]+=-dk_f[1][i]*(u11t_f[i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc]+r[(uid*ngorkov+igork1PP)*nc])
 					+u12t_f[i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc+1]+r[(uid*ngorkov+igork1PP)*nc+1]))
@@ -741,7 +741,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned  int *iu,u
 	//Mass term
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
 #pragma omp parallel for
-	for(int i=0;i<kvol;i+=AVX){
+	for(unsigned int i=0;i<kvol;i+=AVX){
 		alignas(AVX) Complex_f u11s[AVX];	 alignas(AVX) Complex_f u12s[AVX];
 		alignas(AVX) Complex_f u11sd[AVX];	 alignas(AVX) Complex_f u12sd[AVX];
 		alignas(AVX) Complex_f ru[2][AVX];   alignas(AVX) Complex_f rd[2][AVX];
@@ -749,27 +749,27 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned  int *iu,u
 		alignas(AVX) Complex_f phi_s[ndirac*nc][AVX];
 		//Do we need to sync threads if each thread only accesses the value it put in shared memory?
 #pragma unroll(2)
-		for(int idirac=0; idirac<ndirac; idirac++)
-			for(int c=0; c<nc; c++)
+		for(unsigned short idirac=0; idirac<ndirac; idirac++)
+			for(unsigned short c=0; c<nc; c++)
 #pragma omp simd aligned(phi_s,phi:AVX)
-				for(int j=0;j<AVX;j++)
+				for(unsigned short j=0;j<AVX;j++)
 					phi_s[idirac*nc+c][j]=phi[((i+j)*ndirac+idirac)*nc+c];
-		alignas(AVX) int did[AVX], uid[AVX];
+		alignas(AVX) unsigned int did[AVX], uid[AVX];
 #pragma unroll
-		for(int mu = 0; mu <3; mu++){
+		for(unsigned short mu = 0; mu <3; mu++){
 #pragma omp simd aligned(u11s,u12s,did,uid,id,iu,u11sd,u12sd:AVX)
-			for(int j =0;j<AVX;j++){
+			for(unsigned short j =0;j<AVX;j++){
 				did[j]=id[(i+j)*ndim+mu]; uid[j] = iu[(i+j)*ndim+mu];
 				u11s[j]=ut[0][(i+j)*ndim+mu];	u12s[j]=ut[1][(i+j)*ndim+mu];
 				u11sd[j]=ut[0][did[j]*ndim+mu];	u12sd[j]=ut[1][did[j]*ndim+mu];
 			}
 #pragma unroll
-			for(int idirac=0; idirac<ndirac; idirac++){
-				int igork1 = gamin[mu*ndirac+idirac];
+			for(unsigned short idirac=0; idirac<ndirac; idirac++){
+				unsigned short igork1 = gamin[mu*ndirac+idirac];
 #pragma unroll
-				for(int c=0; c<nc; c++)
+				for(unsigned short c=0; c<nc; c++)
 #pragma omp simd aligned(ru,rd,rgu,rgd,r,uid,did:AVX)
-					for(int j =0;j<AVX;j++){
+					for(unsigned short j =0;j<AVX;j++){
 						ru[c][j]=r[(uid[j]*ndirac+idirac)*nc+c];
 						rd[c][j]=r[(did[j]*ndirac+idirac)*nc+c];
 						rgu[c][j]=r[(uid[j]*ndirac+igork1)*nc+c];
@@ -780,7 +780,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned  int *iu,u
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
 #pragma omp simd aligned(phi_s,u11s,u12s,u11sd,u12sd,ru,rd,rgu,rgd:AVX)
-				for(int j =0;j<AVX;j++){
+				for(unsigned short j =0;j<AVX;j++){
 					phi_s[idirac*nc][j]+=-akappa*(u11s[j]*ru[0][j]+\
 							u12s[j]*ru[1][j]+\
 							conj(u11sd[j])*rd[0][j]-\
@@ -807,7 +807,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned  int *iu,u
 		//Timelike terms
 		alignas(AVX) float dk4ms[AVX],dk4ps[AVX];
 #pragma omp simd
-		for(int j=0;j<AVX;j++){
+		for(unsigned short j=0;j<AVX;j++){
 			u11s[j]=ut[0][(i+j)*ndim+3];	u12s[j]=ut[1][(i+j)*ndim+3];
 			did[j]=id[(i+j)*ndim+3];uid[j]= iu[(i+j)*ndim+3];
 			u11sd[j]=ut[0][did[j]*ndim+3];	u12sd[j]=ut[1][did[j]*ndim+3];
@@ -815,12 +815,12 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned  int *iu,u
 		}
 
 #pragma unroll
-		for(int idirac=0; idirac<ndirac; idirac++){
-			int igork1 = gamin[3*ndirac+idirac];
+		for(unsigned short idirac=0; idirac<ndirac; idirac++){
+			unsigned short igork1 = gamin[3*ndirac+idirac];
 #pragma unroll
-			for(int c=0; c<nc; c++)
+			for(unsigned short c=0; c<nc; c++)
 #pragma omp simd aligned(ru,rd,rgu,rgd,r,uid,did:AVX)
-				for(int j =0;j<AVX;j++){
+				for(unsigned short j =0;j<AVX;j++){
 					ru[c][j]=r[(uid[j]*ndirac+idirac)*nc+c];
 					rd[c][j]=r[(did[j]*ndirac+idirac)*nc+c];
 					rgu[c][j]=r[(uid[j]*ndirac+igork1)*nc+c];
@@ -829,7 +829,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned  int *iu,u
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 
 #pragma omp simd aligned(phi_s,u11s,u12s,u11sd,u12sd,ru,rd,rgu,rgd,dk4ms,dk4ps,phi:AVX)
-			for(int j =0;j<AVX;j++){
+			for(unsigned short j =0;j<AVX;j++){
 				phi_s[idirac*nc+0][j]-=
 					dk4ps[j]*(u11s[j]*(ru[0][j]-rgu[0][j])
 							+u12s[j]*(ru[1][j]-rgu[1][j]));
@@ -895,7 +895,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,u
 	//Enough room on L1 data cache for Zen 2 to hold 160 elements at a time
 	//Vectorise with 128 maybe?
 #pragma omp parallel for
-	for(int i=0;i<kvol;i+=AVX){
+	for(unsigned int i=0;i<kvol;i+=AVX){
 		//Right. Time to prefetch
 		alignas(AVX) Complex_f u11s[AVX];		alignas(AVX) Complex_f u12s[AVX];
 		alignas(AVX) Complex_f u11sd[AVX];		alignas(AVX) Complex_f u12sd[AVX];
@@ -903,30 +903,30 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,u
 		alignas(AVX) Complex_f rgu[2][AVX];		alignas(AVX) Complex_f rgd[2][AVX];
 		alignas(AVX) Complex_f phi_s[ndirac*nc][AVX];
 #pragma unroll
-		for(int idirac=0; idirac<ndirac; idirac++)
+		for(unsigned short idirac=0; idirac<ndirac; idirac++)
 #pragma unroll
-			for(int c=0; c<nc; c++)
+			for(unsigned short c=0; c<nc; c++)
 #pragma omp simd aligned(phi_s,phi:AVX)
-				for(int j=0;j<AVX;j++)
+				for(unsigned short j=0;j<AVX;j++)
 					phi_s[idirac*nc+c][j]=phi[((i+j)*ndirac+idirac)*nc+c];
-		alignas(AVX) int did[AVX], uid[AVX];
+		alignas(AVX) unsigned int did[AVX], uid[AVX];
 #ifndef NO_SPACE
 #pragma unroll
-		for(int mu = 0; mu <ndim-1; mu++){
+		for(unsigned short mu = 0; mu <ndim-1; mu++){
 			//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
 #pragma omp simd aligned(u11s,u12s,did,uid,id,iu,u11sd,u12sd:AVX)
-			for(int j =0;j<AVX;j++){
+			for(unsigned short j =0;j<AVX;j++){
 				did[j]=id[(i+j)*ndim+mu]; uid[j] = iu[(i+j)*ndim+mu];
 				u11s[j]=ut[0][(i+j)*ndim+mu];	u12s[j]=ut[1][(i+j)*ndim+mu];
 				u11sd[j]=ut[0][did[j]*ndim+mu];	u12sd[j]=ut[1][did[j]*ndim+mu];
 			}
 #pragma unroll
-			for(int idirac=0; idirac<ndirac; idirac++){
-				int igork1 = gamin[mu*ndirac+idirac];
+			for(unsigned short idirac=0; idirac<ndirac; idirac++){
+				unsigned short igork1 = gamin[mu*ndirac+idirac];
 #pragma unroll
-				for(int c=0; c<nc; c++)
+				for(unsigned short c=0; c<nc; c++)
 #pragma omp simd aligned(ru,rd,rgu,rgd,r,uid,did:AVX)
-					for(int j =0;j<AVX;j++){
+					for(unsigned short j =0;j<AVX;j++){
 						ru[c][j]=r[(uid[j]*ndirac+idirac)*nc+c];
 						rd[c][j]=r[(did[j]*ndirac+idirac)*nc+c];
 						rgu[c][j]=r[(uid[j]*ndirac+igork1)*nc+c];
@@ -936,7 +936,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,u
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
 #pragma omp simd aligned(phi_s,u11s,u12s,u11sd,u12sd,ru,rd,rgu,rgd:AVX)
-				for(int j =0;j<AVX;j++){
+				for(unsigned short j =0;j<AVX;j++){
 					phi_s[idirac*nc][j]-=akappa*(u11s[j]*ru[0][j]
 							+u12s[j]*ru[1][j]
 							+conj(u11sd[j])*rd[0][j]
@@ -965,19 +965,19 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,u
 		//Timelike terms
 		alignas(AVX) float dk4ms[AVX],dk4ps[AVX];
 #pragma omp simd aligned(u11s,u12s,did,uid,id,iu,u11sd,u12sd,dk4ms,dk4ps:AVX)
-		for(int j=0;j<AVX;j++){
+		for(unsigned short j=0;j<AVX;j++){
 			u11s[j]=ut[0][(i+j)*ndim+3];	u12s[j]=ut[1][(i+j)*ndim+3];
 			did[j]=id[(i+j)*ndim+3];		uid[j]= iu[(i+j)*ndim+3];
 			u11sd[j]=ut[0][did[j]*ndim+3];	u12sd[j]=ut[1][did[j]*ndim+3];
 			dk4ms[j]=dk[0][i+j];   			dk4ps[j]=dk[1][did[j]];
 		}
 #pragma unroll
-		for(int idirac=0; idirac<ndirac; idirac++){
-			int igork1 = gamin[3*ndirac+idirac];
+		for(unsigned short idirac=0; idirac<ndirac; idirac++){
+			unsigned short igork1 = gamin[3*ndirac+idirac];
 #pragma unroll
-			for(int c=0; c<nc; c++)
+			for(unsigned short c=0; c<nc; c++)
 #pragma omp simd aligned(ru,rd,rgu,rgd,r,uid,did:AVX)
-				for(int j =0;j<AVX;j++){
+				for(unsigned short j =0;j<AVX;j++){
 					ru[c][j]=r[(uid[j]*ndirac+idirac)*nc+c];
 					rd[c][j]=r[(did[j]*ndirac+idirac)*nc+c];
 					rgu[c][j]=r[(uid[j]*ndirac+igork1)*nc+c];
@@ -986,7 +986,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,u
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			//dk4m and dk4p swap under dagger
 #pragma omp simd aligned(phi_s,u11s,u12s,u11sd,u12sd,ru,rd,rgu,rgd,dk4ms,dk4ps,phi:AVX)
-			for(int j =0;j<AVX;j++){
+			for(unsigned short j =0;j<AVX;j++){
 				phi_s[idirac*nc][j]+=
 					-dk4ms[j]*(u11s[j]*(ru[0][j]+rgu[0][j])
 							+u12s[j]*(ru[1][j]+rgu[1][j]));
