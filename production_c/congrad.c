@@ -25,6 +25,7 @@ void Q_allocate_f(Complex_f **p_f, Complex_f **x1_f, Complex_f **x2_f, Complex_f
 	cudaMallocManaged((void **)p_f, kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)x1_f, kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)x2_f, kferm2*sizeof(Complex_f),cudaMemAttachGlobal);
+
 	cudaMallocManaged((void **)r_f, kferm2*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)X1_f, kferm2*sizeof(Complex_f),cudaMemAttachGlobal);
 #else
@@ -32,6 +33,7 @@ void Q_allocate_f(Complex_f **p_f, Complex_f **x1_f, Complex_f **x2_f, Complex_f
 	cudaMallocAsync((void **)p_f, kferm2Halo*sizeof(Complex_f),streams[0]);
 	cudaMallocAsync((void **)x1_f, kferm2Halo*sizeof(Complex_f),streams[1]);
 	cudaMallocAsync((void **)x2_f, kferm2*sizeof(Complex_f),streams[2]);
+
 	cudaMallocAsync((void **)r_f, kferm2*sizeof(Complex_f),streams[3]);
 	cudaMallocAsync((void **)X1_f, kferm2*sizeof(Complex_f),streams[4]);
 #endif
@@ -39,8 +41,9 @@ void Q_allocate_f(Complex_f **p_f, Complex_f **x1_f, Complex_f **x2_f, Complex_f
 	*p_f=(Complex_f *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
 	*x1_f=(Complex_f *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
 	*x2_f=(Complex_f *)aligned_alloc(AVX,kferm2*sizeof(Complex_f));
-	*X1_f=(Complex_f *)aligned_alloc(AVX,kferm2*sizeof(Complex_f));
+
 	*r_f=(Complex_f *)aligned_alloc(AVX,kferm2*sizeof(Complex_f));
+	*X1_f=(Complex_f *)aligned_alloc(AVX,kferm2*sizeof(Complex_f));
 #endif
 	return;
 }
@@ -90,15 +93,15 @@ void Q_free_f(Complex_f **p_f, Complex_f **x1_f, Complex_f **x2_f, Complex_f **r
 #ifdef _DEBUG
 	cudaDeviceSynchronise();
 	cudaFree(*x1_f);cudaFree(*x2_f); cudaFree(*p_f);
-	cudaFree(*r_f);
+	cudaFree(*r_f); cudaFree(*X1_f);
 #else
 	//streams match the ones that allocated them.
 	cudaFreeAsync(*p_f,streams[0]);cudaFreeAsync(*x1_f,streams[1]);cudaFreeAsync(*x2_f,streams[2]);
 	cudaDeviceSynchronise();
-	cudaFreeAsync(*r_f,streams[3]);
+	cudaFreeAsync(*r_f,streams[3]); cudaFreeAsync(*X1_f,streams[4]);
 #endif
 #else
-	free(*x1_f);free(*x2_f); free(*p_f);  free(*r_f);;
+	free(*x1_f); free(*x2_f); free(*p_f); free(*r_f);free(*X1_f);
 #endif
 	return;
 }
@@ -188,6 +191,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #ifdef __NVCC__
 	//Get X1 in single precision
 	cuComplex_convert(X1_f,X1,kferm2,true,dimBlock,dimGrid);
+	cuComplex_convert(r_f,r,kferm2,true,dimBlock,dimGrid);
 	//cudaMemcpy is blocking, so use async instead
 	cudaMemcpyAsync(p_f, X1_f, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice,streams[0]);
 #else
