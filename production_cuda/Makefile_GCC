@@ -1,5 +1,5 @@
 MF=Makefile_GCC
-CC=		gcc-13
+CC=		gcc-13 
 CXX=		g++-13
 NVCC=		nvcc
 

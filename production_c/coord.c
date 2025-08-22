@@ -34,11 +34,11 @@ int Addrc(unsigned int *iu, unsigned int *id){
 		//Rather than having 8 ih variables I'm going to use a 2x4 array
 		//down is 0, up is 1
 		int ih[2][4] = {{-1,-1,-1,-1},{-1,-1,-1,-1}};
-		hd = (unsigned int*)aligned_alloc(AVX,ndim*halo*sizeof(int));
-		hu = (unsigned int*)aligned_alloc(AVX,ndim*halo*sizeof(int));
-		h1u = (unsigned int*)aligned_alloc(AVX,ndim*sizeof(int));
-		h1d = (unsigned int*)aligned_alloc(AVX,ndim*sizeof(int));
-		halosize= (unsigned int*)aligned_alloc(AVX,ndim*sizeof(int));
+		h1u = (unsigned int *)aligned_alloc(AVX,ndim*sizeof(int));
+		h1d = (unsigned int *)aligned_alloc(AVX,ndim*sizeof(int));
+		halosize= (unsigned int *)aligned_alloc(AVX,ndim*sizeof(int));
+		hd = (unsigned int *)aligned_alloc(AVX,ndim*halo*sizeof(int));
+		hu = (unsigned int *)aligned_alloc(AVX,ndim*halo*sizeof(int));
 
 		//Do the lookups appropriate for over indexing into halos
 		//order is down, up for each x y z t
@@ -49,7 +49,8 @@ int Addrc(unsigned int *iu, unsigned int *id){
 		//Need to watch these +/- 1 at the end. Is that a FORTRAN thing or a program thing?
 		//The only time I see h1d called that +1 term gets cancelled by a -1 so I'm going
 		//to omit it here at my own peril. (Turned out I was right)
-		h1d[0]=kvol; h1u[0]=h1d[0]+halox;
+		h1d[0]=kvol; 
+		h1u[0]=h1d[0]+halox;
 		halosize[0]=halox;
 
 		h1d[1]=h1u[0]+halox; h1u[1]=h1d[1]+haloy;

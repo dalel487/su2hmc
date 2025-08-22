@@ -59,7 +59,7 @@ release:	$(EXE)
 diagnostic: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 diagnostic: debug
 
-debug:	CFLAGS += -g -O0 -D_DEBUG -Wall
+debug:	CFLAGS += -g -O0 -D_DEBUG -D_DEBUGCG -Wall
 debug:	$(EXE)
 
 $(EXE):	$(OBJ)

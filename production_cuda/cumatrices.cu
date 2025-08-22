@@ -859,6 +859,19 @@ out[y*fast_out+x]=in[x*fast_in+y];
 }
 */
 
+__global__ void cuMixed_Sumto(double *d, float *f, const unsigned int n){
+	const volatile char *funcname="Mixed_prod";
+	const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const volatile int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const volatile int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const volatile int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const int gthreadId= blockId * bsize+bthreadId;
+	
+	for(unsigned int i=gthreadId; i<n;i+=bsize*gsize)
+		d[i]+=(double)f[i];
+	return;
+}
+
 //Calling Functions
 //================
 void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
@@ -1171,6 +1184,11 @@ void cuTranspose_U(unsigned int *out, const int fast_in, const int fast_out, con
 	//(cuComplex *)out,fast_out,NULL,(cuComplex *)&beta,fast_out,(cuComplex *)holder,fast_out);
 	//cudaMemcpy(out,holder,fast_in*fast_out*sizeof(int),cudaMemcpyDefault);
 	cudaFree(holder);
+}
+
+void cuMixed_Sumto(double *d, float *f,const unsigned int n,const dim3 dimGrid,const dim3 dimBlock){
+	cuMixed_Sumto<<<dimGrid,dimBlock,0,0>>>(d,f,n);
+	return;
 }
 
 template __global__ void Transpose<float>(float *, const float*, const int, const int);

@@ -535,7 +535,7 @@ int main(int argc, char *argv[]){
 		cudaMemPrefetchAsync(pp,kmom*sizeof(double),device,streams[1]);
 #endif
 		double H0, S0;
-		Hamilton(&H0,&S0,rescga,pp,X0,X1,Phi,ut_f,iu,id,gamval_f,gamin,sigval_f,sigin,dk_f,jqq,akappa,beta,c_sw,&ancgh,itraj);
+		Hamilton(&H0,&S0,rescga,pp,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval_f,sigin,dk,dk_f,jqq,akappa,beta,c_sw,&ancgh,itraj);
 #ifdef _DEBUG
 		if(!rank) printf("H0: %e S0: %e\n", H0, S0);
 #endif
@@ -561,7 +561,7 @@ int main(int argc, char *argv[]){
 		//Kernel Call needed here?
 		Reunitarise(ut);
 		double H1, S1;
-		Hamilton(&H1,&S1,rescga,pp,X0,X1,Phi,ut_f,iu,id,gamval_f,gamin,sigval_f,sigin,dk_f,jqq,akappa,beta,c_sw,&ancgh,itraj);
+		Hamilton(&H0,&S0,rescga,pp,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval_f,sigin,dk,dk_f,jqq,akappa,beta,c_sw,&ancgh,itraj);
 		ancgh/=2.0; //Hamilton is called at start and end of trajectory
 		totancgh+=ancgh;
 #ifdef _DEBUG

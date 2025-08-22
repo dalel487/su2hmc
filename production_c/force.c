@@ -166,7 +166,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 #endif
 			Fill_Small_Phi(na, smallPhi, Phi);
 			///@f$(X1=(M\dagger M)^{-1} \Phi@f$
-			Congradq(na,res1,X1,smallPhi,ut_f,clover,iu,id,gamval_f,gamin,sigval,sigin,dk_f,jqq,akappa,c_sw,&itercg);
+			Congradq(na,res1,X1,smallPhi,ut,ut_f,clover,iu,id,gamval,gamval_f,gamin,sigval,sigin,dk,dk_f,jqq,akappa,c_sw,&itercg);
 #ifdef __NVCC__
 			cudaFreeAsync(smallPhi,streams[0]);
 #else
