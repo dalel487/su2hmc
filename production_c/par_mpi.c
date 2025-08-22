@@ -97,7 +97,7 @@ int Par_begin(int argc, char *argv[]){
 		MPI_Cart_shift(commcart, i, 1, &pd[i], &pu[i]);
 #endif
 	//Get coordinates of processors in the grid
-	pcoord = (int*)aligned_alloc(AVX,ndim*nproc*sizeof(int));
+	pcoord = (int*)malloc(ndim*nproc*sizeof(int));
 	memset(pcoord,0,sizeof(int)*ndim*nproc);
 #if(nproc>1)
 	for(int iproc = 0; iproc<nproc; iproc++){

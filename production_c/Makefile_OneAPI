@@ -4,8 +4,7 @@ CC=	mpiicx
 IFLAGS=	-I../INCLUDE $(shell gsl-config --cflags)
 
 CFLAGS=     $(IFLAGS) -qmkl -std=gnu11 -ipo -qopt-zmm-usage=high -MD\
-			-xSKYLAKE -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE,RAPTORLAKE\
-			-DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
+			-xHOST -DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
 			-qopenmp -qopenmp-simd -DSA3AT -DINT_OMF2\
 			-mllvm -loopopt=0
 			#Last Line required to avoid segmentation fault
@@ -23,6 +22,7 @@ SRC= \
 	fermionic.c\
 	force.c\
 	par_mpi.c \
+	clover.c \
 	integrate.c\
 	su2hmc.c 
 
@@ -33,6 +33,7 @@ INC= \
 	random.h \
 	matrices.h \
 	par_mpi.h \
+	clover.h \
 	integrate.h\
 	su2hmc.h \
 #
@@ -59,7 +60,7 @@ release:	$(EXE)
 diagnostic: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 diagnostic: debug
 
-debug:	CFLAGS += -g -O0 -D_DEBUG -Wall
+debug:	CFLAGS += -g -O0 -D_DEBUG -D_DEBUGCG -Wall #-fsanitize=memory -fno-omit-frame-pointer
 debug:	$(EXE)
 
 $(EXE):	$(OBJ)

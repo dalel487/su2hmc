@@ -297,8 +297,8 @@ int Hdslash(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned 
 #endif
 	return 0;
 }
-int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  int *iu,unsigned  int *id,\
-		Complex *gamval, int *gamin, double *dk4m, double *dk4p, float akappa){
+int Hdslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned  int *id,\
+		Complex *gamval, int *gamin, double *dk[2], float akappa){
 	const char *funcname = "Hdslashd";
 	//Get the halos in order. Because C is row major, we need to extract the correct
 	//terms for each halo first. Changing the indices was considered but that caused
@@ -309,7 +309,7 @@ int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  in
 
 	//Mass term
 #ifdef __NVCC__
-	cuHdslashd(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa,dimGrid,dimBlock);
+	cuHdslashd(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm2*sizeof(Complex));
 	//Spacelike term
@@ -318,7 +318,7 @@ int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  in
 #ifndef NO_SPACE
 		for(int mu = 0; mu <ndim-1; mu++){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
-#pragma omp simd aligned(phi,r,u11t,u12t,gamval:AVX)
+#pragma omp simd aligned(phi,r,gamval:AVX)
 			for(int idirac=0; idirac<ndirac; idirac++){
 				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
 				int igork1 = gamin[mu*ndirac+idirac];
@@ -328,48 +328,48 @@ int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned  in
 
 				//Reminder! gamval was rescaled by kappa when we defined it
 				phi[(i*ndirac+idirac)*nc]+=
-					-akappa*(u11t[i*ndim+mu]*r[(uid*ndirac+idirac)*nc]
-							+u12t[i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]
-							+conj(u11t[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
-							-u12t[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
+					-akappa*(ut[0][i*ndim+mu]*r[(uid*ndirac+idirac)*nc]
+							+ut[1][i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]
+							+conj(ut[0][did*ndim+mu])*r[(did*ndirac+idirac)*nc]
+							-ut[1][did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
 					-gamval[mu*ndirac+idirac]*
-					(          u11t[i*ndim+mu]*r[(uid*ndirac+igork1)*nc]
-								  +u12t[i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]
-								  -conj(u11t[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
-								  +u12t[did*ndim+mu] *r[(did*ndirac+igork1)*nc+1]);
+					(          ut[0][i*ndim+mu]*r[(uid*ndirac+igork1)*nc]
+								  +ut[1][i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]
+								  -conj(ut[0][did*ndim+mu])*r[(did*ndirac+igork1)*nc]
+								  +ut[1][did*ndim+mu] *r[(did*ndirac+igork1)*nc+1]);
 
 				phi[(i*ndirac+idirac)*nc+1]+=
-					-akappa*(-conj(u12t[i*ndim+mu])*r[(uid*ndirac+idirac)*nc]
-							+conj(u11t[i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]
-							+conj(u12t[did*ndim+mu])*r[(did*ndirac+idirac)*nc]
-							+u11t[did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
+					-akappa*(-conj(ut[1][i*ndim+mu])*r[(uid*ndirac+idirac)*nc]
+							+conj(ut[0][i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]
+							+conj(ut[1][did*ndim+mu])*r[(did*ndirac+idirac)*nc]
+							+ut[0][did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
 					-gamval[mu*ndirac+idirac]*
-					(-conj(u12t[i*ndim+mu])*r[(uid*ndirac+igork1)*nc]
-					 +conj(u11t[i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]
-					 -conj(u12t[did*ndim+mu])*r[(did*ndirac+igork1)*nc]
-					 -u11t[did*ndim+mu] *r[(did*ndirac+igork1)*nc+1]);
+					(-conj(ut[1][i*ndim+mu])*r[(uid*ndirac+igork1)*nc]
+					 +conj(ut[0][i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]
+					 -conj(ut[1][did*ndim+mu])*r[(did*ndirac+igork1)*nc]
+					 -ut[0][did*ndim+mu] *r[(did*ndirac+igork1)*nc+1]);
 			}
 		}
 #endif
 		//Timelike terms
 		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
 #ifndef NO_TIME
-#pragma omp simd aligned(phi,r,u11t,u12t,dk4m,dk4p:AVX)
+#pragma omp simd aligned(phi,r:AVX)
 		for(int idirac=0; idirac<ndirac; idirac++){
 			int igork1 = gamin[3*ndirac+idirac];
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
-			//dk4m and dk4p swap under dagger
+			//dk[0] and dk[1] swap under dagger
 			phi[(i*ndirac+idirac)*nc]+=
-				-dk4m[i]*(u11t[i*ndim+3]*(r[(uid*ndirac+idirac)*nc]+r[(uid*ndirac+igork1)*nc])
-						+u12t[i*ndim+3]*(r[(uid*ndirac+idirac)*nc+1]+r[(uid*ndirac+igork1)*nc+1]))
-				-dk4p[did]*(conj(u11t[did*ndim+3])*(r[(did*ndirac+idirac)*nc]-r[(did*ndirac+igork1)*nc])
-						-u12t[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]-r[(did*ndirac+igork1)*nc+1]));
+				-dk[0][i]*(ut[0][i*ndim+3]*(r[(uid*ndirac+idirac)*nc]+r[(uid*ndirac+igork1)*nc])
+						+ut[1][i*ndim+3]*(r[(uid*ndirac+idirac)*nc+1]+r[(uid*ndirac+igork1)*nc+1]))
+				-dk[1][did]*(conj(ut[0][did*ndim+3])*(r[(did*ndirac+idirac)*nc]-r[(did*ndirac+igork1)*nc])
+						-ut[1][did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]-r[(did*ndirac+igork1)*nc+1]));
 
 			phi[(i*ndirac+idirac)*nc+1]+=
-				-dk4m[i]*(-conj(u12t[i*ndim+3])*(r[(uid*ndirac+idirac)*nc]+r[(uid*ndirac+igork1)*nc])
-						+conj(u11t[i*ndim+3])*(r[(uid*ndirac+idirac)*nc+1]+r[(uid*ndirac+igork1)*nc+1]))
-				-dk4p[did]*(conj(u12t[did*ndim+3])*(r[(did*ndirac+idirac)*nc]-r[(did*ndirac+igork1)*nc])
-						+u11t[did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]-r[(did*ndirac+igork1)*nc+1]));
+				-dk[0][i]*(-conj(ut[1][i*ndim+3])*(r[(uid*ndirac+idirac)*nc]+r[(uid*ndirac+igork1)*nc])
+						+conj(ut[0][i*ndim+3])*(r[(uid*ndirac+idirac)*nc+1]+r[(uid*ndirac+igork1)*nc+1]))
+				-dk[1][did]*(conj(ut[1][did*ndim+3])*(r[(did*ndirac+idirac)*nc]-r[(did*ndirac+igork1)*nc])
+						+ut[0][did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]-r[(did*ndirac+igork1)*nc+1]));
 		}
 #endif
 	}

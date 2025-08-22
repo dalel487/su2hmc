@@ -86,8 +86,8 @@ extern "C"
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
-	int Hdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
-			Complex *gamval, int *gamin, double *dk4m, double *dk4p, float akappa);
+	int Hdslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned int *iu,unsigned  int *id,\
+			Complex *gamval, int *gamin, double *dk[2], float akappa);
 	//Float version
 	/**
 	 * @brief Evaluates @f$\Phi=M r@f$ in single precision.
@@ -214,6 +214,17 @@ void Transpose_U(unsigned int *out, const int, const int);
 	void cuTranspose_f(float *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
 	void cuTranspose_I(int *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
 	void cuTranspose_U(unsigned int *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
+	/**
+	 *	@brief Add a single to a double value, and save the output in the double array
+	 *			For complex valued arrays, one may cast the complex<double> and complex<float> arrays to double and float
+	 *			arrays, and use 2N for the array length instead.
+	 *	
+	 *	@param	d:	Double array
+	 *	@param	f: float array
+	 *	@param	n:	Array lengths
+	 *
+	 */
+void cuMixed_Sumto(double *d, float *f,const unsigned int n,const dim3 dimGrid,const dim3 dimBlock);
 #endif
 #if (defined __cplusplus)
 }

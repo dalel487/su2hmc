@@ -62,7 +62,7 @@ extern "C"
 	 *
 	 *	@return Zero on success, integer error code otherwise
 	 */
-int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Complex *Phi,Complex *ut[2],\
+	int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Complex *Phi,Complex *ut[2],\
 			Complex_f *ut_f[2],unsigned int *iu,unsigned int *id,Complex *gamval,Complex_f *gamval_f,\
 			int *gamin,Complex_f *sigval, unsigned short *sigin, double *dk[2], float *dk_f[2],Complex_f jqq,\
 			float akappa,float beta,float c_sw,double *ancg);
@@ -130,9 +130,9 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 	 *
 	 * @return	Zero on success. Integer Error code otherwise.
 	 */	
-	int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,Complex *Phi, Complex_f *ut[2],
-			unsigned int *iu,unsigned int *id, Complex_f *gamval_f,int *gamin, Complex_f *sigval_f,
-			unsigned short *sigin, float *dk[2],Complex_f jqq,float akappa,float beta,float c_sw, double *ancgh,
+	int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,Complex *Phi, Complex *ud[2],Complex_f *ut[2],
+			unsigned int *iu,unsigned int *id, Complex *gamval, Complex_f *gamval_f,int *gamin, Complex_f *sigval_f,
+			unsigned short *sigin, double *dk[2],float *dk_f[2],Complex_f jqq,float akappa,float beta,float c_sw, double *ancgh,
 			int traj);
 	/**
 	 * @brief Matrix Inversion via Conjugate Gradient (up/down flavour partitioning).
@@ -160,9 +160,10 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 	 *
 	 * @return 0 on success, integer error code otherwise
 	 */
-int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],Complex_f *clover[nc],unsigned int *iu,
-				unsigned int *id, Complex_f *gamval_f,int *gamin,Complex_f *sigval,unsigned short *sigin, float *dk[2],
-				Complex_f jqq,float akappa,float c_sw,int *itercg);
+	int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f *ut[2],Complex_f *clover[nc],
+			unsigned int *iu, unsigned int *id, Complex *gamval, Complex_f *gamval_f,int *gamin,
+			Complex_f *sigval,unsigned short *sigin, double *dk[2], float *dk_f[2],
+			Complex_f jqq,float akappa,float c_sw,int *itercg);
 	/**
 	 * @brief Matrix Inversion via Conjugate Gradient (no up/down flavour partitioning).
 	 * Solves @f$(M^\dagger)Mx=\Phi@f$

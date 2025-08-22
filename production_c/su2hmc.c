@@ -170,9 +170,9 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 #endif
 	return 0;
 }
-int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,Complex *Phi, Complex_f *ut[2],
-				unsigned int *iu,unsigned int *id, Complex_f *gamval_f,int *gamin, Complex_f *sigval_f,
-				unsigned short *sigin, float *dk[2],Complex_f jqq,float akappa,float beta,float c_sw, double *ancgh,
+int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,Complex *Phi, Complex *ud[2],Complex_f *ut[2],
+				unsigned int *iu,unsigned int *id, Complex *gamval, Complex_f *gamval_f,int *gamin, Complex_f *sigval_f,
+				unsigned short *sigin, double *dk[2],float *dk_f[2],Complex_f jqq,float akappa,float beta,float c_sw, double *ancgh,
 				int traj){
 	const char *funcname = "Hamilton";
 	//Iterate over momentum terms.
@@ -221,7 +221,7 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 		memcpy(X1,X0+na*kferm2,kferm2*sizeof(Complex));
 #endif
 		Fill_Small_Phi(na, smallPhi, Phi);
-		if(Congradq(na,res2,X1,smallPhi,ut,clover,iu,id,gamval_f,gamin,sigval_f,sigin,dk,jqq,akappa,c_sw,&itercg))
+		if(Congradq(na,res2,X1,smallPhi,ud,ut,clover,iu,id,gamval,gamval_f,gamin,sigval_f,sigin,dk,dk_f,jqq,akappa,c_sw,&itercg))
 			fprintf(stderr,"Trajectory %d\n", traj);
 
 		*ancgh+=itercg;
