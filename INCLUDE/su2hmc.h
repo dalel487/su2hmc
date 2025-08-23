@@ -27,7 +27,7 @@
 //Definitions:
 //###########
 #ifdef _DEBUGCG
-#define _DEBUG
+#define _DEBUG 1
 #endif
 //Function Declarations:
 //#####################
