@@ -204,6 +204,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #pragma omp parallel for simd
 	for(int i=0;i<kferm2;i++){
 		X1_f[i]=(Complex_f)X1[i];
+		r_f[i]=(Complex_f)r[i];
 	}
 	memcpy(p_f, X1_f, kferm2*sizeof(Complex_f));
 #endif
