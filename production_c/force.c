@@ -30,7 +30,7 @@ int Gauge_force(double *dSdpi, Complex_f *ut[2],unsigned int *iu,unsigned int *i
 	 * =======
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "Gauge_force";
+	const char funcname[] = "Gauge_force";
 
 	//We define zero halos for debugging
 	//	#ifdef _DEBUG
@@ -97,10 +97,10 @@ int Gauge_force(double *dSdpi, Complex_f *ut[2],unsigned int *iu,unsigned int *i
 #endif
 	return 0;
 }
-int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Complex *Phi,Complex *ut[2],\
+int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1, Complex *Phi,Complex *ut[2],\
 		Complex_f *ut_f[2],unsigned int *iu,unsigned int *id,Complex *gamval,Complex_f *gamval_f,\
-		int *gamin,Complex_f *sigval, unsigned short *sigin, double *dk[2], float *dk_f[2],Complex_f jqq,\
-		float akappa,float beta,float c_sw,double *ancg){
+		int *gamin,Complex_f *sigval, unsigned short *sigin, double *dk[2], float *dk_f[2],const Complex_f jqq,\
+		const float akappa,const float beta,const float c_sw,double *ancg){
 	/*
 	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
 	 *	
@@ -127,7 +127,7 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 	 *
 	 *	@return Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "Force";
+	const char funcname[] = "Force";
 #ifdef __NVCC__
 	int device=-1;
 	cudaGetDevice(&device);
@@ -142,9 +142,8 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 	Complex_f *leaves[(ndim-1)*(ndim-2)][nc], *clover[2];
 #ifdef __NVCC__
 	Complex_f *X1_f, *X2_f;
+	cudaMallocAsync((void **)&X1_f,kferm2*sizeof(Complex_f),streams[1]);
 	cudaMallocAsync((void **)&X2_f,kferm2*sizeof(Complex_f),streams[0]);
-	cudaMallocAsync((void **)&X1_f,kferm2*sizeof(Complex_f),NULL);
-	cuComplex_convert(X1_f,X1,kferm2,true,dimBlock,dimGrid);
 #else
 	Complex *X2= (Complex *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex));
 #endif
@@ -174,18 +173,18 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 #endif
 			*ancg+=itercg;
 #ifdef __NVCC__
-			Complex blasa=2.0; double blasb=-1.0;
+			const Complex blasa=2.0; const double blasb=-1.0;
 			cublasZdscal(cublas_handle,kferm2,&blasb,(cuDoubleComplex *)(X0+na*kferm2),1);
 			cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&blasa,(cuDoubleComplex *)X1,1,(cuDoubleComplex *)(X0+na*kferm2),1);
 			cuComplex_convert(X1_f,X1,kferm2,true,dimBlock,dimGrid);
 			cudaDeviceSynchronise();
 #elif (defined __INTEL_MKL__)
-			Complex blasa=2.0; Complex blasb=-1.0;
+			const Complex blasa=2.0; const Complex blasb=-1.0;
 			//This is not a general BLAS Routine. BLIS and MKl support it
 			//CUDA and GSL does not support it
 			cblas_zaxpby(kferm2, &blasa, X1, 1, &blasb, X0+na*kferm2, 1); 
 #elif defined USE_BLAS
-			Complex blasa=2.0; double blasb=-1.0;
+			const Complex blasa=2.0; const double blasb=-1.0;
 			cblas_zdscal(kferm2,blasb,X0+na*kferm2,1);
 			cblas_zaxpy(kferm2,&blasa,X1,1,X0+na*kferm2,1);
 #else
@@ -200,17 +199,21 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 #endif
 		}
 #ifdef __NVCC__
+		else{
+			cuComplex_convert(X1_f,X1,kferm2,true,dimBlock,dimGrid);
+			cudaDeviceSynchronise();
+		}
 		Hdslash_f(X2_f,X1_f,ut_f,iu,id,gamval_f,gamin,dk_f,akappa);
 #else
 		Hdslash(X2,X1,ut,iu,id,gamval,gamin,dk,akappa);
 #endif
 		//TODO: Clover product also needed here?
 #ifdef __NVCC__
-		float blasd=2.0;
+		const float blasd=2.0;
 		cudaDeviceSynchronise();
 		cublasCsscal(cublas_handle,kferm2, &blasd, (cuComplex *)X2_f, 1);
 #elif defined USE_BLAS
-		double blasd=2.0;
+		const double blasd=2.0;
 		cblas_zdscal(kferm2, blasd, X2, 1);
 #else
 #pragma unroll
@@ -441,13 +444,13 @@ int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Compl
 			}
 #endif
 		if(c_sw){
-		#ifndef __NVCC__
+#ifndef __NVCC__
 			Complex_f *X1_f= (Complex_f *)aligned_alloc(AVX,kferm2*sizeof(Complex_f));
 			Complex_f *X2_f= (Complex_f *)aligned_alloc(AVX,kferm2*sizeof(Complex_f));
 			for(unsigned int i=0;i<kferm2;i++){
 				X1_f[i]=(Complex_f)X1[i]; X2_f[i]=(Complex_f)X2[i];
 			}
-			#endif
+#endif
 			Clover_Force(dSdpi,leaves,X1_f,X2_f,sigval,sigin);
 			free(X1_f); free(X2_f);
 		}

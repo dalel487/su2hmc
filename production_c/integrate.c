@@ -20,7 +20,7 @@ int Gauge_Update(const double d, double *pp, Complex *ut[2],Complex_f *ut_f[2]){
 	 *
 	 * @returns	Zero on success, integer error code otherwise
 	 */
-	char *funcname = "Gauge_Update"; 
+	char funcname[] = "Gauge_Update"; 
 #ifdef __NVCC__
 	cuGauge_Update(d,pp,ut[0],ut[1],dimGrid,dimBlock);
 #else
@@ -43,7 +43,7 @@ int Gauge_Update(const double d, double *pp, Complex *ut[2],Complex_f *ut_f[2]){
 			Complex a12 = pp[(i*nadj+1)*ndim+mu]*SSS + I*SSS*pp[i*nadj*ndim+mu];
 			//b11 and b12 are ut[0] and ut[1] terms, so we'll use ut[1] directly
 			//but use b11 for ut[0] to prevent RAW dependency
-			complex b11 = ut[0][i*ndim+mu];
+			Complex b11 = ut[0][i*ndim+mu];
 			ut[0][i*ndim+mu] = a11*b11-a12*conj(ut[1][i*ndim+mu]);
 			ut[1][i*ndim+mu] = a11*ut[1][i*ndim+mu]+a12*conj(b11);
 		}
@@ -55,6 +55,7 @@ int Gauge_Update(const double d, double *pp, Complex *ut[2],Complex_f *ut_f[2]){
 }
 inline int Momentum_Update(const double d, const double *dSdpi, double *pp)
 {
+	const char funcname[] = "Momentum_Update";
 #ifdef __NVCC__
 	cublasDaxpy(cublas_handle,kmom, &d, dSdpi, 1, pp, 1);
 #elif defined USE_BLAS
@@ -64,12 +65,14 @@ inline int Momentum_Update(const double d, const double *dSdpi, double *pp)
 	for(int i=0;i<kmom;i++)
 		pp[i]+=d*dSdpi[i];
 #endif
+	return 0;
 }
 int Leapfrog(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi,double *dk[2],float *dk_f[2],
-				double *dSdpi,double *pp, int *iu,int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, 
-				Complex_f *sigval, unsigned short *sigin, Complex jqq, float beta, float akappa, float c_sw, int stepl,
-				float dt, double *ancg, int *itot, float proby)
+			double *dSdpi,double *pp, unsigned int *iu,unsigned int *id, Complex *gamval, Complex_f *gamval_f, int *gamin,
+			Complex_f *sigval, unsigned short *sigin, const Complex jqq, const float beta, const float akappa, 
+			const float c_sw, const int stepl, const float dt, double *ancg, int *itot, const float proby)
 {
+	const char funcname[] = "Leapfrog";
 	//This was originally in the half-step of the FORTRAN code, but it makes more sense to declare
 	//it outside the loop. Since it's always being subtracted we'll define it as negative
 	const	double d =-dt*0.5;
@@ -118,10 +121,11 @@ int Leapfrog(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex 
 	return 0;
 }
 int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi,double *dk[2],float *dk_f[2],
-				double *dSdpi,double *pp, int *iu,int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, 
-				Complex_f *sigval, unsigned short *sigin, Complex jqq, float beta, float akappa, float c_sw, int stepl,
-				float dt, double *ancg, int *itot, float proby)
+			double *dSdpi,double *pp, unsigned int *iu,unsigned int *id, Complex *gamval, Complex_f *gamval_f, int *gamin,
+			Complex_f *sigval, unsigned short *sigin, const Complex jqq, const float beta, const float akappa, 
+			const float c_sw, const int stepl, const float dt, double *ancg, int *itot, const float proby)
 {
+	const char funcname[] = "OMF2";
 	const double lambda=0.5-(pow(2.0*sqrt(326.0)+36.0,1.0/3.0)/12.0)+1.0/(6*pow(2.0*sqrt(326.0) + 36.0,1.0/3.0));
 	//const double lambda=1.0/6.0;
 	//	const double lambda=0.5;
@@ -197,10 +201,11 @@ int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 	return 0;
 }
 int OMF4(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi,double *dk[2],float *dk_f[2],
-				double *dSdpi,double *pp, int *iu,int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, 
-				Complex_f *sigval, unsigned short *sigin, Complex jqq, float beta, float akappa, float c_sw, int stepl,
-				float dt, double *ancg, int *itot, float proby)
+			double *dSdpi,double *pp, unsigned int *iu,unsigned int *id, Complex *gamval, Complex_f *gamval_f, int *gamin,
+			Complex_f *sigval, unsigned short *sigin, const Complex jqq, const float beta, const float akappa, 
+			const float c_sw, const int stepl, const float dt, double *ancg, int *itot, const float proby)
 {
+	const char funcname[] = "OMF4";
 	//These values were lifted from openqcd-fastsum, and should probably be tuned for QC2D. They also probably never
 	//will be...
 	const double r1 = 0.08398315262876693;

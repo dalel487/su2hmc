@@ -62,10 +62,10 @@ extern "C"
 	 *
 	 *	@return Zero on success, integer error code otherwise
 	 */
-	int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Complex *Phi,Complex *ut[2],\
-			Complex_f *ut_f[2],unsigned int *iu,unsigned int *id,Complex *gamval,Complex_f *gamval_f,\
-			int *gamin,Complex_f *sigval, unsigned short *sigin, double *dk[2], float *dk_f[2],Complex_f jqq,\
-			float akappa,float beta,float c_sw,double *ancg);
+int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1, Complex *Phi,Complex *ut[2],\
+		Complex_f *ut_f[2],unsigned int *iu,unsigned int *id,Complex *gamval,Complex_f *gamval_f,\
+		int *gamin,Complex_f *sigval, unsigned short *sigin, double *dk[2], float *dk_f[2],const Complex_f jqq,\
+		const float akappa,const float beta,const float c_sw,double *ancg);
 	/**
 	 * @brief	Calculates the gauge force due to the Wilson Action at each intermediate time
 	 *
