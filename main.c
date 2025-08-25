@@ -480,8 +480,8 @@ int main(int argc, char *argv[]){
 			cudaDeviceSynchronise();
 #endif
 			Dslashd_f(R1_f,R,ut_f[0],ut_f[1],iu,id,gamval_f,gamin,dk_f,jqq,akappa);
-			if(c_sw)
-				ByClover(R1_f,R,clover,sigval_f,sigin);
+//			if(c_sw)
+//				ByClover(R1_f,R,clover,sigval_f,sigin);
 #ifdef __NVCC__
 			//Make sure the multiplication is finished before freeing its input!!
 			cudaFree(R);//cudaDeviceSynchronise(); 
@@ -561,7 +561,7 @@ int main(int argc, char *argv[]){
 		//Kernel Call needed here?
 		Reunitarise(ut);
 		double H1, S1;
-		Hamilton(&H0,&S0,rescga,pp,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval_f,sigin,dk,dk_f,jqq,akappa,beta,c_sw,&ancgh,itraj);
+		Hamilton(&H1,&S1,rescga,pp,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval_f,sigin,dk,dk_f,jqq,akappa,beta,c_sw,&ancgh,itraj);
 		ancgh/=2.0; //Hamilton is called at start and end of trajectory
 		totancgh+=ancgh;
 #ifdef _DEBUG

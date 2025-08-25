@@ -451,7 +451,7 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 				X1_f[i]=(Complex_f)X1[i]; X2_f[i]=(Complex_f)X2[i];
 			}
 #endif
-			Clover_Force(dSdpi,leaves,X1_f,X2_f,sigval,sigin);
+			//Clover_Force(dSdpi,leaves,X1_f,X2_f,sigval,sigin);
 			free(X1_f); free(X2_f);
 		}
 	}
