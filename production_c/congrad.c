@@ -199,7 +199,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 	cuComplex_convert(X1_f,X1,kferm2,true,dimBlock,dimGrid);
 	cuComplex_convert(r_f,r,kferm2,true,dimBlock,dimGrid);
 	//cudaMemcpy is blocking, so use async instead
-	cudaMemcpyAsync(p_f, X1_f, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice,streams[0]);
+	cudaMemcpy(p_f, X1_f, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
 #else
 #pragma omp parallel for simd
 	for(int i=0;i<kferm2;i++){
@@ -332,7 +332,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			betad=betan; alphan=betan;
 #ifdef __NVCC__
 			__managed__ Complex a = 1.0;
-			cublasZscal(cublas_handle,kferm2,(cuDoubleComplex *)&beta,(cuDoubleComplex *)p,1);
+			cublasZdscal(cublas_handle,kferm2,(cuDoubleComplex *)&beta,(cuDoubleComplex *)p,1);
 			cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&a,(cuDoubleComplex *)r,1,(cuDoubleComplex *)p,1);
 			cuComplex_convert(p_f,p,kferm2,true,dimBlock,dimGrid);
 #else
@@ -487,7 +487,6 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			betad=betan; alphan=betan;
 			//BLAS for p=r+\betap doesn't exist in standard BLAS. This is NOT an axpy case as we're multiplying y by
 			//\beta instead of x.
-			//Double precision step
 #ifdef __NVCC__
 			Complex_f beta_f=(Complex_f)beta;
 			__managed__ Complex_f a = 1.0;

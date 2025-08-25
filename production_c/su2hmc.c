@@ -200,7 +200,11 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 	double hf = 0; int itercg = 0;
 #ifdef __NVCC__
 	Complex *smallPhi;
+#ifdef __NVCC__
+	cudaMallocManaged((void **)&smallPhi,kferm2*sizeof(Complex),cudaMemAttachGlobal);
+#else
 	cudaMallocAsync((void **)&smallPhi,kferm2*sizeof(Complex),NULL);
+#endif
 #else
 	Complex *smallPhi = aligned_alloc(AVX,kferm2*sizeof(Complex));
 #endif

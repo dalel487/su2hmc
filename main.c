@@ -391,11 +391,12 @@ int main(int argc, char *argv[]){
 	//check the sizes in sizes.h
 #ifdef __NVCC__
 	cudaMallocManaged((void **)&R1, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMalloc((void **)&Phi, nf*kferm*sizeof(Complex));
 #ifdef _DEBUG
 	cudaMallocManaged((void **)&X0, nf*kferm2*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&Phi, nf*kferm*sizeof(Complex),cudaMemAttachGlobal);
 #else
 	cudaMalloc((void **)&X0, nf*kferm2*sizeof(Complex));
+	cudaMalloc((void **)&Phi, nf*kferm*sizeof(Complex));
 #endif
 
 	cudaMallocManaged((void **)&X1, kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
