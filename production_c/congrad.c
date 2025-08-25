@@ -173,7 +173,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 
 	///TODO: Set this as an argument
 	///How much does the residue have to shrink by before we do a double precision update
-	const float d_prec=0;//1.0f/64.0f;
+	const float d_prec=1.0f/64.0f;
 	/// The @f$\kappa^2@f$ factor is needed to normalise the fields correctly
 	/// @f$j_{qq}@f$ is the diquark condensate and is global scope.
 	const Complex_f fac_f = conj(jqq)*jqq*akappa*akappa;
@@ -209,7 +209,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 	memcpy(p_f, X1_f, kferm2*sizeof(Complex_f));
 #endif
 
-	double betan=1;double beta_max=FLT_MAX; bool do_dp=false;//true;
+	double betan=1;double beta_max=FLT_MAX; bool do_dp=true;
 	for(*itercg=0; *itercg<niterc; (*itercg)++){
 		if(do_dp){
 #ifdef _DEBUGCG
@@ -440,7 +440,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			Complex_f alpha_m = (Complex_f)(-alpha);
 			cblas_caxpy(kferm2, &alpha_m, x2_f, 1, r_f, 1);
 			//Undo the negation for the BLAS routine
-			double betan_f = cblas_scnrm2(kferm2, r_f,1);
+			float betan_f = cblas_scnrm2(kferm2, r_f,1);
 			//Gotta square it to "undo" the norm
 			betan = betan_f*betan_f;
 #else
@@ -450,7 +450,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 				r_f[i]-=alpha*x2_f[i];
 				betan += conj(r_f[i])*r_f[i];
 			}
-			double betan_f=sqrt(betan);
+			float betan_f=sqrt(betan);
 #endif
 			//And... reduce.
 #if(nproc>1)
@@ -473,8 +473,8 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #ifdef _DEBUG
 				printf("Betan %e is less than target residue %e.%s",betan,resid,endline);
 #endif
-		//		do_dp=true;
-				break;
+				do_dp=true;
+				//break;
 			}
 			else if(*itercg==niterc-1){
 				if(!rank) fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i beta_n=%e\n", ITERLIM, funcname, *itercg, betan);
@@ -509,9 +509,6 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 				p_f[i]=r_f[i]+beta*p_f[i];
 #endif
 		}
-	}
-	for(int i = 0; i <kferm2;i++){
-		X1[i]=(Complex)X1_f[i];
 	}
 	Q_free_f(&p_f,&x1_f,&x2_f,&r_f,&X1_f);
 	Q_free(&p,&x1,&x2);
