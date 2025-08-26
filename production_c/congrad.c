@@ -303,7 +303,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			cublasDznrm2(cublas_handle,kferm2,(cuDoubleComplex *)r,1,&betan_d);
 			betan=betan_d*betan_d;
 #elif defined USE_BLAS
-			Complex alpha_m = (Complex)(-alpha);
+			const Complex alpha_m = (Complex)(-alpha);
 			cblas_zaxpy(kferm2, &alpha_m, x2, 1, r, 1);
 			//Undo the negation for the BLAS routine
 			double betan_d = cblas_dznrm2(kferm2, r,1);
@@ -328,22 +328,22 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			if(!rank) printf("DP Iter(CG)=%i\tbeta_n=%e\talpha=%e%s", *itercg, betan, alpha,endline);
 			fflush(stdout);
 #endif
-			Complex beta = (*itercg) ?  betan/betad : 0;
+			const Complex beta = (*itercg) ?  betan/betad : 0;
 			betad=betan; alphan=betan;
 #ifdef __NVCC__
-			__managed__ Complex a = 1.0;
 			cublasZdscal(cublas_handle,kferm2,(cuDoubleComplex *)&beta,(cuDoubleComplex *)p,1);
-			cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&a,(cuDoubleComplex *)r,1,(cuDoubleComplex *)p,1);
+			alpha_m=1;
+			cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&alpha_m,(cuDoubleComplex *)r,1,(cuDoubleComplex *)p,1);
 			cuComplex_convert(p_f,p,kferm2,true,dimBlock,dimGrid);
 #else
 #ifdef __INTEL_MKL__
-			Complex a = 1.0;
+			const Complex a = 1.0;
 			//There is cblas_?axpby in the MKL and AMD though, set a = 1 and b = \beta.
 			//If we get a small enough \beta_n before hitting the iteration cap we break
 			cblas_zaxpby(kferm2, &a, r, 1, &beta,  p, 1);
 #elif defined USE_BLAS
 			cblas_zscal(kferm2,&beta,p,1);
-			Complex a = 1.0;
+			const Complex a = 1.0;
 			cblas_zaxpy(kferm2,&a,r,1,p,1);
 #else 
 #pragma omp parallel for simd aligned(r,p:AVX)
@@ -431,13 +431,13 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			}			
 			/// @f$r_{n+1} = r_n-\alpha(M^\dagger M)p_n@f$ and @f$\beta_n=r^\dagger r@f$
 #ifdef	__NVCC__
-			Complex_f alpha_m=(Complex_f)(-alpha);
+			__managed__ Complex_f alpha_m=(Complex_f)(-alpha);
 			cublasCaxpy(cublas_handle, kferm2,(cuComplex *)&alpha_m,(cuComplex *)x2_f,1,(cuComplex *)r_f,1);
 			float betan_f;
 			cublasScnrm2(cublas_handle,kferm2,(cuComplex *)r_f,1,&betan_f);
 			betan = betan_f*betan_f;
 #elif defined USE_BLAS
-			Complex_f alpha_m = (Complex_f)(-alpha);
+			const Complex_f alpha_m = (Complex_f)(-alpha);
 			cblas_caxpy(kferm2, &alpha_m, x2_f, 1, r_f, 1);
 			//Undo the negation for the BLAS routine
 			float betan_f = cblas_scnrm2(kferm2, r_f,1);
@@ -489,7 +489,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			//\beta instead of x.
 #ifdef __NVCC__
 			Complex_f beta_f=(Complex_f)beta;
-			__managed__ Complex_f a = 1.0;
+			alpha_m = 1.0;
 			cublasCscal(cublas_handle,kferm2,(cuComplex *)&beta_f,(cuComplex *)p_f,1);
 			cublasCaxpy(cublas_handle,kferm2,(cuComplex *)&a,(cuComplex *)r_f,1,(cuComplex *)p_f,1);
 #elif (defined __INTEL_MKL__)
