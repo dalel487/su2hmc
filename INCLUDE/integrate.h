@@ -62,7 +62,7 @@ extern "C"
 	 */
 int Leapfrog(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi,double *dk[2],float *dk_f[2],
 			double *dSdpi,double *pp, unsigned int *iu,unsigned int *id, Complex *gamval, Complex_f *gamval_f, int *gamin,
-			Complex_f *sigval, unsigned short *sigin, const Complex jqq, const float beta, const float akappa, 
+			Complex *sigval, Complex_f *sigval_f, unsigned short *sigin, const Complex jqq, const float beta, const float akappa, 
 			const float c_sw, const int stepl, const float dt, double *ancg, int *itot, const float proby);
 	/**
 	 *	@brief	OMF second order five step integrator.
@@ -93,7 +93,7 @@ int Leapfrog(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex 
 	 */
 int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi,double *dk[2],float *dk_f[2],
 			double *dSdpi,double *pp, unsigned int *iu,unsigned int *id, Complex *gamval, Complex_f *gamval_f, int *gamin,
-			Complex_f *sigval, unsigned short *sigin, const Complex jqq, const float beta, const float akappa, 
+			Complex *sigval, Complex_f *sigval_f, unsigned short *sigin, const Complex jqq, const float beta, const float akappa, 
 			const float c_sw, const int stepl, const float dt, double *ancg, int *itot, const float proby);
 	/**
 	 *	@brief	OMF fourth order eleven step integrator.
@@ -124,7 +124,7 @@ int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 	 */
 int OMF4(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi,double *dk[2],float *dk_f[2],
 			double *dSdpi,double *pp, unsigned int *iu,unsigned int *id, Complex *gamval, Complex_f *gamval_f, int *gamin,
-			Complex_f *sigval, unsigned short *sigin, const Complex jqq, const float beta, const float akappa, 
+			Complex *sigval, Complex_f *sigval_f, unsigned short *sigin, const Complex jqq, const float beta, const float akappa, 
 			const float c_sw, const int stepl, const float dt, double *ancg, int *itot, const float proby);
 	//CUDA Calling functions
 #ifdef __NVCC__

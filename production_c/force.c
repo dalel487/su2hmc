@@ -97,10 +97,10 @@ int Gauge_force(double *dSdpi, Complex_f *ut[2],unsigned int *iu,unsigned int *i
 #endif
 	return 0;
 }
-int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1, Complex *Phi,Complex *ut[2],\
-		Complex_f *ut_f[2],unsigned int *iu,unsigned int *id,Complex *gamval,Complex_f *gamval_f,\
-		int *gamin,Complex_f *sigval, unsigned short *sigin, double *dk[2], float *dk_f[2],const Complex_f jqq,\
-		const float akappa,const float beta,const float c_sw,double *ancg){
+int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1, Complex *Phi,\
+			Complex *ut[2], Complex_f *ut_f[2],unsigned int *iu,unsigned int *id,\
+			Complex *gamval,Complex_f *gamval_f,int *gamin,Complex *sigval,Complex_f *sigval_f, unsigned short *sigin,\
+			double *dk[2], float *dk_f[2],const Complex_f jqq, const float akappa,const float beta,const float c_sw,double *ancg){
 	/*
 	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
 	 *	
@@ -157,6 +157,7 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 		memcpy(X1,X0+na*kferm2,kferm2*sizeof(Complex));
 #endif
 		if(!iflag){
+			int itercg=1;
 #ifdef __NVCC__
 			Complex *smallPhi;
 			cudaMallocAsync((void **)&smallPhi,kferm2*sizeof(Complex),streams[0]);
@@ -165,7 +166,8 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 #endif
 			Fill_Small_Phi(na, smallPhi, Phi);
 			///@f$(X1=(M\dagger M)^{-1} \Phi@f$
-			Congradq(na,res1,X1,smallPhi,ut,ut_f,clover,iu,id,gamval,gamval_f,gamin,sigval,sigin,dk,dk_f,jqq,akappa,c_sw,&itercg);
+			Congradq(na,res1,X1,smallPhi,ut,ut_f,clover,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,\
+						jqq,akappa,c_sw,&itercg);
 #ifdef __NVCC__
 			cudaFreeAsync(smallPhi,streams[0]);
 #else

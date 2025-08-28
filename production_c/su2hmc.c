@@ -171,7 +171,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 	return 0;
 }
 int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,Complex *Phi, Complex *ud[2],Complex_f *ut[2],
-				unsigned int *iu,unsigned int *id, Complex *gamval, Complex_f *gamval_f,int *gamin, Complex_f *sigval_f,
+				unsigned int *iu,unsigned int *id, Complex *gamval, Complex_f *gamval_f,int *gamin, Complex *sigval, Complex_f *sigval_f,
 				unsigned short *sigin, double *dk[2],float *dk_f[2],Complex_f jqq,float akappa,float beta,float c_sw, double *ancgh,
 				int traj){
 	const char *funcname = "Hamilton";
@@ -209,7 +209,7 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 	Complex *smallPhi = aligned_alloc(AVX,kferm2*sizeof(Complex));
 #endif
 	Complex_f *leaves[(ndim-1)*(ndim-2)][2], *clover[2];
-	//if(c_sw)
+	if(c_sw)
 		Clover(clover,leaves,ut,iu,id);
 	//Iterating over flavours
 	for(int na=0;na<nf;na++){
@@ -225,7 +225,8 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 		memcpy(X1,X0+na*kferm2,kferm2*sizeof(Complex));
 #endif
 		Fill_Small_Phi(na, smallPhi, Phi);
-		if(Congradq(na,res2,X1,smallPhi,ud,ut,clover,iu,id,gamval,gamval_f,gamin,sigval_f,sigin,dk,dk_f,jqq,akappa,c_sw,&itercg))
+		if(Congradq(na,res2,X1,smallPhi,ud,ut,clover,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,\
+						jqq,akappa,c_sw,&itercg))
 			fprintf(stderr,"Trajectory %d\n", traj);
 
 		*ancgh+=itercg;
@@ -250,7 +251,7 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 			hf+=creal(conj(smallPhi[j])*X1[j]);
 #endif
 	}
-	//if(c_sw)
+	if(c_sw)
 		Clover_free(clover,leaves);
 #ifdef __NVCC__
 	cudaFreeAsync(smallPhi,NULL);

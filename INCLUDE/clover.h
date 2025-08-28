@@ -71,7 +71,7 @@ int Clover(Complex_f *clover[nc],Complex_f *Leaves[6][nc],Complex_f *ut[nc], uns
  *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by c_sw
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
  */
-int ByClover(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval, unsigned short *sigin);
+int ByClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, unsigned short *sigin);
 /**
  *	@brief Clover analogue of the Dslashd operation. This version acts on all flavours simiilar to Dslash and Dslash_d
  *	
@@ -82,7 +82,7 @@ int ByClover(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sig
  *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by c_sw
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
  */
-int ByCloverd(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval, unsigned short *sigin);
+int ByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval, unsigned short *sigin);
 /**
  *	@brief Clover analogue of the Dslash operation. The H in front is for half, as we only act on the fermions of flavour
  *	1
@@ -93,7 +93,7 @@ int ByCloverd(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *si
  *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by c_sw
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
  */
-int HbyClover(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval, unsigned short *sigin);
+int HbyClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, unsigned short *sigin);
 /**
  *	@brief Clover analogue of the Dslashd operation. The H in front is for half, as we only act on the fermions of flavour
  *	1
@@ -104,7 +104,7 @@ int HbyClover(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *si
  *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by c_sw
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
  */
-int HbyCloverd(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval, unsigned short *sigin);
+int HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval, unsigned short *sigin);
 /**
  *	@brief	Clover contribution to the Molecular Dynamics force
  *

@@ -177,7 +177,113 @@ int Clover(Complex_f *clover[nc],Complex_f *Leaves[6][2],Complex_f *ut[2], unsig
 //Multiplication for Congradq
 //=========================
 // Congradq only acts on flavour 1
-int ByClover(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval, unsigned short *sigin){
+int ByClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, unsigned short *sigin){
+	const char funcname[] = "ByClover";
+#ifdef __NVCC__
+	cuByClover(phi, r, clover, sigval, sigin);
+#else
+#pragma omp parallel for
+	for(int i=0;i<kvol;i+=AVX){
+		//Prefetched r and Phi array
+#pragma omp simd
+		for(unsigned short j =0;j<AVX;j++)
+			for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
+				Complex phi_s[nc];
+				Complex r_s[nc];
+				Complex clov_s[nc];
+				unsigned short idirac = igorkov%4;
+#pragma unroll
+				for(unsigned short c=0; c<nc; c++)
+					phi_s[c]=0;
+
+				for(unsigned short clov=0;clov<6;clov++){
+					const unsigned short igork1 = (igorkov<4) ? sigin[clov*ndirac+idirac] : sigin[clov*ndirac+idirac]+4;
+#pragma unroll
+					for(unsigned short c=0; c<nc; c++){
+						r_s[c]=r[((i+j)*ngorkov+igork1)*nc+c];
+						clov_s[c]=clover[c][clov*kvol+i+j];
+
+#ifdef _DEBUG
+						if(isnan(creal(r_s[c]))||isnan(cimag(r_s[c]))){
+							printf("r_s: Index %d, colour %d c and gorkov index %d (idirac %d and igork1 %d) is NaN\n"\
+									"Sigma matrices = %e+%e\n"\
+									"Clover: %e+i%e\\n"\
+									"r_s 0=%e+i%e\tr_s 1=%e+i%e\n",i+j,igorkov,idirac,igork1,
+									creal(sigval[clov*ndirac+idirac]),cimag(sigval[clov*ndirac+idirac]),
+									creal(clov_s[c]),cimag(clov_s[c]),
+									creal(r_s[c]),cimag(r_s[c]));
+							abort();
+						}
+#endif
+					}
+
+					///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
+					phi_s[0]+=sigval[clov*ndirac+idirac]*(clov_s[0]*r_s[0]+clov_s[1]*r_s[1]);
+					phi_s[1]+=sigval[clov*ndirac+idirac]*(conj(clov_s[1])*r_s[0]+conj(clov_s[0])*r_s[1]);
+#ifdef _DEBUG
+					if(isnan(creal(phi_s[0]))||isnan(cimag(phi_s[0]))||isnan(creal(phi_s[1]))||isnan(cimag(phi_s[1]))){
+						fprintf(stderr, "phi_s: Index %d and gorkov index %d (idirac %d and igork1 %d) is NaN\n"\
+								"Sigma matrices = %e+%e\n"\
+								"Clover 0: %e+i%e\tClover 1:%e+i%e\n"\
+								"r_s 0=%e+i%e\tr_s 1=%e+i%e\n"\
+								"phi_s 0=%e+i%e\tphi_s 1=%e+i%e\n",i+j,igorkov,idirac,igork1,
+								creal(sigval[clov*ndirac+idirac]),cimag(sigval[clov*ndirac+idirac]),
+								creal(clov_s[0]),cimag(clov_s[0]),creal(clov_s[1]),cimag(clov_s[1]),
+								creal(r_s[0]),cimag(r_s[0]),creal(r_s[1]),cimag(r_s[1]),
+								creal(phi_s[0]),cimag(phi_s[0]),creal(phi_s[1]),cimag(phi_s[1]));
+						abort();
+					}
+#endif
+				}
+#pragma unroll
+				for(int c=0; c<nc; c++){
+					phi[((i+j)*ngorkov+igorkov)*nc+c]+=2*phi_s[c];
+				}
+			}
+	}
+#endif
+	return 0;
+}
+int HbyClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, unsigned short *sigin){
+	const char funcname[] = "HbyClover";
+#ifdef __NVCC__
+	cuHbyClover(phi, r, clover, sigval, sigin);
+#else
+#pragma omp parallel for
+	for(int i=0;i<kvol;i+=AVX){
+		//Prefetched r and Phi array
+#pragma omp simd
+		for(int j =0;j<AVX;j++)
+			for(int idirac=0; idirac<ndirac; idirac++){
+				alignas(AVX) Complex phi_s[nc][AVX];
+				alignas(AVX) Complex r_s[nc][AVX];
+				alignas(AVX) Complex clov_s[nc][AVX];
+#pragma unroll
+				for(int c=0; c<nc; c++){
+					phi_s[c][j]=0;
+				}
+				for(unsigned int clov=0;clov<6;clov++){
+					const unsigned short igork1 = sigin[clov*ndirac+idirac];	
+#pragma unroll
+					for(int c=0; c<nc; c++){
+						r_s[c][j]=r[((i+j)*ndirac+igork1)*nc+c];
+						clov_s[c][j]=clover[c][clov*kvol+i+j];
+					}
+					///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
+					phi_s[0][j]+=sigval[clov*ndirac+idirac]*(clov_s[0][j]*r_s[0][j]+clov_s[1][j]*r_s[1][j]);
+					phi_s[1][j]+=sigval[clov*ndirac+idirac]*(conj(clov_s[1][j])*r_s[0][j]+conj(clov_s[0][j])*r_s[1][j]);
+				}
+#pragma unroll
+				for(int c=0; c<nc; c++)
+					///Also @f$\sigma_{\mu\nu}F_{\mu\nu}=\sigma_{\nu\mu}F_{\nu\mu}@f$ so we double it to take account of that
+					phi[((i+j)*ndirac+idirac)*nc+c]+=2*phi_s[c][j];
+			}
+	}
+#endif
+	return 0;
+}
+//Float versions
+int ByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval, unsigned short *sigin){
 	const char funcname[] = "ByClover";
 #ifdef __NVCC__
 	cuByClover(phi, r, clover, sigval, sigin);
@@ -244,7 +350,7 @@ int ByClover(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sig
 #endif
 	return 0;
 }
-int HbyClover(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval, unsigned short *sigin){
+int HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval, unsigned short *sigin){
 	const char funcname[] = "HbyClover";
 #ifdef __NVCC__
 	cuHbyClover(phi, r, clover, sigval, sigin);

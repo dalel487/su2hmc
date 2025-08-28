@@ -334,11 +334,11 @@ int main(int argc, char *argv[]){
 	sprintf(buff2,"j%03d",buffer);
 	strcat(suffix,buff2);
 	//c_sw
-	//if(c_sw){
-	buffer = (int)round(100*c_sw);
-	sprintf(buff2,"c%03d",buffer);
-	strcat(suffix,buff2);
-	//	}
+	if(c_sw){
+		buffer = (int)round(100*c_sw);
+		sprintf(buff2,"c%03d",buffer);
+		strcat(suffix,buff2);
+	}
 	//nx
 	sprintf(buff2,"s%02d",nx);
 	strcat(suffix,buff2);
@@ -481,8 +481,8 @@ int main(int argc, char *argv[]){
 			cudaDeviceSynchronise();
 #endif
 			Dslashd_f(R1_f,R,ut_f[0],ut_f[1],iu,id,gamval_f,gamin,dk_f,jqq,akappa);
-//			if(c_sw)
-//				ByClover(R1_f,R,clover,sigval_f,sigin);
+			//			if(c_sw)
+			//				ByClover(R1_f,R,clover,sigval_f,sigin);
 #ifdef __NVCC__
 			//Make sure the multiplication is finished before freeing its input!!
 			cudaFree(R);//cudaDeviceSynchronise(); 
@@ -536,7 +536,8 @@ int main(int argc, char *argv[]){
 		cudaMemPrefetchAsync(pp,kmom*sizeof(double),device,streams[1]);
 #endif
 		double H0, S0;
-		Hamilton(&H0,&S0,rescga,pp,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval_f,sigin,dk,dk_f,jqq,akappa,beta,c_sw,&ancgh,itraj);
+		Hamilton(&H0,&S0,rescga,pp,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,\
+				jqq,akappa,beta,c_sw,&ancgh,itraj);
 #ifdef _DEBUG
 		if(!rank) printf("H0: %e S0: %e\n", H0, S0);
 #endif
@@ -548,11 +549,14 @@ int main(int argc, char *argv[]){
 #if (defined INT_LPFR && defined INT_OMF2) ||(defined INT_LPFR && defined INT_OMF4)||(defined INT_OMF2 && defined INT_OMF4)
 #error "Only one integrator may be defined"
 #elif defined INT_LPFR
-		Leapfrog(ut,ut_f,X0,X1,Phi,dk,dk_f,dSdpi,pp,iu,id,gamval,gamval_f,gamin,sigval_f,sigin,jqq,beta,akappa,c_sw,stepl,dt,&ancg,&itot,proby);
+		Leapfrog(ut,ut_f,X0,X1,Phi,dk,dk_f,dSdpi,pp,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,\
+				jqq,beta,akappa,c_sw,stepl,dt,&ancg,&itot,proby);
 #elif defined INT_OMF2
-		OMF2(ut,ut_f,X0,X1,Phi,dk,dk_f,dSdpi,pp,iu,id,gamval,gamval_f,gamin,sigval_f,sigin,jqq,beta,akappa,c_sw,stepl,dt,&ancg,&itot,proby);
+		OMF2(ut,ut_f,X0,X1,Phi,dk,dk_f,dSdpi,pp,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,\
+				jqq,beta,akappa,c_sw,stepl,dt,&ancg,&itot,proby);
 #elif defined INT_OMF4
-		OMF4(ut,ut_f,X0,X1,Phi,dk,dk_f,dSdpi,pp,iu,id,gamval,gamval_f,gamin,sigval_f,sigin,jqq,beta,akappa,c_sw,stepl,dt,&ancg,&itot,proby);
+		OMF4(ut,ut_f,X0,X1,Phi,dk,dk_f,dSdpi,pp,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,\
+				jqq,beta,akappa,c_sw,stepl,dt,&ancg,&itot,proby);
 #else
 #error "No integrator defined. Please define {INT_LPFR.INT_OMF2,INT_OMF4}"
 #endif
@@ -562,7 +566,8 @@ int main(int argc, char *argv[]){
 		//Kernel Call needed here?
 		Reunitarise(ut);
 		double H1, S1;
-		Hamilton(&H1,&S1,rescga,pp,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval_f,sigin,dk,dk_f,jqq,akappa,beta,c_sw,&ancgh,itraj);
+		Hamilton(&H1,&S1,rescga,pp,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,\
+				jqq,akappa,beta,c_sw,&ancgh,itraj);
 		ancgh/=2.0; //Hamilton is called at start and end of trajectory
 		totancgh+=ancgh;
 #ifdef _DEBUG
