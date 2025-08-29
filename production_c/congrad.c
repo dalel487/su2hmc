@@ -391,7 +391,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			Hdslashd_f(x2_f,x1_f,ut,iu,id,gamval_f,gamin,dk_f,akappa);
 			//Clover contribution
 			if(c_sw)
-				HbyClover_f(x2_f,x1_f,clover,sigval_f,sigin);
+				HbyClover_f(x2_f,x1_f,clover_f,sigval_f,sigin);
 #ifdef	__NVCC__
 			cudaDeviceSynchronise();
 #endif
