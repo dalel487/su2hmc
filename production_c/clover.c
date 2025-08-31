@@ -109,7 +109,7 @@ int Leaf(Complex_f *ut[nc], Complex_f *Leaves[nc], unsigned int *iu, unsigned in
 	//	Leaves[0][i+kvol*leaf]=(1.0+I)/sqrt(4.0);Leaves[1][i+kvol*leaf]=Leaves[0][i+kvol*leaf];
 	//Leaves[0][i+kvol*leaf]=I;Leaves[1][i+kvol*leaf]=0;
 	float norm=sqrt(creal(conj(Leaves[0][i+kvol*leaf])*Leaves[0][i+kvol*leaf]+Leaves[1][i+kvol*leaf]*conj(Leaves[1][i+kvol*leaf])));
-	if(fabs(norm-1.0f)>=1e-3){
+	if(fabs(norm-1.0f)>=1e-6){
 		printf("Leaves: Index %d, mu %d, nu %d, leaf %d is not unitary\n"\
 				"Leaf 0=%e+i%e\tLeaf 1=%e+i%e\tnorm=%e\n",i,mu,nu,leaf,\
 				creal(Leaves[0][i+kvol*leaf]),cimag(Leaves[0][i+kvol*leaf]),\
@@ -162,12 +162,20 @@ int Clover(Complex_f *clover[nc],Complex_f *Leaves[6][2],Complex_f *ut[2], unsig
 								creal(clover[1][clov*kvol+i]),cimag(clover[1][clov*kvol+i]));
 						abort();
 					}
-
 #endif
 					//Don't forget the factor out front!
 					//Uh Oh. G&L says -i/8 here. But hep-lat/9605038 and other sources say +1/8
 					//It gets worse in the C_sw definition. We have a 1/2. They have +i/4
 					clover[0][clov*kvol+i]*=(-I/8.0);	clover[1][clov*kvol+i]*=(-I/8.0);
+#ifdef _DEBUG
+					if(fabs(cimag(clover[0][clov*kvol+i]))>1e-6){
+						printf("Clover: Index %d, mu %d, nu %d, clover %d is not hermitian\n"\
+								"Clover 0=%e+i%e\tClover 1=%e+i%e\n",i,mu,nu,clov,\
+								creal(clover[0][clov*kvol+i]),cimag(clover[0][clov*kvol+i]),\
+								creal(clover[1][clov*kvol+i]),cimag(clover[1][clov*kvol+i]));
+						abort();
+					}
+#endif
 				}
 			}
 #endif
@@ -208,10 +216,9 @@ int ByClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, uns
 							printf("r_s: Index %d, colour %d c and gorkov index %d (idirac %d and igork1 %d) is NaN\n"\
 									"Sigma matrices = %e+%e\n"\
 									"Clover: %e+i%e\\n"\
-									"r_s 0=%e+i%e\tr_s 1=%e+i%e\n",i+j,igorkov,idirac,igork1,
+									"r_s=%e+i%e\n",i+j,c,igorkov,idirac,igork1,
 									creal(sigval[clov*ndirac+idirac]),cimag(sigval[clov*ndirac+idirac]),
-									creal(clov_s[c]),cimag(clov_s[c]),
-									creal(r_s[c]),cimag(r_s[c]));
+									creal(clov_s[c]),cimag(clov_s[c]), creal(r_s[c]),cimag(r_s[c]));
 							abort();
 						}
 #endif
@@ -244,7 +251,7 @@ int ByClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, uns
 #endif
 	return 0;
 }
-int HbyClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, unsigned short *sigin){
+int HbyClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, const float akappa, unsigned short *sigin){
 	const char funcname[] = "HbyClover";
 #ifdef __NVCC__
 	cuHbyClover(phi, r, clover, sigval, sigin);
@@ -270,8 +277,9 @@ int HbyClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, un
 						clov_s[c][j]=clover[c][clov*kvol+i+j];
 					}
 					///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
-					phi_s[0][j]+=sigval[clov*ndirac+idirac]*(clov_s[0][j]*r_s[0][j]+clov_s[1][j]*r_s[1][j]);
-					phi_s[1][j]+=sigval[clov*ndirac+idirac]*(conj(clov_s[1][j])*r_s[0][j]+conj(clov_s[0][j])*r_s[1][j]);
+					///Also note that clov_s[0] is real as the clover is hermitian
+					phi_s[0][j]+=akappa*sigval[clov*ndirac+idirac]*(creal(clov_s[0][j])*r_s[0][j]+clov_s[1][j]*r_s[1][j]);
+					phi_s[1][j]+=akappa*sigval[clov*ndirac+idirac]*(conj(clov_s[1][j])*r_s[0][j]+creal(clov_s[0][j])*r_s[1][j]);
 				}
 #pragma unroll
 				for(int c=0; c<nc; c++)
@@ -314,18 +322,17 @@ int ByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *s
 							printf("r_s: Index %d, colour %d c and gorkov index %d (idirac %d and igork1 %d) is NaN\n"\
 									"Sigma matrices = %e+%e\n"\
 									"Clover: %e+i%e\\n"\
-									"r_s 0=%e+i%e\tr_s 1=%e+i%e\n",i+j,igorkov,idirac,igork1,
+									"r_s=%e+i%e\n",i+j,c,igorkov,idirac,igork1,
 									creal(sigval[clov*ndirac+idirac]),cimag(sigval[clov*ndirac+idirac]),
-									creal(clov_s[c]),cimag(clov_s[c]),
-									creal(r_s[c]),cimag(r_s[c]));
+									creal(clov_s[c]),cimag(clov_s[c]), creal(r_s[c]),cimag(r_s[c]));
 							abort();
 						}
 #endif
 					}
 
 					///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
-					phi_s[0]+=sigval[clov*ndirac+idirac]*(clov_s[0]*r_s[0]+clov_s[1]*r_s[1]);
-					phi_s[1]+=sigval[clov*ndirac+idirac]*(conj(clov_s[1])*r_s[0]+conj(clov_s[0])*r_s[1]);
+					phi_s[0]+=sigval[clov*ndirac+idirac]*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
+					phi_s[1]+=sigval[clov*ndirac+idirac]*(conj(clov_s[1])*r_s[0]+creal(clov_s[0])*r_s[1]);
 #ifdef _DEBUG
 					if(isnan(creal(phi_s[0]))||isnan(cimag(phi_s[0]))||isnan(creal(phi_s[1]))||isnan(cimag(phi_s[1]))){
 						fprintf(stderr, "phi_s: Index %d and gorkov index %d (idirac %d and igork1 %d) is NaN\n"\
@@ -350,7 +357,7 @@ int ByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *s
 #endif
 	return 0;
 }
-int HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval, unsigned short *sigin){
+int HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval, const float akappa, unsigned short *sigin){
 	const char funcname[] = "HbyClover";
 #ifdef __NVCC__
 	cuHbyClover(phi, r, clover, sigval, sigin);
@@ -376,8 +383,8 @@ int HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *
 						clov_s[c][j]=clover[c][clov*kvol+i+j];
 					}
 					///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
-					phi_s[0][j]+=sigval[clov*ndirac+idirac]*(clov_s[0][j]*r_s[0][j]+clov_s[1][j]*r_s[1][j]);
-					phi_s[1][j]+=sigval[clov*ndirac+idirac]*(conj(clov_s[1][j])*r_s[0][j]+conj(clov_s[0][j])*r_s[1][j]);
+					phi_s[0][j]+=akappa*sigval[clov*ndirac+idirac]*(creal(clov_s[0][j])*r_s[0][j]+clov_s[1][j]*r_s[1][j]);
+					phi_s[1][j]+=akappa*sigval[clov*ndirac+idirac]*(conj(clov_s[1][j])*r_s[0][j]+creal(clov_s[0][j])*r_s[1][j]);
 				}
 #pragma unroll
 				for(int c=0; c<nc; c++)

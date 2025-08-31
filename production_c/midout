@@ -1,2 +1,2 @@
-0.1	 	1.9	0.1680	0.000	1.000		0.0	0.0	10		10		1			5			10
+0.1	 	1.9	0.1250	0.400	1.000		0.40	0.0	10		10		1			5			0
 dt			beta	akappa	jqq	c_sw		fmu	aNf	stepl	ntraj	istart	icheck	iread

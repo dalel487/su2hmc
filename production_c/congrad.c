@@ -182,7 +182,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 
 	///TODO: Set this as an argument
 	///How much does the residue have to shrink by before we do a double precision update
-	const float d_prec=1.0f/64.0f;
+	const float d_prec=1.0f/128.0f;
 	/// The @f$\kappa^2@f$ factor is needed to normalise the fields correctly
 	/// @f$j_{qq}@f$ is the diquark condensate and is global scope.
 	const Complex_f fac_f = conj(jqq)*jqq*akappa*akappa;
@@ -207,16 +207,25 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 	//Get X1 in single precision
 	cuComplex_convert(X1_f,X1,kferm2,true,dimBlock,dimGrid);
 	cuComplex_convert(r_f,r,kferm2,true,dimBlock,dimGrid);
-	cuComplex_convert(clover_f[0],clover[0],kferm2,true,dimBlock,dimGrid);
-	cuComplex_convert(clover_f[1],clover[1],kferm2,true,dimBlock,dimGrid);
+	//And clover in double
+	cuComplex_convert(clover_f[0],clover[0],kferm2,false,dimBlock,dimGrid);
+	cuComplex_convert(clover_f[1],clover[1],kferm2,false,dimBlock,dimGrid);
 	//cudaMemcpy is blocking, so use async instead
 	cudaMemcpy(p_f, X1_f, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
 #else
-#pragma omp parallel for simd
-	for(int i=0;i<kferm2;i++){
+#pragma omp parallel for simd aligned(X1_f,r_f,X1,r:AVX)
+	for(unsigned int i=0;i<kferm2;i++){
+		//X1 and r in single precision
 		X1_f[i]=(Complex_f)X1[i];
 		r_f[i]=(Complex_f)r[i];
 	}
+		//Clover in double precision
+		if(c_sw)
+#pragma omp parallel for simd
+	for(unsigned int i=0;i<kferm2;i++){
+		clover[0][i]=(Complex)clover_f[0][i];
+		clover[1][i]=(Complex)clover_f[1][i];
+		}
 	memcpy(p_f, X1_f, kferm2*sizeof(Complex_f));
 #endif
 
@@ -253,11 +262,11 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			Hdslash(x1,p,ud,iu,id,gamval,gamin,dk,akappa);
 			//Clover contribution
 			if(c_sw)
-				HbyClover(x1,p,clover,sigval,sigin);
+				HbyClover(x1,p,clover,sigval,akappa,sigin);
 			Hdslashd(x2,x1,ud,iu,id,gamval,gamin,dk,akappa);
 			//Clover contribution
 			if(c_sw)
-				HbyClover(x2_f,x1_f,clover,sigval,sigin);
+				HbyClover(x2,x1,clover,sigval,akappa,sigin);
 #ifdef	__NVCC__
 			cudaDeviceSynchronise();
 #endif
@@ -269,7 +278,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 				cblas_zaxpy(kferm2, &fac, p, 1, x2, 1);
 #else
 #pragma omp parallel for simd aligned(p,x2:AVX)
-				for(int i=0; i<kferm2; i++)
+				for(unsigned int i=0; i<kferm2; i++)
 					x2[i]+=fac*p[i];
 #endif
 			}
@@ -283,7 +292,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #else
 				alpha=0;
 #pragma omp parallel for simd aligned(p,x2:AVX)
-				for(int i=0; i<kferm2; i++)
+				for(unsigned int i=0; i<kferm2; i++)
 					alpha+=conj(p[i])*x2[i];
 #endif
 				//For now I'll cast it into a float for the reduction. Each rank only sends and writes
@@ -299,7 +308,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #elif defined USE_BLAS
 				cblas_zaxpy(kferm2, &alpha, p, 1, X1, 1);
 #else
-				for(int i=0; i<kferm2; i++)
+				for(unsigned int i=0; i<kferm2; i++)
 					X1[i]+=alpha*p[i];
 #endif
 			}
@@ -323,7 +332,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #else
 			betan=0;
 #pragma omp parallel for simd aligned(r_f,x2_f:AVX) reduction(+:betan) 
-			for(int i=0; i<kferm2; i++){
+			for(unsigned int i=0; i<kferm2; i++){
 				r[i]-=alpha*x2[i];
 				betan += conj(r[i])*r[i];
 			}
@@ -358,11 +367,11 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			cblas_zaxpy(kferm2,&a,r,1,p,1);
 #else 
 #pragma omp parallel for simd aligned(r,p:AVX)
-			for(int i=0; i<kferm2; i++)
+			for(unsigned int i=0; i<kferm2; i++)
 				p[i]=r[i]+beta*p[i];
 #endif
 #pragma omp parallel for simd aligned(r,p:AVX)
-			for(int i=0; i<kferm2; i++){
+			for(unsigned int i=0; i<kferm2; i++){
 				p_f[i]=(Complex_f)p[i];
 				r_f[i]=(Complex_f)r[i];
 			}
@@ -387,11 +396,11 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			Hdslash_f(x1_f,p_f,ut,iu,id,gamval_f,gamin,dk_f,akappa);
 			//Clover contribution
 			if(c_sw)
-				HbyClover_f(x1_f,p_f,clover_f,sigval_f,sigin);
+				HbyClover_f(x1_f,p_f,clover_f,sigval_f,akappa,sigin);
 			Hdslashd_f(x2_f,x1_f,ut,iu,id,gamval_f,gamin,dk_f,akappa);
 			//Clover contribution
 			if(c_sw)
-				HbyClover_f(x2_f,x1_f,clover_f,sigval_f,sigin);
+				HbyClover_f(x2_f,x1_f,clover_f,sigval_f,akappa,sigin);
 #ifdef	__NVCC__
 			cudaDeviceSynchronise();
 #endif
@@ -404,7 +413,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 				cblas_caxpy(kferm2, &fac_f, p_f, 1, x2_f, 1);
 #else
 #pragma omp parallel for simd aligned(p_f,x2_f:AVX)
-				for(int i=0; i<kferm2; i++)
+				for(unsigned int i=0; i<kferm2; i++)
 					x2_f[i]+=fac_f*p_f[i];
 #endif
 			}
@@ -418,7 +427,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #else
 				alphad=0;
 #pragma omp parallel for simd aligned(p_f,x2_f:AVX)
-				for(int i=0; i<kferm2; i++)
+				for(unsigned int i=0; i<kferm2; i++)
 					alphad+=conj(p_f[i])*x2_f[i];
 #endif
 				//For now I'll cast it into a float for the reduction. Each rank only sends and writes
@@ -436,7 +445,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 				Complex_f alpha_f = (Complex_f)alpha;
 				cblas_caxpy(kferm2, &alpha_f, p_f, 1, X1_f, 1);
 #else
-				for(int i=0; i<kferm2; i++)
+				for(unsigned int i=0; i<kferm2; i++)
 					X1_f[i]+=alpha*p_f[i];
 #endif
 			}			
@@ -457,7 +466,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #else
 			betan=0;
 #pragma omp parallel for simd aligned(r_f,x2_f:AVX) reduction(+:betan) 
-			for(int i=0; i<kferm2; i++){
+			for(unsigned int i=0; i<kferm2; i++){
 				r_f[i]-=alpha*x2_f[i];
 				betan += conj(r_f[i])*r_f[i];
 			}
@@ -515,7 +524,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			Complex_f a = 1.0;
 			cblas_caxpy(kferm2,&a,r_f,1,p_f,1);
 #else 
-			for(int i=0; i<kferm2; i++)
+			for(unsigned int i=0; i<kferm2; i++)
 				p_f[i]=r_f[i]+beta*p_f[i];
 #endif
 		}
@@ -595,7 +604,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigne
 	Transpose_c(r_f,ngorkov*nc,kvol);
 #else
 #pragma omp parallel for simd aligned(p_f,xi_f,xi,r_f,Phi:AVX)
-	for(int i =0;i<kferm;i++){
+	for(unsigned int i =0;i<kferm;i++){
 		p_f[i]=xi_f[i]=(Complex_f)xi[i];
 		r_f[i]=(Complex_f)Phi[na*kferm+i];
 	}
@@ -637,7 +646,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigne
 			alphad = alphad_f*alphad_f;
 #else
 			alphad=0;
-			for(int i = 0; i<kferm; i++)
+			for(unsigned int i = 0; i<kferm; i++)
 				alphad+=conj(x1_f[i])*x1_f[i];
 #endif
 #if(nproc>1)
@@ -656,7 +665,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigne
 #endif
 #else
 #pragma omp parallel for simd aligned(xi_f,p_f:AVX)
-			for(int i = 0; i<kferm; i++)
+			for(unsigned int i = 0; i<kferm; i++)
 				xi_f[i]+=alpha*p_f[i];
 #endif
 		}
@@ -683,7 +692,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigne
 		betan = 0;
 		//If we get a small enough \beta_n before hitting the iteration cap we break
 #pragma omp parallel for simd aligned(x2_f,r_f:AVX) reduction(+:betan)
-		for(int i = 0; i<kferm;i++){
+		for(unsigned int i = 0; i<kferm;i++){
 			r_f[i]-=alpha*x2_f[i];
 			betan+=conj(r_f[i])*r_f[i];
 		}
@@ -734,7 +743,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigne
 #endif
 #else
 #pragma omp parallel for simd aligned(r_f,p_f:AVX)
-		for(int i=0; i<kferm; i++)
+		for(unsigned int i=0; i<kferm; i++)
 			p_f[i]=r_f[i]+beta*p_f[i];
 #endif
 	}
@@ -746,7 +755,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigne
 	cuComplex_convert(xi_f,xi,kferm,false,dimBlock,dimGrid);
 #else
 #pragma omp simd
-	for(int i = 0; i <kferm;i++){
+	for(unsigned int i = 0; i <kferm;i++){
 		xi[i]=(Complex)xi_f[i];
 	}
 #endif
@@ -783,8 +792,8 @@ creal(p_f[kferm2-1]),cimag(p_f[kferm2-1]),creal(x1_f[kferm2-1]),cimag(x1_f[kferm
 GAmmas
 #ifdef _DEBUGCG
 printf("Gammas:\n");
-for(int i=0;i<5;i++){
-for(int j=0;j<4;j++)
+for(unsigned int i=0;i<5;i++){
+for(unsigned int j=0;j<4;j++)
 printf("%.5e+%.5ei\t",creal(gamval_f[i*4+j]),cimag(gamval_f[i*4+j]));
 printf("\n");
 }

@@ -163,7 +163,7 @@ void cuGauge_Update(const double d, double *pp, Complex *u11t, Complex *u12t, di
 		cuGauge_Update<<<dimGrid,dimBlock,0,streams[mu]>>>(d,pp,u11t,u12t,mu);
 }
 //CUDA Kernels
-__global__ void cuReal_convert(float *a, double *b, int len, bool dtof){
+__global__ void cuReal_convert(float *a, double *b, int len, bool ftod){
 	const char *funcname = "cuReal_convert";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -171,11 +171,11 @@ __global__ void cuReal_convert(float *a, double *b, int len, bool dtof){
 	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	const int gthreadId= blockId * bsize+bthreadId;
 
-	//Double to float
-	if(dtof)
+	//True: Convert float to double
+	if(ftod)
 		for(int i = gthreadId; i<len;i+=gsize*bsize)
 			a[i]=(float)b[i];
-	//Float to double
+	//False: Convert double to float.
 	else
 		for(int i = gthreadId; i<len;i+=gsize*bsize)
 			b[i]=(double)a[i];

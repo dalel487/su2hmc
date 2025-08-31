@@ -93,7 +93,7 @@ int ByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *s
  *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by c_sw
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
  */
-int HbyClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, unsigned short *sigin);
+int HbyClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, const float akappa, unsigned short *sigin);
 /**
  *	@brief Clover analogue of the Dslashd operation. The H in front is for half, as we only act on the fermions of flavour
  *	1
@@ -104,7 +104,7 @@ int HbyClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, un
  *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by c_sw
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
  */
-int HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval, unsigned short *sigin);
+int HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval, const float akappa, unsigned short *sigin);
 /**
  *	@brief	Clover contribution to the Molecular Dynamics force
  *
