@@ -242,6 +242,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			//Update the residue vector, but not on the first call.
 			if(*itercg)
 				cuMixed_Sumto((double *)X1,(float *)X1_f,2*kferm2,dimBlock,dimGrid);
+			cudaDeviceSynchronise();
 			cudaMemsetAsync(X1_f,0,kferm2*sizeof(Complex_f),streams[3]);
 			//Bring everything into double precision
 			cuComplex_convert(p_f,p,kferm2,false,dimBlock,dimGrid);
