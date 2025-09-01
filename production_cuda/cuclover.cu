@@ -279,7 +279,7 @@ __global__ void ByClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, co
 	return;
 }
 template <typename T>
-__global__ void HbyClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, complex<T> *clover2,complex<T> *sigval, unsigned short *sigin){
+__global__ void HbyClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, complex<T> *clover2,complex<T> *sigval, const float kappa, unsigned short *sigin){
 	const char funcname[] = "HbyClover";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -306,8 +306,8 @@ __global__ void HbyClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, c
 				for(unsigned short c=0; c<nc; c++)
 					r_s[c]=r[(i*ndirac+igork1)*nc+c];
 				///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
-				phi_s[idirac][0]+=sigval[clov*ndirac+idirac]*(clov_s[0]*r_s[0]+clov_s[1]*r_s[1]);
-				phi_s[idirac][1]+=sigval[clov*ndirac+idirac]*(conj(clov_s[1])*r_s[0]+conj(clov_s[0])*r_s[1]);
+				phi_s[idirac][0]+=kappa*sigval[clov*ndirac+idirac]*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
+				phi_s[idirac][1]+=kappa*sigval[clov*ndirac+idirac]*(conj(clov_s[1])*r_s[0]+creal(clov_s[0])*r_s[1]);
 			}
 		}
 #pragma unroll
@@ -341,11 +341,17 @@ int cuClover(Complex_f *clover[nc],Complex_f *Leaves[6][nc],Complex_f *ut[nc], u
 	cudaDeviceSynchronise();
 	return 0;
 }
-void cuByClover(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f *sigval, unsigned short *sigin){
+void cuByClover(Complex *phi, Complex *r, Complex *clover[nc],Complex *sigval, unsigned short *sigin){
 	ByClover<<<dimGrid,dimBlock,0,0>>>(phi,r,clover[0],clover[1],sigval,sigin);
 }
-void cuHbyClover(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f *sigval, unsigned short *sigin){
-	HbyClover<<<dimGrid,dimBlock,0,0>>>(phi,r,clover[0],clover[1],sigval,sigin);
+void cuHbyClover(Complex *phi, Complex *r, Complex *clover[nc],Complex *sigval, const float kappa, unsigned short *sigin){
+	HbyClover<<<dimGrid,dimBlock,0,0>>>(phi,r,clover[0],clover[1],sigval,kappa,sigin);
+}
+void cuByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f *sigval, unsigned short *sigin){
+	ByClover<<<dimGrid,dimBlock,0,0>>>(phi,r,clover[0],clover[1],sigval,sigin);
+}
+void cuHbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f *sigval, const float kappa, unsigned short *sigin){
+	HbyClover<<<dimGrid,dimBlock,0,0>>>(phi,r,clover[0],clover[1],sigval,kappa,sigin);
 }
 int cuClover_Force(double *dSdpi, Complex_f *Leaves[6][nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,unsigned short *sigin){
 	const char funcname[]="Clover_Force";

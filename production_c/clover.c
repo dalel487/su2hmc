@@ -254,7 +254,7 @@ int ByClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, uns
 int HbyClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, const float akappa, unsigned short *sigin){
 	const char funcname[] = "HbyClover";
 #ifdef __NVCC__
-	cuHbyClover(phi, r, clover, sigval, sigin);
+	cuHbyClover(phi, r, clover, sigval, akappa,sigin);
 #else
 #pragma omp parallel for
 	for(int i=0;i<kvol;i+=AVX){
@@ -294,7 +294,7 @@ int HbyClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, co
 int ByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval, unsigned short *sigin){
 	const char funcname[] = "ByClover";
 #ifdef __NVCC__
-	cuByClover(phi, r, clover, sigval, sigin);
+	cuByClover_f(phi, r, clover, sigval, sigin);
 #else
 #pragma omp parallel for
 	for(int i=0;i<kvol;i+=AVX){
@@ -360,7 +360,7 @@ int ByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *s
 int HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval, const float akappa, unsigned short *sigin){
 	const char funcname[] = "HbyClover";
 #ifdef __NVCC__
-	cuHbyClover(phi, r, clover, sigval, sigin);
+	cuHbyClover_f(phi, r, clover, sigval, akappa,sigin);
 #else
 #pragma omp parallel for
 	for(int i=0;i<kvol;i+=AVX){

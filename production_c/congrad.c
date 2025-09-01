@@ -69,8 +69,8 @@ void Q_allocate(Complex **p, Complex **x1, Complex **x2, Complex *clover[2]){
 	//First two have halo exchanges, so getting NCCL working is important
 	cudaMallocAsync((void **)&clover[0], kferm2*sizeof(Complex),streams[0]);
 	cudaMallocAsync((void **)&clover[1], kferm2*sizeof(Complex),streams[1]);
-	cudaMallocAsync((void **)p, kferm2Halo*sizeof(Complex),streams[2]);
-	cudaMallocAsync((void **)x1, kferm2Halo*sizeof(Complex),streams[3]);
+	cudaMallocAsync((void **)p, kferm2*sizeof(Complex),streams[2]);
+	cudaMallocAsync((void **)x1, kferm2*sizeof(Complex),streams[3]);
 	cudaMallocAsync((void **)x2, kferm2*sizeof(Complex),streams[4]);
 #endif
 #else
@@ -130,7 +130,7 @@ void Q_free(Complex **p, Complex **x1, Complex **x2, Complex *clover[2]){
 	cudaFree(clover[0]); cudaFree(clover[1]);
 #else
 	//streams match the ones that allocated them.
-	cudaFreeAsync(clover[0],streams[3]); cudaFreeAsync(clover[1],streams[1]);
+	cudaFreeAsync(clover[0],streams[0]); cudaFreeAsync(clover[1],streams[1]);
 	cudaFreeAsync(*p,streams[2]);cudaFreeAsync(*x1,streams[3]);cudaFreeAsync(*x2,streams[4]);
 	cudaDeviceSynchronise();
 #endif
@@ -208,8 +208,10 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 	cuComplex_convert(X1_f,X1,kferm2,true,dimBlock,dimGrid);
 	cuComplex_convert(r_f,r,kferm2,true,dimBlock,dimGrid);
 	//And clover in double
-	cuComplex_convert(clover_f[0],clover[0],kferm2,false,dimBlock,dimGrid);
-	cuComplex_convert(clover_f[1],clover[1],kferm2,false,dimBlock,dimGrid);
+	if(c_sw){
+		cuComplex_convert(clover_f[0],clover[0],kferm2,false,dimBlock,dimGrid);
+		cuComplex_convert(clover_f[1],clover[1],kferm2,false,dimBlock,dimGrid);
+	}
 	//cudaMemcpy is blocking, so use async instead
 	cudaMemcpy(p_f, X1_f, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
 #else
@@ -219,12 +221,12 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 		X1_f[i]=(Complex_f)X1[i];
 		r_f[i]=(Complex_f)r[i];
 	}
-		//Clover in double precision
-		if(c_sw)
+	//Clover in double precision
+	if(c_sw)
 #pragma omp parallel for simd
-	for(unsigned int i=0;i<kferm2;i++){
-		clover[0][i]=(Complex)clover_f[0][i];
-		clover[1][i]=(Complex)clover_f[1][i];
+		for(unsigned int i=0;i<kferm2;i++){
+			clover[0][i]=(Complex)clover_f[0][i];
+			clover[1][i]=(Complex)clover_f[1][i];
 		}
 	memcpy(p_f, X1_f, kferm2*sizeof(Complex_f));
 #endif
@@ -239,7 +241,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #ifdef __NVCC__
 			//Update the residue vector, but not on the first call.
 			if(*itercg)
-				cuMixed_Sumto((double *)X1,(float *)X1_f,2*kvol,dimBlock,dimGrid);
+				cuMixed_Sumto((double *)X1,(float *)X1_f,2*kferm2,dimBlock,dimGrid);
 			cudaMemsetAsync(X1_f,0,kferm2*sizeof(Complex_f),streams[3]);
 			//Bring everything into double precision
 			cuComplex_convert(p_f,p,kferm2,false,dimBlock,dimGrid);

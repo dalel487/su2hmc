@@ -110,9 +110,9 @@ debug:		NVCCFLAGS += -Xptxas -O0,-v -G -g -D_DEBUG -arch=sm_75
 debug:		$(EXE)
 		 
 $(EXE): $(OBJ) ../main.c
-	$(NVCC) $(NVCCFLAGS) -ccbin $(CC) -Xcompiler "$(CFLAGS) -std=gnu11" $(LFLAGS) $(CULFLAGS) $^ -o $@
+	$(NVCC) $(NVCCFLAGS) -ccbin $(CC) -Xcompiler "$(CFLAGS) -rdynamic -std=gnu11" $(LFLAGS) $(CULFLAGS) $^ -o $@
 %.o: $(CUSRC_DIR)/%.cu
-	$(NVCC) $(NVCCFLAGS) -ccbin $(CXX) -Xcompiler "$(CFLAGS)" $^ -dc $@
+	$(NVCC) $(NVCCFLAGS) -ccbin $(CXX) -Xcompiler "$(CFLAGS) -rdynamic" $^ -dc $@
 %.o: $(CSRC_DIR)%.c
 	$(CC) $(CFLAGS) -c $^  
 
