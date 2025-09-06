@@ -143,14 +143,8 @@ int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 	printf("Evaluating force on rank %i\n", rank);
 #endif
 	Force(dSdpi, 1, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
-#ifdef _DEBUG
-	 printf("Initial force dSdpi[0]=%e\n", dSdpi[0]);
-#endif
 	//Initial momentum update
 	Momentum_Update(dp,dSdpi,pp);
-#ifdef _DEBUG
-	 printf("Initial OMF2 momentum pp[0]=%e\n", pp[0]);
-#endif
 
 	//Main loop for classical time evolution
 	//======================================
@@ -168,9 +162,6 @@ int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 		Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
 		//Now do the middle momentum update
 		Momentum_Update(dpm,dSdpi,pp);
-#ifdef _DEBUG
-	 printf("Middle OMF2 momentum pp[0]=%e\n", pp[0]);
-	 #endif
 
 		//Second gauge update
 		Gauge_Update(dU,pp,ut,ut_f);
@@ -182,9 +173,6 @@ int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 		if(step==stepl){
 			//Final momentum step
 			Momentum_Update(dp,dSdpi,pp);
-#ifdef _DEBUG
-	 printf("Final OMF2 momentum pp[0]=%e\n", pp[0]);
-	 #endif
 			*itot+=step;
 			//Two force terms, so an extra factor of two in the average?
 			//Or leave it as it was, to get the average CG iterations per trajectory rather than force

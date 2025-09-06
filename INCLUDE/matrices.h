@@ -230,24 +230,18 @@ void Transpose_U(unsigned int *out, const int, const int);
 }
 #endif
 #ifdef __CUDACC__
-//Actual CUDA
-__global__ void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
-		Complex *gamval, int *gamin, double *dk4m, double *dk4p, Complex_f jqq, float akappa);
-__global__ void cuDslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
-		Complex *gamval, int *gamin, double *dk4m, double *dk4p, Complex_f jqq, float akappa);
-__global__ void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
-		Complex *gamval, int *gamin, double *dk4m, double *dk4p, float akappa);
-__global__ void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
-		Complex *gamval, int *gamin, double *dk4m, double *dk4p, float akappa);
-//Float version
-__global__ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu, unsigned int *id,\
-		__shared__ Complex_f *gamval, int *gamin, float *dk4m, float *dk4p, Complex_f jqq, float akappa);
-__global__ void cuDslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f *u11t, const Complex_f *u12t,const unsigned int *iu, const unsigned int *id,\
-		__shared__ Complex_f *gamval_d,	int *gamin_d,	const float *dk4m, const float *dk4p, const Complex_f jqq, const float akappa);
+template <typename T>
+__global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, complex<T> *u12t,unsigned int *iu, unsigned int *id,\
+		__shared__ complex<T> *gamval, int *gamin, T *dk4m, T *dk4p, Complex_f jqq, float akappa);
+template <typename T>
+__global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T> *u11t, const complex<T> *u12t,const unsigned int *iu, const unsigned int *id,\
+		__shared__ complex<T> *gamval_d,	int *gamin_d,	const T *dk4m, const T *dk4p, const Complex_f jqq, const float akappa);
 
-__global__ void cuHdslash_f(Complex_f *phi, const Complex_f *r, const Complex_f *u11t, const Complex_f *u12t,const unsigned int *iu, const unsigned int *id,\
-		const __shared__ Complex_f gamval[20], const __shared__ int gamin[16], const float *dk4m, const float *dk4p, const float akappa);
-__global__ void cuHdslashd_f(Complex_f *phi, const Complex_f *r, const Complex_f *u11t, const Complex_f *u12t,const unsigned int *iu, const unsigned int *id,\
-		const __shared__ Complex_f gamval[20], const __shared__ int gamin[16], const float *dk4m, const float *dk4p, const float akappa);
+template <typename T>
+__global__ void cuHdslash(complex<T> *phi, const complex<T> *r, const complex<T> *u11t, const complex<T> *u12t,const unsigned int *iu, const unsigned int *id,\
+		const __shared__ complex<T> gamval[20], const __shared__ int gamin[16], const T *dk4m, const T *dk4p, const float akappa);
+template <typename T>
+__global__ void cuHdslashd(complex<T> *phi, const complex<T> *r, const complex<T> *u11t, const complex<T> *u12t,const unsigned int *iu, const unsigned int *id,\
+		const __shared__ complex<T> gamval[20], const __shared__ int gamin[16], const T *dk4m, const T *dk4p, const float akappa);
 template <typename T> __global__ void Transpose(T *out, const T *in, const int fast_in, const int fast_out);
 #endif
