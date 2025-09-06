@@ -1187,7 +1187,7 @@ void cuTranspose_U(unsigned int *out, const int fast_in, const int fast_out, con
 }
 
 void cuMixed_Sumto(double *d, float *f,const unsigned int n,const dim3 dimGrid,const dim3 dimBlock){
-	cuMixed_Sumto<<<dimGrid,dimBlock,0,0>>>(d,f,n);
+	cuMixed_Sumto<<<dimGrid,dimBlock>>>(d,f,n);
 	return;
 }
 

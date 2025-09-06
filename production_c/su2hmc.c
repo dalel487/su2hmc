@@ -254,7 +254,11 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 	if(c_sw)
 		Clover_free(clover,leaves);
 #ifdef __NVCC__
+#ifdef _DEBUG
+	cudaFree(smallPhi);
+#else
 	cudaFreeAsync(smallPhi,NULL);
+	#endif
 #else
 	free(smallPhi);
 #endif

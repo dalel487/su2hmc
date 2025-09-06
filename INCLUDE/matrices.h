@@ -224,7 +224,7 @@ void Transpose_U(unsigned int *out, const int, const int);
 	 *	@param	n:	Array lengths
 	 *
 	 */
-void cuMixed_Sumto(double *d, float *f,const unsigned int n,const dim3 dimGrid,const dim3 dimBlock);
+	void cuMixed_Sumto(double *d, float *f,const unsigned int n,const dim3 dimGrid,const dim3 dimBlock);
 #endif
 #if (defined __cplusplus)
 }

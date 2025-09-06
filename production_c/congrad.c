@@ -60,15 +60,15 @@ void Q_allocate(Complex **p, Complex **x1, Complex **x2, Complex *clover[2]){
 	const char funcname[] = "Q_allocate";
 #ifdef __NVCC__
 #ifdef _DEBUG
-	cudaMallocManaged((void **)&clover[0], kferm2*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&clover[1], kferm2*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&clover[0], 6*kvol*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&clover[1], 6*kvol*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)p, kferm2*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)x1, kferm2*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)x2, kferm2*sizeof(Complex),cudaMemAttachGlobal);
 #else
 	//First two have halo exchanges, so getting NCCL working is important
-	cudaMallocAsync((void **)&clover[0], kferm2*sizeof(Complex),streams[0]);
-	cudaMallocAsync((void **)&clover[1], kferm2*sizeof(Complex),streams[1]);
+	cudaMallocAsync((void **)&clover[0], 6*kvol*sizeof(Complex),streams[0]);
+	cudaMallocAsync((void **)&clover[1], 6*kvol*sizeof(Complex),streams[1]);
 	cudaMallocAsync((void **)p, kferm2*sizeof(Complex),streams[2]);
 	cudaMallocAsync((void **)x1, kferm2*sizeof(Complex),streams[3]);
 	cudaMallocAsync((void **)x2, kferm2*sizeof(Complex),streams[4]);
@@ -209,8 +209,8 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 	cuComplex_convert(r_f,r,kferm2,true,dimBlock,dimGrid);
 	//And clover in double
 	if(c_sw){
-		cuComplex_convert(clover_f[0],clover[0],kferm2,false,dimBlock,dimGrid);
-		cuComplex_convert(clover_f[1],clover[1],kferm2,false,dimBlock,dimGrid);
+		cuComplex_convert(clover_f[0],clover[0],6*kvol,false,dimBlock,dimGrid);
+		cuComplex_convert(clover_f[1],clover[1],6*kvol,false,dimBlock,dimGrid);
 	}
 	//cudaMemcpy is blocking, so use async instead
 	cudaMemcpy(p_f, X1_f, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
@@ -241,9 +241,8 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #ifdef __NVCC__
 			//Update the residue vector, but not on the first call.
 			if(*itercg)
-				cuMixed_Sumto((double *)X1,(float *)X1_f,2*kferm2,dimBlock,dimGrid);
-			cudaDeviceSynchronise();
-			cudaMemsetAsync(X1_f,0,kferm2*sizeof(Complex_f),streams[3]);
+				cuMixed_Sumto((double *)X1,(float *)X1_f,2*kferm2,dimGrid,dimBlock);
+			cudaMemsetAsync(X1_f,0,kferm2*sizeof(Complex_f),streams[4]);
 			//Bring everything into double precision
 			cuComplex_convert(p_f,p,kferm2,false,dimBlock,dimGrid);
 			cuComplex_convert(r_f,r,kferm2,false,dimBlock,dimGrid);
@@ -307,7 +306,9 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 				alpha=alphan/creal(alpha);
 				/// @f$x+\alpha p@f$ 
 #ifdef __NVCC__
-				cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&alpha,(cuDoubleComplex *)p,1,(cuDoubleComplex *)X1,1);
+				//A bit of a hack. No idea why passing alpha on it's own causes a segfault
+				const Complex alpha_test = (Complex)alpha;
+				cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&alpha_test,(cuDoubleComplex *)p,1,(cuDoubleComplex *)X1,1);
 #elif defined USE_BLAS
 				cblas_zaxpy(kferm2, &alpha, p, 1, X1, 1);
 #else
@@ -319,9 +320,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #ifdef	__NVCC__
 			Complex alpha_m=(Complex)(-alpha);
 			cublasZaxpy(cublas_handle, kferm2,(cuDoubleComplex *)&alpha_m,(cuDoubleComplex *)x2,1,(cuDoubleComplex *)r,1);
-			//For CUDA, convert back to float here since it's likely partially in cache already.
-			//CPU we do later in a single loop with p
-			cuComplex_convert(r_f,r,kferm2,true,dimBlock,dimGrid);
+			cuComplex_convert(r_f,r,kferm2,false,dimBlock,dimGrid);
 			double betan_d;
 			cublasDznrm2(cublas_handle,kferm2,(cuDoubleComplex *)r,1,&betan_d);
 			betan=betan_d*betan_d;
@@ -357,7 +356,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			cublasZdscal(cublas_handle,kferm2,(cuDoubleComplex *)&beta,(cuDoubleComplex *)p,1);
 			alpha_m=1;
 			cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&alpha_m,(cuDoubleComplex *)r,1,(cuDoubleComplex *)p,1);
-			cuComplex_convert(p_f,p,kferm2,true,dimBlock,dimGrid);
+			cuComplex_convert(p_f,p,kferm2,false,dimBlock,dimGrid);
 #else
 #ifdef __INTEL_MKL__
 			const Complex a = 1.0;
