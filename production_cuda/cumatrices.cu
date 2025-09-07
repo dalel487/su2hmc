@@ -6,18 +6,18 @@ template <typename T>
 __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, complex<T> *u12t,unsigned int *iu, unsigned int *id,\
 		__shared__ complex<T> *gamval_d,	int *gamin_d,	T *dk4m, T *dk4p, Complex_f jqq, float akappa){
 	const char *funcname = "cuDslash";
-	const int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	const int gthreadId= blockId * bsize+bthreadId;
+	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const unsigned int gthreadId= blockId * bsize+bthreadId;
 
-	for(int i=gthreadId;i<kvol;i+=gsize*bsize){
+	for(unsigned int i=gthreadId;i<kvol;i+=gsize*bsize){
 		complex<T> ru[nc]; complex<T> rd[nc];
 		complex<T> rgu[nc]; complex<T> rgd[nc];
 		complex<T> phi_s[ngorkov*nc];
-		for(int idirac=0;idirac<ndirac;idirac++){
-			int igork = idirac+4;
+		for(unsigned short idirac=0;idirac<ndirac;idirac++){
+			unsigned short igork = idirac+4;
 			complex<T> a_1=conj(jqq)*gamval_d[4*ndirac+idirac];
 			//We subtract a_2, hence the minus
 			complex<T> a_2=-jqq*gamval_d[4*ndirac+idirac];
@@ -30,15 +30,15 @@ __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, compl
 		complex<T> u11sd; complex<T> u12sd;
 		//Spacelike terms. Here's hoping I haven't put time as the zeroth component somewhere!
 #ifndef NO_SPACE
-		for(int mu = 0; mu <3; mu++){
+		for(unsigned short mu = 0; mu <3; mu++){
 			int did=id[mu*kvol+i]; int uid = iu[mu*kvol+i];
 			u11s=u11t[i+kvol*mu]; u12s=u12t[i+kvol*mu];
 			u11sd=u11t[did+kvol*mu]; u12sd=u12t[did+kvol*mu];
-			for(int igorkov=0; igorkov<ngorkov; igorkov++){
-				int idirac=igorkov%4;		
+			for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
+				unsigned short idirac=igorkov&3;		
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing in the dirac term.
-				int igork1 = (igorkov<4) ? gamin_d[mu*ndirac+idirac] : gamin_d[mu*ndirac+idirac]+4;
-				for(int c=0;c<nc;c++){
+				unsigned short igork1 = (igorkov<4) ? gamin_d[mu*ndirac+idirac] : gamin_d[mu*ndirac+idirac]+4;
+				for(unsigned short c=0;c<nc;c++){
 					ru[c]=r[uid+kvol*(igorkov*nc+c)];
 					rd[c]=r[did+kvol*(igorkov*nc+c)];
 					rgu[c]=r[uid+kvol*(igork1*nc+c)];
@@ -80,9 +80,9 @@ __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, compl
 		int did=id[3*kvol+i]; int uid = iu[3*kvol+i];
 		u11sd=u11t[did+kvol*3]; u12sd=u12t[did+kvol*3];
 		T dk4msd=dk4m[did];	T dk4psd=dk4p[did];
-		for(int igorkov=0;igorkov<ndirac;igorkov++){
-			int igork1 = gamin_d[3*ndirac+igorkov];
-			for(int c=0;c<nc;c++){
+		for(unsigned short igorkov=0;igorkov<ndirac;igorkov++){
+			unsigned short igork1 = gamin_d[3*ndirac+igorkov];
+			for(unsigned short c=0;c<nc;c++){
 				ru[c]=r[uid+kvol*(igorkov*nc+c)];
 				rd[c]=r[did+kvol*(igorkov*nc+c)];
 				rgu[c]=r[uid+kvol*(igork1*nc+c)];
@@ -104,11 +104,11 @@ __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, compl
 				-dk4msd*(conj(u12sd)*(rd[0]+rgd[0])
 						+u11sd *(rd[1]+rgd[1]));
 			phi[i+kvol*(igorkov*nc+1)]=phi_s[igorkov*nc+1];
-			int igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
+			unsigned short igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
 												//the FORTRAN code did it.
-			int igork1PP = igork1+4;
+			unsigned short igork1PP = igork1+4;
 			//And the gorkov terms. Note that dk4p and dk4m swap positions compared to the above				
-			for(int c=0;c<nc;c++){
+			for(unsigned short c=0;c<nc;c++){
 				ru[c]=r[uid+kvol*(igorkovPP*nc+c)];
 				rd[c]=r[did+kvol*(igorkovPP*nc+c)];
 				rgu[c]=r[uid+kvol*(igork1PP*nc+c)];
@@ -135,11 +135,11 @@ template <typename T>
 __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T> *u11t, const complex<T> *u12t,const unsigned int *iu, const unsigned int *id,\
 		__shared__ complex<T> *gamval_d,	int *gamin_d,	const T *dk4m, const T *dk4p, const Complex_f jqq, const float akappa){
 	const char *funcname = "cuDslashd";
-	const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const volatile int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const volatile int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const volatile int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	const volatile int gthreadId= blockId * bsize+bthreadId;
+	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const unsigned int gthreadId= blockId * bsize+bthreadId;
 
 	complex<T> u11s;	 complex<T> u12s;
 	complex<T> u11sd;	 complex<T> u12sd;
@@ -147,12 +147,12 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 	complex<T> rgu[nc];  complex<T> rgd[nc];
 	complex<T> phi_s[ngorkov*nc];
 
-	for(int i=gthreadId;i<kvol;i+=gsize*bsize){
-		volatile int did=0; volatile int uid = 0;
+	for(unsigned int i=gthreadId;i<kvol;i+=gsize*bsize){
+		unsigned int did=0; unsigned int uid = 0;
 		//Diquark Term (antihermitian) The signs of a_1 and a_2 below flip under dagger
 #pragma unroll
-		for(int idirac = 0; idirac<ndirac; idirac++){
-			int igork = idirac+4;
+		for(unsigned short idirac = 0; idirac<ndirac; idirac++){
+			unsigned short igork = idirac+4;
 			complex<T> a_1, a_2;
 			//We subtract a_1, hence the minus
 			a_1=-conj(jqq)*gamval_d[4*ndirac+idirac];
@@ -165,17 +165,17 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 		//Spacelike terms. Here's hoping I haven't put time as the zeroth component somewhere!
 #ifndef NO_SPACE
 #pragma unroll
-		for(int mu = 0; mu <3; mu++){
+		for(unsigned short mu = 0; mu <3; mu++){
 			did=id[mu*kvol+i]; uid = iu[mu*kvol+i];
 			u11s=u11t[i+kvol*mu]; u12s=u12t[i+kvol*mu];
 			u11sd=u11t[did+kvol*mu]; u12sd=u12t[did+kvol*mu];
 #pragma unroll
-			for(int igorkov=0; igorkov<ngorkov; igorkov++){
+			for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing.
-				int idirac=igorkov%4;		
-				int igork1 = (igorkov<4) ? gamin_d[mu*ndirac+idirac] : gamin_d[mu*ndirac+idirac]+4;
+				unsigned short idirac=igorkov&3;		
+				unsigned short igork1 = (igorkov<4) ? gamin_d[mu*ndirac+idirac] : gamin_d[mu*ndirac+idirac]+4;
 #pragma unroll
-				for(int c=0;c<nc;c++){
+				for(unsigned short c=0;c<nc;c++){
 					ru[c]=r[uid+kvol*(igorkov*nc+c)];
 					rd[c]=r[did+kvol*(igorkov*nc+c)];
 					rgu[c]=r[uid+kvol*(igork1*nc+c)];
@@ -226,10 +226,10 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 		complex<T> dk4msd=dk4m[did];	complex<T> dk4psd=dk4p[did];
 		complex<T> dk4ms=dk4m[i];	complex<T> dk4ps=dk4p[i];
 #pragma unroll
-		for(int igorkov=0; igorkov<ndirac; igorkov++){
-			int igork1 = gamin_d[3*ndirac+igorkov];	
+		for(unsigned short igorkov=0; igorkov<ndirac; igorkov++){
+			unsigned short igork1 = gamin_d[3*ndirac+igorkov];	
 #pragma unroll
-			for(int c=0;c<nc;c++){
+			for(unsigned short c=0;c<nc;c++){
 				ru[c]=r[uid+kvol*(igorkov*nc+c)];
 				rd[c]=r[did+kvol*(igorkov*nc+c)];
 				rgu[c]=r[uid+kvol*(igork1*nc+c)];
@@ -251,10 +251,10 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 				-dk4psd*(conj(u12sd)*(rd[0]-rgd[0])
 						+u11sd *(rd[1]-rgd[1]));
 			phi[i+kvol*(igorkov*nc+1)]=phi_s[igorkov*nc+1];
-			int igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
+			unsigned short igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
 												//the FORTRAN code did it.
-			int igork1PP = igork1+4;
-			for(int c=0;c<nc;c++){
+			unsigned short igork1PP = igork1+4;
+			for(unsigned short c=0;c<nc;c++){
 				ru[c]=r[uid+kvol*(igorkovPP*nc+c)];
 				rd[c]=r[did+kvol*(igorkovPP*nc+c)];
 				rgu[c]=r[uid+kvol*(igork1PP*nc+c)];
@@ -287,11 +287,11 @@ __global__ void cuHdslash(complex<T> *phi, const complex<T> *r, const complex<T>
 	 * Half Dslash T precision
 	 */
 	const volatile char *funcname = "cuHdslash0_f";
-	const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const volatile int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const volatile int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const volatile int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	const volatile int gthreadId= blockId * bsize+bthreadId;
+	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const unsigned int gthreadId= blockId * bsize+bthreadId;
 
 	//Right. Time to prefetch
 //	complex<T> u11s;	 complex<T> u12s;
@@ -299,26 +299,26 @@ __global__ void cuHdslash(complex<T> *phi, const complex<T> *r, const complex<T>
 	complex<T> ru[2];  complex<T> rd[2];
 	complex<T> rgu[2];  complex<T> rgd[2];
 	complex<T> phi_s[ndirac*nc];
-	for(int i=gthreadId;i<kvol;i+=bsize*gsize){
+	for(unsigned int i=gthreadId;i<kvol;i+=bsize*gsize){
 		//Do we need to sync threads if each thread only accesses the value it put in shared memory?
 #pragma unroll
-		for(int idirac=0; idirac<nc*ndirac; idirac+=nc)
+		for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll
-			for(int c=0; c<nc; c++)
+			for(unsigned short c=0; c<nc; c++)
 				//NOTE: idirace is increasing by nc each time. So should be read as idirac*nc 
 				phi_s[idirac+c]=phi[i+kvol*(c+idirac)];
 		//#pragma unroll
-		for(int mu = 0; mu <ndim; mu++){
+		for(unsigned short mu = 0; mu <ndim; mu++){
 			unsigned int ind=i+kvol*mu;
 			const complex<T> u11s=u11t[ind];	const complex<T> u12s=u12t[ind];
 			const int did=id[ind];	const int uid = iu[ind];
 			ind=did+kvol*mu;
 			const complex<T> u11sd=u11t[ind];	const complex<T> u12sd=u12t[ind];
 #pragma unroll
-			for(int idirac=0; idirac<ndirac*nc; idirac+=nc){
-				const int igork1 = gamin_d[mu*ndirac+(idirac>>1)] << (nc-1);
+			for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
+				const unsigned short igork1 = gamin_d[mu*ndirac+(idirac>>1)] << (nc-1);
 #pragma unroll
-				for(int c=0;c<nc;c++){
+				for(unsigned short c=0;c<nc;c++){
 					unsigned int rind =kvol*(idirac+c);
 					ru[c]=r[uid+rind];
 					rd[c]=r[did+rind];
@@ -386,25 +386,25 @@ __global__ void cuHdslashd(complex<T> *phi, const complex<T>* r, const complex<T
 	 * Half Dslash Dagger T precision 
 	 */
 	const volatile char *funcname = "cuHdslashd0_f";
-	const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const volatile int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const volatile int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const volatile int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	const volatile int gthreadId= blockId * bsize+bthreadId;
+	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const unsigned int gthreadId= blockId * bsize+bthreadId;
 
 	//Right. Time to prefetch
 	complex<T> ru[2];  complex<T> rd[2];
 	complex<T> rgu[2];  complex<T> rgd[2];
 	complex<T> phi_s[ndirac*nc];
-	for(int i=gthreadId;i<kvol;i+=gsize*bsize){
+	for(unsigned int i=gthreadId;i<kvol;i+=gsize*bsize){
 #pragma unroll
-		for(int idirac=0; idirac<nc*ndirac; idirac+=nc)
+		for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll
-			for(int c=0; c<nc; c++)
+			for(unsigned short c=0; c<nc; c++)
 				phi_s[idirac+c]=phi[i+kvol*(c+idirac)];
 
 //#pragma unroll
-		for(int mu = 0; mu <ndim; mu++){
+		for(unsigned short mu = 0; mu <ndim; mu++){
 			//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
 			unsigned int ind=i+kvol*mu;
 			const complex<T> u11s=u11t[ind];	const complex<T> u12s=u12t[ind];
@@ -412,10 +412,10 @@ __global__ void cuHdslashd(complex<T> *phi, const complex<T>* r, const complex<T
 			ind=did+kvol*mu;
 			const complex<T> u11sd=u11t[ind];	const complex<T> u12sd=u12t[ind];
 #pragma unroll
-			for(int idirac=0; idirac<nc*ndirac; idirac+=nc){
-				int igork1 = gamin_d[mu*ndirac+(idirac>>1)] << (nc-1);
+			for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc){
+				unsigned short igork1 = gamin_d[mu*ndirac+(idirac>>1)] << (nc-1);
 #pragma unroll
-				for(int c=0;c<nc;c++){
+				for(unsigned short c=0;c<nc;c++){
 					unsigned int rind =kvol*(idirac+c);
 					ru[c]=r[uid+rind];
 					rd[c]=r[did+rind];
@@ -484,23 +484,23 @@ __global__ void cuHdslashd(complex<T> *phi, const complex<T>* r, const complex<T
 template <typename T>
 __global__ void Transpose(T *out, const T *in, const int fast_in, const int fast_out){
 	const volatile char *funcname="Transpose_f";
-	const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const volatile int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const volatile int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const volatile int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	const int gthreadId= blockId * bsize+bthreadId;
+	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const unsigned int gthreadId= blockId * bsize+bthreadId;
 
 	//The if/else here is only to ensure we maximise GPU bandwidth
 	//Typically this is used to write back to the AoS/Coalseced format
 	if(fast_out>fast_in){
-		for(int x=gthreadId;x<fast_out;x+=gsize*bsize)
-			for(int y=0; y<fast_in;y++)
+		for(unsigned int x=gthreadId;x<fast_out;x+=gsize*bsize)
+			for(unsigned int y=0; y<fast_in;y++)
 				out[y*fast_out+x]=in[x*fast_in+y];
 	}
 	//Typically this is used to write back to the SoA/saved config format
 	else{
-		for(int x=0; x<fast_out;x++)
-			for(int y=gthreadId;y<fast_in;y+=gsize*bsize)
+		for(unsigned int x=0; x<fast_out;x++)
+			for(unsigned int y=gthreadId;y<fast_in;y+=gsize*bsize)
 				out[y*fast_out+x]=in[x*fast_in+y];
 	}
 }
@@ -553,11 +553,11 @@ out[y*fast_out+x]=in[x*fast_in+y];
 
 __global__ void cuMixed_Sumto(double *d, float *f, const unsigned int n){
 	const volatile char *funcname="Mixed_prod";
-	const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const volatile int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const volatile int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const volatile int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	const int gthreadId= blockId * bsize+bthreadId;
+	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const unsigned int gthreadId= blockId * bsize+bthreadId;
 	
 	for(unsigned int i=gthreadId; i<n;i+=bsize*gsize)
 		d[i]+=(double)f[i];

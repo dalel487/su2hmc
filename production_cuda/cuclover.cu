@@ -239,17 +239,17 @@ __global__ void Clover_Force(double *dSdpi,complex<T> *Fleaf1,complex<T> *Fleaf2
 template <typename T>
 __global__ void ByClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, complex<T> *clover2, complex<T> *sigval, unsigned short *sigin){
 	const char funcname[] = "HbyClover";
-	const int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	const int gthreadId= blockId * bsize+bthreadId;
+	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const unsigned int gthreadId= blockId * bsize+bthreadId;
 
 	for(int i=gthreadId;i<kvol;i+=bsize*gsize){
 		//Prefetched r and Phi array
 		complex<T> phi_s[ndirac][nc];
 #pragma unroll
-		for(int igorkov=0; igorkov<ngorkov; igorkov++)
+		for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++)
 			for(unsigned short c=0; c<nc; c++){
 				phi_s[igorkov][c]=0;
 			}
@@ -258,7 +258,7 @@ __global__ void ByClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, co
 #pragma unroll
 		for(unsigned short clov=0;clov<6;clov++){
 			clov_s[0]=clover1[clov*kvol+i]; clov_s[1]=clover2[clov*kvol+i];
-			for(int igorkov=0; igorkov<ngorkov; igorkov++){
+			for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
 				//Mod 4 done bitwise. In general n mod 2^m = n & (2^m-1)
 				const unsigned short idirac = igorkov&3;
 				const unsigned short igork1 = (igorkov<4) ? sigin[clov*ndirac+idirac] : sigin[clov*ndirac+idirac]+4;
@@ -281,40 +281,40 @@ __global__ void ByClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, co
 template <typename T>
 __global__ void HbyClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, complex<T> *clover2,complex<T> *sigval, const float kappa, unsigned short *sigin){
 	const char funcname[] = "HbyClover";
-	const int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	const int gthreadId= blockId * bsize+bthreadId;
+	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const unsigned int gthreadId= blockId * bsize+bthreadId;
 
-	for(int i=gthreadId;i<kvol;i+=bsize*gsize){
+	for(unsigned int i=gthreadId;i<kvol;i+=bsize*gsize){
 		//Prefetched r and Phi array
-		complex<T> phi_s[ndirac][nc];
+		complex<T> phi_s[ndirac*nc];
 #pragma unroll
-		for(unsigned short idirac=0; idirac<ndirac; idirac++)
+		for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc)
 			for(unsigned short c=0; c<nc; c++){
-				phi_s[idirac][c]=0;
+				phi_s[idirac+c]=0;
 			}
-		complex<T> r_s[nc];
-		complex<T> clov_s[nc];
+		complex<T> r_s[nc]; complex<T> clov_s[nc];
 #pragma unroll
 		for(unsigned short clov=0;clov<6;clov++){
 			clov_s[0]=clover1[clov*kvol+i]; clov_s[1]=clover2[clov*kvol+i];
-			for(int idirac=0; idirac<ndirac; idirac++){
-				const unsigned short igork1 = sigin[clov*ndirac+idirac];	
+			for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
+				const unsigned short igork1 = sigin[clov*ndirac+(idirac>>1)] << (nc-1);
 #pragma unroll
 				for(unsigned short c=0; c<nc; c++)
 					r_s[c]=r[(i*ndirac+igork1)*nc+c];
 				///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
-				phi_s[idirac][0]+=kappa*sigval[clov*ndirac+idirac]*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
-				phi_s[idirac][1]+=kappa*sigval[clov*ndirac+idirac]*(conj(clov_s[1])*r_s[0]+creal(clov_s[0])*r_s[1]);
+				const complex<T> sig=sigval[clov*ndirac+(idirac>>1)];
+				phi_s[idirac+0]+=kappa*sig*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
+				phi_s[idirac+1]+=kappa*sig*(conj(clov_s[1])*r_s[0]+creal(clov_s[0])*r_s[1]);
 			}
 		}
 #pragma unroll
-		for(unsigned short idirac=0; idirac<ndirac; idirac++)
+		for(unsigned short idirac=0; idirac<ndirac; idirac+=nc)
 			for(unsigned short c=0; c<nc; c++)
 				///Also @f$\sigma_{\mu\nu}F_{\mu\nu}=\sigma_{\nu\mu}F_{\nu\mu}@f$ so we double it to take account of that
-				phi[i+kvol*(c+nc*idirac)]+=2*phi_s[idirac][c];
+				phi[i+kvol*(c+idirac)]+=2*phi_s[idirac+c];
 	}
 	return;
 }
