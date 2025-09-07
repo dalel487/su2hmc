@@ -237,6 +237,9 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #ifdef _DEBUGCG
 			printf("Going to double precision on iteration %d.%sbetan %e\talpha %e.%s",
 					*itercg,endline,betan,alpha,endline);
+#elifdef _DEBUG
+			printf("\nGoing to double precision on iteration %d.%sbetan %e\talpha %e.\n",
+					*itercg,endline,betan,alpha);
 #endif
 #ifdef __NVCC__
 			//Update the residue vector, but not on the first call.
@@ -347,7 +350,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			//Update beta_max. Mandatory for double precision.
 			beta_max=betan_d;
 #ifdef _DEBUG
-			if(!rank) printf("DP Iter(CG)=%i\tbeta_n=%e\talpha=%e%s", *itercg, betan, alpha,endline);
+			if(!rank) printf("DP Iter(CG)=%i\tbeta_n=%e\talpha=%e\n", *itercg, betan, alpha);
 			fflush(stdout);
 #endif
 			const Complex beta = (*itercg) ?  betan/betad : 0;
@@ -379,7 +382,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			}
 #endif
 #ifdef _DEBUGCG
-			if(!rank) printf("Double precision. Iter(CG)=%i\tbeta_n=%e\talpha=%e%s", *itercg, betan, alpha,endline);
+			if(!rank) printf("Double precision. Iter(CG)=%i\tbeta_n=%e\talpha=%e\n", *itercg, betan, alpha);
 			fflush(stdout);
 #endif
 			if(betan<resid){ 

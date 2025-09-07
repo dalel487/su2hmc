@@ -60,7 +60,7 @@ release:	$(EXE)
 diagnostic: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 diagnostic: debug
 
-debug:	CFLAGS += -g -O0 -D_DEBUG -D_DEBUGCG -Wall #-fsanitize=memory -fno-omit-frame-pointer
+debug:	CFLAGS += -g -O0 -D_DEBUG #-D_DEBUGCG -Wall #-fsanitize=memory -fno-omit-frame-pointer
 debug:	$(EXE)
 
 $(EXE):	$(OBJ)
