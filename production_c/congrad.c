@@ -74,8 +74,8 @@ void Q_allocate(Complex **p, Complex **x1, Complex **x2, Complex *clover[2]){
 	cudaMallocAsync((void **)x2, kferm2*sizeof(Complex),streams[4]);
 #endif
 #else
-	clover[0]=(Complex *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex));
-	clover[1]=(Complex *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex));
+	clover[0]=(Complex *)aligned_alloc(AVX,6*kvol*sizeof(Complex));
+	clover[1]=(Complex *)aligned_alloc(AVX,6*kvol*sizeof(Complex));
 	*p=(Complex *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex));
 	*x1=(Complex *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex));
 	*x2=(Complex *)aligned_alloc(AVX,kferm2*sizeof(Complex));
@@ -224,7 +224,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 	//Clover in double precision
 	if(c_sw)
 #pragma omp parallel for simd
-		for(unsigned int i=0;i<kferm2;i++){
+		for(unsigned int i=0;i<6*kvol;i++){
 			clover[0][i]=(Complex)clover_f[0][i];
 			clover[1][i]=(Complex)clover_f[1][i];
 		}
@@ -246,8 +246,8 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			if(*itercg)
 				cuMixed_Sumto((double *)X1,(float *)X1_f,2*kferm2,dimGrid,dimBlock);
 			//Bring everything into double precision
-			cuComplex_convert(p_f,p,kferm2,true,dimBlock,dimGrid);
-			cuComplex_convert(r_f,r,kferm2,true,dimBlock,dimGrid);
+			cuComplex_convert(p_f,p,kferm2,false,dimBlock,dimGrid);
+			cuComplex_convert(r_f,r,kferm2,false,dimBlock,dimGrid);
 			//Reset X1_f to zero.
 			cudaDeviceSynchronise();
 			cudaMemsetAsync(X1_f,0,kferm2*sizeof(Complex_f),streams[4]);
@@ -360,8 +360,8 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			cublasZdscal(cublas_handle,kferm2,(cuDoubleComplex *)&beta,(cuDoubleComplex *)p,1);
 			alpha_m=1;
 			cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&alpha_m,(cuDoubleComplex *)r,1,(cuDoubleComplex *)p,1);
-			cuComplex_convert(p_f,p,kferm2,false,dimBlock,dimGrid);
-			cuComplex_convert(r_f,r,kferm2,false,dimBlock,dimGrid);
+			cuComplex_convert(p_f,p,kferm2,true,dimBlock,dimGrid);
+			cuComplex_convert(r_f,r,kferm2,true,dimBlock,dimGrid);
 #else
 #ifdef __INTEL_MKL__
 			const Complex a = 1.0;

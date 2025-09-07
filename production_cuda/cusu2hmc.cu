@@ -124,19 +124,19 @@ void	Init_CUDA(Complex *u11t, Complex *u12t,Complex *gamval, Complex_f *gamval_f
 	cudaMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),device,streams[4]);
 	cudaMemPrefetchAsync(u12t, ndim*kvol*sizeof(Complex),device,streams[5]);
 }
-void cuReal_convert(float *a, double *b, int len, bool ftod, dim3 dimBlock, dim3 dimGrid){
+void cuReal_convert(float *a, double *b, int len, bool dtof, dim3 dimBlock, dim3 dimGrid){
 	/* 
 	 * Kernel wrapper for conversion between sp and dp complex on the GPU.
 	 */
 	const char *funcname = "cuComplex_convert";
-	cuReal_convert<<<dimGrid,dimBlock>>>(a,b,len,ftod);
+	cuReal_convert<<<dimGrid,dimBlock>>>(a,b,len,dtof);
 }
-void cuComplex_convert(Complex_f *a, Complex *b, int len, bool ftod, dim3 dimBlock, dim3 dimGrid){
+void cuComplex_convert(Complex_f *a, Complex *b, int len, bool dtof, dim3 dimBlock, dim3 dimGrid){
 	/* 
 	 * Kernel wrapper for conversion between sp and dp complex on the GPU.
 	 */
 	const char *funcname = "cuComplex_convert";
-	cuReal_convert<<<dimGrid,dimBlock>>>((float *)a,(double *)b,2*len,ftod);
+	cuReal_convert<<<dimGrid,dimBlock>>>((float *)a,(double *)b,2*len,dtof);
 }
 void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi, dim3 dimBlock, dim3 dimGrid){
 	cuFill_Small_Phi<<<dimGrid,dimBlock>>>(na,smallPhi,Phi);
@@ -163,7 +163,7 @@ void cuGauge_Update(const double d, double *pp, Complex *u11t, Complex *u12t, di
 		cuGauge_Update<<<dimGrid,dimBlock,0,streams[mu]>>>(d,pp,u11t,u12t,mu);
 }
 //CUDA Kernels
-__global__ void cuReal_convert(float *a, double *b, int len, bool ftod){
+__global__ void cuReal_convert(float *a, double *b, int len, bool dtof){
 	const char *funcname = "cuReal_convert";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -172,7 +172,7 @@ __global__ void cuReal_convert(float *a, double *b, int len, bool ftod){
 	const int gthreadId= blockId * bsize+bthreadId;
 
 	//True: Convert float to double
-	if(ftod)
+	if(dtof)
 		for(int i = gthreadId; i<len;i+=gsize*bsize)
 			a[i]=(float)b[i];
 	//False: Convert double to float.

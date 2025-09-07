@@ -118,7 +118,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 			//Initialise a cold start to zero
 			//memset is safe to use here because zero is zero 
 #pragma omp parallel for simd //aligned(ut[0]:AVX) 
-			//Leave it to the GPU?
+										//Leave it to the GPU?
 			for(int i=0; i<kvol*ndim;i++){
 				ut[0][i]=1;	ut[1][i]=0;
 			}
@@ -171,9 +171,9 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 	return 0;
 }
 int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,Complex *Phi, Complex *ud[2],Complex_f *ut[2],
-				unsigned int *iu,unsigned int *id, Complex *gamval, Complex_f *gamval_f,int *gamin, Complex *sigval, Complex_f *sigval_f,
-				unsigned short *sigin, double *dk[2],float *dk_f[2],Complex_f jqq,float akappa,float beta,float c_sw, double *ancgh,
-				int traj){
+		unsigned int *iu,unsigned int *id, Complex *gamval, Complex_f *gamval_f,int *gamin, Complex *sigval, Complex_f *sigval_f,
+		unsigned short *sigin, double *dk[2],float *dk_f[2],Complex_f jqq,float akappa,float beta,float c_sw, double *ancgh,
+		int traj){
 	const char *funcname = "Hamilton";
 	//Iterate over momentum terms.
 #ifdef __NVCC__
@@ -200,7 +200,7 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 	double hf = 0; int itercg = 0;
 #ifdef __NVCC__
 	Complex *smallPhi;
-#ifdef __NVCC__
+#ifdef __DEBUG
 	cudaMallocManaged((void **)&smallPhi,kferm2*sizeof(Complex),cudaMemAttachGlobal);
 #else
 	cudaMallocAsync((void **)&smallPhi,kferm2*sizeof(Complex),NULL);
@@ -226,7 +226,7 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 #endif
 		Fill_Small_Phi(na, smallPhi, Phi);
 		if(Congradq(na,res2,X1,smallPhi,ud,ut,clover,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,\
-						jqq,akappa,c_sw,&itercg))
+					jqq,akappa,c_sw,&itercg))
 			fprintf(stderr,"Trajectory %d\n", traj);
 
 		*ancgh+=itercg;
@@ -258,7 +258,7 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 	cudaFree(smallPhi);
 #else
 	cudaFreeAsync(smallPhi,NULL);
-	#endif
+#endif
 #else
 	free(smallPhi);
 #endif

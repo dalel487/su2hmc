@@ -348,8 +348,8 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 	void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi,dim3 dimBlock, dim3 dimGrid);
 	void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu,dim3 dimBlock, dim3 dimGrid);
 	void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu,dim3 dimBlock, dim3 dimGrid);
-	void cuComplex_convert(Complex_f *a, Complex *b, int len, bool ftod, dim3 dimBlock, dim3 dimGrid);
-	void cuReal_convert(float *a, double *b, int len, bool ftod, dim3 dimBlock, dim3 dimGrid);
+	void cuComplex_convert(Complex_f *a, Complex *b, int len, bool dtof, dim3 dimBlock, dim3 dimGrid);
+	void cuReal_convert(float *a, double *b, int len, bool dtof, dim3 dimBlock, dim3 dimGrid);
 	void cuUpDownPart(int na, Complex *X0, Complex *R1,dim3 dimBlock, dim3 dimGrid);
 	void cuReunitarise(Complex *u11t, Complex *u12t,dim3 dimGrid, dim3 dimBlock);
 	//And a little something to set the CUDA grid and block sizes
@@ -382,7 +382,7 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t,Comple
 __global__ void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi);
 __global__ void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu);
 __global__ void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu);
-__global__ void cuReal_convert(float *a, double *b, int len, bool ftod);
+__global__ void cuReal_convert(float *a, double *b, int len, bool dtof);
 __global__ void cuUpDownPart(int na, Complex *X0, Complex *R1);
 __global__ void cuReunitarise(Complex *u11t, Complex *u12t);
 #endif
