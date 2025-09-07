@@ -382,8 +382,7 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t,Comple
 __global__ void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi);
 __global__ void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu);
 __global__ void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu);
-__global__ void cuComplex_convert(Complex_f *a, Complex *b, int len, bool dtof);
-__global__ void cuReal_convert(float *a, double *b, int len, bool dtof);
+__global__ void cuReal_convert(float *a, double *b, int len, bool ftod);
 __global__ void cuUpDownPart(int na, Complex *X0, Complex *R1);
 __global__ void cuReunitarise(Complex *u11t, Complex *u12t);
 #endif

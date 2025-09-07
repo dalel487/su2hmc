@@ -245,11 +245,12 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			//Update the residue vector, but not on the first call.
 			if(*itercg)
 				cuMixed_Sumto((double *)X1,(float *)X1_f,2*kferm2,dimGrid,dimBlock);
+			//Bring everything into double precision
+			cuComplex_convert(p_f,p,kferm2,true,dimBlock,dimGrid);
+			cuComplex_convert(r_f,r,kferm2,true,dimBlock,dimGrid);
+			//Reset X1_f to zero.
 			cudaDeviceSynchronise();
 			cudaMemsetAsync(X1_f,0,kferm2*sizeof(Complex_f),streams[4]);
-			//Bring everything into double precision
-			cuComplex_convert(p_f,p,kferm2,false,dimBlock,dimGrid);
-			cuComplex_convert(r_f,r,kferm2,false,dimBlock,dimGrid);
 #else
 			//Update the residue vector, but not on the first call.
 			if(*itercg)
@@ -324,7 +325,6 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #ifdef	__NVCC__
 			Complex alpha_m=(Complex)(-alpha);
 			cublasZaxpy(cublas_handle, kferm2,(cuDoubleComplex *)&alpha_m,(cuDoubleComplex *)x2,1,(cuDoubleComplex *)r,1);
-			cuComplex_convert(r_f,r,kferm2,false,dimBlock,dimGrid);
 			double betan_d;
 			cublasDznrm2(cublas_handle,kferm2,(cuDoubleComplex *)r,1,&betan_d);
 			betan=betan_d*betan_d;
@@ -361,6 +361,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			alpha_m=1;
 			cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&alpha_m,(cuDoubleComplex *)r,1,(cuDoubleComplex *)p,1);
 			cuComplex_convert(p_f,p,kferm2,false,dimBlock,dimGrid);
+			cuComplex_convert(r_f,r,kferm2,false,dimBlock,dimGrid);
 #else
 #ifdef __INTEL_MKL__
 			const Complex a = 1.0;
