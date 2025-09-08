@@ -4,7 +4,7 @@
 #include	<thrust_complex.h>
 template <typename T>
 __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, complex<T> *u12t,unsigned int *iu, unsigned int *id,\
-		__shared__ complex<T> *gamval_d,	int *gamin_d,	T *dk4m, T *dk4p, Complex_f jqq, float akappa){
+		__constant__ complex<T> *gamval_d,	int *gamin_d,	T *dk4m, T *dk4p, Complex_f jqq, float akappa){
 	const char *funcname = "cuDslash";
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -120,7 +120,7 @@ __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, compl
 }
 template <typename T>
 __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T> *u11t, const complex<T> *u12t,const unsigned int *iu, const unsigned int *id,\
-		__shared__ complex<T> *gamval_d,	int *gamin_d,	const T *dk4m, const T *dk4p, const Complex_f jqq, const float akappa){
+		__constant__ complex<T> *gamval_d,	int *gamin_d,	const T *dk4m, const T *dk4p, const Complex_f jqq, const float akappa){
 	const char *funcname = "cuDslashd";
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -132,7 +132,6 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 		complex<T> ru[nc];  complex<T> rd[nc];
 		complex<T> rgu[nc];  complex<T> rgd[nc];
 		complex<T> phi_s[ngorkov*nc];
-#pragma unroll
 		for(unsigned short idirac = 0; idirac<ndirac; idirac++){
 			unsigned short igork = idirac+4;
 			//Diquark Term (antihermitian) The signs of a_1 and a_2 below flip under dagger
@@ -148,17 +147,14 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 		complex<T> u11sd;	 complex<T> u12sd;
 		//Spacelike terms. Here's hoping I haven't put time as the zeroth component somewhere!
 #ifndef NO_SPACE
-#pragma unroll
 		for(unsigned short mu = 0; mu <3; mu++){
 			const unsigned int did=id[mu*kvol+i]; const unsigned int uid = iu[mu*kvol+i];
 			u11s=u11t[i+kvol*mu]; u12s=u12t[i+kvol*mu];
 			u11sd=u11t[did+kvol*mu]; u12sd=u12t[did+kvol*mu];
-#pragma unroll
 			for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing.
 				unsigned short idirac=igorkov&3;		
 				unsigned short igork1 = (igorkov<4) ? gamin_d[mu*ndirac+idirac] : gamin_d[mu*ndirac+idirac]+4;
-#pragma unroll
 				for(unsigned short c=0;c<nc;c++){
 					ru[c]=r[uid+kvol*(igorkov*nc+c)]; rd[c]=r[did+kvol*(igorkov*nc+c)];
 					rgu[c]=r[uid+kvol*(igork1*nc+c)]; rgd[c]=r[did+kvol*(igork1*nc+c)];
@@ -202,10 +198,8 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 		unsigned int did=id[3*kvol+i]; unsigned int uid = iu[3*kvol+i];
 		u11sd=u11t[did+kvol*3]; u12sd=u12t[did+kvol*3];
 		T dk4msd=dk4m[did];	T dk4psd=dk4p[did];
-#pragma unroll
 		for(unsigned short igorkov=0; igorkov<ndirac; igorkov++){
 			unsigned short igork1 = gamin_d[3*ndirac+igorkov];	
-#pragma unroll
 			for(unsigned short c=0;c<nc;c++){
 				ru[c]=r[uid+kvol*(igorkov*nc+c)];
 				rd[c]=r[did+kvol*(igorkov*nc+c)];
