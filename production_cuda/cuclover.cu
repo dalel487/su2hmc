@@ -302,8 +302,9 @@ __global__ void HbyClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, c
 			for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
 				const unsigned short igork1 = sigin[clov*ndirac+(idirac>>1)] << (nc-1);
 #pragma unroll
-				for(unsigned short c=0; c<nc; c++)
-					r_s[c]=r[(i*ndirac+igork1)*nc+c];
+				for(unsigned short c=0; c<nc; c++){
+					r_s[c]=r[i+kvol*(igork1+c)];
+					}
 				///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
 				const complex<T> sig=sigval[clov*ndirac+(idirac>>1)];
 				phi_s[idirac+0]+=kappa*sig*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
