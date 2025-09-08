@@ -31,7 +31,7 @@ __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, compl
 		//Spacelike terms. Here's hoping I haven't put time as the zeroth component somewhere!
 #ifndef NO_SPACE
 		for(unsigned short mu = 0; mu <3; mu++){
-			int did=id[mu*kvol+i]; int uid = iu[mu*kvol+i];
+			unsigned int did=id[mu*kvol+i]; unsigned int uid = iu[mu*kvol+i];
 			u11s=u11t[i+kvol*mu]; u12s=u12t[i+kvol*mu];
 			u11sd=u11t[did+kvol*mu]; u12sd=u12t[did+kvol*mu];
 			for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
@@ -39,13 +39,10 @@ __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, compl
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing in the dirac term.
 				unsigned short igork1 = (igorkov<4) ? gamin_d[mu*ndirac+idirac] : gamin_d[mu*ndirac+idirac]+4;
 				for(unsigned short c=0;c<nc;c++){
-					ru[c]=r[uid+kvol*(igorkov*nc+c)];
-					rd[c]=r[did+kvol*(igorkov*nc+c)];
-					rgu[c]=r[uid+kvol*(igork1*nc+c)];
-					rgd[c]=r[did+kvol*(igork1*nc+c)];
+					ru[c]=r[uid+kvol*(igorkov*nc+c)]; rd[c]=r[did+kvol*(igorkov*nc+c)];
+					rgu[c]=r[uid+kvol*(igork1*nc+c)]; rgd[c]=r[did+kvol*(igork1*nc+c)];
 				}
-				//Can manually vectorise with a pragma?
-				//				phi_s[bthreadId]=phi[i+kvol*(igorkov*nc)];
+				//Wilson + Dirac term in that order. Definitely easier
 				phi_s[igorkov*nc]+=-akappa*(u11s*ru[0]+\
 						u12s*ru[1]+\
 						conj(u11sd)*rd[0]-\
@@ -55,9 +52,7 @@ __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, compl
 						u12s*rgu[1]-\
 						conj(u11sd)*rgd[0]+\
 						u12sd*rgd[1]);
-				//				phi[i+kvol*(igorkov*nc)]=phi_s[bthreadId];
 
-				//				phi_s[bthreadId]=phi[i+kvol*(igorkov*nc+1)];
 				phi_s[igorkov*nc+1]+=-akappa*(-conj(u12s)*ru[0]+\
 						conj(u11s)*ru[1]+\
 						conj(u12sd)*rd[0]+\
@@ -67,7 +62,6 @@ __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, compl
 						conj(u11s)*rgu[1]-\
 						conj(u12sd)*rgd[0]-\
 						u11sd*rgd[1]);
-				//				phi[i+kvol*(igorkov*nc+1)]=phi_s[bthreadId];
 			}
 		}
 		//Timelike terms next. These run from igorkov=0..3 and 4..7 with slightly different rules for each
@@ -77,19 +71,16 @@ __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, compl
 #ifndef NO_TIME
 		u11s=u11t[i+kvol*3]; u12s=u12t[i+kvol*3];
 		T dk4ms=dk4m[i];	T dk4ps=dk4p[i];
-		int did=id[3*kvol+i]; int uid = iu[3*kvol+i];
+		unsigned int did=id[3*kvol+i]; unsigned int uid = iu[3*kvol+i];
 		u11sd=u11t[did+kvol*3]; u12sd=u12t[did+kvol*3];
 		T dk4msd=dk4m[did];	T dk4psd=dk4p[did];
 		for(unsigned short igorkov=0;igorkov<ndirac;igorkov++){
 			unsigned short igork1 = gamin_d[3*ndirac+igorkov];
 			for(unsigned short c=0;c<nc;c++){
-				ru[c]=r[uid+kvol*(igorkov*nc+c)];
-				rd[c]=r[did+kvol*(igorkov*nc+c)];
-				rgu[c]=r[uid+kvol*(igork1*nc+c)];
-				rgd[c]=r[did+kvol*(igork1*nc+c)];
+				ru[c]=r[uid+kvol*(igorkov*nc+c)]; rd[c]=r[did+kvol*(igorkov*nc+c)];
+				rgu[c]=r[uid+kvol*(igork1*nc+c)]; rgd[c]=r[did+kvol*(igork1*nc+c)];
 			}
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
-			//			phi_s[igorkov*nc]=phi[i+kvol*(igorkov*nc)];
 			phi_s[igorkov*nc]+=
 				-dk4ps*(u11s*(ru[0]-rgu[0])
 						+u12s*(ru[1]-rgu[1]))
@@ -97,7 +88,6 @@ __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, compl
 						-u12sd *(rd[1]+rgd[1]));
 			phi[i+kvol*(igorkov*nc)]=phi_s[igorkov*nc];
 
-			//			phi_s[igorkov*nc]=phi[i+kvol*(igorkov*nc+1)];
 			phi_s[igorkov*nc+1]+=
 				-dk4ps*(-conj(u12s)*(ru[0]-rgu[0])
 						+conj(u11s)*(ru[1]-rgu[1]))
@@ -109,19 +99,16 @@ __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, compl
 			unsigned short igork1PP = igork1+4;
 			//And the gorkov terms. Note that dk4p and dk4m swap positions compared to the above				
 			for(unsigned short c=0;c<nc;c++){
-				ru[c]=r[uid+kvol*(igorkovPP*nc+c)];
-				rd[c]=r[did+kvol*(igorkovPP*nc+c)];
-				rgu[c]=r[uid+kvol*(igork1PP*nc+c)];
-				rgd[c]=r[did+kvol*(igork1PP*nc+c)];
+				ru[c]=r[uid+kvol*(igorkovPP*nc+c)]; rd[c]=r[did+kvol*(igorkovPP*nc+c)];
+				rgu[c]=r[uid+kvol*(igork1PP*nc+c)]; rgd[c]=r[did+kvol*(igork1PP*nc+c)];
 			}
-			//			phi_s[igorkovPP*nc]=phi[i+kvol*(igorkovPP*nc)];
+			//And the Gor'kov terms. Note that dk4p and dk4m swap positions compared to the above				
 			phi_s[igorkovPP*nc]+=-dk4ms*(u11s*(ru[0]-rgu[0])+
 					u12s*(ru[1]-rgu[1]))-
 				dk4psd*(conj(u11sd)*(rd[0]+rgd[0])-
 						u12sd*(rd[1]+rgd[1]));
 			phi[i+kvol*(igorkovPP*nc)]=phi_s[igorkovPP*nc];
 
-			//			phi_s[bthreadId]=phi[i+kvol*(igorkovPP*nc+1)];
 			phi_s[igorkovPP*nc+1]+=-dk4ms*(conj(-u12s)*(ru[0]-rgu[0])
 					+conj(u11s)*(ru[1]-rgu[1]))
 				-dk4psd*(conj(u12sd)*(rd[0]+rgd[0])
@@ -141,32 +128,29 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 	const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	const unsigned int gthreadId= blockId * bsize+bthreadId;
 
-	complex<T> u11s;	 complex<T> u12s;
-	complex<T> u11sd;	 complex<T> u12sd;
-	complex<T> ru[nc];  complex<T> rd[nc];
-	complex<T> rgu[nc];  complex<T> rgd[nc];
-	complex<T> phi_s[ngorkov*nc];
-
 	for(unsigned int i=gthreadId;i<kvol;i+=gsize*bsize){
-		unsigned int did=0; unsigned int uid = 0;
-		//Diquark Term (antihermitian) The signs of a_1 and a_2 below flip under dagger
+		complex<T> ru[nc];  complex<T> rd[nc];
+		complex<T> rgu[nc];  complex<T> rgd[nc];
+		complex<T> phi_s[ngorkov*nc];
 #pragma unroll
 		for(unsigned short idirac = 0; idirac<ndirac; idirac++){
 			unsigned short igork = idirac+4;
-			complex<T> a_1, a_2;
+			//Diquark Term (antihermitian) The signs of a_1 and a_2 below flip under dagger
 			//We subtract a_1, hence the minus
-			a_1=-conj(jqq)*gamval_d[4*ndirac+idirac];
-			a_2=jqq*gamval_d[4*ndirac+idirac];
+			complex<T> a_1=-conj(jqq)*gamval_d[4*ndirac+idirac];
+			complex<T> a_2=jqq*gamval_d[4*ndirac+idirac];
 			phi_s[idirac*nc]=phi[i+kvol*(idirac*nc)]+a_1*r[i+kvol*(igork*nc)];
 			phi_s[igork*nc]=phi[i+kvol*(igork*nc)]+a_2*r[i+kvol*(idirac*nc)];
 			phi_s[idirac*nc+1]=phi[i+kvol*(idirac*nc+1)]+a_1*r[i+kvol*(igork*nc+1)];
 			phi_s[igork*nc+1]=phi[i+kvol*(igork*nc+1)]+a_2*r[i+kvol*(idirac*nc+1)];
 		}
+		complex<T> u11s;	 complex<T> u12s;
+		complex<T> u11sd;	 complex<T> u12sd;
 		//Spacelike terms. Here's hoping I haven't put time as the zeroth component somewhere!
 #ifndef NO_SPACE
 #pragma unroll
 		for(unsigned short mu = 0; mu <3; mu++){
-			did=id[mu*kvol+i]; uid = iu[mu*kvol+i];
+			const unsigned int did=id[mu*kvol+i]; const unsigned int uid = iu[mu*kvol+i];
 			u11s=u11t[i+kvol*mu]; u12s=u12t[i+kvol*mu];
 			u11sd=u11t[did+kvol*mu]; u12sd=u12t[did+kvol*mu];
 #pragma unroll
@@ -176,14 +160,10 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 				unsigned short igork1 = (igorkov<4) ? gamin_d[mu*ndirac+idirac] : gamin_d[mu*ndirac+idirac]+4;
 #pragma unroll
 				for(unsigned short c=0;c<nc;c++){
-					ru[c]=r[uid+kvol*(igorkov*nc+c)];
-					rd[c]=r[did+kvol*(igorkov*nc+c)];
-					rgu[c]=r[uid+kvol*(igork1*nc+c)];
-					rgd[c]=r[did+kvol*(igork1*nc+c)];
+					ru[c]=r[uid+kvol*(igorkov*nc+c)]; rd[c]=r[did+kvol*(igorkov*nc+c)];
+					rgu[c]=r[uid+kvol*(igork1*nc+c)]; rgd[c]=r[did+kvol*(igork1*nc+c)];
 				}
 				//Wilson + Dirac term in that order. Definitely easier
-				//to read when split into different loops, but should be faster this way
-				//	phi_s[bthreadId]=phi[i+kvol*(igorkov*nc)];
 				phi_s[igorkov*nc]-=
 					akappa*(u11s*ru[0]
 							+u12s*ru[1]
@@ -196,9 +176,7 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 					 +u12s*rgu[1]
 					 -conj(u11sd)*rgd[0]
 					 +u12sd *rgd[1]);
-				//				phi[i+kvol*(igorkov*nc)]=phi_s[bthreadId];
 
-				//				phi_s[bthreadId]=phi[i+kvol*(igorkov*nc+1)];
 				phi_s[igorkov*nc+1]-=
 					akappa*(-conj(u12s)*ru[0]
 							+conj(u11s)*ru[1]
@@ -210,7 +188,6 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 					 +conj(u11s)*rgu[1]
 					 -conj(u12sd)*rgd[0]
 					 -u11sd *rgd[1]);
-				//				phi[i+kvol*(igorkov*nc+1)]=phi_s[bthreadId];
 
 			}
 		}
@@ -220,11 +197,11 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 		//Note that for the igorkov 4..7 loop idirac=igorkov-4, so we don't need to declare idiracPP separately
 		//Under dagger, dk4p and dk4m get swapped and the dirac component flips sign.
 #ifndef NO_TIME
-		did=id[3*kvol+i]; uid = iu[3*kvol+i];
 		u11s=u11t[i+kvol*3]; u12s=u12t[i+kvol*3];
+		T dk4ms=dk4m[i];	T dk4ps=dk4p[i];
+		unsigned int did=id[3*kvol+i]; unsigned int uid = iu[3*kvol+i];
 		u11sd=u11t[did+kvol*3]; u12sd=u12t[did+kvol*3];
-		complex<T> dk4msd=dk4m[did];	complex<T> dk4psd=dk4p[did];
-		complex<T> dk4ms=dk4m[i];	complex<T> dk4ps=dk4p[i];
+		T dk4msd=dk4m[did];	T dk4psd=dk4p[did];
 #pragma unroll
 		for(unsigned short igorkov=0; igorkov<ndirac; igorkov++){
 			unsigned short igork1 = gamin_d[3*ndirac+igorkov];	
@@ -236,7 +213,6 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 				rgd[c]=r[did+kvol*(igork1*nc+c)];
 			}
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
-			//			phi_s[bthreadId]=phi[i+kvol*(igorkov*nc)];
 			phi_s[igorkov*nc]+=
 				-dk4ms*(u11s*(ru[0]+rgu[0])
 						+u12s*(ru[1]+rgu[1]))
@@ -244,7 +220,6 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 						-u12sd *(rd[1]-rgd[1]));
 			phi[i+kvol*(igorkov*nc)]=phi_s[igorkov*nc];
 
-			//			phi_s[bthreadId]=phi[i+kvol*(igorkov*nc+1)];
 			phi_s[igorkov*nc+1]+=
 				-dk4ms*(-conj(u12s)*(ru[0]+rgu[0])
 						+conj(u11s)*(ru[1]+rgu[1]))
@@ -255,20 +230,16 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 												//the FORTRAN code did it.
 			unsigned short igork1PP = igork1+4;
 			for(unsigned short c=0;c<nc;c++){
-				ru[c]=r[uid+kvol*(igorkovPP*nc+c)];
-				rd[c]=r[did+kvol*(igorkovPP*nc+c)];
-				rgu[c]=r[uid+kvol*(igork1PP*nc+c)];
-				rgd[c]=r[did+kvol*(igork1PP*nc+c)];
+				ru[c]=r[uid+kvol*(igorkovPP*nc+c)]; rd[c]=r[did+kvol*(igorkovPP*nc+c)];
+				rgu[c]=r[uid+kvol*(igork1PP*nc+c)]; rgd[c]=r[did+kvol*(igork1PP*nc+c)];
 			}
 			//And the Gor'kov terms. Note that dk4p and dk4m swap positions compared to the above				
-			//			phi_s[bthreadId]=phi[i+kvol*(igorkovPP*nc)];
 			phi_s[igorkovPP*nc]+=-dk4ps*(u11s*(ru[0]+rgu[0])
 					+u12s*(ru[1]+rgu[1]))
 				-dk4msd*(conj(u11sd)*(rd[0]-rgd[0])
 						-u12sd*(rd[1]-rgd[1]));
 			phi[i+kvol*(igorkovPP*nc)]=phi_s[igorkovPP*nc];
 
-			//			phi_s[bthreadId]=phi[i+kvol*(igorkovPP*nc+1)];
 			phi_s[igorkovPP*nc+1]+=dk4ps*(conj(u12s)*(ru[0]+rgu[0])
 					-conj(u11s)*(ru[1]+rgu[1]))
 				-dk4msd*(conj(u12sd)*(rd[0]-rgd[0])
@@ -320,11 +291,9 @@ __global__ void cuHdslash(complex<T> *phi, const complex<T> *r, const complex<T>
 #pragma unroll
 				for(unsigned short c=0;c<nc;c++){
 					unsigned int rind =kvol*(idirac+c);
-					ru[c]=r[uid+rind];
-					rd[c]=r[did+rind];
+					ru[c]=r[uid+rind]; rd[c]=r[did+rind];
 					rind =kvol*(igork1+c);
-					rgu[c]=r[uid+rind];
-					rgd[c]=r[did+rind];
+					rgu[c]=r[uid+rind]; rgd[c]=r[did+rind];
 				}
 				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
 				//Can manually vectorise with a pragma?
