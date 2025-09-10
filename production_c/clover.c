@@ -400,10 +400,10 @@ int HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *
 //=================================
 //Calling function
 //TODO: X1 and X2 contributions
-int Clover_Force(double *dSdpi, Complex_f *Leaves[6][nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,unsigned short *sigin){
+int Clover_Force(double *dSdpi, Complex_f *Leaves[6][nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,unsigned short *sigin, float kappa){
 	const char funcname[]="Clover_Force";
 #ifdef __NVCC__
-	cuClover_Force(dSdpi,Leaves,X1,X2,sigval,sigin);
+	cuClover_Force(dSdpi,Leaves,X1,X2,sigval,sigin,kappa);
 #else
 	//TODO: Make this more CUDA friendly? Or just have a CUDA call above
 	for(unsigned short adj=0;adj>nadj;adj++)
@@ -412,7 +412,7 @@ int Clover_Force(double *dSdpi, Complex_f *Leaves[6][nc], Complex_f *X1, Complex
 				///Only three clovers @f$\mu\ne\nu@f$ contribute to the force term in each @f$\mu@f$
 				///Out of these clovers only three leaves contribute, with the leaf in the @f$\mu@f$ direction contributing
 				///twice (daggered and not daggered)
-				unsigned short clov = (mu==0) ? nu-1 :mu+nu;
+				const unsigned short clov = (mu==0) ? nu-1 :mu+nu;
 #pragma omp parallel for
 				for(unsigned int i=0;i<kvol;i++){
 					Complex_f Fleaf[2]={0,0};

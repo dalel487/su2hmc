@@ -206,10 +206,13 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 			cudaDeviceSynchronise();
 		}
 		Hdslash_f(X2_f,X1_f,ut_f,iu,id,gamval_f,gamin,dk_f,akappa);
+		//TODO: Clover product also needed here?
+		if(c_sw)
+				HbyClover_f(X2_f,X1_f,clover,sigval,akappa,sigin);
 #else
+//TODO: Get a single precision force update on CPU. It'll make things easier I' sure
 		Hdslash(X2,X1,ut,iu,id,gamval,gamin,dk,akappa);
 #endif
-		//TODO: Clover product also needed here?
 #ifdef __NVCC__
 		const float blasd=2.0;
 		cudaDeviceSynchronise();
@@ -453,8 +456,10 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 				X1_f[i]=(Complex_f)X1[i]; X2_f[i]=(Complex_f)X2[i];
 			}
 #endif
-			//Clover_Force(dSdpi,leaves,X1_f,X2_f,sigval,sigin);
+			Clover_Force(dSdpi,leaves,X1_f,X2_f,sigval,sigin,akappa);
+#ifndef __NVCC__
 			free(X1_f); free(X2_f);
+#endif
 		}
 	}
 	if(c_sw)

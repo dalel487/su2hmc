@@ -19,7 +19,7 @@ CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/latest/cuda/lib64/ \
 
 LFLAGS=		-liomp5 $(shell gsl-config --libs-without-cblas) -lpthread -ldl -limf  #${CULFLAGS}
 
-NVCCFLAGS=	${IFLAGS} -std=c++14 -err-no --diag-suppress 550,177,2464  #--resource-usage -allow-unsupported-compiler #-expt-relaxed-constexpr 
+NVCCFLAGS=	${IFLAGS} -std=c++14 -err-no -allow-unsupported-compiler --diag-suppress 550,177,2464  #--resource-usage -allow-unsupported-compiler #-expt-relaxed-constexpr 
 			#Last flag is an experimental one used to call host functions in device code. Not sure
 			#if it does what we want because the error message suggesting it came up when declaring
 			#a11 and a12 in the Dslash routine

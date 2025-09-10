@@ -114,7 +114,7 @@ int HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *
  *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by c_sw
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
  */
-int Clover_Force(double *dSdpi, Complex_f *Leaves[6][nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,unsigned short *sigin);
+int Clover_Force(double *dSdpi, Complex_f *Leaves[6][nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,unsigned short *sigin,const float kappa);
 /**
  *	@brief	Scales a clover leaf by the relevant SU(2) generator
  *
@@ -165,7 +165,7 @@ void cuByClover(Complex *phi, Complex *r, Complex *clover[nc],Complex *sigval, u
 void cuHbyClover(Complex *phi, Complex *r, Complex *clover[nc],Complex *sigval, const float akappa, unsigned short *sigin);
 void cuByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f *sigval, unsigned short *sigin);
 void cuHbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f *sigval, const float akappa,unsigned short *sigin);
-int cuClover_Force(double *dSdpi, Complex_f *Leaves[6][nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,unsigned short *sigin);
+int cuClover_Force(double *dSdpi, Complex_f *Leaves[6][nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,unsigned short *sigin,const float kappa);
 #ifdef __cplusplus
 }
 #endif

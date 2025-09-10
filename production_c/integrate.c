@@ -58,6 +58,7 @@ inline int Momentum_Update(const double d, const double *dSdpi, double *pp)
 	const char funcname[] = "Momentum_Update";
 #ifdef __NVCC__
 	cublasDaxpy(cublas_handle,kmom, &d, dSdpi, 1, pp, 1);
+	cudaDeviceSynchronise();
 #elif defined USE_BLAS
 	cblas_daxpy(kmom, d, dSdpi, 1, pp, 1);
 #else
@@ -68,9 +69,9 @@ inline int Momentum_Update(const double d, const double *dSdpi, double *pp)
 	return 0;
 }
 int Leapfrog(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi,double *dk[2],float *dk_f[2],
-			double *dSdpi,double *pp, unsigned int *iu,unsigned int *id, Complex *gamval, Complex_f *gamval_f, int *gamin,
-			Complex *sigval, Complex_f *sigval_f, unsigned short *sigin, const Complex jqq, const float beta, const float akappa, 
-			const float c_sw, const int stepl, const float dt, double *ancg, int *itot, const float proby)
+		double *dSdpi,double *pp, unsigned int *iu,unsigned int *id, Complex *gamval, Complex_f *gamval_f, int *gamin,
+		Complex *sigval, Complex_f *sigval_f, unsigned short *sigin, const Complex jqq, const float beta, const float akappa, 
+		const float c_sw, const int stepl, const float dt, double *ancg, int *itot, const float proby)
 {
 	const char funcname[] = "Leapfrog";
 	//This was originally in the half-step of the FORTRAN code, but it makes more sense to declare
@@ -102,7 +103,7 @@ int Leapfrog(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex 
 		//	Force(dSdpi, 0, rescgg);
 		Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
 
-	//	if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
+		//	if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
 		if(step==stepl){
 			//Final trajectory has a half momentum step
 			Momentum_Update(d,dSdpi,pp);
@@ -121,9 +122,9 @@ int Leapfrog(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex 
 	return 0;
 }
 int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi,double *dk[2],float *dk_f[2],
-			double *dSdpi,double *pp, unsigned int *iu,unsigned int *id, Complex *gamval, Complex_f *gamval_f, int *gamin,
-			Complex *sigval, Complex_f *sigval_f, unsigned short *sigin, const Complex jqq, const float beta, const float akappa, 
-			const float c_sw, const int stepl, const float dt, double *ancg, int *itot, const float proby)
+		double *dSdpi,double *pp, unsigned int *iu,unsigned int *id, Complex *gamval, Complex_f *gamval_f, int *gamin,
+		Complex *sigval, Complex_f *sigval_f, unsigned short *sigin, const Complex jqq, const float beta, const float akappa, 
+		const float c_sw, const int stepl, const float dt, double *ancg, int *itot, const float proby)
 {
 	const char funcname[] = "OMF2";
 	const double lambda=0.5-(pow(2.0*sqrt(326.0)+36.0,1.0/3.0)/12.0)+1.0/(6*pow(2.0*sqrt(326.0) + 36.0,1.0/3.0));
@@ -144,14 +145,14 @@ int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 #endif
 	Force(dSdpi, 1, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
 #ifdef _DEBUG
-		if(!rank)
-	printf("Initial force on rank %i, dSdpi[0] %e\n", rank,dSdpi[0]);
+	if(!rank)
+		printf("Initial force on rank %i, dSdpi[0] %e\n", rank,dSdpi[0]);
 #endif
 	//Initial momentum update
 	Momentum_Update(dp,dSdpi,pp);
 #ifdef _DEBUG
-		if(!rank)
-	printf("Initial momentum on rank %i, pp[0] %e\n", rank,pp[0]);
+	if(!rank)
+		printf("Initial momentum on rank %i, pp[0] %e\n", rank,pp[0]);
 #endif
 
 	//Main loop for classical time evolution
@@ -168,35 +169,35 @@ int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 
 		//Calculate force for middle momentum update
 		Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
-		#ifdef _DEBUG
+#ifdef _DEBUG
 		if(!rank)
-		printf("First force update on step %i, dSdpi[0] %e\n", step,dSdpi[0]);
-		#endif
+			printf("First force update on step %i, dSdpi[0] %e\n", step,dSdpi[0]);
+#endif
 		//Now do the middle momentum update
 		Momentum_Update(dpm,dSdpi,pp);
-		#ifdef _DEBUG
+#ifdef _DEBUG
 		if(!rank)
-		printf("Middle momentum on step %i, pp[0] %e\n", step,pp[0]);
-		#endif
+			printf("Middle momentum on step %i, pp[0] %e\n", step,pp[0]);
+#endif
 
 		//Second gauge update
 		Gauge_Update(dU,pp,ut,ut_f);
 
 		//Calculate force for second momentum update
 		Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
-		#ifdef _DEBUG
+#ifdef _DEBUG
 		if(!rank)
-		printf("Second force update on step %i, dSdpi[0] %e\n", step,dSdpi[0]);
-		#endif
+			printf("Second force update on step %i, dSdpi[0] %e\n", step,dSdpi[0]);
+#endif
 
 		//if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
 		if(step==stepl){
 			//Final momentum step
 			Momentum_Update(dp,dSdpi,pp);
-			#ifdef _DEBUG
-		if(!rank)
-			printf("Final momentum on step %i, pp[0] %e\n", step,pp[0]);
-			#endif
+#ifdef _DEBUG
+			if(!rank)
+				printf("Final momentum on step %i, pp[0] %e\n", step,pp[0]);
+#endif
 			*itot+=step;
 			//Two force terms, so an extra factor of two in the average?
 			//Or leave it as it was, to get the average CG iterations per trajectory rather than force
@@ -207,19 +208,19 @@ int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 		else{
 			//Since we apply the momentum at the start and end of a step we instead apply a double step here
 			Momentum_Update(dp2,dSdpi,pp);
-			#ifdef _DEBUG
-		if(!rank)
-			printf("Intermediate momentum on step %i, pp[0] %e\n", step,pp[0]);
-			#endif
+#ifdef _DEBUG
+			if(!rank)
+				printf("Intermediate momentum on step %i, pp[0] %e\n", step,pp[0]);
+#endif
 			step++;
 		}
 	}while(!end_traj);
 	return 0;
 }
 int OMF4(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi,double *dk[2],float *dk_f[2],
-			double *dSdpi,double *pp, unsigned int *iu,unsigned int *id, Complex *gamval, Complex_f *gamval_f, int *gamin,
-			Complex *sigval, Complex_f *sigval_f, unsigned short *sigin, const Complex jqq, const float beta, const float akappa, 
-			const float c_sw, const int stepl, const float dt, double *ancg, int *itot, const float proby)
+		double *dSdpi,double *pp, unsigned int *iu,unsigned int *id, Complex *gamval, Complex_f *gamval_f, int *gamin,
+		Complex *sigval, Complex_f *sigval_f, unsigned short *sigin, const Complex jqq, const float beta, const float akappa, 
+		const float c_sw, const int stepl, const float dt, double *ancg, int *itot, const float proby)
 {
 	const char funcname[] = "OMF4";
 	//These values were lifted from openqcd-fastsum, and should probably be tuned for QC2D. They also probably never
@@ -250,7 +251,7 @@ int OMF4(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 #ifdef _DEBUG
 	printf("Evaluating force on rank %i\n", rank);
 #endif
-		Force(dSdpi, 1, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
+	Force(dSdpi, 1, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
 	Momentum_Update(dpO,dSdpi,pp);
 
 	//Main loop for classical time evolution

@@ -209,7 +209,7 @@ __global__ void Force_Leaves(complex<T> *Fleaf1, complex<T> *Fleaf2,complex<T> *
 //Actual force stuff
 template <typename T>
 __global__ void Clover_Force(double *dSdpi,complex<T> *Fleaf1,complex<T> *Fleaf2, complex<T> *X1, complex<T> *X2,\
-		const complex<T> *sigval, const unsigned short *sigin, const unsigned short adj,const unsigned short clov,unsigned short mu){
+		const complex<T> *sigval, const unsigned short *sigin, const unsigned short adj,const unsigned short clov,unsigned short mu, const float kappa){
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -218,7 +218,7 @@ __global__ void Clover_Force(double *dSdpi,complex<T> *Fleaf1,complex<T> *Fleaf2
 
 	complex<T> X1s[nc],X2s[nc];
 	for(int i=gthreadId;i<kvol;i+=gsize*bsize){
-		complex<T> dSdpis=0;
+		T dSdpis=0;
 		for(unsigned short idirac=0;idirac<ndirac;idirac++){
 			const unsigned short igork1 = sigin[clov*ndirac+idirac];	
 
@@ -226,11 +226,11 @@ __global__ void Clover_Force(double *dSdpi,complex<T> *Fleaf1,complex<T> *Fleaf2
 			X1s[0]=X1[i+kvol*(nc*idirac)]; X1s[1]=X1[i+kvol*(1+nc*idirac)];
 			X2s[0]=X2[i+kvol*(nc*igork1)]; X2s[1]=X2[i+kvol*(1+nc*igork1)];
 
-			dSdpis-=cimag(sigval[clov*ndirac+idirac]*(
+			dSdpis-=(sigval[clov*ndirac+idirac]*(
 						conj(X1s[0])*(Fleaf1[i]*X2s[0]+Fleaf2[i]*X2s[1])+
-						conj(X1s[1])*(-conj(Fleaf2[i])*X2s[0]+conj(Fleaf1[i])*X2s[1])));
+						conj(X1s[1])*(-conj(Fleaf2[i])*X2s[0]+conj(Fleaf1[i])*X2s[1]))).imag();
 		}
-		dSdpi[i+kvol*(adj*ndim+mu)]=(double)creal(dSdpis);
+		dSdpi[i+kvol*(adj*ndim+mu)]+=kappa*dSdpis;
 	}
 	return;
 }
@@ -354,7 +354,8 @@ void cuByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f 
 void cuHbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f *sigval, const float kappa, unsigned short *sigin){
 	HbyClover<<<dimGrid,dimBlock>>>(phi,r,clover[0],clover[1],sigval,kappa,sigin);
 }
-int cuClover_Force(double *dSdpi, Complex_f *Leaves[6][nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,unsigned short *sigin){
+
+int cuClover_Force(double *dSdpi, Complex_f *Leaves[6][nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,unsigned short *sigin,const float kappa){
 	const char funcname[]="Clover_Force";
 	for(unsigned short adj=0;adj>nadj;adj++){
 		Complex_f *Fleaf[nc];
@@ -366,35 +367,10 @@ int cuClover_Force(double *dSdpi, Complex_f *Leaves[6][nc], Complex_f *X1, Compl
 				unsigned short clov = (mu==0) ? nu-1 :mu+nu;
 				//Allocate clover memory
 				Force_Leaves<<<dimGrid,dimBlock,0,streams[adj]>>>(Fleaf[0],Fleaf[1],Leaves[clov][0],Leaves[clov][1],adj,clov);
-				Clover_Force<<<dimGrid,dimBlock,0,streams[adj]>>>(dSdpi,Fleaf[0],Fleaf[1],X1,X2,sigval,sigin,adj,clov,mu);
+				Clover_Force<<<dimGrid,dimBlock,0,streams[adj]>>>(dSdpi,Fleaf[0],Fleaf[1],X1,X2,sigval,sigin,adj,clov,mu,kappa);
 			}
 		cudaFreeAsync(Fleaf[0],streams[adj]); cudaFreeAsync(Fleaf[1],streams[adj]); 
 	}
 	cudaDeviceSynchronise();
 	return 0;
 }
-/*
-#pragma omp parallel for
-for(unsigned int i=0;i<kvol;i++)
-{
-clover[0][clov*kvol+i]=0;clover[1][clov*kvol+i]=0;
-Half_Clover(clover[clov],Leaves[clov],ut,iu,id,i,mu,nu);	
-//creal(clover[0]) drops so we are traceless. And everything else just gets doubled
-clover[0][clov*kvol+i]-=conj(clover[0][clov*kvol+i]);	clover[1][clov*kvol+i]+=clover[1][clov*kvol+i];
-#ifdef _DEBUG
-if(isnan(creal(clover[0][clov*kvol+i]))||isnan(cimag(clover[0][clov*kvol+i]))||isnan(creal(clover[1][clov*kvol+i]))|| \
-isnan(cimag(clover[1][clov*kvol+i]))){
-printf("Clover: Index %d, mu %d, nu %d, clover %d is NaN\n"\
-"Clover 0=%e+i%e\tClover 1=%e+i%e\n",i,mu,nu,clov,\
-creal(clover[0][clov*kvol+i]),cimag(clover[0][clov*kvol+i]),\
-creal(clover[1][clov*kvol+i]),cimag(clover[1][clov*kvol+i]));
-abort();
-}
-
-#endif
-//Don't forget the factor out front!
-//Uh Oh. G&L says -i/8 here. But hep-lat/9605038 and other sources say +1/8
-//It gets worse in the C_sw definition. We have a 1/2. They have +i/4
-clover[0][clov*kvol+i]*=(-I/8.0);	clover[1][clov*kvol+i]*=(-I/8.0);
-}
-*/
