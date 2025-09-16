@@ -106,6 +106,14 @@ int HbyClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, co
  */
 int HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval, const float akappa, unsigned short *sigin);
 /**
+ * @brief	Extracts the leaves required for the clover force term and adds them correctly
+ *
+ * @param	fleaf:	The summed leaves
+ * @param	Leaves:	The individual leaves of a particular clover. The clover itself is chosen in Clover_Force
+ * @param	i:			Lattice site index
+ */
+void Fleaf(Complex_f fleaf[nc], Complex_f *Leaves[nc], const unsigned int i);
+/**
  *	@brief	Clover contribution to the Molecular Dynamics force
  *
  *	@param	dSdpi:	Force
@@ -126,19 +134,7 @@ int Clover_Force(double *dSdpi, Complex_f *Leaves[6][nc], Complex_f *X1, Complex
  *	@param	pm:		Are we adding or subtracting this contribution from Fleaf? The force only needs the sum of the
  *							Fleaf terms so I've done it here.
  */
-int GenLeaf(Complex_f Fleaf[nc], Complex_f *Leaves[nc],const unsigned int i,const unsigned short leaf,const unsigned short adj,const bool pm);
-/**
- *	@brief	Scales the hermitian conjugate of a clover leaf by the relevant SU(2) generator
- *
- *	@param	Fleaf:	Array of scaled leaves. Name comes from Force-leaf as thats where we use them
- *	@param	Leaves:	Array of clover leaves being scaled
- *	@param	i:			Site index
- *	@param	leaf:		Which leaf are we scaling
- *	@param	adj:		Which generator. Since we're zero indexed subtract one from the usual textbook label
- *	@param	pm:		Are we adding or subtracting this contribution from Fleaf? The force only needs the sum of the
- *							Fleaf terms so I've done it here.
- */
-int GenLeafd(Complex_f Fleaf[nc], Complex_f *Leaves[nc],const unsigned int i,const unsigned short leaf,const unsigned short adj,const bool pm);
+void GenLeaf(Complex_f Fleaf[nc],const unsigned short adj);
 /**
  *	@brief	Initialise values needed for the clover terms
  *

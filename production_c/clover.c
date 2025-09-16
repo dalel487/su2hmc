@@ -398,8 +398,38 @@ int HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *
 
 //Clover force terms 144 in total...
 //=================================
-//Calling function
-//TODO: X1 and X2 contributions
+//Get the leaves that contribute to the force
+inline void Fleaf(Complex_f fleaf[nc], Complex_f *Leaves[nc], const unsigned int i){
+	const char funcname[] = "Fleaf";
+	///Fleaf consists of the sum of the @f$\mu\nu@f$ and @f$\mu,-\nu@f$ leaves, minus their hermitian conjugates
+	fleaf[0]=Leaves[0][i]+Leaves[0][i+kvol*2]-conj(Leaves[0][i+kvol])-conj(Leaves[0][i+kvol*2]);
+	fleaf[1]=Leaves[1][i]+Leaves[1][i+kvol*2]-conj(Leaves[1][i+kvol])-conj(Leaves[1][i+kvol*2]);
+	return;
+}
+//Generator by Leaf
+inline void GenLeaf(Complex_f fleaf[nc],const unsigned short adj){
+	const char funcname[] = "GenLeaf";
+	//TODO: Check for factors of a half
+	//Which generator are we multiplying by?
+			//A buffer to store the leaf since we need to swap them
+			Complex_f buffer=fleaf[0];
+	switch(adj){
+		case(0): //Sigma_x
+			//Minus is from @f$-\bar{beta}@f$
+			fleaf[0]=-I*conj(fleaf[1]);
+			fleaf[1]=I*buffer;
+		case(1): //Sigma_y
+			//Minus from Sigma_y and from @f$-\bar{\beta}@f$ gives an overall plus
+			fleaf[0]=conj(fleaf[1]);
+			fleaf[1]=buffer;
+		case(2): //Sigma_z
+			//No buffer here needed here.
+			fleaf[0]=I*fleaf[0];
+			//Minus from Sigma_z and from @f$-\bar{\beta}@f$ gives an overall plus
+			fleaf[1]=I*conj(fleaf[1]);
+	}
+	return;
+}
 int Clover_Force(double *dSdpi, Complex_f *Leaves[6][nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,unsigned short *sigin, float kappa){
 	const char funcname[]="Clover_Force";
 #ifdef __NVCC__
@@ -415,89 +445,34 @@ int Clover_Force(double *dSdpi, Complex_f *Leaves[6][nc], Complex_f *X1, Complex
 				const unsigned short clov = (mu==0) ? nu-1 :mu+nu;
 #pragma omp parallel for
 				for(unsigned int i=0;i<kvol;i++){
-					Complex_f Fleaf[2]={0,0};
+					Complex_f fleaf[2]={0,0};
 					///Only three clovers @f$\mu\ne\nu@f$ contribute to the force term
 					///Out of these clovers only two leaves contribute (containing @f$U_\mu@f$). Daggered and undaggered
 					///Additionally, @f$\sigma_{\nu\mu}F_{\nu\mu}=\sigma_{\mu\nu}F_{\mu\nu}@f$ so we can double the final answer
+					Fleaf(fleaf,Leaves[clov],i);
 
-					///Contribution from @f$(f_{\mu\nu})@f$
-					///Contribution 1 is the normal plaquette so leaf 0
-					GenLeaf(Fleaf,Leaves[clov],i,0,adj,true);
-					///Contribution 3 is the normal plaquette daggered so leaf 0
-					GenLeafd(Fleaf,Leaves[clov],i,0,adj,false);
-
-					///Contribution 2 is the leaf containing @f$ U_\mu@f$ link and @f$ \nu<0@f$)
-					GenLeaf(Fleaf,Leaves[clov],i,2,adj,true);
-					///Contribution 4 is the leaf containing @f$ U^dagger_\mu@f$ link and @f$ \nu<0@f$)
-					GenLeafd(Fleaf,Leaves[clov],i,2,adj,false);
+					///Multiply by the correct generator
+					GenLeaf(fleaf,adj);
 
 					///NOTE: The clover is scaled by -i/8.0, but the leaves were not. We do that scaling here.
 					///		The 4.0 instead of 8.0 is due to the second contribution from @f$\nu\mu@f$
-					Fleaf[0]*=-I/4.0f; Fleaf[1]*=-I/4.0f;
+					///TODO:	Keep track of the I's. -I from the clover definition, +I from the derivative? 
+					fleaf[0]*=1/4.0f; fleaf[1]*=1/4.0f;
 
 					//Actual force stuff
 					for(unsigned short idirac=0;idirac<ndirac;idirac++){
 						const unsigned short igork1 = sigin[clov*ndirac+idirac];	
-						dSdpi[(i*nadj+adj)*ndim+mu]-=cimag(sigval[clov*ndirac+idirac]*(
-									conj(X1[(i*ndirac)*nc])*(Fleaf[0]*X2[(i*ndirac+igork1)*nc]+Fleaf[1]*X2[(i*ndirac+igork1)*nc+1])+
-									conj(X1[(i*ndirac)*nc+1])*(-conj(Fleaf[1])*X2[(i*ndirac+igork1*nc)]+conj(Fleaf[0])*X2[(i*ndirac+igork1)*nc+1])));
+						dSdpi[(i*nadj+adj)*ndim+mu]+=creal(sigval[clov*ndirac+idirac]*(
+											conj(X1[(i*ndirac)*nc])*(fleaf[0]*X2[(i*ndirac+igork1)*nc]+fleaf[1]*X2[(i*ndirac+igork1)*nc+1])+
+											conj(X1[(i*ndirac)*nc+1])*(-conj(fleaf[1])*X2[(i*ndirac+igork1*nc)]+conj(fleaf[0])*X2[(i*ndirac+igork1)*nc+1])));
 					}
 				}
 			}
 #endif
 	return 0;
 }
-inline int Clover_free(Complex_f *clover[nc],Complex_f *Leaves[6][nc]){
-	for(unsigned short c=0;c<nc;c++){
-#ifdef __NVCC__
-		cudaFreeAsync(clover[c],streams[c]);
-#else
-		free(clover[c]);
-#endif
-		for(unsigned short clov=0;clov<6;clov++){
-#ifdef __NVCC__
-			cudaFreeAsync(Leaves[clov][c],streams[clov+nc]);
-#else
-			free(Leaves[clov][c]);
-#endif
-		}
-	}
-	return 0;	
-}
 
-//Generator by Leaf
-inline int GenLeaf(Complex_f Fleaf[nc], Complex_f *Leaves[nc],const unsigned int i,const unsigned short leaf,const unsigned short adj,const bool pm){
-	const char funcname[] = "GenLeaf";
-	//Adding or subtracting this term
-	const short sign = (pm) ? 1 : -1;
-	//Which generator are we multiplying by? Zero indexed so subtract one from your usual index in textbooks
-	switch(adj){
-		case(0):
-			Fleaf[0]+=sign*Leaves[1][i+kvol*leaf];		Fleaf[1]+=sign*Leaves[0][i+kvol*leaf];
-		case(1):
-			Fleaf[0]+=-sign*I*Leaves[1][i+kvol*leaf];	Fleaf[1]+=sign*I*Leaves[0][i+kvol*leaf];
-		case(2):
-			Fleaf[0]+=sign*Leaves[0][i+kvol*leaf];		Fleaf[1]+=-sign*Leaves[1][i+kvol*leaf];
-	}
-	return 0;
-}
-inline int GenLeafd(Complex_f Fleaf[nc], Complex_f *Leaves[nc],const unsigned int i,const unsigned short leaf,const unsigned short adj,const bool pm){
-	const char funcname[] = "GenLeafd";
-	//Adding or subtracting this term
-	const short sign = (pm) ? 1 : -1;
-	//Which generator are we multiplying by? Zero indexed so subtract one from your usual index in textbooks
-	switch(adj){
-		case(0):
-			Fleaf[0]+=-sign*Leaves[1][i+kvol*leaf]; 		Fleaf[1]+=sign*conj(Leaves[0][i+kvol*leaf]);
-		case(1):
-			Fleaf[0]+=sign*I*Leaves[1][i+kvol*leaf];		Fleaf[1]+=sign*I*conj(Leaves[0][i+kvol*leaf]);
-		case(2):
-			Fleaf[0]+=sign*conj(Leaves[0][i+kvol*leaf]); 	Fleaf[1]+=sign*conj(Leaves[1][i+kvol*leaf]);
-	}
-	return 0;
-}
-//initialisation
-//
+//Initialisation and freeing
 int Init_clover(Complex *sigval, Complex_f *sigval_f,unsigned short *sigin, float c_sw){
 	const char funcname[] = "Init_clover";
 	unsigned short __attribute__((aligned(AVX))) sigin_t[6][4] =	{{0,1,2,3},{1,0,3,2},{1,0,3,2},{1,0,3,2},{1,0,3,2},{0,1,2,3}};
@@ -531,3 +506,54 @@ int Init_clover(Complex *sigval, Complex_f *sigval_f,unsigned short *sigin, floa
 		sigval_f[i]=(Complex_f)sigval[i];
 #endif
 }
+inline int Clover_free(Complex_f *clover[nc],Complex_f *Leaves[6][nc]){
+	for(unsigned short c=0;c<nc;c++){
+#ifdef __NVCC__
+		cudaFreeAsync(clover[c],streams[c]);
+#else
+		free(clover[c]);
+#endif
+		for(unsigned short clov=0;clov<6;clov++){
+#ifdef __NVCC__
+			cudaFreeAsync(Leaves[clov][c],streams[clov+nc]);
+#else
+			free(Leaves[clov][c]);
+#endif
+		}
+	}
+	return 0;	
+}
+
+//Stuff that might be removable
+/*
+	inline int GenLeaf(Complex_f Fleaf[nc], Complex_f *Leaves[nc],const unsigned int i,const unsigned short leaf,const unsigned short adj,const bool pm){
+	const char funcname[] = "GenLeaf";
+//Adding or subtracting this term
+const short sign = (pm) ? 1 : -1;
+//Which generator are we multiplying by? Zero indexed so subtract one from your usual index in textbooks
+switch(adj){
+case(0):
+Fleaf[0]+=sign*Leaves[1][i+kvol*leaf];		Fleaf[1]+=sign*Leaves[0][i+kvol*leaf];
+case(1):
+Fleaf[0]+=-sign*I*Leaves[1][i+kvol*leaf];	Fleaf[1]+=sign*I*Leaves[0][i+kvol*leaf];
+case(2):
+Fleaf[0]+=sign*Leaves[0][i+kvol*leaf];		Fleaf[1]+=-sign*Leaves[1][i+kvol*leaf];
+}
+return 0;
+}
+inline int GenLeafd(Complex_f Fleaf[nc], Complex_f *Leaves[nc],const unsigned int i,const unsigned short leaf,const unsigned short adj,const bool pm){
+	const char funcname[] = "GenLeafd";
+	//Adding or subtracting this term
+	const short sign = (pm) ? 1 : -1;
+	//Which generator are we multiplying by? Zero indexed so subtract one from your usual index in textbooks
+	switch(adj){
+		case(0):
+			Fleaf[0]+=-sign*Leaves[1][i+kvol*leaf]; 		Fleaf[1]+=sign*conj(Leaves[0][i+kvol*leaf]);
+		case(1):
+			Fleaf[0]+=sign*I*Leaves[1][i+kvol*leaf];		Fleaf[1]+=sign*I*conj(Leaves[0][i+kvol*leaf]);
+		case(2):
+			Fleaf[0]+=sign*conj(Leaves[0][i+kvol*leaf]); 	Fleaf[1]+=sign*conj(Leaves[1][i+kvol*leaf]);
+	}
+	return 0;
+}
+*/
