@@ -411,29 +411,30 @@ inline void GenLeaf(Complex_f fleaf[nc],const unsigned short adj){
 	const char funcname[] = "GenLeaf";
 	//TODO: Check for factors of a half
 	//Which generator are we multiplying by?
-			//A buffer to store the leaf since we need to swap them
-			Complex_f buffer=fleaf[0];
+	//A buffer to store the leaf since we need to swap them
+	Complex_f buffer=fleaf[0];
 	switch(adj){
 		case(0): //Sigma_x
-			//Minus is from @f$-\bar{beta}@f$
+					//Minus is from @f$-\bar{beta}@f$
 			fleaf[0]=-I*conj(fleaf[1]);
 			fleaf[1]=I*buffer;
 		case(1): //Sigma_y
-			//Minus from Sigma_y and from @f$-\bar{\beta}@f$ gives an overall plus
+					//Minus from Sigma_y and from @f$-\bar{\beta}@f$ gives an overall plus
 			fleaf[0]=conj(fleaf[1]);
 			fleaf[1]=buffer;
 		case(2): //Sigma_z
-			//No buffer here needed here.
+					//No buffer here needed here.
 			fleaf[0]=I*fleaf[0];
 			//Minus from Sigma_z and from @f$-\bar{\beta}@f$ gives an overall plus
 			fleaf[1]=I*conj(fleaf[1]);
 	}
 	return;
 }
-int Clover_Force(double *dSdpi, Complex_f *Leaves[6][nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,unsigned short *sigin, float kappa){
+int Clover_Force(double *dSdpi, Complex_f *Leaves[6][nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,\
+						unsigned short *sigin, unsigned int *iu, unsigned int *id, float kappa){
 	const char funcname[]="Clover_Force";
 #ifdef __NVCC__
-	cuClover_Force(dSdpi,Leaves,X1,X2,sigval,sigin,kappa);
+	cuClover_Force(dSdpi,Leaves,X1,X2,sigval,sigin,iu,id,kappa);
 #else
 	//TODO: Make this more CUDA friendly? Or just have a CUDA call above
 	for(unsigned short adj=0;adj>nadj;adj++)
@@ -463,8 +464,8 @@ int Clover_Force(double *dSdpi, Complex_f *Leaves[6][nc], Complex_f *X1, Complex
 					for(unsigned short idirac=0;idirac<ndirac;idirac++){
 						const unsigned short igork1 = sigin[clov*ndirac+idirac];	
 						dSdpi[(i*nadj+adj)*ndim+mu]+=creal(sigval[clov*ndirac+idirac]*(
-											conj(X1[(i*ndirac)*nc])*(fleaf[0]*X2[(i*ndirac+igork1)*nc]+fleaf[1]*X2[(i*ndirac+igork1)*nc+1])+
-											conj(X1[(i*ndirac)*nc+1])*(-conj(fleaf[1])*X2[(i*ndirac+igork1*nc)]+conj(fleaf[0])*X2[(i*ndirac+igork1)*nc+1])));
+									conj(X1[(i*ndirac)*nc])*(fleaf[0]*X2[(i*ndirac+igork1)*nc]+fleaf[1]*X2[(i*ndirac+igork1)*nc+1])+
+									conj(X1[(i*ndirac)*nc+1])*(-conj(fleaf[1])*X2[(i*ndirac+igork1*nc)]+conj(fleaf[0])*X2[(i*ndirac+igork1)*nc+1])));
 					}
 				}
 			}
@@ -509,13 +510,21 @@ int Init_clover(Complex *sigval, Complex_f *sigval_f,unsigned short *sigin, floa
 inline int Clover_free(Complex_f *clover[nc],Complex_f *Leaves[6][nc]){
 	for(unsigned short c=0;c<nc;c++){
 #ifdef __NVCC__
+#ifdef _DEBUG
+		cudaFree(clover[c]);
+#else
 		cudaFreeAsync(clover[c],streams[c]);
+#endif
 #else
 		free(clover[c]);
 #endif
 		for(unsigned short clov=0;clov<6;clov++){
 #ifdef __NVCC__
+#ifdef _DEBUG
+			cudaFree(Leaves[clov][c]);
+#else
 			cudaFreeAsync(Leaves[clov][c],streams[clov+nc]);
+#endif
 #else
 			free(Leaves[clov][c]);
 #endif
@@ -542,18 +551,18 @@ Fleaf[0]+=sign*Leaves[0][i+kvol*leaf];		Fleaf[1]+=-sign*Leaves[1][i+kvol*leaf];
 return 0;
 }
 inline int GenLeafd(Complex_f Fleaf[nc], Complex_f *Leaves[nc],const unsigned int i,const unsigned short leaf,const unsigned short adj,const bool pm){
-	const char funcname[] = "GenLeafd";
-	//Adding or subtracting this term
-	const short sign = (pm) ? 1 : -1;
-	//Which generator are we multiplying by? Zero indexed so subtract one from your usual index in textbooks
-	switch(adj){
-		case(0):
-			Fleaf[0]+=-sign*Leaves[1][i+kvol*leaf]; 		Fleaf[1]+=sign*conj(Leaves[0][i+kvol*leaf]);
-		case(1):
-			Fleaf[0]+=sign*I*Leaves[1][i+kvol*leaf];		Fleaf[1]+=sign*I*conj(Leaves[0][i+kvol*leaf]);
-		case(2):
-			Fleaf[0]+=sign*conj(Leaves[0][i+kvol*leaf]); 	Fleaf[1]+=sign*conj(Leaves[1][i+kvol*leaf]);
-	}
-	return 0;
+const char funcname[] = "GenLeafd";
+//Adding or subtracting this term
+const short sign = (pm) ? 1 : -1;
+//Which generator are we multiplying by? Zero indexed so subtract one from your usual index in textbooks
+switch(adj){
+case(0):
+Fleaf[0]+=-sign*Leaves[1][i+kvol*leaf]; 		Fleaf[1]+=sign*conj(Leaves[0][i+kvol*leaf]);
+case(1):
+Fleaf[0]+=sign*I*Leaves[1][i+kvol*leaf];		Fleaf[1]+=sign*I*conj(Leaves[0][i+kvol*leaf]);
+case(2):
+Fleaf[0]+=sign*conj(Leaves[0][i+kvol*leaf]); 	Fleaf[1]+=sign*conj(Leaves[1][i+kvol*leaf]);
+}
+return 0;
 }
 */

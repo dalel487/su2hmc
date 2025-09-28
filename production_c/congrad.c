@@ -357,7 +357,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			const Complex beta = (*itercg) ?  betan/betad : 0;
 			betad=betan; alphan=betan;
 #ifdef __NVCC__
-			cublasZdscal(cublas_handle,kferm2,(cuDoubleComplex *)&beta,(cuDoubleComplex *)p,1);
+			cublasZdscal(cublas_handle,kferm2,(double *)&beta,(cuDoubleComplex *)p,1);
 			alpha_m=1;
 			cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&alpha_m,(cuDoubleComplex *)r,1,(cuDoubleComplex *)p,1);
 			cuComplex_convert(p_f,p,kferm2,true,dimBlock,dimGrid);
@@ -778,7 +778,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigne
 #ifdef _DEBUGCG
 memset(x1_f,0,kferm2Halo*sizeof(Complex_f));
 #ifdef __NVCC__
-cudaMemPrefetchAsync(x1_f,kferm2*sizeof(Complex_f),device,NULL);
+//cudaMemPrefetchAsync(x1_f,kferm2*sizeof(Complex_f),device,NULL);
 cudaDeviceSynchronise();
 #endif
 printf("\nPre mult:\tp_f[kferm2-1]=%.5e+%.5ei\tx1_f[kferm2-1]=%.5e+%.5ei\tx2_f[kferm2-1]=%.5e+%.5ei\t",\

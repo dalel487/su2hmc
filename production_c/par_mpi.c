@@ -1188,8 +1188,8 @@ int Trial_Exchange(Complex *ut[2],Complex_f *ut_f[2]){
 #ifdef __NVCC__
 	int device=-1;
 	cudaGetDevice(&device);
-	cudaMemPrefetchAsync(ut[0], ndim*kvol*sizeof(Complex),cudaCpuDeviceId,NULL);
-	cudaMemPrefetchAsync(ut[1], ndim*kvol*sizeof(Complex),cudaCpuDeviceId,NULL);
+	//cudaMemPrefetchAsync(ut[0], ndim*kvol*sizeof(Complex),cudaCpuDeviceId,NULL);
+	//cudaMemPrefetchAsync(ut[1], ndim*kvol*sizeof(Complex),cudaCpuDeviceId,NULL);
 #endif
 	Complex *z = (Complex *)aligned_alloc(AVX,(kvol+halo)*sizeof(Complex));
 	for(int mu=0;mu<ndim;mu++){
@@ -1207,7 +1207,7 @@ int Trial_Exchange(Complex *ut[2],Complex_f *ut_f[2]){
 		cblas_zcopy(kvol+halo, z, 1, &ut[0][mu], ndim);
 		//Now we prefetch the halo
 #ifdef __NVCC__
-		cudaMemPrefetchAsync(ut[0]+ndim*kvol, ndim*halo*sizeof(Complex),device,NULL);
+		//cudaMemPrefetchAsync(ut[0]+ndim*kvol, ndim*halo*sizeof(Complex),device,NULL);
 #endif
 		//Repeat for ut[1]
 		cblas_zcopy(kvol, &ut[1][mu], ndim, z, 1);
@@ -1227,7 +1227,7 @@ int Trial_Exchange(Complex *ut[2],Complex_f *ut_f[2]){
 	}
 	//Now we prefetch the halo
 #ifdef __NVCC__
-	cudaMemPrefetchAsync(ut[1]+ndim*kvol, ndim*halo*sizeof(Complex),device,NULL);
+	//cudaMemPrefetchAsync(ut[1]+ndim*kvol, ndim*halo*sizeof(Complex),device,NULL);
 #endif
 	free(z);
 #endif

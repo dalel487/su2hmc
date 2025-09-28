@@ -1,6 +1,6 @@
 MF=Makefile_GCC
-CC=		gcc-13 
-CXX=		g++-13
+CC=		gcc
+CXX=		g++
 NVCC=		nvcc
 
 IFLAGS=     -I../INCLUDE -I ./ -I../production_c $(shell gsl-config --cflags)\
@@ -31,7 +31,7 @@ CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/latest/cuda/lib64/ \
 
 LFLAGS +=		-lstdc++ -lpthread -ldl #${CULFLAGS}
 
-NVCCFLAGS=	${IFLAGS} --resource-usage -std=c++14 -err-no -w #-expt-relaxed-constexpr 
+NVCCFLAGS=	${IFLAGS} --resource-usage -std=c++17 -err-no -w #-expt-relaxed-constexpr 
 			#Last flag is an experimental one used to call host functions in device code. Not sure
 			#if it does what we want because the error message suggesting it came up when declaring
 			#a11 and a12 in the Dslash routine

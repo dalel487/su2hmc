@@ -50,7 +50,7 @@ void cuPolyakov(Complex_f *Sigma[2], Complex_f *ut[2], dim3 dimGrid, dim3 dimBlo
 
 	cudaDeviceSynchronise();
 	cuPolyakov<<<dimGrid,dimBlock>>>(Sigma[0],Sigma[1],ut[0],ut[1]);
-	cudaMemPrefetchAsync(Sigma[0],kvol3*sizeof(Complex_f),cudaCpuDeviceId,streams[0]);
+	//cudaMemPrefetchAsync(Sigma[0],kvol3*sizeof(Complex_f),cudaCpuDeviceId,streams[0]);
 #ifdef _DEBUG
 	cudaFree(Sigma[1]);
 #else

@@ -149,17 +149,17 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 #ifdef __NVCC__
 		int device=-1;
 		cudaGetDevice(&device);
-		cudaMemPrefetchAsync(ut[0], ndim*kvol*sizeof(Complex),device,streams[0]);
-		cudaMemPrefetchAsync(ut[1], ndim*kvol*sizeof(Complex),device,streams[1]);
+		//cudaMemPrefetchAsync(ut[0], ndim*kvol*sizeof(Complex),device,streams[0]);
+		//cudaMemPrefetchAsync(ut[1], ndim*kvol*sizeof(Complex),device,streams[1]);
 #endif
 		//Send trials to accelerator for reunitarisation
 		Reunitarise(ut);
 		//Get trials back
 #ifdef __NVCC__
 		cudaMemcpyAsync(u[0],ut[0],ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[0]);
-		cudaMemPrefetchAsync(u[0], ndim*kvol*sizeof(Complex),device,streams[0]);
+		//cudaMemPrefetchAsync(u[0], ndim*kvol*sizeof(Complex),device,streams[0]);
 		cudaMemcpyAsync(u[1],ut[1],ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[1]);
-		cudaMemPrefetchAsync(u[1], ndim*kvol*sizeof(Complex),device,streams[1]);
+		//cudaMemPrefetchAsync(u[1], ndim*kvol*sizeof(Complex),device,streams[1]);
 #else
 		memcpy(u[0], ut[0], ndim*kvol*sizeof(Complex));
 		memcpy(u[1], ut[1], ndim*kvol*sizeof(Complex));
@@ -180,7 +180,7 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 	double hp;
 	int device=-1;
 	cudaGetDevice(&device);
-	cudaMemPrefetchAsync(pp,kmom*sizeof(double),device,NULL);
+	//cudaMemPrefetchAsync(pp,kmom*sizeof(double),device,NULL);
 	cublasDnrm2(cublas_handle, kmom, pp, 1,&hp);
 	hp*=hp;
 #elif defined USE_BLAS

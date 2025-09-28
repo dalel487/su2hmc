@@ -101,28 +101,28 @@ void	Init_CUDA(Complex *u11t, Complex *u12t,Complex *gamval, Complex_f *gamval_f
 	for(int i=0;i<(ndirac*nadj*ndim);i++)
 		cudaStreamCreate(&streams[i]);
 	//Set iu and id to mainly read in CUDA and prefetch them to the GPU
-	cudaMemPrefetchAsync(iu,ndim*kvol*sizeof(int),device,streams[0]);
-	cudaMemPrefetchAsync(id,ndim*kvol*sizeof(int),device,streams[1]);
-	cudaMemAdvise(iu,ndim*kvol*sizeof(int),cudaMemAdviseSetReadMostly,device);
-	cudaMemAdvise(id,ndim*kvol*sizeof(int),cudaMemAdviseSetReadMostly,device);
+	//cudaMemPrefetchAsync(iu,ndim*kvol*sizeof(int),device,streams[0]);
+	//cudaMemPrefetchAsync(id,ndim*kvol*sizeof(int),device,streams[1]);
+	//cudaMemAdvise(iu,ndim*kvol*sizeof(int),cudaMemAdviseSetReadMostly,device);
+	//cudaMemAdvise(id,ndim*kvol*sizeof(int),cudaMemAdviseSetReadMostly,device);
 
 	//Gamma matrices and indices on the GPU
 	//	cudaMemcpy(gamin_d,gamin,4*4*sizeof(int),cudaMemcpyHostToDevice);
 	//	cudaMemcpy(gamval_d,gamval,5*4*sizeof(Complex),cudaMemcpyHostToDevice);
 	//	cudaMemcpy(gamval_f_d,gamval_f,5*4*sizeof(Complex_f),cudaMemcpyHostToDevice);
-	cudaMemAdvise(gamin,4*4*sizeof(int),cudaMemAdviseSetReadMostly,device);
-	cudaMemAdvise(gamval,5*4*sizeof(Complex),cudaMemAdviseSetReadMostly,device);
+	//cudaMemAdvise(gamin,4*4*sizeof(int),cudaMemAdviseSetReadMostly,device);
+	//cudaMemAdvise(gamval,5*4*sizeof(Complex),cudaMemAdviseSetReadMostly,device);
 
 	//More prefetching and marking as read-only (mostly)
 	//Prefetching Momentum Fields and Trial Fields to GPU
-	cudaMemAdvise(dk4p,(kvol+halo)*sizeof(double),cudaMemAdviseSetReadMostly,device);
-	cudaMemAdvise(dk4m,(kvol+halo)*sizeof(double),cudaMemAdviseSetReadMostly,device);
+	//cudaMemAdvise(dk4p,(kvol+halo)*sizeof(double),cudaMemAdviseSetReadMostly,device);
+	//cudaMemAdvise(dk4m,(kvol+halo)*sizeof(double),cudaMemAdviseSetReadMostly,device);
 
-	cudaMemPrefetchAsync(dk4p,(kvol+halo)*sizeof(double),device,streams[2]);
-	cudaMemPrefetchAsync(dk4m,(kvol+halo)*sizeof(double),device,streams[3]);
+	//cudaMemPrefetchAsync(dk4p,(kvol+halo)*sizeof(double),device,streams[2]);
+	//cudaMemPrefetchAsync(dk4m,(kvol+halo)*sizeof(double),device,streams[3]);
 
-	cudaMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),device,streams[4]);
-	cudaMemPrefetchAsync(u12t, ndim*kvol*sizeof(Complex),device,streams[5]);
+	//cudaMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),device,streams[4]);
+	//cudaMemPrefetchAsync(u12t, ndim*kvol*sizeof(Complex),device,streams[5]);
 }
 void cuReal_convert(float *a, double *b, int len, bool dtof, dim3 dimBlock, dim3 dimGrid){
 	/* 

@@ -175,62 +175,103 @@ __global__  void Full_Clover(complex<T> *clover1, complex<T> *clover2){
 	}
 	return;
 }
-template <typename T> 
-__global__ void Force_Leaves(complex<T> *Fleaf1, complex<T> *Fleaf2,complex<T> *Leaves1, complex<T> *Leaves2,unsigned short adj,unsigned short clov){
-	const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const volatile int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const volatile int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const volatile int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	const volatile int gthreadId= blockId * bsize+bthreadId;
 
-	for(unsigned int i=gthreadId;i<kvol;i+=bsize*gsize){
-		Fleaf1[i]=0; Fleaf2[i]=0;
-		///Only three clovers @f$\mu\ne\nu@f$ contribute to the force term
-		///Out of these clovers only two leaves contribute (containing @f$U_\mu@f$). Daggered and undaggered
-		///Additionally, @f$\sigma_{\nu\mu}F_{\nu\mu}=\sigma_{\mu\nu}F_{\mu\nu}@f$ so we can double the final answer
-
-		///Contribution from @f$(f_{\mu\nu})@f$
-		///Contribution 1 is the normal plaquette so leaf 0
-		GenLeaf(Fleaf1,Fleaf2,Leaves1,Leaves2,i,0,adj,true);
-		///Contribution 3 is the normal plaquette daggered so leaf 0
-		GenLeafd(Fleaf1,Fleaf2,Leaves1,Leaves2,i,0,adj,false);
-
-		///Contribution 2 is the leaf containing @f$ U_\mu@f$ link and @f$ \nu<0@f$)
-		GenLeaf(Fleaf1,Fleaf2,Leaves1,Leaves2,i,2,adj,true);
-		///Contribution 4 is the leaf containing @f$ U^dagger_\mu@f$ link and @f$ \nu<0@f$)
-		GenLeafd(Fleaf1,Fleaf2,Leaves1,Leaves2,i,2,adj,false);
-
-		///NOTE: The clover is scaled by -i/8.0, but the leaves were not. We do that scaling here.
-		///		The 4.0 instead of 8.0 is due to the second contribution from @f$\nu\mu@f$
-		Fleaf1[i]*=-I/4.0f; Fleaf2[i]*=-I/4.0f;
+//Generator by Leaf
+template <typename T>
+__device__  void GenLeaf(complex<T> *fleaf1,complex<T> *fleaf2,const unsigned short adj){
+	const char funcname[] = "GenLeaf";
+	//TODO: Check for factors of a half
+	//Which generator are we multiplying by?
+	//A buffer to store the leaf since we need to swap them
+	complex<T> buffer=*fleaf1;
+	switch(adj){
+		case(0): //Sigma_x
+					//Minus is from @f$-\bar{beta}@f$
+			*fleaf1=-conj(*fleaf2);
+			*fleaf2=buffer;
+		case(1): //Sigma_y
+					//Minus from Sigma_y and from @f$-\bar{\beta}@f$ gives an overall plus
+			*fleaf1=-I*conj(*fleaf2);
+			*fleaf2=I*buffer;
+		case(2): //Sigma_z
+					//No buffer here needed here.
+					// *fleaf1=*fleaf1;
+					//Minus from Sigma_z and from @f$-\bar{\beta}@f$ gives an overall plus
+			*fleaf2=conj(*fleaf2);
 	}
+	return;
+}
+template <typename T> 
+__device__ void Force_Leaves(complex<T> *fleaf1, complex<T> *fleaf2,complex<T> *Leaves1, complex<T> *Leaves2,\
+		unsigned int *iu, unsigned int *id, const unsigned int i){
+	///Fleaf consists of the sum of the @f$\mu\nu@f$ and @f$\mu,-\nu@f$ leaves, minus their hermitian conjugates
+	///This can be expressed in terms of the imaginary part of Leaves1 and all of Leaves2 doubled
+	//Bracket ordering here is just for optimisation. It skips the @f$2\times0@f$ multiplications from the real part.
+
+	//fleaf_c is a register to hold each leaf whilst we gather the terms.
+	//We start with the clover at the lattice site in question
+	*fleaf1=I*(2*(Leaves1[i].imag()+Leaves1[i+kvol*2].imag()));;
+
+	//Leaves1[i]+Leaves1[i+kvol*2]-conj(Leaves1[i])-conj(Leaves1[i+kvol*2]);
+
+	///NOTE: The clover is scaled by -i/8.0, but the leaves were not. We do that scaling here.
+	///		@f$\sigma_{\nu\mu}F_{\nu\mu}=\sigma_{\mu\nu}F_{\mu\nu}@f$ so we can double the final answer
+	///		to get 4.0 instead of 8.0
+	///
+	///		The @f$i@f$ gets dropped since we have a factor of @f$-i@f$ from the derivative term too.
+	*fleaf1*=1/4.0f;
+
+	//Second leaf
+	*fleaf2=2*(Leaves2[i]+Leaves2[i+kvol*2]);
+	//Leaves2[i]+Leaves2[i+kvol*2]-conj(Leaves2[i])-conj(Leaves2[i+kvol*2]);
+	*fleaf2*=1/4.0f;
+	///Additionally, There are three more clovers with leaves containing @f$U_\mu(x)@f$. This will be a right pain in
+	///the arse on the CPU since it means we need to introduce halo exchanges to the leaves...
 	return;
 }
 //Actual force stuff
 template <typename T>
-__global__ void Clover_Force(double *dSdpi,complex<T> *Fleaf1,complex<T> *Fleaf2, complex<T> *X1, complex<T> *X2,\
-		const complex<T> *sigval, const unsigned short *sigin, const unsigned short adj,const unsigned short clov,unsigned short mu, const float kappa){
+__global__ void Clover_Force(double *dSdpi, complex<T> *Leaves[nc], complex<T> *X1, complex<T> *X2,\
+		const complex<T> *sigval, const unsigned short *sigin, unsigned int *iu, unsigned int *id,\
+		const unsigned short clov,unsigned short mu, const float kappa){
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	const int gthreadId= blockId * bsize+bthreadId;
 
-	complex<T> X1s[nc],X2s[nc];
-	for(int i=gthreadId;i<kvol;i+=gsize*bsize){
-		T dSdpis=0;
-		for(unsigned short idirac=0;idirac<ndirac;idirac++){
-			const unsigned short igork1 = sigin[clov*ndirac+idirac];	
+	complex<T> X1s[nc]={{0,0},{0,0}};
+	complex<T> X2s[nc]={{0,0},{0,0}};
+	complex<T> fleaf_c[nc] = {{0,0},{0,0}};
+	T dSdpis[3]={0,0,0};
+	for(unsigned int i=gthreadId;i<kvol;i+=gsize*bsize){
+		//Pointer arithetic because I'm lazy
+		Force_Leaves(fleaf_c,fleaf_c+1,Leaves[0],Leaves[1],iu,id,i);
+		for(unsigned short idirac=0;idirac<ndirac;idirac+=nc){
+			const unsigned short igork1 = sigin[clov*ndirac+(idirac>>1)]<<(nc-1);	
 
+			//Calculate the index. For the next colour we add kvol
+			unsigned int ind = i+kvol*idirac;
 			//Prefetching. Might not be needed here though
-			X1s[0]=X1[i+kvol*(nc*idirac)]; X1s[1]=X1[i+kvol*(1+nc*idirac)];
-			X2s[0]=X2[i+kvol*(nc*igork1)]; X2s[1]=X2[i+kvol*(1+nc*igork1)];
+			X1s[0]=X1[ind]; X1s[1]=X1[ind+kvol];
+			ind = i+kvol*igork1;
+			X2s[0]=X2[ind]; X2s[1]=X2[ind+kvol];
 
-			dSdpis-=(sigval[clov*ndirac+idirac]*(
-						conj(X1s[0])*(Fleaf1[i]*X2s[0]+Fleaf2[i]*X2s[1])+
-						conj(X1s[1])*(-conj(Fleaf2[i])*X2s[0]+conj(Fleaf1[i])*X2s[1]))).imag();
+			//i Sigma_x: Real part of @f$i z@f$ is minus the imaginary part of z
+			dSdpis[0]-=(sigval[clov*ndirac+idirac]*(
+						conj(X1s[0])*(-conj(fleaf_c[1])*X2s[0]+conj(fleaf_c[0])*X2s[1])+
+						conj(X1s[1])*(fleaf_c[0]*X2s[0]+fleaf_c[1]*X2s[1]))).imag();
+			//i Sigma_y: Real part of @f$ i i z@f$ is minus the real part of @f$z@f$
+			dSdpis[1]-=(sigval[clov*ndirac+idirac]*(
+						conj(X1s[0])*(conj(fleaf_c[1])*X2s[0]-conj(fleaf_c[0])*X2s[1])+
+						conj(X1s[1])*(fleaf_c[0]*X2s[0]+fleaf_c[1]*X2s[1]))).real();
+			//i Sigma_z Real part of @f$i z@f$ is minus the imaginary part of z
+			dSdpis[2]-=(sigval[clov*ndirac+idirac]*(
+						conj(X1s[0])*(fleaf_c[0]*X2s[0]+fleaf_c[1]*X2s[1])+
+						conj(X1s[1])*(conj(fleaf_c[1])*X2s[0]-conj(fleaf_c[0])*X2s[1]))).imag();
 		}
-		dSdpi[i+kvol*(adj*ndim+mu)]+=kappa*dSdpis;
+		for(unsigned short adj=0;adj<nadj;adj++)
+			dSdpi[i+kvol*(adj*ndim+mu)]+=kappa*dSdpis[adj];
 	}
 	return;
 }
@@ -304,7 +345,7 @@ __global__ void HbyClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, c
 #pragma unroll
 				for(unsigned short c=0; c<nc; c++){
 					r_s[c]=r[i+kvol*(igork1+c)];
-					}
+				}
 				///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
 				const complex<T> sig=sigval[clov*ndirac+(idirac>>1)];
 				phi_s[idirac+0]+=kappa*sig*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
@@ -324,8 +365,13 @@ __global__ void HbyClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, c
 //This gets called by C so cannot be templated...
 int cuClover(Complex_f *clover[nc],Complex_f *Leaves[6][nc],Complex_f *ut[nc], unsigned int *iu, unsigned int *id){
 	const char funcname[]="cuClover";
+#ifdef _DEBUG
+	cudaMallocManaged((void **)&clover[0],6*kvol*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&clover[1],6*kvol*sizeof(Complex_f),cudaMemAttachGlobal);
+#else
 	cudaMallocAsync((void **)&clover[0],6*kvol*sizeof(Complex_f),streams[0]);
 	cudaMallocAsync((void **)&clover[1],6*kvol*sizeof(Complex_f),streams[1]);
+#endif
 	for(unsigned short mu=0;mu<ndim-1;mu++)
 		for(unsigned short nu=mu+1;nu<ndim;nu++)
 			if(mu!=nu){
@@ -333,8 +379,13 @@ int cuClover(Complex_f *clover[nc],Complex_f *Leaves[6][nc],Complex_f *ut[nc], u
 				unsigned short clov = (mu==0) ? nu-1 :mu+nu;
 				//Allocate clover memory
 				//Note that the clover is completely local, so doesn't need a halo for MPI
+#ifdef _DEBUG
+				cudaMallocManaged((void **)&Leaves[clov][0],kvol*ndim*sizeof(Complex_f),cudaMemAttachGlobal);
+				cudaMallocManaged((void **)&Leaves[clov][1],kvol*ndim*sizeof(Complex_f),cudaMemAttachGlobal);
+#else
 				cudaMallocAsync((void **)&Leaves[clov][0],kvol*ndim*sizeof(Complex_f),streams[clov]);
 				cudaMallocAsync((void **)&Leaves[clov][1],kvol*ndim*sizeof(Complex_f),streams[clov]);
+#endif
 				Half_Clover<<<dimGrid,dimBlock,0,streams[clov]>>>(clover[0]+clov*kvol,clover[1]+clov*kvol,Leaves[clov][0],Leaves[clov][1],ut[0],ut[1],iu,id,mu,nu);
 				Full_Clover<<<dimGrid,dimBlock,0,streams[clov]>>>(clover[0]+clov*kvol,clover[1]+clov*kvol);
 
@@ -355,21 +406,17 @@ void cuHbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f
 	HbyClover<<<dimGrid,dimBlock>>>(phi,r,clover[0],clover[1],sigval,kappa,sigin);
 }
 
-int cuClover_Force(double *dSdpi, Complex_f *Leaves[6][nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,unsigned short *sigin,const float kappa){
+int cuClover_Force(double *dSdpi, Complex_f *Leaves[6][nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,\
+		unsigned short *sigin, unsigned int *iu, unsigned int *id, const float kappa){
 	const char funcname[]="Clover_Force";
-	for(unsigned short adj=0;adj>nadj;adj++){
-		Complex_f *Fleaf[nc];
-		cudaMallocAsync((void **)&Fleaf[0],kvol*sizeof(Complex_f),streams[adj]);
-		cudaMallocAsync((void **)&Fleaf[1],kvol*sizeof(Complex_f),streams[adj]);
-		for(unsigned int mu=0;mu<ndim-1;mu++)
-			for(unsigned int nu=mu+1;nu<ndim;nu++){
-				//Clover index
-				unsigned short clov = (mu==0) ? nu-1 :mu+nu;
-				//Allocate clover memory
-				Force_Leaves<<<dimGrid,dimBlock,0,streams[adj]>>>(Fleaf[0],Fleaf[1],Leaves[clov][0],Leaves[clov][1],adj,clov);
-				Clover_Force<<<dimGrid,dimBlock,0,streams[adj]>>>(dSdpi,Fleaf[0],Fleaf[1],X1,X2,sigval,sigin,adj,clov,mu,kappa);
-			}
-		cudaFreeAsync(Fleaf[0],streams[adj]); cudaFreeAsync(Fleaf[1],streams[adj]); 
+	//dSdpi depends on the three values of @f$\mu@f$. So we use that for the streams instead of clover
+	for(unsigned int mu=0;mu<ndim-1;mu++){
+		for(unsigned int nu=mu+1;nu<ndim;nu++){
+			//Clover index
+			unsigned short clov = (mu==0) ? nu-1 :mu+nu;
+			//Allocate clover memory
+			Clover_Force<<<dimGrid,dimBlock,0,streams[mu]>>>(dSdpi,Leaves[clov],X1,X2,sigval,sigin,iu,id,clov,mu,kappa);
+		}
 	}
 	cudaDeviceSynchronise();
 	return 0;

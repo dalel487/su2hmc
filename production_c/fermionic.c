@@ -70,7 +70,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	vsRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, xi_f, 0, 1/sqrt(2));
 #endif
 #ifdef __NVCC__
-	cudaMemPrefetchAsync(xi_f,kferm*sizeof(Complex_f),device,streams[0]);
+	//cudaMemPrefetchAsync(xi_f,kferm*sizeof(Complex_f),device,streams[0]);
 	cuComplex_convert(xi_f,xi,kferm,false,dimBlock,dimGrid);
 	//Transpose needed here for Dslashd
 	Transpose_c(xi_f,ngorkov*nc,kvol);

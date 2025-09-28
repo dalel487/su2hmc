@@ -466,7 +466,7 @@ int main(int argc, char *argv[]){
 			//gaussp was the normal Box-Muller and gauss0 didn't have 2 inside the square root
 			//Using σ=1/sqrt(2) in these routines has the same effect as gauss0
 #if (defined __NVCC__ && defined _DEBUG)
-			cudaMemPrefetchAsync(R1_f,kferm*sizeof(Complex_f),device,streams[1]);
+			//cudaMemPrefetchAsync(R1_f,kferm*sizeof(Complex_f),device,streams[1]);
 #endif
 #if (defined(USE_RAN2)||defined(__RANLUX__)||!defined(__INTEL_MKL__))
 			Gauss_c(R, kferm, 0, 1/sqrt(2));
@@ -474,7 +474,7 @@ int main(int argc, char *argv[]){
 			vsRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, R, 0, 1/sqrt(2));
 #endif
 #ifdef __NVCC__
-			cudaMemPrefetchAsync(R,kfermHalo*sizeof(Complex_f),device,NULL);
+			//cudaMemPrefetchAsync(R,kfermHalo*sizeof(Complex_f),device,NULL);
 			//Transpose needed here for Dslashd
 			Transpose_c(R,ngorkov*nc,kvol);
 			//R is random so this techincally isn't required. But it does keep the code output consistent with previous
@@ -534,7 +534,7 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 		//pp is random at this point so swapping the order isn't really necessary. But it does ensure that it matches for CPU and GPU
 		Transpose_d(pp,nadj*ndim,kvol);
-		cudaMemPrefetchAsync(pp,kmom*sizeof(double),device,streams[1]);
+		//cudaMemPrefetchAsync(pp,kmom*sizeof(double),device,streams[1]);
 #endif
 		double H0, S0;
 		Hamilton(&H0,&S0,rescga,pp,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,\

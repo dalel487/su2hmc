@@ -195,10 +195,10 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 				output_old = fopen("dslash_old", "w");
 				output_f_old = fopen("dslash_f_old", "w");
 #ifdef __NVCC__
-				cudaMemPrefetchAsync(R1,kferm*sizeof(Complex),device,NULL);
-				cudaMemPrefetchAsync(xi,kferm*sizeof(Complex),device,NULL);
-				cudaMemPrefetchAsync(R1_f,kferm*sizeof(Complex_f),device,NULL);
-				cudaMemPrefetchAsync(xi_f,kferm*sizeof(Complex_f),device,NULL);
+				//cudaMemPrefetchAsync(R1,kferm*sizeof(Complex),device,NULL);
+				//cudaMemPrefetchAsync(xi,kferm*sizeof(Complex),device,NULL);
+				//cudaMemPrefetchAsync(R1_f,kferm*sizeof(Complex_f),device,NULL);
+				//cudaMemPrefetchAsync(xi_f,kferm*sizeof(Complex_f),device,NULL);
 				cudaDeviceSynchronise();
 #endif
 				for(int i = 0; i< kferm; i+=8){
@@ -222,7 +222,7 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 				fclose(output_old); fclose(output_f_old);
 				Dslash(xi,R1,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 #ifdef __NVCC__
-				cudaMemPrefetchAsync(xi,kferm*sizeof(Complex),device,NULL);
+				//cudaMemPrefetchAsync(xi,kferm*sizeof(Complex),device,NULL);
 				//Transpose needed here for Dslash_f
 				Transpose_c(xi_f,ngorkov*nc,kvol,dimGrid,dimBlock);
 				Transpose_c(R1_f,ngorkov*nc,kvol,dimGrid,dimBlock);
@@ -234,7 +234,7 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 				Dslash_f(xi_f,R1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 #ifdef __NVCC__
 				Transpose_c(xi_f,kvol,ngorkov*nc,dimGrid,dimBlock);
-				cudaMemPrefetchAsync(xi_f,kferm*sizeof(Complex_f),device,NULL);
+				//cudaMemPrefetchAsync(xi_f,kferm*sizeof(Complex_f),device,NULL);
 				Transpose_c(R1_f,kvol,ngorkov*nc,dimGrid,dimBlock);
 				Transpose_c(u11t_f,kvol,ndim,dimGrid,dimBlock);
 				Transpose_c(u12t_f,kvol,ndim,dimGrid,dimBlock);
@@ -273,10 +273,10 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 				output_old = fopen("dslashd_old", "w");
 				output_f_old = fopen("dslashd_f_old", "w");
 #ifdef __NVCC__
-				cudaMemPrefetchAsync(R1,kferm*sizeof(Complex),device,NULL);
-				cudaMemPrefetchAsync(xi,kferm*sizeof(Complex),device,NULL);
-				cudaMemPrefetchAsync(R1_f,kferm*sizeof(Complex_f),device,NULL);
-				cudaMemPrefetchAsync(xi_f,kferm*sizeof(Complex_f),device,NULL);
+				//cudaMemPrefetchAsync(R1,kferm*sizeof(Complex),device,NULL);
+				//cudaMemPrefetchAsync(xi,kferm*sizeof(Complex),device,NULL);
+				//cudaMemPrefetchAsync(R1_f,kferm*sizeof(Complex_f),device,NULL);
+				//cudaMemPrefetchAsync(xi_f,kferm*sizeof(Complex_f),device,NULL);
 				cudaDeviceSynchronise();
 #endif
 				for(int i = 0; i< kferm; i+=8){
@@ -303,7 +303,7 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 				fclose(output_old); fclose(output_f_old);
 				Dslashd(xi,R1,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 #ifdef __NVCC__
-				cudaMemPrefetchAsync(xi,kferm*sizeof(Complex),device,NULL);
+				//cudaMemPrefetchAsync(xi,kferm*sizeof(Complex),device,NULL);
 				//Transpose needed here for Dslashd_f
 				Transpose_c(xi_f,ngorkov*nc,kvol,dimGrid,dimBlock);
 				Transpose_c(R1_f,ngorkov*nc,kvol,dimGrid,dimBlock);
@@ -315,7 +315,7 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 				Dslashd_f(xi_f,R1_f,u11t_f,u12t_f,iu,id,gamval_f,gamin,dk4m_f,dk4p_f,jqq,akappa);
 #ifdef __NVCC__
 				Transpose_c(xi_f,kvol,ngorkov*nc,dimGrid,dimBlock);
-				cudaMemPrefetchAsync(xi_f,kferm*sizeof(Complex_f),device,NULL);
+				//cudaMemPrefetchAsync(xi_f,kferm*sizeof(Complex_f),device,NULL);
 				Transpose_c(R1_f,kvol,ngorkov*nc,dimGrid,dimBlock);
 				Transpose_c(u11t_f,kvol,ndim,dimGrid,dimBlock);
 				Transpose_c(u12t_f,kvol,ndim,dimGrid,dimBlock);
@@ -352,10 +352,10 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 					X1_f[i]=(Complex_f)X1[i];
 				}
 #ifdef __NVCC__
-				cudaMemPrefetchAsync(X0,kferm2*sizeof(Complex),device,NULL);
-				cudaMemPrefetchAsync(X1,kferm2*sizeof(Complex),device,NULL);
-				cudaMemPrefetchAsync(X0_f,kferm2*sizeof(Complex_f),device,NULL);
-				cudaMemPrefetchAsync(X1_f,kferm2*sizeof(Complex_f),device,NULL);
+				//cudaMemPrefetchAsync(X0,kferm2*sizeof(Complex),device,NULL);
+				//cudaMemPrefetchAsync(X1,kferm2*sizeof(Complex),device,NULL);
+				//cudaMemPrefetchAsync(X0_f,kferm2*sizeof(Complex_f),device,NULL);
+				//cudaMemPrefetchAsync(X1_f,kferm2*sizeof(Complex_f),device,NULL);
 #endif
 				output_old = fopen("hdslash_old", "w");output_f_old = fopen("hdslash_f_old", "w");
 				for(int i = 0; i< kferm2; i+=8){
@@ -423,10 +423,10 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 					X1_f[i]=(Complex_f)X1[i];
 				}
 #ifdef __NVCC__
-				cudaMemPrefetchAsync(X0,kferm2*sizeof(Complex),device,NULL);
-				cudaMemPrefetchAsync(X1,kferm2*sizeof(Complex),device,NULL);
-				cudaMemPrefetchAsync(X0_f,kferm2*sizeof(Complex_f),device,NULL);
-				cudaMemPrefetchAsync(X1_f,kferm2*sizeof(Complex_f),device,NULL);
+				//cudaMemPrefetchAsync(X0,kferm2*sizeof(Complex),device,NULL);
+				//cudaMemPrefetchAsync(X1,kferm2*sizeof(Complex),device,NULL);
+				//cudaMemPrefetchAsync(X0_f,kferm2*sizeof(Complex_f),device,NULL);
+				//cudaMemPrefetchAsync(X1_f,kferm2*sizeof(Complex_f),device,NULL);
 #endif
 				output_old = fopen("hdslashd_old", "w");output_f_old = fopen("hdslashd_f_old", "w");
 				for(int i = 0; i< kferm2; i+=8){
@@ -542,7 +542,7 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 				}
 				fclose(output_old);	
 #ifdef __NVCC__
-				cudaMemPrefetchAsync(dSdpi,kmom*sizeof(double),device,NULL);
+				//cudaMemPrefetchAsync(dSdpi,kmom*sizeof(double),device,NULL);
 #endif
 				Gauge_force(dSdpi,u11t_f,u12t_f,iu,id,beta);
 #ifdef __NVCC__

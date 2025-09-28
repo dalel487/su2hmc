@@ -34,11 +34,11 @@ void cuGauge_force(Complex_f *ut[2],double *dSdpi,float beta,unsigned int *iu,un
 
 #if(nproc>1)
 				//Prefetch to the CPU for until we get NCCL working
-				cudaMemPrefetchAsync(ush[0], kvol*sizeof(Complex_f),cudaCpuDeviceId,streams[0]);
-				cudaMemPrefetchAsync(ush[1], kvol*sizeof(Complex_f),cudaCpuDeviceId,streams[1]);
+				//cudaMemPrefetchAsync(ush[0], kvol*sizeof(Complex_f),cudaCpuDeviceId,streams[0]);
+				//cudaMemPrefetchAsync(ush[1], kvol*sizeof(Complex_f),cudaCpuDeviceId,streams[1]);
 				CHalo_swap_dir(ush[0], 1, mu, DOWN); CHalo_swap_dir(ush[1], 1, mu, DOWN);
-				cudaMemPrefetchAsync(ush[0]+kvol, halo*sizeof(Complex_f),device,streams[0]);
-				cudaMemPrefetchAsync(ush[1]+kvol, halo*sizeof(Complex_f),device,streams[1]);
+				//cudaMemPrefetchAsync(ush[0]+kvol, halo*sizeof(Complex_f),device,streams[0]);
+				//cudaMemPrefetchAsync(ush[1]+kvol, halo*sizeof(Complex_f),device,streams[1]);
 #endif
 				//Next up, the @f$-\nu@f$ staple
 				cuMinus_staple(mu,nu,iu,id,Sigma[0],Sigma[1],ush[0],ush[1],ut[0],ut[1],dimGrid,dimBlock);

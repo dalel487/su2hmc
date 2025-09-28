@@ -119,10 +119,15 @@ void Fleaf(Complex_f fleaf[nc], Complex_f *Leaves[nc], const unsigned int i);
  *	@param	dSdpi:	Force
  *	@param	Leaves:	Clover leaves. We don't need the full clover for the force as most get killed in the derivative
  *							We do however need the individual leaves making up the clover
+ *	@param	X1:		@f$\left(M^\dagger M\right)^{-1} \Psi@f$
+ *	@param	X2:		@f$M\left(M^\dagger M\right)^{-1} \Psi@f$
  *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by c_sw
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param	iu:		Up indices
+ * @param	id:		Down indices
  */
-int Clover_Force(double *dSdpi, Complex_f *Leaves[6][nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,unsigned short *sigin,const float kappa);
+int Clover_Force(double *dSdpi, Complex_f *Leaves[6][nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,\
+						unsigned short *sigin, unsigned int *iu, unsigned int *id, float kappa);
 /**
  *	@brief	Scales a clover leaf by the relevant SU(2) generator
  *
@@ -161,7 +166,8 @@ void cuByClover(Complex *phi, Complex *r, Complex *clover[nc],Complex *sigval, u
 void cuHbyClover(Complex *phi, Complex *r, Complex *clover[nc],Complex *sigval, const float akappa, unsigned short *sigin);
 void cuByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f *sigval, unsigned short *sigin);
 void cuHbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f *sigval, const float akappa,unsigned short *sigin);
-int cuClover_Force(double *dSdpi, Complex_f *Leaves[6][nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,unsigned short *sigin,const float kappa);
+int cuClover_Force(double *dSdpi, Complex_f *Leaves[6][nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,\
+						unsigned short *sigin, unsigned int *iu, unsigned int *id, const float kappa);
 #ifdef __cplusplus
 }
 #endif
