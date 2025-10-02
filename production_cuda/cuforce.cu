@@ -5,91 +5,7 @@
 #include	<matrices.h>
 #include	<par_mpi.h>
 #include	<su2hmc.h>
-//Calling functions
-void cuGauge_force(Complex_f *ut[2],double *dSdpi,float beta,unsigned int *iu,unsigned int *id,dim3 dimGrid, dim3 dimBlock){
-	const char funcname[] = "Gauge_force";
-	int device=-1;
-	cudaGetDevice(&device);
-	Complex_f *Sigma[2], *ush[2];
-#ifdef _DEBUG
-	cudaMallocManaged((void **)&Sigma[0],kvol*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&Sigma[1],kvol*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&ush[0],(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&ush[1],(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
-#else
-	cudaMallocAsync((void **)&Sigma[0],kvol*sizeof(Complex_f),streams[0]);
-	cudaMallocAsync((void **)&Sigma[1],kvol*sizeof(Complex_f),streams[1]);
-	cudaMallocAsync((void **)&ush[0],(kvol+halo)*sizeof(Complex_f),streams[2]);
-	cudaMallocAsync((void **)&ush[1],(kvol+halo)*sizeof(Complex_f),streams[3]);
-#endif
-	for(int mu=0; mu<ndim; mu++){
-		cudaMemset(Sigma[0],0, kvol*sizeof(Complex_f));
-		cudaMemset(Sigma[1],0, kvol*sizeof(Complex_f));
-		for(int nu=0; nu<ndim; nu++)
-			if(nu!=mu){
-				//The @f$-\nu@f$ Staple
-				cuPlus_staple(mu,nu,iu,Sigma[0],Sigma[1],ut[0],ut[1],dimGrid,dimBlock);
-				C_gather(ush[0], ut[0], kvol, id, nu);
-				C_gather(ush[1], ut[1], kvol, id, nu);
-
-#if(nproc>1)
-				//Prefetch to the CPU for until we get NCCL working
-				//cudaMemPrefetchAsync(ush[0], kvol*sizeof(Complex_f),cudaCpuDeviceId,streams[0]);
-				//cudaMemPrefetchAsync(ush[1], kvol*sizeof(Complex_f),cudaCpuDeviceId,streams[1]);
-				CHalo_swap_dir(ush[0], 1, mu, DOWN); CHalo_swap_dir(ush[1], 1, mu, DOWN);
-				//cudaMemPrefetchAsync(ush[0]+kvol, halo*sizeof(Complex_f),device,streams[0]);
-				//cudaMemPrefetchAsync(ush[1]+kvol, halo*sizeof(Complex_f),device,streams[1]);
-#endif
-				//Next up, the @f$-\nu@f$ staple
-				cuMinus_staple(mu,nu,iu,id,Sigma[0],Sigma[1],ush[0],ush[1],ut[0],ut[1],dimGrid,dimBlock);
-			}
-		//Now get the gauge force acting in the @f$\mu@f$ direction
-		cuGaugeForce<<<dimGrid,dimBlock>>>(mu,Sigma[0],Sigma[1],dSdpi,ut[0],ut[1],beta);
-		cudaDeviceSynchronise();
-	}
-#ifdef _DEBUG
-	cudaFree(Sigma[0]); cudaFree(Sigma[1]);
-	cudaFree(ush[0]); cudaFree(ush[1]);
-#else
-	cudaFreeAsync(Sigma[0],streams[0]); cudaFreeAsync(Sigma[1],streams[1]);
-	cudaFreeAsync(ush[0],streams[2]); cudaFreeAsync(ush[1],streams[3]);
-#endif
-}
-void cuPlus_staple(int mu, int nu, unsigned int *iu, Complex_f *Sigma11, Complex_f *Sigma12, Complex_f *u11t, Complex_f *u12t,\
-		dim3 dimGrid, dim3 dimBlock){
-	const char *funcname="Plus_staple";
-	Plus_staple<<<dimGrid,dimBlock>>>(mu, nu, iu, Sigma11, Sigma12,u11t,u12t);
-}
-void cuMinus_staple(int mu, int nu, unsigned int *iu, unsigned int *id, Complex_f *Sigma11, Complex_f *Sigma12,\
-		Complex_f *u11sh, Complex_f *u12sh,Complex_f *u11t, Complex_f *u12t,dim3 dimGrid, dim3 dimBlock){
-	const char *funcname="Minus_staple";
-	Minus_staple<<<dimGrid,dimBlock>>>(mu, nu, iu, id,Sigma11,Sigma12,u11sh,u12sh,u11t,u12t);
-}
-void cuForce(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, \
-		Complex_f *gamval,float *dk[2],unsigned int *iu,int *gamin,\
-		float akappa, dim3 dimGrid, dim3 dimBlock){
-	const char *funcname = "Force";
-	//X1=(M†M)^{1} Phi
-	//	Transpose_z(X1,ndirac*nc,kvol); Transpose_z(X2,ndirac*nc,kvol);
-	cudaDeviceSynchronise();
-#pragma unroll
-	for(unsigned short mu=0;mu<3;mu++){
-		cuForce_s<<<dimGrid,dimBlock,0,streams[mu]>>>(dSdpi,ut[0],ut[1],X1,X2,gamval,iu,gamin,akappa,mu);
-		//			cuForce_s1<<<dimGrid,dimBlock,0,streams[mu*nadj+1]>>>(dSdpi,ut[0],ut[1],X1,X2,gamval,dk[1],dk[1],iu,gamin,akappa,idirac,mu);
-		//			cuForce_s2<<<dimGrid,dimBlock,0,streams[mu*nadj+2]>>>(dSdpi,ut[0],ut[1],X1,X2,gamval,dk[1],dk[1],iu,gamin,akappa,idirac,mu);
-	}
-	//Set stream for time direction
-	unsigned short mu=3;
-	cuForce_t<<<dimGrid,dimBlock,0,streams[mu]>>>(dSdpi,ut[0],ut[1],X1,X2,gamval,dk[0],dk[1],iu,gamin,akappa);
-	cudaDeviceSynchronise();
-	//	Transpose_z(X1,kvol,ndirac*nc); Transpose_z(X2,kvol,ndirac*nc);
-	cudaDeviceSynchronise();
-}
-
 //CUDA Kernels
-//TODO: Split cuForce into seperateable streams. Twelve in total I Believe?
-//A stream for each nadj index,dirac index and each μ (ndim) value
-//3*4*4=36 streams total... Pass dirac and μ spatial indices as arguments
 __global__ void Plus_staple(const int mu, const int nu,unsigned int *iu, Complex_f *Sigma11, Complex_f *Sigma12, Complex_f *u11t, Complex_f *u12t){
 	const char *funcname = "Plus_staple";
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
@@ -146,6 +62,9 @@ __global__ void cuGaugeForce(int mu, Complex_f *Sigma11, Complex_f *Sigma12,doub
 	}
 }
 
+//TODO: Split cuForce into seperateable streams. Twelve in total I Believe?
+//A stream for each nadj index,dirac index and each μ (ndim) value
+//3*4*4=36 streams total... Pass dirac and μ spatial indices as arguments
 __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Complex_f *X1, Complex_f *X2, Complex_f *gamval,\
 		unsigned int *iu, int *gamin,float akappa, int mu){
 	const char *funcname = "cuForce";
@@ -303,4 +222,85 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t,Comple
 			dSdpi[i+kvol*(2*ndim+mu)]=dSdpis[2];
 		}
 	}
+}
+
+//Calling functions
+void cuGauge_force(Complex_f *ut[2],double *dSdpi,float beta,unsigned int *iu,unsigned int *id,dim3 dimGrid, dim3 dimBlock){
+	const char funcname[] = "Gauge_force";
+	int device=-1;
+	cudaGetDevice(&device);
+	Complex_f *Sigma[2], *ush[2];
+#ifdef _DEBUG
+	cudaMallocManaged((void **)&Sigma[0],kvol*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&Sigma[1],kvol*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&ush[0],(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&ush[1],(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
+#else
+	cudaMallocAsync((void **)&Sigma[0],kvol*sizeof(Complex_f),streams[0]);
+	cudaMallocAsync((void **)&Sigma[1],kvol*sizeof(Complex_f),streams[1]);
+	cudaMallocAsync((void **)&ush[0],(kvol+halo)*sizeof(Complex_f),streams[2]);
+	cudaMallocAsync((void **)&ush[1],(kvol+halo)*sizeof(Complex_f),streams[3]);
+#endif
+	for(int mu=0; mu<ndim; mu++){
+		cudaMemset(Sigma[0],0, kvol*sizeof(Complex_f));
+		cudaMemset(Sigma[1],0, kvol*sizeof(Complex_f));
+		for(int nu=0; nu<ndim; nu++)
+			if(nu!=mu){
+				//The @f$-\nu@f$ Staple
+				cuPlus_staple(mu,nu,iu,Sigma[0],Sigma[1],ut[0],ut[1],dimGrid,dimBlock);
+				C_gather(ush[0], ut[0], kvol, id, nu);
+				C_gather(ush[1], ut[1], kvol, id, nu);
+
+#if(nproc>1)
+				//Prefetch to the CPU for until we get NCCL working
+				//cudaMemPrefetchAsync(ush[0], kvol*sizeof(Complex_f),cudaCpuDeviceId,streams[0]);
+				//cudaMemPrefetchAsync(ush[1], kvol*sizeof(Complex_f),cudaCpuDeviceId,streams[1]);
+				CHalo_swap_dir(ush[0], 1, mu, DOWN); CHalo_swap_dir(ush[1], 1, mu, DOWN);
+				//cudaMemPrefetchAsync(ush[0]+kvol, halo*sizeof(Complex_f),device,streams[0]);
+				//cudaMemPrefetchAsync(ush[1]+kvol, halo*sizeof(Complex_f),device,streams[1]);
+#endif
+				//Next up, the @f$-\nu@f$ staple
+				cuMinus_staple(mu,nu,iu,id,Sigma[0],Sigma[1],ush[0],ush[1],ut[0],ut[1],dimGrid,dimBlock);
+			}
+		//Now get the gauge force acting in the @f$\mu@f$ direction
+		cuGaugeForce<<<dimGrid,dimBlock>>>(mu,Sigma[0],Sigma[1],dSdpi,ut[0],ut[1],beta);
+		cudaDeviceSynchronise();
+	}
+#ifdef _DEBUG
+	cudaFree(Sigma[0]); cudaFree(Sigma[1]);
+	cudaFree(ush[0]); cudaFree(ush[1]);
+#else
+	cudaFreeAsync(Sigma[0],streams[0]); cudaFreeAsync(Sigma[1],streams[1]);
+	cudaFreeAsync(ush[0],streams[2]); cudaFreeAsync(ush[1],streams[3]);
+#endif
+}
+void cuPlus_staple(int mu, int nu, unsigned int *iu, Complex_f *Sigma11, Complex_f *Sigma12, Complex_f *u11t, Complex_f *u12t,\
+		dim3 dimGrid, dim3 dimBlock){
+	const char *funcname="Plus_staple";
+	Plus_staple<<<dimGrid,dimBlock>>>(mu, nu, iu, Sigma11, Sigma12,u11t,u12t);
+}
+void cuMinus_staple(int mu, int nu, unsigned int *iu, unsigned int *id, Complex_f *Sigma11, Complex_f *Sigma12,\
+		Complex_f *u11sh, Complex_f *u12sh,Complex_f *u11t, Complex_f *u12t,dim3 dimGrid, dim3 dimBlock){
+	const char *funcname="Minus_staple";
+	Minus_staple<<<dimGrid,dimBlock>>>(mu, nu, iu, id,Sigma11,Sigma12,u11sh,u12sh,u11t,u12t);
+}
+void cuForce(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, \
+		Complex_f *gamval,float *dk[2],unsigned int *iu,int *gamin,\
+		float akappa, dim3 dimGrid, dim3 dimBlock){
+	const char *funcname = "Force";
+	//X1=(M†M)^{1} Phi
+	//	Transpose_z(X1,ndirac*nc,kvol); Transpose_z(X2,ndirac*nc,kvol);
+	cudaDeviceSynchronise();
+#pragma unroll
+	for(unsigned short mu=0;mu<3;mu++){
+		cuForce_s<<<dimGrid,dimBlock,0,streams[mu]>>>(dSdpi,ut[0],ut[1],X1,X2,gamval,iu,gamin,akappa,mu);
+		//			cuForce_s1<<<dimGrid,dimBlock,0,streams[mu*nadj+1]>>>(dSdpi,ut[0],ut[1],X1,X2,gamval,dk[1],dk[1],iu,gamin,akappa,idirac,mu);
+		//			cuForce_s2<<<dimGrid,dimBlock,0,streams[mu*nadj+2]>>>(dSdpi,ut[0],ut[1],X1,X2,gamval,dk[1],dk[1],iu,gamin,akappa,idirac,mu);
+	}
+	//Set stream for time direction
+	unsigned short mu=3;
+	cuForce_t<<<dimGrid,dimBlock,0,streams[mu]>>>(dSdpi,ut[0],ut[1],X1,X2,gamval,dk[0],dk[1],iu,gamin,akappa);
+	cudaDeviceSynchronise();
+	//	Transpose_z(X1,kvol,ndirac*nc); Transpose_z(X2,kvol,ndirac*nc);
+	cudaDeviceSynchronise();
 }

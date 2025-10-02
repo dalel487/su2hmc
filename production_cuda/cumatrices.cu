@@ -5,7 +5,7 @@
 template <typename T>
 __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, complex<T> *u12t,unsigned int *iu, unsigned int *id,\
 		__constant__ complex<T> *gamval_d,	int *gamin_d,	T *dk4m, T *dk4p, Complex_f jqq, float akappa){
-	const char *funcname = "cuDslash";
+	const char funcname[] = "cuDslash";
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -43,25 +43,17 @@ __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, compl
 					rgu[c]=r[uid+kvol*(igork1*nc+c)]; rgd[c]=r[did+kvol*(igork1*nc+c)];
 				}
 				//Wilson + Dirac term in that order. Definitely easier
-				phi_s[igorkov*nc]+=-akappa*(u11s*ru[0]+\
-						u12s*ru[1]+\
-						conj(u11sd)*rd[0]-\
-						u12sd*rd[1]);
+				phi_s[igorkov*nc]+=-akappa*(u11s*ru[0]+ u12s*ru[1]+\
+						conj(u11sd)*rd[0]- u12sd*rd[1]);
 				//Dirac term
-				phi_s[igorkov*nc]+=gamval_d[mu*ndirac+idirac]*(u11s*rgu[0]+\
-						u12s*rgu[1]-\
-						conj(u11sd)*rgd[0]+\
-						u12sd*rgd[1]);
+				phi_s[igorkov*nc]+=gamval_d[mu*ndirac+idirac]*(u11s*rgu[0]+ u12s*rgu[1]-\
+						conj(u11sd)*rgd[0]+ u12sd*rgd[1]);
 
-				phi_s[igorkov*nc+1]+=-akappa*(-conj(u12s)*ru[0]+\
-						conj(u11s)*ru[1]+\
-						conj(u12sd)*rd[0]+\
-						u11sd*rd[1]);
+				phi_s[igorkov*nc+1]+=-akappa*(-conj(u12s)*ru[0]+ conj(u11s)*ru[1]+\
+						conj(u12sd)*rd[0]+ u11sd*rd[1]);
 				//Dirac term
-				phi_s[igorkov*nc+1]+=gamval_d[mu*ndirac+idirac]*(-conj(u12s)*rgu[0]+\
-						conj(u11s)*rgu[1]-\
-						conj(u12sd)*rgd[0]-\
-						u11sd*rgd[1]);
+				phi_s[igorkov*nc+1]+=gamval_d[mu*ndirac+idirac]*(-conj(u12s)*rgu[0]+ conj(u11s)*rgu[1]-\
+						conj(u12sd)*rgd[0]- u11sd*rgd[1]);
 			}
 		}
 		//Timelike terms next. These run from igorkov=0..3 and 4..7 with slightly different rules for each
@@ -82,17 +74,13 @@ __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, compl
 			}
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			phi_s[igorkov*nc]+=
-				-dk4ps*(u11s*(ru[0]-rgu[0])
-						+u12s*(ru[1]-rgu[1]))
-				-dk4msd*(conj(u11sd)*(rd[0]+rgd[0])
-						-u12sd *(rd[1]+rgd[1]));
+				-dk4ps*(u11s*(ru[0]-rgu[0]) +u12s*(ru[1]-rgu[1]))
+				-dk4msd*(conj(u11sd)*(rd[0]+rgd[0]) -u12sd *(rd[1]+rgd[1]));
 			phi[i+kvol*(igorkov*nc)]=phi_s[igorkov*nc];
 
 			phi_s[igorkov*nc+1]+=
-				-dk4ps*(-conj(u12s)*(ru[0]-rgu[0])
-						+conj(u11s)*(ru[1]-rgu[1]))
-				-dk4msd*(conj(u12sd)*(rd[0]+rgd[0])
-						+u11sd *(rd[1]+rgd[1]));
+				-dk4ps*(-conj(u12s)*(ru[0]-rgu[0]) +conj(u11s)*(ru[1]-rgu[1]))
+				-dk4msd*(conj(u12sd)*(rd[0]+rgd[0]) +u11sd *(rd[1]+rgd[1]));
 			phi[i+kvol*(igorkov*nc+1)]=phi_s[igorkov*nc+1];
 			unsigned short igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
 												//the FORTRAN code did it.
@@ -103,16 +91,12 @@ __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, compl
 				rgu[c]=r[uid+kvol*(igork1PP*nc+c)]; rgd[c]=r[did+kvol*(igork1PP*nc+c)];
 			}
 			//And the Gor'kov terms. Note that dk4p and dk4m swap positions compared to the above				
-			phi_s[igorkovPP*nc]+=-dk4ms*(u11s*(ru[0]-rgu[0])+
-					u12s*(ru[1]-rgu[1]))-
-				dk4psd*(conj(u11sd)*(rd[0]+rgd[0])-
-						u12sd*(rd[1]+rgd[1]));
+			phi_s[igorkovPP*nc]+=-dk4ms*(u11s*(ru[0]-rgu[0])+ u12s*(ru[1]-rgu[1]))-
+				dk4psd*(conj(u11sd)*(rd[0]+rgd[0])- u12sd*(rd[1]+rgd[1]));
 			phi[i+kvol*(igorkovPP*nc)]=phi_s[igorkovPP*nc];
 
-			phi_s[igorkovPP*nc+1]+=-dk4ms*(conj(-u12s)*(ru[0]-rgu[0])
-					+conj(u11s)*(ru[1]-rgu[1]))
-				-dk4psd*(conj(u12sd)*(rd[0]+rgd[0])
-						+u11sd*(rd[1]+rgd[1]));
+			phi_s[igorkovPP*nc+1]+=-dk4ms*(conj(-u12s)*(ru[0]-rgu[0]) +conj(u11s)*(ru[1]-rgu[1]))
+				-dk4psd*(conj(u12sd)*(rd[0]+rgd[0]) +u11sd*(rd[1]+rgd[1]));
 			phi[i+kvol*(igorkovPP*nc+1)]=phi_s[igorkovPP*nc+1];
 		}
 #endif
@@ -121,7 +105,7 @@ __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, compl
 template <typename T>
 __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T> *u11t, const complex<T> *u12t,const unsigned int *iu, const unsigned int *id,\
 		__constant__ complex<T> *gamval_d,	int *gamin_d,	const T *dk4m, const T *dk4p, const Complex_f jqq, const float akappa){
-	const char *funcname = "cuDslashd";
+	const char funcname[] = "cuDslashd";
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -244,14 +228,13 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 	}
 }
 
-//__maxnreg__(64)
 template <typename T>
 __global__ void cuHdslash(complex<T> *phi, const complex<T> *r, const complex<T> *u11t, const complex<T> *u12t,unsigned int *iu, unsigned int *id,\
 		__constant__ complex<T> gamval[20],	__constant__ int gamin_d[16],	const T *dk4m, const T *dk4p, const __grid_constant__ float akappa){
 	/*
 	 * Half Dslash T precision
 	 */
-	const volatile char *funcname = "cuHdslash0_f";
+	const volatile char funcname[] = "cuHdslash0_f";
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -265,7 +248,6 @@ __global__ void cuHdslash(complex<T> *phi, const complex<T> *r, const complex<T>
 	complex<T> rgu[2];  complex<T> rgd[2];
 	complex<T> phi_s[ndirac*nc];
 	for(unsigned int i=gthreadId;i<kvol;i+=bsize*gsize){
-		//Do we need to sync threads if each thread only accesses the value it put in shared memory?
 #pragma unroll
 		for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll
@@ -284,10 +266,10 @@ __global__ void cuHdslash(complex<T> *phi, const complex<T> *r, const complex<T>
 				const unsigned short igork1 = gamin_d[mu*ndirac+(idirac>>1)] << (nc-1);
 #pragma unroll
 				for(unsigned short c=0;c<nc;c++){
-					unsigned int rind =kvol*(idirac+c);
-					ru[c]=r[uid+rind]; rd[c]=r[did+rind];
-					rind =kvol*(igork1+c);
-					rgu[c]=r[uid+rind]; rgd[c]=r[did+rind];
+					ind =kvol*(idirac+c);
+					ru[c]=r[uid+ind]; rd[c]=r[did+ind];
+					ind =kvol*(igork1+c);
+					rgu[c]=r[uid+ind]; rgd[c]=r[did+ind];
 				}
 				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
 				//Can manually vectorise with a pragma?
@@ -296,25 +278,17 @@ __global__ void cuHdslash(complex<T> *phi, const complex<T> *r, const complex<T>
 				//Spacelike terms
 				if(mu<3){
 					const complex<T> gam=gamval[mu*ndirac+(idirac>>1)];
-					phi_s[idirac]+=-akappa*(u11s*ru[0]+\
-							u12s*ru[1]+\
-							conj(u11sd)*rd[0]-\
-							u12sd*rd[1]);
+					phi_s[idirac]+=-akappa*(u11s*ru[0]+u12s*ru[1]+\
+							conj(u11sd)*rd[0]-u12sd*rd[1]);
 					//Dirac term
-					phi_s[idirac]+=gam*(u11s*rgu[0]+\
-							u12s*rgu[1]-\
-							conj(u11sd)*rgd[0]+\
-							u12sd*rgd[1]);
+					phi_s[idirac]+=gam*(u11s*rgu[0]+u12s*rgu[1]-\
+							conj(u11sd)*rgd[0]+ u12sd*rgd[1]);
 
-					phi_s[idirac+1]+=-akappa*(-conj(u12s)*ru[0]+\
-							conj(u11s)*ru[1]+\
-							conj(u12sd)*rd[0]+\
-							u11sd*rd[1]);
+					phi_s[idirac+1]+=-akappa*(-conj(u12s)*ru[0]+ conj(u11s)*ru[1]+\
+							conj(u12sd)*rd[0]+ u11sd*rd[1]);
 					//Dirac term
-					phi_s[idirac+1]+=gam*(-conj(u12s)*rgu[0]+\
-							conj(u11s)*rgu[1]-\
-							conj(u12sd)*rgd[0]-\
-							u11sd*rgd[1]);
+					phi_s[idirac+1]+=gam*(-conj(u12s)*rgu[0]+ conj(u11s)*rgu[1]-\
+							conj(u12sd)*rgd[0]- u11sd*rgd[1]);
 				}
 				//Timelike terms
 				else{
@@ -341,14 +315,13 @@ __global__ void cuHdslash(complex<T> *phi, const complex<T> *r, const complex<T>
 		}
 	}
 }
-//__maxnreg__(64)
 template <typename T>
 __global__ void cuHdslashd(complex<T> *phi, const complex<T>* r, const complex<T>* u11t, const complex<T>* u12t,unsigned int* iu, unsigned int* id,\
 		__constant__ complex<T> gamval[20],	__constant__ int gamin_d[16],	const T* dk4m, const T* dk4p, const __grid_constant__ float akappa){
 	/*
 	 * Half Dslash Dagger T precision 
 	 */
-	const volatile char *funcname = "cuHdslashd0_f";
+	const volatile char funcname[] = "cuHdslashd0_f";
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -379,54 +352,39 @@ __global__ void cuHdslashd(complex<T> *phi, const complex<T>* r, const complex<T
 				unsigned short igork1 = gamin_d[mu*ndirac+(idirac>>1)] << (nc-1);
 #pragma unroll
 				for(unsigned short c=0;c<nc;c++){
-					unsigned int rind =kvol*(idirac+c);
-					ru[c]=r[uid+rind];
-					rd[c]=r[did+rind];
-					rind =kvol*(igork1+c);
-					rgu[c]=r[uid+rind];
-					rgd[c]=r[did+rind];
+					ind =kvol*(idirac+c);
+					ru[c]=r[uid+ind]; rd[c]=r[did+ind];
+					ind =kvol*(igork1+c);
+					rgu[c]=r[uid+ind]; rgd[c]=r[did+ind];
 				}
 				//Can manually vectorise with a pragma?
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
 				if(mu<3){
 					const complex<T> gam=gamval[mu*ndirac+(idirac>>1)];
-					phi_s[idirac]-=akappa*(u11s*ru[0]
-							+u12s*ru[1]
-							+conj(u11sd)*rd[0]
-							-u12sd *rd[1]);
+					phi_s[idirac]-=akappa*(u11s*ru[0] +u12s*ru[1]
+							+conj(u11sd)*rd[0] -u12sd *rd[1]);
 					//Dirac term
-					phi_s[idirac]-=gam*
-						(u11s*rgu[0]
-						 +u12s*rgu[1]
-						 -conj(u11sd)*rgd[0]
-						 +u12sd *rgd[1]);
+					phi_s[idirac]-=gam* (u11s*rgu[0] +u12s*rgu[1]
+						 -conj(u11sd)*rgd[0] +u12sd *rgd[1]);
 
-					phi_s[idirac+1]-=akappa*(-conj(u12s)*ru[0]
-							+conj(u11s)*ru[1]
-							+conj(u12sd)*rd[0]
-							+u11sd *rd[1]);
+					phi_s[idirac+1]-=akappa*(-conj(u12s)*ru[0] +conj(u11s)*ru[1]
+							+conj(u12sd)*rd[0] +u11sd *rd[1]);
 					//Dirac term
-					phi_s[idirac+1]-=gam*(-conj(u12s)*rgu[0]
-							+conj(u11s)*rgu[1]
-							-conj(u12sd)*rgd[0]
-							-u11sd *rgd[1]);
+					phi_s[idirac+1]-=gam*(-conj(u12s)*rgu[0] +conj(u11s)*rgu[1]
+							-conj(u12sd)*rgd[0] -u11sd *rgd[1]);
 				}
 				else{
 					const T  dk4ms=dk4m[i];  const T dk4ps=dk4p[did];
-					phi_s[idirac]+=
-						-dk4ms*(u11s*(ru[0]+rgu[0])
+					phi_s[idirac]+= -dk4ms*(u11s*(ru[0]+rgu[0])
 								+u12s*(ru[1]+rgu[1]));
-					phi_s[idirac]+=
-						-dk4ps*(conj(u11sd)*(rd[0]-rgd[0])
+					phi_s[idirac]+= -dk4ps*(conj(u11sd)*(rd[0]-rgd[0])
 								-u12sd *(rd[1]-rgd[1]));
 					phi[i+kvol*(0+idirac)]=phi_s[idirac+0];
 
-					phi_s[idirac+1]-=
-						dk4ms*(-conj(u12s)*(ru[0]+rgu[0])
+					phi_s[idirac+1]-= dk4ms*(-conj(u12s)*(ru[0]+rgu[0])
 								+conj(u11s)*(ru[1]+rgu[1]));
-					phi_s[idirac+1]-=
-						+dk4ps*(conj(u12sd)*(rd[0]-rgd[0])
+					phi_s[idirac+1]-= +dk4ps*(conj(u12sd)*(rd[0]-rgd[0])
 								+u11sd *(rd[1]-rgd[1]));
 					phi[i+kvol*(1+idirac)]=phi_s[idirac+1];
 				}
@@ -446,7 +404,7 @@ __global__ void cuHdslashd(complex<T> *phi, const complex<T>* r, const complex<T
  */
 template <typename T>
 __global__ void Transpose(T *out, const T *in, const int fast_in, const int fast_out){
-	const volatile char *funcname="Transpose_f";
+	const volatile char funcname[]="Transpose_f";
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -467,55 +425,9 @@ __global__ void Transpose(T *out, const T *in, const int fast_in, const int fast
 				out[y*fast_out+x]=in[x*fast_in+y];
 	}
 }
-/*
-	__global__ void Transpose_f(Complex_f *out, Complex_f *in, const int fast_in, const int fast_out){
-	const volatile char *funcname="Transpose_f";
-	const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const volatile int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const volatile int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const volatile int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	const int gthreadId= blockId * bsize+bthreadId;
-
-//The if/else here is only to ensure we maximise GPU bandwidth
-//Typically this is used to write back to the AoS/Coalseced format
-if(fast_out>fast_in){
-for(int x=gthreadId;x<fast_out;x+=gsize*bsize)
-for(int y=0; y<fast_in;y++)
-out[y*fast_out+x]=in[x*fast_in+y];
-}
-//Typically this is used to write back to the SoA/saved config format
-else{
-for(int x=0; x<fast_out;x++)
-for(int y=gthreadId;y<fast_in;y+=gsize*bsize)
-out[y*fast_out+x]=in[x*fast_in+y];
-}
-}
-__global__ void Transpose_I(int *out, int *in, const int fast_in, const int fast_out){
-const volatile char *funcname="Transpose_I";
-const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
-const volatile int bsize = blockDim.x*blockDim.y*blockDim.z;
-const volatile int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-const volatile int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-const int gthreadId= blockId * bsize+bthreadId;
-
-//The if/else here is only to ensure we maximise GPU bandwidth
-//Typically this is used to write back to the AoS/Coalseced format
-if(fast_out>fast_in){
-for(int x=gthreadId;x<fast_out;x+=gsize*bsize)
-for(int y=0; y<fast_in;y++)
-out[y*fast_out+x]=in[x*fast_in+y];
-}
-//Typically this is used to write back to the SoA/saved config format
-else{
-for(int x=0; x<fast_out;x++)
-for(int y=gthreadId;y<fast_in;y+=gsize*bsize)
-out[y*fast_out+x]=in[x*fast_in+y];
-}
-}
-*/
 
 __global__ void cuMixed_Sumto(double *d, float *f, const unsigned int n){
-	const volatile char *funcname="Mixed_prod";
+	const volatile char funcname[]="Mixed_prod";
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -553,7 +465,7 @@ void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned in
 	 * Returns:
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "Dslash";
+	const char funcname[] = "Dslash";
 	cudaMemcpy(phi, r, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice);
 	cuDslash<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 }
@@ -581,7 +493,7 @@ void cuDslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned i
 	 * Returns:
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "Dslashd";
+	const char funcname[] = "Dslashd";
 	cudaMemcpy(phi, r, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice);
 	cuDslashd<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 }
@@ -609,7 +521,7 @@ void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned i
 	 * Returns:
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "Hdslash";
+	const char funcname[] = "Hdslash";
 	cudaMemcpy(phi, r, kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice);
 	cuHdslash<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
 }
@@ -637,7 +549,7 @@ void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned 
 	 * Returns:
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "Hdslashd";
+	const char funcname[] = "Hdslashd";
 	//Spacelike term
 	cudaMemcpy(phi, r, kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice);
 	cuHdslashd<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
@@ -668,7 +580,7 @@ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,u
 	 * Returns:
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "Dslash_f";
+	const char funcname[] = "Dslash_f";
 	int cuCpyStat=0;
 	if((cuCpyStat=cudaMemcpy(phi, r, kferm*sizeof(Complex_f),cudaMemcpyDefault))){
 		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
@@ -701,7 +613,7 @@ void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,
 	 * Returns:
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "Dslashd_f";
+	const char funcname[] = "Dslashd_f";
 	int cuCpyStat=0;
 	if((cuCpyStat=cudaMemcpy(phi, r, kferm*sizeof(Complex_f),cudaMemcpyDefault))){
 		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
@@ -733,7 +645,7 @@ void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu
 	 * Returns:
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "Hdslash_f";
+	const char funcname[] = "Hdslash_f";
 	int cuCpyStat=0;
 	if((cuCpyStat=cudaMemcpy(phi, r, kferm2*sizeof(Complex_f),cudaMemcpyDefault))){
 		fprintf(stderr,"Error %d in %s: Cuda failed to copy r into device Phi with code %d.\nExiting,,,\n\n",\
@@ -767,7 +679,7 @@ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *i
 	 * Returns:
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "Hdslashd_f";
+	const char funcname[] = "Hdslashd_f";
 	int cuCpyStat=0;
 	//__shared__ int gamin_s[16]; __shared__ Complex_f gamval_s[20];
 	//intShare(gamin_s,gamin,16); floatShare(gamval_s,gamval,2*20);
