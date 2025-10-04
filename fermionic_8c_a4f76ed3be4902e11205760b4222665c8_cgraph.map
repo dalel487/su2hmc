@@ -1,0 +1,24 @@
+<map id="Measure" name="Measure">
+<area shape="rect" id="Node000001" title="Calculate fermion expectation values via a noisy estimator." alt="" coords="5,152,77,178"/>
+<area shape="rect" id="Node000002" href="$congrad_8c.html#aa3fde21d836b340202ca6b18bead4510" title="Matrix Inversion via Conjugate Gradient (no up/down flavour partitioning). Solves &#160;The matrix multipl..." alt="" coords="144,101,220,127"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="76,150,129,130,131,135,78,155"/>
+<area shape="rect" id="Node000005" href="$matrices_8c.html#ad8f7378919117970073d06cbb243f9a4" title="Evaluates &#160;in single precision." alt="" coords="288,5,368,31"/>
+<area shape="poly" id="edge8_Node000001_Node000005" title=" " alt="" coords="51,150,82,119,123,87,160,67,200,51,272,28,274,33,201,56,163,72,126,91,85,123,55,154"/>
+<area shape="rect" id="Node000006" href="$par__mpi_8h.html#aecfe9840e5f8dfd693b813b750d81a0c" title="Performs a reduction on a double dval to get a sum which is then distributed to all ranks." alt="" coords="288,153,368,179"/>
+<area shape="poly" id="edge11_Node000001_Node000006" title=" " alt="" coords="77,162,272,163,272,169,77,168"/>
+<area shape="rect" id="Node000008" href="$random_8c.html#a859e92fda23ce37dad2971362f72a50d" title="Generates a vector of normally distributed random single precision complex numbers using the Box&#45;Mull..." alt="" coords="146,203,219,228"/>
+<area shape="poly" id="edge9_Node000001_Node000008" title=" " alt="" coords="78,175,132,195,130,200,76,180"/>
+<area shape="rect" id="Node000010" href="$par__mpi_8h.html#a893a7c85fb77e355d4cec6bc35711b98" title="Swaps the halos along the axis given by idir in the direction given by layer." alt="" coords="125,252,240,278"/>
+<area shape="poly" id="edge12_Node000001_Node000010" title=" " alt="" coords="56,176,86,207,126,239,133,242,130,247,123,243,83,211,52,180"/>
+<area shape="rect" id="Node000003" href="$matrices_8c.html#a40434b5c9baa7bb374ac7faf436acc56" title="Evaluates &#160;in single precision." alt="" coords="292,55,364,80"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="220,99,277,81,278,86,222,105"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="201,99,287,40,291,37,294,42,289,44,204,103"/>
+<area shape="poly" id="edge6_Node000002_Node000006" title=" " alt="" coords="221,125,277,145,275,150,220,130"/>
+<area shape="rect" id="Node000007" href="$par__mpi_8h.html#a4e2e85b06c5b05c5181729cc5ebdd05b" title="Performs a reduction on a float dval to get a sum which is then distributed to all ranks." alt="" coords="290,104,367,130"/>
+<area shape="poly" id="edge7_Node000002_Node000007" title=" " alt="" coords="221,112,274,113,274,119,221,118"/>
+<area shape="rect" id="Node000004" href="$par__mpi_8h.html#a14b1a550ef4f44a9e4d7dd06c9427993" title="Calls the functions to send data to both the up and down halos." alt="" coords="416,31,532,56"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="364,59,401,53,402,58,365,64"/>
+<area shape="poly" id="edge5_Node000005_Node000004" title=" " alt="" coords="369,22,402,28,401,33,368,28"/>
+<area shape="rect" id="Node000009" href="$random_8c.html#afba975c2629ded7c68cb21cfbeb4b496" title="Generates uniformly distributed random double between zero and one as described in numerical recipes...." alt="" coords="305,203,351,228"/>
+<area shape="poly" id="edge10_Node000008_Node000009" title=" " alt="" coords="219,213,289,213,289,218,219,218"/>
+</map>

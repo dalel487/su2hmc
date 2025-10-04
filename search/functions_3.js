@@ -1,0 +1,5 @@
+var searchData=
+[
+  ['fill_5fsmall_5fphi_0',['Fill_Small_Phi',['../su2hmc_8h.html#ad4816b4c3599a65d212f34e10c83055f',1,'Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi):&#160;su2hmc.c'],['../su2hmc_8c.html#ad4816b4c3599a65d212f34e10c83055f',1,'Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi):&#160;su2hmc.c']]],
+  ['force_1',['Force',['../su2hmc_8h.html#a98a5926c20124e0cea060ad1e47ff3de',1,'Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Complex *Phi, Complex *ut[2], Complex_f *ut_f[2], unsigned int *iu, unsigned int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, double *dk[2], float *dk_f[2], Complex_f jqq, float akappa, float beta, double *ancg):&#160;force.c'],['../force_8c.html#a98a5926c20124e0cea060ad1e47ff3de',1,'Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Complex *Phi, Complex *ut[2], Complex_f *ut_f[2], unsigned int *iu, unsigned int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, double *dk[2], float *dk_f[2], Complex_f jqq, float akappa, float beta, double *ancg):&#160;force.c']]]
+];

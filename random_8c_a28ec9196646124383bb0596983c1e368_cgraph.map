@@ -1,0 +1,5 @@
+<map id="Gauss_f" name="Gauss_f">
+<area shape="rect" id="Node000001" title="Generates a vector of normally distributed random single precision numbers using the Box&#45;Muller Metho..." alt="" coords="5,5,76,31"/>
+<area shape="rect" id="Node000002" href="$random_8c.html#afba975c2629ded7c68cb21cfbeb4b496" title="Generates uniformly distributed random double between zero and one as described in numerical recipes...." alt="" coords="124,5,170,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="76,16,108,16,108,21,76,21"/>
+</map>

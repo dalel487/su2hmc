@@ -1,0 +1,7 @@
+<map id="Average_Plaquette" name="Average_Plaquette">
+<area shape="rect" id="Node000001" title="Calculates the gauge action using new (how new?) lookup table." alt="" coords="5,31,137,56"/>
+<area shape="rect" id="Node000002" href="$par__mpi_8h.html#aecfe9840e5f8dfd693b813b750d81a0c" title="Performs a reduction on a double dval to get a sum which is then distributed to all ranks." alt="" coords="185,5,265,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="137,30,169,25,170,30,138,35"/>
+<area shape="rect" id="Node000003" href="$bosonic_8c.html#a264e9888253e3d2751452205323c8697" title="Calculates the plaquette at site i in the &#160;direction." alt="" coords="189,55,260,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="138,51,174,57,173,62,137,56"/>
+</map>

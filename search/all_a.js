@@ -1,0 +1,5 @@
+var searchData=
+[
+  ['leapfrog_0',['Leapfrog',['../integrate_8h.html#a4d7f64e9f3e98a2953d707f18742d110',1,'Leapfrog(Complex *ut[2], Complex_f *ut_f[2], Complex *X0, Complex *X1, Complex *Phi, double *dk[2], float *dk_f[2], double *dSdpi, double *pp, int *iu, int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, Complex jqq, float beta, float akappa, int stepl, float dt, double *ancg, int *itot, float proby):&#160;integrate.c'],['../integrate_8c.html#a4d7f64e9f3e98a2953d707f18742d110',1,'Leapfrog(Complex *ut[2], Complex_f *ut_f[2], Complex *X0, Complex *X1, Complex *Phi, double *dk[2], float *dk_f[2], double *dSdpi, double *pp, int *iu, int *id, Complex *gamval, Complex_f *gamval_f, int *gamin, Complex jqq, float beta, float akappa, int stepl, float dt, double *ancg, int *itot, float proby):&#160;integrate.c']]],
+  ['list_1',['Todo List',['../todo.html',1,'']]]
+];

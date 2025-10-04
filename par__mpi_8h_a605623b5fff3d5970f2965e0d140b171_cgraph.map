@@ -1,0 +1,5 @@
+<map id="Par_sread" name="Par_sread">
+<area shape="rect" id="Node000001" title="Reads and assigns the gauges from file." alt="" coords="5,5,86,31"/>
+<area shape="rect" id="Node000002" href="$coord_8c.html#a1dcdfd7cd0256b5cf00f97af96d695d4" title="Converts the coordinates of a global lattice point to its index in the computer memory." alt="" coords="134,5,233,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="86,16,118,16,118,21,86,21"/>
+</map>

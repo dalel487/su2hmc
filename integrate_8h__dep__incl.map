@@ -1,0 +1,28 @@
+<map id="INCLUDE/integrate.h" name="INCLUDE/integrate.h">
+<area shape="rect" id="Node000001" title="Integrators for the HMC." alt="" coords="390,5,533,31"/>
+<area shape="rect" id="Node000002" href="$su2hmc_8h.html" title="Function declarations for most of the routines." alt="" coords="392,79,531,105"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="464,46,464,79,459,79,459,46"/>
+<area shape="rect" id="Node000003" href="$matrices_8h.html" title="Matrix multiplication and related declarations." alt="" coords="281,153,424,178"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="432,115,372,154,370,150,429,111"/>
+<area shape="rect" id="Node000004" href="$main_8c.html" title="Hybrid Monte Carlo algorithm for Two Colour QCD with Wilson&#45;Gor&#39;kov fermions based on the algorithm o..." alt="" coords="5,226,65,252"/>
+<area shape="poly" id="edge9_Node000002_Node000004" title=" " alt="" coords="389,111,310,130,228,155,134,193,60,228,58,223,132,188,226,150,309,125,387,106"/>
+<area shape="rect" id="Node000006" href="$fermionic_8c.html" title="Code for fermionic observables." alt="" coords="88,226,251,252"/>
+<area shape="poly" id="edge11_Node000002_Node000006" title=" " alt="" coords="386,112,327,129,270,155,219,192,182,228,178,224,215,188,267,150,326,124,384,106"/>
+<area shape="rect" id="Node000009" href="$su2hmc_8c.html" title="An ecclectic collection of functions used in the HMC." alt="" coords="800,226,955,252"/>
+<area shape="poly" id="edge14_Node000002_Node000009" title=" " alt="" coords="465,120,472,150,479,164,488,176,604,196,800,224,799,230,603,201,486,181,474,167,467,152,460,121"/>
+<area shape="rect" id="Node000010" href="$bosonic_8c.html" title="Code for bosonic observables, Basically polyakov loop and Plaquette routines." alt="" coords="499,153,654,178"/>
+<area shape="poly" id="edge10_Node000002_Node000010" title=" " alt="" coords="496,111,558,150,555,154,493,116"/>
+<area shape="rect" id="Node000011" href="$integrate_8c.html" title="Symplectic integrator code." alt="" coords="678,153,837,178"/>
+<area shape="poly" id="edge12_Node000002_Node000011" title=" " alt="" coords="528,106,708,149,707,155,526,111"/>
+<area shape="rect" id="Node000012" href="$par__mpi_8c.html" title="MPI routines." alt="" coords="861,153,1017,178"/>
+<area shape="poly" id="edge13_Node000002_Node000012" title=" " alt="" coords="547,103,861,150,861,155,546,108"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="277,185,77,229,66,232,65,227,76,224,276,179"/>
+<area shape="rect" id="Node000005" href="$congrad_8c.html" title="Conjugate gradients. Congradq for the solver and Congradp for the inversion." alt="" coords="275,226,430,252"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="355,194,355,226,350,226,350,194"/>
+<area shape="poly" id="edge5_Node000003_Node000006" title=" " alt="" coords="308,187,202,228,200,223,306,182"/>
+<area shape="rect" id="Node000007" href="$force_8c.html" title="Code for force calculations." alt="" coords="454,226,592,252"/>
+<area shape="poly" id="edge6_Node000003_Node000007" title=" " alt="" coords="396,182,495,223,493,228,394,187"/>
+<area shape="rect" id="Node000008" href="$matrices_8c.html" title="Matrix multiplication and related routines." alt="" coords="617,226,776,252"/>
+<area shape="poly" id="edge7_Node000003_Node000008" title=" " alt="" coords="426,179,638,223,637,228,425,185"/>
+<area shape="poly" id="edge8_Node000003_Node000009" title=" " alt="" coords="440,176,800,225,799,230,439,181"/>
+</map>

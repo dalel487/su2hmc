@@ -1,0 +1,14 @@
+<map id="Congradp" name="Congradp">
+<area shape="rect" id="Node000001" title="Matrix Inversion via Conjugate Gradient (no up/down flavour partitioning). Solves &#160;The matrix multipl..." alt="" coords="5,80,82,106"/>
+<area shape="rect" id="Node000002" href="$matrices_8c.html#a40434b5c9baa7bb374ac7faf436acc56" title="Evaluates &#160;in single precision." alt="" coords="134,5,206,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="66,77,132,37,134,42,68,82"/>
+<area shape="rect" id="Node000004" href="$matrices_8c.html#ad8f7378919117970073d06cbb243f9a4" title="Evaluates &#160;in single precision." alt="" coords="130,55,210,80"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="82,83,115,76,116,81,83,88"/>
+<area shape="rect" id="Node000005" href="$par__mpi_8h.html#aecfe9840e5f8dfd693b813b750d81a0c" title="Performs a reduction on a double dval to get a sum which is then distributed to all ranks." alt="" coords="130,104,210,130"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="83,97,115,104,114,109,82,103"/>
+<area shape="rect" id="Node000006" href="$par__mpi_8h.html#a4e2e85b06c5b05c5181729cc5ebdd05b" title="Performs a reduction on a float dval to get a sum which is then distributed to all ranks." alt="" coords="131,153,208,179"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="69,104,134,143,132,147,66,109"/>
+<area shape="rect" id="Node000003" href="$par__mpi_8h.html#a14b1a550ef4f44a9e4d7dd06c9427993" title="Calls the functions to send data to both the up and down halos." alt="" coords="258,31,373,56"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="207,22,243,28,242,33,206,27"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="209,58,243,53,243,58,210,64"/>
+</map>

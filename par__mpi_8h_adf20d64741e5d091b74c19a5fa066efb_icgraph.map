@@ -1,0 +1,7 @@
+<map id="DHalo_swap_dir" name="DHalo_swap_dir">
+<area shape="rect" id="Node000001" title="Swaps the halos along the axis given by idir in the direction given by layer." alt="" coords="190,5,306,31"/>
+<area shape="rect" id="Node000002" href="$su2hmc_8c.html#a84f252348f913fcc70ce5de0aab6f8bf" title="Initialises the system." alt="" coords="103,5,142,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="174,21,142,21,142,16,174,16"/>
+<area shape="rect" id="Node000003" href="$main_8c.html#a0ddf1224851353fc92bfbff6f499fa97" title=" " alt="" coords="5,5,55,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="87,21,55,21,55,16,87,16"/>
+</map>

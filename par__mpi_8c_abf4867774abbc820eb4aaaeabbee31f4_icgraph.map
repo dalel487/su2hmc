@@ -1,0 +1,16 @@
+<map id="Trial_Exchange" name="Trial_Exchange">
+<area shape="rect" id="Node000001" title="Exchanges the trial fields." alt="" coords="379,129,489,155"/>
+<area shape="rect" id="Node000002" href="$integrate_8c.html#ab9fe12be80cd3768ce2adf2be02a1d4b" title="Gauge update for the integration step of the HMC." alt="" coords="223,80,331,106"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="375,127,320,109,321,104,377,122"/>
+<area shape="rect" id="Node000004" href="$main_8c.html#a0ddf1224851353fc92bfbff6f499fa97" title=" " alt="" coords="5,80,55,106"/>
+<area shape="poly" id="edge8_Node000001_Node000004" title=" " alt="" coords="364,156,307,162,240,164,170,159,102,145,69,128,44,108,47,104,72,124,104,140,171,154,241,159,307,157,364,151"/>
+<area shape="rect" id="Node000003" href="$integrate_8c.html#a4d7f64e9f3e98a2953d707f18742d110" title="Leapfrog integrator. Each trajectory step takes the form of p&#45;&gt;p+dt/2,u&#45;&gt;u+dt,p&#45;&gt;p+dt/2 In practice t..." alt="" coords="103,5,175,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="237,75,163,34,166,29,240,70"/>
+<area shape="rect" id="Node000005" href="$integrate_8c.html#a33907d89c4a0709fcf809773de68c3a2" title="OMF second order five step integrator." alt="" coords="110,55,168,80"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="207,83,167,75,168,70,208,78"/>
+<area shape="rect" id="Node000006" href="$integrate_8c.html#a4e6abc4e61c0131df30fb683569e5d00" title="OMF fourth order eleven step integrator." alt="" coords="110,104,168,130"/>
+<area shape="poly" id="edge6_Node000002_Node000006" title=" " alt="" coords="208,107,168,115,167,109,207,102"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="107,42,104,44,52,82,49,77,101,40,104,38"/>
+<area shape="poly" id="edge5_Node000005_Node000004" title=" " alt="" coords="96,80,56,90,54,85,94,75"/>
+<area shape="poly" id="edge7_Node000006_Node000004" title=" " alt="" coords="94,110,54,101,56,96,95,105"/>
+</map>

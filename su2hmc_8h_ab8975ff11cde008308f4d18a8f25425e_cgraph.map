@@ -1,0 +1,7 @@
+<map id="Gauge_force" name="Gauge_force">
+<area shape="rect" id="Node000001" title="Calculates the gauge force due to the Wilson Action at each intermediate time." alt="" coords="5,31,101,56"/>
+<area shape="rect" id="Node000002" href="$su2hmc_8c.html#af64f1450e29df479f82290bc4f7bdc1f" title="Extracts all the single precision gauge links in the &#160;direction only." alt="" coords="170,5,244,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="100,33,155,24,156,29,101,38"/>
+<area shape="rect" id="Node000003" href="$par__mpi_8h.html#ab73329ce6f65730ba4783a8031edd518" title="Swaps the halos along the axis given by idir in the direction given by layer." alt="" coords="149,55,265,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="101,48,134,53,133,59,101,54"/>
+</map>

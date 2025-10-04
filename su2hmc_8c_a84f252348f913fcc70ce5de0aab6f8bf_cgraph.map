@@ -1,0 +1,23 @@
+<map id="Init" name="Init">
+<area shape="rect" id="Node000001" title="Initialises the system." alt="" coords="5,153,45,179"/>
+<area shape="rect" id="Node000002" href="$coord_8c.html#a460e6b3f5574cd514a0c73b9cf6fc124" title="Loads the addresses required during the update." alt="" coords="123,5,178,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="28,152,49,99,67,68,91,40,108,29,111,33,94,44,72,71,54,101,33,154"/>
+<area shape="rect" id="Node000004" href="$coord_8c.html#a3b2eb1dbecc1a6aebeb7e43dec42a859" title=" " alt="" coords="106,55,196,80"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="33,151,57,121,91,89,97,86,100,90,94,94,61,124,37,155"/>
+<area shape="rect" id="Node000005" href="$par__mpi_8h.html#adf20d64741e5d091b74c19a5fa066efb" title="Swaps the halos along the axis given by idir in the direction given by layer." alt="" coords="93,104,209,130"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="44,156,101,133,103,138,46,161"/>
+<area shape="rect" id="Node000006" href="$random_8c.html#ac776a562469ba6266eb4f7ab2050b32a" title="Uses the rank to get a new seed. Copying from the FORTRAN description here c create new seeds in rang..." alt="" coords="109,153,193,179"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="45,164,93,164,93,169,45,169"/>
+<area shape="rect" id="Node000008" href="$par__mpi_8c.html#a605623b5fff3d5970f2965e0d140b171" title="Reads and assigns the gauges from file." alt="" coords="111,203,191,228"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="46,171,103,194,101,199,44,176"/>
+<area shape="rect" id="Node000010" href="$random_8c.html#afba975c2629ded7c68cb21cfbeb4b496" title="Generates uniformly distributed random double between zero and one as described in numerical recipes...." alt="" coords="128,252,174,278"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="37,178,61,208,94,239,114,250,112,255,91,243,57,212,33,181"/>
+<area shape="rect" id="Node000011" href="$matrices_8c.html#ab3c213bd9acb695d1ed852737e5b750c" title="Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1." alt="" coords="108,301,194,327"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="33,179,54,231,72,262,95,288,98,291,94,295,91,292,67,265,49,234,28,181"/>
+<area shape="rect" id="Node000003" href="$coord_8c.html#a48a7c6d65b938e96e9fb363cdda2798b" title="Described as a 21st Century address calculator, it gets the memory address of an array entry." alt="" coords="287,5,326,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="179,16,272,16,272,21,179,21"/>
+<area shape="rect" id="Node000007" href="$random_8c.html#a307bf51d68dba98763c1339095b11a12" title="Dummy seed the ran2 generator." alt="" coords="278,153,335,179"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="194,164,263,164,263,169,194,169"/>
+<area shape="rect" id="Node000009" href="$coord_8c.html#a1dcdfd7cd0256b5cf00f97af96d695d4" title="Converts the coordinates of a global lattice point to its index in the computer memory." alt="" coords="257,203,356,228"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="192,213,242,213,242,218,192,218"/>
+</map>

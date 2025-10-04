@@ -1,0 +1,5 @@
+<map id="Par_swrite" name="Par_swrite">
+<area shape="rect" id="Node000001" title="Copies u11 and u12 into arrays without halos which then get written to output." alt="" coords="5,5,89,31"/>
+<area shape="rect" id="Node000002" href="$coord_8c.html#a1dcdfd7cd0256b5cf00f97af96d695d4" title="Converts the coordinates of a global lattice point to its index in the computer memory." alt="" coords="137,5,236,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="89,16,121,16,121,21,89,21"/>
+</map>

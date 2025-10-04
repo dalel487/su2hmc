@@ -1,0 +1,24 @@
+<map id="Hamilton" name="Hamilton">
+<area shape="rect" id="Node000001" title="Calculate the Hamiltonian." alt="" coords="5,81,79,107"/>
+<area shape="rect" id="Node000002" href="$bosonic_8c.html#a2c38affebb6d51c6132aedeb69e2c46e" title="Calculates the gauge action using new (how new?) lookup table." alt="" coords="127,5,258,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="67,78,125,48,149,36,152,41,128,53,70,83"/>
+<area shape="rect" id="Node000003" href="$par__mpi_8h.html#aecfe9840e5f8dfd693b813b750d81a0c" title="Performs a reduction on a double dval to get a sum which is then distributed to all ranks." alt="" coords="310,55,390,80"/>
+<area shape="poly" id="edge12_Node000001_Node000003" title=" " alt="" coords="79,88,294,70,294,75,79,94"/>
+<area shape="rect" id="Node000005" href="$congrad_8c.html#a4b97a088fd74bb3b25ce4f965dc26281" title="Matrix Inversion via Conjugate Gradient (up/down flavour partitioning). Solves &#160;Implements up/down pa..." alt="" coords="154,107,230,132"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="80,98,139,108,138,113,79,103"/>
+<area shape="rect" id="Node000010" href="$su2hmc_8c.html#ad4816b4c3599a65d212f34e10c83055f" title=" " alt="" coords="140,156,244,182"/>
+<area shape="poly" id="edge11_Node000001_Node000010" title=" " alt="" coords="64,105,128,142,138,147,136,152,125,147,61,110"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="237,29,296,48,294,53,235,34"/>
+<area shape="rect" id="Node000004" href="$bosonic_8c.html#a264e9888253e3d2751452205323c8697" title="Calculates the plaquette at site i in the &#160;direction." alt="" coords="314,5,385,31"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="258,16,298,16,298,21,258,21"/>
+<area shape="poly" id="edge9_Node000005_Node000003" title=" " alt="" coords="230,104,294,83,296,88,232,109"/>
+<area shape="rect" id="Node000006" href="$matrices_8c.html#a68e018d0a9d3c7ae5e175f87da75d881" title="Evaluates &#160;in single precision." alt="" coords="310,203,390,228"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="232,128,259,141,275,153,285,165,308,189,311,192,308,196,304,194,281,169,271,157,257,146,230,133"/>
+<area shape="rect" id="Node000008" href="$matrices_8c.html#a01fdbe29f8890534b19e20de5af344aa" title="Evaluates &#160;in single precision." alt="" coords="306,104,393,130"/>
+<area shape="poly" id="edge7_Node000005_Node000008" title=" " alt="" coords="231,116,291,115,291,120,231,122"/>
+<area shape="rect" id="Node000009" href="$par__mpi_8h.html#a4e2e85b06c5b05c5181729cc5ebdd05b" title="Performs a reduction on a float dval to get a sum which is then distributed to all ranks." alt="" coords="311,153,388,179"/>
+<area shape="poly" id="edge10_Node000005_Node000009" title=" " alt="" coords="232,128,297,148,296,153,230,133"/>
+<area shape="rect" id="Node000007" href="$par__mpi_8h.html#a14b1a550ef4f44a9e4d7dd06c9427993" title="Calls the functions to send data to both the up and down halos." alt="" coords="441,153,557,179"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="389,200,443,182,444,187,391,205"/>
+<area shape="poly" id="edge8_Node000008_Node000007" title=" " alt="" coords="392,128,444,145,443,150,390,133"/>
+</map>

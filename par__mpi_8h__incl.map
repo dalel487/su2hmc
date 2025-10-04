@@ -1,0 +1,22 @@
+<map id="INCLUDE/par_mpi.h" name="INCLUDE/par_mpi.h">
+<area shape="rect" id="Node000001" title="MPI headers." alt="" coords="242,5,381,31"/>
+<area shape="rect" id="Node000002" href="$coord_8h.html" title="Header for routines related to lattice sites." alt="" coords="20,79,83,105"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="268,34,99,80,97,75,267,29"/>
+<area shape="rect" id="Node000004" href="$sizes_8h.html" title="Defines the constants of the code and other parameters for loop dimensions. Each subroutine includes ..." alt="" coords="90,153,152,178"/>
+<area shape="poly" id="edge6_Node000001_Node000004" title=" " alt="" coords="242,32,192,50,168,64,148,81,132,108,125,138,120,136,127,106,144,77,165,59,190,45,241,27"/>
+<area shape="rect" id="Node000006" href="$errorcodes_8h.html" title="This header is intended to be a useful reference for error codes and their meanings." alt="" coords="159,79,251,105"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="295,34,237,72,234,68,292,29"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="275,79,348,105"/>
+<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="314,31,314,63,309,63,309,31"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="372,79,432,105"/>
+<area shape="poly" id="edge8_Node000001_Node000008" title=" " alt="" coords="329,29,377,67,374,72,325,34"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="456,79,519,105"/>
+<area shape="poly" id="edge9_Node000001_Node000009" title=" " alt="" coords="342,29,445,70,443,75,340,34"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="542,79,606,105"/>
+<area shape="poly" id="edge10_Node000001_Node000010" title=" " alt="" coords="357,29,528,75,526,80,355,34"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="5,153,66,178"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="51,105,44,138,39,137,46,104"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="65,103,101,140,97,143,61,107"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="81,226,160,252"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="124,179,124,211,118,211,118,179"/>
+</map>

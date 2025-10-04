@@ -1,0 +1,9 @@
+<map id="Par_dcopy" name="Par_dcopy">
+<area shape="rect" id="Node000001" title="Broadcasts a double to the other processes." alt="" coords="242,31,324,56"/>
+<area shape="rect" id="Node000002" href="$random_8c.html#af30389dbea7d2b366abea7a923bb008d" title="Generates a random double which is then sent to the other ranks." alt="" coords="110,5,187,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="226,36,187,28,188,23,227,30"/>
+<area shape="rect" id="Node000004" href="$random_8c.html#a328653cc438367219bad89a935958108" title="Reads ps from a file Since this function is very similar to Par_sread, I&#39;m not really going to commen..." alt="" coords="103,55,194,80"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="227,56,195,62,194,57,226,51"/>
+<area shape="rect" id="Node000003" href="$main_8c.html#a0ddf1224851353fc92bfbff6f499fa97" title=" " alt="" coords="5,5,55,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="94,21,55,21,55,16,94,16"/>
+</map>

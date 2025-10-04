@@ -1,0 +1,38 @@
+<map id="CHalo_swap_all" name="CHalo_swap_all">
+<area shape="rect" id="Node000001" title="Calls the functions to send data to both the up and down halos." alt="" coords="604,83,719,108"/>
+<area shape="rect" id="Node000002" href="$matrices_8c.html#a40434b5c9baa7bb374ac7faf436acc56" title="Evaluates &#160;in single precision." alt="" coords="476,7,548,32"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="620,77,538,35,541,30,622,73"/>
+<area shape="rect" id="Node000006" href="$matrices_8c.html#ad8f7378919117970073d06cbb243f9a4" title="Evaluates &#160;in single precision." alt="" coords="473,57,552,83"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="588,86,552,80,553,74,589,80"/>
+<area shape="rect" id="Node000007" href="$matrices_8c.html#a68e018d0a9d3c7ae5e175f87da75d881" title="Evaluates &#160;in single precision." alt="" coords="472,157,552,183"/>
+<area shape="poly" id="edge9_Node000001_Node000007" title=" " alt="" coords="622,118,541,159,539,154,620,113"/>
+<area shape="rect" id="Node000014" href="$matrices_8c.html#a01fdbe29f8890534b19e20de5af344aa" title="Evaluates &#160;in single precision." alt="" coords="469,107,556,132"/>
+<area shape="poly" id="edge21_Node000001_Node000014" title=" " alt="" coords="589,110,557,115,556,110,588,105"/>
+<area shape="rect" id="Node000003" href="$congrad_8c.html#aa3fde21d836b340202ca6b18bead4510" title="Matrix Inversion via Conjugate Gradient (no up/down flavour partitioning). Solves &#160;The matrix multipl..." alt="" coords="344,5,421,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="460,22,421,21,421,16,460,16"/>
+<area shape="rect" id="Node000004" href="$fermionic_8c.html#a4f76ed3be4902e11205760b4222665c8" title="Calculate fermion expectation values via a noisy estimator." alt="" coords="224,56,295,82"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="337,40,294,58,292,53,335,35"/>
+<area shape="rect" id="Node000005" href="$main_8c.html#a0ddf1224851353fc92bfbff6f499fa97" title=" " alt="" coords="5,183,55,208"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="209,73,156,82,129,90,104,103,82,121,64,143,40,183,35,181,60,140,79,117,101,99,127,86,155,76,208,67"/>
+<area shape="poly" id="edge6_Node000006_Node000003" title=" " alt="" coords="463,54,415,34,417,29,465,49"/>
+<area shape="poly" id="edge8_Node000006_Node000004" title=" " alt="" coords="457,73,296,72,296,66,457,67"/>
+<area shape="poly" id="edge7_Node000006_Node000005" title=" " alt="" coords="458,82,298,115,200,139,104,167,56,187,54,182,102,162,199,134,297,110,457,77"/>
+<area shape="rect" id="Node000008" href="$congrad_8c.html#a4b97a088fd74bb3b25ce4f965dc26281" title="Matrix Inversion via Conjugate Gradient (up/down flavour partitioning). Solves &#160;Implements up/down pa..." alt="" coords="344,157,421,183"/>
+<area shape="poly" id="edge10_Node000007_Node000008" title=" " alt="" coords="457,173,421,173,421,168,457,168"/>
+<area shape="rect" id="Node000009" href="$force_8c.html#a98a5926c20124e0cea060ad1e47ff3de" title="Calculates the force &#160;at each intermediate time." alt="" coords="232,208,287,234"/>
+<area shape="poly" id="edge20_Node000007_Node000009" title=" " alt="" coords="458,189,421,198,288,220,287,215,420,193,456,184"/>
+<area shape="poly" id="edge11_Node000008_Node000009" title=" " alt="" coords="337,192,289,212,286,207,335,187"/>
+<area shape="rect" id="Node000013" href="$su2hmc_8c.html#aad654cdd6107120818d5485ce1620d81" title="Calculate the Hamiltonian." alt="" coords="223,157,296,183"/>
+<area shape="poly" id="edge18_Node000008_Node000013" title=" " alt="" coords="328,173,297,173,297,168,328,168"/>
+<area shape="rect" id="Node000010" href="$integrate_8c.html#a4d7f64e9f3e98a2953d707f18742d110" title="Leapfrog integrator. Each trajectory step takes the form of p&#45;&gt;p+dt/2,u&#45;&gt;u+dt,p&#45;&gt;p+dt/2 In practice t..." alt="" coords="103,307,175,332"/>
+<area shape="poly" id="edge12_Node000009_Node000010" title=" " alt="" coords="236,246,177,298,162,308,159,304,173,293,232,242"/>
+<area shape="rect" id="Node000011" href="$integrate_8c.html#a33907d89c4a0709fcf809773de68c3a2" title="OMF second order five step integrator." alt="" coords="110,208,168,234"/>
+<area shape="poly" id="edge14_Node000009_Node000011" title=" " alt="" coords="217,224,168,224,168,218,217,218"/>
+<area shape="rect" id="Node000012" href="$integrate_8c.html#a4e6abc4e61c0131df30fb683569e5d00" title="OMF fourth order eleven step integrator." alt="" coords="110,257,168,283"/>
+<area shape="poly" id="edge16_Node000009_Node000012" title=" " alt="" coords="219,240,169,261,167,256,217,235"/>
+<area shape="poly" id="edge13_Node000010_Node000005" title=" " alt="" coords="102,298,101,297,63,251,37,210,41,207,67,248,105,294,106,295"/>
+<area shape="poly" id="edge15_Node000011_Node000005" title=" " alt="" coords="94,213,54,204,56,199,96,208"/>
+<area shape="poly" id="edge17_Node000012_Node000005" title=" " alt="" coords="104,250,101,248,49,211,52,207,104,244,107,246"/>
+<area shape="poly" id="edge19_Node000013_Node000005" title=" " alt="" coords="207,179,56,195,55,190,207,173"/>
+<area shape="poly" id="edge22_Node000014_Node000008" title=" " alt="" coords="464,141,418,159,416,154,462,136"/>
+</map>

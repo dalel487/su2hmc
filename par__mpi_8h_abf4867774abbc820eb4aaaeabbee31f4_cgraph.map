@@ -1,0 +1,5 @@
+<map id="Trial_Exchange" name="Trial_Exchange">
+<area shape="rect" id="Node000001" title="Exchanges the trial fields." alt="" coords="5,5,115,31"/>
+<area shape="rect" id="Node000002" href="$par__mpi_8h.html#a35d208a5a65e71101e71d3f0248aef03" title="Calls the functions to send data to both the up and down halos." alt="" coords="163,5,277,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="115,16,147,16,147,21,115,21"/>
+</map>
