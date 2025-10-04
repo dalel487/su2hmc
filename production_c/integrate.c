@@ -1,3 +1,7 @@
+/**
+ * @file		integrate.c
+ * @brief	Symplectic integrator code
+ */
 #include <su2hmc.h>
 
 int Gauge_Update(const double d, double *pp, Complex *ut[2],Complex_f *ut_f[2]){
