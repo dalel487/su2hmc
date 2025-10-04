@@ -134,9 +134,4 @@ int OMF4(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 #if (defined __cplusplus)
 }
 #endif
-//Actual CUDA
-#ifdef __CUDACC__
-//Update Gauge fields
-__global__ void cuGauge_Update(const double d, double *pp, Complex *u11t, Complex *u12t, int mu);
-#endif
 #endif

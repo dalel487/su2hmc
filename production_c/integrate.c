@@ -223,28 +223,27 @@ int OMF4(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 		const float c_sw, const int stepl, const float dt, double *ancg, int *itot, const float proby)
 {
 	const char funcname[] = "OMF4";
-	//These values were lifted from openqcd-fastsum, and should probably be tuned for QC2D. They also probably never
-	//will be...
-	const double r1 = 0.08398315262876693;
-	const double r2 = 0.2539785108410595;
-	const double r3 = 0.6822365335719091;
-	const double r4 = -0.03230286765269967;
+	//These values were lifted from openqcd-fastsum, 
+	const double theta = 0.08398315262876693;
+	const double rho = 0.2539785108410595;
+	const double lambda = 0.6822365335719091;
+	const double mu = -0.03230286765269967;
 	///@brief Momentum updates
-	///@brief Outer updates depend on r1. We have two of these, doubled for between full steps
-	const double dpO= -r1*dt;
+	///@brief Outer updates depend on theta. We have two of these, doubled for between full steps
+	const double dpO= -theta*dt;
 	const double dpO2= 2*dpO;
-	///@brief Middle updates depend on r3
-	const double dpM= -r3*dt;
-	///@brief Inner updates depend on r1 and r3
-	const double dpI= -(0.5-r1-r3)*dt;
+	///@brief Middle updates depend on lambda
+	const double dpM= -lambda*dt;
+	///@brief Inner updates depend on theta and lambda
+	const double dpI= -(0.5-theta-lambda)*dt;
 
-	///@brief Gauge updates. These depend on r2 and r4
-	///@brief Outer gauge update depends on r2
-	const	double duO = dt*r2;
-	///@brief Middle gauge update depends on r4
-	const	double duM = dt*r4;
-	///@brief Inner gauge update depends on r2 and r4
-	const	double duI = dt*(1-2*(r2+r4));
+	///@brief Gauge updates. These depend on rho and mu
+	///@brief Outer gauge update depends on rho
+	const	double duO = dt*rho;
+	///@brief Middle gauge update depends on mu
+	const	double duM = dt*mu;
+	///@brief Inner gauge update depends on rho and mu
+	const	double duI = dt*(1-2*(rho+mu));
 
 	//Initial step forward for p
 	//=======================

@@ -62,9 +62,6 @@ __global__ void cuGaugeForce(int mu, Complex_f *Sigma11, Complex_f *Sigma12,doub
 	}
 }
 
-//TODO: Split cuForce into seperateable streams. Twelve in total I Believe?
-//A stream for each nadj index,dirac index and each μ (ndim) value
-//3*4*4=36 streams total... Pass dirac and μ spatial indices as arguments
 __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Complex_f *X1, Complex_f *X2, Complex_f *gamval,\
 		unsigned int *iu, int *gamin,float akappa, int mu){
 	const char *funcname = "cuForce";
@@ -114,10 +111,10 @@ __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 					+conj(X1su[1])*(-conj(u12s)*X2s[0]+u11s *X2s[1])).imag();
 
 			const unsigned short gindex=mu*ndirac+(idirac>>1);
-			//Rescaling igork1 by nc
-			const unsigned short igork1 = gamin[gindex]<<1;	
-			X2s[0]=X2[i+kvol*(igork1)]; X2s[1]=X2[i+kvol*(1+igork1)];
-			X2su[0]=X2[uid+kvol*(igork1)]; X2su[1]=X2[uid+kvol*(1+igork1)];
+			//Rescaling gind by nc
+			const unsigned short gind = gamin[gindex]<<1;	
+			X2s[0]=X2[i+kvol*(gind)]; X2s[1]=X2[i+kvol*(1+gind)];
+			X2su[0]=X2[uid+kvol*(gind)]; X2su[1]=X2[uid+kvol*(1+gind)];
 
 			//If you are asked to rederive the force from Montvay and Munster you'll notice that it should be kappa*gamma
 			//but below is only gamma. We rescaled gamma by kappa already when we defined it so that's where it has gone
@@ -193,12 +190,12 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t,Comple
 						+conj(X1su[1])* (-conj(u12s)*X2s[0]+u11s *X2s[1]))).imag();
 
 			const unsigned short gindex=mu*ndirac+(idirac>>1);
-			//Rescaling igork1 by nc
-			const unsigned short igork1 = gamin[gindex]<<1;	
-			//X2s[0]=X2[(i*ndirac+igork1)*nc];	X2s[1]=X2[(i*ndirac+igork1)*nc+1];
-			//X2su[0]=X2[(uid*ndirac+igork1)*nc];	X2su[1]=X2[(uid*ndirac+igork1)*nc+1];
-			X2s[0]=X2[i+kvol*(igork1)]; X2s[1]=X2[i+kvol*(1+igork1)];
-			X2su[0]=X2[uid+kvol*(igork1)]; X2su[1]=X2[uid+kvol*(1+igork1)];
+			//Rescaling gind by nc
+			const unsigned short gind = gamin[gindex]<<1;	
+			//X2s[0]=X2[(i*ndirac+gind)*nc];	X2s[1]=X2[(i*ndirac+gind)*nc+1];
+			//X2su[0]=X2[(uid*ndirac+gind)*nc];	X2su[1]=X2[(uid*ndirac+gind)*nc+1];
+			X2s[0]=X2[i+kvol*(gind)]; X2s[1]=X2[i+kvol*(1+gind)];
+			X2su[0]=X2[uid+kvol*(gind)]; X2su[1]=X2[uid+kvol*(1+gind)];
 
 			dSdpis[0]+=-(dk4ms*(conj(X1s[0])*(-conj(u12s)*X2su[0]+conj(u11s)*X2su[1])
 						+conj(X1s[1])*(u11s *X2su[0]+u12s *X2su[1]))

@@ -168,12 +168,54 @@ extern "C"
 			Complex_f jqq, float akappa, float beta, double ancg);
 #endif
 
-void Transpose_z(Complex *out, const int, const int);
-void Transpose_c(Complex_f *out, const int, const int);
-void Transpose_d(double *out, const int, const int);
-void Transpose_f(float *out, const int, const int);
-void Transpose_I(int *out, const int, const int);
-void Transpose_U(unsigned int *out, const int, const int);
+	/**
+	 * @brief In place transpose
+	 *
+	 * @param out: The array being transposed
+	 * @param fast_in:	The old outermost/fastest index
+	 * @param fast_out:	The new outermost/fastest index
+	 */
+	void Transpose_z(Complex *out, const int, const int);
+	/**
+	 * @brief In place transpose
+	 *
+	 * @param out: The array being transposed
+	 * @param fast_in:	The old outermost/fastest index
+	 * @param fast_out:	The new outermost/fastest index
+	 */
+	void Transpose_c(Complex_f *out, const int, const int);
+	/**
+	 * @brief In place transpose
+	 *
+	 * @param out: The array being transposed
+	 * @param fast_in:	The old outermost/fastest index
+	 * @param fast_out:	The new outermost/fastest index
+	 */
+	void Transpose_d(double *out, const int, const int);
+	/**
+	 * @brief In place transpose
+	 *
+	 * @param out: The array being transposed
+	 * @param fast_in:	The old outermost/fastest index
+	 * @param fast_out:	The new outermost/fastest index
+	 */
+	void Transpose_f(float *out, const int, const int);
+	/**
+	 * @brief In place transpose
+	 *
+	 * @param out: The array being transposed
+	 * @param fast_in:	The old outermost/fastest index
+	 * @param fast_out:	The new outermost/fastest index
+	 */
+	void Transpose_I(int *out, const int, const int);
+	/**
+	 * @brief In place transpose
+	 *
+	 * @param out: The array being transposed
+	 * @param fast_in:	The old outermost/fastest index
+	 * @param fast_out:	The new outermost/fastest index
+	 */
+	void Transpose_U(unsigned int *out, const int, const int);
 
 #ifdef __NVCC__
 	//Calling Functions
@@ -199,20 +241,65 @@ void Transpose_U(unsigned int *out, const int, const int);
 	void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut_f[2],unsigned int *iu,unsigned int *id,\
 			Complex_f *gamval_f,int *gamin, float *dk_f[2], float akappa_f, dim3 dimGrid, dim3 dimBlock);
 
-/**
- * @brief In place transpose
- *
- * @param out: The array being transposed
- * @param fast_in:	The old outermost/fastest index
- * @param fast_out:	The new outermost/fastest index
- * @param dimGrid:	CUDA grid
- * @param dimBlock:	CUDA block
- */
+	/**
+	 * @brief In place transpose
+	 *
+	 * @param out: The array being transposed
+	 * @param fast_in:	The old outermost/fastest index
+	 * @param fast_out:	The new outermost/fastest index
+	 * @param dimGrid:	CUDA grid
+	 * @param dimBlock:	CUDA block
+	 */
 	void cuTranspose_z(Complex *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
+	/**
+	 * @brief In place transpose
+	 *
+	 * @param out: The array being transposed
+	 * @param fast_in:	The old outermost/fastest index
+	 * @param fast_out:	The new outermost/fastest index
+	 * @param dimGrid:	CUDA grid
+	 * @param dimBlock:	CUDA block
+	 */
 	void cuTranspose_c(Complex_f *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
+	/**
+	 * @brief In place transpose
+	 *
+	 * @param out: The array being transposed
+	 * @param fast_in:	The old outermost/fastest index
+	 * @param fast_out:	The new outermost/fastest index
+	 * @param dimGrid:	CUDA grid
+	 * @param dimBlock:	CUDA block
+	 */
 	void cuTranspose_d(double *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
+	/**
+	 * @brief In place transpose
+	 *
+	 * @param out: The array being transposed
+	 * @param fast_in:	The old outermost/fastest index
+	 * @param fast_out:	The new outermost/fastest index
+	 * @param dimGrid:	CUDA grid
+	 * @param dimBlock:	CUDA block
+	 */
 	void cuTranspose_f(float *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
+	/**
+	 * @brief In place transpose
+	 *
+	 * @param out: The array being transposed
+	 * @param fast_in:	The old outermost/fastest index
+	 * @param fast_out:	The new outermost/fastest index
+	 * @param dimGrid:	CUDA grid
+	 * @param dimBlock:	CUDA block
+	 */
 	void cuTranspose_I(int *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
+	/**
+	 * @brief In place transpose
+	 *
+	 * @param out: The array being transposed
+	 * @param fast_in:	The old outermost/fastest index
+	 * @param fast_out:	The new outermost/fastest index
+	 * @param dimGrid:	CUDA grid
+	 * @param dimBlock:	CUDA block
+	 */
 	void cuTranspose_U(unsigned int *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
 	/**
 	 *	@brief Add a single to a double value, and save the output in the double array
@@ -228,20 +315,4 @@ void Transpose_U(unsigned int *out, const int, const int);
 #endif
 #if (defined __cplusplus)
 }
-#endif
-#ifdef __CUDACC__
-template <typename T>
-__global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, complex<T> *u12t,unsigned int *iu, unsigned int *id,\
-		__constant__ complex<T> *gamval, int *gamin, T *dk4m, T *dk4p, Complex_f jqq, float akappa);
-template <typename T>
-__global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T> *u11t, const complex<T> *u12t,const unsigned int *iu, const unsigned int *id,\
-		__constant__ complex<T> *gamval_d,	int *gamin_d,	const T *dk4m, const T *dk4p, const Complex_f jqq, const float akappa);
-
-template <typename T>
-__global__ void cuHdslash(complex<T> *phi, const complex<T> *r, const complex<T> *u11t, const complex<T> *u12t,const unsigned int *iu, const unsigned int *id,\
-		const __constant__ complex<T> gamval[20], const __constant__ int gamin[16], const T *dk4m, const T *dk4p, const float akappa);
-template <typename T>
-__global__ void cuHdslashd(complex<T> *phi, const complex<T> *r, const complex<T> *u11t, const complex<T> *u12t,const unsigned int *iu, const unsigned int *id,\
-		const __constant__ complex<T> gamval[20], const __constant__ int gamin[16], const T *dk4m, const T *dk4p, const float akappa);
-template <typename T> __global__ void Transpose(T *out, const T *in, const int fast_in, const int fast_out);
 #endif

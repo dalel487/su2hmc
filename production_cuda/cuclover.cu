@@ -46,27 +46,26 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> *Leaves1, com
 			Clover_SU2plaq(u11t,u12t,Leaves1,Leaves2,iu,i,mu,nu);
 			break;
 		case(1):
-			//\mu<0 and \nu>=0
-			didm = id[mu*kvol+i];
-			/// @f$U_\mu^\dagger\(x-\hat{\mu})U_\nu(x-\hat{\mu}\)@f$
-			Leaves1[i+kvol*leaf]=conj(u11t[didm+kvol*mu])*u11t[didm+kvol*nu]+u12t[didm+kvol*mu]*conj(u12t[didm+kvol*nu]);
-			Leaves2[i+kvol*leaf]=conj(u11t[didm+kvol*mu])*u12t[didm+kvol*nu]-u12t[didm+kvol*mu]*conj(u11t[didm+kvol*nu]);
+			//Leaf in the forward nu and backwards mu direction
+			didm = id[mu*kvol+i]; unsigned int uin_didm=id[nu*kvol+didm];
+			/// @f$U_\nu\(x)U^\dagger_\mu(x-\hat{\mu}+\nu)@f$
+	//		Leaves1[i+kvol*leaf]=conj(u11t[didm+kvol*mu])*u11t[didm+kvol*nu]+u12t[didm+kvol*mu]*conj(u12t[didm+kvol*nu]);
+			Leaves1[i+kvol*leaf]=u11t[i+kvol*nu]*conj(u11t[uin_didm+kvol*mu])+u12t[i+kvol*nu]*conj(u12t[uin_didm+kvol*mu]);
+//			Leaves2[i+kvol*leaf]=conj(u11t[didm+kvol*mu])*u12t[didm+kvol*nu]-u12t[didm+kvol*mu]*conj(u11t[didm+kvol*nu]);
+			Leaves2[i+kvol*leaf]=-u11t[i+kvol*nu]*u12t[uin_didm+kvol*mu]+u12t[i+kvol*nu]*u11t[uin_didm+kvol*mu];
 
-			unsigned int uin_didm=id[nu*kvol+didm];
-			/// @f$U_\mu^\dagger\(x-\hat{\mu})U_\nu(x+-hat{\mu}\)U_\mu(x-\hat{mu}+\hat{nu})@f$
-			//a[0]=Leaves1[i+kvol*leaf]*conj(u11t[didm+kvol*nu])+conj(Leaves2[i+kvol*leaf])*u12t[didm+kvol*nu];
-			a[0]=Leaves1[i+kvol*leaf]*u11t[uin_didm+kvol*mu]-Leaves2[i+kvol*leaf]*conj(u12t[uin_didm+kvol*mu]);
-			//a[1]=Leaves2[i+kvol*leaf]*conj(u11t[didm+kvol*nu])-conj(Leaves1[i+kvol*leaf])*u12t[didm+kvol*nu];
-			a[1]=Leaves1[i+kvol*leaf]*u12t[uin_didm+kvol*mu]+Leaves2[i+kvol*leaf]*conj(u11t[uin_didm+kvol*mu]);
+			/// @f$U_\nu\(x)U^\dagger_\mu(x-\hat{\mu}+\nu)U^\dagger_\nu(x-\hat{\mu})@f$
+			//a[0]=Leaves1[i+kvol*leaf]*u11t[uin_didm+kvol*mu]-Leaves2[i+kvol*leaf]*conj(u12t[uin_didm+kvol*mu]);
+			a[0]=Leaves1[i+kvol*leaf]*conj(u11t[didm+kvol*nu])+Leaves2[i+kvol*leaf]*conj(u12t[didm+kvol*mu]);
+			//a[1]=Leaves1[i+kvol*leaf]*u12t[uin_didm+kvol*mu]+Leaves2[i+kvol*leaf]*conj(u11t[uin_didm+kvol*mu]);
+			a[1]=-Leaves1[i+kvol*leaf]*u12t[didm+kvol*nu]+Leaves2[i+kvol*leaf]*u11t[didm+kvol*mu];
 
-			/// @f$U_\mu^\dagger\(x)U_\nu^\dagger(x+\hat{\mu}-\hat{\nu}\)U_\mu(x+\hat{mu}-\hat{nu})U_\nu^\dagger(x-\hat{\nu})@f$
-			//Leaves1[i+kvol*leaf]=a[0]*u11t[didm+kvol*mu]-conj(a[1])*u12t[didm+kvol*mu];
-			Leaves1[i+kvol*leaf]=a[0]*conj(u11t[i+kvol*nu])+a[1]*conj(u12t[i+kvol*nu]);
-			Leaves2[i+kvol*leaf]=-a[0]*u12t[i+kvol*nu]+a[1]*u11t[i+kvol*nu];
+			/// @f$U_\nu\(x)U^\dagger_\mu(x-\hat{\mu}+\nu)U^\dagger_\nu(x-\hat{\mu})U_\mu(x-\hat{mu})@f$
+			Leaves1[i+kvol*leaf]=a[0]*conj(u11t[didm+kvol*mu])+a[1]*conj(u12t[didm+kvol*mu]);
+			Leaves2[i+kvol*leaf]=-a[0]*u12t[didm+kvol*mu]+a[1]*u11t[didm+kvol*mu];
 			break;
 		case(2):
-			//\mu>=0 and \nu<0
-			//TODO: Figure out down site index
+			//Leaf in the forwards mu and backwards new direction
 			//Another awkward index
 			uidm = iu[mu*kvol+i]; unsigned int din_uidm=id[nu*kvol+uidm];
 			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{mu}-\hat{\nu})@f$
@@ -84,27 +83,32 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> *Leaves1, com
 
 			break;
 		case(3):
-			//\mu<0 and \nu<0
-			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu})@f$
-			didm = id[mu*kvol+i];unsigned int dim_didn=id[nu*kvol+didm];
-			Leaves1[i+kvol*leaf]=conj(u11t[didm+kvol*mu])*conj(u11t[dim_didn+kvol*nu])-u12t[didm+kvol*mu]*conj(u12t[dim_didn+kvol*nu]);
-			Leaves2[i+kvol*leaf]=-conj(u11t[didm+kvol*mu])*u12t[dim_didn+kvol*nu]-u12t[didm+kvol*mu]*u11t[dim_didn+kvol*nu];
+			//Leaf in the backwards mu and backwards nu direction
+			/// @f$U_\nu^\dagger(x-\hat{\nu})U_\mu^\dagger(x-\hat{\mu}-\hat{nu})@f$
+			didn = id[nu*kvol+i];unsigned int din_didm=id[mu*kvol+didn];
+			//Leaves1[i+kvol*leaf]=conj(u11t[didn+kvol*mu])*conj(u11t[din_didm+kvol*nu])-u12t[didn+kvol*mu]*conj(u12t[din_didm+kvol*nu]);
+			Leaves1[i+kvol*leaf]=conj(u11t[didn+kvol*nu])*conj(u11t[din_didm+kvol*mu])-u12t[didn+kvol*nu]*conj(u12t[din_didm+kvol*mu]);
+			//Leaves2[i+kvol*leaf]=-conj(u11t[didn+kvol*mu])*u12t[din_didm+kvol*nu]-u12t[didn+kvol*mu]*u11t[din_didm+kvol*nu];
+			Leaves2[i+kvol*leaf]=-conj(u11t[didn+kvol*nu])*u12t[din_didm+kvol*mu]-u12t[didn+kvol*nu]*u11t[din_didm+kvol*mu];
 
-			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(x-\hat{\mu}-\hat{\nu})@f$
-			a[0]=Leaves1[i+kvol*leaf]*u11t[dim_didn+kvol*mu]-Leaves2[i+kvol*leaf]*conj(u12t[dim_didn+kvol*mu]);
-			a[1]=Leaves1[i+kvol*leaf]*u12t[dim_didn+kvol*mu]+Leaves2[i+kvol*leaf]*conj(u11t[dim_didn+kvol*mu]);
+			/// @f$U_\nu^\dagger(x-\hat{\nu})U_\mu^\dagger(x-\hat{\mu}-\hat{nu})U_\nu(x-\hat{\mu}-\hat{nu})@f$
+			//a[0]=Leaves1[i+kvol*leaf]*u11t[din_didm+kvol*mu]-Leaves2[i+kvol*leaf]*conj(u12t[din_didm+kvol*mu]);
+			a[0]=Leaves1[i+kvol*leaf]*u11t[din_didm+kvol*nu]-Leaves2[i+kvol*leaf]*conj(u12t[din_didm+kvol*nu]);
+			//a[1]=Leaves1[i+kvol*leaf]*u12t[din_didm+kvol*mu]+Leaves2[i+kvol*leaf]*conj(u11t[din_didm+kvol*mu]);
+			a[1]=Leaves1[i+kvol*leaf]*u12t[din_didm+kvol*nu]+Leaves2[i+kvol*leaf]*conj(u11t[din_didm+kvol*nu]);
 
-			didn = id[nu*kvol+i]; 
-			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(x-\hat{\mu}-\hat{\nu})U_\nu(x-\hat{\nu})@f$
-			Leaves1[i+kvol*leaf]=a[0]*u11t[didn+kvol*nu]-a[1]*conj(u12t[didn+kvol*nu]);
-			Leaves2[i+kvol*leaf]=a[0]*u12t[didn+kvol*nu]+a[1]*conj(u11t[didn+kvol*nu]);
+			didm = id[mu*kvol+i]; 
+			/// @f$U_\nu^\dagger(x-\hat{\nu})U_\mu^\dagger(x-\hat{\mu}-\hat{nu})U_\nu(x-\hat{\mu}-\hat{nu})U_\mu(x-\hat{mu})@f$
+			Leaves1[i+kvol*leaf]=a[0]*u11t[didm+kvol*mu]-a[1]*conj(u12t[didm+kvol*mu]);
+			Leaves2[i+kvol*leaf]=a[0]*u12t[didm+kvol*mu]+a[1]*conj(u11t[didm+kvol*mu]);
 			break;
 	}
 	return 0;
 }
 ///CUDA Kernels
 template <typename T>
-__global__  void Half_Clover(complex<T> *clover1, complex<T> *clover2, complex<T> *Leaves1, complex<T> *Leaves2, complex<T> *u11t, complex<T> *u12t, unsigned int *iu, unsigned int *id, int mu, int nu){
+__global__  void Half_Clover(complex<T> *clover1, complex<T> *clover2, complex<T> *Leaves1, complex<T> *Leaves2,\
+							complex<T> *u11t, complex<T> *u12t, unsigned int *iu, unsigned int *id, int mu, int nu){
 	const char funcname[] ="Half_Clover";
 	const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const volatile int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -133,7 +137,7 @@ __global__  void Full_Clover(complex<T> *clover1, complex<T> *clover2){
 
 	for(unsigned int i=gthreadId;i<kvol;i+=gsize*bsize){
 		//creal(clover1) drops so we are traceless. And everything else just gets doubled
-		clover1[i]-=conj(clover1[i]);	clover1[i]*=(-I/8.0);
+		clover1[i]-=conj(clover1[i]);		clover1[i]*=(-I/8.0);
 		clover2[i]+=clover2[i]; 			clover2[i]*=(-I/8.0);
 	}
 	return;
@@ -198,15 +202,15 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *Leaves[nc], complex<T> *
 		Force_Leaves(fleaf_c,fleaf_c+1,Leaves[0],Leaves[1],iu,id,mu,nu,i);
 		T dSdpis[3]={0,0,0};
 		for(unsigned short idirac=0;idirac<ndirac;idirac+=nc){
-			const unsigned short igork1 = sigin[clov*ndirac+(idirac>>1)]<<(nc-1);	
 
 			//Calculate the index. For the next colour we add kvol
 			unsigned int ind = i+kvol*idirac;
 			//Prefetching. Might not be needed here though
-			complex<T> X1s[nc]={{0,0},{0,0}};
+			complex<T> X1s[nc];
 			X1s[0]=X1[ind]; X1s[1]=X1[ind+kvol];
-			ind = i+kvol*igork1;
-			complex<T> X2s[nc]={{0,0},{0,0}};
+			const unsigned short sind = sigin[clov*ndirac+(idirac>>1)]<<(nc-1);	
+			ind = i+kvol*sind;
+			complex<T> X2s[nc];
 			X2s[0]=X2[ind]; X2s[1]=X2[ind+kvol];
 
 			//i Sigma_x: Real part of @f$i z@f$ is minus the imaginary part of z
@@ -254,10 +258,10 @@ __global__ void ByClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, co
 			for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
 				//Mod 4 done bitwise. In general n mod 2^m = n & (2^m-1)
 				const unsigned short idirac = igorkov&3;
-				const unsigned short igork1 = (igorkov<4) ? sigin[clov*ndirac+idirac] : sigin[clov*ndirac+idirac]+4;
+				const unsigned short sind = (igorkov<4) ? sigin[clov*ndirac+idirac] : sigin[clov*ndirac+idirac]+4;
 #pragma unroll
 				for(unsigned short c=0; c<nc; c++)
-					r_s[c]=r[(i*ngorkov+igork1)*nc+c];
+					r_s[c]=r[(i*ngorkov+sind)*nc+c];
 				///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
 				phi_s[igorkov][0]+=sigval[clov*ndirac+idirac]*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
 				phi_s[igorkov][1]+=sigval[clov*ndirac+idirac]*(conj(clov_s[1])*r_s[0]+creal(clov_s[0])*r_s[1]);
@@ -293,10 +297,10 @@ __global__ void HbyClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, c
 		for(unsigned short clov=0;clov<6;clov++){
 			clov_s[0]=clover1[clov*kvol+i]; clov_s[1]=clover2[clov*kvol+i];
 			for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
-				const unsigned short igork1 = sigin[clov*ndirac+(idirac>>1)] << (nc-1);
+				const unsigned short sind = sigin[clov*ndirac+(idirac>>1)] << (nc-1);
 #pragma unroll
 				for(unsigned short c=0; c<nc; c++){
-					r_s[c]=r[i+kvol*(igork1+c)];
+					r_s[c]=r[i+kvol*(sind+c)];
 				}
 				///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
 				const complex<T> sig=sigval[clov*ndirac+(idirac>>1)];
@@ -307,8 +311,9 @@ __global__ void HbyClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, c
 #pragma unroll
 		for(unsigned short idirac=0; idirac<ndirac; idirac+=nc)
 			for(unsigned short c=0; c<nc; c++)
-				///Also @f$\sigma_{\mu\nu}F_{\mu\nu}=\sigma_{\nu\mu}F_{\nu\mu}@f$ so we double it to take account of that
-				phi[i+kvol*(c+idirac)]+=2*phi_s[idirac+c];
+				///@f$\sigma_{\mu\nu}F_{\mu\nu}=\sigma_{\nu\mu}F_{\nu\mu}@f$ so we double it to take account of that
+				///But then we multiply by @f$-\frac{1}{2}@f$ so the @f$2@f$ disappears
+				phi[i+kvol*(c+idirac)]-=phi_s[idirac+c];
 	}
 	return;
 }
