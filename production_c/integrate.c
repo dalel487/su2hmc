@@ -6,6 +6,25 @@
  *	@author	D. Lawlor
  */
 #include <su2hmc.h>
+int Force_debug(double ave_dSdpi[3],double *dSdpi){
+#ifdef __NVCC__
+		cublasDasum(cublas_handle,kvol*ndim,dSdpi,1,ave_dSdpi);
+		cublasDasum(cublas_handle,kvol*ndim,dSdpi+kvol*ndim,1,ave_dSdpi+1);
+		cublasDasum(cublas_handle,kvol*ndim,dSdpi+2*kvol*ndim,1,ave_dSdpi+2);
+		cudaDeviceSynchronise();
+#elifdef USE_BLAS
+		cblas_dasum(kvol*ndim,dSdpi,1,d,ave_dSdpi);
+		cblas_dasum(kvol*ndim,dSdpi+kvol*ndim,1,d,ave_dSdpi+1);
+		cblas_dasum(kvol*ndim,dSdpi+2*kvol*ndim,1,d,ave_dSdpi+2);
+#else
+		for(unsigned int i=0;i<kvol*ndim;i++){
+			ave_dSdpi[0]+=dSdpi[i];
+			ave_dSdpi[1]+=dSdpi[i+kvol*ndim];
+			ave_dSdpi[2]+=dSdpi[i+2*kvol*ndim];
+		}
+		ave_dSdpi[0]/=(ndim*kvol); ave_dSdpi[1]/=(ndim*kvol); ave_dSdpi[2]/=(ndim*kvol);
+#endif
+}
 
 int Gauge_Update(const double d, double *pp, Complex *ut[2],Complex_f *ut_f[2]){
 	/*
@@ -145,14 +164,22 @@ int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 #endif
 	Force(dSdpi, 1, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
 #ifdef _DEBUG
-	if(!rank)
-		printf("Initial force on rank %i, dSdpi[0] %e\n", rank,dSdpi[0]);
+	if(!rank){
+		double ave_dSdpi[3];
+		Force_debug(ave_dSdpi,dSdpi);
+		printf("Average force on rank %i, dSdpi[0] %e dSdpi[1] %e dSdpi[2] %e\n", rank,ave_dSdpi[0],ave_dSdpi[1],ave_dSdpi[2]);
+		}
 #endif
 	//Initial momentum update
 	Momentum_Update(dp,dSdpi,pp);
 #ifdef _DEBUG
 	if(!rank)
 		printf("Initial momentum on rank %i, pp[0] %e\n", rank,pp[0]);
+	if(!rank){
+		double ave_pp[3];
+		Force_debug(ave_pp,pp);
+		printf("Average initial momentum on rank %i, pp[0] %e pp[1] %e pp[2] %e\n", rank,ave_pp[0],ave_pp[1],ave_pp[2]);
+		}
 #endif
 
 	//Main loop for classical time evolution
@@ -170,14 +197,20 @@ int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 		//Calculate force for middle momentum update
 		Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
 #ifdef _DEBUG
-		if(!rank)
-			printf("First force update on step %i, dSdpi[0] %e\n", step,dSdpi[0]);
+	if(!rank){
+		double ave_dSdpi[3];
+		Force_debug(ave_dSdpi,dSdpi);
+		printf("First force update on rank %i, dSdpi[0] %e dSdpi[1] %e dSdpi[2] %e\n", rank,ave_dSdpi[0],ave_dSdpi[1],ave_dSdpi[2]);
+		}
 #endif
 		//Now do the middle momentum update
 		Momentum_Update(dpm,dSdpi,pp);
 #ifdef _DEBUG
-		if(!rank)
-			printf("Middle momentum on step %i, pp[0] %e\n", step,pp[0]);
+	if(!rank){
+		double ave_pp[3];
+		Force_debug(ave_pp,pp);
+		printf("Average middle momentum on rank %i, pp[0] %e pp[1] %e pp[2] %e\n", rank,ave_pp[0],ave_pp[1],ave_pp[2]);
+		}
 #endif
 
 		//Second gauge update
@@ -186,8 +219,11 @@ int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 		//Calculate force for second momentum update
 		Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
 #ifdef _DEBUG
-		if(!rank)
-			printf("Second force update on step %i, dSdpi[0] %e\n", step,dSdpi[0]);
+	if(!rank){
+		double ave_dSdpi[3];
+		Force_debug(ave_dSdpi,dSdpi);
+		printf("Second force update on rank %i, dSdpi[0] %e dSdpi[1] %e dSdpi[2] %e\n", rank,ave_dSdpi[0],ave_dSdpi[1],ave_dSdpi[2]);
+		}
 #endif
 
 		//if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
@@ -195,8 +231,11 @@ int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 			//Final momentum step
 			Momentum_Update(dp,dSdpi,pp);
 #ifdef _DEBUG
-			if(!rank)
-				printf("Final momentum on step %i, pp[0] %e\n", step,pp[0]);
+	if(!rank){
+		double ave_pp[3];
+		Force_debug(ave_pp,pp);
+		printf("Average final momentum on rank %i, pp[0] %e pp[1] %e pp[2] %e\n", rank,ave_pp[0],ave_pp[1],ave_pp[2]);
+		}
 #endif
 			*itot+=step;
 			//Two force terms, so an extra factor of two in the average?
@@ -209,8 +248,11 @@ int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 			//Since we apply the momentum at the start and end of a step we instead apply a double step here
 			Momentum_Update(dp2,dSdpi,pp);
 #ifdef _DEBUG
-			if(!rank)
-				printf("Intermediate momentum on step %i, pp[0] %e\n", step,pp[0]);
+	if(!rank){
+		double ave_pp[3];
+		Force_debug(ave_pp,pp);
+		printf("Average intermediate momentum on rank %i, pp[0] %e pp[1] %e pp[2] %e\n", rank,ave_pp[0],ave_pp[1],ave_pp[2]);
+		}
 #endif
 			step++;
 		}
