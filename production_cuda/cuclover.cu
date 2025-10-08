@@ -42,22 +42,18 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> *Leaves1, com
 	unsigned int didm,didn,uidn,uidm;
 	switch(leaf){
 		case(0):
-			//Both positive is just a standard plaquette
+			///Both positive is just a standard plaquette
 			Clover_SU2plaq(u11t,u12t,Leaves1,Leaves2,iu,i,mu,nu);
 			break;
 		case(1):
-			//Leaf in the forward nu and backwards mu direction
+			///Leaf in the forward nu and backwards mu direction
 			didm = id[mu*kvol+i]; unsigned int uin_didm=id[nu*kvol+didm];
 			/// @f$U_\nu\(x)U^\dagger_\mu(x-\hat{\mu}+\nu)@f$
-			//		Leaves1[i+kvol*leaf]=conj(u11t[didm+kvol*mu])*u11t[didm+kvol*nu]+u12t[didm+kvol*mu]*conj(u12t[didm+kvol*nu]);
 			Leaves1[i+kvol*leaf]=u11t[i+kvol*nu]*conj(u11t[uin_didm+kvol*mu])+u12t[i+kvol*nu]*conj(u12t[uin_didm+kvol*mu]);
-			//			Leaves2[i+kvol*leaf]=conj(u11t[didm+kvol*mu])*u12t[didm+kvol*nu]-u12t[didm+kvol*mu]*conj(u11t[didm+kvol*nu]);
 			Leaves2[i+kvol*leaf]=-u11t[i+kvol*nu]*u12t[uin_didm+kvol*mu]+u12t[i+kvol*nu]*u11t[uin_didm+kvol*mu];
 
 			/// @f$U_\nu\(x)U^\dagger_\mu(x-\hat{\mu}+\nu)U^\dagger_\nu(x-\hat{\mu})@f$
-			//a[0]=Leaves1[i+kvol*leaf]*u11t[uin_didm+kvol*mu]-Leaves2[i+kvol*leaf]*conj(u12t[uin_didm+kvol*mu]);
 			a[0]=Leaves1[i+kvol*leaf]*conj(u11t[didm+kvol*nu])+Leaves2[i+kvol*leaf]*conj(u12t[didm+kvol*mu]);
-			//a[1]=Leaves1[i+kvol*leaf]*u12t[uin_didm+kvol*mu]+Leaves2[i+kvol*leaf]*conj(u11t[uin_didm+kvol*mu]);
 			a[1]=-Leaves1[i+kvol*leaf]*u12t[didm+kvol*nu]+Leaves2[i+kvol*leaf]*u11t[didm+kvol*mu];
 
 			/// @f$U_\nu\(x)U^\dagger_\mu(x-\hat{\mu}+\nu)U^\dagger_\nu(x-\hat{\mu})U_\mu(x-\hat{mu})@f$
@@ -65,7 +61,7 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> *Leaves1, com
 			Leaves2[i+kvol*leaf]=-a[0]*u12t[didm+kvol*mu]+a[1]*u11t[didm+kvol*mu];
 			break;
 		case(2):
-			//Leaf in the forwards mu and backwards new direction
+			///Leaf in the forwards mu and backwards new direction
 			//Another awkward index
 			uidm = iu[mu*kvol+i]; unsigned int din_uidm=id[nu*kvol+uidm];
 			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{mu}-\hat{\nu})@f$
@@ -83,7 +79,7 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> *Leaves1, com
 
 			break;
 		case(3):
-			//Leaf in the backwards mu and backwards nu direction
+			///Leaf in the backwards mu and backwards nu direction
 			/// @f$U_\nu^\dagger(x-\hat{\nu})U_\mu^\dagger(x-\hat{\mu}-\hat{nu})@f$
 			didn = id[nu*kvol+i];unsigned int din_didm=id[mu*kvol+didn];
 			//Leaves1[i+kvol*leaf]=conj(u11t[didn+kvol*mu])*conj(u11t[din_didm+kvol*nu])-u12t[didn+kvol*mu]*conj(u12t[din_didm+kvol*nu]);
@@ -123,8 +119,14 @@ __global__  void Full_Clover(complex<T> *clover1, complex<T> *clover2, complex<T
 			Leaf(u11t,u12t,Leaves1,Leaves2,iu,id,i,mu,nu,leaf);
 			clover1[i]+=Leaves1[i+kvol*leaf]; clover2[i]+=Leaves2[i+kvol*leaf];
 		}
-		clover1[i]-=conj(clover1[i]);		clover1[i]*=(-I/8.0);
-		clover2[i]+=clover2[i]; 			clover2[i]*=(-I/8.0);
+		///The clover is given by @f$(F_{\mu\nu}=\frac{-i}{8}\left(Q_{\mu\nu}-Q_{\mu\nu}\right)^\dagger. We do that
+		///manually below.
+
+		///The @f$\alpha@f$ component. Only the imaginary part survives. And since it is multiplied by @f$-i@f$ it is real.
+		clover1[i]=2*clover1[i].imag();		clover1[i]*=(-I/8.0);
+
+		///The @f$\beta@f$ component. Both real and imaginary components survive. It ends up getting doubled.
+		clover2[i]+=clover2[i]; 				clover2[i]*=(-I/8.0);
 	}
 	return;
 }
@@ -159,6 +161,8 @@ __device__ void Force_Leaves(complex<T> fleaf[nc],complex<T> *Leaves1, complex<T
 			fleaf[0]=I*2*(Leaves1[site+kvol].imag());
 			fleaf[1]=2*(Leaves2[site+kvol]);
 	}
+	///For the full clover we scale by @f$\frac{-i}{8}@f$. But there is a factor of @f$i@f$ from the force term
+	///In addition, there's another factor of @f$2@f$ from the force term. So we just divide by @f$4@f$ instead.
 	fleaf[0]*=1/4.0f; fleaf[1]*=1/4.0f;
 	return;
 }
