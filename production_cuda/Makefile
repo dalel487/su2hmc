@@ -1,5 +1,5 @@
 MF=Makefile
-CC ?=		gcc
+CC ?=			gcc
 CXX ?=		g++
 NVCC ?=		nvcc
 
@@ -7,18 +7,26 @@ IFLAGS=     -I../INCLUDE -I ./ -I../production_c $(shell gsl-config --cflags)\
 				-I /opt/nvidia/hpc_sdk/Linux_x86_64/latest/cuda/include/ \
 				-I /opt/nvidia/hpc_sdk/Linux_x86_64/latest/math_libs/include/ 
 
-CFLAGS =	$(IFLAGS) -D__NVCC__ -D__RANLUX__  -DSA3AT -DINT_OMF2\
+CFLAGS =	$(IFLAGS) -D__NVCC__ -D__RANLUX__  -DSA3AT -DINT_OMF2
 
 ifeq ($(CXX),icpx)
+# NOTE: 20251101: Intel oneAPI 2024.0+ with NVCC 13 or earlier (possibly later, but they dont exist as of when I wrote
+# this) compatibility issues on AVX10.2+ CPUs (e.g., Granite Rapids)
+# If compilation fails with AVX10.2 intrinsic errors, replace -march=native with -march=skylake-avx512
+# or use an older Intel compiler version that doesn't include AVX10.2 intrinsics.
+    $(error As of 20251101, the NVCC compiler fails with Intel OneAPI as it cannot parse the AVX10.2 intrinsics. And it will keep trying to parse them even if the target is not AVX512. Use GCC and G++ instead (echo CC=gcc; echo CXX=g++))
 CFLAGS+=  -qopt-zmm-usage=high -MD -ipo -static-intel -static-libgcc \
-			-xHOST -DMKL_DIRECT_CALL -D__USE_MKL__  -qopenmp \
+			-march=native -DMKL_DIRECT_CALL -D__USE_MKL__  -qopenmp \
 			-qopenmp-simd  -use-intel-optimized-headers -diag-disable=10441
 else ifeq ($(CXX),g++)
 CFLAGS+=		-march=native -fcommon -fopenmp -fopenmp-simd -static-libgcc -foffload=disable
 else ifeq ($(CXX),nvc++)
-CFLAGS+=		-tp=native -fast -Mvect=simd -mp -static
+    $(warning As of 20251101, the nvc/nvc++ compiler segfaults during the conjugate gradient. We recommend you use GNU instead. (echo CC+gcc, echo CXX=g++))
+CFLAGS+=		-tp=native -mp
 else ifeq ($(CXX),clang++)
-CFLAGS+=		-fveclib=AMDLIBM -march=native -fcommon -flto -fopenmp=libomp -fopenmp-simd -static-libgcc
+    $(error As of 20251101, the libstdc++ headers break when compiling with clang. This is due to NVCC not supporting noexcept(true) in the header for rsqrt(), and clang being stricter than GCC. You may have more luck with a version of nvcc greater than 13.0 or an older libstdc++ library)
+CFLAGS+=		-fveclib=AMDLIBM -march=native -fcommon -flto -fopenmp=libomp -fopenmp-simd -static-libgcc -Wno-exception-spec 
+#NVCCFLAGS+= -D_GLIBCXX_USE_CXX11_ABI=0
 else
     $(error Unknown compiler: $(CXX))
 endif
@@ -46,7 +54,7 @@ CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/latest/cuda/lib64/ \
 
 LFLAGS +=		-lstdc++ -lpthread -ldl #${CULFLAGS}
 
-NVCCFLAGS=	${IFLAGS} --resource-usage -err-no -w --allow-unsupported-compiler #-expt-relaxed-constexpr 
+NVCCFLAGS+=	${IFLAGS} --resource-usage -err-no -w --allow-unsupported-compiler #-expt-relaxed-constexpr 
 			#Last flag is an experimental one used to call host functions in device code. Not sure
 			#if it does what we want because the error message suggesting it came up when declaring
 			#a11 and a12 in the Dslash routine
@@ -111,7 +119,7 @@ profiler:	CFLAGS += -g #-D_DEBUGCG
 profiler:	NVCCFLAGS += -Xptxas -O3,-v -lineinfo #-D_DEBUGCG #-keep
 profiler:	release
 
-release:	CFLAGS +=  -Ofast -funroll-all-loops -fcf-protection=none #-fprofile-use=./gcc_pgo
+release:	CFLAGS +=  -Ofast  #-fprofile-use=./gcc_pgo
 release:	NVCCFLAGS += -arch=native #--maxrregcount=64 -G -dopt=on
 release:	$(EXE)
 
@@ -125,9 +133,9 @@ debug:		NVCCFLAGS += -Xptxas -O0,-v -G -g -D_DEBUG -arch=sm_75 -keep
 debug:		$(EXE)
 		 
 $(EXE): $(OBJ) ../main.c
-	$(NVCC) $(NVCCFLAGS) -std=c++17 $(IFLAGS) -ccbin $(CC) -Xcompiler "$(CFLAGS) -std=gnu11 -rdynamic " $(LFLAGS) $(CULFLAGS) $^ -o $@
+	$(NVCC) $(NVCCFLAGS) -std=c++17 $(IFLAGS) -ccbin $(CC) -Xcompiler "$(CFLAGS) -rdynamic" --compiler-options -D__NO_AVX10_2__  $(LFLAGS) $(CULFLAGS) $^ -o $@
 %.o: $(CUSRC_DIR)/%.cu
-	$(NVCC) $(NVCCFLAGS) -std=c++17 $(IFLAGS) -ccbin $(CXX) -Xcompiler "$(CFLAGS) -std=c++17 -rdynamic" $^ -dc $@
+	$(NVCC) $(NVCCFLAGS) -std=c++17 $(IFLAGS) -ccbin $(CXX) -Xcompiler "$(CFLAGS)  -rdynamic" --compiler-options -D__NO_AVX10_2__ $^ -dc $@
 %.o: $(CSRC_DIR)%.c
 	$(CC) $(CFLAGS) -std=gnu11 $(IFLAGS) -c $^  
 
