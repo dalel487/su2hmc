@@ -15,10 +15,10 @@ CFLAGS+=  -qopt-zmm-usage=high -MD -ipo -static-intel -static-libgcc \
 			-qopenmp-simd  -use-intel-optimized-headers -diag-disable=10441
 else ifeq ($(CXX),g++)
 CFLAGS+=		-march=native -fcommon -fopenmp -fopenmp-simd -static-libgcc -foffload=disable
+else ifeq ($(CXX),nvc++)
+CFLAGS+=		-tp=native -fast -Mvect=simd -mp -static
 else ifeq ($(CXX),clang++)
-CFLAGS+=		-fveclib=AMDLIBM -march=native  -fcommon -flto -flto -DAMD_BLAS \
-				-fopenmp=libomp -fopenmp-simd -static-libgcc
-		  #-fprofile-instr-use
+CFLAGS+=		-fveclib=AMDLIBM -march=native -fcommon -flto -fopenmp=libomp -fopenmp-simd -static-libgcc
 else
     $(error Unknown compiler: $(CXX))
 endif
@@ -28,7 +28,7 @@ ifdef __USE_MKL__
 CFLAGS+=	-qmkl
 LFLAGS=	-L${MKLROOT}/lib/intel64 -limf #-DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
 else ifdef AOCL_ROOT
-CFLAGS += -DAMD_BLAS -I ${AOCL_ROOT}/include 
+CFLAGS += -DAMD_BLAS -I ${AOCL_ROOT}/include
 LFLAGS = -L${AOCL_ROOT}/lib/ -lblis  -lalm
 else ifdef LIBSCI_BASE_DIR
 CFLAGS += -DUSE_BLAS
