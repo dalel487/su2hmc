@@ -6,16 +6,13 @@
  *	@author	D. Lawlor
  */
 #include <su2hmc.h>
+#include <matrices.h>
 int Force_debug(double ave_dSdpi[3],double *dSdpi){
 #ifdef __NVCC__
-		cublasDasum(cublas_handle,kvol*ndim,dSdpi,1,ave_dSdpi);
-		cublasDasum(cublas_handle,kvol*ndim,dSdpi+kvol*ndim,1,ave_dSdpi+1);
-		cublasDasum(cublas_handle,kvol*ndim,dSdpi+2*kvol*ndim,1,ave_dSdpi+2);
+		ave_dSdpi[0]=cureduce_sum_d(dSdpi,kvol*ndim,0);
+		ave_dSdpi[1]=cureduce_sum_d(dSdpi+kvol*ndim,kvol*ndim,1);
+		ave_dSdpi[2]=cureduce_sum_d(dSdpi+2*kvol*ndim,kvol*ndim,2);
 		cudaDeviceSynchronise();
-#elifdef USE_BLAS
-		cblas_dasum(kvol*ndim,dSdpi,1,d,ave_dSdpi);
-		cblas_dasum(kvol*ndim,dSdpi+kvol*ndim,1,d,ave_dSdpi+1);
-		cblas_dasum(kvol*ndim,dSdpi+2*kvol*ndim,1,d,ave_dSdpi+2);
 #else
 		for(unsigned int i=0;i<kvol*ndim;i++){
 			ave_dSdpi[0]+=dSdpi[i];
@@ -160,7 +157,14 @@ int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 	//Initial step forward for p
 	//=======================
 #ifdef _DEBUG
-	printf("Evaluating force on rank %i, dSdpi[0] %e\n", rank,dSdpi[0]);
+	if(!rank){
+		double ave_dSdpi[3];
+		Force_debug(ave_dSdpi,dSdpi);
+		printf("Before evaluating force on rank %i, dSdpi[0] %e dSdpi[1] %e dSdpi[2] %e\n", rank,ave_dSdpi[0],ave_dSdpi[1],ave_dSdpi[2]);
+		double ave_pp[3];
+		Force_debug(ave_pp,pp);
+		printf("Average momentum pp[0] %e pp[1] %e pp[2] %e\n", ave_pp[0],ave_pp[1],ave_pp[2]);
+		}
 #endif
 	Force(dSdpi, 1, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
 #ifdef _DEBUG
@@ -173,8 +177,6 @@ int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 	//Initial momentum update
 	Momentum_Update(dp,dSdpi,pp);
 #ifdef _DEBUG
-	if(!rank)
-		printf("Initial momentum on rank %i, pp[0] %e\n", rank,pp[0]);
 	if(!rank){
 		double ave_pp[3];
 		Force_debug(ave_pp,pp);

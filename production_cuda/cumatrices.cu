@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <su2hmc.h>
 #include <matrices.h>
 #include <string.h>
 #include	<thrust_complex.h>
@@ -83,7 +84,7 @@ __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, compl
 				-dk4msd*(conj(u12sd)*(rd[0]+rgd[0]) +u11sd *(rd[1]+rgd[1]));
 			phi[i+kvol*(igorkov*nc+1)]=phi_s[igorkov*nc+1];
 			unsigned short igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
-												//the FORTRAN code did it.
+																//the FORTRAN code did it.
 			unsigned short igork1PP = igork1+4;
 			//And the gorkov terms. Note that dk4p and dk4m swap positions compared to the above				
 			for(unsigned short c=0;c<nc;c++){
@@ -205,7 +206,7 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 						+u11sd *(rd[1]-rgd[1]));
 			phi[i+kvol*(igorkov*nc+1)]=phi_s[igorkov*nc+1];
 			unsigned short igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
-												//the FORTRAN code did it.
+																//the FORTRAN code did it.
 			unsigned short igork1PP = igork1+4;
 			for(unsigned short c=0;c<nc;c++){
 				ru[c]=r[uid+kvol*(igorkovPP*nc+c)]; rd[c]=r[did+kvol*(igorkovPP*nc+c)];
@@ -242,8 +243,8 @@ __global__ void cuHdslash(complex<T> *phi, const complex<T> *r, const complex<T>
 	const unsigned int gthreadId= blockId * bsize+bthreadId;
 
 	//Right. Time to prefetch
-//	complex<T> u11s;	 complex<T> u12s;
-//	complex<T> u11sd;	 complex<T> u12sd;
+	//	complex<T> u11s;	 complex<T> u12s;
+	//	complex<T> u11sd;	 complex<T> u12sd;
 	complex<T> ru[2];  complex<T> rd[2];
 	complex<T> rgu[2];  complex<T> rgd[2];
 	complex<T> phi_s[ndirac*nc];
@@ -339,7 +340,7 @@ __global__ void cuHdslashd(complex<T> *phi, const complex<T>* r, const complex<T
 			for(unsigned short c=0; c<nc; c++)
 				phi_s[idirac+c]=phi[i+kvol*(c+idirac)];
 
-//#pragma unroll
+		//#pragma unroll
 		for(unsigned short mu = 0; mu <ndim; mu++){
 			//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
 			unsigned int ind=i+kvol*mu;
@@ -366,7 +367,7 @@ __global__ void cuHdslashd(complex<T> *phi, const complex<T>* r, const complex<T
 							+conj(u11sd)*rd[0] -u12sd *rd[1]);
 					//Dirac term
 					phi_s[idirac]-=gam* (u11s*rgu[0] +u12s*rgu[1]
-						 -conj(u11sd)*rgd[0] +u12sd *rgd[1]);
+							-conj(u11sd)*rgd[0] +u12sd *rgd[1]);
 
 					phi_s[idirac+1]-=akappa*(-conj(u12s)*ru[0] +conj(u11s)*ru[1]
 							+conj(u12sd)*rd[0] +u11sd *rd[1]);
@@ -377,15 +378,15 @@ __global__ void cuHdslashd(complex<T> *phi, const complex<T>* r, const complex<T
 				else{
 					const T  dk4ms=dk4m[i];  const T dk4ps=dk4p[did];
 					phi_s[idirac]+= -dk4ms*(u11s*(ru[0]+rgu[0])
-								+u12s*(ru[1]+rgu[1]));
+							+u12s*(ru[1]+rgu[1]));
 					phi_s[idirac]+= -dk4ps*(conj(u11sd)*(rd[0]-rgd[0])
-								-u12sd *(rd[1]-rgd[1]));
+							-u12sd *(rd[1]-rgd[1]));
 					phi[i+kvol*(0+idirac)]=phi_s[idirac+0];
 
 					phi_s[idirac+1]-= dk4ms*(-conj(u12s)*(ru[0]+rgu[0])
-								+conj(u11s)*(ru[1]+rgu[1]));
+							+conj(u11s)*(ru[1]+rgu[1]));
 					phi_s[idirac+1]-= +dk4ps*(conj(u12sd)*(rd[0]-rgd[0])
-								+u11sd *(rd[1]-rgd[1]));
+							+u11sd *(rd[1]-rgd[1]));
 					phi[i+kvol*(1+idirac)]=phi_s[idirac+1];
 				}
 			}
@@ -433,38 +434,88 @@ __global__ void cuMixed_Sumto(double *d, float *f, const unsigned int n){
 	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	const unsigned int gthreadId= blockId * bsize+bthreadId;
-	
+
 	for(unsigned int i=gthreadId; i<n;i+=bsize*gsize)
 		d[i]+=(double)f[i];
 	return;
 }
 
+template <typename T,unsigned int bsize>
+__device__ void warpReduce_sum(volatile T* sdata, const unsigned int tid){
+    if(bsize >= 64) sdata[tid] += sdata[tid + 32];
+    if(bsize >= 32) sdata[tid] += sdata[tid + 16];
+    if(bsize >= 16) sdata[tid] += sdata[tid + 8];
+    if(bsize >= 8) sdata[tid] += sdata[tid + 4];
+    if(bsize >= 4) sdata[tid] += sdata[tid + 2];
+    if(bsize >= 2) sdata[tid] += sdata[tid + 1];
+}
+template <typename T,unsigned int bsize>
+__global__ void reduce_sum(T *g_in_data, T *g_out_data, const unsigned int n){
+    extern __shared__ T sdata[];  // stored in the shared memory
+
+	/*
+	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const unsigned int gthreadId= blockId * bsize+bthreadId;
+	*/
+    // Each thread loading one element from global onto shared memory
+    const unsigned short tid = threadIdx.x;
+    unsigned int i = blockIdx.x*(bsize*2) + tid;
+    const unsigned int gridSize = blockDim.x * 2 * gridDim.x;
+    sdata[tid] = 0;
+
+    while(i < n) {
+      sdata[tid] += g_in_data[i] + g_in_data[i + bsize];
+      i += gridSize;
+    }
+    __syncthreads();
+
+    // Perform reductions in steps, reducing thread synchronization
+    if (bsize >= 512) {
+        if (tid < 256) { sdata[tid] += sdata[tid + 256]; } __syncthreads();
+    }
+    if (bsize >= 256) {
+        if (tid < 128) { sdata[tid] += sdata[tid + 128]; } __syncthreads();
+    }
+    if (bsize >= 128) {
+        if (tid < 64) { sdata[tid] += sdata[tid + 64]; } __syncthreads();
+    }
+
+    if (tid < 32) warpReduce_sum<T,bsize>(sdata, tid);
+
+    if (tid == 0){
+        g_out_data[blockIdx.x] = sdata[0];
+    }
+}
+
 //Calling Functions
 //================
+double cureduce_sum_d(double *input, const unsigned int n,const unsigned short stream){
+	const unsigned int bsize=256;
+	unsigned int gsize=(n + (2 * bsize) - 1) / (2 * bsize); 
+	double *cachein, *cacheout;
+	cudaMallocAsync(&cacheout,gsize*sizeof(double),streams[stream]);
+	reduce_sum<double,bsize><<<gsize,bsize,bsize*sizeof(double),streams[stream]>>>(input,cacheout,n);
+	while(gsize>1){
+		cudaMallocAsync(&cachein,gsize*sizeof(double),streams[stream]);
+		cudaMemcpyAsync(cachein,cacheout,gsize*sizeof(double),cudaMemcpyDefault,streams[stream]);
+		cudaFreeAsync(cacheout,streams[stream]);
+		gsize>>=1;
+		cudaMallocAsync(&cacheout,gsize*sizeof(double),streams[stream]);
+		reduce_sum<double,bsize><<<gsize,bsize,bsize*sizeof(double),streams[stream]>>>(cachein,cacheout,gsize);
+		cudaFreeAsync(cachein,streams[stream]);
+	}
+	cudaStreamSynchronize(streams[stream]);
+	double output=0;
+	cudaMemcpyAsync(&output,cacheout,sizeof(double),cudaMemcpyDefault,streams[stream]);
+	cudaFreeAsync(cacheout,streams[stream]);
+	return output;
+}
 void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
 		Complex *gamval, int *gamin,	double *dk4m, double *dk4p, Complex_f jqq, float akappa,\
 		dim3 dimGrid, dim3 dimBlock){
-	/*
-	 * Evaluates phi= M*r
-	 *
-	 * Globals
-	 * =======
-	 * u11t, u12t, dk4p, dk4m, (*akappa), jqq 
-	 *
-	 * Calls:
-	 * ======
-	 * zhaloswapdir, chaloswapdir, zhaloswapall (Non-mpi version could do without these)
-	 *
-	 * Parametrer:
-	 * ==========
-	 *
-	 * Complex *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
-	 * 			for consistency with the fortran code I'll keep the name here
-	 * Complex r:		The array being acted on by M
-	 *
-	 * Returns:
-	 * Zero on success, integer error code otherwise
-	 */
 	const char funcname[] = "Dslash";
 	cudaMemcpy(phi, r, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice);
 	cuDslash<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
@@ -472,27 +523,6 @@ void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned in
 void cuDslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
 		Complex *gamval, int *gamin,	double *dk4m, double *dk4p, Complex_f jqq, float akappa,\ 
 		dim3 dimGrid, dim3 dimBlock){
-	/*
-	 * Evaluates phi= M*r
-	 *
-	 * Globals
-	 * =======
-	 * u11t, u12t, dk4p, dk4m, (*akappa), jqq 
-	 *
-	 * Calls:
-	 * ======
-	 * zhaloswapdir, chaloswapdir, zhaloswapall (Non-mpi version could do without these)
-	 *
-	 * Parameter:
-	 * ==========
-	 *
-	 * Complex *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
-	 * 			for consistency with the fortran code I'll keep the name here
-	 * Complex r:		The array being acted on by M
-	 *
-	 * Returns:
-	 * Zero on success, integer error code otherwise
-	 */
 	const char funcname[] = "Dslashd";
 	cudaMemcpy(phi, r, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice);
 	cuDslashd<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
@@ -500,27 +530,6 @@ void cuDslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned i
 void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
 		Complex *gamval, int *gamin,	double *dk4m, double *dk4p, float akappa,\ 
 		dim3 dimGrid, dim3 dimBlock){
-	/*
-	 * Evaluates phi= M*r
-	 *
-	 * Globals
-	 * =======
-	 * u11t, u12t, dk4p, dk4m, (*akappa), jqq 
-	 *
-	 * Calls:
-	 * ======
-	 * zhaloswapdir, chaloswapdir, zhaloswapall (Non-mpi version could do without these)
-	 *
-	 * Parametrer:
-	 * ==========
-	 *
-	 * Complex *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
-	 * 			for consistency with the fortran code I'll keep the name here
-	 * Complex r:		The array being acted on by M
-	 *
-	 * Returns:
-	 * Zero on success, integer error code otherwise
-	 */
 	const char funcname[] = "Hdslash";
 	cudaMemcpy(phi, r, kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice);
 	cuHdslash<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
@@ -528,27 +537,6 @@ void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned i
 void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
 		Complex *gamval, int *gamin,double *dk4m, double *dk4p, float akappa,\ 
 		dim3 dimGrid, dim3 dimBlock){
-	/*
-	 * Evaluates phi= M*r
-	 *
-	 * Globals
-	 * =======
-	 * u11t, u12t, dk4p, dk4m, (*akappa), jqq 
-	 *
-	 * Calls:
-	 * ======
-	 * zhaloswapdir, chaloswapdir, zhaloswapall (Non-mpi version could do without these)
-	 *
-	 * Parametrer:
-	 * ==========
-	 *
-	 * Complex *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
-	 * 			for consistency with the fortran code I'll keep the name here
-	 * Complex r:		The array being acted on by M
-	 *
-	 * Returns:
-	 * Zero on success, integer error code otherwise
-	 */
 	const char funcname[] = "Hdslashd";
 	//Spacelike term
 	cudaMemcpy(phi, r, kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice);
@@ -559,27 +547,6 @@ void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned 
 void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
 		Complex_f *gamval,int *gamin,	float *dk4m, float *dk4p, Complex_f jqq, float akappa,\ 
 		dim3 dimGrid, dim3 dimBlock){
-	/*
-	 * Evaluates phi= M*r
-	 *
-	 * Globals
-	 * =======
-	 * u11t, u12t, dk4p, dk4m, (*akappa), jqq 
-	 *
-	 * Calls:
-	 * ======
-	 * zhaloswapdir, chaloswapdir, zhaloswapall (Non-mpi version could do without these)
-	 *
-	 * Parametrer:
-	 * ==========
-	 *
-	 * Complex *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
-	 * 			for consistency with the fortran code I'll keep the name here
-	 * Complex r:		The array being acted on by M
-	 *
-	 * Returns:
-	 * Zero on success, integer error code otherwise
-	 */
 	const char funcname[] = "Dslash_f";
 	int cuCpyStat=0;
 	if((cuCpyStat=cudaMemcpy(phi, r, kferm*sizeof(Complex_f),cudaMemcpyDefault))){
@@ -592,27 +559,6 @@ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,u
 void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
 		Complex_f *gamval,int *gamin,	float *dk4m, float *dk4p, Complex_f jqq, float akappa,\ 
 		dim3 dimGrid, dim3 dimBlock){
-	/*
-	 * Evaluates phi= M*r
-	 *
-	 * Globals
-	 * =======
-	 * u11t, u12t, dk4p, dk4m, (*akappa), jqq 
-	 *
-	 * Calls:
-	 * ======
-	 * zhaloswapdir, chaloswapdir, zhaloswapall (Non-mpi version could do without these)
-	 *
-	 * Parameter:
-	 * ==========
-	 *
-	 * Complex *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
-	 * 			for consistency with the fortran code I'll keep the name here
-	 * Complex r:		The array being acted on by M
-	 *
-	 * Returns:
-	 * Zero on success, integer error code otherwise
-	 */
 	const char funcname[] = "Dslashd_f";
 	int cuCpyStat=0;
 	if((cuCpyStat=cudaMemcpy(phi, r, kferm*sizeof(Complex_f),cudaMemcpyDefault))){
@@ -623,28 +569,7 @@ void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,
 	cuDslashd<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 }
 void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,unsigned int *id, Complex_f *gamval,
-					int *gamin,	float *dk[2], float akappa, dim3 dimGrid, dim3 dimBlock){
-	/*
-	 * Evaluates phi= M*r
-	 *
-	 * Globals
-	 * =======
-	 * u11t, u12t, dk4p, dk4m, (*akappa), jqq 
-	 *
-	 * Calls:
-	 * ======
-	 * zhaloswapdir, chaloswapdir, zhaloswapall (Non-mpi version could do without these)
-	 *
-	 * Parametrer:
-	 * ==========
-	 *
-	 * Complex_f *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
-	 * 			for consistency with the fortran code I'll keep the name here
-	 * Complex_f r:		The array being acted on by M
-	 *
-	 * Returns:
-	 * Zero on success, integer error code otherwise
-	 */
+		int *gamin,	float *dk[2], float akappa, dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Hdslash_f";
 	int cuCpyStat=0;
 	if((cuCpyStat=cudaMemcpy(phi, r, kferm2*sizeof(Complex_f),cudaMemcpyDefault))){
@@ -657,28 +582,7 @@ void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu
 	cuHdslash<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa);
 }
 void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,unsigned int *id,
-						Complex_f*gamval,int *gamin,float *dk[2], float akappa,dim3 dimGrid, dim3 dimBlock){
-	/*
-	 * Evaluates phi= M*r
-	 *
-	 * Globals
-	 * =======
-	 * u11t, u12t, dk4p, dk4m, (*akappa), jqq 
-	 *
-	 * Calls:
-	 * ======
-	 * zhaloswapdir, chaloswapdir, zhaloswapall (Non-mpi version could do without these)
-	 *
-	 * Parametrer:
-	 * ==========
-	 *
-	 * Complex_f *phi:	The result container. This is NOT THE SAME AS THE GLOBAL Phi. But
-	 * 			for consistency with the fortran code I'll keep the name here
-	 * Complex_f r:		The array being acted on by M
-	 *
-	 * Returns:
-	 * Zero on success, integer error code otherwise
-	 */
+		Complex_f*gamval,int *gamin,float *dk[2], float akappa,dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Hdslashd_f";
 	int cuCpyStat=0;
 	//__shared__ int gamin_s[16]; __shared__ Complex_f gamval_s[20];
@@ -696,9 +600,6 @@ void cuTranspose_z(Complex *out, const int fast_in, const int fast_out, const di
 	cudaMalloc((void **)&holder,fast_in*fast_out*sizeof(Complex));
 	cudaMemcpy(holder,out,fast_in*fast_out*sizeof(Complex),cudaMemcpyDefault);
 	Transpose<<<dimGrid,dimBlock>>>(out,holder,fast_in,fast_out);
-	//cublasCgeam(cublas_handle,CUBLAS_OP_T,CUBLAS_OP_N,fast_in,fast_out,(cuComplex *)&alpha,\
-	//(cuComplex *)out,fast_out,NULL,(cuComplex *)&beta,fast_out,(cuComplex *)holder,fast_out);
-	//cudaMemcpy(out,holder,fast_in*fast_out*sizeof(Complex_f),cudaMemcpyDefault);
 	cudaFree(holder);
 }
 void cuTranspose_c(Complex_f *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
@@ -707,9 +608,6 @@ void cuTranspose_c(Complex_f *out, const int fast_in, const int fast_out, const 
 	cudaMemcpy(holder,out,fast_in*fast_out*sizeof(Complex_f),cudaMemcpyDefault);
 	Transpose<<<dimGrid,dimBlock>>>(out,holder,fast_in,fast_out);
 	cudaDeviceSynchronise();
-	//cublasCgeam(cublas_handle,CUBLAS_OP_T,CUBLAS_OP_N,fast_in,fast_out,(cuComplex *)&alpha,\
-	//(cuComplex *)out,fast_out,NULL,(cuComplex *)&beta,fast_out,(cuComplex *)holder,fast_out);
-	//cudaMemcpy(out,holder,fast_in*fast_out*sizeof(Complex_f),cudaMemcpyDefault);
 	cudaFree(holder);
 }
 void cuTranspose_d(double *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
@@ -717,9 +615,6 @@ void cuTranspose_d(double *out, const int fast_in, const int fast_out, const dim
 	cudaMalloc((void **)&holder,fast_in*fast_out*sizeof(double));
 	cudaMemcpy(holder,out,fast_in*fast_out*sizeof(double),cudaMemcpyDefault);
 	Transpose<<<dimGrid,dimBlock>>>(out,holder,fast_in,fast_out);
-	//cublasCgeam(cublas_handle,CUBLAS_OP_T,CUBLAS_OP_N,fast_in,fast_out,(cuComplex *)&alpha,\
-	//(cuComplex *)out,fast_out,NULL,(cuComplex *)&beta,fast_out,(cuComplex *)holder,fast_out);
-	//cudaMemcpy(out,holder,fast_in*fast_out*sizeof(double),cudaMemcpyDefault);
 	cudaFree(holder);
 }
 void cuTranspose_f(float *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
@@ -727,9 +622,6 @@ void cuTranspose_f(float *out, const int fast_in, const int fast_out, const dim3
 	cudaMalloc((void **)&holder,fast_in*fast_out*sizeof(float));
 	cudaMemcpy(holder,out,fast_in*fast_out*sizeof(float),cudaMemcpyDefault);
 	Transpose<<<dimGrid,dimBlock>>>(out,holder,fast_in,fast_out);
-	//cublasCgeam(cublas_handle,CUBLAS_OP_T,CUBLAS_OP_N,fast_in,fast_out,(cuComplex *)&alpha,\
-	//(cuComplex *)out,fast_out,NULL,(cuComplex *)&beta,fast_out,(cuComplex *)holder,fast_out);
-	//cudaMemcpy(out,holder,fast_in*fast_out*sizeof(float),cudaMemcpyDefault);
 	cudaFree(holder);
 }
 void cuTranspose_I(int *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
@@ -737,9 +629,6 @@ void cuTranspose_I(int *out, const int fast_in, const int fast_out, const dim3 d
 	cudaMalloc((void **)&holder,fast_in*fast_out*sizeof(int));
 	cudaMemcpy(holder,out,fast_in*fast_out*sizeof(int),cudaMemcpyDefault);
 	Transpose<<<dimGrid,dimBlock>>>(out,holder,fast_in,fast_out);
-	//cublasCgeam(cublas_handle,CUBLAS_OP_T,CUBLAS_OP_N,fast_in,fast_out,(cuComplex *)&alpha,\
-	//(cuComplex *)out,fast_out,NULL,(cuComplex *)&beta,fast_out,(cuComplex *)holder,fast_out);
-	//cudaMemcpy(out,holder,fast_in*fast_out*sizeof(int),cudaMemcpyDefault);
 	cudaFree(holder);
 }
 void cuTranspose_U(unsigned int *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
@@ -747,9 +636,6 @@ void cuTranspose_U(unsigned int *out, const int fast_in, const int fast_out, con
 	cudaMalloc((void **)&holder,fast_in*fast_out*sizeof(unsigned int));
 	cudaMemcpy(holder,out,fast_in*fast_out*sizeof(unsigned int),cudaMemcpyDefault);
 	Transpose<<<dimGrid,dimBlock>>>(out,holder,fast_in,fast_out);
-	//cublasCgeam(cublas_handle,CUBLAS_OP_T,CUBLAS_OP_N,fast_in,fast_out,(cuComplex *)&alpha,\
-	//(cuComplex *)out,fast_out,NULL,(cuComplex *)&beta,fast_out,(cuComplex *)holder,fast_out);
-	//cudaMemcpy(out,holder,fast_in*fast_out*sizeof(int),cudaMemcpyDefault);
 	cudaFree(holder);
 }
 

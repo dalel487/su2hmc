@@ -9,7 +9,7 @@
 #ifdef __NVCC__ 
 #include <cublas_v2.h>
 #endif
-#ifdef __INTEL_MKL__
+#ifdef __USE_MKL__
 #include <mkl.h>
 #include <mkl_vsl.h>
 #define M_PI		3.14159265358979323846	/* pi */
@@ -23,7 +23,7 @@
 #include <par_mpi.h>
 //Configuration for existing generators if called
 //===============================================
-#if (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))
+#if (defined USE_RAN2||(!defined __USE_MKL__&&!defined __RANLUX__))
 extern long seed;
 #ifdef __cplusplus
 extern "C"
@@ -100,7 +100,7 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif
-#elif defined __INTEL_MKL__
+#elif defined __USE_MKL__
 extern VSLStreamStatePtr stream;
 extern unsigned int seed;
 #ifdef __cplusplus

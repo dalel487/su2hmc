@@ -25,7 +25,7 @@
  *
  ******************************************************************/
 #pragma once
-#ifdef	__INTEL_MKL__
+#ifdef	__USE_MKL__
 #define	USE_BLAS
 #include	<mkl.h>
 #elif defined GSL_BLAS

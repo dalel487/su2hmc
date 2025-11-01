@@ -363,7 +363,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			cuComplex_convert(p_f,p,kferm2,true,dimBlock,dimGrid);
 			cuComplex_convert(r_f,r,kferm2,true,dimBlock,dimGrid);
 #else
-#ifdef __INTEL_MKL__
+#ifdef __USE_MKL__
 			const Complex a = 1.0;
 			//There is cblas_?axpby in the MKL and AMD though, set a = 1 and b = \beta.
 			//If we get a small enough \beta_n before hitting the iteration cap we break
@@ -519,7 +519,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			alpha_m = 1.0;
 			cublasCscal(cublas_handle,kferm2,(cuComplex *)&beta_f,(cuComplex *)p_f,1);
 			cublasCaxpy(cublas_handle,kferm2,(cuComplex *)&alpha_m,(cuComplex *)r_f,1,(cuComplex *)p_f,1);
-#elif (defined __INTEL_MKL__)
+#elif (defined __USE_MKL__)
 			Complex_f a = 1.0;
 			Complex_f beta_f=(Complex_f)beta;
 			//There is cblas_?axpby in the MKL and AMD though, set a = 1 and b = \beta.
@@ -742,7 +742,7 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigne
 		cublasCscal(cublas_handle,kferm,(cuComplex *)&beta_f,(cuComplex *)p_f,1);
 		cublasCaxpy(cublas_handle,kferm,(cuComplex *)&a,(cuComplex *)r_f,1,(cuComplex *)p_f,1);
 		cudaDeviceSynchronise();
-#elif (defined __INTEL_MKL__ || defined AMD_BLAS)
+#elif (defined __USE_MKL__ || defined AMD_BLAS)
 		cblas_caxpby(kferm, &a, r_f, 1, &beta_f,  p_f, 1);
 #else
 		cblas_cscal(kferm,&beta_f,p_f,1);

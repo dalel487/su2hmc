@@ -13,7 +13,7 @@
 #if (defined__INTEL_COMPILER || __INTEL_LLVM_COMPILER)
 #include <mathimf.h>
 #endif
-#if defined __INTEL_MKL__
+#if defined __USE_MKL__
 #define USE_BLAS
 #include <mkl.h>
 #elif defined GSL_BLAS

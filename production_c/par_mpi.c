@@ -207,7 +207,7 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 		//If more processors are used then we use the first seed to generate the rest as in Par_ranset
 #ifdef __RANLUX__
 		unsigned long *seed_array=(unsigned long*)calloc(nproc,sizeof(seed));
-#elif defined __INTEL_MKL__ && !defined USE_RAN2
+#elif defined __USE_MKL__ && !defined USE_RAN2
 		int *seed_array=(int *)calloc(nproc,sizeof(seed));
 #else
 		long *seed_array=(long*)calloc(nproc,sizeof(seed));
@@ -381,7 +381,7 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 		//Array to store the seeds. nth index is the nth processor
 #ifdef __RANLUX__
 		unsigned long *seed_array=(unsigned long*)calloc(nproc,sizeof(seed));
-#elif defined __INTEL_MKL__ && !defined USE_RAN2
+#elif defined __USE_MKL__ && !defined USE_RAN2
 		int *seed_array=(int *)calloc(nproc,sizeof(seed));
 #else
 		long *seed_array=(long*)calloc(nproc,sizeof(seed));

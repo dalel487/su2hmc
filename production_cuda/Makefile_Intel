@@ -9,7 +9,7 @@ IFLAGS=     -I../INCLUDE -I"${MKLROOT}/include" -I ./ -I../production_c\
 				-I /opt/nvidia/hpc_sdk/Linux_x86_64/latest/math_libs/include/ 
 
 CFLAGS=  -qmkl -qopt-zmm-usage=high -MD -D__NVCC__-ipo -static-intel -static-libgcc \
-			-xHOST -DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__ -qopenmp -qno-openmp-offload \
+			-xHOST -DMKL_DIRECT_CALL -D__USE_MKL__ -D__RANLUX__ -qopenmp -qno-openmp-offload \
 			-DINT_OMF2 -qopenmp-simd -DSA3AT -use-intel-optimized-headers -diag-disable=10441 $(IFLAGS) 
 
 MKLFLAGS=	-qmkl -L${MKLROOT}/lib/intel64 -limf #-DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64

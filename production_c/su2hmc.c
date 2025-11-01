@@ -24,7 +24,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 
 #ifdef _OPENMP
 	omp_set_num_threads(nthreads);
-#ifdef __INTEL_MKL__
+#ifdef __USE_MKL__
 	mkl_set_num_threads(nthreads);
 #endif
 #endif
@@ -131,7 +131,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 				ut[1][i]=2*(gsl_rng_uniform(ranlux_instd)-0.5+I*(gsl_rng_uniform(ranlux_instd)-0.5));
 			}
 			//If not, the Intel Vectorise Mersenne Twister
-#elif (defined __INTEL_MKL__&&!defined USE_RAN2)
+#elif (defined __USE_MKL__&&!defined USE_RAN2)
 			//Good news, casting works for using a double to create random complex numbers
 			vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*kvol, ut[0], -1, 1);
 			vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*kvol, ut[1], -1, 1);
@@ -258,6 +258,7 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 	cudaFree(smallPhi);
 #else
 	cudaFreeAsync(smallPhi,NULL);
+	cudaDeviceSynchronise();
 #endif
 #else
 	free(smallPhi);

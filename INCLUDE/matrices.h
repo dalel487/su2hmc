@@ -242,6 +242,15 @@ extern "C"
 			Complex_f *gamval_f,int *gamin, float *dk_f[2], float akappa_f, dim3 dimGrid, dim3 dimBlock);
 
 	/**
+	 * @brief	Sum all terms in an array of doubles
+	 * @param	input:	Input array
+	 * @param	n:			Number of terms
+	 * @param	stream:	What stream to use (useful for simultaneous reductions)
+	 *
+	 * @return	Sum of all terms in input
+	 */
+	double cureduce_sum_d(double *input, const unsigned int n,const unsigned short stream);
+	/**
 	 * @brief In place transpose
 	 *
 	 * @param out: The array being transposed

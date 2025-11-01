@@ -8,7 +8,7 @@
 #include <curand.h>
 #endif
 #include "errorcodes.h"
-#ifdef	__INTEL_MKL__
+#ifdef	__USE_MKL__
 #include <mkl.h>
 #include <mkl_vsl.h>
 //Bad practice? Yes but it is convenient
@@ -22,7 +22,7 @@
 #include <time.h>
 
 //Declaring external variables
-#if (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))
+#if (defined USE_RAN2||(!defined __USE_MKL__&&!defined __RANLUX__))
 /// @brief RAN2 seed
 long seed;
 #elif defined __RANLUX__
@@ -30,7 +30,7 @@ long seed;
 gsl_rng *ranlux_instd;
 /// @brief RANLUX seed
 unsigned long seed;
-#elif defined __INTEL_MKL__
+#elif defined __USE_MKL__
 /// @brief Intel Mersene Twister seed
 unsigned int seed;
 /// @brief Intel Mersene Twister stream
@@ -52,7 +52,7 @@ VSLStreamStatePtr stream;
  *	@return 0
  */
 inline int ranset(unsigned long *seed)
-#elif (defined __INTEL_MKL__&&!defined USE_RAN2)
+#elif (defined __USE_MKL__&&!defined USE_RAN2)
 /*
  * @brief Seed the Intel Mersenne twister generator
  *
@@ -78,7 +78,7 @@ inline int ranset(long *seed)
 	ranlux_instd=gsl_rng_alloc(gsl_rng_ranlxd2);
 	gsl_rng_set(ranlux_instd,*seed);
 	return 0;
-#elif (defined __INTEL_MKL__&& !defined USE_RAN2)
+#elif (defined __USE_MKL__&& !defined USE_RAN2)
 	vslNewStream( &stream, VSL_BRNG_MT19937, *seed );
 	return 0;
 #else
@@ -116,7 +116,7 @@ int Par_ranread(char *filename, double *ranval){
 #endif
 	return 0;
 }
-#if (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))
+#if (defined USE_RAN2||(!defined __USE_MKL__&&!defined __RANLUX__))
 	/*
 	 * @brief Uses the rank to get a new seed.
 	 * Copying from the FORTRAN description here 
@@ -150,7 +150,7 @@ int Par_ranset(long *seed,int iread)
 	 * @return Zero on success, integer error code otherwise
 	 */
 int Par_ranset(unsigned long *seed,int iread)
-#elif (defined __INTEL_MKL__||defined __RANLUX__)
+#elif (defined __USE_MKL__||defined __RANLUX__)
 	/*
 	 * @brief Uses the rank to get a new seed.
 	 * Copying from the FORTRAN description here 
@@ -181,7 +181,7 @@ int Par_ranset(unsigned int *seed,int iread)
 #endif
 	//Next we set the seed using ranset
 	//This is one of the really weird FORTRAN 66-esque functions with ENTRY points, so good luck!
-#if (defined __INTEL_MKL__||defined __RANLUX__)
+#if (defined __USE_MKL__||defined __RANLUX__)
 	return ranset(seed);
 #else
 	return 0;
@@ -198,7 +198,7 @@ double Par_granf(){
 	const char *funcname = "Par_granf";
 	double ran_val=0;
 	if(!rank){
-#if (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))
+#if (defined USE_RAN2||(!defined __USE_MKL__&&!defined __RANLUX__))
 		ran_val = ran2(&seed);
 #elif defined __RANLUX__
 		ran_val = gsl_rng_uniform(ranlux_instd);

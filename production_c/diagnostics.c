@@ -146,7 +146,7 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 		//We reset all the random fields between each test. It's one way of ensuring that errors don't propegate from one
 		//test to another. Since we start from the same seed each time this should give the same results for each test. If
 		//it does not, there's a bug
-#if (defined(USE_RAN2)||defined(__RANLUX__)||!defined(__INTEL_MKL__))
+#if (defined(USE_RAN2)||defined(__RANLUX__)||!defined(__USE_MKL__))
 		Gauss_d(pp,kmomHalo,0,1);
 		Gauss_z(R1, kferm, 0, 1/sqrt(2));
 		Gauss_z(Phi, kferm, 0, 1/sqrt(2));
@@ -162,7 +162,7 @@ int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u
 		vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, Phi, 0, 1/sqrt(2));
 		vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, xi, 0, 1/sqrt(2));
 #endif
-#if (defined(USE_RAN2)||defined(__RANLUX__)||!defined(__INTEL_MKL__))
+#if (defined(USE_RAN2)||defined(__RANLUX__)||!defined(__USE_MKL__))
 		Gauss_z(X0, kferm2, 0, 1/sqrt(2));
 		Gauss_z(X1, kferm2, 0, 1/sqrt(2));
 		Gauss_c(X0_f, kferm2, 0, 1/sqrt(2));

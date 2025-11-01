@@ -4,7 +4,7 @@ CC=	mpiicx
 IFLAGS=	-I../INCLUDE $(shell gsl-config --cflags)
 
 CFLAGS=     $(IFLAGS) -qmkl -std=gnu11 -ipo -qopt-zmm-usage=high -MD\
-			-xHOST -DMKL_DIRECT_CALL -D__INTEL_MKL__ -D__RANLUX__\
+			-xHOST -DMKL_DIRECT_CALL -D__USE_MKL__ -D__RANLUX__\
 			-qopenmp -qopenmp-simd -DSA3AT -DINT_OMF2\
 			-mllvm -loopopt=0
 			#Last Line required to avoid segmentation fault

@@ -61,7 +61,7 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> *Leaves1, com
 			Leaves2[i+kvol*leaf]=-a[0]*u12t[didm+kvol*mu]+a[1]*u11t[didm+kvol*mu];
 			break;
 		case(2):
-			///Leaf in the forwards mu and backwards new direction
+			///Leaf in the forwards mu and backwards nu direction
 			//Another awkward index
 			uidm = iu[mu*kvol+i]; unsigned int din_uidm=id[nu*kvol+uidm];
 			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{mu}-\hat{\nu})@f$
@@ -138,7 +138,6 @@ __device__ void Force_Leaves(complex<T> fleaf[nc],complex<T> *Leaves1, complex<T
 	///This can be expressed in terms of the imaginary part of Leaves1 and all of Leaves2 doubled
 	switch(fclov){
 		case(0): //Clover at site. Contributes the right two leaves
-
 			///Factor of 2 is to take account of subtracting the hermitian conjugate. Since the real part of the first fleaf is
 			///zero we only add the imaginary parts (as real floats) then multiply by I at the end to make it imaginary
 			fleaf[0]=I*2*(Leaves1[site].imag()+Leaves1[site+kvol*2].imag());
