@@ -1,10 +1,22 @@
-MF=Makefile_Intel
+MF=Makefile
 
 IFLAGS=	-I../INCLUDE  $(shell gsl-config --cflags)
 
 CFLAGS=  $(IFLAGS) -std=gnu11 -MMD  -D__RANLUX__ -DSA3AT -DINT_OMF2
 
-ifneq ($(filter mpiicc mpiicx, $(MPICC)),)
+# Configure MPI wrapper to use the specified compiler
+# This sets the appropriate environment variable based on the MPI implementation
+# We're going to set all of the most common ones so we don't have to check what's even being used
+ifneq ($(CC),)
+#OpenMPI
+export OMPI_CC := $(CC)
+#MPICH
+export MPICH_CC := $(CC)
+#Intel MPI
+export I_MPI_CC := $(CC)
+endif
+
+ifneq ($(filter icc icx, $(CC)),)
 CFLAGS+=  -qopt-zmm-usage=high -ipo -static-intel -static-libgcc \
 			-xHOST -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE,RAPTORLAKE\
 			-D__USE_MKL__  -qopenmp  -inline-level=2 \
@@ -14,7 +26,7 @@ else ifeq ($(CC),gcc)
 CFLAGS+=		-march=native -fcommon -fopenmp -fopenmp-simd -static-libgcc -foffload=disable
 else ifeq ($(CC),nvc)
 #    $(warning As of 20251101, the nvc/nvc++ compiler segfaults during the conjugate gradient. We recommend you use GNU instead. (echo CC+gcc, echo CC=g++))
-CFLAGS+=		-tp=native -mp
+CFLAGS+=		-tp=native -mp -mp=multicore 
 else ifeq ($(CC),clang)
     #$(error As of 20251101, the libstdc++ headers break when compiling with clang. This is due to NVCC not supporting noexcept(true) in the header for rsqrt(), and clang being stricter than GCC. You may have more luck with a version of nvcc greater than 13.0 or an older libstdc++ library)
 CFLAGS+=		-fveclib=AMDLIBM -march=native -fcommon -flto -fopenmp=libomp -fopenmp-simd -static-libgcc -Wno-exception-spec 
