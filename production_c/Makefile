@@ -1,0 +1,109 @@
+MF=Makefile_Intel
+
+IFLAGS=	-I../INCLUDE  $(shell gsl-config --cflags)
+
+CFLAGS=  $(IFLAGS) -std=gnu11 -MMD  -D__RANLUX__ -DSA3AT -DINT_OMF2
+
+ifneq ($(filter mpiicc mpiicx, $(MPICC)),)
+CFLAGS+=  -qopt-zmm-usage=high -ipo -static-intel -static-libgcc \
+			-xHOST -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE,RAPTORLAKE\
+			-D__USE_MKL__  -qopenmp  -inline-level=2 \
+			-qopenmp-simd  -use-intel-optimized-headers -diag-disable=10441
+__USE_MKL__ = 1
+else ifeq ($(CC),gcc)
+CFLAGS+=		-march=native -fcommon -fopenmp -fopenmp-simd -static-libgcc -foffload=disable
+else ifeq ($(CC),nvc)
+#    $(warning As of 20251101, the nvc/nvc++ compiler segfaults during the conjugate gradient. We recommend you use GNU instead. (echo CC+gcc, echo CC=g++))
+CFLAGS+=		-tp=native -mp
+else ifeq ($(CC),clang)
+    #$(error As of 20251101, the libstdc++ headers break when compiling with clang. This is due to NVCC not supporting noexcept(true) in the header for rsqrt(), and clang being stricter than GCC. You may have more luck with a version of nvcc greater than 13.0 or an older libstdc++ library)
+CFLAGS+=		-fveclib=AMDLIBM -march=native -fcommon -flto -fopenmp=libomp -fopenmp-simd -static-libgcc -Wno-exception-spec 
+#NVCCFLAGS+= -D_GLIBCC_USE_CC11_ABI=0
+else
+    $(error Unknown compiler: $(CC))
+endif
+
+ifdef __USE_MKL__
+#TODO: Currently only configured for use with an Intel Compiler
+CFLAGS +=	-qmkl -DMKL_DIRECT_CALL -DMKL_ILP64  -I"${MKLROOT}/include"
+LFLAGS =	-L${MKLROOT}/lib/intel64 -limf #-DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
+else ifdef AOCL_ROOT
+CFLAGS += -DAMD_BLAS -I ${AOCL_ROOT}/include
+LFLAGS = -L${AOCL_ROOT}/lib/ -lblis  -lalm
+else ifdef LIBSCI_BASE_DIR
+CFLAGS += -DUSE_BLAS
+#Automatic on LUMI?
+#LFLAGS = ‐L${LIBSCI_BASE_DIR}/gnu/91/x86_64/lib/ -lsci_comp
+else
+CFLAGS += -DGSL_BLAS
+LFLAGS =	-lm $(shell gsl-config --libs)
+endif
+
+LFLAGS +=	$(shell gsl-config --libs-without-cblas)
+
+EXE=	su2hmc
+
+SRC= \
+	coord.c \
+	random.c \
+	matrices.c \
+	congrad.c \
+	bosonic.c\
+	fermionic.c\
+	force.c\
+	par_mpi.c \
+	su2hmc.c \
+	clover.c \
+	integrate.c\
+
+INC= \
+	sizes.h \
+	errorcodes.h \
+	coord.h \
+	random.h \
+	matrices.h \
+	par_mpi.h \
+	integrate.h\
+	clover.h \
+	su2hmc.h \
+#
+# No need to edit below this line
+#
+.SUFFIXES: .c .o
+.PHONY: clean debug release profiler tar
+
+OBJ=	$(SRC:.c=.o)
+DEPS=	$(OBJ:.o=.d_icc)
+EDT=	$(SRC:.c=.c~)
+TMP=	$(MOD) $(EDT) core
+
+-include $(DEPS)
+all:	$(EXE)
+
+profiler:	CFLAGS += -g #-D_DEBUGCG
+profiler:	release
+
+release:	CFLAGS +=  -O3 
+						
+release:	$(EXE)
+
+diagnostic: SRC+= diagnostics.c
+diagnostic: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
+diagnostic: debug
+
+debug:	CFLAGS += -g -O0 -D_DEBUG -D_DEBUGCG -Wall
+debug:	$(EXE)
+
+$(EXE):	$(OBJ)
+		$(MPICC) ../main.c -MP $(CFLAGS) -o $@ $(OBJ) $(LFLAGS)  
+%.o: %.c
+	$(MPICC) $(CFLAGS) -std=gnu11 $(IFLAGS) -c $^  
+
+clean:
+		rm -f $(OBJ) $(TMP) $(DEPS)
+
+INP=	\
+		midout
+
+tar:
+	tar cvfz $(EXE).tar $(MF) $(SRC) $(INC) $(INP) $(EXE) $(DEPS)

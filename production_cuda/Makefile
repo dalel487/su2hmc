@@ -7,7 +7,7 @@ IFLAGS=     -I../INCLUDE -I ./ -I../production_c $(shell gsl-config --cflags)\
 				-I /opt/nvidia/hpc_sdk/Linux_x86_64/latest/cuda/include/ \
 				-I /opt/nvidia/hpc_sdk/Linux_x86_64/latest/math_libs/include/ 
 
-CFLAGS =	$(IFLAGS) -D__NVCC__ -D__RANLUX__  -DSA3AT -DINT_OMF2
+CFLAGS =	$(IFLAGS) -D__NVCC__ -D__RANLUX__  -DSA3AT -DINT_OMF2 -MMD
 
 ifeq ($(CXX),icpx)
 # NOTE: 20251101: Intel oneAPI 2024.0+ with NVCC 13 or earlier (possibly later, but they dont exist as of when I wrote
@@ -33,7 +33,7 @@ endif
 
 ifdef __USE_MKL__
 #TODO: Currently only configured for use with an Intel Compiler
-CFLAGS+=	-qmkl
+CFLAGS+=	-qmkl -DMKL_DIRECT_CALL 
 LFLAGS=	-L${MKLROOT}/lib/intel64 -limf #-DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
 else ifdef AOCL_ROOT
 CFLAGS += -DAMD_BLAS -I ${AOCL_ROOT}/include
