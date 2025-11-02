@@ -120,7 +120,7 @@ extern cudaMemPool_t mempool;
 #endif
 
 ///	@brief Processor grid t extent
-#define	npt	1
+#define	npt	4
 #if(npt<1)
 #error "npt is expected it to be greater than or equal to 1"
 #elif(nt%npt!=0)
@@ -131,7 +131,7 @@ extern cudaMemPool_t mempool;
 #define	nproc	(npx*npy*npz*npt)
 
 ///	@brief Number of threads for OpenMP, which can be overwritten at runtime
-#define	nthreads	8
+#define	nthreads	1
 
 //    Existing parameter definitions.
 ///	@brief Sublattice x extent
