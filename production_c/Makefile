@@ -86,7 +86,7 @@ INC= \
 .PHONY: clean debug release profiler tar
 
 OBJ=	$(SRC:.c=.o)
-DEPS=	$(OBJ:.o=.d_icc)
+DEPS=	$(OBJ:.o=.d)
 EDT=	$(SRC:.c=.c~)
 TMP=	$(MOD) $(EDT) core
 

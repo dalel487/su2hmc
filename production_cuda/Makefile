@@ -108,6 +108,7 @@ CULIB= libcu.a
 CULIB2= libcu2.a
 #OBJ=	$(CLIB) $(CULIB2)
 OBJ = $(COBJ) $(CUOBJ) 
+DEPS=	$(OBJ:.o=.d)
 
 #MOD=	$(CSRC:.c=.mod)
 MOD=	
@@ -140,8 +141,8 @@ $(EXE): $(OBJ) ../main.c
 	$(CC) $(CFLAGS) -std=gnu11 $(IFLAGS) -c $^  
 
 clean:
-	rm -f $(OBJ) $(COBJ) $(CUOBJ) $(CULIB) $(CLIB) $(TMP) *.cpp?.ii *.cudafe1.* *.*bin *.fatbin.c *.ptx *.sm_* *module_id \
-	*dlink* *.ltoir *.d i?_out
+	rm -f $(OBJ) $(COBJ) $(CUOBJ) $(CULIB) $(CLIB) $(TMP)  $(DEPS) *.cpp?.ii *.cudafe1.* *.*bin *.fatbin.c *.ptx *.sm_* *module_id \
+	*dlink* *.ltoir *.d i?_out *.dbg
 
 INP=	\
 	midout \
