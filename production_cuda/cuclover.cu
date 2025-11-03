@@ -48,15 +48,15 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> *Leaves1, com
 		case(1):
 			///Leaf in the forward nu and backwards mu direction
 			didm = id[mu*kvol+i]; unsigned int uin_didm=id[nu*kvol+didm];
-			/// @f$U_\nu\(x)U^\dagger_\mu(x-\hat{\mu}+\nu)@f$
+			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\nu)@f$
 			Leaves1[i+kvol*leaf]=u11t[i+kvol*nu]*conj(u11t[uin_didm+kvol*mu])+u12t[i+kvol*nu]*conj(u12t[uin_didm+kvol*mu]);
 			Leaves2[i+kvol*leaf]=-u11t[i+kvol*nu]*u12t[uin_didm+kvol*mu]+u12t[i+kvol*nu]*u11t[uin_didm+kvol*mu];
 
-			/// @f$U_\nu\(x)U^\dagger_\mu(x-\hat{\mu}+\nu)U^\dagger_\nu(x-\hat{\mu})@f$
+			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\nu)U^\dagger_\nu(x-\hat{\mu})@f$
 			a[0]=Leaves1[i+kvol*leaf]*conj(u11t[didm+kvol*nu])+Leaves2[i+kvol*leaf]*conj(u12t[didm+kvol*mu]);
 			a[1]=-Leaves1[i+kvol*leaf]*u12t[didm+kvol*nu]+Leaves2[i+kvol*leaf]*u11t[didm+kvol*mu];
 
-			/// @f$U_\nu\(x)U^\dagger_\mu(x-\hat{\mu}+\nu)U^\dagger_\nu(x-\hat{\mu})U_\mu(x-\hat{mu})@f$
+			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\nu)U^\dagger_\nu(x-\hat{\mu})U_\mu(x-\hat{\mu})@f$
 			Leaves1[i+kvol*leaf]=a[0]*conj(u11t[didm+kvol*mu])+a[1]*conj(u12t[didm+kvol*mu]);
 			Leaves2[i+kvol*leaf]=-a[0]*u12t[didm+kvol*mu]+a[1]*u11t[didm+kvol*mu];
 			break;
@@ -64,37 +64,38 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> *Leaves1, com
 			///Leaf in the forwards mu and backwards nu direction
 			//Another awkward index
 			uidm = iu[mu*kvol+i]; unsigned int din_uidm=id[nu*kvol+uidm];
-			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{mu}-\hat{\nu})@f$
+			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{\mu}-\hat{\nu})@f$
 			Leaves1[i+kvol*leaf]=u11t[i+kvol*mu]*conj(u11t[din_uidm+kvol*nu])+u12t[i+kvol*mu]*conj(u12t[din_uidm+kvol*nu]);
 			Leaves2[i+kvol*leaf]=-u11t[i+kvol*mu]*u12t[din_uidm+kvol*nu]+u12t[i+kvol*mu]*u11t[din_uidm+kvol*nu];
 
 			didn = id[nu*kvol+i]; 
-			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{mu}-\hat{\nu})U_\mu^\dagger(x-\hat{nu}\)@f$
+			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{\mu}-\hat{\nu})U_\mu^\dagger(x-\hat{\nu})@f$
 			a[0]=Leaves1[i+kvol*leaf]*conj(u11t[didn+kvol*mu])+Leaves2[i+kvol*leaf]*conj(u12t[didn+kvol*mu]);
 			a[1]=-Leaves1[i+kvol*leaf]*u12t[didn+kvol*mu]+Leaves2[i+kvol*leaf]*u11t[didn+kvol*mu];
 
-			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{mu}-\hat{\nu})U_\mu^\dagger(x-\hat{nu}\)U_\nu(x-\hat{\nu})@f$
+			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{\mu}-\hat{\nu})U_\mu^\dagger(x-\hat{\nu})U_\nu(x-\hat{\nu})@f$
 			Leaves1[i+kvol*leaf]=a[0]*u11t[didn+kvol*nu]-a[1]*conj(u12t[didn+kvol*nu]);
 			Leaves2[i+kvol*leaf]=a[0]*u12t[didn+kvol*nu]+a[1]*conj(u11t[didn+kvol*nu]);
 
 			break;
 		case(3):
 			///Leaf in the backwards mu and backwards nu direction
-			/// @f$U_\nu^\dagger(x-\hat{\nu})U_\mu^\dagger(x-\hat{\mu}-\hat{nu})@f$
+
+			/// @f$U_\nu^\dagger(x-\hat{\nu})U_\mu^\dagger(x-\hat{\mu}-\hat{\nu})@f$
 			didn = id[nu*kvol+i];unsigned int din_didm=id[mu*kvol+didn];
 			//Leaves1[i+kvol*leaf]=conj(u11t[didn+kvol*mu])*conj(u11t[din_didm+kvol*nu])-u12t[didn+kvol*mu]*conj(u12t[din_didm+kvol*nu]);
 			Leaves1[i+kvol*leaf]=conj(u11t[didn+kvol*nu])*conj(u11t[din_didm+kvol*mu])-u12t[didn+kvol*nu]*conj(u12t[din_didm+kvol*mu]);
 			//Leaves2[i+kvol*leaf]=-conj(u11t[didn+kvol*mu])*u12t[din_didm+kvol*nu]-u12t[didn+kvol*mu]*u11t[din_didm+kvol*nu];
 			Leaves2[i+kvol*leaf]=-conj(u11t[didn+kvol*nu])*u12t[din_didm+kvol*mu]-u12t[didn+kvol*nu]*u11t[din_didm+kvol*mu];
 
-			/// @f$U_\nu^\dagger(x-\hat{\nu})U_\mu^\dagger(x-\hat{\mu}-\hat{nu})U_\nu(x-\hat{\mu}-\hat{nu})@f$
+			/// @f$U_\nu^\dagger(x-\hat{\nu})U_\mu^\dagger(x-\hat{\mu}-\hat{\nu})U_\nu(x-\hat{\mu}-\hat{\nu})@f$
 			//a[0]=Leaves1[i+kvol*leaf]*u11t[din_didm+kvol*mu]-Leaves2[i+kvol*leaf]*conj(u12t[din_didm+kvol*mu]);
 			a[0]=Leaves1[i+kvol*leaf]*u11t[din_didm+kvol*nu]-Leaves2[i+kvol*leaf]*conj(u12t[din_didm+kvol*nu]);
 			//a[1]=Leaves1[i+kvol*leaf]*u12t[din_didm+kvol*mu]+Leaves2[i+kvol*leaf]*conj(u11t[din_didm+kvol*mu]);
 			a[1]=Leaves1[i+kvol*leaf]*u12t[din_didm+kvol*nu]+Leaves2[i+kvol*leaf]*conj(u11t[din_didm+kvol*nu]);
 
 			didm = id[mu*kvol+i]; 
-			/// @f$U_\nu^\dagger(x-\hat{\nu})U_\mu^\dagger(x-\hat{\mu}-\hat{nu})U_\nu(x-\hat{\mu}-\hat{nu})U_\mu(x-\hat{mu})@f$
+			/// @f$U_\nu^\dagger(x-\hat{\nu})U_\mu^\dagger(x-\hat{\mu}-\hat{\nu})U_\nu(x-\hat{\mu}-\hat{\nu})U_\mu(x-\hat{\mu})@f$
 			Leaves1[i+kvol*leaf]=a[0]*u11t[didm+kvol*mu]-a[1]*conj(u12t[didm+kvol*mu]);
 			Leaves2[i+kvol*leaf]=a[0]*u12t[didm+kvol*mu]+a[1]*conj(u11t[didm+kvol*mu]);
 			break;

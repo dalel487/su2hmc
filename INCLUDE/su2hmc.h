@@ -328,11 +328,30 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 	//CUDA Declarations:
 	//#################
 #ifdef __NVCC__
-	//Not a function. An array of concurrent GPU streams to keep it busy
+	/// @brief	An array of concurrent GPU streams to keep it busy
 	extern cudaStream_t streams[ndirac*ndim*nadj];
 	//Calling Functions:
 	//=================
+	/** 
+	 * @brief	Calculates the gauge action using new (how new?) lookup table
+	 * @brief	Follows a routine called qedplaq in some QED3 code
+	 *
+	 * @param	hgs,hgt			Gauge component of Hamilton
+	 * @param	u11t,u12t		Gauge fields
+	 * @param	iu					Upper halo indices
+	 * @param	dimGrid			CUDA grid dimensions
+	 * @param	dimBlock			CUDA block dimensions
+	 */
 	void cuAverage_Plaquette(double *hgs, double *hgt, Complex_f *u11t, Complex_f *u12t, unsigned int *iu,dim3 dimGrid, dim3 dimBlock);
+	/**
+	 * @brief Calculate the Polyakov loop (no prizes for guessing that one...)
+	 *
+	 * @param	Sigma		Components of the Polyakov loop
+	 * @param	ut:		The gauge fields
+	 * @param	dimGrid	CUDA grid dimensions
+	 * @param	dimBlock	CUDA block dimensions
+	 * 
+	 */
 	void cuPolyakov(Complex_f *Sigma[2], Complex_f *ut[2],dim3 dimGrid, dim3 dimBlock);
 	void cuGauge_force(Complex_f *ut[2],double *dSdpi,float beta,unsigned int *iu,unsigned int *id,dim3 dimGrid, dim3 dimBlock);
 	void cuPlus_staple(int mu, int nu, unsigned int *iu, Complex_f *Sigma11, Complex_f *Sigma12, Complex_f *u11t, Complex_f *u12t,\
@@ -369,9 +388,6 @@ __global__ void Minus_staple(int mu, int nu,unsigned int *iu,unsigned int *id, C
 		Complex_f *u11sh, Complex_f *u12sh, Complex_f *u11t, Complex_f *u12t);
 __global__ void cuGaugeForce(int mu, Complex_f *Sigma11, Complex_f *Sigma12,double* dSdpi,Complex_f *u11t, Complex_f *u12t,\
 		float beta);
-__global__ void cuAverage_Plaquette(float *hgs_d, float *hgt_d, Complex_f *u11t, Complex_f *u12t, unsigned int *iu);
-__global__ void cuPolyakov(Complex_f *Sigma11, Complex_f * Sigma12, Complex_f *u11t, Complex_f *u12t);
-__device__ void cuSU2plaq(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11, Complex_f *Sigma12, unsigned int *iu, int i, int mu, int nu);
 //Force Kernels. We've taken each nadj index and the spatial/temporal components and created a separate kernel for each
 //CPU code just has these as a huge blob that the vectoriser can't handle. May be worth splitting it there too?
 //It might not be a bad idea to make a seperate header for all these kernels...
