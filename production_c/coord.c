@@ -2,15 +2,10 @@
  *	@file coord.c
  *	@brief functions for dealing with lattice and MPI coordinates
  */
-#include <coord.h>
-#include <errorcodes.h>
 #ifdef  __OPENMP
 #include <omp.h>
 #endif
 #include <par_mpi.h>
-#include <sizes.h>
-#include <stdlib.h>
-#include <stdio.h>
 
 unsigned int *hu, *hd, *h1u, *h1d, *halosize;
 int Addrc(unsigned int *iu, unsigned int *id){

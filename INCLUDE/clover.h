@@ -1,9 +1,4 @@
 #pragma once
-#include <coord.h>
-#include	<errorcodes.h>
-#include	<stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <su2hmc.h>
 
 /**

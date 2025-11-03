@@ -3,22 +3,15 @@
  *
  * @brief Random number generator related routines
  */
-#include "coord.h"
 #ifdef	__NVCC__
 #include <curand.h>
 #endif
-#include "errorcodes.h"
 #ifdef	__USE_MKL__
 #include <mkl.h>
 #include <mkl_vsl.h>
 //Bad practice? Yes but it is convenient
 #endif
-#include "par_mpi.h"
 #include "random.h"
-#include "sizes.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <time.h>
 
 //Declaring external variables

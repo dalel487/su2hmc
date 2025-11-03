@@ -1,3 +1,8 @@
+/**
+ *	@file
+ *	@brief	CUDA version of matrix manipulation routines
+ *	@author	D. Lawlor
+ */
 #include <assert.h>
 #include <su2hmc.h>
 #include <matrices.h>

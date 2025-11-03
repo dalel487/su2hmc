@@ -10,9 +10,7 @@
  * Any routine ending in a d is the daggered multiplication
  */
 #include <assert.h>
-#include <complex.h>
 #include <matrices.h>
-#include <string.h>
 #include <stdalign.h>
 //TODO: Check and see are there any terms we are evaluating twice in the same loop
 //and use a variable to hold them instead to reduce the number of evaluations.

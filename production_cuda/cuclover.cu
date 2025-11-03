@@ -1,5 +1,5 @@
 /**
- * @file 	cuclover.cu
+ * @file 
  *
  * @brief	CUDA routines related to clover improved wilson fermions
  *

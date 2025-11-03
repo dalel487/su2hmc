@@ -5,7 +5,6 @@
  *
  * @author	D. Lawlor
  */
-#include <su2hmc.h>
 #include	<matrices.h>
 #include	<clover.h>
 

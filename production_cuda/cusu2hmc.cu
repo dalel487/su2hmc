@@ -1,3 +1,8 @@
+/**
+ * @file 
+ * @brief Several random but useful CUDA routines
+ * @author	D. Lawlor
+ */
 #include	<cuda.h>
 #include	<cuda_runtime.h>
 #include	<su2hmc.h>

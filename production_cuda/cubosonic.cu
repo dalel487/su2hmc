@@ -1,6 +1,8 @@
-/*
- * Code for bosonic observables
- * Basically polyakov loop and Plaquette routines
+/**
+ * @file 
+ * @brief Code for bosonic observables. Basically polyakov loop and Plaquette routines
+ *
+ * @author D. Lawlor
  */
 #include	<par_mpi.h>
 #include	<su2hmc.h>

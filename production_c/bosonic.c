@@ -8,7 +8,6 @@
  * @author P. Giudice (Hybrid Code, May 2013)
  * @author D. Lawlor (C version March 2021, CUDA/Mixed Precision/Clover Feb 2024 and beyond...)
  */
-#include	<par_mpi.h>
 #include	<su2hmc.h>
 
 

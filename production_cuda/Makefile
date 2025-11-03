@@ -136,9 +136,9 @@ debug:		$(EXE)
 $(EXE): $(OBJ) ../main.c
 	$(NVCC) $(NVCCFLAGS) -std=c++17 $(IFLAGS) -ccbin $(CC) -Xcompiler "$(CFLAGS) -rdynamic" --compiler-options -D__NO_AVX10_2__  $(LFLAGS) $(CULFLAGS) $^ -o $@
 %.o: $(CUSRC_DIR)/%.cu
-	$(NVCC) $(NVCCFLAGS) -std=c++17 $(IFLAGS) -ccbin $(CXX) -Xcompiler "$(CFLAGS)  -rdynamic" --compiler-options -D__NO_AVX10_2__ $^ -dc $@
+	$(NVCC) $(NVCCFLAGS) -std=c++17 $(IFLAGS) -ccbin $(CXX) -Xcompiler "$(CFLAGS)  -rdynamic" --compiler-options -D__NO_AVX10_2__ $< -dc $@
 %.o: $(CSRC_DIR)%.c
-	$(CC) $(CFLAGS) -std=gnu11 $(IFLAGS) -c $^  
+	$(CC) $(CFLAGS) -std=gnu11 $(IFLAGS) -c $<  
 
 clean:
 	rm -f $(OBJ) $(COBJ) $(CUOBJ) $(CULIB) $(CLIB) $(TMP)  $(DEPS) *.cpp?.ii *.cudafe1.* *.*bin *.fatbin.c *.ptx *.sm_* *module_id \

@@ -3,7 +3,6 @@
  *	@brief Code for fermionic observables
  */
 #include	<matrices.h>
-#include	<random.h>
 #include	<su2hmc.h>
 int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbqb, double res, int *itercg,\
 		Complex *ut[2], Complex_f *ut_f[2], unsigned int *iu, unsigned int *id,\

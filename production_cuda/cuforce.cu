@@ -1,6 +1,8 @@
-/*
- * Code for force calculations.
- * Requires multiply.cu to work
+/**
+ * @file
+ * @brief Code for force calculations.
+ * 		Requires multiply.cu to work
+ * @author	D. Lawlor
  */
 #include	<matrices.h>
 #include	<par_mpi.h>
