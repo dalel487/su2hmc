@@ -10,7 +10,7 @@ one operation of congradq on complex vectors to determine
 $$
 \left(M^\dagger M\right)^{-1}\Phi
 $$ 
-where $\Phi$ has dimension 4 * kvol * nc * Nf -
+where $ \Phi $ has dimension 4 * kvol * nc * Nf -
 The matrix M is the Wilson matrix for a single flavor
 there is no extra species doubling as a result
 
@@ -39,11 +39,11 @@ Fermion expectation values are measured using a noisy estimator.
 The code produces the following outputs:
 |File Name| Data type|
 |---------|:---------|
-|config.bβββkκκκmuμμμμjJJJsNXtNT.XXXXXX| Lattice configuration for given parameters. Last digits are the configuration number|
+|config.bβββkκκκmuμμμμjJJJsNXtNT.XXXXXX| Lattice configuration for given parameters. Last digits are the trajectory number|
 |Output.bβββkκκκmuμμμμjJJJsNXtNT|	Number of conjugate gradient steps for each trajectory. Also contains general simulation details upon completion|
-|bose.bβββkκκκmuμμμμjJJJsNXtNT|		spatial plaquette, temporal plaquette, Polyakov line|
-|fermi.bβββkκκκmuμμμμjJJJsNXtNT|				psibarpsi, energy density, baryon density|
-|diq.bβββkκκκmuμμμμjJJJsNXtNT|					real<qq>|
+|bose.bβββkκκκmuμμμμjJJJsNXtNT|		Average spatial plaquette, Average temporal plaquette, Average Polyakov line|
+|fermi.bβββkκκκmuμμμμjJJJsNXtNT|				$\langle\bar{\psi}\psi\rangle$, Energy density, Quark number density|
+|diq.bβββkκκκmuμμμμjJJJsNXtNT|					Diquark Condensate|
 
 SJH March 2005
 
@@ -65,19 +65,14 @@ Some adaptions from the original are:
 -	Implementation of BLAS routines for vector operations
 -	Removal of excess halo exchanges
 -	`#pragma omp simd` instructions
--	Makefiles for Intel, GCC and AMD compilers with flags set for latest machines
 -	GSL ranlux support
 -	CUDA implementation. 
 
 Other works in progress include:
 -	Improved action
--	SYCL implementation. 
--   Multi-GPU support
--   CMake build system
 -   yaml input file
 -   Set lattice volume and CPU grid at runtime
 -   Higher order integrators. 11 stage 4th order non-gradient integrator implimented but no speedup yet
-
   
 ## Getting started
 This code is written for MPI on Linux, thus has a few caveats to get up and running
@@ -115,7 +110,7 @@ where
 - `beta` is β, given up to three significant figures
 - `akappa` is hopping parameter, given up to four significant figures
 - `jqq` is the diquark source, given up to three significant figures
-- `thetaq` is the diquark mixing angle
+- `c_sw` is the clover coefficient. Leave as zero for an unimproved action
 - `fmu` is the chemical potential
 - `aNf` is ignored. Originating in the Cornell group when Ken Wilson was still there, that molecular dynamics time-discretisation artifacts can be absorbed into renormalisation of the bare parameters of the lattice action
 - `stepl` is the average number of steps per trajectory. For a single trajectory it times dt should equal 1

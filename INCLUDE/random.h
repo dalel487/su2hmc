@@ -6,9 +6,6 @@
 #ifndef	RANDOM
 #define	RANDOM
 //Need two cases here. MKL/CUDA or not for BLAS and CUDA or not for complex
-#ifdef __NVCC__ 
-#include <cublas_v2.h>
-#endif
 #ifdef __USE_MKL__
 #include <mkl.h>
 #include <mkl_vsl.h>

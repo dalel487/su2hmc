@@ -402,10 +402,10 @@ __global__ void cuHdslashd(complex<T> *phi, const complex<T>* r, const complex<T
 /**
  * @brief Swaps the order of the gauge field so that it is now SoA instead of AoS and it is nice and coalesced in memory
  * 
- * @param out:	The flipped array
- * @param in:	The original array
- * @param nx:	The size of the slowest moving dimension. This is the lattice site when read in from disk
- * @param ny:	The size of the fastest moving dimension, This is the direction index when read in from disk.
+ * @param out:			The flipped array
+ * @param in:			The original array
+ * @param fast_out:	The size of the slowest moving dimension. This is the lattice site when read in from disk
+ * @param fast_in:	The size of the fastest moving dimension. This is the direction index when read in from disk.
  * 
  */
 template <typename T>

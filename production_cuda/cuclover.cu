@@ -8,12 +8,23 @@
 #include <clover.h>
 
 //CUDA Device code
+/**
+ * @brief Calculates the SU2 plaquette at site i in the @f$\mu--\nu@f$ direction
+ *
+ * @param u11t,u12t:				Trial fields
+ * @param Leaves1,Leaves2:		Leaf output
+ * @param iu:						Upper halo indices
+ * @param i:						site index
+ * @param mu, nu:					Plaquette direction. Note that mu and nu can be negative
+ *										to facilitate calculating plaquettes for Clover terms. No
+ *										sanity checks are conducted on them in this routine.
+ */
 template <typename T>
 __device__ int Clover_SU2plaq(complex<T> *u11t, complex<T> *u12t, complex<T> *Leaves1, complex<T> *Leaves2,\
 		unsigned int *iu,  int i, int mu, int nu){
 	const char *funcname = "SU2plaq";
 	unsigned int uidm = iu[mu*kvol+i]; 
-	/***
+	/**
 	 *	Let's take a quick moment to compare this to the analysis code.
 	 *	The analysis code stores the gauge field as a 4 component real valued vector, whereas the produciton code
 	 *	used two complex numbers.
@@ -21,7 +32,7 @@ __device__ int Clover_SU2plaq(complex<T> *u11t, complex<T> *u12t, complex<T> *Le
 	 *	Analysis code: u=(Re(u11),Im(u12),Re(u12),Im(u11))
 	 *	Production code: u11=u[0]+I*u[3]	u12=u[2]+I*u[1]
 	 *
-	 *	This applies to the Leavess and a's below too
+	 *	This applies to the Leaves and a's below too
 	 */
 	Leaves1[i]=u11t[i+kvol*mu]*u11t[uidm+kvol*nu]-u12t[i+kvol*mu]*conj(u12t[uidm+kvol*nu]);
 	Leaves2[i]=u11t[i+kvol*mu]*u12t[uidm+kvol*nu]+u12t[i+kvol*mu]*conj(u11t[uidm+kvol*nu]);
@@ -34,6 +45,17 @@ __device__ int Clover_SU2plaq(complex<T> *u11t, complex<T> *u12t, complex<T> *Le
 	Leaves2[i]=-a11*u12t[i+kvol*nu]+a12*u11t[i+kvol*nu];
 	return 0;
 }
+/**
+ *	@brief	Calculates a leaf for a clover term.
+ *
+ *	@param	u11t,u12t:			Gauge fields
+ *	@param	Leaves1,Leaves2:	Array of leaves
+ *	@param	iu,id:				Upper and lower site indices
+ *	@param	i:						Lattice index of the clover in question
+ *	@param	mu,nu:				Direction in which we're evaluating the leaf
+ *	@param	leaf:					Which leaf of the clover is being calculated
+ *	
+ */
 template <typename T>
 __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> *Leaves1, complex<T> *Leaves2,\
 		unsigned int *iu, unsigned int *id, unsigned int i, int mu, int nu, short leaf){
@@ -103,6 +125,16 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> *Leaves1, com
 	return 0;
 }
 ///CUDA Kernels
+/**
+ *	@brief Calculates the clovers in all directions at all sites
+ *	@f$ F_{\mu\nu}(n)=\frac{-i}{8a^2}\left(Q_{\mu\nu}(n)-Q_{\nu\mu}(n)\right)@f$
+ *
+ *	@param	clover1,clover2:	Array of clovers
+ *	@param	Leaves1,Leaves2:	Array of clover leaves
+ *	@param	u11t,u12t:			Gauge fields
+ *	@param	iu,id:				Upper and lower indices
+ *	@param	mu,nu:				Clover direction
+ */
 template <typename T>
 __global__  void Full_Clover(complex<T> *clover1, complex<T> *clover2, complex<T> *Leaves1, complex<T> *Leaves2,\
 		complex<T> *u11t, complex<T> *u12t, unsigned int *iu, unsigned int *id, int mu, int nu){
@@ -120,7 +152,7 @@ __global__  void Full_Clover(complex<T> *clover1, complex<T> *clover2, complex<T
 			Leaf(u11t,u12t,Leaves1,Leaves2,iu,id,i,mu,nu,leaf);
 			clover1[i]+=Leaves1[i+kvol*leaf]; clover2[i]+=Leaves2[i+kvol*leaf];
 		}
-		///The clover is given by @f$(F_{\mu\nu}=\frac{-i}{8}\left(Q_{\mu\nu}-Q_{\mu\nu}\right)^\dagger. We do that
+		///The clover is given by @f$F_{\mu\nu}=\frac{-i}{8}\left(Q_{\mu\nu}-Q_{\mu\nu}\right)^\dagger@f$. We do that
 		///manually below.
 
 		///The @f$\alpha@f$ component. Only the imaginary part survives. And since it is multiplied by @f$-i@f$ it is real.
@@ -132,32 +164,40 @@ __global__  void Full_Clover(complex<T> *clover1, complex<T> *clover2, complex<T
 	return;
 }
 
+/**
+ *	@brief	Extracts the correct leaves for each clover ontibuting to the force
+ *
+ *	@param	fleaf:				Sum of leaves contributing to clover
+ *	@param	Leaves1,Leaves2:	Array of clover leaves
+ *	@param	site:					Site at which force is being evaluated
+ *	@param	fclov:				Which clover are we considering for the force
+ */
 template <typename T> 
 __device__ void Force_Leaves(complex<T> fleaf[nc],complex<T> *Leaves1, complex<T> *Leaves2,\
 		const unsigned int site, const unsigned short fclov){
 	///Fleaf consists of the sum of the @f$\mu\nu@f$ and @f$\mu,-\nu@f$ leaves, minus their hermitian conjugates
 	///This can be expressed in terms of the imaginary part of Leaves1 and all of Leaves2 doubled
 	switch(fclov){
-		case(0): //Clover at site. Contributes the right two leaves
+		case(0): ///Clover at site. Contributes the right two leaves
 			///Factor of 2 is to take account of subtracting the hermitian conjugate. Since the real part of the first fleaf is
 			///zero we only add the imaginary parts (as real floats) then multiply by I at the end to make it imaginary
 			fleaf[0]=I*2*(Leaves1[site].imag()+Leaves1[site+kvol*2].imag());
 			///Second leaf. Similar to the first one, but both the real and imaginary parts are non-zero. Also don't need the I
 			///here
 			fleaf[1]=2*(Leaves2[site]+Leaves2[site+kvol*2]);
-		case(1): //Clover at i+mu. Contributes the left two leaves
+		case(1): ///Clover at i+mu. Contributes the left two leaves
 			fleaf[0]=I*2*(Leaves1[site+kvol].imag()+Leaves1[site+kvol*3].imag());
 			fleaf[1]=2*(Leaves2[site+kvol]+Leaves2[site+kvol*3]);
-		case(2): //Clover at i+nu. Contributes the bottom right leaf
+		case(2): ///Clover at i+nu. Contributes the bottom right leaf
 			fleaf[0]=I*2*(Leaves1[site+2*kvol].imag());
 			fleaf[1]=2*(Leaves2[site+2*kvol]);
-		case(3): //Clover at i-nu Contributes the top right leaf
+		case(3): ///Clover at i-nu Contributes the top right leaf
 			fleaf[0]=I*2*(Leaves1[site].imag());
 			fleaf[1]=2*(Leaves2[site]);
-		case(4): //Clover at i+mu+nu. Contributes the bottom left leaf
+		case(4): ///Clover at i+mu+nu. Contributes the bottom left leaf
 			fleaf[0]=I*2*(Leaves1[site+3*kvol].imag());
 			fleaf[1]=2*(Leaves2[site+3*kvol]);
-		case(5): //Clover at i+mu-nu. Contributes the top left leaf
+		case(5): ///Clover at i+mu-nu. Contributes the top left leaf
 			fleaf[0]=I*2*(Leaves1[site+kvol].imag());
 			fleaf[1]=2*(Leaves2[site+kvol]);
 	}
@@ -166,7 +206,21 @@ __device__ void Force_Leaves(complex<T> fleaf[nc],complex<T> *Leaves1, complex<T
 	fleaf[0]*=1/4.0f; fleaf[1]*=1/4.0f;
 	return;
 }
-//Actual force stuff
+/**
+ *	@brief	Clover contribution to the Molecular Dynamics force
+ *
+ *	@param	dSdpi:	Force
+ *	@param	Leaves:	Clover leaves. We don't need the full clover for the force as most get killed in the derivative
+ *							We do however need the individual leaves making up the clover
+ *	@param	X1:		@f$\left(M^\dagger M\right)^{-1} \Psi@f$
+ *	@param	X2:		@f$M\left(M^\dagger M\right)^{-1} \Psi@f$
+ *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$c_sw@f$
+ * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param	iu,id:	Up/down indices
+ * @param	clov:		Clover we're intereted in
+ * @param	mu,nu:	Direction of clover we're interested in
+ * @param	kappa:	Hopping parameter
+ */
 template <typename T>
 __global__ void Clover_Force(double *dSdpi, complex<T> *Leaves[nc], complex<T> *X1, complex<T> *X2,\
 		const complex<T> *sigval, const unsigned short *sigin, unsigned int *iu, unsigned int *id,\
@@ -209,7 +263,7 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *Leaves[nc], complex<T> *
 				complex<T> X2s[nc];
 				X2s[0]=X2[ind]; X2s[1]=X2[ind+kvol];
 
-				//i Sigma_x: Real part of @f$i z@f$ is minus the imaginary part of z
+				//i Sigma_x: Real part of @f$i z@f$ is minus the imaginary part of @f$z@f$
 				dSdpis[0]-=(sigval[clov*ndirac+idirac]*(
 							conj(X1s[0])*(-conj(fleaf_c[1])*X2s[0]+conj(fleaf_c[0])*X2s[1])+
 							conj(X1s[1])*(fleaf_c[0]*X2s[0]+fleaf_c[1]*X2s[1]))).imag();
@@ -217,7 +271,7 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *Leaves[nc], complex<T> *
 				dSdpis[1]+=(sigval[clov*ndirac+idirac]*(
 							conj(X1s[0])*(conj(fleaf_c[1])*X2s[0]-conj(fleaf_c[0])*X2s[1])+
 							conj(X1s[1])*(fleaf_c[0]*X2s[0]+fleaf_c[1]*X2s[1]))).real();
-				//i Sigma_z Real part of @f$i z@f$ is minus the imaginary part of z
+				//i Sigma_z Real part of @f$i z@f$ is minus the imaginary part of @f$z@f$
 				dSdpis[2]-=(sigval[clov*ndirac+idirac]*(
 							conj(X1s[0])*(fleaf_c[0]*X2s[0]+fleaf_c[1]*X2s[1])+
 							conj(X1s[1])*(conj(fleaf_c[1])*X2s[0]-conj(fleaf_c[0])*X2s[1]))).imag();
@@ -230,6 +284,16 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *Leaves[nc], complex<T> *
 }
 
 
+/**
+ *	@brief Clover analogue of the Dslash operation. This version acts on all flavours simiilar to Dslash and Dslash_d
+ *	
+ *
+ *	@param	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
+ *	@param	r:						Pseudofermion field before multiplication. The thing we want to multiply by the clover
+ *	@param	clover1,clover2:	Array of clovers
+ *	@param	sigval:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
+ * @param	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
+ */
 template <typename T>
 __global__ void ByClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, complex<T> *clover2, complex<T> *sigval, unsigned short *sigin){
 	const char funcname[] = "HbyClover";
@@ -272,6 +336,17 @@ __global__ void ByClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, co
 	}
 	return;
 }
+/**
+ *	@brief Clover analogue of the Dslash operation. The H in front is for half, as we only act on the fermions of flavour
+ *	1
+ *
+ *	@param	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
+ *	@param	r:						Pseudofermion field before multiplication. The thing we want to multiply by the clover
+ *	@param	clover1,clover2:	Array of clovers
+ *	@param	sigval:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
+ *	@param	akappa:				Hopping Parameter
+ * @param	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
+ */
 template <typename T>
 __global__ void HbyClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, complex<T> *clover2,complex<T> *sigval, const float kappa, unsigned short *sigin){
 	const char funcname[] = "HbyClover";
@@ -362,7 +437,7 @@ void cuHbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f
 int cuClover_Force(double *dSdpi, Complex_f *Leaves[6][nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,\
 		unsigned short *sigin, unsigned int *iu, unsigned int *id, const float kappa){
 	const char funcname[]="Clover_Force";
-	//dSdpi depends on the three values of @f$\mu@f$. So we use that for the streams instead of clover
+	///dSdpi depends on the three values of @f$\mu@f$. So we use that for the streams instead of clover
 	for(unsigned int mu=0;mu<ndim-1;mu++){
 		for(unsigned int nu=mu+1;nu<ndim;nu++){
 			//Clover index

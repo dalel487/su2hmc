@@ -1,6 +1,3 @@
-#pragma once
-#include <su2hmc.h>
-
 /**
  *	@file		clover.h
  *
@@ -8,6 +5,9 @@
  *
  *	@author 	D. Lawlor
  */
+#pragma once
+#include <su2hmc.h>
+
 
 /**
  * @brief Calculates the SU2 plaquette at site i in the @f$\mu--\nu@f$ direction
@@ -63,7 +63,7 @@ int Clover(Complex_f *clover[nc],Complex_f *Leaves[6][nc],Complex_f *ut[nc], uns
  *	@param	phi:		Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
  *	@param	r:			Pseudofermion field before multiplication. The thing we want to multiply by the clover
  *	@param	clover:	Array of clovers
- *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by c_sw
+ *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
  */
 int ByClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, unsigned short *sigin);
@@ -74,7 +74,7 @@ int ByClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, uns
  *	@param	phi:		Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
  *	@param	r:			Pseudofermion field before multiplication. The thing we want to multiply by the clover
  *	@param	clover:	Array of clovers
- *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by c_sw
+ *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
  */
 int ByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval, unsigned short *sigin);
@@ -85,7 +85,8 @@ int ByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *s
  *	@param	phi:		Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
  *	@param	r:			Pseudofermion field before multiplication. The thing we want to multiply by the clover
  *	@param	clover:	Array of clovers
- *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by c_sw
+ *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
+ *	@param	akappa:	Hopping Parameter
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
  */
 int HbyClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, const float akappa, unsigned short *sigin);
@@ -96,7 +97,8 @@ int HbyClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, co
  *	@param	phi:		Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
  *	@param	r:			Pseudofermion field before multiplication. The thing we want to multiply by the clover
  *	@param	clover:	Array of clovers
- *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by c_sw
+ *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
+ *	@param	akappa:	Hopping Parameter
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
  */
 int HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval, const float akappa, unsigned short *sigin);
@@ -116,7 +118,7 @@ void Fleaf(Complex_f fleaf[nc], Complex_f *Leaves[nc], const unsigned int i);
  *							We do however need the individual leaves making up the clover
  *	@param	X1:		@f$\left(M^\dagger M\right)^{-1} \Psi@f$
  *	@param	X2:		@f$M\left(M^\dagger M\right)^{-1} \Psi@f$
- *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by c_sw
+ *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$c_sw@f$
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
  * @param	iu:		Up indices
  * @param	id:		Down indices
@@ -138,8 +140,8 @@ void GenLeaf(Complex_f Fleaf[nc],const unsigned short adj);
 /**
  *	@brief	Initialise values needed for the clover terms
  *
- *	@param	sigval,sigval_f:	@f$ \sigma_{\mu\nu}=\frac{1}{2i}[\gamma_\mu,\gamma_\nu]@f$ in double and single precision
- *	@param	sigin:				Which column does row idirac of @f$(\sigma_{\mu\nu}@f$ act on
+ *	@param	sigval,sigval_f:	@f$ \sigma_{\mu\nu}=\frac{1}{2i}[\gamma_\mu,\gamma_\nu]@f$ in double and single precision	scaled by @f$c_{sw}@f$
+ *	@param	sigin:				Which column does row idirac of @f$\sigma_{\mu\nu}@f$ act on
  *	@param	c_sw:					Clover coefficient
  */
 int Init_clover(Complex *sigval, Complex_f *sigval_f,unsigned short *sigin, float c_sw);
@@ -147,7 +149,7 @@ int Init_clover(Complex *sigval, Complex_f *sigval_f,unsigned short *sigin, floa
  *	@brief	Free's memory used for clover terms and leaves
  *
  *	@param	clover:	Clovers
- *	@param		Leaves:	Leaves
+ *	@param	Leaves:	Leaves
  */
 int Clover_free(Complex_f *clover[nc],Complex_f *Leaves[6][nc]);
 
@@ -156,11 +158,73 @@ int Clover_free(Complex_f *clover[nc],Complex_f *Leaves[6][nc]);
 extern "C"
 {
 #endif
+
+/**
+ *	@brief CUDA wrapper for calculating the clovers in all directions at all sites
+ *			@f$ F_{\mu\nu}(n)=\frac{-i}{8a^2}\left(Q_{\mu\nu}(n)-Q_{\nu\mu}(n)\right)@f$
+ *
+ *	@param	clover:	Array of clovers
+ *	@param	Leaves:	Array of clover leaves
+ *	@param	ut:		Gauge fields
+ *	@param	iu,id:	Upper and lower indices
+ */
 int cuClover(Complex_f *clover[nc],Complex_f *Leaves[6][nc],Complex_f *ut[nc], unsigned int *iu, unsigned int *id);
+/**
+ *	@brief CUDA wrapper for ByClover
+ *
+ *	@param	phi:		Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
+ *	@param	r:			Pseudofermion field before multiplication. The thing we want to multiply by the clover
+ *	@param	clover:	Array of clovers
+ *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
+ * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
+ */
 void cuByClover(Complex *phi, Complex *r, Complex *clover[nc],Complex *sigval, unsigned short *sigin);
+/**
+ *	@brief CUDA wrapper for HbyClover
+ *
+ *	@param	phi:		Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
+ *	@param	r:			Pseudofermion field before multiplication. The thing we want to multiply by the clover
+ *	@param	clover:	Array of clovers
+ *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
+ *	@param	akappa:	Hopping Parameter
+ * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
+ */
 void cuHbyClover(Complex *phi, Complex *r, Complex *clover[nc],Complex *sigval, const float akappa, unsigned short *sigin);
+/**
+ *	@brief CUDA wrapper for ByClover_f
+ *
+ *	@param	phi:		Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
+ *	@param	r:			Pseudofermion field before multiplication. The thing we want to multiply by the clover
+ *	@param	clover:	Array of clovers
+ *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
+ * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
+ */
 void cuByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f *sigval, unsigned short *sigin);
+/**
+ *	@brief CUDA wrapper for HbyClover_f
+ *
+ *	@param	phi:		Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
+ *	@param	r:			Pseudofermion field before multiplication. The thing we want to multiply by the clover
+ *	@param	clover:	Array of clovers
+ *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
+ *	@param	akappa:	Hopping Parameter
+ * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
+ */
 void cuHbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f *sigval, const float akappa,unsigned short *sigin);
+/**
+ *	@brief	CUDA wrapper for Clover_Force
+ *
+ *	@param	dSdpi:	Force
+ *	@param	Leaves:	Clover leaves. We don't need the full clover for the force as most get killed in the derivative
+ *							We do however need the individual leaves making up the clover
+ *	@param	X1:		@f$\left(M^\dagger M\right)^{-1} \Psi@f$
+ *	@param	X2:		@f$M\left(M^\dagger M\right)^{-1} \Psi@f$
+ *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$c_sw@f$
+ * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param	iu:		Up indices
+ * @param	id:		Down indices
+ * @param	kappa:	Hopping parameter
+ */
 int cuClover_Force(double *dSdpi, Complex_f *Leaves[6][nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,\
 						unsigned short *sigin, unsigned int *iu, unsigned int *id, const float kappa);
 #ifdef __cplusplus

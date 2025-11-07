@@ -45,18 +45,18 @@ int Leaf(Complex_f *ut[nc], Complex_f *Leaves[nc], unsigned int *iu, unsigned in
 		case(1):
 			//\mu<0 and \nu>=0
 			didm = id[mu+ndim*i];
-			/// @f$U_\mu^\dagger\(x-\hat{\mu})U_\nu(x-\hat{\mu}\)@f$
+			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu(x-\hat{\mu})@f$
 			Leaves[0][i+kvol*leaf]=conj(ut[0][didm*ndim+mu])*ut[0][didm*ndim+nu]+ut[1][didm*ndim+mu]*conj(ut[1][didm*ndim+nu]);
 			Leaves[1][i+kvol*leaf]=conj(ut[0][didm*ndim+mu])*ut[1][didm*ndim+nu]-ut[1][didm*ndim+mu]*conj(ut[0][didm*ndim+nu]);
 
 			int uin_didm=id[nu+ndim*didm];
-			/// @f$U_\mu^\dagger\(x-\hat{\mu})U_\nu(x+-hat{\mu}\)U_\mu(x-\hat{mu}+\hat{nu})@f$
+			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu(x+\hat{\mu})U_\mu(x-\hat{\mu}+\hat{\nu})@f$
 			//a[0]=Leaves[0][i+kvol*leaf]*conj(ut[0][didm*ndim+nu])+conj(Leaves[1][i+kvol*leaf])*ut[1][didm*ndim+nu];
 			a[0]=Leaves[0][i+kvol*leaf]*ut[0][uin_didm*ndim+mu]-Leaves[1][i+kvol*leaf]*conj(ut[1][uin_didm*ndim+mu]);
 			//a[1]=Leaves[1][i+kvol*leaf]*conj(ut[0][didm*ndim+nu])-conj(Leaves[0][i+kvol*leaf])*ut[1][didm*ndim+nu];
 			a[1]=Leaves[0][i+kvol*leaf]*ut[1][uin_didm*ndim+mu]+Leaves[1][i+kvol*leaf]*conj(ut[0][uin_didm*ndim+mu]);
 
-			/// @f$U_\mu^\dagger\(x)U_\nu^\dagger(x+\hat{\mu}-\hat{\nu}\)U_\mu(x+\hat{mu}-\hat{nu})U_\nu^\dagger(x-\hat{\nu})@f$
+			/// @f$U_\mu^\dagger(x)U_\nu^\dagger(x+\hat{\mu}-\hat{\nu})U_\mu(x+\hat{\mu}-\hat{\nu})U_\nu^\dagger(x-\hat{\nu})@f$
 			//Leaves[0][i+kvol*leaf]=a[0]*ut[0][didm*ndim+mu]-conj(a[1])*ut[1][didm*ndim+mu];
 			Leaves[0][i+kvol*leaf]=a[0]*conj(ut[0][i*ndim+nu])+a[1]*conj(ut[1][i*ndim+nu]);
 			Leaves[1][i+kvol*leaf]=-a[0]*ut[1][i*ndim+nu]+a[1]*ut[0][i*ndim+nu];
@@ -66,16 +66,16 @@ int Leaf(Complex_f *ut[nc], Complex_f *Leaves[nc], unsigned int *iu, unsigned in
 			//TODO: Figure out down site index
 			//Another awkward index
 			uidm = iu[mu+ndim*i]; int din_uidm=id[nu+ndim*uidm];
-			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{mu}-\hat{\nu})@f$
+			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{\mu}-\hat{\nu})@f$
 			Leaves[0][i+kvol*leaf]=ut[0][i*ndim+mu]*conj(ut[0][din_uidm*ndim+nu])+ut[1][i*ndim+mu]*conj(ut[1][din_uidm*ndim+nu]);
 			Leaves[1][i+kvol*leaf]=-ut[0][i*ndim+mu]*ut[1][din_uidm*ndim+nu]+ut[1][i*ndim+mu]*ut[0][din_uidm*ndim+nu];
 
 			didn = id[nu+ndim*i]; 
-			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{mu}-\hat{\nu})U_\mu^\dagger(x-\hat{nu}\)@f$
+			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{\mu}-\hat{\nu})U_\mu^\dagger(x-\hat{\nu})@f$
 			a[0]=Leaves[0][i+kvol*leaf]*conj(ut[0][didn*ndim+mu])+Leaves[1][i+kvol*leaf]*conj(ut[1][didn*ndim+mu]);
 			a[1]=-Leaves[0][i+kvol*leaf]*ut[1][didn*ndim+mu]+Leaves[1][i+kvol*leaf]*ut[0][didn*ndim+mu];
 
-			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{mu}-\hat{\nu})U_\mu^\dagger(x-\hat{nu}\)U_\nu(x-\hat{\nu})@f$
+			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{\mu}-\hat{\nu})U_\mu^\dagger(x-\hat{\nu})U_\nu(x-\hat{\nu})@f$
 			Leaves[0][i+kvol*leaf]=a[0]*ut[0][didn*ndim+nu]-a[1]*conj(ut[1][didn*ndim+nu]);
 			Leaves[1][i+kvol*leaf]=a[0]*ut[1][didn*ndim+nu]+a[1]*conj(ut[0][didn*ndim+nu]);
 
