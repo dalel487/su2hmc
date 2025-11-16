@@ -61,26 +61,30 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> *Leaves1, com
 		unsigned int *iu, unsigned int *id, unsigned int i, int mu, int nu, short leaf){
 	char *funcname="Leaf";
 	complex<T> a[nc];
-	unsigned int didm,didn,uidn,uidm;
+	unsigned int didm,didn,uidm;
 	switch(leaf){
 		case(0):
 			///Both positive is just a standard plaquette
 			Clover_SU2plaq(u11t,u12t,Leaves1,Leaves2,iu,i,mu,nu);
+			//DEBUG
+			Leaves1[i+kvol*leaf]=0; Leaves2[i+kvol*leaf]=0;
 			break;
 		case(1):
 			///Leaf in the forward nu and backwards mu direction
-			didm = id[mu*kvol+i]; unsigned int uin_didm=id[nu*kvol+didm];
-			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\nu)@f$
+			didm = id[mu*kvol+i]; unsigned int uin_didm=iu[nu*kvol+didm];
+			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})@f$
 			Leaves1[i+kvol*leaf]=u11t[i+kvol*nu]*conj(u11t[uin_didm+kvol*mu])+u12t[i+kvol*nu]*conj(u12t[uin_didm+kvol*mu]);
 			Leaves2[i+kvol*leaf]=-u11t[i+kvol*nu]*u12t[uin_didm+kvol*mu]+u12t[i+kvol*nu]*u11t[uin_didm+kvol*mu];
 
-			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\nu)U^\dagger_\nu(x-\hat{\mu})@f$
+			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})U^\dagger_\nu(x-\hat{\mu})@f$
 			a[0]=Leaves1[i+kvol*leaf]*conj(u11t[didm+kvol*nu])+Leaves2[i+kvol*leaf]*conj(u12t[didm+kvol*mu]);
 			a[1]=-Leaves1[i+kvol*leaf]*u12t[didm+kvol*nu]+Leaves2[i+kvol*leaf]*u11t[didm+kvol*mu];
 
-			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\nu)U^\dagger_\nu(x-\hat{\mu})U_\mu(x-\hat{\mu})@f$
-			Leaves1[i+kvol*leaf]=a[0]*conj(u11t[didm+kvol*mu])+a[1]*conj(u12t[didm+kvol*mu]);
-			Leaves2[i+kvol*leaf]=-a[0]*u12t[didm+kvol*mu]+a[1]*u11t[didm+kvol*mu];
+			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})U^\dagger_\nu(x-\hat{\mu})U_\mu(x-\hat{\mu})@f$
+			Leaves1[i+kvol*leaf]=a[0]*u11t[didm+kvol*mu]-a[1]*conj(u12t[didm+kvol*mu]);
+			Leaves2[i+kvol*leaf]=a[0]*u12t[didm+kvol*mu]+a[1]*conj(u11t[didm+kvol*mu]);
+			//DEBUG
+//			Leaves1[i+kvol*leaf]=0; Leaves2[i+kvol*leaf]=0;
 			break;
 		case(2):
 			///Leaf in the forwards mu and backwards nu direction
@@ -99,6 +103,8 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> *Leaves1, com
 			Leaves1[i+kvol*leaf]=a[0]*u11t[didn+kvol*nu]-a[1]*conj(u12t[didn+kvol*nu]);
 			Leaves2[i+kvol*leaf]=a[0]*u12t[didn+kvol*nu]+a[1]*conj(u11t[didn+kvol*nu]);
 
+			//DEBUG
+			Leaves1[i+kvol*leaf]=0; Leaves2[i+kvol*leaf]=0;
 			break;
 		case(3):
 			///Leaf in the backwards mu and backwards nu direction
@@ -120,6 +126,8 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> *Leaves1, com
 			/// @f$U_\nu^\dagger(x-\hat{\nu})U_\mu^\dagger(x-\hat{\mu}-\hat{\nu})U_\nu(x-\hat{\mu}-\hat{\nu})U_\mu(x-\hat{\mu})@f$
 			Leaves1[i+kvol*leaf]=a[0]*u11t[didm+kvol*mu]-a[1]*conj(u12t[didm+kvol*mu]);
 			Leaves2[i+kvol*leaf]=a[0]*u12t[didm+kvol*mu]+a[1]*conj(u11t[didm+kvol*mu]);
+			//DEBUG
+			Leaves1[i+kvol*leaf]=0; Leaves2[i+kvol*leaf]=0;
 			break;
 	}
 	return 0;
@@ -181,13 +189,13 @@ __device__ void Force_Leaves(complex<T> fleaf[nc],complex<T> *Leaves1, complex<T
 		case(0): ///Clover at site. Contributes the right two leaves
 			///Factor of 2 is to take account of subtracting the hermitian conjugate. Since the real part of the first fleaf is
 			///zero we only add the imaginary parts (as real floats) then multiply by I at the end to make it imaginary
-			fleaf[0]=I*2*(Leaves1[site].imag()+Leaves1[site+kvol*2].imag());
+			fleaf[0]=I*2*(Leaves1[site].imag()+Leaves1[site+2*kvol].imag());
 			///Second leaf. Similar to the first one, but both the real and imaginary parts are non-zero. Also don't need the I
 			///here
-			fleaf[1]=2*(Leaves2[site]+Leaves2[site+kvol*2]);
+			fleaf[1]=2*(Leaves2[site]+Leaves2[site+2*kvol]);
 		case(1): ///Clover at i+mu. Contributes the left two leaves
-			fleaf[0]=I*2*(Leaves1[site+kvol].imag()+Leaves1[site+kvol*3].imag());
-			fleaf[1]=2*(Leaves2[site+kvol]+Leaves2[site+kvol*3]);
+			fleaf[0]=I*2*(Leaves1[site+1*kvol].imag()+Leaves1[site+3*kvol].imag());
+			fleaf[1]=2*(Leaves2[site+1*kvol]+Leaves2[site+3*kvol]);
 		case(2): ///Clover at i+nu. Contributes the bottom right leaf
 			fleaf[0]=I*2*(Leaves1[site+2*kvol].imag());
 			fleaf[1]=2*(Leaves2[site+2*kvol]);
@@ -198,8 +206,8 @@ __device__ void Force_Leaves(complex<T> fleaf[nc],complex<T> *Leaves1, complex<T
 			fleaf[0]=I*2*(Leaves1[site+3*kvol].imag());
 			fleaf[1]=2*(Leaves2[site+3*kvol]);
 		case(5): ///Clover at i+mu-nu. Contributes the top left leaf
-			fleaf[0]=I*2*(Leaves1[site+kvol].imag());
-			fleaf[1]=2*(Leaves2[site+kvol]);
+			fleaf[0]=I*2*(Leaves1[site+1*kvol].imag());
+			fleaf[1]=2*(Leaves2[site+1*kvol]);
 	}
 	///For the full clover we scale by @f$\frac{-i}{8}@f$. But there is a factor of @f$i@f$ from the force term
 	///In addition, there's another factor of @f$2@f$ from the force term. So we just divide by @f$4@f$ instead.
@@ -267,8 +275,8 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *Leaves[nc], complex<T> *
 				dSdpis[0]-=(sigval[clov*ndirac+idirac]*(
 							conj(X1s[0])*(-conj(fleaf_c[1])*X2s[0]+conj(fleaf_c[0])*X2s[1])+
 							conj(X1s[1])*(fleaf_c[0]*X2s[0]+fleaf_c[1]*X2s[1]))).imag();
-				//i Sigma_y: Real part of @f$ i (-i z)@f$ is plus the real part of @f$z@f$
-				dSdpis[1]+=(sigval[clov*ndirac+idirac]*(
+				//i Sigma_y: Real part of @f$ i (-i z)@f$ is minus the real part of @f$z@f$
+				dSdpis[1]-=(sigval[clov*ndirac+idirac]*(
 							conj(X1s[0])*(conj(fleaf_c[1])*X2s[0]-conj(fleaf_c[0])*X2s[1])+
 							conj(X1s[1])*(fleaf_c[0]*X2s[0]+fleaf_c[1]*X2s[1]))).real();
 				//i Sigma_z Real part of @f$i z@f$ is minus the imaginary part of @f$z@f$
@@ -411,6 +419,8 @@ int cuClover(Complex_f *clover[nc],Complex_f *Leaves[6][nc],Complex_f *ut[nc], u
 #ifdef _DEBUG
 				cudaMallocManaged((void **)&Leaves[clov][0],kvol*ndim*sizeof(Complex_f),cudaMemAttachGlobal);
 				cudaMallocManaged((void **)&Leaves[clov][1],kvol*ndim*sizeof(Complex_f),cudaMemAttachGlobal);
+				cudaMemset((void *)Leaves[clov][0],0,kvol*ndim*sizeof(Complex_f));
+				cudaMemset((void *)Leaves[clov][1],0,kvol*ndim*sizeof(Complex_f));
 #else
 				cudaMallocAsync((void **)&Leaves[clov][0],kvol*ndim*sizeof(Complex_f),streams[clov]);
 				cudaMallocAsync((void **)&Leaves[clov][1],kvol*ndim*sizeof(Complex_f),streams[clov]);
