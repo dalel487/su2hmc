@@ -77,8 +77,8 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> *Leaves1, com
 			Leaves2[i+kvol*leaf]=-u11t[i+kvol*nu]*u12t[uin_didm+kvol*mu]+u12t[i+kvol*nu]*u11t[uin_didm+kvol*mu];
 
 			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})U^\dagger_\nu(x-\hat{\mu})@f$
-			a[0]=Leaves1[i+kvol*leaf]*conj(u11t[didm+kvol*nu])+Leaves2[i+kvol*leaf]*conj(u12t[didm+kvol*mu]);
-			a[1]=-Leaves1[i+kvol*leaf]*u12t[didm+kvol*nu]+Leaves2[i+kvol*leaf]*u11t[didm+kvol*mu];
+			a[0]=Leaves1[i+kvol*leaf]*conj(u11t[didm+kvol*nu])+Leaves2[i+kvol*leaf]*conj(u12t[didm+kvol*nu]);
+			a[1]=-Leaves1[i+kvol*leaf]*u12t[didm+kvol*nu]+Leaves2[i+kvol*leaf]*u11t[didm+kvol*nu];
 
 			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})U^\dagger_\nu(x-\hat{\mu})U_\mu(x-\hat{\mu})@f$
 			Leaves1[i+kvol*leaf]=a[0]*u11t[didm+kvol*mu]-a[1]*conj(u12t[didm+kvol*mu]);
