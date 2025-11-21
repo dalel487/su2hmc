@@ -168,7 +168,7 @@ extern "C"
  *	@param	ut:		Gauge fields
  *	@param	iu,id:	Upper and lower indices
  */
-int cuClover(Complex_f *clover[nc],Complex_f *Leaves[6][nc],Complex_f *ut[nc], unsigned int *iu, unsigned int *id);
+int cuClover(Complex_f *clover[nc],Complex_f *ut[nc], unsigned int *iu, unsigned int *id);
 /**
  *	@brief CUDA wrapper for ByClover
  *

@@ -9,42 +9,68 @@
 
 //CUDA Device code
 /**
- * @brief Calculates the SU2 plaquette at site i in the @f$\mu--\nu@f$ direction
+ * @brief Multiply leaf (or part of one) by generator from left
  *
- * @param u11t,u12t:				Trial fields
- * @param Leaves1,Leaves2:		Leaf output
- * @param iu:						Upper halo indices
- * @param i:						site index
- * @param mu, nu:					Plaquette direction. Note that mu and nu can be negative
- *										to facilitate calculating plaquettes for Clover terms. No
- *										sanity checks are conducted on them in this routine.
+ *	The leaves contributing to each force term need to be scaled by the generator, but the generator appears at
+ *	different points in each leaf.  This routine multiples by the generator from the left side.
+ *
+ *	@param	a:		The force leaf
+ *	@param	gen:	What generator are we multiplying by?
  */
 template <typename T>
-__device__ int Clover_SU2plaq(complex<T> *u11t, complex<T> *u12t, complex<T> *Leaves1, complex<T> *Leaves2,\
-		unsigned int *iu,  int i, int mu, int nu){
-	const char *funcname = "SU2plaq";
-	unsigned int uidm = iu[mu*kvol+i]; 
-	/**
-	 *	Let's take a quick moment to compare this to the analysis code.
-	 *	The analysis code stores the gauge field as a 4 component real valued vector, whereas the produciton code
-	 *	used two complex numbers.
-	 *
-	 *	Analysis code: u=(Re(u11),Im(u12),Re(u12),Im(u11))
-	 *	Production code: u11=u[0]+I*u[3]	u12=u[2]+I*u[1]
-	 *
-	 *	This applies to the Leaves and a's below too
-	 */
-	Leaves1[i]=u11t[i+kvol*mu]*u11t[uidm+kvol*nu]-u12t[i+kvol*mu]*conj(u12t[uidm+kvol*nu]);
-	Leaves2[i]=u11t[i+kvol*mu]*u12t[uidm+kvol*nu]+u12t[i+kvol*mu]*conj(u11t[uidm+kvol*nu]);
-
-	unsigned int uidn = iu[nu*kvol+i]; 
-	complex<T> a11=Leaves1[i]*conj(u11t[uidn+kvol*mu])+Leaves2[i]*conj(u12t[uidn+kvol*mu]);
-	complex<T> a12=-Leaves1[i]*u12t[uidn+kvol*mu]+Leaves2[i]*u11t[uidn+kvol*mu];
-
-	Leaves1[i]=a11*conj(u11t[i+kvol*nu])+a12*conj(u12t[i+kvol*nu]);
-	Leaves2[i]=-a11*u12t[i+kvol*nu]+a12*u11t[i+kvol*nu];
+__device__ void ByGenLeft(T a[nc],const unsigned short gen){
+	const char funcname[] = "ByGenLeft";
+	T tmp = a[0];
+		switch(gen){
+			///@f$i\sigma_x@f$
+			case(0):
+				a[0]=-I*conj(a[1]); a[1]=I*conj(tmp);
+				///@f$i\sigma_x@f$
+			case(1):
+				a[0]=-conj(a[1]); a[1]=conj(tmp);
+				///@f$i\sigma_x@f$
+			case(2):
+				a[0]*=I; a[2]*=I;
+		}
 	return 0;
 }
+/**
+ * @brief Multiply leaf (or part of one) by generator from right
+ *
+ *	The leaves contributing to each force term need to be scaled by the generator, but the generator appears at
+ *	different points in each leaf.  This routine multiples by the generator from the right side.
+ *
+ *	@param	a:		The force leaf
+ *	@param	gen:	What generator are we multiplying by?
+ */
+template <typename T>
+__device__ void ByGenRight(T a[nc],const unsigned short gen){
+	const char funcname[] = "ByGenRight";
+	T tmp = a[0];
+		switch(gen){
+			///@f$i\sigma_x@f$
+			case(0):
+				a[0]=-I*a[1]; a[1]=I*tmp;
+				///@f$i\sigma_x@f$
+			case(1):
+				a[0]=a[1]; a[1]=-tmp;
+				///@f$i\sigma_x@f$
+			case(2):
+				a[0]*=I; a[2]*=-I;
+		}
+	return 0;
+}
+/**
+ *	@brief	Calculates a leaf for a clover term.
+ *
+ *	@param	u11t,u12t:			Gauge fields
+ *	@param	Leaves1,Leaves2:	Array of leaves
+ *	@param	iu,id:				Upper and lower site indices
+ *	@param	i:						Lattice index of the clover in question
+ *	@param	mu,nu:				Direction in which we're evaluating the leaf
+ *	@param	leaf:					Which leaf of the clover is being calculated
+ *	
+ */
 /**
  *	@brief	Calculates a leaf for a clover term.
  *
@@ -65,9 +91,18 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> *Leaves1, com
 	switch(leaf){
 		case(0):
 			///Both positive is just a standard plaquette
-			Clover_SU2plaq(u11t,u12t,Leaves1,Leaves2,iu,i,mu,nu);
+			uidm = iu[mu*kvol+i]; 
+			Leaves1[i]=u11t[i+kvol*mu]*u11t[uidm+kvol*nu]-u12t[i+kvol*mu]*conj(u12t[uidm+kvol*nu]);
+			Leaves2[i]=u11t[i+kvol*mu]*u12t[uidm+kvol*nu]+u12t[i+kvol*mu]*conj(u11t[uidm+kvol*nu]);
+
+			unsigned int uidn = iu[nu*kvol+i]; 
+			complex<T> a11=Leaves1[i]*conj(u11t[uidn+kvol*mu])+Leaves2[i]*conj(u12t[uidn+kvol*mu]);
+			complex<T> a12=-Leaves1[i]*u12t[uidn+kvol*mu]+Leaves2[i]*u11t[uidn+kvol*mu];
+
+			Leaves1[i]=a11*conj(u11t[i+kvol*nu])+a12*conj(u12t[i+kvol*nu]);
+			Leaves2[i]=-a11*u12t[i+kvol*nu]+a12*u11t[i+kvol*nu];
 			//DEBUG
-			Leaves1[i+kvol*leaf]=0; Leaves2[i+kvol*leaf]=0;
+			//			Leaves1[i+kvol*leaf]=0; Leaves2[i+kvol*leaf]=0;
 			break;
 		case(1):
 			///Leaf in the forward nu and backwards mu direction
@@ -84,7 +119,7 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> *Leaves1, com
 			Leaves1[i+kvol*leaf]=a[0]*u11t[didm+kvol*mu]-a[1]*conj(u12t[didm+kvol*mu]);
 			Leaves2[i+kvol*leaf]=a[0]*u12t[didm+kvol*mu]+a[1]*conj(u11t[didm+kvol*mu]);
 			//DEBUG
-//			Leaves1[i+kvol*leaf]=0; Leaves2[i+kvol*leaf]=0;
+			Leaves1[i+kvol*leaf]=0; Leaves2[i+kvol*leaf]=0;
 			break;
 		case(2):
 			///Leaf in the forwards mu and backwards nu direction
@@ -104,7 +139,7 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> *Leaves1, com
 			Leaves2[i+kvol*leaf]=a[0]*u12t[didn+kvol*nu]+a[1]*conj(u11t[didn+kvol*nu]);
 
 			//DEBUG
-			Leaves1[i+kvol*leaf]=0; Leaves2[i+kvol*leaf]=0;
+			//			Leaves1[i+kvol*leaf]=0; Leaves2[i+kvol*leaf]=0;
 			break;
 		case(3):
 			///Leaf in the backwards mu and backwards nu direction
@@ -127,7 +162,7 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> *Leaves1, com
 			Leaves1[i+kvol*leaf]=a[0]*u11t[didm+kvol*mu]-a[1]*conj(u12t[didm+kvol*mu]);
 			Leaves2[i+kvol*leaf]=a[0]*u12t[didm+kvol*mu]+a[1]*conj(u11t[didm+kvol*mu]);
 			//DEBUG
-			Leaves1[i+kvol*leaf]=0; Leaves2[i+kvol*leaf]=0;
+			//			Leaves1[i+kvol*leaf]=0; Leaves2[i+kvol*leaf]=0;
 			break;
 	}
 	return 0;
@@ -187,8 +222,8 @@ __device__ void Force_Leaves(complex<T> fleaf[nc],complex<T> *Leaves1, complex<T
 	///This can be expressed in terms of the imaginary part of Leaves1 and all of Leaves2 doubled
 	switch(fclov){
 		case(0): ///Clover at site. Contributes the right two leaves
-			///Factor of 2 is to take account of subtracting the hermitian conjugate. Since the real part of the first fleaf is
-			///zero we only add the imaginary parts (as real floats) then multiply by I at the end to make it imaginary
+					///Factor of 2 is to take account of subtracting the hermitian conjugate. Since the real part of the first fleaf is
+					///zero we only add the imaginary parts (as real floats) then multiply by I at the end to make it imaginary
 			fleaf[0]=I*2*(Leaves1[site].imag()+Leaves1[site+2*kvol].imag());
 			///Second leaf. Similar to the first one, but both the real and imaginary parts are non-zero. Also don't need the I
 			///here
@@ -400,7 +435,7 @@ __global__ void HbyClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, c
 
 //Calling Wrappers
 //This gets called by C so cannot be templated...
-int cuClover(Complex_f *clover[nc],Complex_f *Leaves[6][nc],Complex_f *ut[nc], unsigned int *iu, unsigned int *id){
+int cuClover(Complex_f *clover[nc],Complex_f *ut[nc], unsigned int *iu, unsigned int *id){
 	const char funcname[]="cuClover";
 #ifdef _DEBUG
 	cudaMallocManaged((void **)&clover[0],6*kvol*sizeof(Complex_f),cudaMemAttachGlobal);
@@ -414,19 +449,26 @@ int cuClover(Complex_f *clover[nc],Complex_f *Leaves[6][nc],Complex_f *ut[nc], u
 			if(mu!=nu){
 				//Clover index
 				unsigned short clov = (mu==0) ? nu-1 :mu+nu;
+				Complex_f Leaves[nc];
 				//Allocate clover memory
 				//Note that the clover is completely local, so doesn't need a halo for MPI
 #ifdef _DEBUG
 				cudaMallocManaged((void **)&Leaves[clov][0],kvol*ndim*sizeof(Complex_f),cudaMemAttachGlobal);
 				cudaMallocManaged((void **)&Leaves[clov][1],kvol*ndim*sizeof(Complex_f),cudaMemAttachGlobal);
-				cudaMemset((void *)Leaves[clov][0],0,kvol*ndim*sizeof(Complex_f));
-				cudaMemset((void *)Leaves[clov][1],0,kvol*ndim*sizeof(Complex_f));
+				cudaMemset((void *)Leaves[0],0,kvol*ndim*sizeof(Complex_f));
+				cudaMemset((void *)Leaves[1],0,kvol*ndim*sizeof(Complex_f));
 #else
-				cudaMallocAsync((void **)&Leaves[clov][0],kvol*ndim*sizeof(Complex_f),streams[clov]);
-				cudaMallocAsync((void **)&Leaves[clov][1],kvol*ndim*sizeof(Complex_f),streams[clov]);
+				cudaMallocAsync((void **)&Leaves[0],kvol*ndim*sizeof(Complex_f),streams[clov]);
+				cudaMallocAsync((void **)&Leaves[1],kvol*ndim*sizeof(Complex_f),streams[clov]);
 #endif
 				Full_Clover<<<dimGrid,dimBlock,0,streams[clov]>>>(clover[0]+clov*kvol,clover[1]+clov*kvol,\
-						Leaves[clov][0],Leaves[clov][1],ut[0],ut[1],iu,id,mu,nu);
+						Leaves[0],Leaves[1],ut[0],ut[1],iu,id,mu,nu);
+#ifdef _DEBUG
+			cudaDeviceSynchronise();
+			cudaFree(Leaves[0]); cudaFree(Leaves[1]);
+#else
+			cudaFreeAsync(Leaves[0],streams[clov]); cudaFreeAsync(Leaves[1],streams[clov]);
+#endif
 			}
 	cudaDeviceSynchronise();
 	return 0;

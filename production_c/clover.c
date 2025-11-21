@@ -132,7 +132,7 @@ inline int Half_Clover(Complex_f *clover[nc],Complex_f *Leaves[nc], Complex_f *u
 int Clover(Complex_f *clover[nc],Complex_f *Leaves[6][2],Complex_f *ut[2], unsigned int *iu, unsigned int *id){
 	const char funcname[]="Clover";
 #ifdef __NVCC__
-	cuClover(clover,Leaves,ut,iu,id);
+	cuClover(clover,ut,iu,id);
 #else
 	//Six clovers
 	clover[0]=(Complex_f *)aligned_alloc(AVX,6*kvol*sizeof(Complex_f));
