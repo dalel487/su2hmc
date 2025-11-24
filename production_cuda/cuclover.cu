@@ -14,24 +14,24 @@
  *	The leaves contributing to each force term need to be scaled by the generator, but the generator appears at
  *	different points in each leaf.  This routine multiples by the generator from the left side.
  *
- *	@param	a:		The force leaf
+ *	@param	a:		The leaf or partial leaf
  *	@param	gen:	What generator are we multiplying by?
  */
 template <typename T>
 __device__ void ByGenLeft(T a[nc],const unsigned short gen){
 	const char funcname[] = "ByGenLeft";
 	T tmp = a[0];
-		switch(gen){
+	switch(gen){
+		///@f$i\sigma_x@f$
+		case(0):
+			a[0]=-I*conj(a[1]); a[1]=I*conj(tmp);
 			///@f$i\sigma_x@f$
-			case(0):
-				a[0]=-I*conj(a[1]); a[1]=I*conj(tmp);
-				///@f$i\sigma_x@f$
-			case(1):
-				a[0]=-conj(a[1]); a[1]=conj(tmp);
-				///@f$i\sigma_x@f$
-			case(2):
-				a[0]*=I; a[2]*=I;
-		}
+		case(1):
+			a[0]=-conj(a[1]); a[1]=conj(tmp);
+			///@f$i\sigma_x@f$
+		case(2):
+			a[0]*=I; a[2]*=I;
+	}
 	return 0;
 }
 /**
@@ -40,42 +40,33 @@ __device__ void ByGenLeft(T a[nc],const unsigned short gen){
  *	The leaves contributing to each force term need to be scaled by the generator, but the generator appears at
  *	different points in each leaf.  This routine multiples by the generator from the right side.
  *
- *	@param	a:		The force leaf
+ *	@param	a:		The leaf or partial leaf
  *	@param	gen:	What generator are we multiplying by?
  */
 template <typename T>
 __device__ void ByGenRight(T a[nc],const unsigned short gen){
 	const char funcname[] = "ByGenRight";
 	T tmp = a[0];
-		switch(gen){
+	switch(gen){
+		///@f$i\sigma_x@f$
+		case(0):
+			a[0]=-I*a[1]; a[1]=I*tmp;
 			///@f$i\sigma_x@f$
-			case(0):
-				a[0]=-I*a[1]; a[1]=I*tmp;
-				///@f$i\sigma_x@f$
-			case(1):
-				a[0]=a[1]; a[1]=-tmp;
-				///@f$i\sigma_x@f$
-			case(2):
-				a[0]*=I; a[2]*=-I;
-		}
+		case(1):
+			a[0]=a[1]; a[1]=-tmp;
+			///@f$i\sigma_x@f$
+		case(2):
+			a[0]*=I; a[2]*=-I;
+	}
 	return 0;
 }
 /**
- *	@brief	Calculates a leaf for a clover term.
+ *	@brief	Calculates the first half of the leaf for a clover term. We split it so that the force term can reuse the
+ *				first half of the leaf
  *
  *	@param	u11t,u12t:			Gauge fields
- *	@param	Leaves1,Leaves2:	Array of leaves
- *	@param	iu,id:				Upper and lower site indices
- *	@param	i:						Lattice index of the clover in question
- *	@param	mu,nu:				Direction in which we're evaluating the leaf
- *	@param	leaf:					Which leaf of the clover is being calculated
- *	
- */
-/**
- *	@brief	Calculates a leaf for a clover term.
- *
- *	@param	u11t,u12t:			Gauge fields
- *	@param	Leaves1,Leaves2:	Array of leaves
+ *	@param	Leaves:				Leaf
+ *	@param	a:						Buffer array
  *	@param	iu,id:				Upper and lower site indices
  *	@param	i:						Lattice index of the clover in question
  *	@param	mu,nu:				Direction in which we're evaluating the leaf
@@ -83,103 +74,270 @@ __device__ void ByGenRight(T a[nc],const unsigned short gen){
  *	
  */
 template <typename T>
-__device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> *Leaves1, complex<T> *Leaves2,\
+__device__ int Half_Leaf(complex<T> Leaves[nc], complex<T> *u11t, complex<T> *u12t, complex<T> a[nc],\
 		unsigned int *iu, unsigned int *id, unsigned int i, int mu, int nu, short leaf){
-	char *funcname="Leaf";
-	complex<T> a[nc];
+	char funcname[]="Leaf";
 	unsigned int didm,didn,uidm;
 	switch(leaf){
 		case(0):
 			///Both positive is just a standard plaquette
 			uidm = iu[mu*kvol+i]; 
-			Leaves1[i]=u11t[i+kvol*mu]*u11t[uidm+kvol*nu]-u12t[i+kvol*mu]*conj(u12t[uidm+kvol*nu]);
-			Leaves2[i]=u11t[i+kvol*mu]*u12t[uidm+kvol*nu]+u12t[i+kvol*mu]*conj(u11t[uidm+kvol*nu]);
+			a[0]=u11t[i+kvol*mu]; a[1]=u12t[i+kvol*mu]
 
-			unsigned int uidn = iu[nu*kvol+i]; 
-			complex<T> a11=Leaves1[i]*conj(u11t[uidn+kvol*mu])+Leaves2[i]*conj(u12t[uidn+kvol*mu]);
-			complex<T> a12=-Leaves1[i]*u12t[uidn+kvol*mu]+Leaves2[i]*u11t[uidn+kvol*mu];
-
-			Leaves1[i]=a11*conj(u11t[i+kvol*nu])+a12*conj(u12t[i+kvol*nu]);
-			Leaves2[i]=-a11*u12t[i+kvol*nu]+a12*u11t[i+kvol*nu];
-			//DEBUG
-			//			Leaves1[i+kvol*leaf]=0; Leaves2[i+kvol*leaf]=0;
-			break;
+				/// @f$U_\mu(x)U^\nu(x+\hat{\mu})@f$
+				Leaves[0]=a[0]*u11t[uidm+kvol*nu]-a[1]*conj(u12t[uidm+kvol*nu]);
+			Leaves[1]=a[0]*u12t[uidm+kvol*nu]+a[1]*conj(u11t[uidm+kvol*nu]);
 		case(1):
 			///Leaf in the forward nu and backwards mu direction
 			didm = id[mu*kvol+i]; unsigned int uin_didm=iu[nu*kvol+didm];
-			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})@f$
-			Leaves1[i+kvol*leaf]=u11t[i+kvol*nu]*conj(u11t[uin_didm+kvol*mu])+u12t[i+kvol*nu]*conj(u12t[uin_didm+kvol*mu]);
-			Leaves2[i+kvol*leaf]=-u11t[i+kvol*nu]*u12t[uin_didm+kvol*mu]+u12t[i+kvol*nu]*u11t[uin_didm+kvol*mu];
 
-			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})U^\dagger_\nu(x-\hat{\mu})@f$
-			a[0]=Leaves1[i+kvol*leaf]*conj(u11t[didm+kvol*nu])+Leaves2[i+kvol*leaf]*conj(u12t[didm+kvol*nu]);
-			a[1]=-Leaves1[i+kvol*leaf]*u12t[didm+kvol*nu]+Leaves2[i+kvol*leaf]*u11t[didm+kvol*nu];
-
-			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})U^\dagger_\nu(x-\hat{\mu})U_\mu(x-\hat{\mu})@f$
-			Leaves1[i+kvol*leaf]=a[0]*u11t[didm+kvol*mu]-a[1]*conj(u12t[didm+kvol*mu]);
-			Leaves2[i+kvol*leaf]=a[0]*u12t[didm+kvol*mu]+a[1]*conj(u11t[didm+kvol*mu]);
-			//DEBUG
-			Leaves1[i+kvol*leaf]=0; Leaves2[i+kvol*leaf]=0;
-			break;
+			a[0]=u11t[i+kvol*nu]; a[1]=u12t[i+kvol*nu]
+				/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})@f$
+				Leaves[0]=a[0]*conj(u11t[uin_didm+kvol*mu])+a[1]*conj(u12t[uin_didm+kvol*mu]);
+			Leaves[1]=-a[0]*u12t[uin_didm+kvol*mu]+a[1]*u11t[uin_didm+kvol*mu];
 		case(2):
 			///Leaf in the forwards mu and backwards nu direction
 			//Another awkward index
 			uidm = iu[mu*kvol+i]; unsigned int din_uidm=id[nu*kvol+uidm];
-			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{\mu}-\hat{\nu})@f$
-			Leaves1[i+kvol*leaf]=u11t[i+kvol*mu]*conj(u11t[din_uidm+kvol*nu])+u12t[i+kvol*mu]*conj(u12t[din_uidm+kvol*nu]);
-			Leaves2[i+kvol*leaf]=-u11t[i+kvol*mu]*u12t[din_uidm+kvol*nu]+u12t[i+kvol*mu]*u11t[din_uidm+kvol*nu];
+			a[0]=u11t[i+kvol*mu]; a[1]=u12t[i+kvol*mu]
 
-			didn = id[nu*kvol+i]; 
-			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{\mu}-\hat{\nu})U_\mu^\dagger(x-\hat{\nu})@f$
-			a[0]=Leaves1[i+kvol*leaf]*conj(u11t[didn+kvol*mu])+Leaves2[i+kvol*leaf]*conj(u12t[didn+kvol*mu]);
-			a[1]=-Leaves1[i+kvol*leaf]*u12t[didn+kvol*mu]+Leaves2[i+kvol*leaf]*u11t[didn+kvol*mu];
+				/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{\mu}-\hat{\nu})@f$
+				Leaves[0]=a[0]*conj(u11t[din_uidm+kvol*nu])+a[1]*conj(u12t[din_uidm+kvol*nu]);
+			Leaves[1]=-a[0]*u12t[din_uidm+kvol*nu]+a[1]*u11t[din_uidm+kvol*nu];
+		case(2):
+			///Leaf in the forwards mu and backwards nu direction
+			//Another awkward index
+			uidm = iu[mu*kvol+i]; unsigned int din_uidm=id[nu*kvol+uidm];
+			a[0]=u11t[i+kvol*mu]; a[1]=u12t[i+kvol*mu]
 
-			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{\mu}-\hat{\nu})U_\mu^\dagger(x-\hat{\nu})U_\nu(x-\hat{\nu})@f$
-			Leaves1[i+kvol*leaf]=a[0]*u11t[didn+kvol*nu]-a[1]*conj(u12t[didn+kvol*nu]);
-			Leaves2[i+kvol*leaf]=a[0]*u12t[didn+kvol*nu]+a[1]*conj(u11t[didn+kvol*nu]);
+				/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{\mu}-\hat{\nu})@f$
+				Leaves[0]=a[0]*conj(u11t[din_uidm+kvol*nu])+a[1]*conj(u12t[din_uidm+kvol*nu]);
+			Leaves[1]=-a[0]*u12t[din_uidm+kvol*nu]+a[1]*u11t[din_uidm+kvol*nu];
+	}
+	return 0;
+}
+/**
+ *	@brief	Calculates a leaf for a clover term.
+ *
+ *	@param	u11t,u12t:	Gauge fields
+ *	@param	Leaves:		Array of leaves
+ *	@param	iu,id:		Upper and lower site indices
+ *	@param	i:				Lattice index of the clover in question
+ *	@param	mu,nu:		Direction in which we're evaluating the leaf
+ *	@param	leaf:			Which leaf of the clover is being calculated
+ *	@param	gen:			Which generator do we multiply the leaves by. Used for the force terms
+ *	@param	gen_pos:		Where does the generator appear in the multiplication. Used for the force terms.
+ *	
+ */
+template <typename T>
+__device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[nc],\
+		unsigned int *iu, unsigned int *id, unsigned int i, int mu, int nu, short leaf,short gen,short gen_pos){
+	char funcname[]="Leaf";
+	complex<T> a[nc];
+	Half_Leaf(u11t,u12t,Leaves,a,iu,id,i,mu,nu,leaf);
+	unsigned int didm,didn,uidm;
+	switch(leaf){
+		case(0):
+			unsigned int uidn = iu[nu*kvol+i]; 
+			/// @f$U_\mu(x)U_\nu(x+\hat{\mu})U^\dagger_\mu(x+\hat{\nu})@f$
+			a[0]=Leaves[0]*conj(u11t[uidn+kvol*mu])+Leaves[1]*conj(u12t[uidn+kvol*mu]);
+			a[1]=-Leaves[0]*u12t[uidn+kvol*mu]+Leaves[1]*u11t[uidn+kvol*mu];
+
+			/// @f$U_\mu(x)U_\nu(x+\hat{\mu})U^\dagger_\mu(x+\hat{\nu})U^\dagger_\nu(x)@f$
+			Leaves[0]=a[0]*conj(u11t[i+kvol*nu])+a[1]*conj(u12t[i+kvol*nu]);
+			Leaves[1]=-a[0]*u12t[i+kvol*nu]+a[1]*u11t[i+kvol*nu];
 
 			//DEBUG
-			//			Leaves1[i+kvol*leaf]=0; Leaves2[i+kvol*leaf]=0;
+			//			Leaves[0]=0; Leaves[1]=0;
+			break;
+		case(1):
+			didm = id[mu*kvol+i];
+
+			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})U^\dagger_\nu(x-\hat{\mu})@f$
+			a[0]=Leaves[0]*conj(u11t[didm+kvol*nu])+Leaves[1]*conj(u12t[didm+kvol*nu]);
+			a[1]=-Leaves[0]*u12t[didm+kvol*nu]+Leaves[1]*u11t[didm+kvol*nu];
+
+			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})U^\dagger_\nu(x-\hat{\mu})U_\mu(x-\hat{\mu})@f$
+			Leaves[0]=a[0]*u11t[didm+kvol*mu]-a[1]*conj(u12t[didm+kvol*mu]);
+			Leaves[1]=a[0]*u12t[didm+kvol*mu]+a[1]*conj(u11t[didm+kvol*mu]);
+			//DEBUG
+			Leaves[0]=0; Leaves[1]=0;
+			break;
+		case(2):
+			///Leaf in the forwards mu and backwards nu direction
+			didn = id[nu*kvol+i]; 
+			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{\mu}-\hat{\nu})U_\mu^\dagger(x-\hat{\nu})@f$
+			a[0]=Leaves[0]*conj(u11t[didn+kvol*mu])+Leaves[1]*conj(u12t[didn+kvol*mu]);
+			a[1]=-Leaves[0]*u12t[didn+kvol*mu]+Leaves[1]*u11t[didn+kvol*mu];
+
+			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{\mu}-\hat{\nu})U_\mu^\dagger(x-\hat{\nu})U_\nu(x-\hat{\nu})@f$
+			Leaves[0]=a[0]*u11t[didn+kvol*nu]-a[1]*conj(u12t[didn+kvol*nu]);
+			Leaves[1]=a[0]*u12t[didn+kvol*nu]+a[1]*conj(u11t[didn+kvol*nu]);
+
+			//DEBUG
+			//			Leaves[0]=0; Leaves[1]=0;
 			break;
 		case(3):
 			///Leaf in the backwards mu and backwards nu direction
-
-			/// @f$U_\nu^\dagger(x-\hat{\nu})U_\mu^\dagger(x-\hat{\mu}-\hat{\nu})@f$
-			didn = id[nu*kvol+i];unsigned int din_didm=id[mu*kvol+didn];
-			//Leaves1[i+kvol*leaf]=conj(u11t[didn+kvol*mu])*conj(u11t[din_didm+kvol*nu])-u12t[didn+kvol*mu]*conj(u12t[din_didm+kvol*nu]);
-			Leaves1[i+kvol*leaf]=conj(u11t[didn+kvol*nu])*conj(u11t[din_didm+kvol*mu])-u12t[didn+kvol*nu]*conj(u12t[din_didm+kvol*mu]);
-			//Leaves2[i+kvol*leaf]=-conj(u11t[didn+kvol*mu])*u12t[din_didm+kvol*nu]-u12t[didn+kvol*mu]*u11t[din_didm+kvol*nu];
-			Leaves2[i+kvol*leaf]=-conj(u11t[didn+kvol*nu])*u12t[din_didm+kvol*mu]-u12t[didn+kvol*nu]*u11t[din_didm+kvol*mu];
+			unsigned int din_didm=id[mu*kvol+didn];
 
 			/// @f$U_\nu^\dagger(x-\hat{\nu})U_\mu^\dagger(x-\hat{\mu}-\hat{\nu})U_\nu(x-\hat{\mu}-\hat{\nu})@f$
-			//a[0]=Leaves1[i+kvol*leaf]*u11t[din_didm+kvol*mu]-Leaves2[i+kvol*leaf]*conj(u12t[din_didm+kvol*mu]);
-			a[0]=Leaves1[i+kvol*leaf]*u11t[din_didm+kvol*nu]-Leaves2[i+kvol*leaf]*conj(u12t[din_didm+kvol*nu]);
-			//a[1]=Leaves1[i+kvol*leaf]*u12t[din_didm+kvol*mu]+Leaves2[i+kvol*leaf]*conj(u11t[din_didm+kvol*mu]);
-			a[1]=Leaves1[i+kvol*leaf]*u12t[din_didm+kvol*nu]+Leaves2[i+kvol*leaf]*conj(u11t[din_didm+kvol*nu]);
+			//a[0]=Leaves[0]*u11t[din_didm+kvol*mu]-Leaves[1]*conj(u12t[din_didm+kvol*mu]);
+			a[0]=Leaves[0]*u11t[din_didm+kvol*nu]-Leaves[1]*conj(u12t[din_didm+kvol*nu]);
+			//a[1]=Leaves[0]*u12t[din_didm+kvol*mu]+Leaves[1]*conj(u11t[din_didm+kvol*mu]);
+			a[1]=Leaves[0]*u12t[din_didm+kvol*nu]+Leaves[1]*conj(u11t[din_didm+kvol*nu]);
 
 			didm = id[mu*kvol+i]; 
 			/// @f$U_\nu^\dagger(x-\hat{\nu})U_\mu^\dagger(x-\hat{\mu}-\hat{\nu})U_\nu(x-\hat{\mu}-\hat{\nu})U_\mu(x-\hat{\mu})@f$
-			Leaves1[i+kvol*leaf]=a[0]*u11t[didm+kvol*mu]-a[1]*conj(u12t[didm+kvol*mu]);
-			Leaves2[i+kvol*leaf]=a[0]*u12t[didm+kvol*mu]+a[1]*conj(u11t[didm+kvol*mu]);
+			Leaves[0]=a[0]*u11t[didm+kvol*mu]-a[1]*conj(u12t[didm+kvol*mu]);
+			Leaves[1]=a[0]*u12t[didm+kvol*mu]+a[1]*conj(u11t[didm+kvol*mu]);
+
 			//DEBUG
-			//			Leaves1[i+kvol*leaf]=0; Leaves2[i+kvol*leaf]=0;
+			//			Leaves[0]=0; Leaves[1]=0;
 			break;
 	}
 	return 0;
 }
+/**
+ *	@brief	Calculates a leaf for a clover term.
+ *
+ *	@param	u11t,u12t:	Gauge fields
+ *	@param	Leaves:		Array of leaves
+ *	@param	iu,id:		Upper and lower site indices
+ *	@param	i:				Lattice index of the clover in question
+ *	@param	mu,nu:		Direction in which we're evaluating the leaf
+ *	@param	leaf:			Which leaf of the clover is being calculated
+ *	@param	gen:			Which generator do we multiply the leaves by. Used for the force terms
+ *	@param	gen_pos:		Where does the generator appear in the multiplication. Used for the force terms.
+ *	
+ */
+template <typename T>
+__device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[nc],\
+		unsigned int *iu, unsigned int *id, unsigned int i, int mu, int nu, short leaf,short gen,short gen_pos){
+	char funcname[]="Leaf";
+	complex<T> a[nc];
+	unsigned int didm,didn,uidm;
+	switch(leaf){
+		case(0):
+			//Multiply by generator from the right after the first two links
+			if(gen_pos==2)
+				ByGenRight(Leaves,gen);
+
+			unsigned int uidn = iu[nu*kvol+i]; 
+			/// @f$U_\mu(x)U_\nu(x+\hat{\mu})U^\dagger_\mu(x+\hat{\nu})@f$
+			a[0]=Leaves[0]*conj(u11t[uidn+kvol*mu])+Leaves[1]*conj(u12t[uidn+kvol*mu]);
+			a[1]=-Leaves[0]*u12t[uidn+kvol*mu]+Leaves[1]*u11t[uidn+kvol*mu];
+			//Multiply by generator from the right after the first three links
+			if(gen_pos==3)
+				ByGenRight(a,gen);
+
+			/// @f$U_\mu(x)U_\nu(x+\hat{\mu})U^\dagger_\mu(x+\hat{\nu})U^\dagger_\nu(x)@f$
+			Leaves[0]=a[0]*conj(u11t[i+kvol*nu])+a[1]*conj(u12t[i+kvol*nu]);
+			Leaves[1]=-a[0]*u12t[i+kvol*nu]+a[1]*u11t[i+kvol*nu];
+
+			//DEBUG
+			//			Leaves[0]=0; Leaves[1]=0;
+			break;
+		case(1):
+			didm = id[mu*kvol+i];
+			//Multiply by generator from the right after the first two links
+			if(gen_pos==2)
+				ByGenRight(Leaves,gen);
+
+			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})U^\dagger_\nu(x-\hat{\mu})@f$
+			a[0]=Leaves[0]*conj(u11t[didm+kvol*nu])+Leaves[1]*conj(u12t[didm+kvol*nu]);
+			a[1]=-Leaves[0]*u12t[didm+kvol*nu]+Leaves[1]*u11t[didm+kvol*nu];
+			//Multiply by generator from the right after the first three links
+			if(gen_pos==3)
+				ByGenRight(a,gen);
+
+			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})U^\dagger_\nu(x-\hat{\mu})U_\mu(x-\hat{\mu})@f$
+			Leaves[0]=a[0]*u11t[didm+kvol*mu]-a[1]*conj(u12t[didm+kvol*mu]);
+			Leaves[1]=a[0]*u12t[didm+kvol*mu]+a[1]*conj(u11t[didm+kvol*mu]);
+			//DEBUG
+			Leaves[0]=0; Leaves[1]=0;
+			break;
+		case(2):
+			///Leaf in the forwards mu and backwards nu direction
+			didn = id[nu*kvol+i]; 
+			//Multiply by generator from the right after the first two links
+			if(gen_pos==2)
+				ByGenRight(Leaves,gen);
+			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{\mu}-\hat{\nu})U_\mu^\dagger(x-\hat{\nu})@f$
+			a[0]=Leaves[0]*conj(u11t[didn+kvol*mu])+Leaves[1]*conj(u12t[didn+kvol*mu]);
+			a[1]=-Leaves[0]*u12t[didn+kvol*mu]+Leaves[1]*u11t[didn+kvol*mu];
+			//Multiply by generator from the right after the first three links
+			if(gen_pos==3)
+				ByGenRight(a,gen);
+
+			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{\mu}-\hat{\nu})U_\mu^\dagger(x-\hat{\nu})U_\nu(x-\hat{\nu})@f$
+			Leaves[0]=a[0]*u11t[didn+kvol*nu]-a[1]*conj(u12t[didn+kvol*nu]);
+			Leaves[1]=a[0]*u12t[didn+kvol*nu]+a[1]*conj(u11t[didn+kvol*nu]);
+
+			//DEBUG
+			//			Leaves[0]=0; Leaves[1]=0;
+			break;
+		case(3):
+			///Leaf in the backwards mu and backwards nu direction
+			unsigned int din_didm=id[mu*kvol+didn];
+			//Multiply by generator from the right after the first two links
+			if(gen_pos==2)
+				ByGenRight(Leaves,gen);
+
+			/// @f$U_\nu^\dagger(x-\hat{\nu})U_\mu^\dagger(x-\hat{\mu}-\hat{\nu})U_\nu(x-\hat{\mu}-\hat{\nu})@f$
+			//a[0]=Leaves[0]*u11t[din_didm+kvol*mu]-Leaves[1]*conj(u12t[din_didm+kvol*mu]);
+			a[0]=Leaves[0]*u11t[din_didm+kvol*nu]-Leaves[1]*conj(u12t[din_didm+kvol*nu]);
+			//a[1]=Leaves[0]*u12t[din_didm+kvol*mu]+Leaves[1]*conj(u11t[din_didm+kvol*mu]);
+			a[1]=Leaves[0]*u12t[din_didm+kvol*nu]+Leaves[1]*conj(u11t[din_didm+kvol*nu]);
+			//Multiply by generator from the right after the first three links
+			if(gen_pos==3)
+				ByGenRight(a,gen);
+
+			didm = id[mu*kvol+i]; 
+			/// @f$U_\nu^\dagger(x-\hat{\nu})U_\mu^\dagger(x-\hat{\mu}-\hat{\nu})U_\nu(x-\hat{\mu}-\hat{\nu})U_\mu(x-\hat{\mu})@f$
+			Leaves[0]=a[0]*u11t[didm+kvol*mu]-a[1]*conj(u12t[didm+kvol*mu]);
+			Leaves[1]=a[0]*u12t[didm+kvol*mu]+a[1]*conj(u11t[didm+kvol*mu]);
+
+			//DEBUG
+			//			Leaves[0]=0; Leaves[1]=0;
+			break;
+	}
+	///gen_pos 4 is multiply the entire leaf by the generator from the left
+	if(gen_pos==4){
+		ByGenLeft(Leaves,gen);
+	}
+	return 0;
+}
 ///CUDA Kernels
+template <typename T>
+__global__ void Half_Leaves(complex<T> *hLeaves[0],complex<T> *hLeaves[1],complex<T> *u11t,complex<T> *u12t,\
+		const unsigned int *iu,const unsigned int *id,const unsigned short mu,const unsigned short nu){
+	const char funcname[]="Half_Leaves";
+	const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const volatile int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const volatile int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const volatile int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const volatile int gthreadId= blockId * bsize+bthreadId;
+
+	complex<T> Leaves[nc], a[nc];
+	for(unsigned short leaf=0;leaf<ndim;leaf++)
+		for(unsigned int i=gthreadId;i<kvol;i+=gsize*bsize){
+			Half_Leaf(Leaves,u11t,u12t,a,iu,id,i,mu,nu,leaf);
+			hLeaves[0][i+kvol*leaf]=Leaves[0]; hLeaves[1][i+kvol*leaf]=Leaves[1];
+		}
+	return 0;
+}
 /**
  *	@brief Calculates the clovers in all directions at all sites
  *	@f$ F_{\mu\nu}(n)=\frac{-i}{8a^2}\left(Q_{\mu\nu}(n)-Q_{\nu\mu}(n)\right)@f$
  *
  *	@param	clover1,clover2:	Array of clovers
- *	@param	Leaves1,Leaves2:	Array of clover leaves
  *	@param	u11t,u12t:			Gauge fields
  *	@param	iu,id:				Upper and lower indices
  *	@param	mu,nu:				Clover direction
  */
 template <typename T>
-__global__  void Full_Clover(complex<T> *clover1, complex<T> *clover2, complex<T> *Leaves1, complex<T> *Leaves2,\
+__global__  void Full_Clover(complex<T> *clover1, complex<T> *clover2,\
 		complex<T> *u11t, complex<T> *u12t, unsigned int *iu, unsigned int *id, int mu, int nu){
 	const char funcname[] ="Half_Clover";
 	const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
@@ -188,12 +346,14 @@ __global__  void Full_Clover(complex<T> *clover1, complex<T> *clover2, complex<T
 	const volatile int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	const volatile int gthreadId= blockId * bsize+bthreadId;
 
+	complex<T> Leaves[2];
 	for(unsigned int i=gthreadId;i<kvol;i+=gsize*bsize){
 		clover1[i]=0;clover2[i]=0;
 		for(unsigned short leaf=0;leaf<ndim;leaf++)
 		{
-			Leaf(u11t,u12t,Leaves1,Leaves2,iu,id,i,mu,nu,leaf);
-			clover1[i]+=Leaves1[i+kvol*leaf]; clover2[i]+=Leaves2[i+kvol*leaf];
+			//Pointer arithemetic on the leaves. No multiplying by generators here
+			Leaf(u11t,u12t,Leaves,iu,id,i,mu,nu,leaf,0,0);
+			clover1[i]+=Leaves[0]; clover2[i]+=Leaves[1];
 		}
 		///The clover is given by @f$F_{\mu\nu}=\frac{-i}{8}\left(Q_{\mu\nu}-Q_{\mu\nu}\right)^\dagger@f$. We do that
 		///manually below.
@@ -208,66 +368,23 @@ __global__  void Full_Clover(complex<T> *clover1, complex<T> *clover2, complex<T
 }
 
 /**
- *	@brief	Extracts the correct leaves for each clover ontibuting to the force
- *
- *	@param	fleaf:				Sum of leaves contributing to clover
- *	@param	Leaves1,Leaves2:	Array of clover leaves
- *	@param	site:					Site at which force is being evaluated
- *	@param	fclov:				Which clover are we considering for the force
- */
-template <typename T> 
-__device__ void Force_Leaves(complex<T> fleaf[nc],complex<T> *Leaves1, complex<T> *Leaves2,\
-		const unsigned int site, const unsigned short fclov){
-	///Fleaf consists of the sum of the @f$\mu\nu@f$ and @f$\mu,-\nu@f$ leaves, minus their hermitian conjugates
-	///This can be expressed in terms of the imaginary part of Leaves1 and all of Leaves2 doubled
-	switch(fclov){
-		case(0): ///Clover at site. Contributes the right two leaves
-					///Factor of 2 is to take account of subtracting the hermitian conjugate. Since the real part of the first fleaf is
-					///zero we only add the imaginary parts (as real floats) then multiply by I at the end to make it imaginary
-			fleaf[0]=I*2*(Leaves1[site].imag()+Leaves1[site+2*kvol].imag());
-			///Second leaf. Similar to the first one, but both the real and imaginary parts are non-zero. Also don't need the I
-			///here
-			fleaf[1]=2*(Leaves2[site]+Leaves2[site+2*kvol]);
-		case(1): ///Clover at i+mu. Contributes the left two leaves
-			fleaf[0]=I*2*(Leaves1[site+1*kvol].imag()+Leaves1[site+3*kvol].imag());
-			fleaf[1]=2*(Leaves2[site+1*kvol]+Leaves2[site+3*kvol]);
-		case(2): ///Clover at i+nu. Contributes the bottom right leaf
-			fleaf[0]=I*2*(Leaves1[site+2*kvol].imag());
-			fleaf[1]=2*(Leaves2[site+2*kvol]);
-		case(3): ///Clover at i-nu Contributes the top right leaf
-			fleaf[0]=I*2*(Leaves1[site].imag());
-			fleaf[1]=2*(Leaves2[site]);
-		case(4): ///Clover at i+mu+nu. Contributes the bottom left leaf
-			fleaf[0]=I*2*(Leaves1[site+3*kvol].imag());
-			fleaf[1]=2*(Leaves2[site+3*kvol]);
-		case(5): ///Clover at i+mu-nu. Contributes the top left leaf
-			fleaf[0]=I*2*(Leaves1[site+1*kvol].imag());
-			fleaf[1]=2*(Leaves2[site+1*kvol]);
-	}
-	///For the full clover we scale by @f$\frac{-i}{8}@f$. But there is a factor of @f$i@f$ from the force term
-	///In addition, there's another factor of @f$2@f$ from the force term. So we just divide by @f$4@f$ instead.
-	fleaf[0]*=1/4.0f; fleaf[1]*=1/4.0f;
-	return;
-}
-/**
  *	@brief	Clover contribution to the Molecular Dynamics force
  *
- *	@param	dSdpi:	Force
- *	@param	Leaves:	Clover leaves. We don't need the full clover for the force as most get killed in the derivative
- *							We do however need the individual leaves making up the clover
- *	@param	X1:		@f$\left(M^\dagger M\right)^{-1} \Psi@f$
- *	@param	X2:		@f$M\left(M^\dagger M\right)^{-1} \Psi@f$
- *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$c_sw@f$
- * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
- * @param	iu,id:	Up/down indices
- * @param	clov:		Clover we're intereted in
- * @param	mu,nu:	Direction of clover we're interested in
- * @param	kappa:	Hopping parameter
+ *	@param	dSdpi:		Force
+ *	@param	u11t,u12t:	Gauge fields
+ *	@param	X1:			@f$\left(M^\dagger M\right)^{-1} \Psi@f$
+ *	@param	X2:			@f$M\left(M^\dagger M\right)^{-1} \Psi@f$
+ *	@param	sigval:		@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$c_sw@f$
+ * @param	sigin:		What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param	iu,id:		Up/down indices
+ * @param	clov:			Clover we're intereted in
+ * @param	mu,nu:		Direction of clover we're interested in
+ * @param	kappa:		Hopping parameter
  */
 template <typename T>
-__global__ void Clover_Force(double *dSdpi, complex<T> *Leaves[nc], complex<T> *X1, complex<T> *X2,\
-		const complex<T> *sigval, const unsigned short *sigin, unsigned int *iu, unsigned int *id,\
-		const unsigned short clov,unsigned short mu, unsigned short nu, const float kappa){
+__global__ void Clover_Force(double *dSdpi, complex<T> *ut[nc], complex<T> *hLeaves[nc], complex<T> *X1,\
+		complex<T> *X2, const complex<T> *sigval, const unsigned short *sigin, unsigned int *iu, unsigned int *id,\
+		const unsigned short clov,const unsigned short mu, const unsigned short nu, const float kappa){
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -275,28 +392,68 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *Leaves[nc], complex<T> *
 	const int gthreadId= blockId * bsize+bthreadId;
 
 	for(unsigned int i=gthreadId;i<kvol;i+=gsize*bsize){
-		T dSdpis[3]={0,0,0};
+		//Two of these since we have the mu and nu contributions
+		T dSdpis[2][3]={0,0,0}; 
 		const unsigned int ipm=iu[i+kvol*mu];
-		for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
-			const unsigned short sind = sigin[clov*ndirac+(idirac>>1)]<<(nc-1);	
-			for(unsigned short fclov=0;fclov<(ndim-1)*(ndim-2);fclov++){
+		for(unsigned short fclov=0;fclov<(ndim-1)*(ndim-2);fclov++){
+			complex<T> fleaf[nadj][nc];
+			for(unsigned short gen=0;gen<nadj;gen++){
 				unsigned int site;
+				//This stores the half-leaf initially, then the output from Force_Leaves
+				complex<T> tmp[nc];
 				switch(fclov){
 					case(0): //Clover at site
 						site=i;
+						tmp[0]=hLeaves[0][site+0*kvol]; tmp[1]=hLeaves[1][site+0*kvol];
+						//Get leaf 0 with the correct generator in the initial position
+						Force_Leaf(ut[0],ut[1],tmp,iu,id,site,mu,nu,0,gen,4);
+						fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
+
+						//Get leaf 2 with the correct generator in the initial position
+						tmp[0]=hLeaves[0][site+2*kvol]; tmp[1]=hLeaves[1][site+2*kvol];
+						Force_Leaf(ut[0],ut[1],tmp,iu,id,site,mu,nu,2,gen,4);
+						//+= here!!!
+						fleaf[gen][0]+=tmp[0]; fleaf[gen][1]+=tmp[1];
 					case(1): //Clover at i+mu
 						site=ipm;
+						//Get leaf 1 with the correct generator between links 3 and 4
+						tmp[0]=hLeaves[0][site+1*kvol]; tmp[1]=hLeaves[1][site+1*kvol];
+						Force_Leaf(ut[0],ut[1],tmp,iu,id,site,mu,nu,0,gen,3);
+						fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
+						//Get leaf 3 with the correct generator between links 3 and 4
+						tmp[0]=hLeaves[0][site+3*kvol]; tmp[1]=hLeaves[1][site+3*kvol];
+						Force_Leaf(ut[0],ut[1],tmp,iu,id,site,mu,nu,2,gen,3);
+						//+= here!!!
+						fleaf[gen][0]+=tmp[0]; fleaf[gen][1]+=tmp[1];
 					case(2): //Clover at i+nu
 						site=iu[i+kvol*nu];
+						//Get leaf 2 with the correct generator between links 3 and 4
+						tmp[0]=hLeaves[0][site+2*kvol]; tmp[1]=hLeaves[1][site+2*kvol];
+						Force_Leaf(ut[0],ut[1],tmp,iu,id,site,mu,nu,2,gen,3);
+						fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
 					case(3): //Clover at i-nu
 						site=id[i+kvol*nu];
+						//Get leaf 0 with the correct generator between links 3 and 4
+						tmp[0]=hLeaves[0][site+0*kvol]; tmp[1]=hLeaves[1][site+0*kvol];
+						Force_Leaf(ut[0],ut[1],tmp,iu,id,site,mu,nu,0,gen,3);
+						fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
 					case(4): //Clover at i+mu+nu
 						site=iu[ipm+kvol*nu];
+						//Get leaf 3 with the correct generator between links 2 and 3
+						tmp[0]=hLeaves[0][site+3*kvol]; tmp[1]=hLeaves[1][site+3*kvol];
+						Force_Leaf(ut[0],ut[1],tmp,iu,id,site,mu,nu,3,gen,2);
+						fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
 					case(5): //Clover at i+mu-nu
 						site=id[ipm+kvol*nu];
+						//Get leaf 1 with the correct generator between links 2 and 3
+						tmp[0]=hLeaves[0][site+1*kvol]; tmp[1]=hLeaves[1][site+1*kvol];
+						Force_Leaf(ut[0],ut[1],tmp,iu,id,site,mu,nu,1,gen,2);
+						fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
 				}
-				complex<T> fleaf_c[nc];
-				Force_Leaves(fleaf_c,Leaves[0],Leaves[1],site,fclov);
+			}
+
+			for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
+				const unsigned short sind = sigin[clov*ndirac+(idirac>>1)]<<(nc-1);	
 				//Calculate the index. For the next colour we add kvol
 				unsigned int ind = site+kvol*idirac;
 				//Prefetching. Might not be needed here though
@@ -306,27 +463,21 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *Leaves[nc], complex<T> *
 				complex<T> X2s[nc];
 				X2s[0]=X2[ind]; X2s[1]=X2[ind+kvol];
 
-				//i Sigma_x: Real part of @f$i z@f$ is minus the imaginary part of @f$z@f$
-				dSdpis[0]-=(sigval[clov*ndirac+idirac]*(
-							conj(X1s[0])*(-conj(fleaf_c[1])*X2s[0]+conj(fleaf_c[0])*X2s[1])+
-							conj(X1s[1])*(fleaf_c[0]*X2s[0]+fleaf_c[1]*X2s[1]))).imag();
-				//i Sigma_y: Real part of @f$ i (-i z)@f$ is minus the real part of @f$z@f$
-				dSdpis[1]-=(sigval[clov*ndirac+idirac]*(
-							conj(X1s[0])*(conj(fleaf_c[1])*X2s[0]-conj(fleaf_c[0])*X2s[1])+
-							conj(X1s[1])*(fleaf_c[0]*X2s[0]+fleaf_c[1]*X2s[1]))).real();
-				//i Sigma_z Real part of @f$i z@f$ is minus the imaginary part of @f$z@f$
-				dSdpis[2]-=(sigval[clov*ndirac+idirac]*(
-							conj(X1s[0])*(fleaf_c[0]*X2s[0]+fleaf_c[1]*X2s[1])+
-							conj(X1s[1])*(conj(fleaf_c[1])*X2s[0]-conj(fleaf_c[0])*X2s[1]))).imag();
+				for(unsigned short gen=0;gen<nadj;gen++){
+					dSdpis[0][gen]-=sigval[clov*ndirac+idirac]*(conj(X1s[0])*(fleaf[gen][0]*X2s[0]+fleaf[gen][1]*X2s[1])+\
+							conj(X1s[1])*(-conj(fleaf[gen][0])*X2s[0]+conj(fleaf[gen][0])*X2s[1])).imag();
+					dSdpis[1][gen]-=sigval[clov*ndirac+idirac]*(conj(X1s[0])*(conj(fleaf[gen][0])*X2s[0]-fleaf[gen][1]*X2s[1])+\
+							conj(X1s[1])*(conj(fleaf[gen][1])*X2s[0]+fleaf[gen][0]*X2s[1])).imag();
+				}
 			}
 		}
-		for(unsigned short adj=0;adj<nadj;adj++)
-			dSdpi[i+kvol*(adj*ndim+mu)]-=kappa*dSdpis[adj];
+		for(unsigned short gen=0;gen<nadj;gen++){
+			dSdpi[i+kvol*(gen*ndim+mu)]-=kappa*dSdpis[0][gen];
+			dSdpi[i+kvol*(gen*ndim+nu)]-=kappa*dSdpis[1][gen];
+		}
 	}
 	return;
 }
-
-
 /**
  *	@brief Clover analogue of the Dslash operation. This version acts on all flavours simiilar to Dslash and Dslash_d
  *	
@@ -449,26 +600,10 @@ int cuClover(Complex_f *clover[nc],Complex_f *ut[nc], unsigned int *iu, unsigned
 			if(mu!=nu){
 				//Clover index
 				unsigned short clov = (mu==0) ? nu-1 :mu+nu;
-				Complex_f Leaves[nc];
 				//Allocate clover memory
 				//Note that the clover is completely local, so doesn't need a halo for MPI
-#ifdef _DEBUG
-				cudaMallocManaged((void **)&Leaves[clov][0],kvol*ndim*sizeof(Complex_f),cudaMemAttachGlobal);
-				cudaMallocManaged((void **)&Leaves[clov][1],kvol*ndim*sizeof(Complex_f),cudaMemAttachGlobal);
-				cudaMemset((void *)Leaves[0],0,kvol*ndim*sizeof(Complex_f));
-				cudaMemset((void *)Leaves[1],0,kvol*ndim*sizeof(Complex_f));
-#else
-				cudaMallocAsync((void **)&Leaves[0],kvol*ndim*sizeof(Complex_f),streams[clov]);
-				cudaMallocAsync((void **)&Leaves[1],kvol*ndim*sizeof(Complex_f),streams[clov]);
-#endif
 				Full_Clover<<<dimGrid,dimBlock,0,streams[clov]>>>(clover[0]+clov*kvol,clover[1]+clov*kvol,\
-						Leaves[0],Leaves[1],ut[0],ut[1],iu,id,mu,nu);
-#ifdef _DEBUG
-			cudaDeviceSynchronise();
-			cudaFree(Leaves[0]); cudaFree(Leaves[1]);
-#else
-			cudaFreeAsync(Leaves[0],streams[clov]); cudaFreeAsync(Leaves[1],streams[clov]);
-#endif
+						ut[0],ut[1],iu,id,mu,nu);
 			}
 	cudaDeviceSynchronise();
 	return 0;
@@ -486,18 +621,34 @@ void cuHbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f
 	HbyClover<<<dimGrid,dimBlock>>>(phi,r,clover[0],clover[1],sigval,kappa,sigin);
 }
 
-int cuClover_Force(double *dSdpi, Complex_f *Leaves[6][nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,\
+int cuClover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,\
 		unsigned short *sigin, unsigned int *iu, unsigned int *id, const float kappa){
 	const char funcname[]="Clover_Force";
-	///dSdpi depends on the three values of @f$\mu@f$. So we use that for the streams instead of clover
-	for(unsigned int mu=0;mu<ndim-1;mu++){
+	Complex_f *hLeaves[6][nc];
+	for(unsigned int mu=0;mu<ndim-1;mu++)
 		for(unsigned int nu=mu+1;nu<ndim;nu++){
 			//Clover index
-			unsigned short clov = (mu==0) ? nu-1 :mu+nu;
-			//Allocate clover memory
-			Clover_Force<<<dimGrid,dimBlock,0,streams[mu]>>>(dSdpi,Leaves[clov],X1,X2,sigval,sigin,iu,id,clov,mu,nu,kappa);
+			const unsigned short clov = (mu==0) ? nu-1 :mu+nu;
+			//Allocate half-leaf memory
+			cudaMallocAsync((void **)*hLeaves[clov][0],ndim*kvol,streams[mu]);
+			cudaMallocAsync((void **)*hLeaves[clov][1],ndim*kvol,streams[mu]);
+			Half_Leaves<<<dimGrid,dimBlock,0,streams[mu]>>>(hLeaves[clov][0],hLeaves[clov][1],ut[0],ut[1],iu,id,mu,nu);
 		}
-	}
+	cudaDeviceSynchronise();
+	//Cannot stream the actual force calculation. We have a mu-nu and a nu-mu contribution. Streams will create a potential race condition.
+	for(unsigned int mu=0;mu<ndim-1;mu++)
+		for(unsigned int nu=mu+1;nu<ndim;nu++){
+			//Clover index
+			const unsigned short clov = (mu==0) ? nu-1 :mu+nu;
+			//Allocate half-leaf memory
+			Clover_Force<<<dimGrid,dimBlock>>>(dSdpi,hLeaves[clov],ut,X1,X2,sigval,sigin,iu,id,clov,mu,nu,kappa);
+		}
+	cudaDeviceSynchronise();
+	//Free half leaves
+	for(unsigned int mu=0;mu<ndim-1;mu++)
+		for(unsigned int nu=mu+1;nu<ndim;nu++){
+			cudaFreeAsync(hleaves[clov][0],streams[mu]); cudaFreeAsync(hleaves[clov][1],streams[mu]);
+		}
 	cudaDeviceSynchronise();
 	return 0;
 }

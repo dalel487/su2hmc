@@ -32,7 +32,7 @@ int Clover_SU2plaq(Complex_f *ut[nc], Complex_f *Leaves[nc], unsigned int *iu,  
  *	@param	leaf:		Which leaf of the clover is being calculated
  *	
  */
-int Leaf(Complex_f *ut[nc], Complex_f *Leaves[nc], unsigned int *iu, unsigned int *id, int i, int mu, int nu, short leaf);
+int Leaf(Complex_f *ut[nc], Complex_f Leaves[nc], unsigned int *iu, unsigned int *id, int i, int mu, int nu, short leaf);
 /**
  *	@brief	Calculates the clover in the forward direction and the leaves. Subtracting the conjugate of this yields the
  *	full clover
@@ -45,17 +45,17 @@ int Leaf(Complex_f *ut[nc], Complex_f *Leaves[nc], unsigned int *iu, unsigned in
  *	@param	mu,nu:	Direction of the clover
  *
  */
-int Half_Clover(Complex_f *clover[nc],	Complex_f *Leaves[nc], Complex_f *ut[nc], unsigned int *iu, unsigned int *id, int i, int mu, int nu,short clov);
+int Half_Clover(Complex_f *clover[nc],	Complex_f *ut[nc], unsigned int *iu, unsigned int *id, int i, int mu, int nu,short clov);
 /**
  *	@brief Calculates the clovers in all directions at all sites
  *	@f$ F_{\mu\nu}(n)=\frac{-i}{8a^2}\left(Q_{\mu\nu}(n)-Q_{\nu\mu}(n)\right)@f$
  *
  *	@param	clover:	Array of clovers
- *	@param	Leaves:	Array of clover leaves
+ *	@param	ut:		Gauge fields
  *	@param	ut:		Gauge fields
  *	@param	iu,id:	Upper and lower indices
  */
-int Clover(Complex_f *clover[nc],Complex_f *Leaves[6][nc],Complex_f *ut[nc], unsigned int *iu, unsigned int *id);
+int Clover(Complex_f *clover[nc],Complex_f *ut[nc], unsigned int *iu, unsigned int *id);
 /**
  *	@brief Clover analogue of the Dslash operation. This version acts on all flavours simiilar to Dslash and Dslash_d
  *	
@@ -111,20 +111,20 @@ int HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *
  */
 void Fleaf(Complex_f fleaf[nc], Complex_f *Leaves[nc], const unsigned int i);
 /**
- *	@brief	Clover contribution to the Molecular Dynamics force
+ *	@brief	CUDA wrapper for Clover_Force
  *
- *	@param	dSdpi:	Force
- *	@param	Leaves:	Clover leaves. We don't need the full clover for the force as most get killed in the derivative
- *							We do however need the individual leaves making up the clover
- *	@param	X1:		@f$\left(M^\dagger M\right)^{-1} \Psi@f$
- *	@param	X2:		@f$M\left(M^\dagger M\right)^{-1} \Psi@f$
- *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$c_sw@f$
- * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
- * @param	iu:		Up indices
- * @param	id:		Down indices
+ *	@param	dSdpi:		Force
+ *	@param	ut:		Gauge fields
+ *	@param	X1:			@f$\left(M^\dagger M\right)^{-1} \Psi@f$
+ *	@param	X2:			@f$M\left(M^\dagger M\right)^{-1} \Psi@f$
+ *	@param	sigval:		@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$c_sw@f$
+ * @param	sigin:		What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param	iu:			Up indices
+ * @param	id:			Down indices
+ * @param	kappa:		Hopping parameter
  */
-int Clover_Force(double *dSdpi, Complex_f *Leaves[6][nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,\
-						unsigned short *sigin, unsigned int *iu, unsigned int *id, float kappa);
+int Clover_Force(double *dSdpi, Complex_f *ut[nc],Complex_f *X1, Complex_f *X2, Complex_f *sigval,\
+		unsigned short *sigin, unsigned int *iu, unsigned int *id, const float kappa);
 /**
  *	@brief	Scales a clover leaf by the relevant SU(2) generator
  *
@@ -151,7 +151,7 @@ int Init_clover(Complex *sigval, Complex_f *sigval_f,unsigned short *sigin, floa
  *	@param	clover:	Clovers
  *	@param	Leaves:	Leaves
  */
-int Clover_free(Complex_f *clover[nc],Complex_f *Leaves[6][nc]);
+int Clover_free(Complex_f *clover[nc]);
 
 #ifdef __NVCC__
 #ifdef __cplusplus
@@ -164,7 +164,6 @@ extern "C"
  *			@f$ F_{\mu\nu}(n)=\frac{-i}{8a^2}\left(Q_{\mu\nu}(n)-Q_{\nu\mu}(n)\right)@f$
  *
  *	@param	clover:	Array of clovers
- *	@param	Leaves:	Array of clover leaves
  *	@param	ut:		Gauge fields
  *	@param	iu,id:	Upper and lower indices
  */
@@ -214,19 +213,18 @@ void cuHbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f
 /**
  *	@brief	CUDA wrapper for Clover_Force
  *
- *	@param	dSdpi:	Force
- *	@param	Leaves:	Clover leaves. We don't need the full clover for the force as most get killed in the derivative
- *							We do however need the individual leaves making up the clover
- *	@param	X1:		@f$\left(M^\dagger M\right)^{-1} \Psi@f$
- *	@param	X2:		@f$M\left(M^\dagger M\right)^{-1} \Psi@f$
- *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$c_sw@f$
- * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
- * @param	iu:		Up indices
- * @param	id:		Down indices
- * @param	kappa:	Hopping parameter
+ *	@param	dSdpi:		Force
+ *	@param	u11t,u12t:	Gauge fields
+ *	@param	X1:			@f$\left(M^\dagger M\right)^{-1} \Psi@f$
+ *	@param	X2:			@f$M\left(M^\dagger M\right)^{-1} \Psi@f$
+ *	@param	sigval:		@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$c_sw@f$
+ * @param	sigin:		What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param	iu:			Up indices
+ * @param	id:			Down indices
+ * @param	kappa:		Hopping parameter
  */
-int cuClover_Force(double *dSdpi, Complex_f *Leaves[6][nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,\
-						unsigned short *sigin, unsigned int *iu, unsigned int *id, const float kappa);
+int cuClover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,\
+		unsigned short *sigin, unsigned int *iu, unsigned int *id, const float kappa);
 #ifdef __cplusplus
 }
 #endif
