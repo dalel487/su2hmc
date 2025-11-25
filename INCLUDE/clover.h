@@ -20,7 +20,7 @@
  * 					to facilitate calculating plaquettes for Clover terms. No
  * 					sanity checks are conducted on them in this routine.
  */
-int Clover_SU2plaq(Complex_f *ut[nc], Complex_f *Leaves[nc], unsigned int *iu,  int i, int mu, int nu);
+int Clover_SU2plaq(Complex_f *ut[nc], Complex_f Leaves[nc], unsigned int *iu,  int i, int mu, int nu);
 /**
  *	@brief	Calculates a leaf for a clover term.
  *

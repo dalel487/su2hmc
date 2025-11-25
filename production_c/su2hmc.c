@@ -208,9 +208,9 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 #else
 	Complex *smallPhi = aligned_alloc(AVX,kferm2*sizeof(Complex));
 #endif
-	Complex_f *leaves[(ndim-1)*(ndim-2)][2], *clover[2];
+	Complex_f *clover[nc];
 	if(c_sw)
-		Clover(clover,leaves,ut,iu,id);
+		Clover(clover,ut,iu,id);
 	//Iterating over flavours
 	for(int na=0;na<nf;na++){
 #ifdef __NVCC__
@@ -252,7 +252,7 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 #endif
 	}
 	if(c_sw)
-		Clover_free(clover,leaves);
+		Clover_free(clover);
 #ifdef __NVCC__
 #ifdef _DEBUG
 	cudaFree(smallPhi);

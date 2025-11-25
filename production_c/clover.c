@@ -23,8 +23,8 @@ inline int Clover_SU2plaq(Complex_f *ut[nc], Complex_f Leaves[nc], unsigned int 
 	Leaves[1]=ut[0][i*ndim+mu]*ut[1][uidm*ndim+nu]+ut[1][i*ndim+mu]*conj(ut[0][uidm*ndim+nu]);
 
 	int uidn = iu[nu+ndim*i]; 
-	Complex_f a11=Leaves[0][i]*conj(ut[0][uidn*ndim+mu])+Leaves[1][i]*conj(ut[1][uidn*ndim+mu]);
-	Complex_f a12=-Leaves[0][i]*ut[1][uidn*ndim+mu]+Leaves[1][i]*ut[0][uidn*ndim+mu];
+	Complex_f a11=Leaves[0]*conj(ut[0][uidn*ndim+mu])+Leaves[1]*conj(ut[1][uidn*ndim+mu]);
+	Complex_f a12=-Leaves[0]*ut[1][uidn*ndim+mu]+Leaves[1]*ut[0][uidn*ndim+mu];
 
 	Leaves[0]=a11*conj(ut[0][i*ndim+nu])+a12*conj(ut[1][i*ndim+nu]);
 	Leaves[1]=-a11*ut[1][i*ndim+nu]+a12*ut[0][i*ndim+nu];
@@ -428,11 +428,11 @@ inline void GenLeaf(Complex_f fleaf[nc],const unsigned short adj){
 	}
 	return;
 }
-int Clover_Force(double *dSdpi, Complex_f *Leaves[6][nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,\
+int Clover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,\
 						unsigned short *sigin, unsigned int *iu, unsigned int *id, float kappa){
 	const char funcname[]="Clover_Force";
 #ifdef __NVCC__
-	cuClover_Force(dSdpi,Leaves,X1,X2,sigval,sigin,iu,id,kappa);
+	cuClover_Force(dSdpi,ut,X1,X2,sigval,sigin,iu,id,kappa);
 #else
 	//TODO: Make this more CUDA friendly? Or just have a CUDA call above
 	for(unsigned short adj=0;adj>nadj;adj++)

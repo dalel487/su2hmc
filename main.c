@@ -438,9 +438,9 @@ int main(int argc, char *argv[]){
 		if(!rank)
 			printf("Starting itraj %i\n", itraj);
 #endif
-		Complex_f *leaves[(ndim-1)*(ndim-2)][2], *clover[2];
+		Complex_f *clover[2];
 		if(c_sw)
-			Clover(clover,leaves,ut_f,iu,id);
+			Clover(clover,ut_f,iu,id);
 		for(int na=0; na<nf; na++){
 			//Probably makes sense to declare this outside the loop
 			//but I do like scoping/don't want to break anything else just teat
@@ -509,7 +509,7 @@ int main(int argc, char *argv[]){
 			UpDownPart(na, X0, R1);
 		}	
 		if(c_sw)
-			Clover_free(clover, leaves);
+			Clover_free(clover);
 		//Heatbath
 		//========
 		//We're going to make the most of the new Gauss_d routine to send a flattened array
