@@ -25,10 +25,10 @@ __device__ void ByGenLeft(T a[nc],const unsigned short gen){
 		///@f$i\sigma_x@f$
 		case(0):
 			a[0]=-I*conj(a[1]); a[1]=I*conj(tmp);
-			///@f$i\sigma_x@f$
+			///@f$i\sigma_y@f$
 		case(1):
-			a[0]=-conj(a[1]); a[1]=conj(tmp);
-			///@f$i\sigma_x@f$
+			a[0]=conj(a[1]); a[1]=-conj(tmp);
+			///@f$i\sigma_z@f$
 		case(2):
 			a[0]*=I; a[2]*=I;
 	}
@@ -50,11 +50,11 @@ __device__ void ByGenRight(T a[nc],const unsigned short gen){
 	switch(gen){
 		///@f$i\sigma_x@f$
 		case(0):
-			a[0]=-I*a[1]; a[1]=I*tmp;
-			///@f$i\sigma_x@f$
+			a[0]=I*a[1]; a[1]=I*tmp;
+			///@f$i\sigma_y@f$
 		case(1):
 			a[0]=a[1]; a[1]=-tmp;
-			///@f$i\sigma_x@f$
+			///@f$i\sigma_z@f$
 		case(2):
 			a[0]*=I; a[2]*=-I;
 	}
@@ -214,7 +214,7 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[nc],\
 template <typename T>
 __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[nc],\
 		unsigned int *iu, unsigned int *id, unsigned int i, int mu, int nu, short leaf,short gen,short gen_pos){
-	char funcname[]="Leaf";
+	char funcname[]="Force_Leaf";
 	complex<T> a[nc];
 	unsigned int didm,didn,uidm;
 	switch(leaf){
