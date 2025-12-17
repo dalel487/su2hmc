@@ -30,7 +30,7 @@ __device__ void ByGenLeft(T a[nc],const unsigned short gen){
 			a[0]=conj(a[1]); a[1]=-conj(tmp);
 			///@f$i\sigma_z@f$
 		case(2):
-			a[0]*=I; a[2]*=I;
+			a[0]*=I; a[1]*=I;
 	}
 	return;
 }
@@ -56,7 +56,7 @@ __device__ void ByGenRight(T a[nc],const unsigned short gen){
 			a[0]=a[1]; a[1]=-tmp;
 			///@f$i\sigma_z@f$
 		case(2):
-			a[0]*=I; a[2]*=-I;
+			a[0]*=I; a[1]*=-I;
 	}
 	return;
 }
@@ -465,7 +465,8 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *ut[nc], complex<T> *hLea
 
 				for(unsigned short gen=0;gen<nadj;gen++){
 					dSdpis[0][gen]-=(sigval[clov*ndirac+idirac]*(conj(X1s[0])*(fleaf[gen][0]*X2s[0]+fleaf[gen][1]*X2s[1])+\
-							conj(X1s[1])*(-conj(fleaf[gen][0])*X2s[0]+conj(fleaf[gen][0])*X2s[1]))).real();
+							conj(X1s[1])*(-conj(fleaf[gen][0])*X2s[0]+conj(fleaf[gen][1])*X2s[1]))).real();
+
 					dSdpis[1][gen]-=(sigval[clov*ndirac+idirac]*(conj(X1s[0])*(conj(fleaf[gen][0])*X2s[0]-fleaf[gen][1]*X2s[1])+\
 							conj(X1s[1])*(conj(fleaf[gen][1])*X2s[0]+fleaf[gen][0]*X2s[1]))).real();
 				}
