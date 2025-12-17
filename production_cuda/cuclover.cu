@@ -22,7 +22,7 @@ __device__ void ByGenLeft(T a[nc],const unsigned short gen){
 	const char funcname[] = "ByGenLeft";
 	T tmp = a[0];
 	switch(gen){
-		///@f$i\sigma_x@f$
+			///@f$i\sigma_x@f$
 		case(0):
 			a[0]=-I*conj(a[1]); a[1]=I*conj(tmp);
 			///@f$i\sigma_y@f$
@@ -255,7 +255,7 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 			Leaves[0]=a[0]*u11t[didm+kvol*mu]-a[1]*conj(u12t[didm+kvol*mu]);
 			Leaves[1]=a[0]*u12t[didm+kvol*mu]+a[1]*conj(u11t[didm+kvol*mu]);
 			//DEBUG
-			Leaves[0]=0; Leaves[1]=0;
+		//	Leaves[0]=0; Leaves[1]=0;
 			break;
 		case(2):
 			///Leaf in the forwards mu and backwards nu direction
