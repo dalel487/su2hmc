@@ -34,7 +34,7 @@ int Par_begin(int argc, char *argv[]){
 	 */
 
 	//TODO: Remove as much non-MPI stuff from here as possible
-	const char *funcname = "Par_begin";
+	const char funcname[] = "Par_begin";
 	int size;
 #if(nproc>1)
 	if(MPI_Init(&argc, &argv)){
@@ -137,7 +137,7 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 	 * 
 	 * @return	Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "Par_sread";
+	const char funcname[] = "Par_sread";
 #if(nproc>1)
 	MPI_Status status;
 	//For sending the seeds later
@@ -353,7 +353,7 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 	 * 
 	 * @return	Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "par_swrite";
+	const char funcname[] = "par_swrite";
 	#if (nproc>1)
 	MPI_Status status;
 	//Used for seed array later on
@@ -581,7 +581,7 @@ inline int Par_isum(int *ival){
 	 * Zero on success. Integer error code otherwise.
 	 *
 	 */
-	const char *funcname = "Par_isum";
+	const char funcname[] = "Par_isum";
 	//Container to receive data.
 	int *itmp;
 
@@ -606,7 +606,7 @@ inline int Par_dsum(double *dval){
 	 * Zero on success. Integer error code otherwise.
 	 *
 	 */
-	const char *funcname = "Par_dsum";
+	const char funcname[] = "Par_dsum";
 	//Container to receive data.
 	double dtmp;
 
@@ -632,7 +632,7 @@ inline int Par_fsum(float *fval){
 	 * Zero on success. Integer error code otherwise.
 	 *
 	 */
-	const char *funcname = "far_dsum";
+	const char funcname[] = "far_dsum";
 	//Container to receive data.
 	float ftmp;
 
@@ -658,7 +658,7 @@ inline int Par_csum(Complex_f *cval){
 	 * Zero on success. Integer error code otherwise.
 	 *
 	 */
-	const char *funcname = "Par_csum";
+	const char funcname[] = "Par_csum";
 	//Container to receive data.
 	Complex_f ctmp;
 
@@ -687,7 +687,7 @@ inline int Par_zsum(Complex *zval){
 	 * Zero on success. Integer error code otherwise.
 	 *
 	 */
-	const char *funcname = "Par_zsum";
+	const char funcname[] = "Par_zsum";
 	//Container to receive data.
 	Complex ztmp;
 
@@ -713,7 +713,7 @@ inline int Par_icopy(int *ival){
 	 * -------
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "Par_icopy";
+	const char funcname[] = "Par_icopy";
 	if(MPI_Bcast(ival,1,MPI_INT,masterproc,comm)){
 		fprintf(stderr, "Error %i in %s: Failed to broadcast %i from %i.\nExiting...\n\n",
 				BROADERR, funcname, *ival, rank);
@@ -733,7 +733,7 @@ inline int Par_dcopy(double *dval){
 	 * -------
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "Par_dcopy";
+	const char funcname[] = "Par_dcopy";
 	if(MPI_Bcast(dval,1,MPI_DOUBLE,masterproc,comm)){
 		fprintf(stderr, "Error %i in %s: Failed to broadcast %f from %i.\nExiting...\n\n",
 				BROADERR, funcname, *dval, rank);
@@ -753,7 +753,7 @@ inline int Par_fcopy(float *fval){
 	 * -------
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "Par_dfopy";
+	const char funcname[] = "Par_dfopy";
 	if(MPI_Bcast(fval,1,MPI_FLOAT,masterproc,comm)){
 		fprintf(stderr, "Error %i in %s: Failed to broadcast %f from %i.\nExiting...\n\n",
 				BROADERR, funcname, *fval, rank);
@@ -773,7 +773,7 @@ inline int Par_ccopy(Complex *cval){
 	 * -------
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "Par_ccopy";
+	const char funcname[] = "Par_ccopy";
 	if(MPI_Bcast(cval,1,MPI_C_FLOAT_COMPLEX,masterproc,comm)){
 #ifndef __NVCC__
 		fprintf(stderr, "Error %i in %s: Failed to broadcast %f+i%f from %i.\nExiting...\n\n",
@@ -795,7 +795,7 @@ inline int Par_zcopy(Complex *zval){
 	 * -------
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "Par_zcopy";
+	const char funcname[] = "Par_zcopy";
 	if(MPI_Bcast(zval,1,MPI_C_DOUBLE_COMPLEX,masterproc,comm)){
 #ifndef __NVCC__
 		fprintf(stderr, "Error %i in %s: Failed to broadcast %f+i%f from %i.\nExiting...\n\n",
@@ -827,7 +827,7 @@ inline int ZHalo_swap_all(Complex *z, int ncpt){
 	 * -------
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "ZHalo_swap_all";
+	const char funcname[] = "ZHalo_swap_all";
 
 	//FORTRAN called zdnhaloswapall and zuphaloswapall here
 	//Those functions looped over the directions and called zXXhaloswapdir
@@ -869,7 +869,7 @@ int ZHalo_swap_dir(Complex *z, int ncpt, int idir, int layer){
 	 *  -------
 	 *  Zero on success, Integer Error code otherwise
 	 */
-	const char *funcname = "ZHalo_swap_dir";
+	const char funcname[] = "ZHalo_swap_dir";
 	MPI_Status status;
 	if(layer!=DOWN && layer!=UP){
 		fprintf(stderr, "Error %i in %s: Cannot swap in the direction given by %i.\nExiting...\n\n",
@@ -947,7 +947,7 @@ inline int CHalo_swap_all(Complex_f *c, int ncpt){
 	 * -------
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "ZHalo_swap_all";
+	const char funcname[] = "ZHalo_swap_all";
 
 	//FORTRAN called zdnhaloswapall and zuphaloswapall here
 	//Those functions looped over the directions and called zXXhaloswapdir
@@ -989,7 +989,7 @@ int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer){
 	 *  -------
 	 *  Zero on success, Integer Error code otherwise
 	 */
-	const char *funcname = "CHalo_swap_dir";
+	const char funcname[] = "CHalo_swap_dir";
 	MPI_Status status;
 	if(layer!=DOWN && layer!=UP){
 		fprintf(stderr, "Error %i in %s: Cannot swap in the direction given by %i.\nExiting...\n\n",
@@ -1067,7 +1067,7 @@ inline int DHalo_swap_all(double *d, int ncpt){
 	 * -------
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "DHalo_swap_all";
+	const char funcname[] = "DHalo_swap_all";
 
 	//FORTRAN called zdnhaloswapall and zuphaloswapall here
 	//Those functions looped over the directions and called zXXhaloswapdir
@@ -1109,7 +1109,7 @@ int DHalo_swap_dir(double *d, int ncpt, int idir, int layer){
 	 *  -------
 	 *  Zero on success, Integer Error code otherwise
 	 */
-	const char *funcname = "DHalo_swap_dir";
+	const char funcname[] = "DHalo_swap_dir";
 	MPI_Status status;
 	//How big is the data being sent and received
 	int msg_size=ncpt*halosize[idir];
@@ -1259,7 +1259,7 @@ int Par_tmul(Complex_f *z11, Complex_f *z12){
 #error Par_tmul is not yet implimented in CUDA as Sigma12 in Polyakov is device only memory
 #endif
 	MPI_Status status;
-	const char *funcname = "Par_tmul";
+	const char funcname[] = "Par_tmul";
 	Complex_f *a11, *a12, *t11, *t12;
 	int i, itime;
 
