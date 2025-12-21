@@ -107,7 +107,7 @@ __device__ int Half_Leaf(complex<T> Leaves[nc], complex<T> *u11t, complex<T> *u1
 		case(3):
 			///Leaf in the forwards mu and backwards nu direction
 			//Another awkward index
-			didn = id[nu*kvol+i]; unsigned int dim_didn=id[nu*kvol+didm];
+			didn = id[nu*kvol+i]; unsigned int dim_didn=id[mu*kvol+didn];
 			a[0]=u11t[didn+kvol*nu]; a[1]=u12t[didn+kvol*nu];
 
 			/// @f$U_\nu^\dagger(x-\hat{\nu})U_\mu^\dagger(x-\hat{\mu}-\hat{\nu})@f$
