@@ -76,30 +76,30 @@ __device__ void ByGenRight(T a[nc],const unsigned short gen){
 template <typename T>
 __device__ int Half_Leaf(complex<T> Leaves[nc], complex<T> *u11t, complex<T> *u12t, complex<T> a[nc], unsigned int *iu,\
 	unsigned int *id, const unsigned int i, const unsigned short mu, const unsigned short nu, const unsigned short leaf){
-	char funcname[]="Leaf";
-	unsigned int didm,didn,uidm;
+	unsigned int uidm;
 	switch(leaf){
 		case(0):
 			///Both positive is just a standard plaquette
-			uidm = iu[mu*kvol+i]; 
 			a[0]=u11t[i+kvol*mu]; a[1]=u12t[i+kvol*mu];
+			uidm = iu[mu*kvol+i]; 
 
 			/// @f$U_\mu(x)U^\nu(x+\hat{\mu})@f$
 			Leaves[0]=a[0]*u11t[uidm+kvol*nu]-a[1]*conj(u12t[uidm+kvol*nu]);
 			Leaves[1]=a[0]*u12t[uidm+kvol*nu]+a[1]*conj(u11t[uidm+kvol*nu]);
 		case(1):
 			///Leaf in the forward nu and backwards mu direction
-			didm = id[mu*kvol+i]; unsigned int uin_didm=iu[nu*kvol+didm];
-
+			const unsigned int didm = id[mu*kvol+i];
 			a[0]=u11t[i+kvol*nu]; a[1]=u12t[i+kvol*nu];
+			const unsigned int uin_didm=iu[nu*kvol+didm];
 			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})@f$
 			Leaves[0]=a[0]*conj(u11t[uin_didm+kvol*mu])+a[1]*conj(u12t[uin_didm+kvol*mu]);
 			Leaves[1]=-a[0]*u12t[uin_didm+kvol*mu]+a[1]*u11t[uin_didm+kvol*mu];
 		case(2):
 			///Leaf in the forwards mu and backwards nu direction
 			//Another awkward index
-			uidm = iu[mu*kvol+i]; unsigned int din_uidm=id[nu*kvol+uidm];
+			uidm = iu[mu*kvol+i];
 			a[0]=u11t[i+kvol*mu]; a[1]=u12t[i+kvol*mu];
+			const unsigned int din_uidm=id[nu*kvol+uidm];
 
 			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{\mu}-\hat{\nu})@f$
 			Leaves[0]=a[0]*conj(u11t[din_uidm+kvol*nu])+a[1]*conj(u12t[din_uidm+kvol*nu]);
@@ -107,8 +107,9 @@ __device__ int Half_Leaf(complex<T> Leaves[nc], complex<T> *u11t, complex<T> *u1
 		case(3):
 			///Leaf in the forwards mu and backwards nu direction
 			//Another awkward index
-			didn = id[nu*kvol+i]; unsigned int dim_didn=id[mu*kvol+didn];
+			const unsigned int didn = id[nu*kvol+i];
 			a[0]=u11t[didn+kvol*nu]; a[1]=u12t[didn+kvol*nu];
+			const unsigned int dim_didn=id[mu*kvol+didn];
 
 			/// @f$U_\nu^\dagger(x-\hat{\nu})U_\mu^\dagger(x-\hat{\mu}-\hat{\nu})@f$
 			Leaves[0]=conj(a[0])*conj(u11t[dim_didn+kvol*mu])-conj(a[1])*u12t[dim_didn+kvol*mu];
@@ -131,8 +132,8 @@ __device__ int Half_Leaf(complex<T> Leaves[nc], complex<T> *u11t, complex<T> *u1
  */
 template <typename T>
 __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[nc],\
-		unsigned int *iu, unsigned int *id, unsigned int i, int mu, int nu, short leaf,short gen,short gen_pos){
-	char funcname[]="Leaf";
+		unsigned int *iu, unsigned int *id, unsigned int i,const unsigned short mu,\
+		const unsigned short nu,const unsigned short leaf){
 	complex<T> a[nc];
 	Half_Leaf(Leaves,u11t,u12t,a,iu,id,i,mu,nu,leaf);
 	unsigned int didm,didn,uidm;
@@ -148,7 +149,7 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[nc],\
 			Leaves[1]=-a[0]*u12t[i+kvol*nu]+a[1]*u11t[i+kvol*nu];
 
 			//DEBUG
-			//			Leaves[0]=0; Leaves[1]=0;
+						Leaves[0]=0; Leaves[1]=0;
 			break;
 		case(1):
 			didm = id[mu*kvol+i];
@@ -161,7 +162,7 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[nc],\
 			Leaves[0]=a[0]*u11t[didm+kvol*mu]-a[1]*conj(u12t[didm+kvol*mu]);
 			Leaves[1]=a[0]*u12t[didm+kvol*mu]+a[1]*conj(u11t[didm+kvol*mu]);
 			//DEBUG
-//			Leaves[0]=0; Leaves[1]=0;
+		//	Leaves[0]=0; Leaves[1]=0;
 			break;
 		case(2):
 			///Leaf in the forwards mu and backwards nu direction
@@ -175,7 +176,7 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[nc],\
 			Leaves[1]=a[0]*u12t[didn+kvol*nu]+a[1]*conj(u11t[didn+kvol*nu]);
 
 			//DEBUG
-			//			Leaves[0]=0; Leaves[1]=0;
+						Leaves[0]=0; Leaves[1]=0;
 			break;
 		case(3):
 			///Leaf in the backwards mu and backwards nu direction
@@ -193,7 +194,7 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[nc],\
 			Leaves[1]=a[0]*u12t[didm+kvol*mu]+a[1]*conj(u11t[didm+kvol*mu]);
 
 			//DEBUG
-			//			Leaves[0]=0; Leaves[1]=0;
+						Leaves[0]=0; Leaves[1]=0;
 			break;
 	}
 	return 0;
@@ -213,8 +214,8 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[nc],\
  */
 template <typename T>
 __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[nc],\
-		unsigned int *iu, unsigned int *id, unsigned int i, int mu, int nu, short leaf,short gen,short gen_pos){
-	char funcname[]="Force_Leaf";
+		unsigned int *iu, unsigned int *id, unsigned int i,const unsigned short mu,const unsigned short nu,\
+		const unsigned short leaf,short gen,short gen_pos){
 	complex<T> a[nc];
 	unsigned int didm,didn,uidm;
 	switch(leaf){
@@ -236,7 +237,7 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 			Leaves[1]=-a[0]*u12t[i+kvol*nu]+a[1]*u11t[i+kvol*nu];
 
 			//DEBUG
-			//			Leaves[0]=0; Leaves[1]=0;
+						Leaves[0]=0; Leaves[1]=0;
 			break;
 		case(1):
 			didm = id[mu*kvol+i];
@@ -275,7 +276,7 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 			Leaves[1]=a[0]*u12t[didn+kvol*nu]+a[1]*conj(u11t[didn+kvol*nu]);
 
 			//DEBUG
-			//			Leaves[0]=0; Leaves[1]=0;
+						Leaves[0]=0; Leaves[1]=0;
 			break;
 		case(3):
 			///Leaf in the backwards mu and backwards nu direction
@@ -299,7 +300,7 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 			Leaves[1]=a[0]*u12t[didm+kvol*mu]+a[1]*conj(u11t[didm+kvol*mu]);
 
 			//DEBUG
-			//			Leaves[0]=0; Leaves[1]=0;
+						Leaves[0]=0; Leaves[1]=0;
 			break;
 	}
 	///gen_pos 4 is multiply the entire leaf by the generator from the left
@@ -351,8 +352,8 @@ __global__  void Full_Clover(complex<T> *clover1, complex<T> *clover2,\
 		clover1[i]=0;clover2[i]=0;
 		for(unsigned short leaf=0;leaf<ndim;leaf++)
 		{
-			//Pointer arithemetic on the leaves. No multiplying by generators here
-			Leaf(ut[0],ut[1],Leaves,iu,id,i,mu,nu,leaf,0,0);
+			//Pointer arithemetic on the leaves.
+			Leaf(ut[0],ut[1],Leaves,iu,id,i,mu,nu,leaf);
 			clover1[i]+=Leaves[0]; clover2[i]+=Leaves[1];
 		}
 		///The clover is given by @f$F_{\mu\nu}=\frac{-i}{8}\left(Q_{\mu\nu}-Q_{\mu\nu}\right)^\dagger@f$. We do that
