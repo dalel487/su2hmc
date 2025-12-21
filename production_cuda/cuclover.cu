@@ -26,11 +26,14 @@ __device__ void ByGenLeft(T a[nc],const unsigned short gen){
 		case(0):
 			a[0]=-I*conj(a[1]); a[1]=I*conj(tmp);
 			///@f$i\sigma_y@f$
+			break;
 		case(1):
 			a[0]=conj(a[1]); a[1]=-conj(tmp);
 			///@f$i\sigma_z@f$
+			break;
 		case(2):
 			a[0]*=I; a[1]*=I;
+			break;
 	}
 	return;
 }
@@ -52,11 +55,14 @@ __device__ void ByGenRight(T a[nc],const unsigned short gen){
 		case(0):
 			a[0]=I*a[1]; a[1]=I*tmp;
 			///@f$i\sigma_y@f$
+			break;
 		case(1):
 			a[0]=a[1]; a[1]=-tmp;
 			///@f$i\sigma_z@f$
+			break;
 		case(2):
 			a[0]*=I; a[1]*=-I;
+			break;
 	}
 	return;
 }
@@ -86,6 +92,7 @@ __device__ int Half_Leaf(complex<T> Leaves[nc], complex<T> *u11t, complex<T> *u1
 			/// @f$U_\mu(x)U^\nu(x+\hat{\mu})@f$
 			Leaves[0]=a[0]*u11t[uidm+kvol*nu]-a[1]*conj(u12t[uidm+kvol*nu]);
 			Leaves[1]=a[0]*u12t[uidm+kvol*nu]+a[1]*conj(u11t[uidm+kvol*nu]);
+			break;
 		case(1):
 			///Leaf in the forward nu and backwards mu direction
 			const unsigned int didm = id[mu*kvol+i];
@@ -94,6 +101,7 @@ __device__ int Half_Leaf(complex<T> Leaves[nc], complex<T> *u11t, complex<T> *u1
 			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})@f$
 			Leaves[0]=a[0]*conj(u11t[uin_didm+kvol*mu])+a[1]*conj(u12t[uin_didm+kvol*mu]);
 			Leaves[1]=-a[0]*u12t[uin_didm+kvol*mu]+a[1]*u11t[uin_didm+kvol*mu];
+			break;
 		case(2):
 			///Leaf in the forwards mu and backwards nu direction
 			//Another awkward index
@@ -104,6 +112,7 @@ __device__ int Half_Leaf(complex<T> Leaves[nc], complex<T> *u11t, complex<T> *u1
 			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{\mu}-\hat{\nu})@f$
 			Leaves[0]=a[0]*conj(u11t[din_uidm+kvol*nu])+a[1]*conj(u12t[din_uidm+kvol*nu]);
 			Leaves[1]=-a[0]*u12t[din_uidm+kvol*nu]+a[1]*u11t[din_uidm+kvol*nu];
+			break;
 		case(3):
 			///Leaf in the forwards mu and backwards nu direction
 			//Another awkward index
@@ -114,6 +123,7 @@ __device__ int Half_Leaf(complex<T> Leaves[nc], complex<T> *u11t, complex<T> *u1
 			/// @f$U_\nu^\dagger(x-\hat{\nu})U_\mu^\dagger(x-\hat{\mu}-\hat{\nu})@f$
 			Leaves[0]=conj(a[0])*conj(u11t[dim_didn+kvol*mu])-conj(a[1])*u12t[dim_didn+kvol*mu];
 			Leaves[1]=-conj(a[0])*u12t[dim_didn+kvol*mu]-a[1]*u11t[dim_didn+kvol*mu];
+			break;
 	}
 	return 0;
 }
@@ -149,7 +159,7 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[nc],\
 			Leaves[1]=-a[0]*u12t[i+kvol*nu]+a[1]*u11t[i+kvol*nu];
 
 			//DEBUG
-						Leaves[0]=0; Leaves[1]=0;
+//						Leaves[0]=0; Leaves[1]=0;
 			break;
 		case(1):
 			didm = id[mu*kvol+i];
@@ -162,7 +172,7 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[nc],\
 			Leaves[0]=a[0]*u11t[didm+kvol*mu]-a[1]*conj(u12t[didm+kvol*mu]);
 			Leaves[1]=a[0]*u12t[didm+kvol*mu]+a[1]*conj(u11t[didm+kvol*mu]);
 			//DEBUG
-		//	Leaves[0]=0; Leaves[1]=0;
+//			Leaves[0]=0; Leaves[1]=0;
 			break;
 		case(2):
 			///Leaf in the forwards mu and backwards nu direction
@@ -176,7 +186,7 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[nc],\
 			Leaves[1]=a[0]*u12t[didn+kvol*nu]+a[1]*conj(u11t[didn+kvol*nu]);
 
 			//DEBUG
-						Leaves[0]=0; Leaves[1]=0;
+//						Leaves[0]=0; Leaves[1]=0;
 			break;
 		case(3):
 			///Leaf in the backwards mu and backwards nu direction
@@ -194,7 +204,7 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[nc],\
 			Leaves[1]=a[0]*u12t[didm+kvol*mu]+a[1]*conj(u11t[didm+kvol*mu]);
 
 			//DEBUG
-						Leaves[0]=0; Leaves[1]=0;
+//						Leaves[0]=0; Leaves[1]=0;
 			break;
 	}
 	return 0;
@@ -237,7 +247,7 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 			Leaves[1]=-a[0]*u12t[i+kvol*nu]+a[1]*u11t[i+kvol*nu];
 
 			//DEBUG
-						Leaves[0]=0; Leaves[1]=0;
+	//					Leaves[0]=0; Leaves[1]=0;
 			break;
 		case(1):
 			didm = id[mu*kvol+i];
@@ -256,7 +266,7 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 			Leaves[0]=a[0]*u11t[didm+kvol*mu]-a[1]*conj(u12t[didm+kvol*mu]);
 			Leaves[1]=a[0]*u12t[didm+kvol*mu]+a[1]*conj(u11t[didm+kvol*mu]);
 			//DEBUG
-		//	Leaves[0]=0; Leaves[1]=0;
+	//		Leaves[0]=0; Leaves[1]=0;
 			break;
 		case(2):
 			///Leaf in the forwards mu and backwards nu direction
@@ -276,7 +286,7 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 			Leaves[1]=a[0]*u12t[didn+kvol*nu]+a[1]*conj(u11t[didn+kvol*nu]);
 
 			//DEBUG
-						Leaves[0]=0; Leaves[1]=0;
+	//					Leaves[0]=0; Leaves[1]=0;
 			break;
 		case(3):
 			///Leaf in the backwards mu and backwards nu direction
@@ -300,7 +310,7 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 			Leaves[1]=a[0]*u12t[didm+kvol*mu]+a[1]*conj(u11t[didm+kvol*mu]);
 
 			//DEBUG
-						Leaves[0]=0; Leaves[1]=0;
+	//					Leaves[0]=0; Leaves[1]=0;
 			break;
 	}
 	///gen_pos 4 is multiply the entire leaf by the generator from the left
