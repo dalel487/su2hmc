@@ -20,7 +20,6 @@
  * @param	mu,nu:				Plaquette direction
  */
 __device__  void cuSU2plaq(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11, Complex_f *Sigma12, unsigned int *iu, int i, int mu, int nu){
-	const char funcname[] = "SU2plaq";
 	int uidm = iu[i+kvol*mu]; 
 
 	*Sigma11=u11t[i+kvol*mu]*u11t[uidm+kvol*nu]-u12t[i+kvol*mu]*conj(u12t[uidm+kvol*nu]);
@@ -45,7 +44,6 @@ __device__  void cuSU2plaq(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11,
 	 *
 	 */
 __global__ void Average_Plaquette(float *hgs_d, float *hgt_d, Complex_f *u11t, Complex_f *u12t, unsigned int *iu){
-	const char funcname[] = "Average_Plaquette";
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;

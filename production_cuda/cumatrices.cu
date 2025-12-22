@@ -11,7 +11,6 @@
 template <typename T>
 __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, complex<T> *u12t,unsigned int *iu, unsigned int *id,\
 		__constant__ complex<T> *gamval_d,	int *gamin_d,	T *dk4m, T *dk4p, Complex_f jqq, float akappa){
-	const char funcname[] = "cuDslash";
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -111,7 +110,6 @@ __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, compl
 template <typename T>
 __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T> *u11t, const complex<T> *u12t,const unsigned int *iu, const unsigned int *id,\
 		__constant__ complex<T> *gamval_d,	int *gamin_d,	const T *dk4m, const T *dk4p, const Complex_f jqq, const float akappa){
-	const char funcname[] = "cuDslashd";
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -240,7 +238,6 @@ __global__ void cuHdslash(complex<T> *phi, const complex<T> *r, const complex<T>
 	/*
 	 * Half Dslash T precision
 	 */
-	const volatile char funcname[] = "cuHdslash0_f";
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -327,7 +324,6 @@ __global__ void cuHdslashd(complex<T> *phi, const complex<T>* r, const complex<T
 	/*
 	 * Half Dslash Dagger T precision 
 	 */
-	const volatile char funcname[] = "cuHdslashd0_f";
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -410,7 +406,6 @@ __global__ void cuHdslashd(complex<T> *phi, const complex<T>* r, const complex<T
  */
 template <typename T>
 __global__ void Transpose(T *out, const T *in, const int fast_in, const int fast_out){
-	const volatile char funcname[]="Transpose_f";
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -433,7 +428,6 @@ __global__ void Transpose(T *out, const T *in, const int fast_in, const int fast
 }
 
 __global__ void cuMixed_Sumto(double *d, float *f, const unsigned int n){
-	const volatile char funcname[]="Mixed_prod";
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
