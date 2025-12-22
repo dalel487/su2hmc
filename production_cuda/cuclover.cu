@@ -19,7 +19,6 @@
  */
 template <typename T>
 __device__ void ByGenLeft(T a[nc],const unsigned short gen){
-	const char funcname[] = "ByGenLeft";
 	T tmp = a[0];
 	switch(gen){
 			///@f$i\sigma_x@f$
@@ -48,7 +47,6 @@ __device__ void ByGenLeft(T a[nc],const unsigned short gen){
  */
 template <typename T>
 __device__ void ByGenRight(T a[nc],const unsigned short gen){
-	const char funcname[] = "ByGenRight";
 	T tmp = a[0];
 	switch(gen){
 		///@f$i\sigma_x@f$
@@ -323,7 +321,6 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 template <typename T>
 __global__ void Half_Leaves(complex<T> *hLeaves0,complex<T> *hLeaves1,complex<T> *u11t,complex<T> *u12t,\
 		unsigned int *iu,unsigned int *id,const unsigned short mu,const unsigned short nu){
-	const char funcname[]="Half_Leaves";
 	const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const volatile int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const volatile int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -350,7 +347,6 @@ __global__ void Half_Leaves(complex<T> *hLeaves0,complex<T> *hLeaves1,complex<T>
 template <typename T>
 __global__  void Full_Clover(complex<T> *clover1, complex<T> *clover2,\
 		complex<T> *ut[nc], unsigned int *iu, unsigned int *id, int mu, int nu){
-	const char funcname[] ="Half_Clover";
 	const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const volatile int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const volatile int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -503,7 +499,6 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *ut[nc], complex<T> *hLea
  */
 template <typename T>
 __global__ void ByClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, complex<T> *clover2, complex<T> *sigval, unsigned short *sigin){
-	const char funcname[] = "HbyClover";
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -556,7 +551,6 @@ __global__ void ByClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, co
  */
 template <typename T>
 __global__ void HbyClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, complex<T> *clover2,complex<T> *sigval, const float kappa, unsigned short *sigin){
-	const char funcname[] = "HbyClover";
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
