@@ -17,6 +17,11 @@ dim3 dimGrid= dim3(1,1,1);
 //dim3	dimBlock=dimBlockOne; dim3 dimGrid=dimGridOne;
 cudaStream_t streams[ndirac*ndim*nadj];
 
+//Device function
+template <typename T>
+__device__ __forceinline__ T conj(const T& z){
+	return T(z.real(),-z.imag());
+}
 //CUDA Kernels
 __global__ void cuReal_convert(float *a, double *b, int len, bool dtof){
 	const char *funcname = "cuReal_convert";
@@ -322,3 +327,7 @@ void cuGauge_Update(const double d, double *pp, Complex *u11t, Complex *u12t, di
 	for(int mu=0;mu<ndim;mu++)
 		cuGauge_Update<<<dimGrid,dimBlock,0,streams[mu]>>>(d,pp,u11t,u12t,mu);
 }
+
+//Conj template instantiation
+template __device__ __forceinline__ complex<float> conj(const complex<float>& z);
+template __device__ __forceinline__ complex<double> conj(const complex<double>& z);

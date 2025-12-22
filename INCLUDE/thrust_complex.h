@@ -27,5 +27,5 @@ using thrust::complex;
 #define	I	Complex(0.0,1.0)	
 #define	I_f	Complex_f(0.0f,1.0f)	
 ///@brief	Complex Conjugation
-#define	conj(z)	thrust::conj(z)
+template <typename T> __device__ __forceinline__ T conj(const T& z);
 #endif
