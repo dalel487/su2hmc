@@ -23,7 +23,7 @@ __device__ void ByGenLeft(T a[nc],const unsigned short gen){
 	switch(gen){
 			///@f$i\sigma_x@f$
 		case(0):
-			a[0]=-I*conj(a[1]); a[1]=I*conj(tmp);
+			a[0]=-I_f*conj(a[1]); a[1]=I_f*conj(tmp);
 			///@f$i\sigma_y@f$
 			break;
 		case(1):
@@ -31,7 +31,7 @@ __device__ void ByGenLeft(T a[nc],const unsigned short gen){
 			///@f$i\sigma_z@f$
 			break;
 		case(2):
-			a[0]*=I; a[1]*=I;
+			a[0]*=I_f; a[1]*=I_f;
 			break;
 	}
 	return;
@@ -51,7 +51,7 @@ __device__ void ByGenRight(T a[nc],const unsigned short gen){
 	switch(gen){
 		///@f$i\sigma_x@f$
 		case(0):
-			a[0]=I*a[1]; a[1]=I*tmp;
+			a[0]=I_f*a[1]; a[1]=I_f*tmp;
 			///@f$i\sigma_y@f$
 			break;
 		case(1):
@@ -59,7 +59,7 @@ __device__ void ByGenRight(T a[nc],const unsigned short gen){
 			///@f$i\sigma_z@f$
 			break;
 		case(2):
-			a[0]*=I; a[1]*=-I;
+			a[0]*=I_f; a[1]*=-I_f;
 			break;
 	}
 	return;
