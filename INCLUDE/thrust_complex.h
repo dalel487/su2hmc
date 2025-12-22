@@ -10,6 +10,7 @@
 #define TCMPLX
 #include <thrust/complex.h>
 using thrust::complex;
+#undef conj
 //#undef	complex
 ///@brief Single precision complex number 
 #define	Complex_f	 complex<float>

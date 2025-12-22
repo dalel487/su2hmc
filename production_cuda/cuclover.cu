@@ -479,19 +479,22 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *ut[nc], complex<T> *hLea
 				//Calculate the index. For the next colour we add kvol
 				unsigned int ind = site+kvol*idirac;
 				//Prefetching. Might not be needed here though
-				complex<T> X1s[nc];
-				X1s[0]=X1[ind]; X1s[1]=X1[ind+kvol];
+				complex<T> X1sc[nc];
+				//X1 is always conjugated. So do it once here instead of twice and be done with it.	
+				X1sc[0]=conj(X1[ind]); X1sc[1]=conj(X1[ind+kvol]);
 				ind = site+kvol*sind;
 				complex<T> X2s[nc];
 				X2s[0]=X2[ind]; X2s[1]=X2[ind+kvol];
 
 				for(unsigned short gen=0;gen<nadj;gen++){
+					complex<T> fleafc[2];
+					fleafc[0]=conj(fleaf[gen][0]); fleafc[1]=conj(fleaf[gen][1]);
 					//mu contribution
-					dSdpis[0][gen]+=(sigval[clov*ndirac+idirac]*(conj(X1s[0])*(fleaf[gen][0]*X2s[0]+fleaf[gen][1]*X2s[1])+\
-								conj(X1s[1])*(-conj(fleaf[gen][0])*X2s[0]+conj(fleaf[gen][1])*X2s[1]))).real();
+					dSdpis[0][gen]+=(sigval[clov*ndirac+idirac]*(X1sc[0]*(fleaf[gen][0]*X2s[0]+fleaf[gen][1]*X2s[1])+\
+								X1sc[1]*(-fleafc[0]*X2s[0]+fleafc[1]*X2s[1]))).real();
 					//nu contribution
-					dSdpis[1][gen]+=(sigval[clov*ndirac+idirac]*(conj(X1s[0])*(conj(fleaf[gen][0])*X2s[0]-fleaf[gen][1]*X2s[1])+\
-								conj(X1s[1])*(conj(fleaf[gen][1])*X2s[0]+fleaf[gen][0]*X2s[1]))).real();
+					dSdpis[1][gen]+=(sigval[clov*ndirac+idirac]*(X1sc[0]*(fleafc[0]*X2s[0]-fleaf[gen][1]*X2s[1])+\
+								X1sc[1]*(fleafc[1]*X2s[0]+fleaf[gen][0]*X2s[1]))).real();
 				}
 			}
 		}
