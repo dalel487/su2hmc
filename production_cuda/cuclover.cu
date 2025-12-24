@@ -27,15 +27,15 @@ __device__ void ByGenLeft(T a[nc],const unsigned short gen){
 			a[0] = T(-a[1].imag(), -a[1].real());
 			//a[1]=I_f*conj(tmp);
 			a[1] = T( tmp.imag(),  tmp.real());
-			break;
 			///@f$i\sigma_y@f$
+			break;
 		case(1):
 			//a[0]=conj(a[1]); 
 			a[0] = T( a[1].real(), -a[1].imag());
 			//a[1]=-conj(tmp);
 			a[1] = T(-tmp.real(),  tmp.imag());
-			break;
 			///@f$i\sigma_z@f$
+			break;
 		case(2):
 			//			a[0]*=I_f; 
 			a[0] = T(-a[0].imag(), a[0].real());
@@ -279,7 +279,7 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 			Leaves[0]=a[0]*u11t[didm+kvol*mu]-a[1]*conj(u12t[didm+kvol*mu]);
 			Leaves[1]=a[0]*u12t[didm+kvol*mu]+a[1]*conj(u11t[didm+kvol*mu]);
 			//DEBUG
-			//		Leaves[0]=0; Leaves[1]=0;
+		//			Leaves[0]=0; Leaves[1]=0;
 			break;
 		case(2):
 			///Leaf in the forwards mu and backwards nu direction
@@ -436,41 +436,47 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *ut[nc], complex<T> *hLea
 						Force_Leaf(ut[0],ut[1],tmp,iu,id,site,mu,nu,2,gen,4);
 						//+= here!!!
 						fleaf[gen][0]+=tmp[0]; fleaf[gen][1]+=tmp[1];
+						break;
 					case(1): //Clover at i+mu
 						site=ipm;
 						//Get leaf 1 with the correct generator between links 3 and 4
 						tmp[0]=hLeaves[0][site+1*kvol]; tmp[1]=hLeaves[1][site+1*kvol];
-						Force_Leaf(ut[0],ut[1],tmp,iu,id,site,mu,nu,0,gen,3);
+						Force_Leaf(ut[0],ut[1],tmp,iu,id,site,mu,nu,1,gen,3);
 						fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
 						//Get leaf 3 with the correct generator between links 3 and 4
 						tmp[0]=hLeaves[0][site+3*kvol]; tmp[1]=hLeaves[1][site+3*kvol];
-						Force_Leaf(ut[0],ut[1],tmp,iu,id,site,mu,nu,2,gen,3);
+						Force_Leaf(ut[0],ut[1],tmp,iu,id,site,mu,nu,3,gen,3);
 						//+= here!!!
 						fleaf[gen][0]+=tmp[0]; fleaf[gen][1]+=tmp[1];
+						break;
 					case(2): //Clover at i+nu
 						site=iu[i+kvol*nu];
 						//Get leaf 2 with the correct generator between links 3 and 4
 						tmp[0]=hLeaves[0][site+2*kvol]; tmp[1]=hLeaves[1][site+2*kvol];
 						Force_Leaf(ut[0],ut[1],tmp,iu,id,site,mu,nu,2,gen,3);
 						fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
+						break;
 					case(3): //Clover at i-nu
 						site=id[i+kvol*nu];
 						//Get leaf 0 with the correct generator between links 3 and 4
 						tmp[0]=hLeaves[0][site+0*kvol]; tmp[1]=hLeaves[1][site+0*kvol];
 						Force_Leaf(ut[0],ut[1],tmp,iu,id,site,mu,nu,0,gen,3);
 						fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
+						break;
 					case(4): //Clover at i+mu+nu
 						site=iu[ipm+kvol*nu];
 						//Get leaf 3 with the correct generator between links 2 and 3
 						tmp[0]=hLeaves[0][site+3*kvol]; tmp[1]=hLeaves[1][site+3*kvol];
 						Force_Leaf(ut[0],ut[1],tmp,iu,id,site,mu,nu,3,gen,2);
 						fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
+						break;
 					case(5): //Clover at i+mu-nu
 						site=id[ipm+kvol*nu];
 						//Get leaf 1 with the correct generator between links 2 and 3
 						tmp[0]=hLeaves[0][site+1*kvol]; tmp[1]=hLeaves[1][site+1*kvol];
 						Force_Leaf(ut[0],ut[1],tmp,iu,id,site,mu,nu,1,gen,2);
 						fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
+						break;
 				}
 			}
 
