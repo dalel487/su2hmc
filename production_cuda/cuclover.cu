@@ -27,15 +27,15 @@ __device__ void ByGenLeft(T a[nc],const unsigned short gen){
 			a[0] = T(-a[1].imag(), -a[1].real());
 			//a[1]=I_f*conj(tmp);
 			a[1] = T( tmp.imag(),  tmp.real());
-			///@f$i\sigma_y@f$
 			break;
+			///@f$i\sigma_y@f$
 		case(1):
 			//a[0]=conj(a[1]); 
 			a[0] = T( a[1].real(), -a[1].imag());
 			//a[1]=-conj(tmp);
 			a[1] = T(-tmp.real(),  tmp.imag());
-			///@f$i\sigma_z@f$
 			break;
+			///@f$i\sigma_z@f$
 		case(2):
 			//			a[0]*=I_f; 
 			a[0] = T(-a[0].imag(), a[0].real());
@@ -64,12 +64,12 @@ __device__ void ByGenRight(T a[nc],const unsigned short gen){
 			a[0] = T(-a[1].imag(), a[1].real());
 			//a[1]=I_f*tmp;
 			a[1] = T(-tmp.imag(),  tmp.real());
-			///@f$i\sigma_y@f$
 			break;
+			///@f$i\sigma_y@f$
 		case(1):
 			a[0]=a[1]; a[1]=-tmp;
-			///@f$i\sigma_z@f$
 			break;
+			///@f$i\sigma_z@f$
 		case(2):
 			//a[0]*=I_f;
 			a[0] = T(-a[0].imag(),  a[0].real());
@@ -127,15 +127,15 @@ __device__ int Half_Leaf(complex<T> Leaves[nc], complex<T> *u11t, complex<T> *u1
 			Leaves[1]=-a[0]*u12t[din_uidm+kvol*nu]+a[1]*u11t[din_uidm+kvol*nu];
 			break;
 		case(3):
-			///Leaf in the forwards mu and backwards nu direction
+			///Leaf in the backwards mu and backwards nu direction
 			//Another awkward index
 			const unsigned int didn = id[nu*kvol+i];
 			a[0]=u11t[didn+kvol*nu]; a[1]=u12t[didn+kvol*nu];
 			const unsigned int dim_didn=id[mu*kvol+didn];
 
 			/// @f$U_\nu^\dagger(x-\hat{\nu})U_\mu^\dagger(x-\hat{\mu}-\hat{\nu})@f$
-			Leaves[0]=conj(a[0])*conj(u11t[dim_didn+kvol*mu])-conj(a[1])*u12t[dim_didn+kvol*mu];
-			Leaves[1]=-conj(a[0])*u12t[dim_didn+kvol*mu]-a[1]*u11t[dim_didn+kvol*mu];
+			Leaves[0]=conj(a[0])*conj(u11t[dim_didn+kvol*mu])-a[1]*conj(u12t[dim_didn+kvol*mu]);
+			Leaves[1]=-conj(a[0])*u12t[dim_didn+kvol*mu]-a[1]*\conj(u11t[dim_didn+kvol*mu]);
 			break;
 	}
 	return 0;
