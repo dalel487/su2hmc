@@ -481,14 +481,13 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *ut[nc], complex<T> *hLea
 				X2s[0]=X2[ind]; X2s[1]=X2[ind+kvol];
 
 				for(unsigned short gen=0;gen<nadj;gen++){
-					complex<T> fleafc[2];
-					fleafc[0]=conj(fleaf[gen][0]); fleafc[1]=conj(fleaf[gen][1]);
+					complex<T> fleaf1c=conj(fleaf[gen][1]);
 					//mu contribution
-					dSdpis[0][gen]+=(sigval[clov*ndirac+idirac]*(X1sc[0]*(fleaf[gen][0]*X2s[0]+fleaf[gen][1]*X2s[1])+\
-								X1sc[1]*(-fleafc[0]*X2s[0]+fleafc[1]*X2s[1]))).real();
+					dSdpis[0][gen]+=(sigval[clov*ndirac+idirac]*(X1sc[0]*(fleaf[gen][0].real()*X2s[0]+fleaf[gen][1]*X2s[1])+\
+								X1sc[1]*(fleaf[0].real()*X2s[0]+fleaf1c*X2s[1]))).real();
 					//nu contribution
-					dSdpis[1][gen]+=(sigval[clov*ndirac+idirac]*(X1sc[0]*(fleafc[0]*X2s[0]-fleaf[gen][1]*X2s[1])+\
-								X1sc[1]*(fleafc[1]*X2s[0]+fleaf[gen][0]*X2s[1]))).real();
+					dSdpis[1][gen]+=(sigval[clov*ndirac+idirac]*(X1sc[0]*(fleaf[0].real()*X2s[0]+fleaf[gen][1]*X2s[1])+\
+								X1sc[1]*(fleaf1c*X2s[0]+fleaf[gen][0].real()*X2s[1]))).real();
 				}
 			}
 		}
