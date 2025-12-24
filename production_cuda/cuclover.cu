@@ -531,7 +531,7 @@ __global__ void ByClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, co
 
 	for(int i=gthreadId;i<kvol;i+=bsize*gsize){
 		//Prefetched r and Phi array
-		complex<T> phi_s[ndirac][nc];
+		complex<T> phi_s[ngorkov][nc];
 #pragma unroll
 		for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++)
 			for(unsigned short c=0; c<nc; c++){
@@ -606,7 +606,7 @@ __global__ void HbyClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, c
 			}
 		}
 #pragma unroll
-		for(unsigned short idirac=0; idirac<ndirac; idirac+=nc)
+		for(unsigned short idirac=0; idirac<ndirac; idirac++)
 			for(unsigned short c=0; c<nc; c++)
 				///@f$\sigma_{\mu\nu}F_{\mu\nu}=\sigma_{\nu\mu}F_{\nu\mu}@f$ so we double it to take account of that
 				///But then we multiply by @f$-\frac{1}{2}@f$ so the @f$2@f$ disappears
