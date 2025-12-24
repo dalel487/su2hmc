@@ -23,23 +23,17 @@ __device__ void ByGenLeft(T a[nc],const unsigned short gen){
 	switch(gen){
 		///@f$i\sigma_x@f$
 		case(0):
-			//a[0]=-I_f*conj(a[1]); 
 			a[0] = T(-a[1].imag(), -a[1].real());
-			//a[1]=I_f*conj(tmp);
 			a[1] = T( tmp.imag(),  tmp.real());
 			break;
 			///@f$i\sigma_y@f$
 		case(1):
-			//a[0]=conj(a[1]); 
 			a[0] = T( a[1].real(), -a[1].imag());
-			//a[1]=-conj(tmp);
 			a[1] = T(-tmp.real(),  tmp.imag());
 			break;
 			///@f$i\sigma_z@f$
 		case(2):
-			//			a[0]*=I_f; 
 			a[0] = T(-a[0].imag(), a[0].real());
-			//			a[1]*=I_f;
 			a[1] = T(-a[1].imag(), a[1].real());
 			break;
 	}
@@ -60,9 +54,7 @@ __device__ void ByGenRight(T a[nc],const unsigned short gen){
 	switch(gen){
 		///@f$i\sigma_x@f$
 		case(0):
-			//a[0]=I_f*a[1];
 			a[0] = T(-a[1].imag(), a[1].real());
-			//a[1]=I_f*tmp;
 			a[1] = T(-tmp.imag(),  tmp.real());
 			break;
 			///@f$i\sigma_y@f$
@@ -71,9 +63,7 @@ __device__ void ByGenRight(T a[nc],const unsigned short gen){
 			break;
 			///@f$i\sigma_z@f$
 		case(2):
-			//a[0]*=I_f;
 			a[0] = T(-a[0].imag(),  a[0].real());
-			//a[1]*=-I_f;
 			a[1] = T( a[1].imag(), -a[1].real());
 			break;
 	}
@@ -207,9 +197,7 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[nc],\
 			unsigned int din_didm=id[mu*kvol+didn];
 
 			/// @f$U_\nu^\dagger(x-\hat{\nu})U_\mu^\dagger(x-\hat{\mu}-\hat{\nu})U_\nu(x-\hat{\mu}-\hat{\nu})@f$
-			//a[0]=Leaves[0]*u11t[din_didm+kvol*mu]-Leaves[1]*conj(u12t[din_didm+kvol*mu]);
 			a[0]=Leaves[0]*u11t[din_didm+kvol*nu]-Leaves[1]*conj(u12t[din_didm+kvol*nu]);
-			//a[1]=Leaves[0]*u12t[din_didm+kvol*mu]+Leaves[1]*conj(u11t[din_didm+kvol*mu]);
 			a[1]=Leaves[0]*u12t[din_didm+kvol*nu]+Leaves[1]*conj(u11t[din_didm+kvol*nu]);
 
 			didm = id[mu*kvol+i]; 
@@ -311,9 +299,7 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 				ByGenRight(Leaves,gen);
 
 			/// @f$U_\nu^\dagger(x-\hat{\nu})U_\mu^\dagger(x-\hat{\mu}-\hat{\nu})U_\nu(x-\hat{\mu}-\hat{\nu})@f$
-			//a[0]=Leaves[0]*u11t[din_didm+kvol*mu]-Leaves[1]*conj(u12t[din_didm+kvol*mu]);
 			a[0]=Leaves[0]*u11t[din_didm+kvol*nu]-Leaves[1]*conj(u12t[din_didm+kvol*nu]);
-			//a[1]=Leaves[0]*u12t[din_didm+kvol*mu]+Leaves[1]*conj(u11t[din_didm+kvol*mu]);
 			a[1]=Leaves[0]*u12t[din_didm+kvol*nu]+Leaves[1]*conj(u11t[din_didm+kvol*nu]);
 			//Multiply by generator from the right after the first three links
 			if(gen_pos==3)
