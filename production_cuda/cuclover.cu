@@ -303,6 +303,7 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 			//					Leaves[0]=0; Leaves[1]=0;
 			break;
 		case(3):
+			didn = id[nu*kvol+i]; 
 			///Leaf in the backwards mu and backwards nu direction
 			unsigned int din_didm=id[mu*kvol+didn];
 			//Multiply by generator from the right after the first two links
@@ -549,10 +550,11 @@ __global__ void ByClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, co
 				const unsigned short sind = (igorkov<4) ? sigin[clov*ndirac+idirac] : sigin[clov*ndirac+idirac]+4;
 #pragma unroll
 				for(unsigned short c=0; c<nc; c++)
-					r_s[c]=r[i+kvol*(igorkov*nc+c)];
+					r_s[c]=r[i+kvol*(sind*nc+c)];
 				///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
 				phi_s[igorkov][0]+=sigval[clov*ndirac+idirac]*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
-				phi_s[igorkov][1]+=sigval[clov*ndirac+idirac]*(-conj(clov_s[1])*r_s[0]+creal(clov_s[0])*r_s[1]);
+				//Clover is in the Lie Algebra, not Lie group. So signs are correct here.
+				phi_s[igorkov][1]+=sigval[clov*ndirac+idirac]*(conj(clov_s[1])*r_s[0]+creal(clov_s[0])*r_s[1]);
 			}
 		}
 #pragma unroll
@@ -603,6 +605,7 @@ __global__ void HbyClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, c
 				///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
 				const complex<T> sig=sigval[clov*ndirac+(idirac>>1)];
 				phi_s[idirac+0]+=kappa*sig*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
+				//Clover is in the Lie Algebra, not Lie group. So signs are correct here.
 				phi_s[idirac+1]+=kappa*sig*(conj(clov_s[1])*r_s[0]+creal(clov_s[0])*r_s[1]);
 			}
 		}
