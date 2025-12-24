@@ -203,6 +203,7 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[nc],\
 			break;
 		case(3):
 			///Leaf in the backwards mu and backwards nu direction
+			didn = id[nu*kvol+i]; 
 			unsigned int din_didm=id[mu*kvol+didn];
 
 			/// @f$U_\nu^\dagger(x-\hat{\nu})U_\mu^\dagger(x-\hat{\mu}-\hat{\nu})U_\nu(x-\hat{\mu}-\hat{\nu})@f$
@@ -548,17 +549,17 @@ __global__ void ByClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, co
 				const unsigned short sind = (igorkov<4) ? sigin[clov*ndirac+idirac] : sigin[clov*ndirac+idirac]+4;
 #pragma unroll
 				for(unsigned short c=0; c<nc; c++)
-					r_s[c]=r[(i*ngorkov+sind)*nc+c];
+					r_s[c]=r[i+kvol*(igorkov*nc+c)];
 				///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
 				phi_s[igorkov][0]+=sigval[clov*ndirac+idirac]*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
-				phi_s[igorkov][1]+=sigval[clov*ndirac+idirac]*(conj(clov_s[1])*r_s[0]+creal(clov_s[0])*r_s[1]);
+				phi_s[igorkov][1]+=sigval[clov*ndirac+idirac]*(-conj(clov_s[1])*r_s[0]+creal(clov_s[0])*r_s[1]);
 			}
 		}
 #pragma unroll
-		for(unsigned short igorkov=0; igorkov<ndirac; igorkov++)
+		for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++)
 			for(unsigned short c=0; c<nc; c++)
 				///Also @f$\sigma_{\mu\nu}F_{\mu\nu}=\sigma_{\nu\mu}F_{\nu\mu}@f$ so we double it to take account of that
-				phi[i+kvol*(c+nc*igorkov)]+=2*phi_s[igorkov][c];
+				phi[i+kvol*(nc*igorkov+c)]+=2*phi_s[igorkov][c];
 	}
 	return;
 }
@@ -606,7 +607,7 @@ __global__ void HbyClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, c
 			}
 		}
 #pragma unroll
-		for(unsigned short idirac=0; idirac<ndirac; idirac++)
+		for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc)
 			for(unsigned short c=0; c<nc; c++)
 				///@f$\sigma_{\mu\nu}F_{\mu\nu}=\sigma_{\nu\mu}F_{\nu\mu}@f$ so we double it to take account of that
 				///But then we multiply by @f$-\frac{1}{2}@f$ so the @f$2@f$ disappears
