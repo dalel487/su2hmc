@@ -135,7 +135,7 @@ __device__ int Half_Leaf(complex<T> Leaves[nc], complex<T> *u11t, complex<T> *u1
 
 			/// @f$U_\nu^\dagger(x-\hat{\nu})U_\mu^\dagger(x-\hat{\mu}-\hat{\nu})@f$
 			Leaves[0]=conj(a[0])*conj(u11t[dim_didn+kvol*mu])-a[1]*conj(u12t[dim_didn+kvol*mu]);
-			Leaves[1]=-conj(a[0])*u12t[dim_didn+kvol*mu]-a[1]*\conj(u11t[dim_didn+kvol*mu]);
+			Leaves[1]=-conj(a[0])*u12t[dim_didn+kvol*mu]-a[1]*conj(u11t[dim_didn+kvol*mu]);
 			break;
 	}
 	return 0;
@@ -377,7 +377,7 @@ __global__  void Full_Clover(complex<T> *clover1, complex<T> *clover2,\
 			Leaf(ut[0],ut[1],Leaves,iu,id,i,mu,nu,leaf);
 			clover1[i]+=Leaves[0]; clover2[i]+=Leaves[1];
 		}
-		///The clover is given by @f$F_{\mu\nu}=\frac{-i}{8}\left(Q_{\mu\nu}-Q_{\mu\nu}\right)^\dagger@f$. We do that
+		///The clover is given by @f$F_{\mu\nu}=\frac{-i}{8}\left(Q_{\mu\nu}-Q_{\nu\mu}\right)^\dagger@f$. We do that
 		///manually below.
 
 		///The @f$\alpha@f$ component. Only the imaginary part survives. And since it is multiplied by @f$-i@f$ it is real.
