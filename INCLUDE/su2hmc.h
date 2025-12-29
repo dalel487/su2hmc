@@ -312,7 +312,7 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 	 *
 	 *	@return	Zero on success, integer error code otherwise	
 	 */
-	int UpDownPart(const int na, Complex *X0, Complex *R1);
+	int UpDownPart(const unsigned int na, Complex *X0, Complex *R1);
 	/**
 	 * @brief Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1
 	 *
@@ -364,41 +364,16 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 	//cuInit was taken already by CUDA (unsurprisingly)
 	void Init_CUDA(Complex *u11t, Complex *u12t,Complex *gamval, Complex_f *gamval_f, int *gamin, double*dk4m,\
 			double *dk4p, unsigned int *iu, unsigned int *id);
-	void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi,dim3 dimBlock, dim3 dimGrid);
-	void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu,dim3 dimBlock, dim3 dimGrid);
-	void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu,dim3 dimBlock, dim3 dimGrid);
-	void cuComplex_convert(Complex_f *a, Complex *b, int len, bool dtof, dim3 dimBlock, dim3 dimGrid);
-	void cuReal_convert(float *a, double *b, int len, bool dtof, dim3 dimBlock, dim3 dimGrid);
-	void cuUpDownPart(int na, Complex *X0, Complex *R1,dim3 dimBlock, dim3 dimGrid);
+	void cuFill_Small_Phi(const unsigned int na, Complex *smallPhi, Complex *Phi,dim3 dimBlock, dim3 dimGrid);
+	void cuC_gather(Complex_f *x, Complex_f *y, const unsigned int n, unsigned int *table, const unsigned short mu,dim3 dimBlock, dim3 dimGrid);
+	void cuZ_gather(Complex *x, Complex *y, const unsigned int n, unsigned int *table, const unsigned short mu,dim3 dimBlock, dim3 dimGrid);
+	void cuComplex_convert(Complex_f *a, Complex *b, const unsigned int len, const bool dtof, dim3 dimBlock, dim3 dimGrid);
+	void cuReal_convert(float *a, double *b, const unsigned int len, const bool dtof, dim3 dimBlock, dim3 dimGrid);
+	void cuUpDownPart(const unsigned int na, Complex *X0, Complex *R1,dim3 dimBlock, dim3 dimGrid);
 	void cuReunitarise(Complex *u11t, Complex *u12t,dim3 dimGrid, dim3 dimBlock);
 	//And a little something to set the CUDA grid and block sizes
 	void blockInit(int x, int y, int z, int t, dim3 *dimBlock, dim3 *dimGrid);
 #endif
 #if (defined __cplusplus)
 }
-#endif
-//CUDA Kernels:
-//============
-#ifdef __CUDACC__
-//__global__ void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
-//		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa);
-__global__ void Plus_staple(int mu, int nu,unsigned int *iu, Complex_f *Sigma11, Complex_f *Sigma12,\
-		Complex_f *u11t, Complex_f *u12t);
-__global__ void Minus_staple(int mu, int nu,unsigned int *iu,unsigned int *id, Complex_f *Sigma11, Complex_f *Sigma12,\
-		Complex_f *u11sh, Complex_f *u12sh, Complex_f *u11t, Complex_f *u12t);
-__global__ void cuGaugeForce(int mu, Complex_f *Sigma11, Complex_f *Sigma12,double* dSdpi,Complex_f *u11t, Complex_f *u12t,\
-		float beta);
-//Force Kernels. We've taken each nadj index and the spatial/temporal components and created a separate kernel for each
-//CPU code just has these as a huge blob that the vectoriser can't handle. May be worth splitting it there too?
-//It might not be a bad idea to make a seperate header for all these kernels...
-__global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Complex_f *X1, Complex_f *X2, Complex_f *gamval,
-		unsigned int *iu, int *gamin,float akappa, int mu);
-__global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t,Complex_f *X1, Complex_f *X2, Complex_f *gamval,\
-		float *dk4m, float *dk4p, unsigned int *iu, int *gamin,float akappa);
-__global__ void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi);
-__global__ void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu);
-__global__ void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu);
-__global__ void cuReal_convert(float *a, double *b, int len, bool dtof);
-__global__ void cuUpDownPart(int na, Complex *X0, Complex *R1);
-__global__ void cuReunitarise(Complex *u11t, Complex *u12t);
 #endif

@@ -318,7 +318,7 @@ inline int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
 #endif
 	return 0;
 }
-inline int UpDownPart(const int na, Complex *X0, Complex *R1){
+inline int UpDownPart(const unsigned int na, Complex *X0, Complex *R1){
 #ifdef __NVCC__
 	cuUpDownPart(na,X0,R1,dimBlock,dimGrid);
 	cudaDeviceSynchronise();

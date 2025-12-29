@@ -23,24 +23,24 @@ __device__ __forceinline__ T conj(const T& z){
 	return T(z.real(),-z.imag());
 }
 //CUDA Kernels
-__global__ void cuReal_convert(float *a, double *b, int len, bool dtof){
+__global__ void cuReal_convert(float *a, double *b, const unsigned int len, const bool dtof){
 	const char *funcname = "cuReal_convert";
-	const int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	const int gthreadId= blockId * bsize+bthreadId;
+	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const unsigned int gthreadId= blockId * bsize+bthreadId;
 
 	//True: Convert float to double
 	if(dtof)
-		for(int i = gthreadId; i<len;i+=gsize*bsize)
+		for(unsigned int i = gthreadId; i<len;i+=gsize*bsize)
 			a[i]=(float)b[i];
 	//False: Convert double to float.
 	else
-		for(int i = gthreadId; i<len;i+=gsize*bsize)
+		for(unsigned int i = gthreadId; i<len;i+=gsize*bsize)
 			b[i]=(double)a[i];
 }
-__global__ void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
+__global__ void cuFill_Small_Phi(const unsigned int na, Complex *smallPhi, Complex *Phi)
 {
 	/*Copies necessary (2*4*kvol) elements of Phi into a vector variable
 	 *
@@ -57,61 +57,49 @@ __global__ void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
 	 * =======
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "cuFill_Small_Phi";
 	//BIG and small phi index
-	const int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	const int gthreadId= blockId * bsize+bthreadId;
+	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const unsigned int gthreadId= blockId * bsize+bthreadId;
 
-	for(int i = gthreadId; i<kvol;i+=gsize*bsize)
-		for(int idirac = 0; idirac<ndirac; idirac++)
-			for(int ic= 0; ic<nc; ic++)
+	for(unsigned int i = gthreadId; i<kvol;i+=gsize*bsize)
+		for(unsigned short idirac = 0; idirac<ndirac; idirac++)
+			for(unsigned short ic= 0; ic<nc; ic++)
 				//	  PHI_index=i*16+j*2+k;
 				smallPhi[i + kvol * (ic + nc * idirac)] = Phi[i + kvol * (ic + idirac * (nc + ngorkov * na))];
 }
-__global__ void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu)
+template <typename T>
+__global__ void cuGather(T *x, T *y, const unsigned int n, unsigned int *table, const unsigned short mu)
 {
-	const char *funcname = "cuC_gather";
 	//FORTRAN had a second parameter m giving the size of y (kvol+halo) normally
 	//Pointers mean that's not an issue for us so I'm leaving it out
-	const int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	const int gthreadId= blockId * bsize+bthreadId;
-	for(int i = gthreadId; i<kvol;i+=gsize*bsize)
-		x[i]=y[table[i+kvol*mu]+kvol*mu];
+	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const unsigned int gthreadId= blockId * bsize+bthreadId;
+	const unsigned int kvbmu=kvol*mu;
+	for(unsigned int i = gthreadId; i<kvol;i+=gsize*bsize)
+		x[i]=y[table[i+kvbmu]+kvbmu];
 }
-__global__ void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu)
-{
-	const char *funcname = "cuZ_gather";
-	//FORTRAN had a second parameter m giving the size of y (kvol+halo) normally
-	//Pointers mean that's not an issue for us so I'm leaving it out
-	const int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	const int gthreadId= blockId * bsize+bthreadId;
-	for(int i = gthreadId; i<kvol;i+=gsize*bsize)
-		x[i]=y[table[i+kvol*mu]+kvol*mu];
-}
-__global__ void cuUpDownPart(int na, Complex *X0, Complex *R1){
+__global__ void cuUpDownPart(const unsigned int na, Complex *X0, Complex *R1){
 
-	const int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	const int gthreadId= blockId * bsize+bthreadId;
+	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const unsigned int gthreadId= blockId * bsize+bthreadId;
 	//Up/down partitioning (using only pseudofermions of flavour 1)
-	for(int i = gthreadId; i<kvol;i+=gsize*bsize)
-		for(int idirac = 0; idirac < ndirac; idirac++){
+	for(unsigned int i = gthreadId; i<kvol;i+=gsize*bsize)
+		for(unsigned short idirac = 0; idirac < ndirac; idirac++){
 			X0[i + kvol * (0 + nc * (idirac + ndirac * na))] = R1[i + kvol * (0 + nc * idirac)];
 			X0[i + kvol * (1 + nc * (idirac + ndirac * na))] = R1[i + kvol * (1 + nc * idirac)];
 		}
 }
-__global__ void cuReunitarise(Complex *u11t, Complex * u12t){
+template <typename T>
+__global__ void cuReunitarise(complex<T> *u11t, complex<T> * u12t){
 	/*
 	 * Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1
 	 *
@@ -127,13 +115,12 @@ __global__ void cuReunitarise(Complex *u11t, Complex * u12t){
 	 * ========
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "Reunitarise";
-	const int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	const int gthreadId= blockId * bsize+bthreadId;
-	for(int i=gthreadId; i<kvol*ndim; i+=gsize*bsize){
+	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const unsigned int gthreadId= blockId * bsize+bthreadId;
+	for(unsigned int i=gthreadId; i<kvol*ndim; i+=gsize*bsize){
 		//Declaring anorm inside the loop will hopefully let the compiler know it
 		//is safe to vectorise aggessively
 		double anorm=sqrt(conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]).real();
@@ -149,29 +136,29 @@ __global__ void cuReunitarise(Complex *u11t, Complex * u12t){
 	}
 }
 __global__ void cuGauge_Update(const double d, double *pp, Complex *u11t, Complex *u12t,int mu){
-	char *funcname = "Gauge_Update";
-	const	int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const	int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const	int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	const int gthreadId= blockId * bsize+bthreadId;
-	for(int i=gthreadId;i<kvol;i+=gsize*bsize){
+	const	unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const	unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const	unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const unsigned int gthreadId= blockId * bsize+bthreadId;
+	for(unsigned int i=gthreadId;i<kvol;i+=gsize*bsize){
 		//Sticking to what was in the FORTRAN for variable names.
 		//CCC for cosine SSS for sine AAA for...
 		//Re-exponentiating the force field. Can be done analytically in SU(2)
 		//using sine and cosine which is nice
-		double AAA = d*sqrt(pp[i+kvol*(mu)]*pp[i+kvol*(mu)]\
+		const unsigned int ind = i+kvol*mu;
+		double AAA = d*sqrt(pp[ind]*pp[ind]\
 				+pp[i+kvol*(1*ndim+mu)]*pp[i+kvol*(1*ndim+mu)]\
 				+pp[i+kvol*(2*ndim+mu)]*pp[i+kvol*(2*ndim+mu)]);
 		double CCC = cos(AAA);
 		double SSS = d*sin(AAA)/AAA;
 		Complex a11 = CCC+I*SSS*pp[i+kvol*(2*ndim+mu)];
-		Complex a12 = pp[i+kvol*(1*ndim+mu)]*SSS + I*SSS*pp[i+kvol*(mu)];
+		Complex a12 = pp[i+kvol*(1*ndim+mu)]*SSS + I*SSS*pp[ind];
 		//b11 and b12 are u11t and u12t terms, so we'll use u12t directly
 		//but use b11 for u11t to prevent RAW dependency
-		Complex b11 = u11t[i+kvol*mu];
-		u11t[i+kvol*mu] = a11*b11-a12*conj(u12t[i+kvol*mu]);
-		u12t[i+kvol*mu] = a11*u12t[i+kvol*mu]+a12*conj(b11);
+		Complex b11 = u11t[ind];
+		u11t[ind] = a11*b11-a12*conj(u12t[ind]);
+		u12t[ind] = a11*u12t[ind]+a12*conj(b11);
 	}
 }
 
@@ -289,34 +276,34 @@ void	Init_CUDA(Complex *u11t, Complex *u12t,Complex *gamval, Complex_f *gamval_f
 	//cudaMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),device,streams[4]);
 	//cudaMemPrefetchAsync(u12t, ndim*kvol*sizeof(Complex),device,streams[5]);
 }
-void cuReal_convert(float *a, double *b, int len, bool dtof, dim3 dimBlock, dim3 dimGrid){
+void cuReal_convert(float *a, double *b, const unsigned int len, const bool dtof, dim3 dimBlock, dim3 dimGrid){
 	/* 
 	 * Kernel wrapper for conversion between sp and dp complex on the GPU.
 	 */
 	const char *funcname = "cuComplex_convert";
 	cuReal_convert<<<dimGrid,dimBlock>>>(a,b,len,dtof);
 }
-void cuComplex_convert(Complex_f *a, Complex *b, int len, bool dtof, dim3 dimBlock, dim3 dimGrid){
+void cuComplex_convert(Complex_f *a, Complex *b, const unsigned int len, const bool dtof, dim3 dimBlock, dim3 dimGrid){
 	/* 
 	 * Kernel wrapper for conversion between sp and dp complex on the GPU.
 	 */
 	const char *funcname = "cuComplex_convert";
 	cuReal_convert<<<dimGrid,dimBlock>>>((float *)a,(double *)b,2*len,dtof);
 }
-void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi, dim3 dimBlock, dim3 dimGrid){
+void cuFill_Small_Phi(const unsigned int na, Complex *smallPhi, Complex *Phi, dim3 dimBlock, dim3 dimGrid){
 	cuFill_Small_Phi<<<dimGrid,dimBlock>>>(na,smallPhi,Phi);
 }
-void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu,dim3 dimBlock, dim3 dimGrid)
+void cuC_gather(Complex_f *x, Complex_f *y, const unsigned int n, unsigned int *table, const unsigned short mu,dim3 dimBlock, dim3 dimGrid)
 {
 	const char *funcname = "cuZ_gather";
-	cuC_gather<<<dimGrid,dimBlock>>>(x,y,n,table,mu);
+	cuGather<<<dimGrid,dimBlock>>>(x,y,n,table,mu);
 }
-void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu,dim3 dimBlock, dim3 dimGrid)
+void cuZ_gather(Complex *x, Complex *y, const unsigned int n, unsigned int *table, const unsigned short mu,dim3 dimBlock, dim3 dimGrid)
 {
 	const char *funcname = "cuZ_gather";
-	cuZ_gather<<<dimGrid,dimBlock>>>(x,y,n,table,mu);
+	cuGather<<<dimGrid,dimBlock>>>(x,y,n,table,mu);
 }
-void cuUpDownPart(int na, Complex *X0, Complex *R1,dim3 dimBlock, dim3 dimGrid){
+void cuUpDownPart(const unsigned int na, Complex *X0, Complex *R1,dim3 dimBlock, dim3 dimGrid){
 	cuUpDownPart<<<dimGrid,dimBlock>>>(na,X0,R1);	
 }
 void cuReunitarise(Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock){
