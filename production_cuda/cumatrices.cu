@@ -465,7 +465,7 @@ __global__ void reduce_sum(T *g_in_data, T *g_out_data, const unsigned int n){
     const unsigned int gridSize = blockDim.x * 2 * gridDim.x;
     sdata[tid] = 0;
 
-    while(i < n) {
+    while(i+bsize < n) {
       sdata[tid] += g_in_data[i] + g_in_data[i + bsize];
       i += gridSize;
     }
