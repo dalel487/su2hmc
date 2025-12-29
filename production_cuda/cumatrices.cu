@@ -441,52 +441,52 @@ __global__ void cuMixed_Sumto(double *d, float *f, const unsigned int n){
 
 template <typename T,unsigned int bsize>
 __device__ void warpReduce_sum(volatile T* sdata, const unsigned int tid){
-    if(bsize >= 64) sdata[tid] += sdata[tid + 32];
-    if(bsize >= 32) sdata[tid] += sdata[tid + 16];
-    if(bsize >= 16) sdata[tid] += sdata[tid + 8];
-    if(bsize >= 8) sdata[tid] += sdata[tid + 4];
-    if(bsize >= 4) sdata[tid] += sdata[tid + 2];
-    if(bsize >= 2) sdata[tid] += sdata[tid + 1];
+	if(bsize >= 64) sdata[tid] += sdata[tid + 32];
+	if(bsize >= 32) sdata[tid] += sdata[tid + 16];
+	if(bsize >= 16) sdata[tid] += sdata[tid + 8];
+	if(bsize >= 8) sdata[tid] += sdata[tid + 4];
+	if(bsize >= 4) sdata[tid] += sdata[tid + 2];
+	if(bsize >= 2) sdata[tid] += sdata[tid + 1];
 }
 template <typename T,unsigned int bsize>
 __global__ void reduce_sum(T *g_in_data, T *g_out_data, const unsigned int n){
-    extern __shared__ T sdata[];  // stored in the shared memory
+	extern __shared__ T sdata[];  // stored in the shared memory
 
-	/*
-	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	const unsigned int gthreadId= blockId * bsize+bthreadId;
-	*/
-    // Each thread loading one element from global onto shared memory
-    const unsigned short tid = threadIdx.x;
-    unsigned int i = blockIdx.x*(bsize*2) + tid;
-    const unsigned int gridSize = blockDim.x * 2 * gridDim.x;
-    sdata[tid] = 0;
+	// Each thread loading one element from global onto shared memory
+	const unsigned short tid = threadIdx.x;
+	unsigned int i = blockIdx.x*(bsize*2) + tid;
+	const unsigned int gridSize = blockDim.x * 2 * gridDim.x;
+	sdata[tid] = 0;
 
-    while(i+bsize < n) {
-      sdata[tid] += g_in_data[i] + g_in_data[i + bsize];
-      i += gridSize;
-    }
-    __syncthreads();
+	while(i+bsize < n) {
+		sdata[tid] += g_in_data[i] + g_in_data[i + bsize];
+		i += gridSize;
+	}
+	__syncthreads();
 
-    // Perform reductions in steps, reducing thread synchronization
-    if (bsize >= 512) {
-        if (tid < 256) { sdata[tid] += sdata[tid + 256]; } __syncthreads();
-    }
-    if (bsize >= 256) {
-        if (tid < 128) { sdata[tid] += sdata[tid + 128]; } __syncthreads();
-    }
-    if (bsize >= 128) {
-        if (tid < 64) { sdata[tid] += sdata[tid + 64]; } __syncthreads();
-    }
+	// Perform reductions in steps, reducing thread synchronization
+	if (bsize >= 512) {
+		if (tid < 256) { sdata[tid] += sdata[tid + 256]; } __syncthreads();
+	}
+	if (bsize >= 256) {
+		if (tid < 128) { sdata[tid] += sdata[tid + 128]; } __syncthreads();
+	}
+	if (bsize >= 128) {
+		if (tid < 64) { sdata[tid] += sdata[tid + 64]; } __syncthreads();
+	}
 
-    if (tid < 32) warpReduce_sum<T,bsize>(sdata, tid);
+	if (tid < 32)
+		//warpReduce_sum<T,bsize>(sdata, tid);
+	{
+		T val = sdata[tid];
+		for (int offset = 16; offset > 0; offset >>= 1)
+			val += __shfl_down_sync(0xffffffff, val, offset);
+		if (tid == 0) sdata[0] = val;
+	}
 
-    if (tid == 0){
-        g_out_data[blockIdx.x] = sdata[0];
-    }
+	if (tid == 0){
+		g_out_data[blockIdx.x] = sdata[0];
+	}
 }
 
 //Calling Functions

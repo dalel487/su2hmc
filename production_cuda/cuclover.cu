@@ -660,8 +660,8 @@ int cuClover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X
 			//Clover index
 			const unsigned short clov = (mu==0) ? nu-1 :mu+nu;
 			//Allocate half-leaf memory
-			cudaMallocAsync((void **)&hLeaves[clov][0],ndim*kvol,streams[mu]);
-			cudaMallocAsync((void **)&hLeaves[clov][1],ndim*kvol,streams[mu]);
+			cudaMallocAsync((void **)&hLeaves[clov][0],ndim*kvol*sizeof(Complex_f),streams[mu]);
+			cudaMallocAsync((void **)&hLeaves[clov][1],ndim*kvol*sizeof(Complex_f),streams[mu]);
 			Half_Leaves<<<dimGrid,dimBlock,0,streams[mu]>>>(hLeaves[clov][0],hLeaves[clov][1],ut[0],ut[1],iu,id,mu,nu);
 		}
 	cudaDeviceSynchronise();
