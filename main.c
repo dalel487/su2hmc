@@ -200,7 +200,7 @@ int main(int argc, char *argv[]){
 	float	*dk_f[2];
 	//Halo index arrays
 	unsigned int *iu, *id;
-	//And slover arrays. These only get assigned if @f$c_\text{SW}>0@f$
+	//And clover arrays. These only get assigned if @f$c_\text{SW}>0@f$
 	Complex *sigval; Complex_f *sigval_f; unsigned short *sigin;
 #ifdef __NVCC__
 	cudaMallocManaged((void**)&iu,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
@@ -216,14 +216,11 @@ int main(int argc, char *argv[]){
 	cudaMalloc((void **)&dk_f[1],(kvol+halo)*sizeof(float));
 #endif
 
-	int	*gamin;	Complex	*gamval;	Complex_f *gamval_f;
-	cudaMallocManaged((void **)&gamin,4*4*sizeof(int),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&gamval,5*4*sizeof(Complex),cudaMemAttachGlobal);
-#ifdef _DEBUG
+	unsigned short	*gamin; Complex *gamval; Complex_f *gamval_f;
 	cudaMallocManaged((void **)&gamval_f,5*4*sizeof(Complex_f),cudaMemAttachGlobal);
-#else
-	cudaMalloc((void **)&gamval_f,5*4*sizeof(Complex_f));
-#endif
+	cudaMallocManaged((void **)&gamval,5*4*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&gamin,4*4*sizeof(short),cudaMemAttachGlobal);
+
 	cudaMallocManaged((void **)&u[0],ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&u[1],ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&ut[0],ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
@@ -239,9 +236,7 @@ int main(int argc, char *argv[]){
 	id = (unsigned int*)aligned_alloc(AVX,ndim*kvol*sizeof(int));
 	iu = (unsigned int*)aligned_alloc(AVX,ndim*kvol*sizeof(int));
 
-	int	*gamin = (int *)aligned_alloc(AVX,4*4*sizeof(int));
-	Complex	*gamval=(Complex *)aligned_alloc(AVX,5*4*sizeof(Complex));
-	Complex_f *gamval_f=(Complex_f *)aligned_alloc(AVX,5*4*sizeof(Complex_f));;
+	unsigned short gamin[16]; Complex gamval[20]; Complex_f gamval_f[20];
 
 	dk[0] = (double *)aligned_alloc(AVX,(kvol+halo)*sizeof(double));
 	dk[1] = (double *)aligned_alloc(AVX,(kvol+halo)*sizeof(double));
@@ -791,7 +786,6 @@ int main(int argc, char *argv[]){
 	free(X0); free(X1); free(u[0]); free(u[1]);
 	free(id); free(iu);
 	free(dk_f[0]); free(dk_f[1]); free(ut_f[0]); free(ut_f[1]);
-	free(gamin); free(gamval); free(gamval_f);
 	//if(c_sw){
 	free(sigval); free(sigval_f); free(sigin);
 	//}

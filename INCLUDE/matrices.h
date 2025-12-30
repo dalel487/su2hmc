@@ -31,7 +31,7 @@ extern "C"
 	 * @return Zero on success, integer error code otherwise
 	 */
 	int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned  int *id,\
-			Complex *gamval, int *gamin, double *dk4m, double *dk4p, Complex_f jqq, float akappa);
+			Complex gamval[20], const unsigned short gamin[16], double *dk4m, double *dk4p, Complex_f jqq, float akappa);
 	/**
 	 * @brief Evaluates @f$\Phi=M^\dagger r@f$ in double precision.
 	 *
@@ -51,7 +51,7 @@ extern "C"
 	 * @return Zero on success, integer error code otherwise
 	 */
 	int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
-			Complex *gamval, int *gamin, double *dk4m, double *dk4p, Complex_f jqq, float akappa);
+			Complex gamval[20], const unsigned short gamin[16], double *dk4m, double *dk4p, Complex_f jqq, float akappa);
 	/**
 	 * @brief Evaluates @f$\Phi=M r@f$ in double precision
 	 *
@@ -68,7 +68,7 @@ extern "C"
 	 * @return Zero on success, integer error code otherwise
 	 */
 	int Hdslash(Complex *phi, Complex *r, Complex *ut[2],unsigned int *iu,unsigned  int *id,\
-			Complex *gamval, int *gamin, double *dk[2], float akappa);
+			Complex gamval[20], const unsigned short gamin[16], double *dk[2], float akappa);
 	/**
 	 * @brief Evaluates @f$\Phi=M^\dagger r@f$ in double precision
 	 *
@@ -87,7 +87,7 @@ extern "C"
 	 * @return Zero on success, integer error code otherwise
 	 */
 	int Hdslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned int *iu,unsigned  int *id,\
-			Complex *gamval, int *gamin, double *dk[2], float akappa);
+			Complex gamval[20], const unsigned short gamin[16], double *dk[2], float akappa);
 	//Float version
 	/**
 	 * @brief Evaluates @f$\Phi=M r@f$ in single precision.
@@ -107,7 +107,7 @@ extern "C"
 	 * @return Zero on success, integer error code otherwise
 	 */
 	int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
-			Complex_f *gamval,int *gamin, float *dk[2], Complex_f jqq, float akappa);
+			Complex_f gamval[20],const unsigned short gamin[16], float *dk[2], Complex_f jqq, float akappa);
 	/**
 	 * @brief Evaluates @f$\Phi=M^\dagger r@f$ in single precision.
 	 *
@@ -126,7 +126,7 @@ extern "C"
 	 * @return Zero on success, integer error code otherwise
 	 */
 	int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
-			Complex_f *gamval,int *gamin, float *dk[2], Complex_f jqq, float akappa);
+			Complex_f gamval[20],const unsigned short gamin[16], float *dk[2], Complex_f jqq, float akappa);
 	/**
 	 * @brief Evaluates @f$\Phi=M r@f$ in single precision.
 	 *
@@ -143,7 +143,7 @@ extern "C"
 	 * @return Zero on success, integer error code otherwise
 	 */
 	int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,unsigned int *id,\
-			Complex_f *gamval, int *gamin, float *dk[2], float akappa);
+			Complex_f gamval[20], const unsigned short gamin[16], float *dk[2], float akappa);
 	/**
 	 * @brief Evaluates @f$\Phi=M^\dagger r@f$ in single precision
 	 *
@@ -160,11 +160,11 @@ extern "C"
 	 * @return Zero on success, integer error code otherwise
 	 */
 	int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,unsigned int *id,\
-			Complex_f *gamval,int *gamin, float *dk[2], float akappa);
+			Complex_f gamval[20],const unsigned short gamin[16], float *dk[2], float akappa);
 #ifdef DIAGNOSTIC
 	int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f,\
 			unsigned int *iu, unsigned int *id, int *hu, int *hd, double *dk4m, double *dk4p,\
-			float *dk4m_f, float *dk4p_f, int *gamin, Complex *gamval, Complex_f *gamval_f,\
+			float *dk4m_f, float *dk4p_f, const unsigned short gamin[16], Complex gamval[20], Complex_f gamval_f[20],\
 			Complex_f jqq, float akappa, float beta, double ancg);
 #endif
 
@@ -220,26 +220,26 @@ extern "C"
 #ifdef __NVCC__
 	//Calling Functions
 	void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
-			Complex *gamval, int *gamin, double *dk4m, double *dk4p, Complex_f jqq, float akappa,\
+			Complex gamval[20], const unsigned short gamin[16], double *dk4m, double *dk4p, Complex_f jqq, float akappa,\
 			dim3 dimGrid, dim3 dimBlock);
 	void cuDslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
-			Complex *gamval, int *gamin, double *dk4m, double *dk4p, Complex_f jqq, float akappa,\
+			Complex gamval[20], const unsigned short gamin[16], double *dk4m, double *dk4p, Complex_f jqq, float akappa,\
 			dim3 dimGrid, dim3 dimBlock);
 	void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
-			Complex *gamval, int *gamin, double *dk4m, double *dk4p, float akappa,dim3 dimGrid, dim3 dimBlock);
+			Complex gamval[20], const unsigned short gamin[16], double *dk4m, double *dk4p, float akappa,dim3 dimGrid, dim3 dimBlock);
 	void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
-			Complex *gamval, int *gamin, double *dk4m, double *dk4p, float akappa, dim3 dimGrid, dim3 dimBlock);
+			Complex gamval[20], const unsigned short gamin[16], double *dk4m, double *dk4p, float akappa, dim3 dimGrid, dim3 dimBlock);
 	//Float version
 	void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
-			Complex_f *gamval_f, int *gamin, float *dk4m_f, float *dk4p_f, Complex_f jqq_f, float akappa_f,\
+			Complex_f gamval_f[20], const unsigned short gamin[16], float *dk4m_f, float *dk4p_f, Complex_f jqq_f, float akappa_f,\
 			dim3 dimGrid, dim3 dimBlock);
 	void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
-			Complex_f *gamval_f,int *gamin, float *dk4m_f, float *dk4p_f, Complex_f jqq_f, float akappa_f,\
+			Complex_f gamval_f[20],const unsigned short gamin[16], float *dk4m_f, float *dk4p_f, Complex_f jqq_f, float akappa_f,\
 			dim3 dimGrid, dim3 dimBlock);
 	void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut_f[2],unsigned int *iu,unsigned int *id,\
-			Complex_f *gamval_f,int *gamin, float *dk_f[2], float akappa_f,dim3 dimGrid, dim3 dimBlock);
+			Complex_f gamval_f[20],const unsigned short gamin[16], float *dk_f[2], float akappa_f,dim3 dimGrid, dim3 dimBlock);
 	void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut_f[2],unsigned int *iu,unsigned int *id,\
-			Complex_f *gamval_f,int *gamin, float *dk_f[2], float akappa_f, dim3 dimGrid, dim3 dimBlock);
+			Complex_f gamval_f[20],const unsigned short gamin[16], float *dk_f[2], float akappa_f, dim3 dimGrid, dim3 dimBlock);
 
 	/**
 	 * @brief	Sum all terms in an array of doubles

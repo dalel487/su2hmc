@@ -98,7 +98,7 @@ int Gauge_force(double *dSdpi, Complex_f *ut[2],unsigned int *iu,unsigned int *i
 }
 int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1, Complex *Phi,\
 			Complex *ut[2], Complex_f *ut_f[2],unsigned int *iu,unsigned int *id,\
-			Complex *gamval,Complex_f *gamval_f,int *gamin,Complex *sigval,Complex_f *sigval_f, unsigned short *sigin,\
+			Complex gamval[20],Complex_f gamval_f[20],const unsigned short gamin[16],Complex *sigval,Complex_f *sigval_f, unsigned short *sigin,\
 			double *dk[2], float *dk_f[2],const Complex_f jqq, const float akappa,const float beta,const float c_sw,double *ancg){
 	/*
 	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
@@ -287,7 +287,7 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
 							 (-ut[0][i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
 							  -conj(ut[1][i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])));
-					dSdpi[(i*nadj)*ndim+mu]+=creal(I*gamval[mu*ndirac+idirac]*
+					dSdpi[(i*nadj)*ndim+mu]+=creal(Igamval[20][mu*ndirac+idirac]*
 							(conj(X1[(i*ndirac+idirac)*nc])*
 							 (-conj(ut[1][i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
 							  +conj(ut[0][i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1])
@@ -341,7 +341,7 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
 							 (-conj(ut[1][i*ndim+mu])*X2[(i*ndirac+idirac)*nc]
 							  +ut[0][i*ndim+mu] *X2[(i*ndirac+idirac)*nc+1])));
-					dSdpi[(i*nadj+2)*ndim+mu]+=creal(I*gamval[mu*ndirac+idirac]*
+					dSdpi[(i*nadj+2)*ndim+mu]+=creal(Igamval[20][mu*ndirac+idirac]*
 							(conj(X1[(i*ndirac+idirac)*nc])*
 							 (ut[0][i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
 							  +ut[1][i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1])

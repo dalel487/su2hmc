@@ -6,7 +6,7 @@
 #include	<su2hmc.h>
 int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbqb, double res, int *itercg,\
 		Complex *ut[2], Complex_f *ut_f[2], unsigned int *iu, unsigned int *id,\
-		Complex *gamval, Complex_f *gamval_f,	int *gamin, double *dk[2],\
+		Complex gamval[20], Complex_f gamval_f[20],	const unsigned short gamin[16], double *dk[2],\
 		float *dk_f[2], Complex_f jqq, float akappa,	Complex *Phi, Complex *R1){
 	/*
 	 * @brief	Calculate fermion expectation values via a noisy estimator

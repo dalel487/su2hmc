@@ -15,7 +15,7 @@
 //TODO: Check and see are there any terms we are evaluating twice in the same loop
 //and use a variable to hold them instead to reduce the number of evaluations.
 int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int *iu,unsigned int *id,\
-		Complex *gamval, int *gamin, double *dk4m, double *dk4p, Complex_f jqq, float akappa){
+		Complex gamval[20], const unsigned short gamin[16], double *dk4m, double *dk4p, Complex_f jqq, float akappa){
 	const char *funcname = "Dslash";
 	//Get the halos in order
 #if(nproc>1)
@@ -34,9 +34,9 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int 
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork = idirac+4;
 			Complex a_1, a_2;
-			a_1=conj(jqq)*gamval[4*ndirac+idirac];
+			a_1=conj(jqq)gamval[20][4*ndirac+idirac];
 			//We subtract a_2, hence the minus
-			a_2=-jqq*gamval[4*ndirac+idirac];
+			a_2=-jqqgamval[20][4*ndirac+idirac];
 			phi[(i*ngorkov+idirac)*nc]+=a_1*r[(i*ngorkov+igork)*nc+0];
 			phi[(i*ngorkov+idirac)*nc+1]+=a_1*r[(i*ngorkov+igork)*nc+1];
 			phi[(i*ngorkov+igork)*nc+0]+=a_2*r[(i*ngorkov+idirac)*nc];
@@ -117,7 +117,7 @@ int Dslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t, unsigned int 
 	return 0;
 }
 int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
-		Complex *gamval, int *gamin, double *dk4m, double *dk4p, Complex_f jqq, float akappa){
+		Complex gamval[20], const unsigned short gamin[16], double *dk4m, double *dk4p, Complex_f jqq, float akappa){
 	const char *funcname = "Dslashd";
 	//Get the halos in order
 #if(nproc>1)
@@ -137,8 +137,8 @@ int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int 
 			int igork = idirac+4;
 			Complex a_1, a_2;
 			//We subtract a_1, hence the minus
-			a_1=-conj(jqq)*gamval[4*ndirac+idirac];
-			a_2=jqq*gamval[4*ndirac+idirac];
+			a_1=-conj(jqq)gamval[20][4*ndirac+idirac];
+			a_2=jqqgamval[20][4*ndirac+idirac];
 			phi[(i*ngorkov+idirac)*nc]+=a_1*r[(i*ngorkov+igork)*nc];
 			phi[(i*ngorkov+idirac)*nc+1]+=a_1*r[(i*ngorkov+igork)*nc+1];
 			phi[(i*ngorkov+igork)*nc]+=a_2*r[(i*ngorkov+idirac)*nc];
@@ -224,7 +224,7 @@ int Dslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int 
 	return 0;
 }
 int Hdslash(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned  int *id,\
-		Complex *gamval, int *gamin, double *dk[2], float akappa){
+		Complex gamval[20], const unsigned short gamin[16], double *dk[2], float akappa){
 	const char *funcname = "Hdslash";
 	//Get the halos in order
 #if(nproc>1)
@@ -296,7 +296,7 @@ int Hdslash(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned 
 	return 0;
 }
 int Hdslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned  int *id,\
-		Complex *gamval, int *gamin, double *dk[2], float akappa){
+		Complex gamval[20], const unsigned short gamin[16], double *dk[2], float akappa){
 	const char *funcname = "Hdslashd";
 	//Get the halos in order. Because C is row major, we need to extract the correct
 	//terms for each halo first. Changing the indices was considered but that caused
@@ -377,7 +377,7 @@ int Hdslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned
 //Float Versions
 //int Dslash_f(Complex_f *phi, Complex_f *r){
 int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu, unsigned int *id,\
-		Complex_f *gamval_f,	int *gamin,	float *dk_f[2], Complex_f jqq, float akappa){
+		Complex_f gamval_f[20],	const unsigned short gamin[16],	float *dk_f[2], Complex_f jqq, float akappa){
 	const char *funcname = "Dslash_f";
 	//Get the halos in order
 #if(nproc>1)
@@ -479,7 +479,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,
 	return 0;
 }
 int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
-		Complex_f *gamval_f, int *gamin, float *dk_f[2], Complex_f jqq, float akappa){
+		Complex_f gamval_f[20], const unsigned short gamin[16], float *dk_f[2], Complex_f jqq, float akappa){
 	const char *funcname = "Dslashd_f";
 	//Get the halos in order
 #if(nproc>1)
@@ -586,7 +586,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f
 	return 0;
 }
 int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned  int *iu,unsigned  int *id,\
-		Complex_f *gamval, int *gamin, float *dk[2], float akappa){
+		Complex_f gamval[20], const unsigned short gamin[16], float *dk[2], float akappa){
 	const char *funcname = "Hdslash_f";
 	//Get the halos in order
 #if(nproc>1)
@@ -709,7 +709,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned  int *iu,u
 	return 0;
 }
 int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,unsigned int *id,\
-		Complex_f *gamval, int *gamin, float *dk[2], float akappa){
+		Complex_f gamval[20], const unsigned short gamin[16], float *dk[2], float akappa){
 	const char *funcname = "Hdslashd_f";
 	//Get the halos in order. Because C is row major, we need to extract the correct
 	//terms for each halo first. Changing the indices was considered but that caused

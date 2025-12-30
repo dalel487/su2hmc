@@ -206,7 +206,7 @@ void blockInit(int x, int y, int z, int t, dim3 *dimBlock, dim3 *dimGrid){
 	}
 	printf("Block: (%d,%d,%d)\tGrid: (%d,%d,%d)\n",dimBlock->x,dimBlock->y,dimBlock->z,dimGrid->x,dimGrid->y,dimGrid->z);
 }
-void	Init_CUDA(Complex *u11t, Complex *u12t,Complex *gamval, Complex_f *gamval_f, int *gamin, double*dk4m,\
+void	Init_CUDA(Complex *u11t, Complex *u12t,Complex gamval[20], Complex_f gamval_f[20], unsigned short gamin[16], double*dk4m,\
 		double *dk4p, unsigned int *iu, unsigned int *id){
 	/*
 	 * Initialises the GPU Components of the system

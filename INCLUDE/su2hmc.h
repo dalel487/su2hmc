@@ -64,7 +64,7 @@ extern "C"
 	 */
 int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1, Complex *Phi,\
 			Complex *ut[2], Complex_f *ut_f[2],unsigned int *iu,unsigned int *id,\
-			Complex *gamval,Complex_f *gamval_f,int *gamin,Complex *sigval,Complex_f *sigval_f, unsigned short *sigin,\
+			Complex gamval[20],Complex_f gamval_f[20],const unsigned short gamin[16],Complex *sigval,Complex_f *sigval_f, unsigned short *sigin,\
 			double *dk[2], float *dk_f[2],const Complex_f jqq, const float akappa,const float beta,const float c_sw,double *ancg);
 	/**
 	 * @brief	Calculates the gauge force due to the Wilson Action at each intermediate time
@@ -102,7 +102,7 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 	 * @return Zero on success, integer error code otherwise
 	 */
 	int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa, Complex_f ajq,\
-			Complex *u[2], Complex *ut[2], Complex_f *ut_f[2], Complex *gamval, Complex_f *gamval_f,int *gamin, 
+			Complex *u[2], Complex *ut[2], Complex_f *ut_f[2], Complex gamval[20], Complex_f gamval_f[20],unsigned short gamin[16], 
 			double *dk[2], float *dk_f[2], unsigned int *iu, unsigned int *id);
 	/**
 	 * @brief Calculate the Hamiltonian
@@ -131,7 +131,7 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 	 * @return	Zero on success. Integer Error code otherwise.
 	 */	
 	int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,Complex *Phi, Complex *ud[2],Complex_f *ut[2],
-			unsigned int *iu,unsigned int *id, Complex *gamval, Complex_f *gamval_f,int *gamin, Complex *sigval, Complex_f *sigval_f,
+			unsigned int *iu,unsigned int *id, Complex gamval[20], Complex_f gamval_f[20],const unsigned short gamin[16], Complex *sigval, Complex_f *sigval_f,
 			unsigned short *sigin, double *dk[2],float *dk_f[2],Complex_f jqq,float akappa,float beta,float c_sw, double *ancgh,
 			int traj);
 	/**
@@ -161,7 +161,7 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 	 * @return 0 on success, integer error code otherwise
 	 */
 	int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f *ut[2],Complex_f *clover_f[nc],
-			unsigned int *iu, unsigned int *id, Complex *gamval, Complex_f *gamval_f,int *gamin,
+			unsigned int *iu, unsigned int *id, Complex gamval[20], Complex_f gamval_f[20],const unsigned short gamin[16],
 			Complex *sigval, Complex_f *sigval_f,unsigned short *sigin, double *dk[2], float *dk_f[2],
 			Complex_f jqq,float akappa,float c_sw,int *itercg);
 	/**
@@ -186,7 +186,7 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 	 * @return 0 on success, integer error code otherwise
 	 */
 	int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigned int *iu,unsigned int *id,\
-			Complex_f *gamval,int *gamin,float *dk[2],Complex_f jqq,float akappa,int *itercg);
+			Complex_f gamval[20],const unsigned short gamin[16],float *dk[2],Complex_f jqq,float akappa,int *itercg);
 	/**
 	 * @brief	Calculate fermion expectation values via a noisy estimator
 	 * 
@@ -223,7 +223,7 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 	 */
 	int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbqb, double res, int *itercg,\
 			Complex *ut[2], Complex_f *ut_f[2], unsigned int *iu, unsigned int *id,\
-			Complex *gamval, Complex_f *gamval_f,	int *gamin, double *dk[2],\
+			Complex gamval[20], Complex_f gamval_f[20],	const unsigned short gamin[16], double *dk[2],\
 			float *dk_f[2], Complex_f jqq, float akappa,	Complex *Phi, Complex *R1);
 	/** 
 	 * @brief	Calculates the gauge action using new (how new?) lookup table
@@ -359,10 +359,10 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 	void cuMinus_staple(int mu, int nu, unsigned int *iu, unsigned int *id, Complex_f *Sigma11, Complex_f *Sigma12,\
 			Complex_f *u11sh, Complex_f *u12sh,Complex_f *u11t, Complex_f*u12t,	dim3 dimGrid, dim3 dimBlock);
 	void cuForce(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, \
-			Complex_f *gamval,float *dk[2],unsigned int *iu,int *gamin,\
+			Complex_f gamval[20],float *dk[2],unsigned int *iu,const unsigned short gamin[16],\
 			float akappa, dim3 dimGrid, dim3 dimBlock);
 	//cuInit was taken already by CUDA (unsurprisingly)
-	void Init_CUDA(Complex *u11t, Complex *u12t,Complex *gamval, Complex_f *gamval_f, int *gamin, double*dk4m,\
+	void Init_CUDA(Complex *u11t, Complex *u12t,Complex gamval[20], Complex_f gamval_f[20], unsigned short gamin[16], double*dk4m,\
 			double *dk4p, unsigned int *iu, unsigned int *id);
 	void cuFill_Small_Phi(const unsigned int na, Complex *smallPhi, Complex *Phi,dim3 dimBlock, dim3 dimGrid);
 	void cuC_gather(Complex_f *x, Complex_f *y, const unsigned int n, unsigned int *table, const unsigned short mu,dim3 dimBlock, dim3 dimGrid);

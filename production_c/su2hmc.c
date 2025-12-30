@@ -18,8 +18,8 @@
 #include	<su2hmc.h>
 
 int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa, Complex_f ajq,\
-		Complex *u[2], Complex *ut[2], Complex_f *ut_f[2], Complex *gamval, Complex_f *gamval_f,
-		int *gamin, double *dk[2], float *dk_f[2], unsigned int *iu, unsigned int *id){
+		Complex *u[2], Complex *ut[2], Complex_f *ut_f[2], Complex gamval[20], Complex_f gamval_f[20],
+		unsigned short gamin[16], double *dk[2], float *dk_f[2], unsigned int *iu, unsigned int *id){
 	const char *funcname = "Init";
 
 #ifdef _OPENMP
@@ -74,14 +74,14 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 	}
 #endif
 	//What row of each dirac/sigma matrix contains the entry acting on element i of the spinor
-	int __attribute__((aligned(AVX))) gamin_t[4][4] =	{{3,2,1,0},{3,2,1,0},{2,3,0,1},{2,3,0,1}};
+	unsigned short __attribute__((aligned(AVX))) gamin_t[4][4] =	{{3,2,1,0},{3,2,1,0},{2,3,0,1},{2,3,0,1}};
 	//Gamma Matrices in Chiral Representation
 	//See Appendix 8.1.2 of Montvay and Munster
 	//_t is for temp. We copy these into the real gamvals later
 #ifdef __NVCC__
-	cudaMemcpy(gamin,gamin_t,4*4*sizeof(int),cudaMemcpyDefault);
+	cudaMemcpy(gamin,gamin_t,4*4*sizeof(short),cudaMemcpyHostToDevice);
 #else
-	memcpy(gamin,gamin_t,4*4*sizeof(int));
+	memcpy(gamin,gamin_t,4*4*sizeof(short));
 #endif
 	//Each row of the dirac matrix contains only one non-zero entry, so that's all we encode here
 	Complex	__attribute__((aligned(AVX)))	gamval_t[5][4] =	{{-I,-I,I,I},{-1,1,1,-1},{-I,I,I,-I},{1,1,1,1},{1,1,-1,-1}};
@@ -99,7 +99,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 
 
 #ifdef __NVCC__
-	cudaMemcpy(gamval,gamval_t,5*4*sizeof(Complex),cudaMemcpyDefault);
+	cudaMemcpy(gamval,gamval_t,5*4*sizeof(Complex),cudaMemcpyHostToDevice);
 	cuComplex_convert(gamval_f,gamval,20,true,dimBlockOne,dimGridOne);	
 #else
 	memcpy(gamval,gamval_t,5*4*sizeof(Complex));
@@ -171,7 +171,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 	return 0;
 }
 int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,Complex *Phi, Complex *ud[2],Complex_f *ut[2],
-		unsigned int *iu,unsigned int *id, Complex *gamval, Complex_f *gamval_f,int *gamin, Complex *sigval, Complex_f *sigval_f,
+		unsigned int *iu,unsigned int *id, Complex gamval[20], Complex_f gamval_f[20],const unsigned short gamin[16], Complex *sigval, Complex_f *sigval_f,
 		unsigned short *sigin, double *dk[2],float *dk_f[2],Complex_f jqq,float akappa,float beta,float c_sw, double *ancgh,
 		int traj){
 	const char *funcname = "Hamilton";

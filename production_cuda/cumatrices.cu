@@ -9,8 +9,8 @@
 #include <string.h>
 #include	<thrust_complex.h>
 template <typename T>
-__global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, complex<T> *u12t,unsigned int *iu, unsigned int *id,\
-		__constant__ complex<T> *gamval_d,	int *gamin_d,	T *dk4m, T *dk4p, Complex_f jqq, float akappa){
+__global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, complex<T> *u12t,const unsigned int *iu, const unsigned int *id,\
+		__constant__ complex<T> gamval_d[20],	const unsigned short gamin_d[16], const T *dk4m, const T *dk4p, const Complex_f jqq, const float akappa){
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -47,9 +47,10 @@ __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, compl
 			u11sd=u11t[ind]; u12sd=u12t[ind];
 			for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
 				unsigned short idirac=igorkov&3;		
-				const complex<T> gam=gamval_d[mu*ndirac+idirac];
+				unsigned short gind=mu*ndirac+idirac;
+				const complex<T> gam=gamval_d[gind];
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing in the dirac term.
-				unsigned short igork1 = (igorkov<4) ? gamin_d[mu*ndirac+idirac] : gamin_d[mu*ndirac+idirac]+4;
+				unsigned short igork1 = (igorkov<4) ? gamin_d[gind] : gamin_d[gind]+4;
 				for(unsigned short c=0;c<nc;c++){
 					ru[c]=r[uid+kvol*(igorkov*nc+c)]; rd[c]=r[did+kvol*(igorkov*nc+c)];
 					rgu[c]=r[uid+kvol*(igork1*nc+c)]; rgd[c]=r[did+kvol*(igork1*nc+c)];
@@ -118,7 +119,7 @@ __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, compl
 }
 template <typename T>
 __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T> *u11t, const complex<T> *u12t,const unsigned int *iu, const unsigned int *id,\
-		__constant__ complex<T> *gamval_d,	int *gamin_d,	const T *dk4m, const T *dk4p, const Complex_f jqq, const float akappa){
+		__constant__ complex<T> gamval_d[20], const unsigned short gamin_d[16], const T *dk4m, const T *dk4p, const Complex_f jqq, const float akappa){
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -227,7 +228,7 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 
 template <typename T>
 __global__ void cuHdslash(complex<T> *phi, const complex<T> *r, const complex<T> *u11t, const complex<T> *u12t,unsigned int *iu, unsigned int *id,\
-		__constant__ complex<T> gamval[20],	__constant__ int gamin_d[16],	const T *dk4m, const T *dk4p, const __grid_constant__ float akappa){
+		__constant__ complex<T> gamval[20],	const unsigned short gamin_d[16],	const T *dk4m, const T *dk4p, const __grid_constant__ float akappa){
 	/*
 	 * Half Dslash T precision
 	 */
@@ -307,7 +308,7 @@ __global__ void cuHdslash(complex<T> *phi, const complex<T> *r, const complex<T>
 }
 template <typename T>
 __global__ void cuHdslashd(complex<T> *phi, const complex<T>* r, const complex<T>* u11t, const complex<T>* u12t,unsigned int* iu, unsigned int* id,\
-		__constant__ complex<T> gamval[20],	__constant__ int gamin_d[16],	const T* dk4m, const T* dk4p, const __grid_constant__ float akappa){
+		__constant__ complex<T> gamval[20],	const unsigned short gamin_d[16],	const T* dk4m, const T* dk4p, const __grid_constant__ float akappa){
 	/*
 	 * Half Dslash Dagger T precision 
 	 */
@@ -504,28 +505,28 @@ double cureduce_sum_d(double *input, const unsigned int n,const unsigned short s
 	return output;
 }
 void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
-		Complex *gamval, int *gamin,	double *dk4m, double *dk4p, Complex_f jqq, float akappa,\
+		Complex gamval[20], const unsigned short gamin[16],	double *dk4m, double *dk4p, Complex_f jqq, float akappa,\
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslash";
 	cudaMemcpy(phi, r, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice);
 	cuDslash<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 }
 void cuDslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
-		Complex *gamval, int *gamin,	double *dk4m, double *dk4p, Complex_f jqq, float akappa,\ 
+		Complex gamval[20], const unsigned short gamin[16],	double *dk4m, double *dk4p, Complex_f jqq, float akappa,\ 
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslashd";
 	cudaMemcpy(phi, r, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice);
 	cuDslashd<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 }
 void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
-		Complex *gamval, int *gamin,	double *dk4m, double *dk4p, float akappa,\ 
+		Complex gamval[20], const unsigned short gamin[16],	double *dk4m, double *dk4p, float akappa,\ 
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Hdslash";
 	cudaMemcpy(phi, r, kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice);
 	cuHdslash<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
 }
 void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
-		Complex *gamval, int *gamin,double *dk4m, double *dk4p, float akappa,\ 
+		Complex gamval[20], const unsigned short gamin[16],double *dk4m, double *dk4p, float akappa,\ 
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Hdslashd";
 	//Spacelike term
@@ -535,7 +536,7 @@ void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned 
 
 //Float editions
 void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
-		Complex_f *gamval,int *gamin,	float *dk4m, float *dk4p, Complex_f jqq, float akappa,\ 
+		Complex_f gamval[20],const unsigned short gamin[16],	float *dk4m, float *dk4p, Complex_f jqq, float akappa,\ 
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslash_f";
 	int cuCpyStat=0;
@@ -547,7 +548,7 @@ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,u
 	cuDslash<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 }
 void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
-		Complex_f *gamval,int *gamin,	float *dk4m, float *dk4p, Complex_f jqq, float akappa,\ 
+		Complex_f gamval[20],const unsigned short gamin[16],	float *dk4m, float *dk4p, Complex_f jqq, float akappa,\ 
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslashd_f";
 	int cuCpyStat=0;
@@ -558,8 +559,8 @@ void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,
 	}
 	cuDslashd<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 }
-void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,unsigned int *id, Complex_f *gamval,
-		int *gamin,	float *dk[2], float akappa, dim3 dimGrid, dim3 dimBlock){
+void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,unsigned int *id, Complex_f gamval[20],
+		const unsigned short gamin[16],	float *dk[2], float akappa, dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Hdslash_f";
 	int cuCpyStat=0;
 	if((cuCpyStat=cudaMemcpy(phi, r, kferm2*sizeof(Complex_f),cudaMemcpyDefault))){
@@ -572,7 +573,7 @@ void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu
 	cuHdslash<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa);
 }
 void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,unsigned int *id,
-		Complex_f*gamval,int *gamin,float *dk[2], float akappa,dim3 dimGrid, dim3 dimBlock){
+		Complex_f gamval[20],const unsigned short gamin[16],float *dk[2], float akappa,dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Hdslashd_f";
 	int cuCpyStat=0;
 	//__shared__ int gamin_s[16]; __shared__ Complex_f gamval_s[20];

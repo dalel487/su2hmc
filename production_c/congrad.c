@@ -141,7 +141,7 @@ void Q_free(Complex **p, Complex **x1, Complex **x2, Complex *clover[2]){
 	return;
 }
 int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f *ut[2],Complex_f *clover_f[nc],
-		unsigned int *iu, unsigned int *id, Complex *gamval, Complex_f *gamval_f,int *gamin,
+		unsigned int *iu, unsigned int *id, Complex gamval[20], Complex_f gamval_f[20],const unsigned short gamin[16],
 		Complex *sigval, Complex_f *sigval_f,unsigned short *sigin, double *dk[2], float *dk_f[2],
 		Complex_f jqq,float akappa,float c_sw,int *itercg){
 	/*
@@ -541,7 +541,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 	return ret_val;
 }
 int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigned int *iu,unsigned int *id,\
-		Complex_f *gamval,int *gamin, float *dk[2],Complex_f jqq,float akappa,int *itercg){
+		Complex_f gamval[20],const unsigned short gamin[16], float *dk[2],Complex_f jqq,float akappa,int *itercg){
 	/*
 	 * @brief Matrix Inversion via Conjugate Gradient
 	 * Solves @f$(M^\dagger)Mx=\Phi@f$

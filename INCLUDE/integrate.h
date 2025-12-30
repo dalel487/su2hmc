@@ -61,7 +61,7 @@ extern "C"
 	 *	@return Zero on success, integer error code otherwise
 	 */
 int Leapfrog(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi,double *dk[2],float *dk_f[2],
-			double *dSdpi,double *pp, unsigned int *iu,unsigned int *id, Complex *gamval, Complex_f *gamval_f, int *gamin,
+			double *dSdpi,double *pp, unsigned int *iu,unsigned int *id, Complex gamval[20], Complex_f gamval_f[20], const unsigned short gamin[16],
 			Complex *sigval, Complex_f *sigval_f, unsigned short *sigin, const Complex jqq, const float beta, const float akappa, 
 			const float c_sw, const int stepl, const float dt, double *ancg, int *itot, const float proby);
 	/**
@@ -92,7 +92,7 @@ int Leapfrog(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex 
 	 *	@return Zero on success, integer error code otherwise
 	 */
 int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi,double *dk[2],float *dk_f[2],
-			double *dSdpi,double *pp, unsigned int *iu,unsigned int *id, Complex *gamval, Complex_f *gamval_f, int *gamin,
+			double *dSdpi,double *pp, unsigned int *iu,unsigned int *id, Complex gamval[20], Complex_f gamval_f[20], const unsigned short gamin[16],
 			Complex *sigval, Complex_f *sigval_f, unsigned short *sigin, const Complex jqq, const float beta, const float akappa, 
 			const float c_sw, const int stepl, const float dt, double *ancg, int *itot, const float proby);
 	/**
@@ -123,7 +123,7 @@ int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 	 *	@return Zero on success, integer error code otherwise
 	 */
 int OMF4(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi,double *dk[2],float *dk_f[2],
-			double *dSdpi,double *pp, unsigned int *iu,unsigned int *id, Complex *gamval, Complex_f *gamval_f, int *gamin,
+			double *dSdpi,double *pp, unsigned int *iu,unsigned int *id, Complex gamval[20], Complex_f gamval_f[20], const unsigned short gamin[16],
 			Complex *sigval, Complex_f *sigval_f, unsigned short *sigin, const Complex jqq, const float beta, const float akappa, 
 			const float c_sw, const int stepl, const float dt, double *ancg, int *itot, const float proby);
 	//CUDA Calling functions
