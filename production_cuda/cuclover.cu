@@ -487,17 +487,10 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *ut[nc], complex<T> *hLea
 					complex<T> fleaf1c=conj(fleaf[gen][1]);
 					T force = (sigval[clov*ndirac+idirac]*(X1sc[0]*(fleaf[gen][0].imag()*X2s[0]+fleaf[gen][1]*X2s[1])+\
 								X1sc[1]*(-fleaf[gen][0].imag()*X2s[1]-fleaf1c*X2s[0]))).real();
-					//mu contribution
+					//mu direction contribution
 					dSdpis[0][gen]+=force;
-//					dSdpis[0][gen]+= (sigval[clov*ndirac+idirac]*(X1sc[0]*(fleaf[gen][0].imag()*X2s[0]+fleaf[gen][1]*X2s[1])+\
-//								X1sc[1]*(-fleaf[gen][0].imag()*X2s[1]-fleaf1c*X2s[0]))).real();
-					//nu contribution
+					//nu direction contribution
 					dSdpis[1][gen]+=force;
-				//	dSdpis[1][gen]+=(sigval[clov*ndirac+idirac]*(X1sc[0]*(fleaf[gen][0].imag()*X2s[0]+fleaf[gen][1]*X2s[1])+\
-				//				X1sc[1]*(fleaf1c*X2s[0]+fleaf[gen][0].imag()*X2s[1]))).real();
-					
-					//dSdpis[1][gen]-=(sigval[clov*ndirac+idirac]*(X1sc[0]*(fleaf[gen][0].imag()*X2s[0]+fleaf[gen][1]*X2s[1])+\
-					//			X1sc[1]*(-fleaf[gen][0].imag()*X2s[1]-fleaf1c*X2s[0]))).real();
 				}
 			}
 		}
