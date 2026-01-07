@@ -264,12 +264,9 @@ int main(int argc, char *argv[]){
 	 * istart > 0: Random/Hot Start
 	 */
 	Init(istart,ibound,iread,beta,fmu,akappa,ajq,u,ut,ut_f,gamval,gamval_f,gamin,dk,dk_f,iu,id);
-	//	if(c_sw){
-	sigin = (unsigned short *)aligned_alloc(AVX,6*4*sizeof(short));
-	sigval=(Complex *)aligned_alloc(AVX,6*4*sizeof(Complex));
-	sigval_f=(Complex_f *)aligned_alloc(AVX,6*4*sizeof(Complex_f));;
-	Init_clover(sigval,sigval_f,sigin,c_sw);
-	//		}
+	if(c_sw){
+		Init_clover(&sigval,&sigval_f,&sigin,c_sw);
+	}
 
 	/// @f$\sigma_{\mu\nu}@f$ if we're using clover fermions
 #ifdef __NVCC__
@@ -477,8 +474,8 @@ int main(int argc, char *argv[]){
 			cudaDeviceSynchronise();
 #endif
 			Dslashd_f(R1_f,R,ut_f[0],ut_f[1],iu,id,gamval_f,gamin,dk_f,jqq,akappa);
-			//			if(c_sw)
-			//				ByClover(R1_f,R,clover,sigval_f,sigin);
+			if(c_sw)
+				ByClover_f(R1_f,R,clover,sigval_f,sigin);
 #ifdef __NVCC__
 			//Make sure the multiplication is finished before freeing its input!!
 			cudaFree(R);//cudaDeviceSynchronise(); 
@@ -779,6 +776,9 @@ int main(int argc, char *argv[]){
 	cudaFree(id); cudaFree(iu); 
 	cudaFree(dk_f[0]); cudaFree(dk_f[1]); cudaFree(ut_f[0]); cudaFree(ut_f[1]);
 	cudaFree(gamin); cudaFree(gamval); cudaFree(gamval_f);
+	if(c_sw){
+		cudaFree(sigval); cudaFree(sigval_f); cudaFree(sigin);
+	}
 	cublasDestroy(cublas_handle);
 #else
 	free(dk[0]); free(dk[1]); free(R1); free(dSdpi); free(pp);
@@ -786,9 +786,9 @@ int main(int argc, char *argv[]){
 	free(X0); free(X1); free(u[0]); free(u[1]);
 	free(id); free(iu);
 	free(dk_f[0]); free(dk_f[1]); free(ut_f[0]); free(ut_f[1]);
-	//if(c_sw){
-	free(sigval); free(sigval_f); free(sigin);
-	//}
+	if(c_sw){
+		free(sigval); free(sigval_f); free(sigin);
+	}
 #endif
 	free(hd); free(hu);free(h1u); free(h1d); free(halosize); free(pcoord);
 #ifdef __RANLUX__

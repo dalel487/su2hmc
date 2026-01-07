@@ -472,7 +472,7 @@ int Clover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2,
 }
 
 //Initialisation and freeing
-int Init_clover(Complex *sigval, Complex_f *sigval_f,unsigned short *sigin, float c_sw){
+int Init_clover(Complex **sigval, Complex_f **sigval_f,unsigned short **sigin, float c_sw){
 	const char funcname[] = "Init_clover";
 	unsigned short __attribute__((aligned(AVX))) sigin_t[6][4] =	{{0,1,2,3},{1,0,3,2},{1,0,3,2},{1,0,3,2},{1,0,3,2},{0,1,2,3}};
 	//The sigma matrices are the commutators of the gamma matrices. These are antisymmetric when you swap the indices
@@ -495,14 +495,25 @@ int Init_clover(Complex *sigval, Complex_f *sigval_f,unsigned short *sigin, floa
 #endif
 
 #ifdef __NVCC__
-	cudaMemcpy(sigval,sigval_t,6*4*sizeof(Complex),cudaMemcpyDefault);
-	cudaMemcpy(sigin,sigin_t,6*4*sizeof(short),cudaMemcpyDefault);
-	cuComplex_convert(sigval_f,sigval,24,true,dimBlockOne,dimGridOne);	
+	int device = -1; 
+	cudaGetDevice(&device);
+
+	cudaMalloc((void **)sigin,6*4*sizeof(short));
+	cudaMalloc((void **)sigval,6*4*sizeof(Complex));
+	cudaMalloc((void **)sigval_f,6*4*sizeof(Complex_f));
+
+	cudaMemcpy(*sigin,sigin_t,6*4*sizeof(short),cudaMemcpyDefault);
+	cudaMemcpy(*sigval,sigval_t,6*4*sizeof(Complex),cudaMemcpyDefault);
+
+	cuComplex_convert(*sigval_f,*sigval,24,true,dimBlockOne,dimGridOne);	
 #else
-	memcpy(sigval,sigval_t,6*4*sizeof(Complex));
-	memcpy(sigin,sigin_t,6*4*sizeof(short));
+	*sigin = (unsigned short *)aligned_alloc(AVX,6*4*sizeof(short));
+	*sigval=(Complex *)aligned_alloc(AVX,6*4*sizeof(Complex));
+	*sigval_f=(Complex_f *)aligned_alloc(AVX,6*4*sizeof(Complex_f));;
+	memcpy(*sigval,sigval_t,6*4*sizeof(Complex));
+	memcpy(*sigin,sigin_t,6*4*sizeof(short));
 	for(int i=0;i<6*4;i++)
-		sigval_f[i]=(Complex_f)sigval[i];
+		*sigval_f[i]=(Complex_f)(*sigval[i]);
 #endif
 }
 inline int Clover_free(Complex_f *clover[nc]){
