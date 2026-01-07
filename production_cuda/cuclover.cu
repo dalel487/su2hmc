@@ -349,7 +349,7 @@ __global__ void Half_Leaves(complex<T> *hLeaves0,complex<T> *hLeaves1,complex<T>
  */
 template <typename T>
 __global__  void Full_Clover(complex<T> *clover1, complex<T> *clover2,\
-		complex<T> *ut[nc], unsigned int *iu, unsigned int *id, int mu, int nu){
+		complex<T> *u11t, complex<T> *u12t, unsigned int *iu, unsigned int *id, int mu, int nu){
 	const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const volatile int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const volatile int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -362,7 +362,7 @@ __global__  void Full_Clover(complex<T> *clover1, complex<T> *clover2,\
 		for(unsigned short leaf=0;leaf<ndim;leaf++)
 		{
 			//Pointer arithemetic on the leaves.
-			Leaf(ut[0],ut[1],Leaves,iu,id,i,mu,nu,leaf);
+			Leaf(u11t,u12t,Leaves,iu,id,i,mu,nu,leaf);
 			clover1[i]+=Leaves[0]; clover2[i]+=Leaves[1];
 		}
 		///The clover is given by @f$F_{\mu\nu}=\frac{-i}{8}\left(Q_{\mu\nu}-Q_{\nu\mu}\right)^\dagger@f$. We do that
@@ -392,9 +392,10 @@ __global__  void Full_Clover(complex<T> *clover1, complex<T> *clover2,\
  * @param	kappa:		Hopping parameter
  */
 template <typename T>
-__global__ void Clover_Force(double *dSdpi, complex<T> *ut[nc], complex<T> *hLeaves[nc], complex<T> *X1,\
-		complex<T> *X2, const complex<T> *sigval, const unsigned short *sigin, unsigned int *iu, unsigned int *id,\
-		const unsigned short clov,const unsigned short mu, const unsigned short nu, const float kappa){
+__global__ void Clover_Force(double *dSdpi, complex<T> *u11t, complex<T> *u12t, complex<T> *hLeaves0, complex<T> *hLeaves1,\
+		complex<T> *X1, complex<T> *X2, const complex<T> *sigval, const unsigned short *sigin,\
+		unsigned int *iu, unsigned int *id, const unsigned short clov,const unsigned short mu, const unsigned short nu,\
+		const float kappa){
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -414,55 +415,55 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *ut[nc], complex<T> *hLea
 				switch(fclov){
 					case(0): //Clover at site
 						site=i;
-						tmp[0]=hLeaves[0][site+0*kvol]; tmp[1]=hLeaves[1][site+0*kvol];
+						tmp[0]=hLeaves0[site+0*kvol]; tmp[1]=hLeaves1[site+0*kvol];
 						//Get leaf 0 with the correct generator in the initial position
-						Force_Leaf(ut[0],ut[1],tmp,iu,id,site,mu,nu,0,gen,4);
+						Force_Leaf(u11t,u12t,tmp,iu,id,site,mu,nu,0,gen,4);
 						fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
 
 						//Get leaf 2 with the correct generator in the initial position
-						tmp[0]=hLeaves[0][site+2*kvol]; tmp[1]=hLeaves[1][site+2*kvol];
-						Force_Leaf(ut[0],ut[1],tmp,iu,id,site,mu,nu,2,gen,4);
+						tmp[0]=hLeaves0[site+2*kvol]; tmp[1]=hLeaves1[site+2*kvol];
+						Force_Leaf(u11t,u12t,tmp,iu,id,site,mu,nu,2,gen,4);
 						//+= here!!!
 						fleaf[gen][0]+=tmp[0]; fleaf[gen][1]+=tmp[1];
 						break;
 					case(1): //Clover at i+mu
 						site=ipm;
 						//Get leaf 1 with the correct generator between links 3 and 4
-						tmp[0]=hLeaves[0][site+1*kvol]; tmp[1]=hLeaves[1][site+1*kvol];
-						Force_Leaf(ut[0],ut[1],tmp,iu,id,site,mu,nu,1,gen,3);
+						tmp[0]=hLeaves0[site+1*kvol]; tmp[1]=hLeaves1[site+1*kvol];
+						Force_Leaf(u11t,u12t,tmp,iu,id,site,mu,nu,1,gen,3);
 						fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
 						//Get leaf 3 with the correct generator between links 3 and 4
-						tmp[0]=hLeaves[0][site+3*kvol]; tmp[1]=hLeaves[1][site+3*kvol];
-						Force_Leaf(ut[0],ut[1],tmp,iu,id,site,mu,nu,3,gen,3);
+						tmp[0]=hLeaves0[site+3*kvol]; tmp[1]=hLeaves1[site+3*kvol];
+						Force_Leaf(u11t,u12t,tmp,iu,id,site,mu,nu,3,gen,3);
 						//+= here!!!
 						fleaf[gen][0]+=tmp[0]; fleaf[gen][1]+=tmp[1];
 						break;
 					case(2): //Clover at i+nu
 						site=iu[i+kvol*nu];
 						//Get leaf 2 with the correct generator between links 3 and 4
-						tmp[0]=hLeaves[0][site+2*kvol]; tmp[1]=hLeaves[1][site+2*kvol];
-						Force_Leaf(ut[0],ut[1],tmp,iu,id,site,mu,nu,2,gen,3);
+						tmp[0]=hLeaves0[site+2*kvol]; tmp[1]=hLeaves1[site+2*kvol];
+						Force_Leaf(u11t,u12t,tmp,iu,id,site,mu,nu,2,gen,3);
 						fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
 						break;
 					case(3): //Clover at i-nu
 						site=id[i+kvol*nu];
 						//Get leaf 0 with the correct generator between links 3 and 4
-						tmp[0]=hLeaves[0][site+0*kvol]; tmp[1]=hLeaves[1][site+0*kvol];
-						Force_Leaf(ut[0],ut[1],tmp,iu,id,site,mu,nu,0,gen,3);
+						tmp[0]=hLeaves0[site+0*kvol]; tmp[1]=hLeaves1[site+0*kvol];
+						Force_Leaf(u11t,u12t,tmp,iu,id,site,mu,nu,0,gen,3);
 						fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
 						break;
 					case(4): //Clover at i+mu+nu
 						site=iu[ipm+kvol*nu];
 						//Get leaf 3 with the correct generator between links 2 and 3
-						tmp[0]=hLeaves[0][site+3*kvol]; tmp[1]=hLeaves[1][site+3*kvol];
-						Force_Leaf(ut[0],ut[1],tmp,iu,id,site,mu,nu,3,gen,2);
+						tmp[0]=hLeaves0[site+3*kvol]; tmp[1]=hLeaves1[site+3*kvol];
+						Force_Leaf(u11t,u12t,tmp,iu,id,site,mu,nu,3,gen,2);
 						fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
 						break;
 					case(5): //Clover at i+mu-nu
 						site=id[ipm+kvol*nu];
 						//Get leaf 1 with the correct generator between links 2 and 3
-						tmp[0]=hLeaves[0][site+1*kvol]; tmp[1]=hLeaves[1][site+1*kvol];
-						Force_Leaf(ut[0],ut[1],tmp,iu,id,site,mu,nu,1,gen,2);
+						tmp[0]=hLeaves0[site+1*kvol]; tmp[1]=hLeaves1[site+1*kvol];
+						Force_Leaf(u11t,u12t,tmp,iu,id,site,mu,nu,1,gen,2);
 						fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
 						break;
 				}
@@ -626,7 +627,7 @@ int cuClover(Complex_f *clover[nc],Complex_f *ut[nc], unsigned int *iu, unsigned
 				//Allocate clover memory
 				//Note that the clover is completely local, so doesn't need a halo for MPI
 				Full_Clover<<<dimGrid,dimBlock,0,streams[clov]>>>(clover[0]+clov*kvol,clover[1]+clov*kvol,\
-						ut,iu,id,mu,nu);
+						ut[0],ut[1],iu,id,mu,nu);
 			}
 	cudaDeviceSynchronise();
 	return 0;
@@ -664,7 +665,8 @@ int cuClover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X
 			//Clover index
 			const unsigned short clov = (mu==0) ? nu-1 :mu+nu;
 			//Allocate half-leaf memory
-			Clover_Force<<<dimGrid,dimBlock>>>(dSdpi,hLeaves[clov],ut,X1,X2,sigval,sigin,iu,id,clov,mu,nu,kappa);
+			Clover_Force<<<dimGrid,dimBlock>>>(dSdpi,hLeaves[clov][0],hLeaves[clov][1],\
+									ut[0],ut[1],X1,X2,sigval,sigin,iu,id,clov,mu,nu,kappa);
 		}
 	cudaDeviceSynchronise();
 	//Free half leaves
