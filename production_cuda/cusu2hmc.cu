@@ -208,73 +208,35 @@ void blockInit(int x, int y, int z, int t, dim3 *dimBlock, dim3 *dimGrid){
 }
 void	Init_CUDA(Complex *u11t, Complex *u12t,Complex gamval[20], Complex_f gamval_f[20], unsigned short gamin[16], double*dk4m,\
 		double *dk4p, unsigned int *iu, unsigned int *id){
-	/*
-	 * Initialises the GPU Components of the system
-	 *
-	 * Calls:
-	 * ======
-	 * Addrc, Check_addr, ran2, DHalo_swap_dir, Par_sread, Par_ranset, Reunitarise
-	 *
-	 * Globals:
-	 * =======
-	 * Complex gamval:		Gamma Matrices
-	 * Complex_f gamval_f:	Float Gamma matrices:
-	 *
-	 * Parameters:
-	 * ==========
-	 * int istart:				Zero for cold, >1 for hot, <1 for none
-	 * int ibound:				Periodic boundary conditions
-	 * int iread:				Read configuration from file
-	 * float beta:				beta
-	 * float fmu:				Chemical potential
-	 * float akappa:			
-	 * Complex_f ajq:			Diquark source
-	 * Complex *u11:			First colour field
-	 * Complex *u12:			Second colour field
-	 * Complex *u11t:			First colour trial field
-	 * Complex *u11t:			Second colour trial field
-	 * Complex_f *u11t_f:	First float trial field
-	 * Complex_f *u12t_f:	Second float trial field
-	 * double	*dk4m:
-	 * double	*dk4p:
-	 * float		*dk4m_f:
-	 * float		*dk4p_f:
-	 * unsigned int *iu:		Up halo indices
-	 * unsigned int *id:		Down halo indices
-	 *
-	 * Returns:
-	 * =======
-	 * Zero on success, integer error code otherwise
-	 */
 	const char *funcname = "Init_CUDA";
 	int device=-1;
 	cudaGetDevice(&device);
 	//Initialise streams for concurrent kernels
-	for(int i=0;i<(ndirac*nadj*ndim);i++)
+	for(unsigned int i=0;i<(ndirac*nadj*ndim);i++)
 		cudaStreamCreate(&streams[i]);
 	//Set iu and id to mainly read in CUDA and prefetch them to the GPU
-	//cudaMemPrefetchAsync(iu,ndim*kvol*sizeof(int),device,streams[0]);
-	//cudaMemPrefetchAsync(id,ndim*kvol*sizeof(int),device,streams[1]);
-	//cudaMemAdvise(iu,ndim*kvol*sizeof(int),cudaMemAdviseSetReadMostly,device);
-	//cudaMemAdvise(id,ndim*kvol*sizeof(int),cudaMemAdviseSetReadMostly,device);
+	cudaMemPrefetchAsync(iu,ndim*kvol*sizeof(int),device,streams[0]);
+	cudaMemPrefetchAsync(id,ndim*kvol*sizeof(int),device,streams[1]);
+	cudaMemAdvise(iu,ndim*kvol*sizeof(int),cudaMemAdviseSetReadMostly,device);
+	cudaMemAdvise(id,ndim*kvol*sizeof(int),cudaMemAdviseSetReadMostly,device);
 
 	//Gamma matrices and indices on the GPU
-	//	cudaMemcpy(gamin_d,gamin,4*4*sizeof(int),cudaMemcpyHostToDevice);
-	//	cudaMemcpy(gamval_d,gamval,5*4*sizeof(Complex),cudaMemcpyHostToDevice);
-	//	cudaMemcpy(gamval_f_d,gamval_f,5*4*sizeof(Complex_f),cudaMemcpyHostToDevice);
-	//cudaMemAdvise(gamin,4*4*sizeof(int),cudaMemAdviseSetReadMostly,device);
-	//cudaMemAdvise(gamval,5*4*sizeof(Complex),cudaMemAdviseSetReadMostly,device);
+	cudaMemcpy(gamin_d,gamin,4*4*sizeof(int),cudaMemcpyHostToDevice);
+	cudaMemcpy(gamval_d,gamval,5*4*sizeof(Complex),cudaMemcpyHostToDevice);
+	cudaMemcpy(gamval_f_d,gamval_f,5*4*sizeof(Complex_f),cudaMemcpyHostToDevice);
+	cudaMemAdvise(gamin,4*4*sizeof(int),cudaMemAdviseSetReadMostly,device);
+	cudaMemAdvise(gamval,5*4*sizeof(Complex),cudaMemAdviseSetReadMostly,device);
 
 	//More prefetching and marking as read-only (mostly)
 	//Prefetching Momentum Fields and Trial Fields to GPU
-	//cudaMemAdvise(dk4p,(kvol+halo)*sizeof(double),cudaMemAdviseSetReadMostly,device);
-	//cudaMemAdvise(dk4m,(kvol+halo)*sizeof(double),cudaMemAdviseSetReadMostly,device);
+	cudaMemAdvise(dk4p,(kvol+halo)*sizeof(double),cudaMemAdviseSetReadMostly,device);
+	cudaMemAdvise(dk4m,(kvol+halo)*sizeof(double),cudaMemAdviseSetReadMostly,device);
 
-	//cudaMemPrefetchAsync(dk4p,(kvol+halo)*sizeof(double),device,streams[2]);
-	//cudaMemPrefetchAsync(dk4m,(kvol+halo)*sizeof(double),device,streams[3]);
+	cudaMemPrefetchAsync(dk4p,(kvol+halo)*sizeof(double),device,streams[2]);
+	cudaMemPrefetchAsync(dk4m,(kvol+halo)*sizeof(double),device,streams[3]);
 
-	//cudaMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),device,streams[4]);
-	//cudaMemPrefetchAsync(u12t, ndim*kvol*sizeof(Complex),device,streams[5]);
+	cudaMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),device,streams[4]);
+	cudaMemPrefetchAsync(u12t, ndim*kvol*sizeof(Complex),device,streams[5]);
 }
 void cuReal_convert(float *a, double *b, const unsigned int len, const bool dtof, dim3 dimBlock, dim3 dimGrid){
 	/* 
