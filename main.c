@@ -475,7 +475,7 @@ int main(int argc, char *argv[]){
 #endif
 			Dslashd_f(R1_f,R,ut_f[0],ut_f[1],iu,id,gamval_f,gamin,dk_f,jqq,akappa);
 			if(c_sw)
-				ByClover_f(R1_f,R,clover,sigval_f,sigin);
+				ByClover_f(R1_f,R,clover,sigval_f,akappa,sigin);
 #ifdef __NVCC__
 			//Make sure the multiplication is finished before freeing its input!!
 			cudaFree(R);//cudaDeviceSynchronise(); 

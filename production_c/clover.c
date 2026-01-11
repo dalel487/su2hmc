@@ -183,10 +183,10 @@ int Clover(Complex_f *clover[nc],Complex_f *ut[2], unsigned int *iu, unsigned in
 //Multiplication for Congradq
 //=========================
 // Congradq only acts on flavour 1
-int ByClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, unsigned short *sigin){
+int ByClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, const float akappa, unsigned short *sigin){
 	const char funcname[] = "ByClover";
 #ifdef __NVCC__
-	cuByClover(phi, r, clover, sigval, sigin);
+	cuByClover(phi, r, clover, sigval, akappa,sigin);
 #else
 #pragma omp parallel for
 	for(int i=0;i<kvol;i+=AVX){
@@ -289,10 +289,10 @@ int HbyClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, co
 	return 0;
 }
 //Float versions
-int ByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval, unsigned short *sigin){
+int ByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval,const float akappa, unsigned short *sigin){
 	const char funcname[] = "ByClover";
 #ifdef __NVCC__
-	cuByClover_f(phi, r, clover, sigval, sigin);
+	cuByClover_f(phi, r, clover, sigval, akappa,sigin);
 #else
 #pragma omp parallel for
 	for(int i=0;i<kvol;i+=AVX){

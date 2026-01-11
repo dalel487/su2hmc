@@ -389,13 +389,13 @@ __global__  void Full_Clover(complex<T> *clover1, complex<T> *clover2,\
  * @param	iu,id:		Up/down indices
  * @param	clov:			Clover we're intereted in
  * @param	mu,nu:		Direction of clover we're interested in
- * @param	kappa:		Hopping parameter
+ * @param	akappa:		Hopping parameter
  */
 template <typename T>
 __global__ void Clover_Force(double *dSdpi, complex<T> *u11t, complex<T> *u12t, complex<T> *hLeaves0, complex<T> *hLeaves1,\
 		complex<T> *X1, complex<T> *X2, const complex<T> *sigval, const unsigned short *sigin,\
 		unsigned int *iu, unsigned int *id, const unsigned short clov,const unsigned short mu, const unsigned short nu,\
-		const float kappa){
+		const float akappa){
 	const int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -496,8 +496,8 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *u11t, complex<T> *u12t, 
 			}
 		}
 		for(unsigned short gen=0;gen<nadj;gen++){
-			dSdpi[i+kvol*(gen*ndim+mu)]-=kappa*dSdpis[0][gen];
-			dSdpi[i+kvol*(gen*ndim+nu)]-=kappa*dSdpis[1][gen];
+			dSdpi[i+kvol*(gen*ndim+mu)]-=akappa*dSdpis[0][gen];
+			dSdpi[i+kvol*(gen*ndim+nu)]-=akappa*dSdpis[1][gen];
 		}
 	}
 	return;
@@ -510,10 +510,11 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *u11t, complex<T> *u12t, 
  *	@param	r:						Pseudofermion field before multiplication. The thing we want to multiply by the clover
  *	@param	clover1,clover2:	Array of clovers
  *	@param	sigval:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
+ *	@param	akappa:				Hopping Parameter
  * @param	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
  */
 template <typename T>
-__global__ void ByClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, complex<T> *clover2, complex<T> *sigval, unsigned short *sigin){
+__global__ void ByClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, complex<T> *clover2, complex<T> *sigval, const float akappa, unsigned short *sigin){
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -541,9 +542,9 @@ __global__ void ByClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, co
 				for(unsigned short c=0; c<nc; c++)
 					r_s[c]=r[i+kvol*(sind*nc+c)];
 				///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
-				phi_s[igorkov][0]+=sigval[clov*ndirac+idirac]*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
+				phi_s[igorkov][0]+=akappa*sigval[clov*ndirac+idirac]*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
 				//Clover is in the Lie Algebra, not Lie group. So signs are correct here.
-				phi_s[igorkov][1]+=sigval[clov*ndirac+idirac]*(conj(clov_s[1])*r_s[0]+creal(clov_s[0])*r_s[1]);
+				phi_s[igorkov][1]+=akappa*sigval[clov*ndirac+idirac]*(conj(clov_s[1])*r_s[0]+creal(clov_s[0])*r_s[1]);
 			}
 		}
 #pragma unroll
@@ -566,7 +567,7 @@ __global__ void ByClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, co
  * @param	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
  */
 template <typename T>
-__global__ void HbyClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, complex<T> *clover2,complex<T> *sigval, const float kappa, unsigned short *sigin){
+__global__ void HbyClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, complex<T> *clover2,complex<T> *sigval, const float akappa, unsigned short *sigin){
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -593,9 +594,9 @@ __global__ void HbyClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, c
 				}
 				///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
 				const complex<T> sig=sigval[clov*ndirac+(idirac>>1)];
-				phi_s[idirac+0]+=kappa*sig*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
+				phi_s[idirac+0]+=akappa*sig*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
 				//Clover is in the Lie Algebra, not Lie group. So signs are correct here.
-				phi_s[idirac+1]+=kappa*sig*(conj(clov_s[1])*r_s[0]+creal(clov_s[0])*r_s[1]);
+				phi_s[idirac+1]+=akappa*sig*(conj(clov_s[1])*r_s[0]+creal(clov_s[0])*r_s[1]);
 			}
 		}
 #pragma unroll
@@ -632,21 +633,21 @@ int cuClover(Complex_f *clover[nc],Complex_f *ut[nc], unsigned int *iu, unsigned
 	cudaDeviceSynchronise();
 	return 0;
 }
-void cuByClover(Complex *phi, Complex *r, Complex *clover[nc],Complex *sigval, unsigned short *sigin){
-	ByClover<<<dimGrid,dimBlock>>>(phi,r,clover[0],clover[1],sigval,sigin);
+void cuByClover(Complex *phi, Complex *r, Complex *clover[nc],Complex *sigval,const float akappa, unsigned short *sigin){
+	ByClover<<<dimGrid,dimBlock>>>(phi,r,clover[0],clover[1],sigval,akappa,sigin);
 }
-void cuHbyClover(Complex *phi, Complex *r, Complex *clover[nc],Complex *sigval, const float kappa, unsigned short *sigin){
-	HbyClover<<<dimGrid,dimBlock>>>(phi,r,clover[0],clover[1],sigval,kappa,sigin);
+void cuHbyClover(Complex *phi, Complex *r, Complex *clover[nc],Complex *sigval, const float akappa, unsigned short *sigin){
+	HbyClover<<<dimGrid,dimBlock>>>(phi,r,clover[0],clover[1],sigval,akappa,sigin);
 }
-void cuByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f *sigval, unsigned short *sigin){
-	ByClover<<<dimGrid,dimBlock>>>(phi,r,clover[0],clover[1],sigval,sigin);
+void cuByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f *sigval, const float akappa, unsigned short *sigin){
+	ByClover<<<dimGrid,dimBlock>>>(phi,r,clover[0],clover[1],sigval,akappa,sigin);
 }
-void cuHbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f *sigval, const float kappa, unsigned short *sigin){
-	HbyClover<<<dimGrid,dimBlock>>>(phi,r,clover[0],clover[1],sigval,kappa,sigin);
+void cuHbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f *sigval, const float akappa, unsigned short *sigin){
+	HbyClover<<<dimGrid,dimBlock>>>(phi,r,clover[0],clover[1],sigval,akappa,sigin);
 }
 
 int cuClover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,\
-		unsigned short *sigin, unsigned int *iu, unsigned int *id, const float kappa){
+		unsigned short *sigin, unsigned int *iu, unsigned int *id, const float akappa){
 	const char funcname[]="Clover_Force";
 	Complex_f *hLeaves[6][nc];
 	for(unsigned int mu=0;mu<ndim-1;mu++)
@@ -666,7 +667,7 @@ int cuClover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X
 			const unsigned short clov = (mu==0) ? nu-1 :mu+nu;
 			//Allocate half-leaf memory
 			Clover_Force<<<dimGrid,dimBlock>>>(dSdpi,hLeaves[clov][0],hLeaves[clov][1],\
-									ut[0],ut[1],X1,X2,sigval,sigin,iu,id,clov,mu,nu,kappa);
+									ut[0],ut[1],X1,X2,sigval,sigin,iu,id,clov,mu,nu,akappa);
 		}
 	cudaDeviceSynchronise();
 	//Free half leaves
