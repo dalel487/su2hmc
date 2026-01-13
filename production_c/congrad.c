@@ -105,6 +105,33 @@ void P_allocate_f(Complex_f **p_f,Complex_f **r_f, Complex_f ** x1_f, Complex_f 
 	*xi_f	=	aligned_alloc(AVX,kferm*sizeof(Complex_f));
 #endif
 }
+void P_allocate(Complex **p, Complex **r, Complex **x1, Complex **x2){
+#ifdef __NVCC__
+#ifdef _DEBUG
+	cudaMallocManaged((void **)p, kfermHalo*sizeof(Complex), cudaMemAttachGlobal);
+	cudaMallocManaged((void **)r, kferm*sizeof(Complex), cudaMemAttachGlobal);
+	cudaMallocManaged((void **)x1, kfermHalo*sizeof(Complex), cudaMemAttachGlobal);
+	cudaMallocManaged((void **)x2, kferm*sizeof(Complex), cudaMemAttachGlobal);
+#else
+	cudaMalloc((void **)p, kfermHalo*sizeof(Complex));
+	cudaMalloc((void **)r, kferm*sizeof(Complex));
+	cudaMalloc((void **)x1, kfermHalo*sizeof(Complex));
+	cudaMalloc((void **)x2, kferm*sizeof(Complex));
+#endif
+#else
+	*p  = aligned_alloc(AVX, kfermHalo*sizeof(Complex));
+	*r  = aligned_alloc(AVX, kferm*sizeof(Complex));
+	*x1 = aligned_alloc(AVX, kfermHalo*sizeof(Complex));
+	*x2 = aligned_alloc(AVX, kferm*sizeof(Complex));
+#endif
+}
+void P_free(Complex **p, Complex **r, Complex **x1, Complex **x2){
+#ifdef __NVCC__
+	cudaFree(*p); cudaFree(*r); cudaFree(*x1); cudaFree(*x2);
+#else
+	free(*p); free(*r); free(*x1); free(*x2);
+#endif
+}
 
 /**
  * @brief Frees memory needed for Congradq. Just to improve readability
@@ -198,7 +225,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 	///Give initial values Will be overwritten if niterx>0
 	double betad = 1.0; Complex_f alphad=0; Complex alpha = 1;
 	//Because we're dealing with flattened arrays here we can call cblas safely without the halo
-	
+
 	Complex_f *p_f, *x1_f, *x2_f, *r_f, *X1_f;
 	Complex	 *p, *x1, *x2, *clover[2];
 	Q_allocate_f(&p_f,&x1_f,&x2_f,&r_f,&X1_f);
@@ -542,8 +569,9 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 	Q_free(&p,&x1,&x2,clover);
 	return ret_val;
 }
-int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigned int *iu,unsigned int *id,\
-		Complex_f gamval[20],const unsigned short gamin[16], float *dk[2],Complex_f jqq,float akappa,int *itercg){
+int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Complex_f *ut[2],
+		unsigned int *iu, unsigned int *id, Complex gamval[20], Complex_f gamval_f[20], const unsigned short gamin[16],
+		double *dk[2], float *dk_f[2], Complex_f jqq, float akappa, int *itercg){
 	const char funcname[] = "Congradp";
 	//Return value
 	int ret_val=0;
@@ -554,11 +582,11 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigne
 #else
 	char *endline = "\r";
 #endif
-	
+
 	///TODO: Set this as an argument
 	///How much does the residue have to shrink by before we do a double precision update
 	const float d_prec=1.0f/128.0f;
-	
+
 	//These were evaluated only in the first loop of niterx so we'll just do it outside of the loop.
 	double alphan=1.0;
 	//These alpha and beta terms should be double, but that causes issues with BLAS. Instead we declare
@@ -567,16 +595,17 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigne
 	double betad = 1.0; Complex_f alphad=0; Complex alpha = 1;
 
 	Complex_f *p_f, *r_f, *x1_f, *x2_f, *xi_f;
+	Complex *p, *r, *x1, *x2;
 	P_allocate_f(&p_f,&r_f,&x1_f,&x2_f,&xi_f);
-	
+	P_allocate(&p, &r, &x1, &x2);
+
 	//Instead of copying element-wise in a loop, use memcpy.
 #ifdef __NVCC__
 	//Get xi  in single precision, then swap to AoS format
 	cuComplex_convert(p_f,xi,kferm,true,dimBlock,dimGrid);
-	cudaMemcpy(xi_f,p_f,kferm*sizeof(Complex_f),cudaMemcpyDefault);
-
 	//And repeat for r
 	cuComplex_convert(r_f,Phi+na*kferm,kferm,true,dimBlock,dimGrid);
+	cudaMemcpy(xi_f,p_f,kferm*sizeof(Complex_f),cudaMemcpyDefault);
 #else
 #pragma omp parallel for simd aligned(p_f,xi_f,xi,r_f,Phi:AVX)
 	for(unsigned int i =0;i<kferm;i++){
@@ -585,21 +614,12 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigne
 	}
 #endif
 
-	// Declaring placeholder arrays 
-	// This x1 is NOT related to the /common/vectorp/X1 in the FORTRAN code and should not
-	// be confused with X1 the global variable
-
-	//niterx isn't called as an index but we'll start from zero with the C code to make the
-	//if statements quicker to type
-#ifdef __NVCC__
-	cudaDeviceSynchronise();
-#endif
 	double betan=1;double beta_max=FLT_MAX; bool do_dp=true;
 	for((*itercg)=0; (*itercg)<=niterc; (*itercg)++){
 		//Don't overwrite on first run. 
 		//x2=(M^\dagger)x1=(M^\dagger)Mp
-		Dslash_f(x1_f,p_f,ut[0],ut[1],iu,id,gamval,gamin,dk,jqq,akappa);
-		Dslashd_f(x2_f,x1_f,ut[0],ut[1],iu,id,gamval,gamin,dk,jqq,akappa);
+		Dslash_f(x1_f,p_f,ut[0],ut[1],iu,id,gamval_f,gamin,dk_f,jqq,akappa);
+		Dslashd_f(x2_f,x1_f,ut[0],ut[1],iu,id,gamval_f,gamin,dk_f,jqq,akappa);
 #ifdef __NVCC__
 		cudaDeviceSynchronise();
 #endif

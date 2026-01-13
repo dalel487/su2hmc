@@ -169,24 +169,24 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 	 * Solves @f$(M^\dagger)Mx=\Phi@f$
 	 * The matrix multiplication step is done at single precision, while the update is done at double
 	 *
-	 * @param 	na:			Flavour index
-	 * @param 	res:			Limit for conjugate gradient
-	 * @param 	Phi:			Pseudofermion field.
-	 * @param 	xi:			Returned as @f$(M^\dagger M)^{-1} \Phi@f$
-	 * @param 	ut:			Gauge fields
-	 * @param 	iu:			Upper halo indices
-	 * @param 	id:			Lower halo indices
-	 *	@param	gamval:		Single precision gamma matrices rescaled by kappa
-	 * @param 	gamin:		Dirac indices
-	 * @param	dk:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$
-	 * @param 	jqq:			Diquark source
-	 * @param 	akappa:		Hopping Parameter
-	 * @param 	itercg:		Counts the iterations of the conjugate gradient
+	 * @param 	na:						Flavour index
+	 * @param 	res:						Limit for conjugate gradient
+	 * @param 	Phi:						Pseudofermion field.
+	 * @param 	xi:						Returned as @f$(M^\dagger M)^{-1} \Phi@f$
+	 * @param 	ut,ud:					Gauge fields
+	 * @param 	iu,id:					Upper/Lower halo indices
+	 *	@param	gamval,gamval_f:		Gamma matrices rescaled by kappa
+	 * @param 	gamin:					Dirac indices
+	 * @param	dk,dk_f:					@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$
+	 * @param 	jqq:						Diquark source
+	 * @param 	akappa:					Hopping Parameter
+	 * @param 	itercg:					Counts the iterations of the conjugate gradient
 	 * 
 	 * @return 0 on success, integer error code otherwise
 	 */
-	int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigned int *iu,unsigned int *id,\
-			Complex_f gamval[20],const unsigned short gamin[16],float *dk[2],Complex_f jqq,float akappa,int *itercg);
+int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Complex_f *ut[2],
+		unsigned int *iu, unsigned int *id, Complex gamval[20], Complex_f gamval_f[20], const unsigned short gamin[16],
+		double *dk[2], float *dk_f[2], Complex_f jqq, float akappa, int *itercg);
 	/**
 	 * @brief	Calculate fermion expectation values via a noisy estimator
 	 * 
