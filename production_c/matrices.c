@@ -116,7 +116,7 @@ int Dslash(Complex *phi, Complex *r, Complex *ut[2], unsigned int *iu,unsigned i
 #endif
 	return 0;
 }
-int Dslashd(Complex *phi, Complex *r, Complex *ut[0], Complex *ut[1],unsigned int *iu,unsigned int *id,\
+int Dslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned int *iu,unsigned int *id,\
 		Complex gamval[20], const unsigned short gamin[16], double *dk[2],Complex_f jqq, float akappa){
 	const char *funcname = "Dslashd";
 	//Get the halos in order

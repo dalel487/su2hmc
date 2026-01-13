@@ -630,8 +630,8 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 		if(*itercg)
 			cuMixed_Sumto((double *)xi,(float *)xi_f,2*kferm,dimGrid,dimBlock);
 		//Bring everything into double precision
-		cuComplex_convert(p,p_f,kferm,false,dimBlock,dimGrid);
-		cuComplex_convert(r,r_f,kferm,false,dimBlock,dimGrid);
+		cuComplex_convert(p_f,p,kferm,false,dimBlock,dimGrid);
+		cuComplex_convert(r_f,r,kferm,false,dimBlock,dimGrid);
 		//Reset xi_f to zero.
 		cudaDeviceSynchronise();
 		cudaMemsetAsync(xi_f,0,kferm*sizeof(Complex_f),streams[4]);
