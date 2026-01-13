@@ -10,7 +10,7 @@
 #include	<thrust_complex.h>
 template <typename T>
 __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, complex<T> *u12t,const unsigned int *iu, const unsigned int *id,\
-		__constant__ complex<T> gamval_d[20],	const unsigned short gamin_d[16], const T *dk4m, const T *dk4p, const Complex_f jqq, const float akappa){
+		complex<T> gamval_d[20],	const unsigned short gamin_d[16], const T *dk4m, const T *dk4p, const Complex_f jqq, const float akappa){
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -119,7 +119,7 @@ __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, compl
 }
 template <typename T>
 __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T> *u11t, const complex<T> *u12t,const unsigned int *iu, const unsigned int *id,\
-		__constant__ complex<T> gamval_d[20], const unsigned short gamin_d[16], const T *dk4m, const T *dk4p, const Complex_f jqq, const float akappa){
+		complex<T> gamval_d[20], const unsigned short gamin_d[16], const T *dk4m, const T *dk4p, const Complex_f jqq, const float akappa){
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;

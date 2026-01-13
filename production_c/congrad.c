@@ -62,15 +62,15 @@ void Q_allocate(Complex **p, Complex **x1, Complex **x2, Complex *clover[2]){
 #ifdef _DEBUG
 	cudaMallocManaged((void **)&clover[0], 6*kvol*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&clover[1], 6*kvol*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)p, kferm2*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)x1, kferm2*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)p, kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)x1, kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)x2, kferm2*sizeof(Complex),cudaMemAttachGlobal);
 #else
 	//First two have halo exchanges, so getting NCCL working is important
 	cudaMallocAsync((void **)&clover[0], 6*kvol*sizeof(Complex),streams[0]);
 	cudaMallocAsync((void **)&clover[1], 6*kvol*sizeof(Complex),streams[1]);
-	cudaMallocAsync((void **)p, kferm2*sizeof(Complex),streams[2]);
-	cudaMallocAsync((void **)x1, kferm2*sizeof(Complex),streams[3]);
+	cudaMallocAsync((void **)p, kferm2Halo*sizeof(Complex),streams[2]);
+	cudaMallocAsync((void **)x1, kferm2Halo*sizeof(Complex),streams[3]);
 	cudaMallocAsync((void **)x2, kferm2*sizeof(Complex),streams[4]);
 #endif
 #else
@@ -97,6 +97,7 @@ void P_allocate_f(Complex_f **p_f,Complex_f **r_f, Complex_f ** x1_f, Complex_f 
 	cudaMalloc((void **)x2_f, kferm*sizeof(Complex_f));
 	cudaMalloc((void **)xi_f, kferm*sizeof(Complex_f));
 #endif
+	cudaDeviceSynchronise();
 #else
 	*p_f  =	aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 	*r_f  =	aligned_alloc(AVX,kferm*sizeof(Complex_f));
@@ -118,6 +119,7 @@ void P_allocate(Complex **p, Complex **r, Complex **x1, Complex **x2){
 	cudaMalloc((void **)x1, kfermHalo*sizeof(Complex));
 	cudaMalloc((void **)x2, kferm*sizeof(Complex));
 #endif
+	cudaDeviceSynchronise();
 #else
 	*p  = aligned_alloc(AVX, kfermHalo*sizeof(Complex));
 	*r  = aligned_alloc(AVX, kferm*sizeof(Complex));
@@ -219,11 +221,11 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 	const Complex_f fac_f = conj(jqq)*jqq*akappa*akappa;
 	//These were evaluated only in the first loop of niterx so we'll just do it outside of the loop.
 	//n suffix is numerator, d is denominator
-	double alphan=1;
+	alignas(16) double alphan=1;
 	///The alpha and beta terms should be double, but that causes issues with BLAS pointers. Instead we declare
 	///them complex and work with the real part (especially for @f$\alpha_d@f$)
 	///Give initial values Will be overwritten if niterx>0
-	double betad = 1.0; Complex_f alphad=0; Complex alpha = 1;
+	alignas(16) double betad = 1.0; alignas(8) Complex_f alphad=0; alignas(16) Complex alpha = 1; //Alignment needed for cuBLAS
 	//Because we're dealing with flattened arrays here we can call cblas safely without the halo
 
 	Complex_f *p_f, *x1_f, *x2_f, *r_f, *X1_f;
@@ -260,7 +262,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 	memcpy(p_f, X1_f, kferm2*sizeof(Complex_f));
 #endif
 
-	double betan=1;double beta_max=FLT_MAX; bool do_dp=true;
+	alignas(16) double betan=1;double beta_max=FLT_MAX; bool do_dp=true;
 	for(*itercg=0; *itercg<niterc; (*itercg)++){
 		if(do_dp){
 #ifdef _DEBUGCG
@@ -307,7 +309,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			cudaDeviceSynchronise();
 #endif
 			if(fac_f!=0){
-				double fac=(double)fac_f;
+				alignas(16) double fac=(double)fac_f;
 #ifdef	__NVCC__
 				cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&fac,(cuDoubleComplex *)p,1,(cuDoubleComplex *)x2,1);
 #elif defined USE_BLAS
@@ -341,8 +343,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 				/// @f$x+\alpha p@f$ 
 #ifdef __NVCC__
 				//A bit of a hack. No idea why passing alpha on it's own causes a segfault
-				const Complex alpha_test = (Complex)alpha;
-				cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&alpha_test,(cuDoubleComplex *)p,1,(cuDoubleComplex *)X1,1);
+				cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&alpha,(cuDoubleComplex *)p,1,(cuDoubleComplex *)X1,1);
 #elif defined USE_BLAS
 				cblas_zaxpy(kferm2, &alpha, p, 1, X1, 1);
 #else
@@ -352,9 +353,9 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			}
 
 #ifdef	__NVCC__
-			Complex alpha_m=(Complex)(-alpha);
+			alignas(16) Complex alpha_m=(Complex)(-alpha);
 			cublasZaxpy(cublas_handle, kferm2,(cuDoubleComplex *)&alpha_m,(cuDoubleComplex *)x2,1,(cuDoubleComplex *)r,1);
-			double betan_d;
+			alignas(16) double betan_d;
 			cublasDznrm2(cublas_handle,kferm2,(cuDoubleComplex *)r,1,&betan_d);
 			betan=betan_d*betan_d;
 #elif defined USE_BLAS
@@ -371,7 +372,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 				r[i]-=alpha*x2[i];
 				betan += conj(r[i])*r[i];
 			}
-			double betan_d=sqrt(betan);
+			alignas(16) double betan_d=sqrt(betan);
 #endif
 			//And... reduce.
 #if(nproc>1)
@@ -383,7 +384,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			if(!rank) printf("DP Iter(CG)=%i\tbeta_n=%e\talpha=%e\n", *itercg, betan, alpha);
 			fflush(stdout);
 #endif
-			const Complex beta = (*itercg) ?  betan/betad : 0;
+			alignas(16) const Complex beta = (*itercg) ?  betan/betad : 0;
 			betad=betan; alphan=betan;
 #ifdef __NVCC__
 			cublasZdscal(cublas_handle,kferm2,(double *)&beta,(cuDoubleComplex *)p,1);
@@ -475,7 +476,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 				alpha=alphan/creal(alphad);
 				/// @f$x+\alpha p@f$ 
 #ifdef __NVCC__
-				Complex_f alpha_f = (Complex_f)alpha;
+				alignas(8) Complex_f alpha_f = (Complex_f)alpha;
 				cublasCaxpy(cublas_handle,kferm2,(cuComplex *)&alpha_f,(cuComplex *)p_f,1,(cuComplex *)X1_f,1);
 #elif defined USE_BLAS
 				Complex_f alpha_f = (Complex_f)alpha;
@@ -487,9 +488,9 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			}			
 			/// @f$r_{n+1} = r_n-\alpha(M^\dagger M)p_n@f$ and @f$\beta_n=r^\dagger r@f$
 #ifdef	__NVCC__
-			__managed__ Complex_f alpha_m=(Complex_f)(-alpha);
+			alignas(8) __managed__ Complex_f alpha_m=(Complex_f)(-alpha);
 			cublasCaxpy(cublas_handle, kferm2,(cuComplex *)&alpha_m,(cuComplex *)x2_f,1,(cuComplex *)r_f,1);
-			float betan_f;
+			alignas(8) float betan_f;
 			cublasScnrm2(cublas_handle,kferm2,(cuComplex *)r_f,1,&betan_f);
 			betan = betan_f*betan_f;
 #elif defined USE_BLAS
@@ -506,7 +507,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 				r_f[i]-=alpha*x2_f[i];
 				betan += conj(r_f[i])*r_f[i];
 			}
-			float betan_f=sqrt(betan);
+			alignas(8) float betan_f=sqrt(betan);
 #endif
 			//And... reduce.
 #if(nproc>1)
@@ -544,7 +545,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			//BLAS for p=r+\betap doesn't exist in standard BLAS. This is NOT an axpy case as we're multiplying y by
 			//\beta instead of x.
 #ifdef __NVCC__
-			Complex_f beta_f=(Complex_f)beta;
+			alignas(8) Complex_f beta_f=(Complex_f)beta;
 			alpha_m = 1.0;
 			cublasCscal(cublas_handle,kferm2,(cuComplex *)&beta_f,(cuComplex *)p_f,1);
 			cublasCaxpy(cublas_handle,kferm2,(cuComplex *)&alpha_m,(cuComplex *)r_f,1,(cuComplex *)p_f,1);
@@ -592,7 +593,7 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 	//These alpha and beta terms should be double, but that causes issues with BLAS. Instead we declare
 	//them Complex and work with the real part (especially for \alpha_d)
 	//Give initial values Will be overwritten if niterx>0
-	double betad = 1.0; Complex_f alphad=0; Complex alpha = 1;
+	double betad = 1.0; Complex_f alphad=0; alignas(16)Complex alpha = 1; //Alignment needed for cuBLAS
 
 	Complex_f *p_f, *r_f, *x1_f, *x2_f, *xi_f;
 	Complex *p, *r, *x1, *x2;
@@ -681,9 +682,7 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 				alpha=alphan/creal(alpha);
 				/// @f$x+\alpha p@f$
 #ifdef __NVCC__
-				//A bit of a hack.  No idea why passing alpha on it's own causes a segfault
-				const Complex alpha_test = (Complex)alpha;
-				cublasZaxpy(cublas_handle,kferm,(cuDoubleComplex *)&alpha_test,(cuDoubleComplex *)p,1,(cuDoubleComplex *)xi,1);
+				cublasZaxpy(cublas_handle,kferm,(cuDoubleComplex *)&alpha,(cuDoubleComplex *)p,1,(cuDoubleComplex *)xi,1);
 #elif defined USE_BLAS
 				cblas_zaxpy(kferm, &alpha, p, 1, xi, 1);
 #else
@@ -694,6 +693,9 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 
 #ifdef	__NVCC__
 			Complex alpha_m=(Complex)(-alpha);
+#ifdef _DEBUG
+			printf("alpha_m = %e + %ei\n", creal(alpha_m), cimag(alpha_m));
+#endif
 			cublasZaxpy(cublas_handle, kferm,(cuDoubleComplex *)&alpha_m,(cuDoubleComplex *)x2,1,(cuDoubleComplex *)r,1);
 			double betan_d;
 			cublasDznrm2(cublas_handle,kferm,(cuDoubleComplex *)r,1,&betan_d);
@@ -724,7 +726,7 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 			if(! rank) printf("DP Iter(CG)=%i\tbeta_n=%e\talpha=%e\n", *itercg, betan, alpha);
 			fflush(stdout);
 #endif
-			const Complex beta = (*itercg) ?    betan/betad :   0;
+			alignas(16) const Complex beta = (*itercg) ?    betan/betad :   0;
 			betad=betan; alphan=betan;
 #ifdef __NVCC__
 			cublasZdscal(cublas_handle,kferm,(double *)&beta,(cuDoubleComplex *)p,1);
@@ -799,7 +801,7 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 				//			Complex_f alpha_f = (Complex_f)alpha;
 				//x+\alpha p
 #ifdef USE_BLAS
-				Complex_f alpha_f=(float)alpha;
+				alignas(8) Complex_f alpha_f=(float)alpha;
 #ifdef __NVCC__
 				cublasCaxpy(cublas_handle,kferm,(cuComplex*) &alpha_f,(cuComplex*) p_f,1,(cuComplex*) xi_f,1);
 #else
@@ -813,9 +815,9 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 			}
 
 			//r=\alpha(M^\dagger)Mp and \beta_n=r*.r
-			float betan_f=0;
+			alignas(8) float betan_f=0;
 #if defined USE_BLAS
-			Complex_f alpha_m=(Complex_f)(-alpha);
+			alignas(8) Complex_f alpha_m=(Complex_f)(-alpha);
 #ifdef __NVCC__
 			cublasCaxpy(cublas_handle,kferm, (cuComplex *)&alpha_m,(cuComplex *) x2_f, 1,(cuComplex *) r_f, 1);
 			//cudaDeviceSynchronise();
@@ -838,6 +840,7 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 				r_f[i]-=alpha*x2_f[i];
 				betan+=conj(r_f[i])*r_f[i];
 			}
+			betan_f=sqrt(betan);
 #endif
 			//This is basically just congradq at the end. Check there for comments
 #if(nproc>1)
@@ -869,14 +872,14 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 				ret_val=ITERLIM;	break;
 			}
 			//Note that beta below is not the global beta and scoping is used to avoid conflict between them
-			Complex beta = (*itercg) ? betan/betad : 0;
+			alignas(8) Complex beta = (*itercg) ? betan/betad : 0;
 			betad=betan; alphan=betan;
 			//BLAS for p=r+\betap doesn't exist in standard BLAS. This is NOT an axpy case as we're multiplying y by 
 			//\beta instead of x.
 			//There is cblas_zaxpby in the MKL though, set a = 1 and b = \beta.
 #ifdef USE_BLAS
-			Complex_f beta_f = (Complex_f)beta;
-			Complex_f a = 1.0;
+			alignas(8) Complex_f beta_f = (Complex_f)beta;
+			alignas(8) Complex_f a = 1.0;
 #ifdef __NVCC__
 			cublasCscal(cublas_handle,kferm,(cuComplex *)&beta_f,(cuComplex *)p_f,1);
 			cublasCaxpy(cublas_handle,kferm,(cuComplex *)&a,(cuComplex *)r_f,1,(cuComplex *)p_f,1);
@@ -895,15 +898,8 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 		}
 	}
 #ifdef __NVCC__
-	Transpose_c(xi_f,kvol,ngorkov*nc);
-
+	Transpose_z(xi,kvol,ngorkov*nc);
 	cudaDeviceSynchronise();
-	cuComplex_convert(xi_f,xi,kferm,false,dimBlock,dimGrid);
-#else
-#pragma omp simd
-	for(unsigned int i = 0; i <kferm;i++){
-		xi[i]=(Complex)xi_f[i];
-	}
 #endif
 	P_free_f(&p_f,&r_f,&x1_f,&x2_f,&xi_f);
 	P_free(&p,&r,&x1,&x2);
