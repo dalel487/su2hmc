@@ -521,7 +521,7 @@ __global__ void ByClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, co
 	const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	const unsigned int gthreadId= blockId * bsize+bthreadId;
 
-	for(int i=gthreadId;i<kvol;i+=bsize*gsize){
+	for(unsigned int i=gthreadId;i<kvol;i+=bsize*gsize){
 		//Prefetched r and Phi array
 		complex<T> phi_s[ngorkov][nc];
 #pragma unroll
@@ -542,16 +542,17 @@ __global__ void ByClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, co
 				for(unsigned short c=0; c<nc; c++)
 					r_s[c]=r[i+kvol*(sind*nc+c)];
 				///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
-				phi_s[igorkov][0]+=akappa*sigval[clov*ndirac+idirac]*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
+				phi_s[igorkov][0]+=sigval[clov*ndirac+idirac]*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
 				//Clover is in the Lie Algebra, not Lie group. So signs are correct here.
-				phi_s[igorkov][1]+=akappa*sigval[clov*ndirac+idirac]*(conj(clov_s[1])*r_s[0]+creal(clov_s[0])*r_s[1]);
+				phi_s[igorkov][1]+=sigval[clov*ndirac+idirac]*(conj(clov_s[1])*r_s[0]+creal(clov_s[0])*r_s[1]);
 			}
 		}
 #pragma unroll
 		for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++)
 			for(unsigned short c=0; c<nc; c++)
 				///Also @f$\sigma_{\mu\nu}F_{\mu\nu}=\sigma_{\nu\mu}F_{\nu\mu}@f$ so we double it to take account of that
-				phi[i+kvol*(nc*igorkov+c)]+=2*phi_s[igorkov][c];
+				///But then we multiply by @f$-\frac{1}{2}@f$ so the @f$2@f$ disappears
+				phi[i+kvol*(nc*igorkov+c)]+=akappa*phi_s[igorkov][c];
 	}
 	return;
 }
@@ -594,9 +595,9 @@ __global__ void HbyClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, c
 				}
 				///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
 				const complex<T> sig=sigval[clov*ndirac+(idirac>>1)];
-				phi_s[idirac+0]+=akappa*sig*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
+				phi_s[idirac+0]+=sig*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
 				//Clover is in the Lie Algebra, not Lie group. So signs are correct here.
-				phi_s[idirac+1]+=akappa*sig*(conj(clov_s[1])*r_s[0]+creal(clov_s[0])*r_s[1]);
+				phi_s[idirac+1]+=sig*(conj(clov_s[1])*r_s[0]+creal(clov_s[0])*r_s[1]);
 			}
 		}
 #pragma unroll
@@ -604,7 +605,7 @@ __global__ void HbyClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, c
 			for(unsigned short c=0; c<nc; c++)
 				///@f$\sigma_{\mu\nu}F_{\mu\nu}=\sigma_{\nu\mu}F_{\nu\mu}@f$ so we double it to take account of that
 				///But then we multiply by @f$-\frac{1}{2}@f$ so the @f$2@f$ disappears
-				phi[i+kvol*(c+idirac)]-=phi_s[idirac+c];
+				phi[i+kvol*(c+idirac)]-=akappa*phi_s[idirac+c];
 	}
 	return;
 }

@@ -82,6 +82,29 @@ void Q_allocate(Complex **p, Complex **x1, Complex **x2, Complex *clover[2]){
 #endif
 	return;
 }
+void P_allocate_f(Complex_f **p_f,Complex_f **r_f, Complex_f ** x1_f, Complex_f ** x2_f, Complex_f **xi_f){
+#ifdef __NVCC__
+#ifdef _DEBUG
+	cudaMallocManaged((void **)p_f, kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)r_f, kferm*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)x1_f, kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)x2_f, kferm*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)xi_f, kferm*sizeof(Complex_f),cudaMemAttachGlobal);
+#else
+	cudaMalloc((void **)p_f, kfermHalo*sizeof(Complex_f));
+	cudaMalloc((void **)r_f, kferm*sizeof(Complex_f));
+	cudaMalloc((void **)x1_f, kfermHalo*sizeof(Complex_f));
+	cudaMalloc((void **)x2_f, kferm*sizeof(Complex_f));
+	cudaMalloc((void **)xi_f, kferm*sizeof(Complex_f));
+#endif
+#else
+	*p_f  =	aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
+	*r_f  =	aligned_alloc(AVX,kferm*sizeof(Complex_f));
+	*x1_f	=	aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
+	*x2_f	=	aligned_alloc(AVX,kferm*sizeof(Complex_f));
+	*xi_f	=	aligned_alloc(AVX,kferm*sizeof(Complex_f));
+#endif
+}
 
 /**
  * @brief Frees memory needed for Congradq. Just to improve readability
@@ -140,37 +163,18 @@ void Q_free(Complex **p, Complex **x1, Complex **x2, Complex *clover[2]){
 #endif
 	return;
 }
+void P_free_f(Complex_f **p_f,Complex_f **r_f, Complex_f ** x1_f, Complex_f ** x2_f, Complex_f **xi_f){
+#ifdef	__NVCC__
+	cudaFree(*p_f); cudaFree(*r_f);cudaFree(*x1_f); cudaFree(*x2_f); cudaFree(*xi_f); 
+#else
+	free(*p_f); free(*r_f); free(*x1_f); free(*x2_f); free(*xi_f); 
+#endif
+}
 int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f *ut[2],Complex_f *clover_f[nc],
 		unsigned int *iu, unsigned int *id, Complex gamval[20], Complex_f gamval_f[20],const unsigned short gamin[16],
 		Complex *sigval, Complex_f *sigval_f,unsigned short *sigin, double *dk[2], float *dk_f[2],
 		Complex_f jqq,float akappa,float c_sw,int *itercg){
-	/*
-	 * @brief Matrix Inversion via Mixed Precision Conjugate Gradient
-	 * Solves @f$(M^\dagger)Mx=\Phi@f$
-	 * Implements up/down partitioning
-	 * The matrix multiplication step is done at single precision, while the update is done at double
-	 *
-	 * @param  na:				Flavour index
-	 * @param  res:			Limit for conjugate gradient
-	 * @param  X1:				@f(\Phi@f) initially, returned as @f((M^\dagger M)^{-1} \Phi@f)
-	 * @param  r:				Partition of @f(\Phi@f) being used. Gets recycled as the residual vector
-	 * @param  ut[0]:			First colour's trial field
-	 * @param  ut[1]:			Second colour's trial field
-	 * @param  iu:				Upper halo indices
-	 * @param  id:				Lower halo indices
-	 * @param  gamval_f:		Gamma matrices
-	 * @param  gamin:			Dirac indices
-	 * @param  dk[0]:
-	 * @param  dk[1]:
-	 * @param  jqq:			Diquark source
-	 * @param  akappa:		Hopping Parameter
-	 * @param  itercg:		Counts the iterations of the conjugate gradient
-	 * 
-	 * @see Hdslash_f(), Hdslashd_f(), Par_fsum(), Par_dsum()
-	 *
-	 * @return 0 on success, integer error code otherwise
-	 */
-	const char *funcname = "Congradq";
+	const char funcname[] = "Congradq";
 	int ret_val=0;
 	const double resid = res*res;
 #ifdef _DEBUGCG
@@ -194,9 +198,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 	///Give initial values Will be overwritten if niterx>0
 	double betad = 1.0; Complex_f alphad=0; Complex alpha = 1;
 	//Because we're dealing with flattened arrays here we can call cblas safely without the halo
-#ifdef __NVCC__
-	int device=-1; cudaGetDevice(&device);
-#endif
+	
 	Complex_f *p_f, *x1_f, *x2_f, *r_f, *X1_f;
 	Complex	 *p, *x1, *x2, *clover[2];
 	Q_allocate_f(&p_f,&x1_f,&x2_f,&r_f,&X1_f);
@@ -542,63 +544,31 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 }
 int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigned int *iu,unsigned int *id,\
 		Complex_f gamval[20],const unsigned short gamin[16], float *dk[2],Complex_f jqq,float akappa,int *itercg){
-	/*
-	 * @brief Matrix Inversion via Conjugate Gradient
-	 * Solves @f$(M^\dagger)Mx=\Phi@f$
-	 * No even/odd partitioning.
-	 * The matrix multiplication step is done at single precision, while the update is done at double
-	 *
-	 * @param 	na:			Flavour index
-	 * @param 	res:			Limit for conjugate gradient
-	 * @param 	Phi:			@f(\Phi@f) initially, 
-	 * @param 	xi:			Returned as @f((M^\dagger M)^{-1} \Phi@f)
-	 * @param 	ut[0]:			First colour's trial field
-	 * @param 	ut[1]:			Second colour's trial field
-	 * @param 	iu:			Upper halo indices
-	 * @param 	id:			Lower halo indices
-	 * @param 	gamval:		Gamma matrices
-	 * @param 	gamin:		Dirac indices
-	 * @param 	dk[0]:
-	 * @param 	dk[1]:
-	 * @param 	jqq:			Diquark source
-	 * @param 	akappa:		Hopping Parameter
-	 * @param 	itercg:		Counts the iterations of the conjugate gradient
-	 *
-	 * @return 0 on success, integer error code otherwise
-	 */
-	const char *funcname = "Congradp";
+	const char funcname[] = "Congradp";
 	//Return value
 	int ret_val=0;
 	const double resid = res*res;
+#ifdef _DEBUGCG
+#warning "CG Debugging"
+	char *endline = "\n";
+#else
+	char *endline = "\r";
+#endif
+	
+	///TODO: Set this as an argument
+	///How much does the residue have to shrink by before we do a double precision update
+	const float d_prec=1.0f/128.0f;
+	
 	//These were evaluated only in the first loop of niterx so we'll just do it outside of the loop.
+	double alphan=1.0;
 	//These alpha and beta terms should be double, but that causes issues with BLAS. Instead we declare
 	//them Complex and work with the real part (especially for \alpha_d)
 	//Give initial values Will be overwritten if niterx>0
-#ifdef __NVCC__
-	Complex_f *p_f, *r_f, *xi_f, *x1_f, *x2_f;
-	int device; cudaGetDevice(&device);
-#ifdef _DEBUG
-	cudaMallocManaged((void **)&p_f, kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&r_f, kferm*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&x1_f, kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&x2_f, kferm*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&xi_f, kferm*sizeof(Complex_f),cudaMemAttachGlobal);
-#else
-	cudaMalloc((void **)&p_f, kfermHalo*sizeof(Complex_f));
-	cudaMalloc((void **)&r_f, kferm*sizeof(Complex_f));
-	cudaMalloc((void **)&x1_f, kfermHalo*sizeof(Complex_f));
-	cudaMalloc((void **)&x2_f, kferm*sizeof(Complex_f));
-	cudaMalloc((void **)&xi_f, kferm*sizeof(Complex_f));
-#endif
-#else
-	Complex_f *p_f  =	aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
-	Complex_f *r_f  =	aligned_alloc(AVX,kferm*sizeof(Complex_f));
-	Complex_f *x1_f	=	aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
-	Complex_f *x2_f	=	aligned_alloc(AVX,kferm*sizeof(Complex_f));
-	Complex_f *xi_f	=	aligned_alloc(AVX,kferm*sizeof(Complex_f));
-#endif
 	double betad = 1.0; Complex_f alphad=0; Complex alpha = 1;
-	double alphan=0.0;
+
+	Complex_f *p_f, *r_f, *x1_f, *x2_f, *xi_f;
+	P_allocate_f(&p_f,&r_f,&x1_f,&x2_f,&xi_f);
+	
 	//Instead of copying element-wise in a loop, use memcpy.
 #ifdef __NVCC__
 	//Get xi  in single precision, then swap to AoS format
@@ -623,19 +593,15 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigne
 
 	//niterx isn't called as an index but we'll start from zero with the C code to make the
 	//if statements quicker to type
-	double betan;
 #ifdef __NVCC__
 	cudaDeviceSynchronise();
 #endif
+	double betan=1;double beta_max=FLT_MAX; bool do_dp=true;
 	for((*itercg)=0; (*itercg)<=niterc; (*itercg)++){
 		//Don't overwrite on first run. 
 		//x2=(M^\dagger)x1=(M^\dagger)Mp
 		Dslash_f(x1_f,p_f,ut[0],ut[1],iu,id,gamval,gamin,dk,jqq,akappa);
-		//if(c_sw)
-		//	ByClover(x1_f,p_f,clover,sigval,akappa,sigin);
 		Dslashd_f(x2_f,x1_f,ut[0],ut[1],iu,id,gamval,gamin,dk,jqq,akappa);
-		//if(c_sw)
-		//	ByClover(x1_f,p_f,clover,sigval,akappa,sigin);
 #ifdef __NVCC__
 		cudaDeviceSynchronise();
 #endif
@@ -756,7 +722,6 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigne
 	}
 #ifdef __NVCC__
 	Transpose_c(xi_f,kvol,ngorkov*nc);
-	Transpose_c(r_f,kvol,ngorkov*nc);
 
 	cudaDeviceSynchronise();
 	cuComplex_convert(xi_f,xi,kferm,false,dimBlock,dimGrid);
@@ -766,45 +731,6 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigne
 		xi[i]=(Complex)xi_f[i];
 	}
 #endif
-#ifdef	__NVCC__
-	cudaFree(p_f); cudaFree(r_f);cudaFree(x1_f); cudaFree(x2_f); cudaFree(xi_f); 
-#else
-	free(p_f); free(r_f); free(x1_f); free(x2_f); free(xi_f); 
-#endif
+	P_free_f(&p_f,&r_f,&x1_f,&x2_f,&xi_f);
 	return ret_val;
 }
-/* Old clutter for debugging CG
- * Pre mult
-#ifdef _DEBUGCG
-memset(x1_f,0,kferm2Halo*sizeof(Complex_f));
-#ifdef __NVCC__
-//cudaMemPrefetchAsync(x1_f,kferm2*sizeof(Complex_f),device,NULL);
-cudaDeviceSynchronise();
-#endif
-printf("\nPre mult:\tp_f[kferm2-1]=%.5e+%.5ei\tx1_f[kferm2-1]=%.5e+%.5ei\tx2_f[kferm2-1]=%.5e+%.5ei\t",\
-creal(p_f[kferm2-1]),cimag(p_f[kferm2-1]),creal(x1_f[kferm2-1]),cimag(x1_f[kferm2-1]),creal(x2_f[kferm2-1]),cimag(x2_f[kferm2-1]));
-#endif
-
-First mult
-#ifdef _DEBUGCG
-printf("\nHdslash_f:\tp_f[kferm2-1]=%.5e+%.5ei\tx1_f[kferm2-1]=%.5e+%.5ei\tx2_f[kferm2-1]=%.5e+%.5ei",\
-creal(p_f[kferm2-1]),cimag(p_f[kferm2-1]),creal(x1_f[kferm2-1]),cimag(x1_f[kferm2-1]),creal(x2_f[kferm2-1]),cimag(x2_f[kferm2-1]));
-#endif
-Post mult
-#ifdef _DEBUGCG
-printf("\nHdslashd_f:\tp_f[kferm2-1]=%.5e+%.5ei\tx1_f[kferm2-1]=%.5e+%.5ei\tx2_f[kferm2-1]=%.5e+%.5ei\n",\
-creal(p_f[kferm2-1]),cimag(p_f[kferm2-1]),creal(x1_f[kferm2-1]),cimag(x1_f[kferm2-1]),creal(x2_f[kferm2-1]),cimag(x2_f[kferm2-1]));
-#endif
-
-GAmmas
-#ifdef _DEBUGCG
-printf("Gammas:\n");
-for(unsigned int i=0;i<5;i++){
-for(unsigned int j=0;j<4;j++)
-printf("%.5e+%.5ei\t",creal(gamval_f[i*4+j]),cimag(gamval_f[i*4+j]));
-printf("\n");
-}
-printf("\nConstants (index %d):\nu11t[kvol-1]=%e+%.5ei\tu12t[kvol-1]=%e+%.5ei\tdk4m=%.5e\tdk4p=%.5e\tjqq=%.5e+I%.5f\tkappa=%.5f\n",\
-kvol-1,creal(u11t[kvol-1]),cimag(u11t[kvol-1]),creal(u12t[kvol-1]),cimag(u12t[kvol-1]),dk4m[kvol-1],dk4p[kvol-1],creal(jqq),cimag(jqq),akappa);
-#endif
-*/
