@@ -573,12 +573,10 @@ int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigne
 #ifdef __NVCC__
 	//Get xi  in single precision, then swap to AoS format
 	cuComplex_convert(p_f,xi,kferm,true,dimBlock,dimGrid);
-	Transpose_c(p_f,ngorkov*nc,kvol);
 	cudaMemcpy(xi_f,p_f,kferm*sizeof(Complex_f),cudaMemcpyDefault);
 
 	//And repeat for r
 	cuComplex_convert(r_f,Phi+na*kferm,kferm,true,dimBlock,dimGrid);
-	Transpose_c(r_f,ngorkov*nc,kvol);
 #else
 #pragma omp parallel for simd aligned(p_f,xi_f,xi,r_f,Phi:AVX)
 	for(unsigned int i =0;i<kferm;i++){

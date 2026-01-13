@@ -88,7 +88,6 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #ifdef __NVCC__
 	cudaDeviceSynchronise();
 	cudaFree(xi_f);	
-	Transpose_c(R1_f,kvol,ngorkov*nc);
 	cuComplex_convert(R1_f,R1,kferm,false,dimBlock,dimGrid);
 	cudaMemcpy(Phi, R1, kferm*sizeof(Complex),cudaMemcpyDefault);
 #else
