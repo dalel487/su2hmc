@@ -602,11 +602,15 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 	//Instead of copying element-wise in a loop, use memcpy.
 #ifdef __NVCC__
 	//Get xi  in single precision, then swap to AoS format
+	cudaMemcpy(p,xi,kferm*sizeof(Complex),cudaMemcpyDefault);
 	cuComplex_convert(p_f,xi,kferm,true,dimBlock,dimGrid);
 	//And repeat for r
 	cuComplex_convert(r_f,Phi+na*kferm,kferm,true,dimBlock,dimGrid);
+	cudaMemcpy(r,Phi+na*kferm,kferm*sizeof(Complex),cudaMemcpyDefault);
 	cudaMemcpy(xi_f,p_f,kferm*sizeof(Complex_f),cudaMemcpyDefault);
 #else
+	memcpy(p,xi,kferm*sizeof(Complex));
+	memcpy(r,Phi+na*kferm,kferm*sizeof(Complex));
 #pragma omp parallel for simd aligned(p_f,xi_f,xi,r_f,Phi:AVX)
 	for(unsigned int i =0;i<kferm;i++){
 		p_f[i]=xi_f[i]=(Complex_f)xi[i];
