@@ -621,152 +621,152 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 	double betan=1;double beta_max=FLT_MAX; bool do_dp=true;
 	for((*itercg)=0; (*itercg)<niterc; (*itercg)++){
 		//Don't overwrite on first run. 
-			if(do_dp){
+		if(do_dp){
 #ifdef _DEBUGCG
-		printf("Going to double precision on iteration %d.  %sbetan %e\talpha %e.  %s",
-				*itercg,endline,betan,alpha,endline);
+			printf("Going to double precision on iteration %d.  %sbetan %e\talpha %e.  %s",
+					*itercg,endline,betan,alpha,endline);
 #elifdef _DEBUG
-		printf("\nGoing to double precision on iteration %d. %sbetan %e\talpha %e.\n",
-				*itercg,endline,betan,alpha);
+			printf("\nGoing to double precision on iteration %d. %sbetan %e\talpha %e.\n",
+					*itercg,endline,betan,alpha);
 #endif
 #ifdef __NVCC__
-		//Update the residue vector, but not on the first call.
-		if(*itercg)
-			cuMixed_Sumto((double *)xi,(float *)xi_f,2*kferm,dimGrid,dimBlock);
-		//Bring everything into double precision
-		cuComplex_convert(p_f,p,kferm,false,dimBlock,dimGrid);
-		cuComplex_convert(r_f,r,kferm,false,dimBlock,dimGrid);
-		//Reset xi_f to zero.
-		cudaDeviceSynchronise();
-		cudaMemsetAsync(xi_f,0,kferm*sizeof(Complex_f),streams[4]);
+			//Update the residue vector, but not on the first call.
+			if(*itercg)
+				cuMixed_Sumto((double *)xi,(float *)xi_f,2*kferm,dimGrid,dimBlock);
+			//Bring everything into double precision
+			cuComplex_convert(p_f,p,kferm,false,dimBlock,dimGrid);
+			cuComplex_convert(r_f,r,kferm,false,dimBlock,dimGrid);
+			//Reset xi_f to zero.
+			cudaDeviceSynchronise();
+			cudaMemsetAsync(xi_f,0,kferm*sizeof(Complex_f),streams[4]);
 #else
-		//Update the residue vector, but not on the first call.
-		if(*itercg)
+			//Update the residue vector, but not on the first call.
+			if(*itercg)
 #pragma omp parallel for simd aligned(xi,xi_f:AVX)
-			for(unsigned int i=0;i<kferm;i++){
-				xi[i]+=(Complex)xi_f[i];
-			}
+				for(unsigned int i=0;i<kferm;i++){
+					xi[i]+=(Complex)xi_f[i];
+				}
 #pragma omp parallel for simd aligned(r,p,xi_f:AVX)
-		for(unsigned int i=0;i<kferm;i++){
-			r[i]=(Complex)r_f[i]; xi_f[i]=0;
-			p[i]=(Complex)p_f[i];
-		}
+			for(unsigned int i=0;i<kferm;i++){
+				r[i]=(Complex)r_f[i]; xi_f[i]=0;
+				p[i]=(Complex)p_f[i];
+			}
 #endif
-		///@f$x2 =  (M^\dagger M)p @f$
-		//No need to synchronise here.  The memcpy in Dslash is blocking
-		Dslash(x1,p,ud,iu,id,gamval,gamin,dk,jqq,akappa);
-		Dslashd(x2,x1,ud,iu,id,gamval,gamin,dk,jqq,akappa);
+			///@f$x2 =  (M^\dagger M)p @f$
+			//No need to synchronise here.  The memcpy in Dslash is blocking
+			Dslash(x1,p,ud,iu,id,gamval,gamin,dk,jqq,akappa);
+			Dslashd(x2,x1,ud,iu,id,gamval,gamin,dk,jqq,akappa);
 #ifdef	__NVCC__
-		cudaDeviceSynchronise();
+			cudaDeviceSynchronise();
 #endif
 
-		/// @f$\alpha_d= p* (M^\dagger M)p@f$
-		if(*itercg){
+			/// @f$\alpha_d= p* (M^\dagger M)p@f$
+			if(*itercg){
 #ifdef __NVCC__
-			cublasZdotc(cublas_handle,kferm,(cuDoubleComplex *)p,1,(cuDoubleComplex *)x2,1,(cuDoubleComplex *)&alpha);
+				cublasZdotc(cublas_handle,kferm,(cuDoubleComplex *)p,1,(cuDoubleComplex *)x2,1,(cuDoubleComplex *)&alpha);
 #elif defined USE_BLAS
-			cblas_zdotc_sub(kferm, p, 1, x2, 1, &alpha);
+				cblas_zdotc_sub(kferm, p, 1, x2, 1, &alpha);
 #else
-			alpha=0;
+				alpha=0;
 #pragma omp parallel for simd aligned(p,x2:AVX)
-			for(unsigned int i=0; i<kferm; i++)
-				alpha+=conj(p[i])*x2[i];
+				for(unsigned int i=0; i<kferm; i++)
+					alpha+=conj(p[i])*x2[i];
 #endif
-			//For now I'll cast it into a float for the reduction.  Each rank only sends and writes
-			//to the real part so this is fine
+				//For now I'll cast it into a float for the reduction.  Each rank only sends and writes
+				//to the real part so this is fine
 #if(nproc>1)
-			Par_dsum((double *)&alpha);
+				Par_dsum((double *)&alpha);
 #endif
-			///@f$alpha=\frac{\alpha_n}{\alpha_d}=\frac{r\cdot r}{p(M^\dagger M)p}@f$
-			alpha=alphan/creal(alpha);
-			/// @f$x+\alpha p@f$
+				///@f$alpha=\frac{\alpha_n}{\alpha_d}=\frac{r\cdot r}{p(M^\dagger M)p}@f$
+				alpha=alphan/creal(alpha);
+				/// @f$x+\alpha p@f$
 #ifdef __NVCC__
-			//A bit of a hack.  No idea why passing alpha on it's own causes a segfault
-			const Complex alpha_test = (Complex)alpha;
-			cublasZaxpy(cublas_handle,kferm,(cuDoubleComplex *)&alpha_test,(cuDoubleComplex *)p,1,(cuDoubleComplex *)xi,1);
+				//A bit of a hack.  No idea why passing alpha on it's own causes a segfault
+				const Complex alpha_test = (Complex)alpha;
+				cublasZaxpy(cublas_handle,kferm,(cuDoubleComplex *)&alpha_test,(cuDoubleComplex *)p,1,(cuDoubleComplex *)xi,1);
 #elif defined USE_BLAS
-			cblas_zaxpy(kferm, &alpha, p, 1, xi, 1);
+				cblas_zaxpy(kferm, &alpha, p, 1, xi, 1);
 #else
-			for(unsigned int i=0; i<kferm; i++)
-				xi[i]+=alpha*p[i];
+				for(unsigned int i=0; i<kferm; i++)
+					xi[i]+=alpha*p[i];
 #endif
-		}
+			}
 
 #ifdef	__NVCC__
-		Complex alpha_m=(Complex)(-alpha);
-		cublasZaxpy(cublas_handle, kferm,(cuDoubleComplex *)&alpha_m,(cuDoubleComplex *)x2,1,(cuDoubleComplex *)r,1);
-		double betan_d;
-		cublasDznrm2(cublas_handle,kferm,(cuDoubleComplex *)r,1,&betan_d);
-		betan=betan_d*betan_d;
+			Complex alpha_m=(Complex)(-alpha);
+			cublasZaxpy(cublas_handle, kferm,(cuDoubleComplex *)&alpha_m,(cuDoubleComplex *)x2,1,(cuDoubleComplex *)r,1);
+			double betan_d;
+			cublasDznrm2(cublas_handle,kferm,(cuDoubleComplex *)r,1,&betan_d);
+			betan=betan_d*betan_d;
 #elif defined USE_BLAS
-		const Complex alpha_m = (Complex)(-alpha);
-		cblas_zaxpy(kferm, &alpha_m, x2, 1, r, 1);
-		//Undo the negation for the BLAS routine
-		double betan_d = cblas_dznrm2(kferm, r,1);
-		//Gotta square it to "undo" the norm
-		betan = betan_d*betan_d;
+			const Complex alpha_m = (Complex)(-alpha);
+			cblas_zaxpy(kferm, &alpha_m, x2, 1, r, 1);
+			//Undo the negation for the BLAS routine
+			double betan_d = cblas_dznrm2(kferm, r,1);
+			//Gotta square it to "undo" the norm
+			betan = betan_d*betan_d;
 #else
-		betan=0;
+			betan=0;
 #pragma omp parallel for simd aligned(r,x2:AVX) reduction(+:betan)
-		for(unsigned int i=0; i<kferm; i++){
-			r[i]-=alpha*x2[i];
-			betan += conj(r[i])*r[i];
-		}
-		double betan_d=sqrt(betan);
+			for(unsigned int i=0; i<kferm; i++){
+				r[i]-=alpha*x2[i];
+				betan += conj(r[i])*r[i];
+			}
+			double betan_d=sqrt(betan);
 #endif
-		//And...  reduce.
+			//And...  reduce.
 #if(nproc>1)
-		Par_dsum(&betan);
+			Par_dsum(&betan);
 #endif
-		//Update beta_max.  Mandatory for double precision.
-		beta_max=betan_d;
+			//Update beta_max.  Mandatory for double precision.
+			beta_max=betan_d;
 #ifdef _DEBUG
-		if(! rank) printf("DP Iter(CG)=%i\tbeta_n=%e\talpha=%e\n", *itercg, betan, alpha);
-		fflush(stdout);
+			if(! rank) printf("DP Iter(CG)=%i\tbeta_n=%e\talpha=%e\n", *itercg, betan, alpha);
+			fflush(stdout);
 #endif
-		const Complex beta = (*itercg) ?    betan/betad :   0;
-		betad=betan; alphan=betan;
+			const Complex beta = (*itercg) ?    betan/betad :   0;
+			betad=betan; alphan=betan;
 #ifdef __NVCC__
-		cublasZdscal(cublas_handle,kferm,(double *)&beta,(cuDoubleComplex *)p,1);
-		alpha_m=1;
-		cublasZaxpy(cublas_handle,kferm,(cuDoubleComplex *)&alpha_m,(cuDoubleComplex *)r,1,(cuDoubleComplex *)p,1);
-		cuComplex_convert(p_f,p,kferm,true,dimBlock,dimGrid);
-		cuComplex_convert(r_f,r,kferm,true,dimBlock,dimGrid);
+			cublasZdscal(cublas_handle,kferm,(double *)&beta,(cuDoubleComplex *)p,1);
+			alpha_m=1;
+			cublasZaxpy(cublas_handle,kferm,(cuDoubleComplex *)&alpha_m,(cuDoubleComplex *)r,1,(cuDoubleComplex *)p,1);
+			cuComplex_convert(p_f,p,kferm,true,dimBlock,dimGrid);
+			cuComplex_convert(r_f,r,kferm,true,dimBlock,dimGrid);
 #else
 #ifdef __USE_MKL__
-		const Complex a = 1.0;
-		//There is cblas_? axpby in the MKL and AMD though, set a = 1 and b = \beta.
-		//If we get a small enough \beta_n before hitting the iteration cap we break
-		cblas_zaxpby(kferm, &a, r, 1, &beta,  p, 1);
+			const Complex a = 1.0;
+			//There is cblas_? axpby in the MKL and AMD though, set a = 1 and b = \beta.
+			//If we get a small enough \beta_n before hitting the iteration cap we break
+			cblas_zaxpby(kferm, &a, r, 1, &beta,  p, 1);
 #elif defined USE_BLAS
-		cblas_zscal(kferm,&beta,p,1);
-		const Complex a = 1.0;
-		cblas_zaxpy(kferm,&a,r,1,p,1);
+			cblas_zscal(kferm,&beta,p,1);
+			const Complex a = 1.0;
+			cblas_zaxpy(kferm,&a,r,1,p,1);
 #else
 #pragma omp parallel for simd aligned(r,p:AVX)
-		for(unsigned int i=0; i<kferm; i++)
-			p[i]=r[i]+beta*p[i];
+			for(unsigned int i=0; i<kferm; i++)
+				p[i]=r[i]+beta*p[i];
 #endif
 #pragma omp parallel for simd aligned(r,p:AVX)
-		for(unsigned int i=0; i<kferm; i++){
-			p_f[i]=(Complex_f)p[i];
-			r_f[i]=(Complex_f)r[i];
-		}
+			for(unsigned int i=0; i<kferm; i++){
+				p_f[i]=(Complex_f)p[i];
+				r_f[i]=(Complex_f)r[i];
+			}
 #endif
 #ifdef _DEBUGCG
-		if(! rank) printf("Double precision.  Iter(CG)=%i\tbeta_n=%e\talpha=%e\n", *itercg, betan, alpha);
-		fflush(stdout);
+			if(! rank) printf("Double precision.  Iter(CG)=%i\tbeta_n=%e\talpha=%e\n", *itercg, betan, alpha);
+			fflush(stdout);
 #endif
-		if(betan<resid){
-			(*itercg)++;
+			if(betan<resid){
+				(*itercg)++;
 #ifdef _DEBUG
-			if(!rank) printf("\nIter(CG)=%i\tResidue:  %e\tTolerance:  %e\n", *itercg, betan, resid);
+				if(!rank) printf("\nIter(CG)=%i\tResidue:  %e\tTolerance:  %e\n", *itercg, betan, resid);
 #endif
-			ret_val=0;	break;
+				ret_val=0;	break;
+			}
+			else
+				do_dp=false;
 		}
-		else
-			do_dp=false;
-	}
 		else{
 			//x2=(M^\dagger)x1=(M^\dagger)Mp
 			Dslash_f(x1_f,p_f,ut,iu,id,gamval_f,gamin,dk_f,jqq,akappa);
@@ -813,9 +813,9 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 			}
 
 			//r=\alpha(M^\dagger)Mp and \beta_n=r*.r
+			float betan_f=0;
 #if defined USE_BLAS
 			Complex_f alpha_m=(Complex_f)(-alpha);
-			float betan_f=0;
 #ifdef __NVCC__
 			cublasCaxpy(cublas_handle,kferm, (cuComplex *)&alpha_m,(cuComplex *) x2_f, 1,(cuComplex *) r_f, 1);
 			//cudaDeviceSynchronise();
@@ -842,6 +842,8 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 			//This is basically just congradq at the end. Check there for comments
 #if(nproc>1)
 			Par_dsum(&betan);
+			//Update beta_max if needed. On paper congrad is monotonically decreasing
+			beta_max = (betan_f>beta_max) ?betan_f : beta_max;
 #endif
 #ifdef _DEBUG
 			if(!rank) printf("Iter (CG) = %i beta_n= %e alpha= %e%s", *itercg, betan, alpha,endline);
