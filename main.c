@@ -473,7 +473,7 @@ int main(int argc, char *argv[]){
 			//versions.
 			cudaDeviceSynchronise();
 #endif
-			Dslashd_f(R1_f,R,ut_f[0],ut_f[1],iu,id,gamval_f,gamin,dk_f,jqq,akappa);
+			Dslashd_f(R1_f,R,ut_f,iu,id,gamval_f,gamin,dk_f,jqq,akappa);
 			if(c_sw)
 				ByClover_f(R1_f,R,clover,sigval_f,akappa,sigin);
 #ifdef __NVCC__

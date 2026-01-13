@@ -84,7 +84,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	//R_1= @f$M^\dagger\Xi@f$
 	//R1 is local in FORTRAN but since its going to be reset anyway I'm going to recycle the
 	//global
-	Dslashd_f(R1_f,xi_f,ut_f[0],ut_f[1],iu,id,gamval_f,gamin,dk_f,jqq,akappa);
+	Dslashd_f(R1_f,xi_f,ut_f,iu,id,gamval_f,gamin,dk_f,jqq,akappa);
 #ifdef __NVCC__
 	cudaDeviceSynchronise();
 	cudaFree(xi_f);	
