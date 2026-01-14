@@ -652,7 +652,7 @@ int main(int argc, char *argv[]){
 			//that trajectory
 			int measure_check=0;
 			measure_check = Measure(&pbp,&endenf,&denf,&qq,&qbqb,respbp,&itercg,ut,ut_f,iu,id,\
-					gamval,gamval_f,gamin,dk,dk_f,jqq,akappa,Phi,R1);
+					gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,c_sw,Phi,R1);
 #ifdef _DEBUG
 			if(!rank)
 				printf("Finished measurements\n");

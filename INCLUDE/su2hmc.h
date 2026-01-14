@@ -62,7 +62,7 @@ extern "C"
 	 *
 	 *	@return Zero on success, integer error code otherwise
 	 */
-int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1, Complex *Phi,\
+	int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1, Complex *Phi,\
 			Complex *ut[2], Complex_f *ut_f[2],unsigned int *iu,unsigned int *id,\
 			Complex gamval[20],Complex_f gamval_f[20],const unsigned short gamin[16],Complex *sigval,Complex_f *sigval_f, unsigned short *sigin,\
 			double *dk[2], float *dk_f[2],const Complex_f jqq, const float akappa,const float beta,const float c_sw,double *ancg);
@@ -177,6 +177,9 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 	 * @param 	iu,id:					Upper/Lower halo indices
 	 *	@param	gamval,gamval_f:		Gamma matrices rescaled by kappa
 	 * @param 	gamin:					Dirac indices
+	 *	@param	clover:					Array of clover fields
+	 *	@param	sigval:					Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/2@f$
+	 * @param	sigin:					What element of the spinor is multiplied by row idirac each sigma matrix?
 	 * @param	dk,dk_f:					@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$
 	 * @param 	jqq:						Diquark source
 	 * @param 	akappa:					Hopping Parameter
@@ -184,9 +187,10 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 	 * 
 	 * @return 0 on success, integer error code otherwise
 	 */
-int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Complex_f *ut[2],
-		unsigned int *iu, unsigned int *id, Complex gamval[20], Complex_f gamval_f[20], const unsigned short gamin[16],
-		double *dk[2], float *dk_f[2], Complex_f jqq, float akappa, int *itercg);
+	int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Complex_f *ut[2], Complex_f *clover_f[nc],
+			unsigned int *iu, unsigned int *id, Complex gamval[20], Complex_f gamval_f[20], const unsigned short gamin[16],
+			Complex *sigval, Complex_f *sigval_f,unsigned short *sigin, double *dk[2], float *dk_f[2],
+			Complex_f jqq,float akappa,float c_sw,int *itercg);
 	/**
 	 * @brief	Calculate fermion expectation values via a noisy estimator
 	 * 
@@ -209,6 +213,9 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 	 *	@param	gamval:			Double precision gamma matrices rescaled by kappa
 	 *	@param	gamval_f:		Single precision gamma matrices rescaled by kappa
 	 *	@param	gamin:			Indices for Dirac terms
+	 *	@param	sigval:			Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/2@f$
+	 *	@param	sigval_f:		Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/2@f$
+	 * @param	sigin:			What element of the spinor is multiplied by row idirac each sigma matrix?
 	 * @param	dk:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$ double
 	 * @param	dk_f:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and	@f$\left(1-\gamma_0\right)e^\mu@f$ float
 	 *	@param	jqq:				Diquark source
@@ -223,8 +230,9 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 	 */
 	int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbqb, double res, int *itercg,\
 			Complex *ut[2], Complex_f *ut_f[2], unsigned int *iu, unsigned int *id,\
-			Complex gamval[20], Complex_f gamval_f[20],	const unsigned short gamin[16], double *dk[2],\
-			float *dk_f[2], Complex_f jqq, float akappa,	Complex *Phi, Complex *R1);
+			Complex gamval[20], Complex_f gamval_f[20],	const unsigned short gamin[16],\
+			Complex *sigval,Complex_f *sigval_f, unsigned short *sigin, double *dk[2],float *dk_f[2],\
+			Complex_f jqq, float akappa,	float c_sw,Complex *Phi, Complex *R1);
 	/** 
 	 * @brief	Calculates the gauge action using new (how new?) lookup table
 	 * @brief	Follows a routine called qedplaq in some QED3 code

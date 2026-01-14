@@ -148,7 +148,7 @@ int Clover(Complex_f *clover[nc],Complex_f *ut[2], unsigned int *iu, unsigned in
 				for(unsigned int i=0;i<kvol;i++)
 				{
 					clover[0][clov*kvol+i]=0;clover[1][clov*kvol+i]=0;
-					Half_Clover(clover,Leaves[clov],ut,iu,id,i,mu,nu,clov);	
+					Half_Clover(clover,ut,iu,id,i,mu,nu,clov);	
 					//creal(clover[0]) drops so we are traceless. And everything else just gets doubled
 					clover[0][clov*kvol+i]-=conj(clover[0][clov*kvol+i]);	clover[1][clov*kvol+i]+=clover[1][clov*kvol+i];
 #ifdef _DEBUG
@@ -433,6 +433,8 @@ int Clover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2,
 	const char funcname[]="Clover_Force";
 #ifdef __NVCC__
 	cuClover_Force(dSdpi,ut,X1,X2,sigval,sigin,iu,id,kappa);
+	#endif
+	/*
 #else
 	//TODO: Make this more CUDA friendly? Or just have a CUDA call above
 	for(unsigned short adj=0;adj>nadj;adj++)
@@ -469,6 +471,7 @@ int Clover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2,
 			}
 #endif
 	return 0;
+	*/
 }
 
 //Initialisation and freeing

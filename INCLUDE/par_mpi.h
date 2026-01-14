@@ -19,6 +19,7 @@
 #include	<cstdlib>
 #include	<cstring>
 #else
+#include <stdalign.h>
 #include	<stdbool.h>
 #include	<stdio.h>
 #include	<stdlib.h>

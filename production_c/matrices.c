@@ -34,9 +34,9 @@ int Dslash(Complex *phi, Complex *r, Complex *ut[2], unsigned int *iu,unsigned i
 		for(int idirac = 0; idirac<ndirac; idirac++){
 			int igork = idirac+4;
 			Complex a_1, a_2;
-			a_1=conj(jqq)gamval[20][4*ndirac+idirac];
+			a_1=conj(jqq)*gamval[4*ndirac+idirac];
 			//We subtract a_2, hence the minus
-			a_2=-jqqgamval[20][4*ndirac+idirac];
+			a_2=-jqq*gamval[4*ndirac+idirac];
 			phi[(i*ngorkov+idirac)*nc]+=a_1*r[(i*ngorkov+igork)*nc+0];
 			phi[(i*ngorkov+idirac)*nc+1]+=a_1*r[(i*ngorkov+igork)*nc+1];
 			phi[(i*ngorkov+igork)*nc+0]+=a_2*r[(i*ngorkov+idirac)*nc];
@@ -47,7 +47,7 @@ int Dslash(Complex *phi, Complex *r, Complex *ut[2], unsigned int *iu,unsigned i
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
-#pragma omp simd aligned(phi,r,ut[0],ut[1],gamval:AVX)
+#pragma omp simd aligned(phi,r,gamval:AVX)
 			for(int igorkov=0; igorkov<ngorkov; igorkov++){
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing in the dirac term.
 				int idirac=igorkov%4;		
@@ -82,7 +82,7 @@ int Dslash(Complex *phi, Complex *r, Complex *ut[2], unsigned int *iu,unsigned i
 #endif
 		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
 #ifndef NO_TIME
-#pragma omp simd aligned(phi,r,ut[0],ut[1],dk[0],dk[1]:AVX)
+#pragma omp simd aligned(phi,r:AVX)
 		for(int igorkov=0; igorkov<4; igorkov++){
 			int igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
 												//the FORTRAN code did it.
@@ -137,8 +137,8 @@ int Dslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned int *iu,unsigned i
 			int igork = idirac+4;
 			Complex a_1, a_2;
 			//We subtract a_1, hence the minus
-			a_1=-conj(jqq)gamval[20][4*ndirac+idirac];
-			a_2=jqqgamval[20][4*ndirac+idirac];
+			a_1=-conj(jqq)*gamval[4*ndirac+idirac];
+			a_2=jqq*gamval[4*ndirac+idirac];
 			phi[(i*ngorkov+idirac)*nc]+=a_1*r[(i*ngorkov+igork)*nc];
 			phi[(i*ngorkov+idirac)*nc+1]+=a_1*r[(i*ngorkov+igork)*nc+1];
 			phi[(i*ngorkov+igork)*nc]+=a_2*r[(i*ngorkov+idirac)*nc];
@@ -149,7 +149,7 @@ int Dslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned int *iu,unsigned i
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
 			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
-#pragma omp simd aligned(phi,r,ut[0],ut[1],gamval:AVX)
+#pragma omp simd aligned(phi,r,gamval:AVX)
 			for(int igorkov=0; igorkov<ngorkov; igorkov++){
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing.
 				int idirac=igorkov%4;		
@@ -187,7 +187,7 @@ int Dslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned int *iu,unsigned i
 		//Under dagger, dk[1] and dk[0] get swapped and the dirac component flips sign.
 		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
 #ifndef NO_TIME
-#pragma omp simd aligned(phi,r,ut[0],ut[1],dk[0],dk[1]:AVX)
+#pragma omp simd aligned(phi,r:AVX)
 		for(int igorkov=0; igorkov<4; igorkov++){
 			//the FORTRAN code did it.
 			int igork1 = gamin[3*ndirac+igorkov];	
@@ -409,7 +409,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu, un
 #ifndef NO_SPACE
 		for(unsigned short mu = 0; mu <3; mu++){
 			unsigned int did=id[mu+ndim*i]; unsigned int uid = iu[mu+ndim*i];
-#pragma omp simd aligned(phi,r,ut[0],ut[1],gamval_f,gamin:AVX)
+#pragma omp simd aligned(phi,r,gamval_f,gamin:AVX)
 			for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing in the dirac term.
 				unsigned short idirac=igorkov%4;		
@@ -444,7 +444,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu, un
 #endif
 		unsigned int did=id[3+ndim*i]; unsigned int uid = iu[3+ndim*i];
 #ifndef NO_TIME
-#pragma omp simd aligned(phi,r,ut[0],ut[1],gamin:AVX)
+#pragma omp simd aligned(phi,r,gamin:AVX)
 		for(unsigned short igorkov=0; igorkov<4; igorkov++){
 			unsigned short igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
 												//the FORTRAN code did it.
@@ -511,7 +511,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,un
 #ifndef NO_SPACE
 		for(unsigned short mu = 0; mu <3; mu++){
 			unsigned int did=id[mu+ndim*i]; unsigned int uid = iu[mu+ndim*i];
-#pragma omp simd aligned(phi,r,ut[0],ut[1],gamval_f:AVX)
+#pragma omp simd aligned(phi,r,gamval_f:AVX)
 			for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing.
 				unsigned short idirac=igorkov%4;		
@@ -549,7 +549,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,un
 		//Under dagger, dk_f[1] and dk_f[0] get swapped and the dirac component flips sign.
 		unsigned int did=id[3+ndim*i]; unsigned int uid = iu[3+ndim*i];
 #ifndef NO_TIME
-#pragma omp simd aligned(phi,r,ut[0],ut[1]:AVX)
+#pragma omp simd aligned(phi,r:AVX)
 		for(unsigned short igorkov=0; igorkov<4; igorkov++){
 			//the FORTRAN code did it.
 			unsigned short igork1 = gamin[3*ndirac+igorkov];	

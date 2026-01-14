@@ -106,32 +106,31 @@ void P_allocate_f(Complex_f **p_f,Complex_f **r_f, Complex_f ** x1_f, Complex_f 
 	*xi_f	=	aligned_alloc(AVX,kferm*sizeof(Complex_f));
 #endif
 }
-void P_allocate(Complex **p, Complex **r, Complex **x1, Complex **x2){
+void P_allocate(Complex **p, Complex **r, Complex **x1, Complex **x2,Complex *clover[2]){
 #ifdef __NVCC__
 #ifdef _DEBUG
+	cudaMallocManaged((void **)&clover[0], 6*kvol*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&clover[1], 6*kvol*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)p, kfermHalo*sizeof(Complex), cudaMemAttachGlobal);
 	cudaMallocManaged((void **)r, kferm*sizeof(Complex), cudaMemAttachGlobal);
 	cudaMallocManaged((void **)x1, kfermHalo*sizeof(Complex), cudaMemAttachGlobal);
 	cudaMallocManaged((void **)x2, kferm*sizeof(Complex), cudaMemAttachGlobal);
 #else
-	cudaMalloc((void **)p, kfermHalo*sizeof(Complex));
-	cudaMalloc((void **)r, kferm*sizeof(Complex));
-	cudaMalloc((void **)x1, kfermHalo*sizeof(Complex));
-	cudaMalloc((void **)x2, kferm*sizeof(Complex));
+	cudaMallocAsync((void **)&clover[0], 6*kvol*sizeof(Complex),streams[0]);
+	cudaMallocAsync((void **)&clover[1], 6*kvol*sizeof(Complex),streams[1]);
+	cudaMallocAsync((void **)p, kfermHalo*sizeof(Complex),streams[2]);
+	cudaMallocAsync((void **)r, kferm*sizeof(Complex),streams[3]);
+	cudaMallocAsync((void **)x1, kfermHalo*sizeof(Complex),streams[4]);
+	cudaMallocAsync((void **)x2, kferm*sizeof(Complex),streams[5]);
 #endif
 	cudaDeviceSynchronise();
 #else
+	clover[0]=(Complex *)aligned_alloc(AVX,6*kvol*sizeof(Complex));
+	clover[1]=(Complex *)aligned_alloc(AVX,6*kvol*sizeof(Complex));
 	*p  = aligned_alloc(AVX, kfermHalo*sizeof(Complex));
 	*r  = aligned_alloc(AVX, kferm*sizeof(Complex));
 	*x1 = aligned_alloc(AVX, kfermHalo*sizeof(Complex));
 	*x2 = aligned_alloc(AVX, kferm*sizeof(Complex));
-#endif
-}
-void P_free(Complex **p, Complex **r, Complex **x1, Complex **x2){
-#ifdef __NVCC__
-	cudaFree(*p); cudaFree(*r); cudaFree(*x1); cudaFree(*x2);
-#else
-	free(*p); free(*r); free(*x1); free(*x2);
 #endif
 }
 
@@ -199,6 +198,20 @@ void P_free_f(Complex_f **p_f,Complex_f **r_f, Complex_f ** x1_f, Complex_f ** x
 	free(*p_f); free(*r_f); free(*x1_f); free(*x2_f); free(*xi_f); 
 #endif
 }
+void P_free(Complex **p, Complex **r, Complex **x1, Complex **x2,Complex *clover[2]){
+#ifdef __NVCC__
+#ifdef _DEBUG
+	cudaFree(clover[0]); cudaFree(clover[1]);
+	cudaFree(*p);cudaFree(*r);cudaFree(*x1); cudaFree(*x2);
+#else
+	cudaFreeAsync(clover[0],streams[0]); cudaFreeAsync(clover[1],streams[1]);
+	cudaFreeAsync(*p,streams[2]);cudaFreeAsync(*r,streams[3]);cudaFreeAsync(*x1,streams[4]); cudaFreeAsync(*x2,streams[5]);
+#endif
+#else
+	free(*p); free(*r); free(*x1); free(*x2);
+	free(clover[0]); free(clover[1]);
+#endif
+}
 int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f *ut[2],Complex_f *clover_f[nc],
 		unsigned int *iu, unsigned int *id, Complex gamval[20], Complex_f gamval_f[20],const unsigned short gamin[16],
 		Complex *sigval, Complex_f *sigval_f,unsigned short *sigin, double *dk[2], float *dk_f[2],
@@ -225,7 +238,8 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 	///The alpha and beta terms should be double, but that causes issues with BLAS pointers. Instead we declare
 	///them complex and work with the real part (especially for @f$\alpha_d@f$)
 	///Give initial values Will be overwritten if niterx>0
-	alignas(16) double betad = 1.0; alignas(8) Complex_f alphad=0; alignas(16) Complex alpha = 1; //Alignment needed for cuBLAS
+	//Alignment needed for cuBLAS
+	alignas(16) double betad = 1.0; alignas(8) Complex_f alphad=0; alignas(16) Complex alpha = 1;
 	//Because we're dealing with flattened arrays here we can call cblas safely without the halo
 
 	Complex_f *p_f, *x1_f, *x2_f, *r_f, *X1_f;
@@ -570,9 +584,10 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 	Q_free(&p,&x1,&x2,clover);
 	return ret_val;
 }
-int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Complex_f *ut[2],
+int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Complex_f *ut[2], Complex_f *clover_f[nc],
 		unsigned int *iu, unsigned int *id, Complex gamval[20], Complex_f gamval_f[20], const unsigned short gamin[16],
-		double *dk[2], float *dk_f[2], Complex_f jqq, float akappa, int *itercg){
+		Complex *sigval, Complex_f *sigval_f,unsigned short *sigin, double *dk[2], float *dk_f[2],
+		Complex_f jqq,float akappa,float c_sw,int *itercg){
 	const char funcname[] = "Congradp";
 	//Return value
 	int ret_val=0;
@@ -596,9 +611,9 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 	double betad = 1.0; Complex_f alphad=0; alignas(16)Complex alpha = 1; //Alignment needed for cuBLAS
 
 	Complex_f *p_f, *r_f, *x1_f, *x2_f, *xi_f;
-	Complex *p, *r, *x1, *x2;
+	Complex *p, *r, *x1, *x2, *clover[nc];
 	P_allocate_f(&p_f,&r_f,&x1_f,&x2_f,&xi_f);
-	P_allocate(&p, &r, &x1, &x2);
+	P_allocate(&p, &r, &x1, &x2,clover);
 
 	//Instead of copying element-wise in a loop, use memcpy.
 #ifdef __NVCC__
@@ -607,6 +622,11 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 	cuComplex_convert(p_f,xi,kferm,true,dimBlock,dimGrid);
 	//And repeat for r
 	cuComplex_convert(r_f,Phi+na*kferm,kferm,true,dimBlock,dimGrid);
+	//Clover to double
+	if(c_sw){
+		cuComplex_convert(clover_f[0],clover[0],6*kvol,false,dimBlock,dimGrid);
+		cuComplex_convert(clover_f[1],clover[1],6*kvol,false,dimBlock,dimGrid);
+	}
 	cudaMemcpy(r,Phi+na*kferm,kferm*sizeof(Complex),cudaMemcpyDefault);
 	cudaMemcpy(xi_f,p_f,kferm*sizeof(Complex_f),cudaMemcpyDefault);
 #else
@@ -656,7 +676,11 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 			///@f$x2 =  (M^\dagger M)p @f$
 			//No need to synchronise here.  The memcpy in Dslash is blocking
 			Dslash(x1,p,ud,iu,id,gamval,gamin,dk,jqq,akappa);
+			if(c_sw)
+				ByClover(x1,p,clover,sigval,akappa,sigin);
 			Dslashd(x2,x1,ud,iu,id,gamval,gamin,dk,jqq,akappa);
+			if(c_sw)
+				ByClover(x1,x2,clover,sigval,akappa,sigin);
 #ifdef	__NVCC__
 			cudaDeviceSynchronise();
 #endif
@@ -772,7 +796,11 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 		else{
 			//x2=(M^\dagger)x1=(M^\dagger)Mp
 			Dslash_f(x1_f,p_f,ut,iu,id,gamval_f,gamin,dk_f,jqq,akappa);
+			if(c_sw)
+				ByClover_f(x1_f,p_f,clover_f,sigval_f,akappa,sigin);
 			Dslashd_f(x2_f,x1_f,ut,iu,id,gamval_f,gamin,dk_f,jqq,akappa);
+			if(c_sw)
+				ByClover_f(x2_f,x1_f,clover_f,sigval_f,akappa,sigin);
 #ifdef __NVCC__
 			cudaDeviceSynchronise();
 #endif
@@ -902,6 +930,6 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 	cudaDeviceSynchronise();
 #endif
 	P_free_f(&p_f,&r_f,&x1_f,&x2_f,&xi_f);
-	P_free(&p,&r,&x1,&x2);
+	P_free(&p,&r,&x1,&x2,clover);
 	return ret_val;
 }
