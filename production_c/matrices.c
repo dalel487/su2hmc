@@ -11,7 +11,6 @@
  */
 #include <assert.h>
 #include <matrices.h>
-#include <stdalign.h>
 //TODO: Check and see are there any terms we are evaluating twice in the same loop
 //and use a variable to hold them instead to reduce the number of evaluations.
 int Dslash(Complex *phi, Complex *r, Complex *ut[2], unsigned int *iu,unsigned int *id,\

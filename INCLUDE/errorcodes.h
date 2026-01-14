@@ -23,23 +23,32 @@
 #ifndef ERRORCODES
 #define ERRORCODES
 
-//File I/O Errors. Leading digits are 10
+/** @section ioerr File I/O Errors. Leading digits are 10
+*/
 //======================================
 //Errors:
 //-------
+///@brief	Error opening file
 #define	OPENERROR	10001
+///@brief	Error reading file
 #define	READERROR	10002
+///@brief	Error writing to file
 #define	WRITERROR	10003
+///@brief	Error with argument
 #define	ARGERROR		10004
 
 //Warnings:
 //---------
+///@brief	Minor issue opening file
 #define	OPENWARN		10101
+///@brief	Minor issue reading file
 #define	READWARN		10102
+///@brief	Minor issue writing to file
 #define	WRITEWARN	10103
+///@brief	Minor argument issue
 #define	ARGWARN		10104
 
-/*
+/**
  *	@section memerr Memory Errors.
  *	Leading digits are 11
  */
@@ -57,7 +66,8 @@
 #define	LIMWARN		11104	////Order of limits (x_min and x_max for example) is reversed.
 #define	CPYWARN		11105 ////Copy failed
 
-//MPI Errors. Leading digits are 12
+/** @section mpierr MPI Errors. Leading digits are 12
+*/
 //================================
 //Errors:
 //------
@@ -71,8 +81,9 @@
 #define	BROADERR		12008	//Couldn't broadcast to the processes
 #define	REDUCERR		12009	//Couldn't carry out a reduction
 #define	GATHERR		12010	//Couldn't complete a gather
-									//Warnings:
-									//---------
+
+//Warnings:
+//---------
 #define	DIFNPROC		12101	//Continuation run on a different number of ranks
 
 //Halo Errors. Leading digits are 13

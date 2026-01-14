@@ -248,7 +248,7 @@ void cuGauge_force(Complex_f *ut[2],double *dSdpi,float beta,unsigned int *iu,un
 		for(int nu=0; nu<ndim; nu++)
 			if(nu!=mu){
 				//The @f$-\nu@f$ Staple
-				cuPlus_staple(mu,nu,iu,Sigma[0],Sigma[1],ut[0],ut[1],dimGrid,dimBlock);
+				cuPlus_staple(mu,nu,iu,Sigma,ut,dimGrid,dimBlock);
 				C_gather(ush[0], ut[0], kvol, id, nu);
 				C_gather(ush[1], ut[1], kvol, id, nu);
 
@@ -261,7 +261,7 @@ void cuGauge_force(Complex_f *ut[2],double *dSdpi,float beta,unsigned int *iu,un
 				//cudaMemPrefetchAsync(ush[1]+kvol, halo*sizeof(Complex_f),device,streams[1]);
 #endif
 				//Next up, the @f$-\nu@f$ staple
-				cuMinus_staple(mu,nu,iu,id,Sigma[0],Sigma[1],ush[0],ush[1],ut[0],ut[1],dimGrid,dimBlock);
+				cuMinus_staple(mu,nu,iu,id,Sigma,ush,ut,dimGrid,dimBlock);
 			}
 		//Now get the gauge force acting in the @f$\mu@f$ direction
 		cuGaugeForce<<<dimGrid,dimBlock>>>(mu,Sigma[0],Sigma[1],dSdpi,ut[0],ut[1],beta);
@@ -275,15 +275,14 @@ void cuGauge_force(Complex_f *ut[2],double *dSdpi,float beta,unsigned int *iu,un
 	cudaFreeAsync(ush[0],streams[2]); cudaFreeAsync(ush[1],streams[3]);
 #endif
 }
-void cuPlus_staple(int mu, int nu, unsigned int *iu, Complex_f *Sigma11, Complex_f *Sigma12, Complex_f *u11t, Complex_f *u12t,\
-		dim3 dimGrid, dim3 dimBlock){
+void cuPlus_staple(int mu, int nu, unsigned int *iu, Complex_f *Sigma[2], Complex_f *ut[2], dim3 dimGrid, dim3 dimBlock){
 	const char *funcname="Plus_staple";
-	Plus_staple<<<dimGrid,dimBlock>>>(mu, nu, iu, Sigma11, Sigma12,u11t,u12t);
+	Plus_staple<<<dimGrid,dimBlock>>>(mu, nu, iu, Sigma[0], Sigma[1],u[0],u[1]);
 }
-void cuMinus_staple(int mu, int nu, unsigned int *iu, unsigned int *id, Complex_f *Sigma11, Complex_f *Sigma12,\
-		Complex_f *u11sh, Complex_f *u12sh,Complex_f *u11t, Complex_f *u12t,dim3 dimGrid, dim3 dimBlock){
+void cuMinus_staple(int mu, int nu, unsigned int *iu, unsigned int *id, Complex_f *Sigma[2],\
+		Complex_f *ush[2],Complex_f *ut[2].,dim3 dimGrid, dim3 dimBlock){
 	const char *funcname="Minus_staple";
-	Minus_staple<<<dimGrid,dimBlock>>>(mu, nu, iu, id,Sigma11,Sigma12,u11sh,u12sh,u11t,u12t);
+	Minus_staple<<<dimGrid,dimBlock>>>(mu, nu, iu, id,Sigma[0],Sigma[1],ush[0],ush[1],u[0],u[1]);
 }
 void cuForce(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, \
 		Complex_f gamval[20],float *dk[2],unsigned int *iu,const unsigned short gamin[16],\

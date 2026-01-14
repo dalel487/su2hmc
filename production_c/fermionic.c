@@ -4,7 +4,6 @@
  */
 #include	<matrices.h>
 #include <clover.h>
-#include	<su2hmc.h>
 int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbqb, double res, int *itercg,\
 		Complex *ut[2], Complex_f *ut_f[2], unsigned int *iu, unsigned int *id,\
 		Complex gamval[20], Complex_f gamval_f[20],	const unsigned short gamin[16],\

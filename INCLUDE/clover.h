@@ -67,7 +67,7 @@ int Clover(Complex_f *clover[nc],Complex_f *ut[nc], unsigned int *iu, unsigned i
  *	@param	akappa:	Hopping Parameter
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
  */
-int ByClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, const float kappa, unsigned short *sigin);
+int ByClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, const float akappa, unsigned short *sigin);
 /**
  *	@brief Clover analogue of the Dslash operation. This version acts on all flavours simiilar to Dslash and Dslash_d
  *	

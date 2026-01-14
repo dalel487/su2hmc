@@ -41,17 +41,9 @@
  *     @author D. Lawlor	(Fortran to C Conversion, March 2021. Mixed Precision. GPU, March 2024)
  ******************************************************************/
 #include	<assert.h>
-#include	<coord.h>
 #include	<clover.h>
-#include	<math.h>
 #include	<matrices.h>
-#include	<par_mpi.h>
-#include	<random.h>
-#include	<string.h>
-#include	<su2hmc.h>
 #ifdef	__NVCC__
-#include <cublas_v2.h>
-#include	<cuda.h>
 #include	<cuda_runtime.h>
 cublasHandle_t cublas_handle;
 cublasStatus_t cublas_status;
@@ -89,7 +81,7 @@ int main(int argc, char *argv[]){
 #endif
 
 	/**
-	 * @subsection inputs Input Parameters.
+	 * @subsection Input Parameters.
 	 * The input file format is like the table below, with values sepearated by whitespace
 	 *
 	 * 0.0100|1.7|0.1780|0.00|0.000|0.0|0.0|100|4|1|5|1|
@@ -251,7 +243,7 @@ int main(int argc, char *argv[]){
 	ut_f[1] = (Complex_f *)aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex_f));
 #endif
 	/**
-	 * \subsection initialise Initialisation
+	 * @subsection Initialisation
 	 *
 	 * Changing the value of istart in the input parameter file gives us the following start options. These are quoted
 	 * from the FORTRAN comments
@@ -406,7 +398,7 @@ int main(int argc, char *argv[]){
 	pp = aligned_alloc(AVX,kmom*sizeof(double));
 #endif
 	/**
-	 * @subsection timing Timing
+	 * @subsection Timing
 	 * To time the code compile with @verbatim -DSA3AT @endverbatim
 	 * This is arabic for hour/watch so is probably not reserved like time is
 	 */

@@ -4,18 +4,8 @@
  * @brief	An ecclectic collection of functions used in the HMC
  */
 #include	<assert.h>
-#include	<coord.h>
-#ifdef	__NVCC__
-#include	<cuda.h>
-#include	<cuda_runtime.h>
-//Fix this later
-#endif
 #include <clover.h>
 #include	<matrices.h>
-#include	<par_mpi.h>
-#include	<random.h>
-#include	<string.h>
-#include	<su2hmc.h>
 
 int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa, Complex_f ajq,\
 		Complex *u[2], Complex *ut[2], Complex_f *ut_f[2], Complex gamval[20], Complex_f gamval_f[20],
@@ -335,7 +325,7 @@ inline int UpDownPart(const unsigned int na, Complex *X0, Complex *R1){
 inline int Reunitarise(Complex *ut[2]){
 	const char *funcname = "Reunitarise";
 #ifdef __NVCC__
-	cuReunitarise(ut[0],ut[1],dimGrid,dimBlock);
+	cuReunitarise(ut,dimGrid,dimBlock);
 #else
 #pragma omp parallel for simd
 	for(int i=0; i<kvol*ndim; i++){

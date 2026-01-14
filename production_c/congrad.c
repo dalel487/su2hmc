@@ -18,7 +18,7 @@
  * @param	r_f			Redidue vector for conjugate gradient
  * @param	X1_f			Pseudofermion field
  */
-void Q_allocate_f(Complex_f **p_f, Complex_f **x1_f, Complex_f **x2_f, Complex_f **r_f, Complex_f **X1_f){
+inline void Q_allocate_f(Complex_f **p_f, Complex_f **x1_f, Complex_f **x2_f, Complex_f **r_f, Complex_f **X1_f){
 	const char funcname[] = "Q_allocate";
 #ifdef __NVCC__
 #ifdef _DEBUG
@@ -48,15 +48,15 @@ void Q_allocate_f(Complex_f **p_f, Complex_f **x1_f, Complex_f **x2_f, Complex_f
 	return;
 }
 /**
- * @brief Allocates memory needed for Congradq. Just to improve readability
+ * @brief Allocates double precision memory needed for Congradq. Just to improve readability
  * 		Note that since C does not modify it's arguments, you need to pass a pointer to the pointer you want to assign
  * 		the memory to. This is similar behaviour to cudaMalloc
  * 		
- * @param	p_f			Holder for fermion field during inversion
- * @param	x1_f,x2_f	@f$M@f$ and @f$M^\dagger M@f$
- * @param	r_f			Redidue vector for conjugate gradient
+ * @param	p				Holder for fermion field during inversion
+ * @param	x1,x2			@f$M@f$ and @f$M^\dagger M@f$
+ * @param	clover		Clover Fields
  */
-void Q_allocate(Complex **p, Complex **x1, Complex **x2, Complex *clover[2]){
+inline void Q_allocate(Complex **p, Complex **x1, Complex **x2, Complex *clover[2]){
 	const char funcname[] = "Q_allocate";
 #ifdef __NVCC__
 #ifdef _DEBUG
@@ -82,7 +82,17 @@ void Q_allocate(Complex **p, Complex **x1, Complex **x2, Complex *clover[2]){
 #endif
 	return;
 }
-void P_allocate_f(Complex_f **p_f,Complex_f **r_f, Complex_f ** x1_f, Complex_f ** x2_f, Complex_f **xi_f){
+/**
+ * @brief Allocates memory needed for Congradp. Just to improve readability
+ * 		Note that since C does not modify it's arguments, you need to pass a pointer to the pointer you want to assign
+ * 		the memory to. This is similar behaviour to cudaMalloc
+ * 		
+ * @param	p_f			Holder for fermion field during inversion
+ * @param	r_f			Redidue vector for conjugate gradient
+ * @param	x1_f,x2_f	@f$M@f$ and @f$M^\dagger M@f$
+ * @param	xi_f			Accumulator array for conjugate gradient
+ */
+inline void P_allocate_f(Complex_f **p_f,Complex_f **r_f, Complex_f ** x1_f, Complex_f ** x2_f, Complex_f **xi_f){
 #ifdef __NVCC__
 #ifdef _DEBUG
 	cudaMallocManaged((void **)p_f, kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
@@ -106,7 +116,16 @@ void P_allocate_f(Complex_f **p_f,Complex_f **r_f, Complex_f ** x1_f, Complex_f 
 	*xi_f	=	aligned_alloc(AVX,kferm*sizeof(Complex_f));
 #endif
 }
-void P_allocate(Complex **p, Complex **r, Complex **x1, Complex **x2,Complex *clover[2]){
+/**
+ * @brief Allocates double precision memory needed for Congradp. Just to improve readability
+ * 		Note that since C does not modify it's arguments, you need to pass a pointer to the pointer you want to assign
+ * 		the memory to. This is similar behaviour to cudaMalloc
+ * 		
+ * @param	p				Holder for fermion field during inversion
+ * @param	x1,x2			@f$M@f$ and @f$M^\dagger M@f$
+ * @param	clover		Clover Fields
+ */
+inline void P_allocate(Complex **p, Complex **r, Complex **x1, Complex **x2,Complex *clover[2]){
 #ifdef __NVCC__
 #ifdef _DEBUG
 	cudaMallocManaged((void **)&clover[0], 6*kvol*sizeof(Complex),cudaMemAttachGlobal);
@@ -144,7 +163,7 @@ void P_allocate(Complex **p, Complex **r, Complex **x1, Complex **x2,Complex *cl
  * @param	r_f			Redidue vector for conjugate gradient
  * @param	X1_f			Pseudofermion field
  */
-void Q_free_f(Complex_f **p_f, Complex_f **x1_f, Complex_f **x2_f, Complex_f **r_f, Complex_f **X1_f){
+inline void Q_free_f(Complex_f **p_f, Complex_f **x1_f, Complex_f **x2_f, Complex_f **r_f, Complex_f **X1_f){
 	const char funcname[] = "Q_free";
 #ifdef __NVCC__
 #ifdef _DEBUG
@@ -163,16 +182,15 @@ void Q_free_f(Complex_f **p_f, Complex_f **x1_f, Complex_f **x2_f, Complex_f **r
 	return;
 }
 /**
- * @brief Frees memory needed for Congradq. Just to improve readability
+ * @brief Frees double precision memory needed for Congradq. Just to improve readability
  * 		Note that since C does not modify it's arguments, you need to pass a pointer to the pointer you want to assign
  * 		the memory to. This is similar behaviour to cudaMalloc
  * 		
  * @param	p			Holder for fermion field during inversion
- * @param	x1,x2	@f$M@f$ and @f$M^\dagger M@f$
- * @param	r			Redidue vector for conjugate gradient
- * @param	X1			Pseudofermion field
+ * @param	x1,x2		@f$M@f$ and @f$M^\dagger M@f$
+ * @param	clover	clover fields
  */
-void Q_free(Complex **p, Complex **x1, Complex **x2, Complex *clover[2]){
+inline void Q_free(Complex **p, Complex **x1, Complex **x2, Complex *clover[2]){
 	const char funcname[] = "Qree";
 #ifdef __NVCC__
 #ifdef _DEBUG
@@ -191,14 +209,33 @@ void Q_free(Complex **p, Complex **x1, Complex **x2, Complex *clover[2]){
 #endif
 	return;
 }
-void P_free_f(Complex_f **p_f,Complex_f **r_f, Complex_f ** x1_f, Complex_f ** x2_f, Complex_f **xi_f){
+/**
+ * @brief Frees memory needed for Congradp. Just to improve readability
+ * 		Note that since C does not modify it's arguments, you need to pass a pointer to the pointer you want to assign
+ * 		the memory to. This is similar behaviour to cudaMalloc
+ * 		
+ * @param	p_f			Holder for fermion field during inversion
+ * @param	r_f			Redidue vector for conjugate gradient
+ * @param	x1_f,x2_f	@f$M@f$ and @f$M^\dagger M@f$
+ * @param	xi_f			Conjugate gradient accumulator
+ */
+inline void P_free_f(Complex_f **p_f,Complex_f **r_f, Complex_f ** x1_f, Complex_f ** x2_f, Complex_f **xi_f){
 #ifdef	__NVCC__
 	cudaFree(*p_f); cudaFree(*r_f);cudaFree(*x1_f); cudaFree(*x2_f); cudaFree(*xi_f); 
 #else
 	free(*p_f); free(*r_f); free(*x1_f); free(*x2_f); free(*xi_f); 
 #endif
 }
-void P_free(Complex **p, Complex **r, Complex **x1, Complex **x2,Complex *clover[2]){
+/**
+ * @brief Frees memory needed for Congradq. Just to improve readability
+ * 		Note that since C does not modify it's arguments, you need to pass a pointer to the pointer you want to assign
+ * 		the memory to. This is similar behaviour to cudaMalloc
+ * 		
+ * @param	p			Holder for fermion field during inversion
+ * @param	x1,x2		@f$M@f$ and @f$M^\dagger M@f$
+ * @param	clover	Clover fields
+ */
+inline void P_free(Complex **p, Complex **r, Complex **x1, Complex **x2,Complex *clover[2]){
 #ifdef __NVCC__
 #ifdef _DEBUG
 	cudaFree(clover[0]); cudaFree(clover[1]);

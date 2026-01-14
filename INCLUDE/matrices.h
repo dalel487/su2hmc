@@ -17,14 +17,11 @@ extern "C"
 	 *
 	 * @param	phi:			The product
 	 * @param	r:				The array being acted on by M
-	 * @param	u11t:		First colour trial field
-	 * @param	u12t:		Second colour trial field
-	 *	@param	iu:			Upper halo indices
-	 *	@param	id:			Lower halo indices
+	 * @param	ut:			Gauge field
+	 *	@param	iu,id:		Upper/lower halo indices
 	 *	@param	gamval:		Gamma matrices rescaled by kappa
 	 *	@param	gamin:		Indices for dirac terms
-	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
-	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$
+	 * @param	dk:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
 	 *	@param	jqq:			Diquark source
 	 *	@param	akappa:		Hopping parameter
 	 *
@@ -37,14 +34,11 @@ extern "C"
 	 *
 	 * @param	phi:			The product
 	 * @param	r:				The array being acted on by M
-	 * @param	u11t:		First colour trial field
-	 * @param	u12t:		Second colour trial field
-	 *	@param	iu:			Upper halo indices
-	 *	@param	id:			Lower halo indices
-	 *	@param	gamval:	Gamma matrices rescaled by kappa
+	 * @param	ut:			Gauge field
+	 *	@param	iu,id:		Upper/lower halo indices
+	 *	@param	gamval:		Gamma matrices rescaled by kappa
 	 *	@param	gamin:		Indices for dirac terms
-	 * @param	dk4m:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
-	 * @param	dk4p:				@f$\left(1-\gamma_0\right)e^\mu@f$
+	 * @param	dk:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
 	 *	@param	jqq:			Diquark source
 	 *	@param	akappa:		Hopping parameter
 	 *
@@ -58,8 +52,7 @@ extern "C"
 	 * @param	phi:		The product
 	 * @param	r:			The array being acted on by M
 	 * @param	ut:		Gauge trial field
-	 *	@param	iu:		Upper halo indices
-	 *	@param	id:		Lower halo indices
+	 *	@param	iu,id:	Upper/lower halo indices
 	 *	@param	gamval:	Gamma matrices rescaled by kappa
 	 *	@param	gamin:	Indices for dirac terms
 	 * @param	dk:		@f$\left(1+\gamma_0\right)e^{-\mu}@f$
@@ -74,14 +67,11 @@ extern "C"
 	 *
 	 * @param	phi:		The product
 	 * @param	r:			The array being acted on by M
-	 * @param	u11t:		First colour trial field
-	 * @param	u12t:		Second colour trial field
-	 *	@param	iu:		Upper halo indices
-	 *	@param	id:		Lower halo indices
+	 * @param	ut:		Gauge field
+	 *	@param	iu,id:	Upper/lower halo indices
 	 *	@param	gamval:	Gamma matrices rescaled by kappa
 	 *	@param	gamin:	Indices for dirac terms
-	 * @param	dk4m:		@f$\left(1+\gamma_0\right)e^{-\mu}@f$
-	 * @param	dk4p:		@f$\left(1+\gamma_0\right)e^{+\mu}@f$
+	 * @param	dk:		@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
 	 *	@param	akappa:	Hopping parameter
 	 *
 	 * @return Zero on success, integer error code otherwise
@@ -94,13 +84,11 @@ extern "C"
 	 *
 	 * @param	phi:			The product
 	 * @param	r:				The array being acted on by M
-	 * @param	u11t:		First colour trial field
-	 * @param	u12t:		Second colour trial field
-	 *	@param	iu:			Upper halo indices
-	 *	@param	id:			Lower halo indices
-	 *	@param	gamval:	Gamma matrices rescaled by kappa
+	 * @param	ut:			Gauge field
+	 *	@param	iu,id:		Upper/lower halo indices
+	 *	@param	gamval:		Gamma matrices rescaled by kappa
 	 *	@param	gamin:		Indices for dirac terms
-	 * @param	dk:		@f$\left(1+\gamma_0\right)e^{-\mu}@f$
+	 * @param	dk:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
 	 *	@param	jqq:			Diquark source
 	 *	@param	akappa:		Hopping parameter
 	 *
@@ -113,13 +101,11 @@ extern "C"
 	 *
 	 * @param	phi:			The product
 	 * @param	r:				The array being acted on by M
-	 * @param	u11t:		First colour trial field
-	 * @param	u12t:		Second colour trial field
-	 *	@param	iu:			Upper halo indices
-	 *	@param	id:			Lower halo indices
-	 *	@param	gamval:	Gamma matrices rescaled by kappa
+	 * @param	ut:			Gauge field
+	 *	@param	iu,id:		Upper/lower halo indices
+	 *	@param	gamval:		Gamma matrices rescaled by kappa
 	 *	@param	gamin:		Indices for dirac terms
-	 * @param	dk:		@f$\left(1+\gamma_0\right)e^{-\mu}@f$
+	 * @param	dk:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
 	 *	@param	jqq:			Diquark source
 	 *	@param	akappa:		Hopping parameter
 	 *
@@ -128,16 +114,15 @@ extern "C"
 	int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,unsigned int *id,\
 			Complex_f gamval[20],const unsigned short gamin[16], float *dk[2], Complex_f jqq, float akappa);
 	/**
-	 * @brief Evaluates @f$\Phi=M r@f$ in single precision.
+	 * @brief Evaluates @f$\Phi=M r@f$ in single precision
 	 *
 	 * @param	phi:		The product
 	 * @param	r:			The array being acted on by M
-	 * @param	ut:		Gauge trial field
-	 *	@param	iu:		Upper halo indices
-	 *	@param	id:		Lower halo indices
+	 * @param	ut:		Gauge field
+	 *	@param	iu,id:	Upper/lower halo indices
 	 *	@param	gamval:	Gamma matrices rescaled by kappa
 	 *	@param	gamin:	Indices for dirac terms
-	 * @param	dk:		@f$\left(1+\gamma_0\right)e^{-\mu}@f$
+	 * @param	dk:		@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
 	 *	@param	akappa:	Hopping parameter
 	 *
 	 * @return Zero on success, integer error code otherwise
@@ -149,12 +134,11 @@ extern "C"
 	 *
 	 * @param	phi:		The product
 	 * @param	r:			The array being acted on by M
-	 * @param	ut:		Gauge trial field
-	 *	@param	iu:		Upper halo indices
-	 *	@param	id:		Lower halo indices
+	 * @param	ut:		Gauge field
+	 *	@param	iu,id:	Upper/lower halo indices
 	 *	@param	gamval:	Gamma matrices rescaled by kappa
 	 *	@param	gamin:	Indices for dirac terms
-	 * @param	dk:		@f$\left(1+\gamma_0\right)e^{-\mu}@f$
+	 * @param	dk:		@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
 	 *	@param	akappa:	Hopping parameter
 	 *
 	 * @return Zero on success, integer error code otherwise

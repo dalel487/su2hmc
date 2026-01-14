@@ -1,6 +1,8 @@
-#include <clover.h>
-#include <math.h>
-#include <stdalign.h>
+/**
+ * @file clover.c
+ * @brief Clover fermion routines
+ * @author D. Lawlor
+ */
 #include <clover.h>
 
 //Calculating the clover and the leaves
@@ -129,7 +131,7 @@ inline int Half_Clover(Complex_f *clover[nc],Complex_f *ut[nc], unsigned int *iu
 	}
 	return 0;
 }
-int Clover(Complex_f *clover[nc],Complex_f *ut[2], unsigned int *iu, unsigned int *id){
+int Clover(Complex_f *clover[nc],Complex_f *ut[nc], unsigned int *iu, unsigned int *id){
 	const char funcname[]="Clover";
 #ifdef __NVCC__
 	cuClover(clover,ut,iu,id);

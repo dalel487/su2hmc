@@ -139,8 +139,6 @@ __device__ int Half_Leaf(complex<T> Leaves[nc], complex<T> *u11t, complex<T> *u1
  *	@param	i:				Lattice index of the clover in question
  *	@param	mu,nu:		Direction in which we're evaluating the leaf
  *	@param	leaf:			Which leaf of the clover is being calculated
- *	@param	gen:			Which generator do we multiply the leaves by. Used for the force terms
- *	@param	gen_pos:		Where does the generator appear in the multiplication. Used for the force terms.
  *	
  */
 template <typename T>
