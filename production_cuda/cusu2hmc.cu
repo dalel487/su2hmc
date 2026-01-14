@@ -269,7 +269,7 @@ void cuUpDownPart(const unsigned int na, Complex *X0, Complex *R1,dim3 dimBlock,
 	cuUpDownPart<<<dimGrid,dimBlock>>>(na,X0,R1);	
 }
 void cuReunitarise(Complex *ut[2], dim3 dimGrid, dim3 dimBlock){
-	cuReunitarise<<<dimGrid,dimBlock>>>(ut[0],u12t[1]);
+	cuReunitarise<<<dimGrid,dimBlock>>>(ut[0],ut[1]);
 	cudaDeviceSynchronise();
 }
 void cuGauge_Update(const double d, double *pp, Complex *u11t, Complex *u12t, dim3 dimGrid, dim3 dimBlock){

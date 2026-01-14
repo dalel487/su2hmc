@@ -386,7 +386,7 @@ extern "C"
 	 *
 	 */
 	void cuMinus_staple(int mu, int nu, unsigned int *iu, unsigned int *id, Complex_f *Sigma[2],\
-			Complex_f *ush[2],Complex_f *ut[2].,dim3 dimGrid, dim3 dimBlock);
+			Complex_f *ush[2],Complex_f *ut[2],dim3 dimGrid, dim3 dimBlock);
 	/**
 	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
 	 *	

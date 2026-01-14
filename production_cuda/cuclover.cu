@@ -318,6 +318,7 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 	}
 	return 0;
 }
+
 ///CUDA Kernels
 template <typename T>
 __global__ void Half_Leaves(complex<T> *hLeaves0,complex<T> *hLeaves1,complex<T> *u11t,complex<T> *u12t,\
@@ -500,6 +501,8 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *u11t, complex<T> *u12t, 
 	}
 	return;
 }
+
+//Clover multiplication
 /**
  *	@brief Clover analogue of the Dslash operation. This version acts on all flavours simiilar to Dslash and Dslash_d
  *	
@@ -550,7 +553,7 @@ __global__ void ByClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, co
 			for(unsigned short c=0; c<nc; c++)
 				///Also @f$\sigma_{\mu\nu}F_{\mu\nu}=\sigma_{\nu\mu}F_{\nu\mu}@f$ so we double it to take account of that
 				///But then we multiply by @f$-\frac{1}{2}@f$ so the @f$2@f$ disappears
-				phi[i+kvol*(nc*igorkov+c)]+=akappa*phi_s[igorkov][c];
+				phi[i+kvol*(nc*igorkov+c)]-=akappa*phi_s[igorkov][c];
 	}
 	return;
 }

@@ -277,12 +277,12 @@ void cuGauge_force(Complex_f *ut[2],double *dSdpi,float beta,unsigned int *iu,un
 }
 void cuPlus_staple(int mu, int nu, unsigned int *iu, Complex_f *Sigma[2], Complex_f *ut[2], dim3 dimGrid, dim3 dimBlock){
 	const char *funcname="Plus_staple";
-	Plus_staple<<<dimGrid,dimBlock>>>(mu, nu, iu, Sigma[0], Sigma[1],u[0],u[1]);
+	Plus_staple<<<dimGrid,dimBlock>>>(mu, nu, iu, Sigma[0], Sigma[1],ut[0],ut[1]);
 }
 void cuMinus_staple(int mu, int nu, unsigned int *iu, unsigned int *id, Complex_f *Sigma[2],\
-		Complex_f *ush[2],Complex_f *ut[2].,dim3 dimGrid, dim3 dimBlock){
+		Complex_f *ush[2],Complex_f *ut[2],dim3 dimGrid, dim3 dimBlock){
 	const char *funcname="Minus_staple";
-	Minus_staple<<<dimGrid,dimBlock>>>(mu, nu, iu, id,Sigma[0],Sigma[1],ush[0],ush[1],u[0],u[1]);
+	Minus_staple<<<dimGrid,dimBlock>>>(mu, nu, iu, id,Sigma[0],Sigma[1],ush[0],ush[1],ut[0],ut[1]);
 }
 void cuForce(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, \
 		Complex_f gamval[20],float *dk[2],unsigned int *iu,const unsigned short gamin[16],\

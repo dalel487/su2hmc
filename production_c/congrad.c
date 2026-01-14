@@ -6,7 +6,6 @@
 #include	<matrices.h>
 #include <clover.h>
 #include <float.h>
-//TODO: Define csw properly elsewhere
 
 /**
  * @brief Allocates memory needed for Congradq. Just to improve readability
@@ -18,7 +17,7 @@
  * @param	r_f			Redidue vector for conjugate gradient
  * @param	X1_f			Pseudofermion field
  */
-inline void Q_allocate_f(Complex_f **p_f, Complex_f **x1_f, Complex_f **x2_f, Complex_f **r_f, Complex_f **X1_f){
+void Q_allocate_f(Complex_f **p_f, Complex_f **x1_f, Complex_f **x2_f, Complex_f **r_f, Complex_f **X1_f){
 	const char funcname[] = "Q_allocate";
 #ifdef __NVCC__
 #ifdef _DEBUG
@@ -56,7 +55,7 @@ inline void Q_allocate_f(Complex_f **p_f, Complex_f **x1_f, Complex_f **x2_f, Co
  * @param	x1,x2			@f$M@f$ and @f$M^\dagger M@f$
  * @param	clover		Clover Fields
  */
-inline void Q_allocate(Complex **p, Complex **x1, Complex **x2, Complex *clover[2]){
+void Q_allocate(Complex **p, Complex **x1, Complex **x2, Complex *clover[2]){
 	const char funcname[] = "Q_allocate";
 #ifdef __NVCC__
 #ifdef _DEBUG
@@ -92,7 +91,7 @@ inline void Q_allocate(Complex **p, Complex **x1, Complex **x2, Complex *clover[
  * @param	x1_f,x2_f	@f$M@f$ and @f$M^\dagger M@f$
  * @param	xi_f			Accumulator array for conjugate gradient
  */
-inline void P_allocate_f(Complex_f **p_f,Complex_f **r_f, Complex_f ** x1_f, Complex_f ** x2_f, Complex_f **xi_f){
+void P_allocate_f(Complex_f **p_f,Complex_f **r_f, Complex_f **x1_f, Complex_f **x2_f, Complex_f **xi_f){
 #ifdef __NVCC__
 #ifdef _DEBUG
 	cudaMallocManaged((void **)p_f, kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
@@ -125,7 +124,7 @@ inline void P_allocate_f(Complex_f **p_f,Complex_f **r_f, Complex_f ** x1_f, Com
  * @param	x1,x2			@f$M@f$ and @f$M^\dagger M@f$
  * @param	clover		Clover Fields
  */
-inline void P_allocate(Complex **p, Complex **r, Complex **x1, Complex **x2,Complex *clover[2]){
+void P_allocate(Complex **p, Complex **r, Complex **x1, Complex **x2,Complex *clover[2]){
 #ifdef __NVCC__
 #ifdef _DEBUG
 	cudaMallocManaged((void **)&clover[0], 6*kvol*sizeof(Complex),cudaMemAttachGlobal);
@@ -163,7 +162,7 @@ inline void P_allocate(Complex **p, Complex **r, Complex **x1, Complex **x2,Comp
  * @param	r_f			Redidue vector for conjugate gradient
  * @param	X1_f			Pseudofermion field
  */
-inline void Q_free_f(Complex_f **p_f, Complex_f **x1_f, Complex_f **x2_f, Complex_f **r_f, Complex_f **X1_f){
+void Q_free_f(Complex_f **p_f, Complex_f **x1_f, Complex_f **x2_f, Complex_f **r_f, Complex_f **X1_f){
 	const char funcname[] = "Q_free";
 #ifdef __NVCC__
 #ifdef _DEBUG
@@ -190,7 +189,7 @@ inline void Q_free_f(Complex_f **p_f, Complex_f **x1_f, Complex_f **x2_f, Comple
  * @param	x1,x2		@f$M@f$ and @f$M^\dagger M@f$
  * @param	clover	clover fields
  */
-inline void Q_free(Complex **p, Complex **x1, Complex **x2, Complex *clover[2]){
+void Q_free(Complex **p, Complex **x1, Complex **x2, Complex *clover[2]){
 	const char funcname[] = "Qree";
 #ifdef __NVCC__
 #ifdef _DEBUG
@@ -219,7 +218,7 @@ inline void Q_free(Complex **p, Complex **x1, Complex **x2, Complex *clover[2]){
  * @param	x1_f,x2_f	@f$M@f$ and @f$M^\dagger M@f$
  * @param	xi_f			Conjugate gradient accumulator
  */
-inline void P_free_f(Complex_f **p_f,Complex_f **r_f, Complex_f ** x1_f, Complex_f ** x2_f, Complex_f **xi_f){
+void P_free_f(Complex_f **p_f,Complex_f **r_f, Complex_f **x1_f, Complex_f **x2_f, Complex_f **xi_f){
 #ifdef	__NVCC__
 	cudaFree(*p_f); cudaFree(*r_f);cudaFree(*x1_f); cudaFree(*x2_f); cudaFree(*xi_f); 
 #else
@@ -235,7 +234,7 @@ inline void P_free_f(Complex_f **p_f,Complex_f **r_f, Complex_f ** x1_f, Complex
  * @param	x1,x2		@f$M@f$ and @f$M^\dagger M@f$
  * @param	clover	Clover fields
  */
-inline void P_free(Complex **p, Complex **r, Complex **x1, Complex **x2,Complex *clover[2]){
+void P_free(Complex **p, Complex **r, Complex **x1, Complex **x2,Complex *clover[2]){
 #ifdef __NVCC__
 #ifdef _DEBUG
 	cudaFree(clover[0]); cudaFree(clover[1]);
