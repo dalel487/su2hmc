@@ -640,7 +640,7 @@ void cuByClover(Complex *phi, Complex *r, Complex *clover[nc],Complex *sigval,co
 }
 void cuHbyClover(Complex *phi, Complex *r, Complex *clover[nc],Complex *sigval, const float akappa, unsigned short *sigin){
 	HbyClover<<<dimGrid,dimBlock>>>(phi,r,clover[0],clover[1],sigval,akappa,sigin);
-}
+}	
 void cuByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f *sigval, const float akappa, unsigned short *sigin){
 	ByClover<<<dimGrid,dimBlock>>>(phi,r,clover[0],clover[1],sigval,akappa,sigin);
 }

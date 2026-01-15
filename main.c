@@ -530,7 +530,7 @@ int main(int argc, char *argv[]){
 			action = S0/gvol;
 
 		//Integration 
-		//TODO: Have this as a runtime parameter.
+		/// @todo TODO: Select integrator at runtime
 #if (defined INT_LPFR && defined INT_OMF2) ||(defined INT_LPFR && defined INT_OMF4)||(defined INT_OMF2 && defined INT_OMF4)
 #error "Only one integrator may be defined"
 #elif defined INT_LPFR

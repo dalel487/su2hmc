@@ -38,10 +38,10 @@ int Gauge_Update(const double d, double *pp, Complex *ut[2],Complex_f *ut_f[2]){
 	 */
 	char funcname[] = "Gauge_Update"; 
 #ifdef __NVCC__
-	cuGauge_Update(d,pp,ut[0],ut[1],dimGrid,dimBlock);
+	cuGauge_Update(d,pp,ut,dimGrid,dimBlock);
 #else
 #pragma omp parallel for simd collapse(2) aligned(pp:AVX) 
-	for(int i=0;i<kvol;i++)
+	for(unsigned int i=0;i<kvol;i++)
 		for(int mu = 0; mu<ndim; mu++){
 			/*
 			 * Sticking to what was in the FORTRAN for variable names.

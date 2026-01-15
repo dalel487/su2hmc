@@ -143,7 +143,7 @@ extern "C"
 	 * @param	iu,id:				Upper/lower halo indices
 	 *	@param	gamval,gamval_f:	Double/float gamma matrices rescaled by kappa
 	 * @param	gamin:				What element of the spinor is multiplied by row idirac each gamma matrix?
-	 *	@param	clover:				Array of clover fields
+	 *	@param	clover_f:			Array of clover fields
 	 *	@param	sigval,sigval_f:	Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/2@f$
 	 * @param	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
 	 * @param	dk,dk_f:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$
@@ -171,12 +171,13 @@ extern "C"
 	 * @param 	iu,id:					Upper/Lower halo indices
 	 *	@param	gamval,gamval_f:		double float Gamma matrices rescaled by kappa
 	 * @param 	gamin:					Dirac indices
-	 *	@param	clover:					Array of clover fields
+	 *	@param	clover_f:				Array of clover fields
 	 *	@param	sigval,sigval_f:		Double/float Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/2@f$
 	 * @param	sigin:					What element of the spinor is multiplied by row idirac each sigma matrix?
 	 * @param	dk,dk_f:					Double/float @f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$
 	 * @param 	jqq:						Diquark source
 	 * @param 	akappa:					Hopping Parameter
+	 * @param 	c_sw:						Clover coefficient.
 	 * @param 	itercg:					Counts the iterations of the conjugate gradient
 	 * 
 	 * @return 0 on success, integer error code otherwise
@@ -405,7 +406,18 @@ extern "C"
 	void cuForce(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, \
 			Complex_f gamval[20],float *dk[2],unsigned int *iu,const unsigned short gamin[16],\
 			float akappa, dim3 dimGrid, dim3 dimBlock);
-	//cuInit was taken already by CUDA (unsurprisingly)
+	/**
+	 * @brief  Initialise CUDA cuInit was taken already by CUDA (unsurprisingly)
+	 * 
+	 * @param:	u11t,u12t:			Trial gauge fields
+	 * @param:	gamval,gamval_f:	Double/float precision gamma matrices rescaled by kappa
+	 * @param:	gamin:				Gamma matrix indices
+	 * @param:	dk4m,dk4p:			@f$e^{-\mu}@f$ and @f$e^\mu@f$
+	 * @param:	iu,id:				Up/lower halo indices
+	 *
+	 * @todo CUDA 13 changed how setting devices work, so it's not just an integer any more. Those lines are commented out for now.
+	 * 		They are not critical. Only hints for unified memory management.
+	 */
 	void Init_CUDA(Complex *u11t, Complex *u12t,Complex gamval[20], Complex_f gamval_f[20], unsigned short gamin[16], double*dk4m,\
 			double *dk4p, unsigned int *iu, unsigned int *id);
 	/**

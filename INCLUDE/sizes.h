@@ -39,8 +39,11 @@
 #include	<cuda.h>
 #include	<cuda_runtime_api.h>
 #include	<cublas_v2.h>
+///@brief	Handle for cuBLAS
 extern cublasHandle_t cublas_handle;
+///@brief	Status of cuBLAS for error reporting
 extern cublasStatus_t cublas_status;
+///@brief	Memory pool for Async allocations
 extern cudaMemPool_t mempool;
 ///@brief	Get rid of that bastardised yankee English
 #define cudaDeviceSynchronise() cudaDeviceSynchronize()
@@ -227,13 +230,13 @@ extern cudaMemPool_t mempool;
 ///	@brief	Momentum lattice and halo
 #define	kmomHalo	(ndim*nadj*(kvol+halo))
 
-///	@brief Conjugate gradient residue for @f$\langle\bar{\Psi}\Psi\rangle@f$
 //		These all used to be multipled by kferm or kferm2 at the start of Congradq or Congradp
 //		On 20240516 in Room 2.19 of the Lloyd building of Trinity we copped that doing so means that the residue is larger
 //		if running on a smaller number of cores. In the extreme GPU case the subvolume is the entire volume so the residue
 //		can be several orders of magnitude larger than in the smallest sublattice case.
 //		Instead, we rescale all the default residues here by sqrt(kferm) or sqrt(kferm2). No matter what size sublattice
 //		we use now, the residue will match that of a 2^3X4 sublattice used in the earlier FORTRAN runs
+///	@brief Conjugate gradient residue for @f$\langle\bar{\Psi}\Psi\rangle@f$
 #define	respbp	3.2E-5
 ///	@brief Conjugate gradient residue for update
 #define	rescgg	2.26E-5 
@@ -268,19 +271,24 @@ extern cudaMemPool_t mempool;
 #endif
 
 #ifdef	__NVCC__
-/*
+/**
  * @section gridblock Grids and Blocks
  *
  * Threads are grouped together to form warps of 32 threads
  * best to keep the block dimension (ksizex*ksizey) multiples of 32,
  * usually between 128 and 256
  * Note that from Volta/Turing  each SM (group of processors)
- * is smaller than on previous generations of GPUs
+ * is smaller than on previous and subsequent generations of GPUs. This means less threads accessing the same number of
+ * registers which can increase occupancy for register heavy kernels.
  */
-extern dim3	dimBlock;//	=dim3(nx,ny,nz);
-extern dim3	dimGrid;//	=dim3(nt,1,1);
-						  //For copying over gamval
-extern dim3	dimBlockOne;//	=dim3(nx,ny,nz);
-extern dim3	dimGridOne;//	=dim3(nt,1,1);
+/// @brief	Default block size. Usually 128
+extern dim3	dimBlock;
+///@brief	Default grid size. First component is normally nt. Second and third depend whatever is needed to get the
+///			block size to 128
+extern dim3	dimGrid;
+///@brief block size of one
+extern dim3	dimBlockOne;
+///@brief Grid size of one
+extern dim3	dimGridOne;
 #define	USE_BLAS
 #endif

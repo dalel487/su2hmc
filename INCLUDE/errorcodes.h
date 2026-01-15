@@ -55,70 +55,99 @@
 //======================================
 //Errors:
 //-------
-#define	INDTOCOORD	11001	////Issues converting index to coordinates
-#define	COORDTOIND	11002	/////Issues converting coordinate to index
-#define	BOUNDERROR	11003	////Accessing out of bounds element
-#define	ARRAYLEN		11004 ////Impossible value for array length
-#define	CPYERROR		11005 ////Copy failed
+/// @brief Issues converting index to coordinates
+#define	INDTOCOORD	11001	
+/// @brief Issues converting coordinate to index
+#define	COORDTOIND	11002	
+/// @brief Accessing out of bounds element
+#define	BOUNDERROR	11003	
+/// @brief Impossible value for array length
+#define	ARRAYLEN		11004 
+/// @brief Copy failed
+#define	CPYERROR		11005 
+
 									//Warnings:
 									//---------
-#define	BOUNDWARN	11103	////Accessing an out of bounds element, but not a big enough problem to crash the programme.
-#define	LIMWARN		11104	////Order of limits (x_min and x_max for example) is reversed.
-#define	CPYWARN		11105 ////Copy failed
+/// @brief Accessing out of bounds element, but not a big enough problem to crash the programme.
+#define	BOUNDWARN	11103	
+/// @brief Order of limits (x_min and x_max for example) is reversed.
+#define	LIMWARN		11104
+/// @brief Copy failed
+#define	CPYWARN		11105 
 
 /** @section mpierr MPI Errors. Leading digits are 12
 */
 //================================
 //Errors:
 //------
-#define	NO_MPI_INIT	12001	//Failed to initialise MPI
-#define	NO_MPI_RANK	12002	//Failed to get the rank of the process
-#define	NO_MPI_SIZE	12003	//Failed to get the number of ranks
-#define	SIZEPROC		12004	//
-#define	NUMELEM		12005	//Failed to evaluate the number of elements
-#define	CANTSEND		12006	//Couldn't send to another process
-#define	CANTRECV		12007	//Couldn't receive from a process
-#define	BROADERR		12008	//Couldn't broadcast to the processes
-#define	REDUCERR		12009	//Couldn't carry out a reduction
-#define	GATHERR		12010	//Couldn't complete a gather
+/// @brief Failed to initialise MPI
+#define	NO_MPI_INIT	12001	
+/// @brief Failed to get the rank of the process
+#define	NO_MPI_RANK	12002
+/// @brief Failed to get the number of ranks
+#define	NO_MPI_SIZE	12003
+/// @brief Communicator size does not match expected size
+#define	SIZEPROC		12004	
+/// @brief Failed to evaluate the number of elements
+#define	NUMELEM		12005
+/// @brief Couldn't send to another process
+#define	CANTSEND		12006
+/// @brief Couldn't receive from another process
+#define	CANTRECV		12007
+/// @brief Couldn't broadcast to the processes
+#define	BROADERR		12008
+/// @brief Couldn't carry out a reduction operation
+#define	REDUCERR		12009
+/// @brief Couldn't complete a gather operation
+#define	GATHERR		12010
 
 //Warnings:
 //---------
-#define	DIFNPROC		12101	//Continuation run on a different number of ranks
+/// @brief Continuation run on different grid size
+#define	DIFNPROC		12101
 
 //Halo Errors. Leading digits are 13
 //=================================
 //Errors:
 //-------
-#define	LAYERROR		13001	//Can't access a layer of a halo
-#define	HALOLIM		13002	//Index goes beyond the halo
+///brief Can't access a layer of a halo
+#define	LAYERROR		13001	
+/// @brief Index goes beyond the halo
+#define	HALOLIM		13002
 
 //Physics/Maths Errors. Leading digits are 14
 //=================================
 //Errors:
 //-------
-#define	DIVZERO		14001	//Not quite an indexing error, bu division by zero
+/// @brief Division by zero
+#define	DIVZERO		14001
 
 //Warnings:
 //--------
-#define	ITERLIM		14101 //Exceeded max number of iterations
-#define	FITWARN		14102 //Fitting function has repeated x value
+/// @brief Exceeded max number of iterations
+#define	ITERLIM		14101
+/// @brief Fitting function has repeated x value
+#define	FITWARN		14102
 
 //Alerts:
 //------
-#define	NOINIT		14201 //Not initialising the lattice
+/// @brief Not initialising the lattice
+#define	NOINIT		14201
 
 //CUDA Errors. Leading digits are 15
 //==================================
 //Errors:
 //------
+/// @brief Error with setting block size
 #define	BLOCKERROR	15001
 
 //Warnings:
 //------
+/// @brief Warning with block size
 #define	BLOCKWARN	15101
 
 //ALERT:
 //------
+/// @brief Alert with block size
 #define	BLOCKALERT	15201
 #endif

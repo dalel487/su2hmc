@@ -52,7 +52,6 @@ int Half_Clover(Complex_f *clover[nc],	Complex_f *ut[nc], unsigned int *iu, unsi
  *
  *	@param	clover:	Array of clovers
  *	@param	ut:		Gauge fields
- *	@param	ut:		Gauge fields
  *	@param	iu,id:	Upper and lower indices
  */
 int Clover(Complex_f *clover[nc],Complex_f *ut[nc], unsigned int *iu, unsigned int *id);

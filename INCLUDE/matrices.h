@@ -299,9 +299,10 @@ extern "C"
 	 *			For complex valued arrays, one may cast the complex<double> and complex<float> arrays to double and float
 	 *			arrays, and use 2N for the array length instead.
 	 *	
-	 *	@param	d:	Double array
-	 *	@param	f: float array
-	 *	@param	n:	Array lengths
+	 *	@param	d:					Double array
+	 *	@param	f:					float array
+	 *	@param	n:					Array lengths
+	 *	@param dimGrid,dimBloc:	CUDA grid/block
 	 *
 	 */
 	void cuMixed_Sumto(double *d, float *f,const unsigned int n,const dim3 dimGrid,const dim3 dimBlock);

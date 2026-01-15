@@ -418,6 +418,13 @@ __global__ void Transpose(T *out, const T *in, const int fast_in, const int fast
 	}
 }
 
+/**
+ * @brief Sums a float array into a double array
+ *
+ * @param d:		The double array
+ * @param f:		The float array
+ * @param n:		The size of the arrays
+ */
 __global__ void cuMixed_Sumto(double *d, float *f, const unsigned int n){
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -430,6 +437,12 @@ __global__ void cuMixed_Sumto(double *d, float *f, const unsigned int n){
 	return;
 }
 
+/**
+ * @brief Performs a warp reduction for sum
+ *
+ * @param sdata:	The shared data array
+ * @param tid:		The thread ID
+ */
 template <typename T,unsigned int bsize>
 __device__ void warpReduce_sum(volatile T* sdata, const unsigned int tid){
 	if(bsize >= 64) sdata[tid] += sdata[tid + 32];
@@ -439,6 +452,14 @@ __device__ void warpReduce_sum(volatile T* sdata, const unsigned int tid){
 	if(bsize >= 4) sdata[tid] += sdata[tid + 2];
 	if(bsize >= 2) sdata[tid] += sdata[tid + 1];
 }
+/**
+ * @brief Performs a block reduction for sum
+ *
+ * @param g_in_data:		The input global data array
+ * @param g_out_data:	The output global data array
+ * @param n:				The size of the input array
+ *
+ */
 template <typename T,unsigned int bsize>
 __global__ void reduce_sum(T *g_in_data, T *g_out_data, const unsigned int n){
 	extern __shared__ T sdata[];  // stored in the shared memory
