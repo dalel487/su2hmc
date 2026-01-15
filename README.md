@@ -10,7 +10,7 @@ one operation of congradq on complex vectors to determine
 $$
 \left(M^\dagger M\right)^{-1}\Phi
 $$ 
-where $ \Phi $ has dimension 4 * kvol * nc * Nf -
+where $ \Phi $ has dimension `4 * kvol * nc * Nf` -
 The matrix M is the Wilson matrix for a single flavor
 there is no extra species doubling as a result
 
@@ -21,7 +21,7 @@ number of continuum flavors N_f by
               $$N_f = 2  \text{Nf}$$
 
 Fermion expectation values are measured using a noisy estimator.
-on the Wilson-Gor'kov matrix, which has dimension 8 * kvol * nc * Nf
+on the Wilson-Gor'kov matrix, which has dimension `8 * kvol * nc * Nf`
 inversions done using `congradp`, and matrix multiplies with `dslash`,
 `dslashd`
 
@@ -46,10 +46,9 @@ The code produces the following outputs:
 |diq.bβββkκκκmuμμμμjJJJsNXtNT|					Diquark Condensate|
 
 SJH March 2005
-
 Hybrid code, P.Giudice, May 2013
-	
 Converted from Fortran to C by D. Lawlor March 2021
+CUDA Implementation by D. Lawlor April 2024
 	
 ### Conversion notes
 This two colour implementation was originally written in FORTRAN for:

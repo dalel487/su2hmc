@@ -5,7 +5,6 @@
  * @author	D. Lawlor
  */
 #include	<matrices.h>
-#include	<par_mpi.h>
 #include	<su2hmc.h>
 //CUDA Kernels
 __global__ void Plus_staple(const int mu, const int nu,unsigned int *iu, Complex_f *Sigma11, Complex_f *Sigma12, Complex_f *u11t, Complex_f *u12t){

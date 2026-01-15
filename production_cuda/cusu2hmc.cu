@@ -3,7 +3,6 @@
  * @brief Several random but useful CUDA routines
  * @author	D. Lawlor
  */
-#include	<cuda.h>
 #include	<cuda_runtime.h>
 #include	<su2hmc.h>
 #define MIN(x,y) (x<y?x:y)

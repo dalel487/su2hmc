@@ -6,7 +6,6 @@
 #include <assert.h>
 #include <su2hmc.h>
 #include <matrices.h>
-#include <string.h>
 #include	<thrust_complex.h>
 template <typename T>
 __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, complex<T> *u12t,const unsigned int *iu, const unsigned int *id,\
