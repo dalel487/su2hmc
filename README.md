@@ -7,10 +7,8 @@ based on the algorithm of Duane et al. Phys. Lett. B195 (1987) 216.
 
 There is "up/down partitioning": each update requires
 one operation of congradq on complex vectors to determine
-$$
-\left(M^\dagger M\right)^{-1}\Phi
-$$ 
-where $ \Phi $ has dimension `4 * kvol * nc * Nf` -
+$$\left(M^\dagger M\right)^{-1}\Phi$$ 
+where $\Phi$ has dimension `4 * kvol * nc * Nf` -
 The matrix M is the Wilson matrix for a single flavor
 there is no extra species doubling as a result
 
@@ -45,9 +43,9 @@ The code produces the following outputs:
 |fermi.bβββkκκκmuμμμμjJJJsNXtNT|				$\langle\bar{\psi}\psi\rangle$, Energy density, Quark number density|
 |diq.bβββkκκκmuμμμμjJJJsNXtNT|					Diquark Condensate|
 
-SJH March 2005
-Hybrid code, P.Giudice, May 2013
-Converted from Fortran to C by D. Lawlor March 2021
+SJH March 2005\n
+Hybrid code, P.Giudice, May 2013\n
+Converted from Fortran to C by D. Lawlor March 2021\n
 CUDA Implementation by D. Lawlor April 2024
 	
 ### Conversion notes
@@ -56,7 +54,7 @@ This two colour implementation was originally written in FORTRAN for:
 dense 2-color QCD, Eur. Phys. J. C48, 193 (2006), hep-
 lat/0604004](https://arxiv.org/abs/hep-lat/0604004)
 
-It has since been rewritten in C and is in the process of being adapted for CUDA. We have sucessfully run on 7000+ Zen 2
+It has since been rewritten in C and has been adapted for CUDA on a single GPU. We have sucessfully run on 7000+ Zen 2
 cores, as well as A100 GPUs
 
 Some adaptions from the original are:
@@ -85,7 +83,7 @@ This code is written for MPI on Linux, thus has a few caveats to get up and runn
 	``` c
 	nx ny nz nt
 	```
-	set in step one.
+	set in step one. For the CUDA version these must be set to 1 as only single GPU is supported at present.
 3.	Compile the code using the desired Makefile. Please note that the paths given in the Makefiles for
 	BLAS libraries etc. are based on my own system. You may need to adjust these manually.
 4.	Run the code. This may differ from system to system, especially if a task scheduler like SLURM is being used.
@@ -102,16 +100,16 @@ This code is written for MPI on Linux, thus has a few caveats to get up and runn
 A sample input file looks like
 ```
 0.00200	1.7	0.1780	0.00	0.000	0.0	0.0	500	20	1	1	100
-dt	beta	akappa	jqq	thetaq	fmu	aNf	stepl	ntraj	istart	icheck	iread
+dt	beta	akappa	jqq	c_sw	fmu	aNf	stepl	ntraj	istart	icheck	iread
 ```
 where
 - `dt` is the step size for the update
-- `beta` is β, given up to three significant figures
+- `beta` is the inverse gauge coupling, given up to three significant figures
 - `akappa` is hopping parameter, given up to four significant figures
 - `jqq` is the diquark source, given up to three significant figures
 - `c_sw` is the clover coefficient. Leave as zero for an unimproved action
 - `fmu` is the chemical potential
-- `aNf` is ignored. Originating in the Cornell group when Ken Wilson was still there, that molecular dynamics time-discretisation artifacts can be absorbed into renormalisation of the bare parameters of the lattice action
+- `aNf` is ignored but remains for legacy reasons. Originating in the Cornell group when Ken Wilson was still there, that molecular dynamics time-discretisation artifacts can be absorbed into renormalisation of the bare parameters of the lattice action
 - `stepl` is the average number of steps per trajectory. For a single trajectory it times dt should equal 1
 - `ntraj` is the number of trajectories
 - `istart` signals a hot start (>=1) or cold start (<=0)
