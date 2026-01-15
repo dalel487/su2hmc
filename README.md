@@ -43,9 +43,9 @@ The code produces the following outputs:
 |fermi.bβββkκκκmuμμμμjJJJsNXtNT|				$\langle\bar{\psi}\psi\rangle$, Energy density, Quark number density|
 |diq.bβββkκκκmuμμμμjJJJsNXtNT|					Diquark Condensate|
 
-SJH March 2005\n
-Hybrid code, P.Giudice, May 2013\n
-Converted from Fortran to C by D. Lawlor March 2021\n
+SJH March 2005\
+Hybrid code, P.Giudice, May 2013\
+Converted from Fortran to C by D. Lawlor March 2021\
 CUDA Implementation by D. Lawlor April 2024
 	
 ### Conversion notes
