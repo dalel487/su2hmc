@@ -469,7 +469,7 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *u11t, complex<T> *u12t, 
 						break;
 				}
 				//Similar to the clover, only the real part survives. 
-				fleaf[gen][0]=(-I_f/4.0f)*fleaf[gen][0].real();
+				fleaf[gen][0]=(-I_f/4.0f)*fleaf[gen][0].imag();
 				//And the other component gets doubled. We'll account for that by dividing by 4 instead of 8 again
 				fleaf[gen][1]=(-I_f/4.0f)*fleaf[gen][1];
 			}
@@ -487,9 +487,9 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *u11t, complex<T> *u12t, 
 				X2s[0]=X2[ind]; X2s[1]=X2[ind+kvol];
 
 				for(unsigned short gen=0;gen<nadj;gen++){
-					complex<T> fleaf1c=conj(fleaf[gen][1]);
-					T force = (sigval[clov*ndirac+idirac]*(X1sc[0]*(fleaf[gen][0].imag()*X2s[0]+fleaf[gen][1]*X2s[1])+\
-								X1sc[1]*(-fleaf[gen][0].imag()*X2s[1]-fleaf1c*X2s[0]))).real();
+//					complex<T> fleaf1c=conj(fleaf[gen][1]);
+					T force = (sigval[clov*ndirac+idirac]*(X1sc[0]*(fleaf[gen][0].real()*X2s[0]+fleaf[gen][1]*X2s[1])+\
+								X1sc[1]*(-fleaf[gen][0].real()*X2s[1]-fleaf1[gen][1]*X2s[0]))).real();
 					//mu direction contribution
 					dSdpis[0][gen]+=force;
 					//nu direction contribution
