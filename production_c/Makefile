@@ -2,7 +2,7 @@ MF=Makefile
 
 IFLAGS=	-I../INCLUDE  $(shell gsl-config --cflags)
 
-CFLAGS=  $(IFLAGS) -std=gnu11 -MMD  -D__RANLUX__ -DSA3AT -DINT_OMF2
+CFLAGS=  $(IFLAGS) -std=gnu23 -MMD  -D__RANLUX__ -DSA3AT -DINT_OMF2
 
 # Configure MPI wrapper to use the specified compiler
 # This sets the appropriate environment variable based on the MPI implementation

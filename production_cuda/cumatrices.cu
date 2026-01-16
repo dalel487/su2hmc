@@ -425,7 +425,7 @@ __global__ void Transpose(T *out, const T *in, const int fast_in, const int fast
  * @param f:		The float array
  * @param n:		The size of the arrays
  */
-__global__ void cuMixed_Sumto(double *d, float *f, const unsigned int n){
+__global__ void Mixed_Sumto(double *d, float *f, const unsigned int n){
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -651,7 +651,7 @@ void cuTranspose_U(unsigned int *out, const int fast_in, const int fast_out, con
 }
 
 void cuMixed_Sumto(double *d, float *f,const unsigned int n,const dim3 dimGrid,const dim3 dimBlock){
-	cuMixed_Sumto<<<dimGrid,dimBlock>>>(d,f,n);
+	Mixed_Sumto<<<dimGrid,dimBlock>>>(d,f,n);
 	return;
 }
 

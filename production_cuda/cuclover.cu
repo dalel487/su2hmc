@@ -368,7 +368,8 @@ __global__  void Full_Clover(complex<T> *clover1, complex<T> *clover2,\
 		///manually below.
 
 		///The @f$\alpha@f$ component. Only the imaginary part survives. And since it is multiplied by @f$-i@f$ it is real.
-		clover1[i]=2*clover1[i].imag();		clover1[i]*=(-I_f/8.0f);
+		clover1[i]+=2*clover1[i].imag();		clover1[i]*=(-I_f/8.0f);
+//		clover1[i]=clover1[1].imag()/4.0f;
 
 		///The @f$\beta@f$ component. Both real and imaginary components survive. It ends up getting doubled.
 		clover2[i]+=clover2[i]; 				clover2[i]*=(-I_f/8.0f);
@@ -467,7 +468,7 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *u11t, complex<T> *u12t, 
 						break;
 				}
 				//Factor of two from @f$\alpha-\bar{\alpha}@f$ cancels with the 8 here,leaving only the real part
-				fleaf[gen][0]=(-I_f/4.0f)*(fleaf[gen][0].real());
+				fleaf[gen][0]=(-I_f/4.0f)*(fleaf[gen][0].imag());
 				fleaf[gen][1]=(-I_f/8.0f)*(fleaf[gen][1]+conj(fleaf[gen][1]));
 			}
 
@@ -668,8 +669,8 @@ int cuClover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X
 			//Clover index
 			const unsigned short clov = (mu==0) ? nu-1 :mu+nu;
 			//Allocate half-leaf memory
-			Clover_Force<<<dimGrid,dimBlock>>>(dSdpi,hLeaves[clov][0],hLeaves[clov][1],\
-									ut[0],ut[1],X1,X2,sigval,sigin,iu,id,clov,mu,nu,akappa);
+			Clover_Force<<<dimGrid,dimBlock>>>(dSdpi,ut[0],ut[1],hLeaves[clov][0],hLeaves[clov][1],\
+									X1,X2,sigval,sigin,iu,id,clov,mu,nu,akappa);
 		}
 	cudaDeviceSynchronise();
 	//Free half leaves

@@ -9,26 +9,6 @@
 #include	<clover.h>
 
 int Gauge_force(double *dSdpi, Complex_f *ut[2],unsigned int *iu,unsigned int *id, float beta){
-	/*
-	 * Calculates dSdpi due to the Wilson Action at each intermediate time
-	 *
-	 * Calls:
-	 * =====
-	 * C_Halo_swap_all, C_gather, C_Halo_swap_dir
-	 *
-	 * Parameters:
-	 * =======
-	 * double			*dSdpi
-	 * Complex_f 			*ut[0]
-	 * Complex_f			*ut[1]
-	 * unsigned int	*iu 
-	 * unsigned int	*id 
-	 * float				beta
-	 *
-	 * Returns:
-	 * =======
-	 * Zero on success, integer error code otherwise
-	 */
 	const char funcname[] = "Gauge_force";
 
 	//We define zero halos for debugging
@@ -100,32 +80,6 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 			Complex *ut[2], Complex_f *ut_f[2],unsigned int *iu,unsigned int *id,\
 			Complex gamval[20],Complex_f gamval_f[20],const unsigned short gamin[16],Complex *sigval,Complex_f *sigval_f, unsigned short *sigin,\
 			double *dk[2], float *dk_f[2],const Complex_f jqq, const float akappa,const float beta,const float c_sw,double *ancg){
-	/*
-	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
-	 *	
-	 *	@param	dSdpi:			The force
-	 *	@param	iflag:			Invert before evaluating the force?	
-	 *	@param	res1:				Conjugate gradient residule
-	 *	@param	X0:				Up/down partitioned pseudofermion field
-	 *	@param	X1:				Holder for the partitioned fermion field, then the conjugate gradient output
-	 *	@param	Phi:				Pseudofermion field
-	 *	@param	ut[0],ut[1]		Double precision colour fields
-	 *	@param	ut_f[0],ut_f[1]:	Single precision colour fields
-	 *	@param	iu,id:			Lattice indices
-	 *	@param	gamin:			Gamma indices
-	 *	@param	gamval:			Double precision gamma matrices
-	 *	@param	gamval_f:		Single precision gamma matrices
-	 * @param	dk[0]:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$
-	 * @param	dk[1]:				@f$\left(1-\gamma_0\right)e^\mu@f$
-	 * @param	dk_f[0]:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ float
-	 * @param	dk_f[1]:			@f$\left(1-\gamma_0\right)e^\mu@f$ float
-	 * @param 	jqq:				Diquark source
-	 *	@param	akappa:			Hopping parameter
-	 *	@param	beta:				Inverse gauge coupling
-	 *	@param	ancg:				Counter for conjugate gradient iterations
-	 *
-	 *	@return Zero on success, integer error code otherwise
-	 */
 	const char funcname[] = "Force";
 #ifdef __NVCC__
 	int device=-1;

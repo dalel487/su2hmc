@@ -22,8 +22,7 @@ __device__ __forceinline__ T conj(const T& z){
 	return T(z.real(),-z.imag());
 }
 //CUDA Kernels
-__global__ void cuReal_convert(float *a, double *b, const unsigned int len, const bool dtof){
-	const char *funcname = "cuReal_convert";
+__global__ void Real_convert(float *a, double *b, const unsigned int len, const bool dtof){
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -242,14 +241,14 @@ void cuReal_convert(float *a, double *b, const unsigned int len, const bool dtof
 	 * Kernel wrapper for conversion between sp and dp complex on the GPU.
 	 */
 	const char *funcname = "cuComplex_convert";
-	cuReal_convert<<<dimGrid,dimBlock>>>(a,b,len,dtof);
+	Real_convert<<<dimGrid,dimBlock>>>(a,b,len,dtof);
 }
 void cuComplex_convert(Complex_f *a, Complex *b, const unsigned int len, const bool dtof, dim3 dimBlock, dim3 dimGrid){
 	/* 
 	 * Kernel wrapper for conversion between sp and dp complex on the GPU.
 	 */
 	const char *funcname = "cuComplex_convert";
-	cuReal_convert<<<dimGrid,dimBlock>>>((float *)a,(double *)b,2*len,dtof);
+	Real_convert<<<dimGrid,dimBlock>>>((float *)a,(double *)b,2*len,dtof);
 }
 void cuFill_Small_Phi(const unsigned int na, Complex *smallPhi, Complex *Phi, dim3 dimBlock, dim3 dimGrid){
 	cuFill_Small_Phi<<<dimGrid,dimBlock>>>(na,smallPhi,Phi);
