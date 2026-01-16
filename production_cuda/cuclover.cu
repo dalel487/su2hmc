@@ -368,7 +368,8 @@ __global__  void Full_Clover(complex<T> *clover1, complex<T> *clover2,\
 		///manually below.
 
 		///The @f$\alpha@f$ component. Only the imaginary part survives. And since it is multiplied by @f$-i@f$ it is real.
-		clover1[i]+=2*clover1[i].imag();		clover1[i]*=(-I_f/8.0f);
+		///Need to be extra cautious here though .imag() returns a real value. So we multiply by I_f manually 
+		clover1[i]+=clover1[i].imag();		clover1[i]*=(1.0f/8.0f);
 //		clover1[i]=clover1[1].imag()/4.0f;
 
 		///The @f$\beta@f$ component. Both real and imaginary components survive. It ends up getting doubled.
@@ -467,9 +468,10 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *u11t, complex<T> *u12t, 
 						fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
 						break;
 				}
-				//Factor of two from @f$\alpha-\bar{\alpha}@f$ cancels with the 8 here,leaving only the real part
-				fleaf[gen][0]=(-I_f/4.0f)*(fleaf[gen][0].imag());
-				fleaf[gen][1]=(-I_f/8.0f)*(fleaf[gen][1]+conj(fleaf[gen][1]));
+				//Similar to the clover, only the real part survives. 
+				fleaf[gen][0]=(-I_f/4.0f)*fleaf[gen][0].real();
+				//And the other component gets doubled. We'll account for that by dividing by 4 instead of 8 again
+				fleaf[gen][1]=(-I_f/4.0f)*fleaf[gen][1];
 			}
 
 			for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
