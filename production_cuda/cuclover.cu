@@ -364,7 +364,7 @@ __global__  void Full_Clover(complex<T> *clover1, complex<T> *clover2,\
 			Leaf(u11t,u12t,Leaves,iu,id,i,mu,nu,leaf);
 			clover1[i]+=Leaves[0]; clover2[i]+=Leaves[1];
 		}
-		///The clover is given by @f$F_{\mu\nu}=\frac{-i}{8}\left(Q_{\mu\nu}-Q_{\nu\mu}\right)^\dagger@f$. We do that
+		///The clover is given by @f$F_{\mu\nu}=\frac{-i}{8}\left(Q_{\mu\nu}-Q_{\nu\mu}\right)@f$. We do that
 		///manually below.
 
 		///The @f$\alpha@f$ component. Only the imaginary part survives. And since it is multiplied by @f$-i@f$ it is real.
@@ -489,7 +489,7 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *u11t, complex<T> *u12t, 
 				for(unsigned short gen=0;gen<nadj;gen++){
 //					complex<T> fleaf1c=conj(fleaf[gen][1]);
 					T force = (sigval[clov*ndirac+idirac]*(X1sc[0]*(fleaf[gen][0].real()*X2s[0]+fleaf[gen][1]*X2s[1])+\
-								X1sc[1]*(-fleaf[gen][0].real()*X2s[1]-fleaf1[gen][1]*X2s[0]))).real();
+								X1sc[1]*(-fleaf[gen][0].real()*X2s[1]-fleaf[gen][1]*X2s[0]))).real();
 					//mu direction contribution
 					dSdpis[0][gen]+=force;
 					//nu direction contribution

@@ -494,7 +494,7 @@ int Init_clover(Complex **sigval, Complex_f **sigval_f,unsigned short **sigin, f
 	cblas_zdscal(6*4, 0.5*c_sw, sigval_t, 1);
 #else
 #pragma omp parallel for simd collapse(2) aligned(sigval,sigval_f:AVX)
-	for(int i=1;i<6;i++)
+	for(int 0=1;i<6;i++)
 		for(int j=0;j<4;j++)
 			sigval_t[i][j]*=c_sw*0.5;
 #endif
