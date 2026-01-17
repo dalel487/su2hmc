@@ -266,7 +266,7 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 			Leaves[0]=a[0]*u11t[didm+kvol*mu]-a[1]*conj(u12t[didm+kvol*mu]);
 			Leaves[1]=a[0]*u12t[didm+kvol*mu]+a[1]*conj(u11t[didm+kvol*mu]);
 			//DEBUG
-		//			Leaves[0]=0; Leaves[1]=0;
+			//			Leaves[0]=0; Leaves[1]=0;
 			break;
 		case(2):
 			///Leaf in the forwards mu and backwards nu direction
@@ -371,7 +371,7 @@ __global__  void Full_Clover(complex<T> *clover1, complex<T> *clover2,\
 		///Need to be extra cautious here though .imag() returns a real value. So we multiply by I_f manually 
 		///The 8.0f becomes a 4.0f to account for the factor of two
 		clover1[i]=clover1[i].imag();		clover1[i]*=(1.0f/4.0f);
-//		clover1[i]=clover1[1].imag()/4.0f;
+		//		clover1[i]=clover1[1].imag()/4.0f;
 
 		///The @f$\beta@f$ component. Both real and imaginary components survive. It ends up getting doubled.
 		clover2[i]+=clover2[i]; 				clover2[i]*=(-I_f/8.0f);
@@ -488,7 +488,7 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *u11t, complex<T> *u12t, 
 				X2s[0]=X2[ind]; X2s[1]=X2[ind+kvol];
 
 				for(unsigned short gen=0;gen<nadj;gen++){
-//					complex<T> fleaf1c=conj(fleaf[gen][1]);
+					//					complex<T> fleaf1c=conj(fleaf[gen][1]);
 					T force = (sigval[clov*ndirac+idirac]*(X1sc[0]*(fleaf[gen][0].real()*X2s[0]+fleaf[gen][1]*X2s[1])+\
 								X1sc[1]*(-fleaf[gen][0].real()*X2s[1]-fleaf[gen][1]*X2s[0]))).real();
 					//mu direction contribution
@@ -652,39 +652,32 @@ void cuHbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f
 int cuClover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,\
 		unsigned short *sigin, unsigned int *iu, unsigned int *id, const float akappa){
 	const char funcname[]="Clover_Force";
-	Complex_f *hLeaves[2][6][nc];
-	for(unsigned int mu=0;mu<ndim-1;mu++)
-		for(unsigned int nu=mu+1;nu<ndim;nu++){
-			//Clover index
-			const unsigned short clov = (mu==0) ? nu-1 :mu+nu;
-			//Allocate half-leaf memory
-			cudaMallocAsync((void **)&hLeaves[0][clov][0],ndim*kvol*sizeof(Complex_f),streams[mu]);
-			cudaMallocAsync((void **)&hLeaves[0][clov][1],ndim*kvol*sizeof(Complex_f),streams[mu]);
-			cudaMallocAsync((void **)&hLeaves[1][clov][0],ndim*kvol*sizeof(Complex_f),streams[mu]);
-			cudaMallocAsync((void **)&hLeaves[1][clov][1],ndim*kvol*sizeof(Complex_f),streams[mu]);
-			Half_Leaves<<<dimGrid,dimBlock,0,streams[mu]>>>(hLeaves[0][clov][0],hLeaves[0][clov][1],ut[0],ut[1],iu,id,mu,nu);
-			Half_Leaves<<<dimGrid,dimBlock,0,streams[mu]>>>(hLeaves[1][clov][0],hLeaves[1][clov][1],ut[0],ut[1],iu,id,nu,mu);
-		}
+	Complex_f *hLeaves[2][nc];
+	//Allocate half-leaf memory. There's never a generator between the first two links (I hope) so these can be reused
+	cudaMallocAsync((void **)&hLeaves[0][0],ndim*kvol*sizeof(Complex_f),streams[0]);
+	cudaMallocAsync((void **)&hLeaves[0][1],ndim*kvol*sizeof(Complex_f),streams[1]);
+	cudaMallocAsync((void **)&hLeaves[1][0],ndim*kvol*sizeof(Complex_f),streams[2]);
+	cudaMallocAsync((void **)&hLeaves[1][1],ndim*kvol*sizeof(Complex_f),streams[3]);
 	cudaDeviceSynchronise();
-	//Cannot stream the actual force calculation. We have a mu-nu and a nu-mu contribution. Streams will create a potential race condition.
 	for(unsigned int mu=0;mu<ndim-1;mu++)
 		for(unsigned int nu=mu+1;nu<ndim;nu++){
 			//Clover index
 			const unsigned short clov = (mu==0) ? nu-1 :mu+nu;
-			//Allocate half-leaf memory
-			Clover_Force<<<dimGrid,dimBlock>>>(dSdpi,ut[0],ut[1],hLeaves[0][clov][0],hLeaves[0][clov][1],\
-									X1,X2,sigval,sigin,iu,id,clov,mu,nu,akappa);
-			Clover_Force<<<dimGrid,dimBlock>>>(dSdpi,ut[0],ut[1],hLeaves[1][clov][0],hLeaves[1][clov][1],\
-									X1,X2,sigval,sigin,iu,id,clov,nu,mu,akappa);
+
+			//Compute half leaves
+			Half_Leaves<<<dimGrid,dimBlock>>>(hLeaves[0][0],hLeaves[0][1],ut[0],ut[1],iu,id,mu,nu);
+			Half_Leaves<<<dimGrid,dimBlock>>>(hLeaves[1][0],hLeaves[1][1],ut[0],ut[1],iu,id,nu,mu);
+
+			//Compute force for @f$\mu\nu@f$ and @f$\nu\mu@f$
+			Clover_Force<<<dimGrid,dimBlock>>>(dSdpi,ut[0],ut[1],hLeaves[0][0],hLeaves[0][1],\
+					X1,X2,sigval,sigin,iu,id,clov,mu,nu,akappa);
+			Clover_Force<<<dimGrid,dimBlock>>>(dSdpi,ut[0],ut[1],hLeaves[1][0],hLeaves[1][1],\
+					X1,X2,sigval,sigin,iu,id,clov,nu,mu,akappa);
 		}
 	cudaDeviceSynchronise();
 	//Free half leaves
-	for(unsigned int mu=0;mu<ndim-1;mu++)
-		for(unsigned int nu=mu+1;nu<ndim;nu++){
-			const unsigned short clov = (mu==0) ? nu-1 :mu+nu;
-			cudaFreeAsync(hLeaves[0][clov][0],streams[mu]); cudaFreeAsync(hLeaves[0][clov][1],streams[mu]);
-			cudaFreeAsync(hLeaves[1][clov][0],streams[mu]); cudaFreeAsync(hLeaves[1][clov][1],streams[mu]);
-		}
+	cudaFreeAsync(hLeaves[0][0],streams[0]); cudaFreeAsync(hLeaves[0][1],streams[1]);
+	cudaFreeAsync(hLeaves[1][0],streams[2]); cudaFreeAsync(hLeaves[1][1],streams[3]);
 	cudaDeviceSynchronise();
 	return 0;
 }
