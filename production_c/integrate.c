@@ -271,23 +271,24 @@ int OMF4(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 	const double theta = 0.08398315262876693;
 	const double rho = 0.2539785108410595;
 	const double lambda = 0.6822365335719091;
-	const double mu = -0.03230286765269967;
+	const double vartheta = -0.03230286765269967;
+
 	///@brief Momentum updates
-	///@brief Outer updates depend on theta. We have two of these, doubled for between full steps
-	const double dpO= -theta*dt;
+	///@brief Outer updates depend on vartheta. We have two of these, doubled for between full steps
+	const double dpO= -vartheta*dt;
 	const double dpO2= 2*dpO;
 	///@brief Middle updates depend on lambda
 	const double dpM= -lambda*dt;
-	///@brief Inner updates depend on theta and lambda
-	const double dpI= -(0.5-theta-lambda)*dt;
+	///@brief Inner updates depend on vartheta and lambda
+	const double dpI= -(0.5-vartheta-lambda)*dt;
 
-	///@brief Gauge updates. These depend on rho and mu
+	///@brief Gauge updates. These depend on rho and theta
 	///@brief Outer gauge update depends on rho
 	const	double duO = dt*rho;
-	///@brief Middle gauge update depends on mu
-	const	double duM = dt*mu;
-	///@brief Inner gauge update depends on rho and mu
-	const	double duI = dt*(1-2*(rho+mu));
+	///@brief Middle gauge update depends on theta
+	const	double duM = dt*theta;
+	///@brief Inner gauge update depends on rho and theta
+	const	double duI = dt*(1-2*(rho+theta));
 
 	//Initial step forward for p
 	//=======================
