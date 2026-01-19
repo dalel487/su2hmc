@@ -98,34 +98,39 @@ __device__ int Half_Leaf(complex<T> Leaves[nc], complex<T> *u11t, complex<T> *u1
 			break;
 		case(1):
 			///Leaf in the forward nu and backwards mu direction
-			const unsigned int didm = id[mu*kvol+i];
+			//Should really read didm, but I've already declared this 
+			uidm = id[mu*kvol+i];
 			a[0]=u11t[i+kvol*nu]; a[1]=u12t[i+kvol*nu];
-			const unsigned int uin_didm=iu[nu*kvol+didm];
+			//Awkward index...
+			const unsigned int uin_didm=iu[nu*kvol+uidm];
 			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})@f$
 			Leaves[0]=a[0]*conj(u11t[uin_didm+kvol*mu])+a[1]*conj(u12t[uin_didm+kvol*mu]);
 			Leaves[1]=-a[0]*u12t[uin_didm+kvol*mu]+a[1]*u11t[uin_didm+kvol*mu];
 			break;
 		case(2):
-			///Leaf in the forwards mu and backwards nu direction
-			//Another awkward index
-			uidm = iu[mu*kvol+i];
-			a[0]=u11t[i+kvol*mu]; a[1]=u12t[i+kvol*mu];
-			const unsigned int din_uidm=id[nu*kvol+uidm];
+			///Leaf in the backwards nu and forwards mu direction
+			//Should really read didn, but I've already declared this 
+			uidm = id[nu*kvol+i];
+			//Daggered. So Conj what goes into a[0] and negate what goes into a[1]
+			a[0]=conj(u11t[uidm+kvol*nu]); a[1]=-u12t[uidm+kvol*mu];
 
-			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{\mu}-\hat{\nu})@f$
-			Leaves[0]=a[0]*conj(u11t[din_uidm+kvol*nu])+a[1]*conj(u12t[din_uidm+kvol*nu]);
-			Leaves[1]=-a[0]*u12t[din_uidm+kvol*nu]+a[1]*u11t[din_uidm+kvol*nu];
+			/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})@f$
+			Leaves[0]=a[0]*u11t[uidm+kvol*mu]-a[1]*conj(u12t[uidm+kvol*mu]);
+			//Don't forget negatiion of second term was handled earlier!
+			Leaves[1]=a[0]*u12t[uidm+kvol*mu]+a[1]*conj(u11t[uidm+kvol*mu]);
 			break;
 		case(3):
 			///Leaf in the backwards mu and backwards nu direction
+			//Should really read didm, but I've already declared this 
+			uidm  =  id[i+kvol*mu];
+			//Daggered. So Conj what goes into a[0] and negate what goes into a[1]
+			a[0]=conj(u11t[uidm+kvol*mu]); a[1]=-u12t[uidm+kvol*mu];
 			//Another awkward index
-			const unsigned int didn = id[nu*kvol+i];
-			a[0]=u11t[didn+kvol*nu]; a[1]=u12t[didn+kvol*nu];
-			const unsigned int dim_didn=id[mu*kvol+didn];
+			const unsigned int din_didm=id[nu*kvol+uidm];
 
-			/// @f$U_\nu^\dagger(x-\hat{\nu})U_\mu^\dagger(x-\hat{\mu}-\hat{\nu})@f$
-			Leaves[0]=conj(a[0])*conj(u11t[dim_didn+kvol*mu])-a[1]*conj(u12t[dim_didn+kvol*mu]);
-			Leaves[1]=-conj(a[0])*u12t[dim_didn+kvol*mu]-a[1]*conj(u11t[dim_didn+kvol*mu]);
+			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})@f$
+			Leaves[0]=a[0]*conj(u11t[dim_didn+kvol*nu])+a[1]*u12t[dim_didn+kvol*nu];
+			Leaves[1]=-a[0]*conj(u12t[dim_didn+kvol*nu])+a[1]*u11t[dim_didn+kvol*nu];
 			break;
 	}
 	return 0;
@@ -178,13 +183,14 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[nc],\
 		case(2):
 			///Leaf in the forwards mu and backwards nu direction
 			didn = id[nu*kvol+i]; 
-			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{\mu}-\hat{\nu})U_\mu^\dagger(x-\hat{\nu})@f$
-			a[0]=Leaves[0]*conj(u11t[didn+kvol*mu])+Leaves[1]*conj(u12t[didn+kvol*mu]);
-			a[1]=-Leaves[0]*u12t[didn+kvol*mu]+Leaves[1]*u11t[didn+kvol*mu];
+			unsigned int uim_didn=iu[mu*kvol+didn];
+			/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})@f$
+			a[0]=Leaves[0]*u11t[uim_didn+kvol*nu]-Leaves[1]*conj(u12t[uim_didn+kvol*nu]);
+			a[1]=Leaves[0]*u12t[uim_didn+kvol*nu]+Leaves[1]*conj(u11t[uim_didn+kvol*nu]);
 
-			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{\mu}-\hat{\nu})U_\mu^\dagger(x-\hat{\nu})U_\nu(x-\hat{\nu})@f$
-			Leaves[0]=a[0]*u11t[didn+kvol*nu]-a[1]*conj(u12t[didn+kvol*nu]);
-			Leaves[1]=a[0]*u12t[didn+kvol*nu]+a[1]*conj(u11t[didn+kvol*nu]);
+			/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})U^\dagger_\mu(x)@f$
+			Leaves[0]=a[0]*conj(u11t[i+kvol*mu])+a[1]*u12t[i+kvol*mu];
+			Leaves[1]=-a[0]*conj(u12t[i+kvol*mu])+a[1]*u11t[i+kvol*mu];
 
 			//DEBUG
 			//						Leaves[0]=0; Leaves[1]=0;
@@ -194,14 +200,13 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[nc],\
 			didn = id[nu*kvol+i]; 
 			unsigned int din_didm=id[mu*kvol+didn];
 
-			/// @f$U_\nu^\dagger(x-\hat{\nu})U_\mu^\dagger(x-\hat{\mu}-\hat{\nu})U_\nu(x-\hat{\mu}-\hat{\nu})@f$
-			a[0]=Leaves[0]*u11t[din_didm+kvol*nu]-Leaves[1]*conj(u12t[din_didm+kvol*nu]);
-			a[1]=Leaves[0]*u12t[din_didm+kvol*nu]+Leaves[1]*conj(u11t[din_didm+kvol*nu]);
+			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(n-\hat{\nu}-\hat{\mu})@f$
+			a[0]=Leaves[0]*u11t[din_didm+kvol*mu]-Leaves[1]*conj(u12t[din_didm+kvol*mu]);
+			a[1]=Leaves[0]*u12t[din_didm+kvol*mu]+Leaves[1]*conj(u11t[din_didm+kvol*mu]);
 
-			didm = id[mu*kvol+i]; 
-			/// @f$U_\nu^\dagger(x-\hat{\nu})U_\mu^\dagger(x-\hat{\mu}-\hat{\nu})U_\nu(x-\hat{\mu}-\hat{\nu})U_\mu(x-\hat{\mu})@f$
-			Leaves[0]=a[0]*u11t[didm+kvol*mu]-a[1]*conj(u12t[didm+kvol*mu]);
-			Leaves[1]=a[0]*u12t[didm+kvol*mu]+a[1]*conj(u11t[didm+kvol*mu]);
+			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(n-\hat{\nu}-\hat{\mu})U_\nu(n-\hat{\nu})@f$
+			Leaves[0]=a[0]*u11t[didn+kvol*nu]-a[1]*conj(u12t[didm+kvol*nu]);
+			Leaves[1]=a[0]*u12t[didn+kvol*nu]+a[1]*conj(u11t[didm+kvol*nu]);
 
 			//DEBUG
 			//						Leaves[0]=0; Leaves[1]=0;
@@ -274,16 +279,16 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 			//Multiply by generator from the right after the first two links
 			if(gen_pos==2)
 				ByGenRight(Leaves,gen);
-			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{\mu}-\hat{\nu})U_\mu^\dagger(x-\hat{\nu})@f$
-			a[0]=Leaves[0]*conj(u11t[didn+kvol*mu])+Leaves[1]*conj(u12t[didn+kvol*mu]);
-			a[1]=-Leaves[0]*u12t[didn+kvol*mu]+Leaves[1]*u11t[didn+kvol*mu];
+			/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})@f$
+			a[0]=Leaves[0]*u11t[uim_didn+kvol*nu]-Leaves[1]*conj(u12t[uim_didn+kvol*nu]);
+			a[1]=Leaves[0]*u12t[uim_didn+kvol*nu]+Leaves[1]*conj(u11t[uim_didn+kvol*nu]);
 			//Multiply by generator from the right after the first three links
 			if(gen_pos==3)
 				ByGenRight(a,gen);
 
-			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{\mu}-\hat{\nu})U_\mu^\dagger(x-\hat{\nu})U_\nu(x-\hat{\nu})@f$
-			Leaves[0]=a[0]*u11t[didn+kvol*nu]-a[1]*conj(u12t[didn+kvol*nu]);
-			Leaves[1]=a[0]*u12t[didn+kvol*nu]+a[1]*conj(u11t[didn+kvol*nu]);
+			/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})U^\dagger_\mu(x)@f$
+			Leaves[0]=a[0]*conj(u11t[i+kvol*mu])+a[1]*u12t[i+kvol*mu];
+			Leaves[1]=-a[0]*conj(u12t[i+kvol*mu])+a[1]*u11t[i+kvol*mu];
 
 			//DEBUG
 			//					Leaves[0]=0; Leaves[1]=0;
@@ -296,17 +301,16 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 			if(gen_pos==2)
 				ByGenRight(Leaves,gen);
 
-			/// @f$U_\nu^\dagger(x-\hat{\nu})U_\mu^\dagger(x-\hat{\mu}-\hat{\nu})U_\nu(x-\hat{\mu}-\hat{\nu})@f$
-			a[0]=Leaves[0]*u11t[din_didm+kvol*nu]-Leaves[1]*conj(u12t[din_didm+kvol*nu]);
-			a[1]=Leaves[0]*u12t[din_didm+kvol*nu]+Leaves[1]*conj(u11t[din_didm+kvol*nu]);
+			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(n-\hat{\nu}-\hat{\mu})@f$
+			a[0]=Leaves[0]*u11t[din_didm+kvol*mu]-Leaves[1]*conj(u12t[din_didm+kvol*mu]);
+			a[1]=Leaves[0]*u12t[din_didm+kvol*mu]+Leaves[1]*conj(u11t[din_didm+kvol*mu]);
 			//Multiply by generator from the right after the first three links
 			if(gen_pos==3)
 				ByGenRight(a,gen);
 
-			didm = id[mu*kvol+i]; 
-			/// @f$U_\nu^\dagger(x-\hat{\nu})U_\mu^\dagger(x-\hat{\mu}-\hat{\nu})U_\nu(x-\hat{\mu}-\hat{\nu})U_\mu(x-\hat{\mu})@f$
-			Leaves[0]=a[0]*u11t[didm+kvol*mu]-a[1]*conj(u12t[didm+kvol*mu]);
-			Leaves[1]=a[0]*u12t[didm+kvol*mu]+a[1]*conj(u11t[didm+kvol*mu]);
+			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(n-\hat{\nu}-\hat{\mu})U_\nu(n-\hat{\nu})@f$
+			Leaves[0]=a[0]*u11t[didn+kvol*nu]-a[1]*conj(u12t[didm+kvol*nu]);
+			Leaves[1]=a[0]*u12t[didn+kvol*nu]+a[1]*conj(u11t[didm+kvol*nu]);
 
 			//DEBUG
 			//					Leaves[0]=0; Leaves[1]=0;
@@ -469,10 +473,11 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *u11t, complex<T> *u12t, 
 						fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
 						break;
 				}
-				//Similar to the clover, only the real part survives. 
-				fleaf[gen][0]=(-I_f/4.0f)*fleaf[gen][0].imag();
-				//And the other component gets doubled. We'll account for that by dividing by 4 instead of 8 again
-				fleaf[gen][1]=(-I_f/4.0f)*fleaf[gen][1];
+				//Similar to the clover, only the imaginary part survives. This gets multiplied by $-i$
+				fleaf[gen][0]=(1.0/4.0f)*fleaf[gen][0].imag();
+				//And the other component gets conjugated, then doubled.//
+				//We'll account for that by dividing by 4 instead of 8 again
+				fleaf[gen][1]=(-I_f/4.0f)*conj(fleaf[gen][1]);
 			}
 
 			for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
