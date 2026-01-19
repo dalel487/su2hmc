@@ -129,8 +129,8 @@ __device__ int Half_Leaf(complex<T> Leaves[nc], complex<T> *u11t, complex<T> *u1
 			const unsigned int din_didm=id[nu*kvol+uidm];
 
 			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})@f$
-			Leaves[0]=a[0]*conj(u11t[dim_didn+kvol*nu])+a[1]*u12t[dim_didn+kvol*nu];
-			Leaves[1]=-a[0]*conj(u12t[dim_didn+kvol*nu])+a[1]*u11t[dim_didn+kvol*nu];
+			Leaves[0]=a[0]*conj(u11t[din_didm+kvol*nu])+a[1]*u12t[din_didm+kvol*nu];
+			Leaves[1]=-a[0]*conj(u12t[din_didm+kvol*nu])+a[1]*u11t[din_didm+kvol*nu];
 			break;
 	}
 	return 0;
@@ -235,6 +235,17 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 	unsigned int didm,didn,uidm;
 	switch(leaf){
 		case(0):
+			//If the generator is between the first two links, then we can't use the precomputed half-leaves
+			if(gen_pos==1){
+				///Both positive is just a standard plaquette
+				a[0]=u11t[i+kvol*mu]; a[1]=u12t[i+kvol*mu];
+				//Multiply first link by generator from the right
+				ByGenRight(a,gen);
+				uidm = iu[mu*kvol+i]; 
+				/// @f$U_\mu(x)U^\nu(x+\hat{\mu})@f$
+				Leaves[0]=a[0]*u11t[uidm+kvol*nu]-a[1]*conj(u12t[uidm+kvol*nu]);
+				Leaves[1]=a[0]*u12t[uidm+kvol*nu]+a[1]*conj(u11t[uidm+kvol*nu]);
+			}
 			//Multiply by generator from the right after the first two links
 			if(gen_pos==2)
 				ByGenRight(Leaves,gen);
@@ -255,6 +266,19 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 			//					Leaves[0]=0; Leaves[1]=0;
 			break;
 		case(1):
+			//If the generator is between the first two links, then we can't use the precomputed half-leaves
+			if(gen_pos==1){
+				//Should really read didm, but I've already declared this 
+				uidm = id[mu*kvol+i];
+				a[0]=u11t[i+kvol*nu]; a[1]=u12t[i+kvol*nu];
+				//Multiply first link by generator from the right
+				ByGenRight(a,gen);
+				//Awkward index...
+				const unsigned int uin_didm=iu[nu*kvol+uidm];
+				/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})@f$
+				Leaves[0]=a[0]*conj(u11t[uin_didm+kvol*mu])+a[1]*conj(u12t[uin_didm+kvol*mu]);
+				Leaves[1]=-a[0]*u12t[uin_didm+kvol*mu]+a[1]*u11t[uin_didm+kvol*mu];
+			}
 			didm = id[mu*kvol+i];
 			//Multiply by generator from the right after the first two links
 			if(gen_pos==2)
@@ -274,11 +298,26 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 			//			Leaves[0]=0; Leaves[1]=0;
 			break;
 		case(2):
+			//If the generator is between the first two links, then we can't use the precomputed half-leaves
+			if(gen_pos==1){
+				//Should really read didn, but I've already declared this 
+				uidm = id[nu*kvol+i];
+				//Daggered. So Conj what goes into a[0] and negate what goes into a[1]
+				a[0]=conj(u11t[uidm+kvol*nu]); a[1]=-u12t[uidm+kvol*mu];
+				//Multiply first link by generator from the right
+				ByGenRight(a,gen);
+
+				/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})@f$
+				Leaves[0]=a[0]*u11t[uidm+kvol*mu]-a[1]*conj(u12t[uidm+kvol*mu]);
+				//Don't forget negatiion of second term was handled earlier!
+				Leaves[1]=a[0]*u12t[uidm+kvol*mu]+a[1]*conj(u11t[uidm+kvol*mu]);
+			}
 			///Leaf in the forwards mu and backwards nu direction
 			didn = id[nu*kvol+i]; 
 			//Multiply by generator from the right after the first two links
 			if(gen_pos==2)
 				ByGenRight(Leaves,gen);
+			unsigned int uim_didn=iu[mu*kvol+didn];
 			/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})@f$
 			a[0]=Leaves[0]*u11t[uim_didn+kvol*nu]-Leaves[1]*conj(u12t[uim_didn+kvol*nu]);
 			a[1]=Leaves[0]*u12t[uim_didn+kvol*nu]+Leaves[1]*conj(u11t[uim_didn+kvol*nu]);
@@ -294,6 +333,21 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 			//					Leaves[0]=0; Leaves[1]=0;
 			break;
 		case(3):
+			//If the generator is between the first two links, then we can't use the precomputed half-leaves
+			if(gen_pos==1){
+				//Should really read didm, but I've already declared this 
+				uidm  =  id[i+kvol*mu];
+				//Daggered. So Conj what goes into a[0] and negate what goes into a[1]
+				a[0]=conj(u11t[uidm+kvol*mu]); a[1]=-u12t[uidm+kvol*mu];
+				ByGenRight(a,gen);
+				//Another awkward index
+				const unsigned int din_didm=id[nu*kvol+uidm];
+
+				/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})@f$
+				Leaves[0]=a[0]*conj(u11t[din_didm+kvol*nu])+a[1]*u12t[din_didm+kvol*nu];
+				Leaves[1]=-a[0]*conj(u12t[din_didm+kvol*nu])+a[1]*u11t[din_didm+kvol*nu];
+
+			}
 			didn = id[nu*kvol+i]; 
 			///Leaf in the backwards mu and backwards nu direction
 			unsigned int din_didm=id[mu*kvol+didn];
@@ -316,10 +370,12 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 			//					Leaves[0]=0; Leaves[1]=0;
 			break;
 	}
-	///gen_pos 4 is multiply the entire leaf by the generator from the left
-	if(gen_pos==4){
+	///gen_pos 0 is multiply the entire leaf by the generator from the left
+	if(gen_pos==0)
 		ByGenLeft(Leaves,gen);
-	}
+	///gen_pos 4 is multiply the entire leaf by the generator from the left
+	if(gen_pos==4)
+		ByGenRight(Leaves,gen);
 	return 0;
 }
 
@@ -423,14 +479,15 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *u11t, complex<T> *u12t, 
 						site=i;
 						tmp[0]=hLeaves0[site+0*kvol]; tmp[1]=hLeaves1[site+0*kvol];
 						//Get leaf 0 with the correct generator in the initial position
-						Force_Leaf(u11t,u12t,tmp,iu,id,site,mu,nu,0,gen,4);
+						Force_Leaf(u11t,u12t,tmp,iu,id,site,mu,nu,0,gen,0);
 						fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
 
-						//Get leaf 2 with the correct generator in the initial position
+						//Get leaf 2 with the correct generator in the final position
 						tmp[0]=hLeaves0[site+2*kvol]; tmp[1]=hLeaves1[site+2*kvol];
 						Force_Leaf(u11t,u12t,tmp,iu,id,site,mu,nu,2,gen,4);
-						//+= here!!!
-						fleaf[gen][0]+=tmp[0]; fleaf[gen][1]+=tmp[1];
+						//-= here as the contribution is from @f$Q_{\nu\mu}@f$!!!
+						//Conjugate too.
+						fleaf[gen][0]-=conj(tmp[0]); fleaf[gen][1]-=-tmp[1];
 						break;
 					case(1): //Clover at i+mu
 						site=ipm;
@@ -438,17 +495,18 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *u11t, complex<T> *u12t, 
 						tmp[0]=hLeaves0[site+1*kvol]; tmp[1]=hLeaves1[site+1*kvol];
 						Force_Leaf(u11t,u12t,tmp,iu,id,site,mu,nu,1,gen,3);
 						fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
-						//Get leaf 3 with the correct generator between links 3 and 4
+						//Get leaf 3 with the correct generator between links 1 and 2
 						tmp[0]=hLeaves0[site+3*kvol]; tmp[1]=hLeaves1[site+3*kvol];
-						Force_Leaf(u11t,u12t,tmp,iu,id,site,mu,nu,3,gen,3);
-						//+= here!!!
-						fleaf[gen][0]+=tmp[0]; fleaf[gen][1]+=tmp[1];
+						Force_Leaf(u11t,u12t,tmp,iu,id,site,mu,nu,3,gen,1);
+						//-= here as the contribution is from @f$Q_{\nu\mu}@f$!!!
+						//Conjugate too
+						fleaf[gen][0]-=conj(tmp[0]); fleaf[gen][1]-=tmp[1];
 						break;
 					case(2): //Clover at i+nu
 						site=iu[i+kvol*nu];
-						//Get leaf 2 with the correct generator between links 3 and 4
+						//Get leaf 2 with the correct generator between links 1 and 2
 						tmp[0]=hLeaves0[site+2*kvol]; tmp[1]=hLeaves1[site+2*kvol];
-						Force_Leaf(u11t,u12t,tmp,iu,id,site,mu,nu,2,gen,3);
+						Force_Leaf(u11t,u12t,tmp,iu,id,site,mu,nu,2,gen,1);
 						fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
 						break;
 					case(3): //Clover at i-nu
@@ -456,7 +514,9 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *u11t, complex<T> *u12t, 
 						//Get leaf 0 with the correct generator between links 3 and 4
 						tmp[0]=hLeaves0[site+0*kvol]; tmp[1]=hLeaves1[site+0*kvol];
 						Force_Leaf(u11t,u12t,tmp,iu,id,site,mu,nu,0,gen,3);
-						fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
+						//-= here as the contribution is from @f$Q_{\nu\mu}@f$!!!
+						//Conjugate too
+						fleaf[gen][0]-=conj(tmp[0]); fleaf[gen][1]-=tmp[1];
 						break;
 					case(4): //Clover at i+mu+nu
 						site=iu[ipm+kvol*nu];
@@ -470,7 +530,9 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *u11t, complex<T> *u12t, 
 						//Get leaf 1 with the correct generator between links 2 and 3
 						tmp[0]=hLeaves0[site+1*kvol]; tmp[1]=hLeaves1[site+1*kvol];
 						Force_Leaf(u11t,u12t,tmp,iu,id,site,mu,nu,1,gen,2);
-						fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
+						//-= here as the contribution is from @f$Q_{\nu\mu}@f$!!!
+						//Conjugate too
+						fleaf[gen][0]-=conj(tmp[0]); fleaf[gen][1]-=tmp[1];
 						break;
 				}
 				//Similar to the clover, only the imaginary part survives. This gets multiplied by $-i$
