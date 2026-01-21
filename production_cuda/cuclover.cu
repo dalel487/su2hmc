@@ -380,6 +380,14 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 }
 
 ///CUDA Kernels
+/**
+ *	@brief Calculates the products of the first two links in a plaquette
+ *
+ *	@param	hleaves0,hleaves1:	Product of first two links in
+ *	@param	u11t,u12t:				Gauge fields
+ *	@param	iu,id:					Upper and lower indices
+ *	@param	mu,nu:					Clover direction
+ */
 template <typename T>
 __global__ void Half_Leaves(complex<T> *hLeaves0,complex<T> *hLeaves1,complex<T> *u11t,complex<T> *u12t,\
 		unsigned int *iu,unsigned int *id,const unsigned short mu,const unsigned short nu){
@@ -535,13 +543,9 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *u11t, complex<T> *u12t, 
 						fleaf[gen][0]-=conj(tmp[0]); fleaf[gen][1]-=tmp[1];
 						break;
 				}
-				//Similar to the clover, only the imaginary part survives. This gets multiplied by $-i$
-				fleaf[gen][0]=(1.0/4.0f)*fleaf[gen][0].imag();
-				//And the other component gets conjugated, then doubled.//
-				//We'll account for that by dividing by 4 instead of 8 again
-				fleaf[gen][1]=(-I_f/4.0f)*conj(fleaf[gen][1]);
+				fleaf[gen][0]*=(-I_f/8.0f);
+				fleaf[gen][1]*=(-I_f/8.0f);
 			}
-
 			for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
 				const unsigned short sind = sigin[clov*ndirac+(idirac>>1)]<<(nc-1);	
 				//Calculate the index. For the next colour we add kvol
