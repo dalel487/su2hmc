@@ -741,7 +741,7 @@ int cuClover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X
 			Half_Leaves<<<dimGrid,dimBlock,0,streams[nu]>>>(hLeaves[nu][0],hLeaves[nu][1],ut[0],ut[1],iu,id,nu,mu);
 
 			//Compute force for @f$\mu\nu@f$ and @f$\nu\mu@f$
-			Clover_Force<<<dimGrid,dimBlock,0,streams[nu]>>>(dSdpi,ut[0],ut[1],hLeaves[mu][0],hLeaves[mu][1],\
+			Clover_Force<<<dimGrid,dimBlock,0,streams[mu]>>>(dSdpi,ut[0],ut[1],hLeaves[mu][0],hLeaves[mu][1],\
 					X1,X2,sigval,sigin,iu,id,clov,mu,nu,akappa);
 			Clover_Force<<<dimGrid,dimBlock,0,streams[nu]>>>(dSdpi,ut[0],ut[1],hLeaves[nu][0],hLeaves[nu][1],\
 					X1,X2,sigval,sigin,iu,id,clov,nu,mu,akappa);
