@@ -97,7 +97,7 @@ __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, compl
 				-dk4msd*(conj(u12sd)*(rd[0]+rgd[0]) +u11sd *(rd[1]+rgd[1]));
 			phi[i+kvol*(igorkov*nc+1)]=phi_s[igorkov*nc+1];
 			const unsigned short igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
-																//the FORTRAN code did it.
+																		//the FORTRAN code did it.
 			igork1 += 4;
 			//And the gorkov terms. Note that dk4p and dk4m swap positions compared to the above				
 			for(unsigned short c=0;c<nc;c++){
@@ -162,17 +162,17 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 				}
 				//Wilson + Dirac term in that order. Definitely easier
 				phi_s[igorkov*nc]-= akappa*(u11s*ru[0] +u12s*ru[1]
-							+conj(u11sd)*rd[0] -u12sd *rd[1]);
+						+conj(u11sd)*rd[0] -u12sd *rd[1]);
 
 				//Dirac term
 				phi_s[igorkov*nc]-=gam* (u11s*rgu[0] +u12s*rgu[1]
-					 -conj(u11sd)*rgd[0] +u12sd *rgd[1]);
+						-conj(u11sd)*rgd[0] +u12sd *rgd[1]);
 
 				phi_s[igorkov*nc+1]-= akappa*(-conj(u12s)*ru[0] +conj(u11s)*ru[1]
-							+conj(u12sd)*rd[0] +u11sd *rd[1]);
+						+conj(u12sd)*rd[0] +u11sd *rd[1]);
 				//Dirac term
 				phi_s[igorkov*nc+1]-=gam* (-conj(u12s)*rgu[0] +conj(u11s)*rgu[1]
-					 -conj(u12sd)*rgd[0] -u11sd *rgd[1]);
+						-conj(u12sd)*rgd[0] -u11sd *rgd[1]);
 
 			}
 		}
@@ -206,7 +206,7 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 				-dk4psd*(conj(u12sd)*(rd[0]-rgd[0]) +u11sd *(rd[1]-rgd[1]));
 			phi[i+kvol*(igorkov*nc+1)]=phi_s[igorkov*nc+1];
 			const unsigned short igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
-																//the FORTRAN code did it.
+																		//the FORTRAN code did it.
 			igork1 += 4;
 			for(unsigned short c=0;c<nc;c++){
 				ru[c]=r[uid+kvol*(igorkovPP*nc+c)]; rd[c]=r[did+kvol*(igorkovPP*nc+c)];
@@ -290,15 +290,15 @@ __global__ void cuHdslash(complex<T> *phi, const complex<T> *r, const complex<T>
 					//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 
 					phi_s[idirac+0]-= dk4ps*(u11s*(ru[0]-rgu[0])
-								+u12s*(ru[1]-rgu[1]));
+							+u12s*(ru[1]-rgu[1]));
 					phi_s[idirac+0]-= dk4ms*(conj(u11sd)*(rd[0]+rgd[0])
-								-u12sd *(rd[1]+rgd[1]));
+							-u12sd *(rd[1]+rgd[1]));
 					phi[i+kvol*(0+idirac)]=phi_s[idirac+0];
 
 					phi_s[idirac+1]-= dk4ps*(-conj(u12s)*(ru[0]-rgu[0])
-								+conj(u11s)*(ru[1]-rgu[1]));
+							+conj(u11s)*(ru[1]-rgu[1]));
 					phi_s[idirac+1]-= dk4ms*(conj(u12sd)*(rd[0]+rgd[0])
-								+u11sd *(rd[1]+rgd[1]));
+							+u11sd *(rd[1]+rgd[1]));
 					phi[i+kvol*(1+idirac)]=phi_s[idirac+1];
 				}
 			}
@@ -470,8 +470,11 @@ __global__ void reduce_sum(T *g_in_data, T *g_out_data, const unsigned int n){
 	const unsigned int gridSize = blockDim.x * 2 * gridDim.x;
 	sdata[tid] = 0;
 
-	while(i+bsize < n) {
-		sdata[tid] += g_in_data[i] + g_in_data[i + bsize];
+	while (i < n) {
+		sdata[tid] += g_in_data[i];
+		if (i + bsize < n) {
+			sdata[tid] += g_in_data[i + bsize];
+		}
 		i += gridSize;
 	}
 	__syncthreads();
@@ -518,9 +521,10 @@ double cureduce_sum_d(double *input, const unsigned int n,const unsigned short s
 		reduce_sum<double,bsize><<<gsize,bsize,bsize*sizeof(double),streams[stream]>>>(cachein,cacheout,gsize);
 		cudaFreeAsync(cachein,streams[stream]);
 	}
-	cudaStreamSynchronize(streams[stream]);
 	double output=0;
+	cudaStreamSynchronize(streams[stream]);
 	cudaMemcpyAsync(&output,cacheout,sizeof(double),cudaMemcpyDefault,streams[stream]);
+	cudaStreamSynchronize(streams[stream]);
 	cudaFreeAsync(cacheout,streams[stream]);
 	return output;
 }

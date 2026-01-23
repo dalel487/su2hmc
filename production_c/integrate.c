@@ -19,8 +19,8 @@ int Force_debug(double ave_dSdpi[3],double *dSdpi){
 			ave_dSdpi[1]+=dSdpi[i+kvol*ndim];
 			ave_dSdpi[2]+=dSdpi[i+2*kvol*ndim];
 		}
-		ave_dSdpi[0]/=(ndim*kvol); ave_dSdpi[1]/=(ndim*kvol); ave_dSdpi[2]/=(ndim*kvol);
 #endif
+		ave_dSdpi[0]/=(ndim*kvol); ave_dSdpi[1]/=(ndim*kvol); ave_dSdpi[2]/=(ndim*kvol);
 }
 
 int Gauge_Update(const double d, double *pp, Complex *ut[2],Complex_f *ut_f[2]){

@@ -545,8 +545,11 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *u11t, complex<T> *u12t, 
 						fleaf[gen][0]=-conj(tmp[0]); fleaf[gen][1]=tmp[1];
 						break;
 				}
-				fleaf[gen][0]=(-I_f/8.0f)*(fleaf[gen][0]+conj(fleaf[gen][0]));
-				fleaf[gen][1]=(-I_f/8.0f)*(fleaf[gen][1]-fleaf[gen][1]);
+//				fleaf[gen][0]=(-I_f/8.0f)*(fleaf[gen][0]+conj(fleaf[gen][0]));
+//				fleaf[gen][0]=(-I_f/4.0f)*fleaf[gen][0].real();
+				fleaf[gen][0]=complex<T>(0,-fleaf[gen][0].real()/4.0f);
+//				fleaf[gen][1]=(-I_f/8.0f)*(fleaf[gen][1]-fleaf[gen][1]);
+				fleaf[gen][1]=0;
 			}
 			for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
 				const unsigned short sind = sigin[clov*ndirac+(idirac>>1)]<<(nc-1);	
