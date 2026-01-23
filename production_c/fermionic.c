@@ -68,8 +68,8 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #else
 	Complex_f *clover[nc];
 	if(c_sw){
-		clover[0]=(Complex *)aligned_alloc(AVX,6*kvol*sizeof(Complex_f));
-		clover[1]=(Complex *)aligned_alloc(AVX,6*kvol*sizeof(Complex_f));
+		clover[0]=(Complex_f *)aligned_alloc(AVX,6*kvol*sizeof(Complex_f));
+		clover[1]=(Complex_f *)aligned_alloc(AVX,6*kvol*sizeof(Complex_f));
 	}
 	Complex *x =(Complex *)aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 	Complex *xi =(Complex *)aligned_alloc(AVX,kferm*sizeof(Complex));
