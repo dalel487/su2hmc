@@ -269,13 +269,9 @@ inline int C_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsi
 	const char *funcname = "C_gather";
 	//FORTRAN had a second parameter m giving the size of y (kvol+halo) normally
 	//Pointers mean that's not an issue for us so I'm leaving it out
-#ifdef __NVCC__
-	cuC_gather(x,y,n,table,mu,dimBlock,dimGrid);
-#else
 #pragma omp parallel for simd aligned (x,y,table:AVX)
 	for(int i=0; i<n; i++)
 		x[i]=y[table[i*ndim+mu]*ndim+mu];
-#endif
 	return 0;
 }
 inline int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu)
@@ -283,13 +279,9 @@ inline int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned
 	const char *funcname = "Z_gather";
 	//FORTRAN had a second parameter m giving the size of y (kvol+halo) normally
 	//Pointers mean that's not an issue for us so I'm leaving it out
-#ifdef __NVCC__
-	cuZ_gather(x,y,n,table,mu,dimBlock,dimGrid);
-#else
 #pragma omp parallel for simd aligned (x,y,table:AVX)
 	for(int i=0; i<n; i++)
 		x[i]=y[table[i*ndim+mu]*ndim+mu];
-#endif
 	return 0;
 }
 inline int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)

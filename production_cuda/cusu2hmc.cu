@@ -68,20 +68,6 @@ __global__ void cuFill_Small_Phi(const unsigned int na, Complex *smallPhi, Compl
 				//	  PHI_index=i*16+j*2+k;
 				smallPhi[i + kvol * (ic + nc * idirac)] = Phi[i + kvol * (ic + idirac * (nc + ngorkov * na))];
 }
-template <typename T>
-__global__ void cuGather(T *x, T *y, const unsigned int n, unsigned int *table, const unsigned short mu)
-{
-	//FORTRAN had a second parameter m giving the size of y (kvol+halo) normally
-	//Pointers mean that's not an issue for us so I'm leaving it out
-	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	const unsigned int gthreadId= blockId * bsize+bthreadId;
-	const unsigned int kvbmu=kvol*mu;
-	for(unsigned int i = gthreadId; i<kvol;i+=gsize*bsize)
-		x[i]=y[table[i+kvbmu]+kvbmu];
-}
 __global__ void cuUpDownPart(const unsigned int na, Complex *X0, Complex *R1){
 
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
@@ -252,16 +238,6 @@ void cuComplex_convert(Complex_f *a, Complex *b, const unsigned int len, const b
 }
 void cuFill_Small_Phi(const unsigned int na, Complex *smallPhi, Complex *Phi, dim3 dimBlock, dim3 dimGrid){
 	cuFill_Small_Phi<<<dimGrid,dimBlock>>>(na,smallPhi,Phi);
-}
-void cuC_gather(Complex_f *x, Complex_f *y, const unsigned int n, unsigned int *table, const unsigned short mu,dim3 dimBlock, dim3 dimGrid)
-{
-	const char *funcname = "cuZ_gather";
-	cuGather<<<dimGrid,dimBlock>>>(x,y,n,table,mu);
-}
-void cuZ_gather(Complex *x, Complex *y, const unsigned int n, unsigned int *table, const unsigned short mu,dim3 dimBlock, dim3 dimGrid)
-{
-	const char *funcname = "cuZ_gather";
-	cuGather<<<dimGrid,dimBlock>>>(x,y,n,table,mu);
 }
 void cuUpDownPart(const unsigned int na, Complex *X0, Complex *R1,dim3 dimBlock, dim3 dimGrid){
 	cuUpDownPart<<<dimGrid,dimBlock>>>(na,X0,R1);	

@@ -363,32 +363,6 @@ extern "C"
 	 */
 	void cuGauge_force(Complex_f *ut[2],double *dSdpi,float beta,unsigned int *iu,unsigned int *id,dim3 dimGrid, dim3 dimBlock);
 	/**
-	 * @brief Calculates the staple in the positive @f$\mu@f$ direction
-	 *
-	 * @param mu:						@f$\mu@f$ direction
-	 * @param nu:						@f$\nu@f$ direction
-	 * @param iu:						Upper indices
-	 * @param Sigma:					Staple output
-	 * @param ut:						Gauge fields
-	 * @param dimGrid,dimBlock:	CUDA grid/block size
-	 *
-	 */
-	void cuPlus_staple(int mu, int nu, unsigned int *iu, Complex_f *Sigma[2], Complex_f *ut[2], dim3 dimGrid, dim3 dimBlock);
-	/**
-	 * @brief Calculates the staple in the positive @f$\mu@f$ direction
-	 *
-	 * @param mu:						@f$\mu@f$ direction
-	 * @param nu:						@f$\nu@f$ direction
-	 * @param iu:						Upper indices
-	 * @param Sigma:					Staple output
-	 * @param ush:						Gauge fields in @f$\mu@f$ direction only
-	 * @param ut:						Gauge fields
-	 * @param dimGrid,dimBlock:	CUDA grid/block size
-	 *
-	 */
-	void cuMinus_staple(int mu, int nu, unsigned int *iu, unsigned int *id, Complex_f *Sigma[2],\
-			Complex_f *ush[2],Complex_f *ut[2],dim3 dimGrid, dim3 dimBlock);
-	/**
 	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
 	 *	
 	 *	@param	dSdpi:				The force
@@ -430,28 +404,6 @@ extern "C"
 	 * 
 	 */
 	void cuFill_Small_Phi(const unsigned int na, Complex *smallPhi, Complex *Phi,dim3 dimBlock, dim3 dimGrid);
-	/**
-	 * @brief	Extracts all the single precision gauge links in the @f$\mu@f$ direction only
-	 *
-	 * @param	x:			The output 
-	 * @param	y:			The gauge field for a particular colour
-	 * @param	n:			Number of sites in the gauge field. This is typically kvol
-	 * @param	table:	Table containing information on nearest neighbours. Usually id or iu
-	 * @param	mu:		Direciton we're interested in extractng	
-	 * @param 	dimGrid,dimBlock:	CUDA grid/block size
-	 */
-	void cuC_gather(Complex_f *x, Complex_f *y, const unsigned int n, unsigned int *table, const unsigned short mu,dim3 dimBlock, dim3 dimGrid);
-	/**
-	 * @brief	Extracts all the double precision gauge links in the @f$\mu@f$ direction only
-	 *
-	 * @param	x:							The output 
-	 * @param	y:							The gauge field for a particular colour
-	 * @param	n:							Number of sites in the gauge field. This is typically kvol
-	 * @param	table:					Table containing information on nearest neighbours. Usually id or iu
-	 * @param	mu:						Direciton we're interested in extractng	
-	 * @param 	dimGrid,dimBlock:	CUDA grid/block size
-	 */
-	void cuZ_gather(Complex *x, Complex *y, const unsigned int n, unsigned int *table, const unsigned short mu,dim3 dimBlock, dim3 dimGrid);
 	/**
 	 * @brief takes an array of complex float and double precision numbers and converts the precision
 	 *

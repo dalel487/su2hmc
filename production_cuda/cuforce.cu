@@ -7,6 +7,16 @@
 #include	<matrices.h>
 #include	<su2hmc.h>
 //CUDA Kernels
+/**
+ * @brief Calculates the staple in the positive @f$\mu@f$ direction
+ *
+ * @param mu:						@f$\mu@f$ direction
+ * @param nu:						@f$\nu@f$ direction
+ * @param iu:						Upper indices
+ * @param Sigma11,Sigma12:		Staple output
+ * @param u11t,u12t:				Gauge fields
+ *
+ */
 __global__ void Plus_staple(const int mu, const int nu,unsigned int *iu, Complex_f *Sigma11, Complex_f *Sigma12, Complex_f *u11t, Complex_f *u12t){
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -26,6 +36,17 @@ __global__ void Plus_staple(const int mu, const int nu,unsigned int *iu, Complex
 		Sigma12[i]+=-a11*u12t[indn]+a12*u11t[indn];
 	}
 }
+/**
+ * @brief Calculates the staple in the positive @f$\mu@f$ direction
+ *
+ * @param mu:						@f$\mu@f$ direction
+ * @param nu:						@f$\nu@f$ direction
+ * @param iu:						Upper indices
+ * @param Sigma11,Sigma12:		Staple output
+ * @param u11sh,u12sh:			Gauge fields in @f$\mu@f$ direction only 
+ * @param u11t,u12t:				Gauge fields
+ *
+ */
 __global__ void Minus_staple(const int mu,const int nu,unsigned int *iu,unsigned int *id, Complex_f *Sigma11, Complex_f *Sigma12,\
 		Complex_f *u11sh, Complex_f *u12sh, Complex_f *u11t, Complex_f *u12t){
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
@@ -62,6 +83,30 @@ __global__ void cuGaugeForce(int mu, Complex_f *Sigma11, Complex_f *Sigma12,doub
 		dSdpi[i+kvol*(1*ndim+mu)]=beta*a11.real();
 		dSdpi[i+kvol*(2*ndim+mu)]=beta*a12.imag();
 	}
+}
+/**
+ * @brief	Extracts all the single precision gauge links in the @f$\mu@f$ direction only
+ *
+ * @param	x:			The output 
+ * @param	y:			The gauge field for a particular colour
+ * @param	n:			Number of sites in the gauge field. This is typically kvol
+ * @param	table:	Table containing information on nearest neighbours. Usually id or iu
+ * @param	mu:		Direciton we're interested in extractng	
+ *
+ */
+	template <typename T>
+__global__ void Gather(T *x, T *y, const unsigned int n, unsigned int *table, const unsigned short mu)
+{
+	//FORTRAN had a second parameter m giving the size of y (kvol+halo) normally
+	//Pointers mean that's not an issue for us so I'm leaving it out
+	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
+	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
+	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+	const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+	const unsigned int gthreadId= blockId * bsize+bthreadId;
+	const unsigned int kvbmu=kvol*mu;
+	for(unsigned int i = gthreadId; i<kvol;i+=gsize*bsize)
+		x[i]=y[table[i+kvbmu]+kvbmu];
 }
 
 __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Complex_f *X1, Complex_f *X2, Complex_f gamval[20],\
@@ -166,7 +211,7 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t,Comple
 		for(unsigned short idirac=0;idirac<ndirac*nc;idirac+=nc){
 			Complex_f X1s[nc];	 Complex_f X1su[nc];
 			Complex_f X2s[nc];	 Complex_f X2su[nc];
-			
+
 			X1s[0]=X1[i+kvol*(idirac)]; X1s[1]=X1[i+kvol*(1+idirac)];
 			X1su[0]=X1[uid+kvol*(idirac)]; X1su[1]=X1[uid+kvol*(1+idirac)];
 			X2s[0]=X2[i+kvol*(idirac)]; X2s[1]=X2[i+kvol*(1+idirac)];
@@ -229,59 +274,55 @@ void cuGauge_force(Complex_f *ut[2],double *dSdpi,float beta,unsigned int *iu,un
 	const char funcname[] = "Gauge_force";
 	int device=-1;
 	cudaGetDevice(&device);
-	Complex_f *Sigma[2], *ush[2];
+	Complex_f *Sigma[ndim][2], *ush[ndim][2];
+	for(unsigned short i=0;i<ndim;i++){
 #ifdef _DEBUG
-	cudaMallocManaged((void **)&Sigma[0],kvol*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&Sigma[1],kvol*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&ush[0],(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&ush[1],(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
+		cudaMallocManaged((void **)&Sigma[i][0],kvol*sizeof(Complex_f),cudaMemAttachGlobal);
+		cudaMallocManaged((void **)&Sigma[i][1],kvol*sizeof(Complex_f),cudaMemAttachGlobal);
+		cudaMallocManaged((void **)&ush[i][0],(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
+		cudaMallocManaged((void **)&ush[i][1],(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
 #else
-	cudaMallocAsync((void **)&Sigma[0],kvol*sizeof(Complex_f),streams[0]);
-	cudaMallocAsync((void **)&Sigma[1],kvol*sizeof(Complex_f),streams[1]);
-	cudaMallocAsync((void **)&ush[0],(kvol+halo)*sizeof(Complex_f),streams[2]);
-	cudaMallocAsync((void **)&ush[1],(kvol+halo)*sizeof(Complex_f),streams[3]);
+		cudaMallocAsync((void **)&Sigma[i][0],kvol*sizeof(Complex_f),streams[i]);
+		cudaMallocAsync((void **)&Sigma[i][1],kvol*sizeof(Complex_f),streams[i]);
+		cudaMallocAsync((void **)&ush[i][0],(kvol+halo)*sizeof(Complex_f),streams[i]);
+		cudaMallocAsync((void **)&ush[i][1],(kvol+halo)*sizeof(Complex_f),streams[i]);
 #endif
+	}
 	for(int mu=0; mu<ndim; mu++){
-		cudaMemset(Sigma[0],0, kvol*sizeof(Complex_f));
-		cudaMemset(Sigma[1],0, kvol*sizeof(Complex_f));
+		cudaMemsetAsync(Sigma[mu][0],0, kvol*sizeof(Complex_f),streams[mu]);
+		cudaMemsetAsync(Sigma[mu][1],0, kvol*sizeof(Complex_f),streams[mu]);
 		for(int nu=0; nu<ndim; nu++)
 			if(nu!=mu){
 				//The @f$-\nu@f$ Staple
-				cuPlus_staple(mu,nu,iu,Sigma,ut,dimGrid,dimBlock);
-				C_gather(ush[0], ut[0], kvol, id, nu);
-				C_gather(ush[1], ut[1], kvol, id, nu);
+				Plus_staple<<<dimGrid,dimBlock,0,streams[mu]>>>(mu, nu, iu, Sigma[mu][0], Sigma[mu][1],ut[0],ut[1]);
+				Gather<<<dimGrid,dimBlock,0,streams[mu]>>>(ush[mu][0], ut[0], kvol, id, nu);
+				Gather<<<dimGrid,dimBlock,0,streams[mu]>>>(ush[mu][1], ut[1], kvol, id, nu);
 
 #if(nproc>1)
 				//Prefetch to the CPU for until we get NCCL working
 				//cudaMemPrefetchAsync(ush[0], kvol*sizeof(Complex_f),cudaCpuDeviceId,streams[0]);
 				//cudaMemPrefetchAsync(ush[1], kvol*sizeof(Complex_f),cudaCpuDeviceId,streams[1]);
-				CHalo_swap_dir(ush[0], 1, mu, DOWN); CHalo_swap_dir(ush[1], 1, mu, DOWN);
+				CHalo_swap_dir(ush[mu][0], 1, mu, DOWN); CHalo_swap_dir(ush[mu][1], 1, mu, DOWN);
 				//cudaMemPrefetchAsync(ush[0]+kvol, halo*sizeof(Complex_f),device,streams[0]);
 				//cudaMemPrefetchAsync(ush[1]+kvol, halo*sizeof(Complex_f),device,streams[1]);
 #endif
 				//Next up, the @f$-\nu@f$ staple
-				cuMinus_staple(mu,nu,iu,id,Sigma,ush,ut,dimGrid,dimBlock);
+				Minus_staple<<<dimGrid,dimBlock,0,streams[mu]>>>(mu, nu, iu, id,Sigma[mu][0],Sigma[mu][1],\
+						ush[mu][0],ush[mu][1],ut[0],ut[1]);
 			}
 		//Now get the gauge force acting in the @f$\mu@f$ direction
-		cuGaugeForce<<<dimGrid,dimBlock>>>(mu,Sigma[0],Sigma[1],dSdpi,ut[0],ut[1],beta);
-		cudaDeviceSynchronise();
+		cuGaugeForce<<<dimGrid,dimBlock,0,streams[mu]>>>(mu,Sigma[mu][0],Sigma[mu][1],dSdpi,ut[0],ut[1],beta);
 	}
+	for(unsigned short i=0;i<ndim;i++){
 #ifdef _DEBUG
-	cudaFree(Sigma[0]); cudaFree(Sigma[1]);
-	cudaFree(ush[0]); cudaFree(ush[1]);
+		cudaFree(Sigma[i][0]); cudaFree(Sigma[i][1]);
+		cudaFree(ush[i][0]); cudaFree(ush[i][1]);
 #else
-	cudaFreeAsync(Sigma[0],streams[0]); cudaFreeAsync(Sigma[1],streams[1]);
-	cudaFreeAsync(ush[0],streams[2]); cudaFreeAsync(ush[1],streams[3]);
+		cudaFreeAsync(Sigma[i][0],streams[i]); cudaFreeAsync(Sigma[i][1],streams[i]);
+		cudaFreeAsync(ush[i][0],streams[i]); cudaFreeAsync(ush[i][1],streams[i]);
 #endif
-}
-void cuPlus_staple(int mu, int nu, unsigned int *iu, Complex_f *Sigma[2], Complex_f *ut[2], dim3 dimGrid, dim3 dimBlock){
-	const char *funcname="Plus_staple";
-	Plus_staple<<<dimGrid,dimBlock>>>(mu, nu, iu, Sigma[0], Sigma[1],ut[0],ut[1]);
-}
-void cuMinus_staple(int mu, int nu, unsigned int *iu, unsigned int *id, Complex_f *Sigma[2],\
-		Complex_f *ush[2],Complex_f *ut[2],dim3 dimGrid, dim3 dimBlock){
-	const char *funcname="Minus_staple";
-	Minus_staple<<<dimGrid,dimBlock>>>(mu, nu, iu, id,Sigma[0],Sigma[1],ush[0],ush[1],ut[0],ut[1]);
+	}
+	cudaDeviceSynchronise();
 }
 void cuForce(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, \
 		Complex_f gamval[20],float *dk[2],unsigned int *iu,const unsigned short gamin[16],\
