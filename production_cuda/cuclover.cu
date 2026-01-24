@@ -732,11 +732,11 @@ int cuClover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X
 	complex<double> *ut_d[nc], *X1_d, *X2_d;
 	cudaMalloc((void **)&ut_d[0],ndim*kvol*sizeof(complex<double>)); cudaMalloc((void **)&ut_d[1],ndim*kvol*sizeof(complex<double>));
 	cudaMalloc((void **)&X1_d,kferm2*sizeof(complex<double>)); cudaMalloc((void **)&X2_d,kferm2*sizeof(complex<double>));
-	complex<double> sigval_d[6*4];
+	__managed__ complex<double> sigval_d[6*4];
 	cudaDeviceSynchronise();	
-	cuComplex_convert(ut[0],ut_d[0],ndim*kvol,true,dimBlock,dimGrid); cuComplex_convert(ut[1],ut_d[1],ndim*kvol,true,dimBlock,dimGrid);
-	cuComplex_convert(X1,X1_d,kferm2,true,dimBlock,dimGrid); cuComplex_convert(X2,X2_d,kferm2,true,dimBlock,dimGrid);
-	cuComplex_convert(sigval,sigval_d,24,true,(24,1,1),dimGridOne);
+	cuComplex_convert(ut[0],ut_d[0],ndim*kvol,false,dimBlock,dimGrid); cuComplex_convert(ut[1],ut_d[1],ndim*kvol,false,dimBlock,dimGrid);
+	cuComplex_convert(X1,X1_d,kferm2,false,dimBlock,dimGrid); cuComplex_convert(X2,X2_d,kferm2,false,dimBlock,dimGrid);
+	cuComplex_convert(sigval,sigval_d,24,false,dim3(24,1,1),dimGridOne);
 	cudaDeviceSynchronise();	
 
 	//complex<float>  *hLeaves[ndim][nc];
