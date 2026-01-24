@@ -1,0 +1,480 @@
+\documentclass[10pt,a4paper]{journal}
+\usepackage{adjustbox,amsmath,amsfonts,bbm,caption,float,geometry,graphicx,hyperref}
+\usepackage{cleveref,plex-serif,plex-sans,plex-mono,pdfpages}
+\usepackage{listings,mathrsfs,mdwlist,pgfplots,siunitx,tikzit,wrapfig}
+\geometry{verbose,tmargin=2cm,bmargin=3cm,lmargin=3cm,rmargin=3cm}
+%\usepackage[dvips,xetex]{graphicx}
+%\usepackage{ifpdf,mla}
+\DeclareMathOperator{\Tr}{Tr}
+\DeclareMathOperator{\re}{Re}
+\DeclareMathOperator{\im}{Im}
+\DeclareMathOperator{\ID}{\mathbbm{1}}
+\usepackage[normalem]{ulem}
+\usepackage[greek,irish,british]{babel}
+
+%Cleveref config
+%\crefrangeformat{equation}{(#3#1#4–#5#2#6)}
+\crefname{equation}{equation}{equations}
+\crefname{figure}{figure}{figures}
+\crefname{table}{table}{tables}
+%Allow aligned equations to be split across pages
+\allowdisplaybreaks
+
+%\usepackage[irish]{isodate}
+%\babelprovide[import=el, onchar=ids fonts]{greek}
+%\pagestyle{plain}
+%
+%Glossary setup
+%\usepackage[automake,acronym,symbols,nomain,nogroupskip,nonumberlist,sort=use,record]{glossaries-extra}
+%\makeglossaries
+%\loadglsentries{./Glossary.tex}
+%Index setup
+%\usepackage{showidx}
+
+\usetikzlibrary{shapes, arrows, fit}
+\input{Tikz/Arrows.tikzstyles}
+
+%Removing all references to Bastardised English
+\newcommand{\colour}{\color}
+\newcommand{\textcolour}{\textcolor}
+\newcommand{\centring}{\centering}
+\newenvironment{itemise}{\begin{itemize}}{\end{itemize}}
+\newenvironment{centre}{\begin{center}}{\end{center}}
+
+%Source Code
+\lstset{language=C,basicstyle=\ttfamily\footnotesize,breaklines=true,numbers=left,tabsize=3,extendedchars=true,
+		inputencoding=utf-8,commentstyle=\ttfamily\colour{orange},keywordstyle=\colour{blue}}
+\title{The Clover Term in QC$_2$D}
+\shorttitle{The Clover Term in QC$_2$D}
+\subtitle{Or potentially a novel rapid method of developing a permenant brain injury.}
+\author{(Still not a) Dr. Dale Lawlor}
+\shortauthor{Lawlor}
+\begin{document}
+	\maketitle
+	This is a brief derivation of the clover action for an $SU(2)$ HMC code at non-zero chemical potential (QC$_2$D).
+	Much of it is copy-pasted from the thesis so it should not be interpreted as a publishable work.
+
+	As the suggestive name suggestively suggests, QC$_2$D is a model where the gauge fields are instead
+	elements of $SU(2)$. Thus the generators for the gauge fields are the Pauli matrices rather than the Gell-Mann
+	matrices. Being a simpler theory gives it a number of computation advantages. But the main motivator for us is a
+	little party trick known as the \emph{Pauli-G\"ursey} symmetry
+	\begin{equation}\label{Eq:Pauli-Gursey}
+		U^*=\sigma_2U\sigma_2
+	\end{equation}
+	which ensures that
+	\begin{equation}\label{Eq:QC2D real}
+		\det D=\det\left[\sigma_2 D \sigma_2\right]=\det\left[D^*\right]\in\mathbb{R}
+	\end{equation}
+	allowing simulations at $\mu_q\ne0$.
+	
+\section{Background}\label{Sec:Background}
+	We are starting with an $SU(2)$ gauge theory where the gauge fields form a Lie algebra belonging to the adjoint
+	representation of $SU(N)$.
+	\begin{equation}\label{Eq:Lie Gauge}
+		A_\mu(x)=\sum\limits_{i=1}^{N^2-1} T_iA^{(i)}_\mu(x)
+	\end{equation}
+	where $g$ is the coupling constant, $T_i$ form a basis for $\mathfrak{su}(N)$ and $A^{(i)}_\mu(x)$ are real-valued
+	fields.
+
+	After discretisation we can no longer have infinitesimal gauge transformations. The solution is to instead express
+	the gauge fields as elements of the Lie \emph{group}
+	\begin{equation}\label{Eq:Gauge field}
+		U_\mu(x)=e^{ia A_\mu(x)}
+	\end{equation}
+	where $x$ is the lattice site and $\mu$ is the direction of the link containing the gauge field.  These gauge fields
+	are written down as
+	\begin{equation}\label{Eq:SU(2) Def}
+		SU(2)=\left\{\begin{pmatrix} \alpha & \beta \\ -\bar{\beta} & \bar{\alpha}\end{pmatrix}; \alpha,\beta\in\mathbb{C};
+		|\alpha|^2+|\beta|^2=1\right\}\text{.} 
+	\end{equation}
+	Using symmetries, we only need to store the top line of the matrix to carry out the simulation.  This is by no means
+	a unique representation of $SU(2)$ matrices. If we consider $\alpha=a+di$ and $\beta=c+bi$ then it is not difficult
+	to see that
+	\begin{equation}\label{Eq:Pauli SU(2)}
+		U_\mu(x)=a\mathbbm{1}+ib\sigma_x+ic\sigma_y+id\sigma_z\text{.} 
+	\end{equation}
+	where $\sigma_x,\sigma_y,\sigma_z$ are the Pauli matrices. This is equivalent to expressing the gauge field as a
+	quaternion. Written in this form it is clear that the real component of $\alpha$ corresponds to the trace of the
+	gauge link and the remaining components to the traceless components of the gauge links. The analysis code uses this
+	latter form to represent the gauge fields.
+	
+	
+	By convention, we assume that $\mu>=0$. But there is no reason that one cannot have a gauge link pointing in the
+	negative direction. In fact, we can even express them in terms of a gauge link in the forwards direction
+	\begin{equation}\label{Eq:Backwards Link}
+	U_{-\mu}(x)=U_\mu^\dagger\left(x-\hat{\mu}\right)\text{.} 
+	\end{equation}
+	
+	Closed paths on the lattice correspond to gauge invariant quantities, and thus observable quantities. The
+	plaquette is the simplest closed loop on the lattice and is formed by a square of gauge links
+	\begin{equation}\label{Eq:Plaquette}
+		U_{\mu,\nu}(x)=U_\mu(x)U_\nu\left(x+\hat{\mu}\right)U_{-\mu}\left(x+\hat{\mu}+\hat{\nu}\right)U_{-\nu}\left(x+\hat{\nu}\right)
+	\end{equation}
+	or using \cref{Eq:Backwards Link}
+	\begin{equation}\label{Eq:Plaquette Short}
+		U_{\mu,\nu}(x)=U_\mu(x)U_\nu\left(x+\hat{\mu}\right)U^\dagger_{\mu}\left(x+\hat{\nu}\right)U^\dagger_{\nu}(x)\text{.} 
+	\end{equation}
+	Usually, we assume that $\nu>\mu$ when calculating the plaquette. This is purely a convention though.
+
+\section{Wilson Action}
+	Now that we have plaquettes, they can be used to construct the Wilson gauge action\index{Action!Wilson gauge}.
+	\begin{equation}\label{Eq:Wilson Gauge Action}
+		S_G[U]=\frac{\beta}{N_c}\sum\limits_{x\in\Lambda}\sum\limits_{\nu>\mu}\re{\Tr{\left[\ID-U_{\mu\nu}(x)\right]}}
+	\end{equation}
+	where $\Lambda$ means all sites on the lattice and
+	\begin{equation}\label{Eq:Inverse Gauge Coupling}
+		\beta=\frac{2N_c}{g^2}
+	\end{equation}
+	is the inverse gauge coupling. The $\ID$ term ensures that the action is zero when the gauge fields are set to the
+	identity. In this case $A_\mu(x)=0$ so corresponds to free fields.
+
+	If we na\"ively try to discretise the fermion component of the action, we run into the doubling problem. We get
+	around this by using the Wilson Fermion action. The aim is to add a mass term to the propagator that cancels with the
+	doublers yet also disappears in the continuum.
+	\begin{equation}\label{Eq:Wilson term}
+		\tilde{D}(p)=m+\frac{i}{a}\sum\limits_{\mu=1}^{4}\gamma_\mu\sin(p_\mu a)
+		+\frac{1}{a}\sum\limits_{\mu=1}^4 \left(1-\cos\left(p_\mu a\right)\right)\text{.} 
+	\end{equation}
+	In the continuum limit, the final term becomes infinitely heavy so decouples from the theory. Additionally, it is $0$
+	for $p=0$ but non-zero otherwise, and therefore eliminates all the double poles. Inverting the Fourier transform
+	then leaves us with the Wilson-Dirac operator
+	\begin{multline}\label{Eq:Wilson Dirac Op}
+		D(x|y)=\\\sum\limits_{\mu=1}^4\frac{\left(1-\gamma_\mu\right)U_\mu(x)\delta_{x+\hat{\mu},y}
+		-\left(1+\gamma_\mu\right)U_{-\mu}(x)\delta_{x-\hat{\mu},y}}{2a}+\left(m+\frac{4}{a}\right)\ID\delta_{x,y}\text{.} 
+	\end{multline}
+	If we try to take the massless limit again, we are left with a factor of $\frac{4}{a}$ in the Wilson-Dirac operator,
+	and thus the discretisation errors are now $\mathscr{O}\left(a\right)$.
+\section{Wilson HMC Update}
+\subsection{Gauge Update}
+	The gauge field updates require evaluating
+	\begin{equation}\label{Eq:Gauge_Upd}
+		U_\mu(x,\tau+\delta\tau)=e^{i \delta\tau \vec{\pi}_\mu(x,\tau)}U_\mu(x) 
+	\end{equation}
+	and since $SU(2)\cong SO(3)$ we can evaluate the exponential analytically in a similar manner as we do with complex
+	numbers. Given an $SU(2)$ element written in quaternion form $A=a+\vec{b}$.
+	\begin{equation}\label{Eq:SU2_Exp}
+		e^{iA}=e^{ia}\left(\cos\left(|\vec{b}|\right)+i\hat{b}\sin\left(|\vec{b}|\right)\right)\text{.} 
+	\end{equation}
+	This follows from the Taylor series of $e^{\vec{b}}$. Even powers of $\vec{b}$ are just products of dot products so
+	scalar, whereas odd powers are given by $\left|\vec{b}\right|^{n-1}\vec{b}=\left|\vec{b}\right|^n \hat{b}$. Since
+	$\vec{\pi}$ doesn't have a scalar component we can drop the $e^a$ term out front. Letting
+	$\pi=\pi_\mu\left(x+\frac{\delta\tau}{2}\right)$, the new gauge field is given as
+	\begin{multline}\label{Eq:SU2 Gauge Update}
+		U_\mu(x,\tau+\delta\tau)=\\ \delta\tau \begin{pmatrix}
+		\cos\left|\vec{\pi}\right|+i \pi_z \sin\left|\vec{\pi}\right|
+		& \pi_y\sin\left|\vec{\pi}\right|+i\pi_x\sin\left|\vec{\pi}\right|\\
+		-\pi_y\sin\left|\vec{\pi}\right|+i\pi_x\sin\left|\vec{\pi}\right|
+		& \cos\left|\vec{\pi}\right|-i\pi_z\sin\left|\vec{\pi}\right|
+		\end{pmatrix} U_\mu(x,\tau)\text{.} 
+	\end{multline}
+
+	All that's left to do is an $SU(2)$ multiplication. The implementation of this is presented \verb|integrate.c|.
+\subsection{Momentum updates}\label{Sub:Momentum Update}
+	In order to update the conjugate momenta, we need to evaluate the force terms acting on them.
+	The force is given by
+	\begin{equation}\label{Eq:HMC Force}
+		F\left[U,\phi\right]=\sum\limits_{i=1}^{N_c^2-1} T_i\nabla^{(i)}S\left[U\,\phi,\bar{\phi}\right]=
+		\sum\limits_{i=1}^{N_c^2-1}T_i\nabla^{(i)}\left(S_G\left[U\right]+\phi^\dagger\left(M^\dagger M\right)^{-1}\phi\right)
+	\end{equation}
+	where $\nabla^{(i)}$ is the derivative with respect to $A$.
+
+\subsubsection{Gauge Force}\label{Subsub:Gauge force}
+	Using \cref{Eq:Gauge field} we can express the derivative of a function $f\left(U_\mu(x)\right)$ with
+	respect to the gauge field $U_\mu(x)$ and generator $j$ as
+	\begin{equation}\label{Eq:Gauge deriv}
+			\nabla^{j}f(U_\mu(x))=\frac{\partial}{\partial\alpha}f \left[e^{i\alpha T_j}U_\mu(x)\right]_{\alpha=0}\text{.} 
+	\end{equation}
+	Then the gauge force is just the derivative of the plaquettes
+	\begin{multline}\label{Eq:Gauge action deriv}
+		T_j \nabla^{(j)}S_G\left[U\right] \\ =\frac{\beta}{N_c}
+		T_j \sum\limits_{x\in\Lambda}\sum\limits_{\mu=1}^4 \Tr\left[-\frac{\partial}{\partial\alpha}
+		e^{i\alpha T_j} U_\mu(x)\sum\limits_{\nu\ne\mu} \left(A_{\mu,\nu}(x)+A_{\mu,-\nu}(x)\right)\right]
+		\\=\frac{\beta}{N_c} T_j \sum\limits_{x\in\Lambda}\sum\limits_{\mu=1}^4 
+		\Tr\left[-iT_j U_\mu(x)\sum\limits_{\nu\ne\mu}\left( A_{\mu,\nu}(x)+A_{\mu,-\nu}(x)\right)\right]
+	\end{multline}
+	where $A_{\mu\nu}(x)$ is the staple in the $\mu-\nu$ direction. The plaquettes are elements of $SU\left(N_c\right)$,
+	so we can use \cref{Eq:Gauge field} to express them in the form of \cref{Eq:Pauli SU(2)}, or the
+	equivalent for $SU(N_c)$ if $N_c\ne2$. Since the trace of a sum is the sum of the traces, and $T_j\ID=T_j$ is
+	traceless, we are left with
+	\begin{equation}\label{Eq:Gauge action deriv expanded}
+		T_j \nabla^{(j)}S_G\left[U\right]
+		=\frac{2\beta}{N_c} \sum\limits_{x\in\Lambda}\sum\limits_{\mu=1}^4 
+		T_j \Tr\left[T_j\sum\limits_{i=1}^{N_c^2-1}\left(c_i(x,\mu)T_i\right)\right]
+	\end{equation}
+	where $c_i(x,\mu)$ is the coefficient of generator $i$ at site $x$ in direction $\mu$, and the factor of $2$ from the
+	definition of the generators. Expanding the term inside the trace, all of these products are traceless except for
+	$i=j$. Taking the trace of $T_iT_j=\frac{1}{2}\delta_{ij}$ leaves us with
+	\begin{equation}\label{Eq:Gauge action deriv final}
+		T_j \nabla^{(j)}S_G\left[U\right]
+		=\frac{\beta}{N_c} \sum\limits_{x\in\Lambda}\sum\limits_{\mu=1}^4 c_j(x,\mu)T_j\text{.} 
+	\end{equation}
+	Summing over all $j$, we see that this is merely the traceless component of the gauge action (up to a factor of $i$)
+	and can be calculated using the same approach as pure gauge theory.
+
+\subsubsection{Fermion Force}\label{Subsub:Fermion Force}
+	The entry of the fermion matrix $M$ at index $yx$ is
+	\begin{equation}\label{Eq:Fermi Matrix index}
+		M_{yx}=\delta_{yx}-\kappa\sum_{\mu=\pm1}^{\pm4}\delta_{y,x+\hat{\mu}}\left(1+\gamma_\mu\right)U_{x,\mu}
+	\end{equation}
+	and thus
+	\begin{equation}\label{Eq:Fermi Matrix dagger_index}
+		(M^\dagger)_{yx}=\left(M_{yx}\right)^\dagger=
+		\delta_{yx}-\kappa\sum_{\mu=\pm1}^{\pm4}U^\dagger_{y,\mu}\left(1+\gamma_\mu\right)\delta_{y,x+\hat{\mu}}\text{.} 
+	\end{equation}
+
+	If we now look at the fermionic contribution to the force we can apply the product rule and obtain
+	\begin{equation}\label{Eq:M_dag M deriv def}
+		\nabla^{(j)}\left(M^\dagger M\right)^{-1}=
+		\left(M^\dagger M\right)^{-1}\left[\left(\nabla^{(j)}
+		M^\dagger\right)M+M^\dagger\left(\nabla^{(j)}M\right)\right]\left(M^\dagger M\right)^{-1}
+	\end{equation}
+	Using \cref{Eq:Gauge deriv}, the derivative of the fermion matrix at site $x$ in direction $\mu$ for colour
+	$j$ is given by
+	\begin{align}\label{Eq:Fermi Matrix Deriv}
+		D_{x\mu j}M_{yx}&= -i\kappa\delta_{y,x+\mu}\left(1+\gamma_\mu\right)T_j U_{x,\mu}\nonumber\\
+		D_{x\mu j}M^\dagger_{yx}&= i\kappa U^\dagger_{y,\mu}T_j\left(1+\gamma_\mu\right)\delta_{y,x+\hat{\mu}}\text{.} 
+	\end{align}
+	Applying these derivative terms to \cref{Eq:M_dag M deriv def} gives
+	\begin{multline}\label{Eq:Fermi Prod Rule 1}
+		\left(M_{zy}\right)^\dagger\left(D_{x\mu j}M_{zx}\right)=\\
+		\left[\delta_{yz}-\kappa\sum\limits_{\nu=\pm1}^{\pm4}
+		U^\dagger_{y,\nu}\left(1+\gamma_\nu\right)\delta_{y,x+\hat{\nu}}\right]
+		\left[-i\kappa\delta_{z,x+\hat{\mu}}\left(1+\gamma_\mu\right)T_j U_{x,\mu}\right]=\\
+		-i\kappa\delta_{yz}\delta_{z,x+\hat{\mu}}\left(1+\gamma_\mu\right)T_j U_{x,\mu}+
+		i\kappa^2\sum\limits_{\nu=\pm1}^{\pm4}U^\dagger_{y\nu}\left(1+\gamma_\nu+\gamma_\mu+\gamma_\nu\gamma_\mu\right)
+		\delta_{y,z+\hat{\nu}}\delta_{z,x+\hat{\mu}}T_j U_{x\mu}\text{.} 
+	\end{multline}
+	and
+	\begin{multline}\label{Eq:Fermi Prod Rule 2}
+		\left(D_{x\mu j}\left(M_{zy}\right)^\dagger\right)M_{zx}=\\
+		\left[i\kappa U^\dagger_{y,\mu}T_j\left(1+\gamma_\mu\right)\delta_{y,z+\hat{\mu}}\right]
+		\left[\delta_{zx}-\kappa\sum\limits_{\nu=\pm1}^{\pm4}
+		\delta_{z,x+\hat{\nu}}\left(1+\gamma_\nu\right)U^\dagger_{x,\nu}\right]=\\
+		i\kappa U^\dagger_{y,\mu}T_j\left(1+\gamma_\mu\right)\delta_{y,z+\hat{\mu}}\delta_{zx} 
+		-i\kappa^2\sum\limits_{\nu=\pm1}^{\pm4}U^\dagger_{y\mu}T_j\left(1+\gamma_\mu+\gamma_\nu+\gamma_\mu\gamma_\nu\right)
+		\delta_{y,z+\hat{\mu}}\delta_{z,x+\hat{\nu}}U_{x\nu}\text{.} 
+	\end{multline}
+
+	The $\kappa^2$ terms in both \cref{Eq:Fermi Prod Rule 1} and \cref{Eq:Fermi Prod Rule 2} are non-zero for
+	$y=z+\hat{\mu}=x+\hat{\mu}+\hat{\nu}$. As we sum over $\nu$ and $\mu$ we can swap the $\mu$ and $\nu$ indices and
+	these terms cancel each other out. The $\kappa$ terms are non-zero for $y=z=x+\hat{\mu}$ in \cref{Eq:Fermi Prod
+	Rule 1} and $y=z=x-\hat{\mu}$ in \cref{Eq:Fermi Prod Rule 2} respectively. This finally leaves us with an expression
+	for the derivative at site $x$ in direction $\mu$ for colour index $j$
+	\begin{multline}\label{Eq:M_dag M deriv}
+		D_{x\mu j}\left(M^\dagger M\right)^{-1}=\\\left(M^\dagger
+		M\right)^{-1}_{xz}\left(
+		-i\kappa\left(1+\gamma_\mu\right)T_j U_{x,\mu}+
+		i\kappa U^\dagger_{x-\hat{\mu},\mu}T_j\left(1+\gamma_\mu\right)
+		\right)\left(M^\dagger M\right)^{-1}_{zx}\text{.} 
+	\end{multline}
+\section{Clover Fermions}
+	The Clover improved Wilson action can be given as
+	\begin{equation}
+		S_\text{I}=S_\text{Wilson}+S_\text{Clov}=S_\text{Wilson}
+		-\frac{c_\text{SW}}{2} \kappa a^5 \sum\limits_{n\in\Lambda}\sum\limits_{\mu<\nu}
+		\bar{\psi}(n)\frac{1}{2}\sigma_{\mu\nu}\hat{F}_{\mu\nu}(n)\psi(n)
+	\end{equation}
+	where $c_\text{SW}$ is the clover or Sheiholeslami-Wohlert coefficient, $\sigma_{\mu\nu}$ is the commutator of the
+	Euclidean Dirac matrices in the chiral representation and the clover term at site $x$ in the $\mu-\nu$ direction is
+	given by
+	\begin{equation}\label{Eq:Clover}
+		F_{\mu\nu}(x)=\frac{-i}{8a^2}\left(Q_{\mu\nu}(x)-Q_{\nu\mu}(x)\right)
+	\end{equation}
+	where (at least in our implementation, it is not unique)
+	\begin{figure}
+		\centring
+		\begin{adjustbox}{width=\linewidth}
+			\tikzfig{Tikz/Clover}
+		\end{adjustbox}
+		\captionsetup{width=\linewidth}
+		\caption{A half-clover $Q_{\mu\nu}$. The full clover term consists of this minus its hermitian conjugate}
+		\label{Tikz:Clover}
+	\end{figure}
+	\begin{equation}\label{Eq:Half Clover}
+		Q_{\mu\nu}=U_{\mu,\nu}(x)+U_{\nu,-\mu}(x)+U_{-\nu,\mu}(x)+U_{-\mu,-\nu}(x)
+	\end{equation}
+	and $U_{\mu,\nu}$ is the plaquette given in \cref{Eq:Plaquette} (see \cref{Tikz:Clover}). Since the
+	$Q_{\mu\nu}$ terms are the sum of four plaquettes they should have the same form as $U_\mu$ given in \cref{Eq:SU(2)
+	Def} (but are \emph{not} an element of $SU(2)$), from here it follows that
+	\begin{equation}\label{Eq:Diff_form}
+		Q_{\mu\nu}-Q_{\nu\mu}=\begin{pmatrix}
+		\alpha-\bar{\alpha} & \beta+\beta \\
+		-\bar{\beta}-\bar{\beta} & \bar{\alpha}-\alpha \end{pmatrix}=
+		\begin{pmatrix} 2di & 2c+2bi \\ -2c+2bi & -2di \end{pmatrix}
+	\end{equation}
+	which is anti-Hermitian. Multiplying out front by $-i$ gives us 
+	\begin{equation}\label{Eq:Clov_Form}
+		F_{\mu\nu}(x)=\frac{1}{8a^2}
+		\begin{pmatrix} 2d & 2b-2ci \\ 2b+2ci & -2d \end{pmatrix}\text{.}
+	\end{equation}
+	which is hermitian and traceless (i.e. of the same form as an element of the Lie Algebra).
+\section{Clover Force Update}
+	For the clover force update with respect to a link $U_\mu$ is similar to the procedure described in 
+	\cref{Subsub:Fermion Force}. Only the leaves containing $U_\mu(x)$ or $U^\dagger_{\mu}\left(x+\hat{\mu}\right)$
+	contribute. It does have the additional complication that there are six clovers containing the gauge link between $x$
+	and $x+\hat{\mu}$ or the conjugate link between $x+\hat{\mu}$ and $x$.
+	\begin{enumerate}
+		\item The clover at the site $x$ itself contains the link in the $+\mu,+\nu$ leaf and the $+\mu,-\nu$ leaf.
+		\item The clover at the site $x+\hat{\mu}$ contains the link in the $-\mu,+\nu$ leaf and the $-\mu,-\nu$ leaf.
+		\item The clover at the site $x+\hat{\nu}$ contains the link in the $+\mu,-\nu$ leaf.
+		\item The clover at the site $x-\hat{\nu}$ contains the link in the $+\mu,+\nu$ leaf.
+		\item The clover at the site $x+\hat{\mu}+\hat{\nu}$ contains the link in the $-\mu,-\nu$ leaf.
+		\item The clover at the site $x+\hat{\mu}-\hat{\nu}$ contains the link in the $-\mu,+\nu$ leaf.
+	\end{enumerate}
+	\begin{figure}
+		\centring
+		\begin{adjustbox}{width=\linewidth}
+			\tikzfig{Tikz/Clover_Force_All}
+		\end{adjustbox}
+		\captionsetup{width=\linewidth}
+		\caption{Leaves containing the link $U_\mu(x)$ or $U^\dagger_{\mu}\left(x+\hat{\mu}\right)$ centred on the
+		rectangles Note that all the clovers drawn in the diagram are $Q_{\mu\nu}$. The contribution from $Q_{\nu\mu}$ is
+		not shown.}
+		\label{Tikz:Clover_Force}
+	\end{figure}
+
+	Unlike the Wilson case where the generator multiplies the plaquette from the left, the location of the generator in
+	the clover force depends on the location of the link in each clover. For the $Q_{\mu\nu}$ leaves seen in 
+	\cref{Tikz:Clover_Force,Tikz:Clover_Force_Comp}.
+	\begin{enumerate}
+		\item The clover at the site $x$ itself has the generator multiplying its top-right leaf from the left (w.r.t. $U_\mu(x)$)
+				and bottom right leaf from the right (w.r.t. $U^\dagger_\mu\left(x+\hat{\mu}\right)$).
+		\item The clover at the site $x+\hat{\mu}$ has the generator appearing between the third and fourth link of its
+				top left leaf ($\nu,-\mu$) (w.r.t. $U_\mu(x)$) and between the first and second link of its bottom left leaf
+				($-\mu,-\nu$) (w.r.t. $U^\dagger_\mu\left(x+\hat{\mu}\right)$).
+		\item The clover at the site $x+\hat{\nu}$ has the generator appearing between the first and second link (w.r.t. $U_\mu(x)$)
+		\item The clover at the site $x-\hat{\nu}$ has the generator appearing between the third and fourth link
+				(w.r.t. $U^\dagger_\mu\left(x+\hat{\mu}\right)$).
+		\item The clover at the site $x+\hat{\mu}+\hat{\nu}$ has the generator appearing between second and third link (w.r.t. $U_\mu(x)$).
+		\item The clover at the site $x+\hat{\mu}-\hat{\nu}$ has the generator appearing between second and third link
+				(w.r.t. $U^\dagger_\mu\left(x+\hat{\mu}\right)$).
+	\end{enumerate}
+	\begin{figure}
+		\centring
+		\begin{adjustbox}{width=\linewidth}
+			\tikzfig{Tikz/Clover_Force_Comp}
+		\end{adjustbox}
+		\captionsetup{width=\linewidth}
+		\caption{The components of the clover force with respect to $U_\mu(x)$ (the link with arrow pointing \emph{away}
+		from the centre of the respective clover.) Negative terms are from $Q_{\nu\mu}(x)$ terms. Diagonal lines indicate
+		where the generator appears in the derivative.}
+		\label{Tikz:Clover_Force_Comp}
+	\end{figure}
+
+	Looking at the $F_{\mu\nu}(x)$ and the derivatives with respect to $U_\mu(x)$, we see that the derivative from each
+	generator takes the form of an $SU(2)$ group element
+	\begin{align}
+		\frac{\partial U_{\mu\nu}(x)}{\partial U_\mu(x)}&=
+		i\sigma_x U_\mu(x)U_\nu\left(x+\hat{\mu}\right)U^\dagger_\mu\left(x+\hat{\nu}\right)U^\dagger_\nu(x)\nonumber\\
+		&=\begin{pmatrix} -i\bar{\beta} & i\bar{\alpha} \\i\alpha & i\beta\end{pmatrix}=
+		\begin{pmatrix} -b-ci & d+ai \\ -d+ai & -b+ci\end{pmatrix}\label{Eq:Sig_x_deriv}\\
+		\frac{\partial U_{\mu\nu}(x)}{\partial U_\mu(x)}&=
+		i\sigma_y U_\mu(x)U_\nu\left(x+\hat{\mu}\right)U^\dagger_\mu\left(x+\hat{\nu}\right)U^\dagger_\nu(x)\nonumber\\
+		&=\begin{pmatrix} \bar{\beta} & -\bar{\alpha} \\\alpha & \beta\end{pmatrix}=
+		\begin{pmatrix} c-bi & -a+di \\ a+di & c+bi\end{pmatrix}\label{Eq:Sig_y_deriv}\\
+		\frac{\partial U_{\mu\nu}(x)}{\partial U_\mu(x)}&=
+		i\sigma_x U_\mu(x)U_\nu\left(x+\hat{\mu}\right)U^\dagger_\mu\left(x+\hat{\nu}\right)U^\dagger_\nu(x)\nonumber\\
+		&=\begin{pmatrix} i\alpha & i\beta \\i\bar{\beta} & -i\bar{\alpha}\end{pmatrix}=
+		\begin{pmatrix} -d+ai & -b+ci \\ b+ci & -d-ai\end{pmatrix}\label{Eq:Sig_z_deriv}\text{.}
+	\end{align}
+	Let's look at a specific example. Taking $\lambda_j=\sigma_x$ as the generator and using the clover at the site, we
+	see that the contribution from the $Q_{\nu\mu}=Q^\dagger_{\mu\nu}$ leaf
+	\begin{equation}\label{Eq:Site_Leaf_Conj_Deriv}
+		\frac{\partial U^\dagger_{\mu\nu}(x)}{\partial U^\dagger_\mu\left(x+\hat{\mu}\right)}=
+		-i U_\nu(x)U_\mu\left(x+\hat{\nu}\right)U^\dagger_\nu\left(x+\hat{\mu}\right)U^\dagger_\mu(x)\lambda_j=
+		\left(\frac{\partial U_{\mu\nu}(x)}{\partial U_\mu(x)}\right)^\dagger\text{.}
+	\end{equation}
+	\Cref{Eq:Site_Leaf_Conj_Deriv} is useful as it means we do not have to worry about calculating and keeping track of
+	$U^\dagger_{\mu\nu}(x)$ at the same time as $U_{\mu\nu}(x)$. Just work with the undaggered term instead. We can apply
+	this symmetry to the $U_{-\nu,\mu}(x)$ leaf to obtain $\frac{\partial U_{\mu,-\nu}(x)}{\partial U_\mu(x)}$
+	\begin{equation}\label{Eq:Deriv_Symm}
+		\frac{\partial U_{-\nu,\mu}(x)}{\partial U^\dagger_\mu(x)}=
+		\left(\frac{\partial U^\dagger_{-\nu,\mu}(x)}{\partial U_\mu(x)}\right)^\dagger\Leftrightarrow
+		\frac{\partial U_{\mu,-\nu}(x)}{\partial U_\mu(x)}=
+		\frac{\partial U^\dagger_{-\nu,\mu}(x)}{\partial U_\mu(x)}=
+		\left(\frac{\partial U_{-\nu,\mu}(x)}{\partial U^\dagger_\mu(x)}\right)^\dagger\text{.}
+	\end{equation}
+
+	Using this symmetry and getting the difference yields
+	\begin{multline}\label{Eq:Clov_Force_1}
+		\frac{\partial F_{\mu\nu}(x)}{\partial U_\mu(x)}=\frac{-i}{8a}\left(\frac{\partial Q_{\mu\nu}(x)}
+		{\partial U_\mu(x)}-\frac{\partial Q_{\nu\mu}(x)}{\partial U_\mu(x)}\right)\\
+		=\frac{-i}{8a}\left(\frac{\partial U_{\mu\nu}(x)}{\partial U_\mu(x)}
+		-\frac{\partial U_{\mu,-\nu}(x)}{\partial U_\mu(x)}\right)
+		=\frac{-i}{8a}\left(\frac{\partial U_{\mu\nu}(x)}{\partial U_\mu(x)}
+		-\left(\frac{\partial U_{-\nu,\mu}(x)}{\partial U^\dagger_\mu\left(x+\hat{\mu}\right)}\right)^\dagger\right)
+	\end{multline}
+	as the total contribution to the derivative of the clover centred at $x$ with respect to $U_\mu(x)$. Repeating for
+	the other contributions
+	\begin{align}
+		%x+mu
+		\frac{\partial F_{\mu\nu}\left(x+\hat{\mu}\right)}{\partial U_\mu(x)}&=
+		\frac{-i}{8a}\left(\frac{\partial Q_{\mu\nu}\left(x+\hat{\mu}\right)}{\partial U_\mu(x)}-\frac{\partial
+		Q_{\nu\mu}\left(x+\hat{\mu}\right)}{\partial U_\mu(x)}\right)\nonumber\\
+		&=\frac{-i}{8a}\left(\frac{\partial U_{\nu,-\mu}\left(x+\hat{\mu}\right)}{\partial U_\mu(x)}
+		-\frac{\partial U_{-\nu,-\mu}\left(x+\hat{\mu}\right)}{\partial U_\mu(x)}\right)\nonumber\\
+		&=\frac{-i}{8a}\left(\frac{\partial U_{\nu,-\mu}\left(x+\hat{\mu}\right)}{\partial U_\mu(x)}
+		-\left(\frac{\partial U_{-\mu,-\nu}\left(x+\hat{\mu}\right)}{\partial U^\dagger_\mu(x)}\right)^\dagger\right)\label{Eq:Clov_Force_2}\\
+		% x+nu
+		\frac{\partial F_{\mu\nu}\left(x+\hat{\nu}\right)}{\partial U_\mu(x)}&=
+			\frac{-i}{8a}\frac{\partial Q_{\mu\nu}\left(x+\hat{\nu}\right)}{\partial U_\mu(x)}=
+			\frac{-i}{8a}\frac{\partial U_{-\nu,\mu}\left(x+\hat{\nu}\right)}{\partial U_\mu(x)}\label{Eq:Clov_Force_3}\\
+		% x-nu
+		\frac{\partial F_{\mu\nu}\left(x-\hat{\nu}\right)}{\partial U_\mu(x)}&=
+			\frac{i}{8a}\frac{\partial Q_{\nu\mu}\left(x-\hat{\nu}\right)}{\partial U_\mu(x)}\nonumber\\
+			&=\frac{i}{8a}\frac{\partial U_{\nu,\mu}\left(x-\hat{\nu}\right)}{\partial U_\mu(x)}=
+			\frac{i}{8a}\left(\frac{\partial U_{\mu,\nu}\left(x-\hat{\nu}\right)}
+			{\partial U^\dagger_\mu(x)}\right)^\dagger\label{Eq:Clov_Force_4}\\
+		% x+mu+nu
+		\frac{\partial F_{\mu\nu}\left(x+\hat{\mu}+\hat{\nu}\right)}{\partial U_\mu(x)}&=
+			\frac{-i}{8a}\frac{\partial Q_{\mu\nu}\left(x+\hat{\mu}+\hat{\nu}\right)}{\partial U_\mu(x)}=
+			\frac{-i}{8a}\frac{\partial U_{-\mu,-\nu}\left(x+\hat{\mu}+\hat{\nu}\right)}{\partial U_\mu(x)}\label{Eq:Clov_Force_5}\\
+		% x+mu-nu
+		\frac{\partial F_{\mu\nu}\left(x+\hat{\mu}-\hat{\nu}\right)}{\partial U_\mu(x)}&=
+			\frac{i}{8a}\frac{\partial Q_{\nu\mu}\left(x+\hat{\mu}-\hat{\nu}\right)}{\partial U_\mu(x)}\nonumber\\
+			&=\frac{i}{8a}\frac{\partial U_{-\mu,\nu}\left(x+\hat{\mu}-\hat{\nu}\right)}{\partial U_\mu(x)}
+			=\frac{i}{8a}\left(\frac{\partial U_{\nu,-\nu}\left(x+\hat{\mu}-\hat{\nu}\right)}
+			{\partial U^\dagger_\mu(x)}\right)^\dagger\label{Eq:Clov_Force_6}\text{.}
+	\end{align}
+
+	Next, we need to consider the contribution from the derivative with respect to
+	$U^\dagger_\mu\left(x+\hat{\mu}\right)$. The procedure for this is similar to that for 
+	\cref{Eq:Clov_Force_1,Eq:Clov_Force_2,Eq:Clov_Force_3,Eq:Clov_Force_4,Eq:Clov_Force_5,Eq:Clov_Force_6}.
+	Focusing only on $F_{\mu\nu}(x)$ and using \cref{Eq:Deriv_Symm}
+	\begin{multline}\label{Eq:Clover_deriv_dag}
+		\frac{\partial F_{\mu\nu}(x)}{\partial U^\dagger_\mu\left(x+\hat{\mu}\right)}=
+		\frac{-i}{8a}\left(\frac{\partial Q_{\mu\nu}(x)} {\partial U^\dagger_\mu\left(x+\hat{\mu}\right)}
+		-\frac{\partial Q_{\nu\mu}(x)}{\partial U^\dagger_\mu\left(x+\hat{\mu}\right)}\right)\\
+		=\frac{-i}{8a}\left(\frac{\partial U_{\nu,-\mu}(x)}{\partial U^\dagger_\mu\left(x+\hat{\mu}\right)}-
+			\frac{\partial U_{\nu,\mu}(x)}{\partial U^\dagger_\mu\left(x+\hat{\mu}\right)}\right)
+		=\frac{-i}{8a}\left(\frac{\partial U_{\nu,-\mu}(x)}{\partial U^\dagger_\mu\left(x+\hat{\mu}\right)}-
+			\left(\frac{\partial U_{\mu,\nu}(x)}{\partial U_\mu(x)}\right)^\dagger\right)\text{.}
+	\end{multline}
+	Comparing to \cref{Eq:Clov_Force_1}, we can quickly see that
+	\begin{equation}\label{Eq:NoDag_vs_Dag}
+		\frac{\partial F_{\mu\nu}(x)}{\partial U^\dagger_\mu\left(x+\hat{\mu}\right)}=
+		\left(\frac{\partial F_{\mu\nu}(x)}{\partial U_\mu(x)}\right)^\dagger
+	\end{equation}
+	and thus from \cref{Eq:Sig_x_deriv} the overall form of the derivatives in the $\hat{\mu}$ direction is
+	\begin{equation}
+		\frac{\partial F_{\mu\nu}(x)}{\partial U_\mu(x)}+
+		\frac{\partial F_{\mu\nu}(x)}{\partial U^\dagger_\mu\left(x+\hat{\mu}\right)}=
+		\frac{-i}{8a}\begin{pmatrix} -i\bar{\beta} +i\beta& i\bar{\alpha}-i\bar{\alpha} \\
+		i\alpha-i\alpha & i\beta-i\bar{\beta}\end{pmatrix}=
+		\frac{1}{8a}\begin{pmatrix} 2bi & 0 \\ 0 & 2bi\end{pmatrix}
+	\end{equation}
+	which is anti-hermitian. Comparing this with \cref{Eq:Pauli SU(2)}, we see that the force from the $\sigma_x$
+	generator only consists of the $\sigma_x$ components of the leaves involved in the force. Using a similar approach we
+	can also show that the $\sigma_y$ and $\sigma_z$ components behave in the same manner.
+
+	Unfortunately, there is no symmetry relating $\frac{\partial F_{\mu\nu}(x)}{\partial U_\mu(x)}$ and
+	$\frac{\partial F_{\nu\mu}(x)}{\partial U_\nu(x)}$ so these must be calculated explicitly. Thankfully this is just a
+	matter of calling the clover force routine with $\mu$ and $\nu$ swapped. 
+\end{document}
+	Lastly, we multiply this by $\frac{-i}{8}$ to get
+	\begin{equation}\label{Eq:Clov_Force_Deriv}
+		\frac{\partial F_{\mu\nu}}{\partial	U_\mu}=\frac{1}{8}
+		\begin{pmatrix} -2c & -2a-2di \\ 2a+2di & 2c\end{pmatrix}
+	\end{equation}
+	which if I am reading this correctly is neither hermitian nor anti-hermitian. This implies that there is a mistake
+	somewhere. I am confident that all the other terms will have a similar form, but will not check here to save time.

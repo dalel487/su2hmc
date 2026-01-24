@@ -729,10 +729,10 @@ int cuClover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X
 		unsigned short *sigin, unsigned int *iu, unsigned int *id, const float akappa){
 	const char funcname[]="Clover_Force";
 
-	complex<double> *ut_d[nc], *X1_d, *X2_d;
+	complex<double> *ut_d[nc], *X1_d, *X2_d, *sigval_d;;
 	cudaMalloc((void **)&ut_d[0],ndim*kvol*sizeof(complex<double>)); cudaMalloc((void **)&ut_d[1],ndim*kvol*sizeof(complex<double>));
 	cudaMalloc((void **)&X1_d,kferm2*sizeof(complex<double>)); cudaMalloc((void **)&X2_d,kferm2*sizeof(complex<double>));
-	__managed__ complex<double> sigval_d[6*4];
+	cudaMalloc((void **)&sigval_d,24*sizeof(complex<double>));
 	cudaDeviceSynchronise();	
 	cuComplex_convert(ut[0],ut_d[0],ndim*kvol,false,dimBlock,dimGrid); cuComplex_convert(ut[1],ut_d[1],ndim*kvol,false,dimBlock,dimGrid);
 	cuComplex_convert(X1,X1_d,kferm2,false,dimBlock,dimGrid); cuComplex_convert(X2,X2_d,kferm2,false,dimBlock,dimGrid);
@@ -769,5 +769,6 @@ int cuClover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X
 	}
 	cudaDeviceSynchronise();
 	cudaFree(ut_d[0]); cudaFree(ut_d[1]); cudaFree(X1_d); cudaFree(X2_d);
+	cudaFree(sigval_d);
 	return 0;
 }

@@ -17,11 +17,24 @@ dim3 dimGrid= dim3(1,1,1);
 cudaStream_t streams[ndirac*ndim*nadj];
 
 //Device function
+/**
+ * @brief 		Complex conjugation
+ * @param z:	Complex number to be conjugated
+ * @return: 	Conjugated complex number
+ */
 template <typename T>
 __device__ __forceinline__ T conj(const T& z){
 	return T(z.real(),-z.imag());
 }
 //CUDA Kernels
+	/**
+	 * @brief takes an array of real float and double precision numbers and converts the precision
+	 *
+	 * @param	a:						Float array
+	 * @param	b:						Double array
+	 * @param	len:					Number of elements to convert
+	 * @param	dtof:					If true, convert double to float. Otherwise convert float to double
+	 */
 __global__ void Real_convert(float *a, double *b, const unsigned int len, const bool dtof){
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
