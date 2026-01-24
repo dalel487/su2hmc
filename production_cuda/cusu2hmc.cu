@@ -22,7 +22,7 @@ __device__ __forceinline__ T conj(const T& z){
 	return T(z.real(),-z.imag());
 }
 //CUDA Kernels
-__global__ void Real_convert(float *a, double *b, const unsigned int len, const bool dtof){
+__global__ void Real_convert(float *a, double *b, const unsigned int len, const bool ftod){
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -30,7 +30,7 @@ __global__ void Real_convert(float *a, double *b, const unsigned int len, const 
 	const unsigned int gthreadId= blockId * bsize+bthreadId;
 
 	//True: Convert float to double
-	if(dtof)
+	if(ftod)
 		for(unsigned int i = gthreadId; i<len;i+=gsize*bsize)
 			a[i]=(float)b[i];
 	//False: Convert double to float.
@@ -222,19 +222,19 @@ void	Init_CUDA(Complex *u11t, Complex *u12t,Complex gamval[20], Complex_f gamval
 	//cudaMemPrefetchAsync(u11t, ndim*kvol*sizeof(Complex),device,streams[4]);
 	//cudaMemPrefetchAsync(u12t, ndim*kvol*sizeof(Complex),device,streams[5]);
 }
-void cuReal_convert(float *a, double *b, const unsigned int len, const bool dtof, dim3 dimBlock, dim3 dimGrid){
+void cuReal_convert(float *a, double *b, const unsigned int len, const bool ftod, dim3 dimBlock, dim3 dimGrid){
 	/* 
 	 * Kernel wrapper for conversion between sp and dp complex on the GPU.
 	 */
 	const char *funcname = "cuComplex_convert";
-	Real_convert<<<dimGrid,dimBlock>>>(a,b,len,dtof);
+	Real_convert<<<dimGrid,dimBlock>>>(a,b,len,ftod);
 }
-void cuComplex_convert(Complex_f *a, Complex *b, const unsigned int len, const bool dtof, dim3 dimBlock, dim3 dimGrid){
+void cuComplex_convert(Complex_f *a, Complex *b, const unsigned int len, const bool ftod, dim3 dimBlock, dim3 dimGrid){
 	/* 
 	 * Kernel wrapper for conversion between sp and dp complex on the GPU.
 	 */
 	const char *funcname = "cuComplex_convert";
-	Real_convert<<<dimGrid,dimBlock>>>((float *)a,(double *)b,2*len,dtof);
+	Real_convert<<<dimGrid,dimBlock>>>((float *)a,(double *)b,2*len,ftod);
 }
 void cuFill_Small_Phi(const unsigned int na, Complex *smallPhi, Complex *Phi, dim3 dimBlock, dim3 dimGrid){
 	cuFill_Small_Phi<<<dimGrid,dimBlock>>>(na,smallPhi,Phi);
