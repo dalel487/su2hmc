@@ -84,6 +84,7 @@ inline int Momentum_Update(const double d, const double *dSdpi, double *pp)
 #endif
 	return 0;
 }
+#if defined INT_LPFR
 int Leapfrog(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi,double *dk[2],float *dk_f[2],
 		double *dSdpi,double *pp, unsigned int *iu,unsigned int *id, Complex gamval[20], Complex_f gamval_f[20], const unsigned short gamin[16],
 		Complex *sigval, Complex_f *sigval_f, unsigned short *sigin, const Complex jqq, const float beta, const float akappa, 
@@ -137,6 +138,7 @@ int Leapfrog(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex 
 
 	return 0;
 }
+#elif defined INT_OMF2
 int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi,double *dk[2],float *dk_f[2],
 		double *dSdpi,double *pp, unsigned int *iu,unsigned int *id, Complex gamval[20], Complex_f gamval_f[20], const unsigned short gamin[16],
 		Complex *sigval, Complex_f *sigval_f, unsigned short *sigin, const Complex jqq, const float beta, const float akappa, 
@@ -261,6 +263,8 @@ int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 	}while(!end_traj);
 	return 0;
 }
+#elif defined INT_OMF4
+#warning "OMF4 can be less efficient than OMF2 in certain cases. Use with caution. See http://dx.doi.org/10.1103/PhysRevE.73.036706"
 int OMF4(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi,double *dk[2],float *dk_f[2],
 		double *dSdpi,double *pp, unsigned int *iu,unsigned int *id, Complex gamval[20], Complex_f gamval_f[20], const unsigned short gamin[16],
 		Complex *sigval, Complex_f *sigval_f, unsigned short *sigin, const Complex jqq, const float beta, const float akappa, 
@@ -366,3 +370,4 @@ int OMF4(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi
 	}while(!end_traj);
 	return 0;
 }
+#endif
