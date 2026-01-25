@@ -540,6 +540,7 @@ int main(int argc, char *argv[]){
 		OMF2(ut,ut_f,X0,X1,Phi,dk,dk_f,dSdpi,pp,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,\
 				jqq,beta,akappa,c_sw,stepl,dt,&ancg,&itot,proby);
 #elif defined INT_OMF4
+#warning "OMF4 can be less efficient than OMF2 in certain cases. Use with caution. See http://dx.doi.org/10.1103/PhysRevE.73.036706"
 		OMF4(ut,ut_f,X0,X1,Phi,dk,dk_f,dSdpi,pp,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,\
 				jqq,beta,akappa,c_sw,stepl,dt,&ancg,&itot,proby);
 #else
