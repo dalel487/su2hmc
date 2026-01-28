@@ -316,9 +316,11 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 	for(*itercg=0; *itercg<niterc; (*itercg)++){
 		if(do_dp){
 #ifdef _DEBUGCG
+			if(!rank)
 			printf("Going to double precision on iteration %d.%sbetan %e\talpha %e.%s",
 					*itercg,endline,betan,alpha,endline);
 #elifdef _DEBUG
+			if(!rank)
 			printf("\nGoing to double precision on iteration %d.%sbetan %e\talpha %e.\n",
 					*itercg,endline,betan,alpha);
 #endif
@@ -426,13 +428,11 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #endif
 			//And... reduce.
 #if(nproc>1)
-			Par_dsum(&betan); Par_dsum(&betan_d);
-#endif
-			//Update beta_max. Mandatory for double precision.
-			beta_max=betan_d;
-#if(nproc>1)
 			Par_dsum(&betan);
 #endif
+			betan_d=sqrt(betan);
+			//Update beta_max. Mandatory for double precision.
+			beta_max=betan_d;
 #ifdef _DEBUG
 			if(!rank) printf("DP Iter(CG)=%i\tbeta_n=%e\talpha=%e\n", *itercg, betan, alpha);
 			fflush(stdout);
@@ -564,10 +564,11 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #endif
 			//And... reduce.
 #if(nproc>1)
-			Par_dsum(&betan); Par_fsum(&betan_f)
+			Par_dsum(&betan);
 #endif
+			betan_f=sqrt(betan);
 			//Update beta_max if needed. On paper congrad is monotonically decreasing
-			beta_max = (betan_f>beta_max) ? betan_f : beta_max;
+			beta_max = (betan_f>beta_max) ?betan_f : beta_max;
 
 #ifdef _DEBUG
 			if(!rank) printf("Iter(CG)=%i\tbeta_n=%e\talpha=%e%s", *itercg, betan, alpha,endline);
@@ -575,12 +576,14 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #endif
 			if(betan_f<beta_max*d_prec){ 
 #ifdef _DEBUG
+			if(!rank)
 				printf("Residue %e is less than %e times %e.%s",betan_f,d_prec,beta_max,endline);
 #endif
 				do_dp=true;
 			}
 			else if(betan<resid){
 #ifdef _DEBUG
+			if(!rank)
 				printf("Betan %e is less than target residue %e.%s",betan,resid,endline);
 #endif
 				do_dp=true;
@@ -683,9 +686,11 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 		//Don't overwrite on first run. 
 		if(do_dp){
 #ifdef _DEBUGCG
+			if(!rank)
 			printf("Going to double precision on iteration %d.  %sbetan %e\talpha %e.  %s",
 					*itercg,endline,betan,alpha,endline);
 #elifdef _DEBUG
+			if(!rank)
 			printf("\nGoing to double precision on iteration %d. %sbetan %e\talpha %e.\n",
 					*itercg,endline,betan,alpha);
 #endif
@@ -757,6 +762,7 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 #ifdef	__NVCC__
 			Complex alpha_m=(Complex)(-alpha);
 #ifdef _DEBUG
+			if(!rank)
 			printf("alpha_m = %e + %ei\n", creal(alpha_m), cimag(alpha_m));
 #endif
 			cublasZaxpy(cublas_handle, kferm,(cuDoubleComplex *)&alpha_m,(cuDoubleComplex *)x2,1,(cuDoubleComplex *)r,1);
@@ -781,11 +787,11 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 #endif
 			//And...  reduce.
 #if(nproc>1)
-			Par_dsum(&betan); Par_dsum(&betan_d);
+			Par_dsum(&betan);
 #endif
+			betan_d=sqrt(betan);
 			//Update beta_max.  Mandatory for double precision.
 			beta_max=betan_d;
-			Par_dsum(&beta_max);
 #ifdef _DEBUG
 			if(! rank) printf("DP Iter(CG)=%i\tbeta_n=%e\talpha=%e\n", *itercg, betan, alpha);
 			fflush(stdout);
@@ -912,15 +918,17 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 #endif
 			//This is basically just congradq at the end. Check there for comments
 #if(nproc>1)
-			Par_dsum(&betan); Par_fsum(&betan_f);
+			Par_dsum(&betan);
 #endif
 			//Update beta_max if needed. On paper congrad is monotonically decreasing
+			betan_f=sqrt(betan);
 			beta_max = (betan_f>beta_max) ?betan_f : beta_max;
 #ifdef _DEBUG
 			if(!rank) printf("Iter (CG) = %i beta_n= %e alpha= %e%s", *itercg, betan, alpha,endline);
 #endif
 			if(betan_f<beta_max*d_prec){
 #ifdef _DEBUG
+			if(!rank)
 				printf("Residue %e is less than %e times %e. %s",betan_f,d_prec,beta_max,endline);
 #endif
 				do_dp=true;
