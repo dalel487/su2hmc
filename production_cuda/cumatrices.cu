@@ -306,11 +306,8 @@ __global__ void cuHdslash(complex<T> *phi, const complex<T> *r, const complex<T>
 	}
 }
 template <typename T>
-__global__ void cuHdslashd(complex<T>* __restrict__ phi, const complex<T>* __restrict__ r, \
-					const complex<T>* __restrict__ u11t, const complex<T>* __restrict__ u12t,unsigned int* __restrict__ iu,\
-					unsigned int* __restrict__ id, const complex<T> gamval[20],\
-					const unsigned short gamin_d[16], const T* __restrict__  dk4m, \
-					const  T* __restrict__ dk4p, const __grid_constant__ float akappa){
+__global__ void cuHdslashd(complex<T> *phi, const complex<T>* r, const complex<T>* u11t, const complex<T>* u12t,unsigned int* iu, unsigned int* id,\
+		__constant__ complex<T> gamval[20],	const unsigned short gamin_d[16],	const T* dk4m, const T* dk4p, const __grid_constant__ float akappa){
 	/*
 	 * Half Dslash Dagger T precision 
 	 */
