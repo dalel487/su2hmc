@@ -306,8 +306,11 @@ __global__ void cuHdslash(complex<T> *phi, const complex<T> *r, const complex<T>
 	}
 }
 template <typename T>
-__global__ void cuHdslashd(complex<T> *phi, const complex<T>* r, const complex<T>* u11t, const complex<T>* u12t,unsigned int* iu, unsigned int* id,\
-		__constant__ complex<T> gamval[20],	const unsigned short gamin_d[16],	const T* dk4m, const T* dk4p, const __grid_constant__ float akappa){
+__global__ void cuHdslashd(complex<T>* __restrict__ phi, const complex<T>* __restrict__ r, \
+					const complex<T>* __restrict__ u11t, const complex<T>* __restrict__ u12t,unsigned int* __restrict__ iu,\
+					unsigned int* __restrict__ id, const complex<T> gamval[20],\
+					const unsigned short gamin_d[16], const T* __restrict__  dk4m, \
+					const  T* __restrict__ dk4p, const __grid_constant__ float akappa){
 	/*
 	 * Half Dslash Dagger T precision 
 	 */
@@ -318,10 +321,8 @@ __global__ void cuHdslashd(complex<T> *phi, const complex<T>* r, const complex<T
 	const unsigned int gthreadId= blockId * bsize+bthreadId;
 
 	//Right. Time to prefetch
-	complex<T> ru[2];  complex<T> rd[2];
-	complex<T> rgu[2];  complex<T> rgd[2];
-	complex<T> phi_s[ndirac*nc];
 	for(unsigned int i=gthreadId;i<kvol;i+=gsize*bsize){
+		complex<T> phi_s[ndirac*nc];
 #pragma unroll
 		for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll
@@ -338,7 +339,9 @@ __global__ void cuHdslashd(complex<T> *phi, const complex<T>* r, const complex<T
 			const complex<T> u11sd=u11t[ind];	const complex<T> u12sd=u12t[ind];
 #pragma unroll
 			for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc){
-				unsigned short igork1 = gamin_d[mu*ndirac+(idirac>>1)] << (nc-1);
+				const unsigned short igork1 = gamin_d[mu*ndirac+(idirac>>1)] << (nc-1);
+				complex<T> ru[2];  complex<T> rd[2];
+				complex<T> rgu[2];  complex<T> rgd[2];
 #pragma unroll
 				for(unsigned short c=0;c<nc;c++){
 					ind =kvol*(idirac+c);

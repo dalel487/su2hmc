@@ -28,8 +28,8 @@ __device__ void ByGenLeft(T a[nc],const unsigned short gen){
 			break;
 			///@f$i\sigma_y@f$
 		case(1):
-			a[0] = T( a[1].real(), -a[1].imag());
-			a[1] = T(-tmp.real(),  tmp.imag());
+			a[0] = a[1];
+			a[1] = -tmp;
 			break;
 			///@f$i\sigma_z@f$
 		case(2):
@@ -59,7 +59,7 @@ __device__ void ByGenRight(T a[nc],const unsigned short gen){
 			break;
 			///@f$i\sigma_y@f$
 		case(1):
-			a[0]=a[1]; a[1]=-tmp;
+			a[0]=-a[1]; a[1]=tmp;
 			break;
 			///@f$i\sigma_z@f$
 		case(2):
