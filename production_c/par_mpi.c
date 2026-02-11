@@ -918,7 +918,7 @@ int ZHalo_swap_dir(Complex *z, int ncpt, int idir, int layer){
 				for(int icpt = 0; icpt <ncpt; icpt++)
 					sendbuf[ihalo*ncpt+icpt]=z[ncpt*hu[ndim*ihalo+idir]+icpt];
 			//For the zuphaloswapdir we send off the up halo and receive into the down halo
-			if(MPI_Isend(sendbuf, msg_size, MPI_C_DOUBLE_COMPLEX, pu[idir], 0, comm, &request)){
+			if(MPI_Isend(sendbuf, msg_size, MPI_C_DOUBLE_COMPLEX, pu[idir], tag, comm, &request)){
 				fprintf(stderr,"Error %i in %s: Failed to send off the up halo from rank %i to rank %i.\nExiting...\n",
 						CANTSEND, funcname, rank, pu[idir]);
 				MPI_Abort(comm,CANTSEND);
@@ -1038,7 +1038,7 @@ int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer){
 				for(int icpt = 0; icpt <ncpt; icpt++)
 					sendbuf[ihalo*ncpt+icpt]=c[ncpt*hu[ndim*ihalo+idir]+icpt];
 			//For the zuphaloswapdir we send off the up halo and receive into the down halo
-			if(MPI_Isend(sendbuf, msg_size, MPI_C_FLOAT_COMPLEX, pu[idir], 0, comm, &request)){
+			if(MPI_Isend(sendbuf, msg_size, MPI_C_FLOAT_COMPLEX, pu[idir], tag, comm, &request)){
 				fprintf(stderr,"Error %i in %s: Failed to send off the up halo from rank %i to rank %i.\nExiting...\n",
 						CANTSEND, funcname, rank, pu[idir]);
 				MPI_Abort(comm,CANTSEND);
@@ -1157,7 +1157,7 @@ int DHalo_swap_dir(double *d, int ncpt, int idir, int layer){
 				for(int icpt = 0; icpt <ncpt; icpt++)
 					sendbuf[ihalo*ncpt+icpt]=d[ncpt*hu[ndim*ihalo+idir]+icpt];
 			//For the cuphaloswapdir we send off the up halo and receive into the down halo
-			if(MPI_Isend(sendbuf, msg_size, MPI_DOUBLE, pu[idir], 0, comm, &request)){
+			if(MPI_Isend(sendbuf, msg_size, MPI_DOUBLE, pu[idir], tag, comm, &request)){
 				fprintf(stderr,"Error %i in %s: Failed to send off the up halo from rank %i to rank %i.\nExiting...\n\n",
 						CANTSEND, funcname, rank, pu[idir]);
 				MPI_Abort(comm,CANTSEND);

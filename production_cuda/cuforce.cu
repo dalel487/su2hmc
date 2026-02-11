@@ -24,14 +24,14 @@ __global__ void Plus_staple(const int mu, const int nu,unsigned int *iu, Complex
 	const unsigned int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	for(unsigned int i=threadId;i<kvol;i+=gsize*bsize){
 		const unsigned int uidm = iu[mu*kvol+i];
-		unsigned int indn=uidm+kvol*nu;
+		unsigned int indn=uidm+kvolHalo*nu;
 		const unsigned int uidn = iu[nu*kvol+i];
-		unsigned int indm=uidn+kvol*mu;
+		unsigned int indm=uidn+kvolHalo*mu;
 		Complex_f	a11=u11t[indn]*conj(u11t[indm])+\
 							 u12t[indn]*conj(u12t[indm]);
 		Complex_f	a12=-u11t[indn]*u12t[indm]+\
 							 u12t[indn]*u11t[indm];
-		indn=i+kvol*nu;
+		indn=i+kvolHalo*nu;
 		Sigma11[i]+=a11*conj(u11t[indn])+a12*conj(u12t[indn]);
 		Sigma12[i]+=-a11*u12t[indn]+a12*u11t[indn];
 	}
@@ -57,13 +57,13 @@ __global__ void Minus_staple(const int mu,const int nu,unsigned int *iu,unsigned
 		const unsigned int uidm = iu[mu*kvol+i];
 		const unsigned int didn = id[nu*kvol+i];
 		//uidm is correct here
-		unsigned int ind=didn+kvol*mu;
+		unsigned int ind=didn+kvolHalo*mu;
 		Complex_f u11s=u11t[ind]; Complex_f u12s=u12t[ind];
 		Complex_f a11=conj(u11sh[uidm])*conj(u11s)-\
 						  u12sh[uidm]*conj(u12s);
 		Complex_f a12=-conj(u11sh[uidm])*u12s-\
 						  u12sh[uidm]*u11s;
-		ind=didn+kvol*nu;
+		ind=didn+kvolHalo*nu;
 		u11s=u11t[ind]; u12s=u12t[ind];
 		Sigma11[i]+=a11*u11s-a12*conj(u12s);
 		Sigma12[i]+=a11*u12s+a12*conj(u11s);
@@ -75,13 +75,13 @@ __global__ void cuGaugeForce(int mu, Complex_f *Sigma11, Complex_f *Sigma12,doub
 	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const unsigned int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	for(unsigned int i=threadId;i<kvol;i+=gsize*bsize){
-		const unsigned int ind = i+kvol*mu;
+		const unsigned int ind = i+kvolHalo*mu;
 		Complex_f a11 = u11t[ind]*Sigma12[i]+u12t[ind]*conj(Sigma11[i]);
 		Complex_f a12 = u11t[ind]*Sigma11[i]+conj(u12t[ind])*Sigma12[i];
 		//Not worth splitting into different streams, before we get ideas...
 		dSdpi[ind]=beta*a11.imag();
-		dSdpi[i+kvol*(1*ndim+mu)]=beta*a11.real();
-		dSdpi[i+kvol*(2*ndim+mu)]=beta*a12.imag();
+		dSdpi[i+kvolHalo*(1*ndim+mu)]=beta*a11.real();
+		dSdpi[i+kvolHalo*(2*ndim+mu)]=beta*a12.imag();
 	}
 }
 /**
@@ -104,7 +104,7 @@ __global__ void Gather(T *x, T *y, const unsigned int n, unsigned int *table, co
 	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 	const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 	const unsigned int gthreadId= blockId * bsize+bthreadId;
-	const unsigned int kvbmu=kvol*mu;
+	const unsigned int kvbmu=kvolHalo*mu;
 	for(unsigned int i = gthreadId; i<kvol;i+=gsize*bsize)
 		x[i]=y[table[i+kvbmu]+kvbmu];
 }
@@ -118,7 +118,7 @@ __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 	const unsigned int gthreadId= blockId * bsize+bthreadId;
 
 	for(unsigned int i=gthreadId;i<kvol;i+=gsize*bsize){
-		const unsigned int ind=i+kvol*mu;
+		const unsigned int ind=i+kvolHalo*mu;
 		const Complex_f u11s=u11t[ind]; const Complex_f u12s=u12t[ind];
 		//const int uid = iu[mu+ndim*i];
 		const unsigned int uid = iu[ind];
@@ -127,10 +127,10 @@ __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 			Complex_f X1s[nc];	 Complex_f X1su[nc];
 			Complex_f X2s[nc];	 Complex_f X2su[nc];
 
-			X1s[0]=X1[i+kvol*(idirac)]; X1s[1]=X1[i+kvol*(1+idirac)];
-			X1su[0]=X1[uid+kvol*(idirac)]; X1su[1]=X1[uid+kvol*(1+idirac)];
-			X2s[0]=X2[i+kvol*(idirac)]; X2s[1]=X2[i+kvol*(1+idirac)];
-			X2su[0]=X2[uid+kvol*(idirac)]; X2su[1]=X2[uid+kvol*(1+idirac)];
+			X1s[0]=X1[i+kvolHalo*(idirac)]; X1s[1]=X1[i+kvolHalo*(1+idirac)];
+			X1su[0]=X1[uid+kvolHalo*(idirac)]; X1su[1]=X1[uid+kvolHalo*(1+idirac)];
+			X2s[0]=X2[i+kvolHalo*(idirac)]; X2s[1]=X2[i+kvolHalo*(1+idirac)];
+			X2su[0]=X2[uid+kvolHalo*(idirac)]; X2su[1]=X2[uid+kvolHalo*(1+idirac)];
 
 			float dSdpis[3];
 			dSdpis[0]=dSdpi[ind];
@@ -143,14 +143,14 @@ __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 					+conj(X1su[0])*(u12s*X2s[0]-conj(u11s)*X2s[1])
 					+conj(X1su[1])*(-u11s*X2s[0]-conj(u12s)*X2s[1])).imag();
 
-			dSdpis[1]=dSdpi[i+kvol*(ndim+mu)];
+			dSdpis[1]=dSdpi[i+kvolHalo*(ndim+mu)];
 			dSdpis[1]+=akappa*(
 					(conj(X1s[0])*(-conj(u12s)*X2su[0]+conj(u11s)*X2su[1])
 					 +conj(X1s[1])*(-u11s*X2su[0]-u12s*X2su[1])
 					 +conj(X1su[0])*(-u12s*X2s[0]-conj(u11s)*X2s[1])
 					 +conj(X1su[1])*(u11s*X2s[0]-conj(u12s)*X2s[1]))).real();
 
-			dSdpis[2]=dSdpi[i+kvol*(2*ndim+mu)];
+			dSdpis[2]=dSdpi[i+kvolHalo*(2*ndim+mu)];
 			dSdpis[2]+=-akappa*(
 					conj(X1s[0])*(u11s *X2su[0]+u12s *X2su[1])
 					+conj(X1s[1])*(conj(u12s)*X2su[0]-conj(u11s)*X2su[1])
@@ -161,8 +161,8 @@ __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 			const Complex_f gamval_c=gamval[gindex];
 			//Rescaling gind by nc
 			const unsigned short gind = gamin[gindex]<<1;	
-			X2s[0]=X2[i+kvol*(gind)]; X2s[1]=X2[i+kvol*(1+gind)];
-			X2su[0]=X2[uid+kvol*(gind)]; X2su[1]=X2[uid+kvol*(1+gind)];
+			X2s[0]=X2[i+kvolHalo*(gind)]; X2s[1]=X2[i+kvolHalo*(1+gind)];
+			X2su[0]=X2[uid+kvolHalo*(gind)]; X2su[1]=X2[uid+kvolHalo*(1+gind)];
 
 			//If you are asked to rederive the force from Montvay and Munster you'll notice that it should be kappa*gamma
 			//but below is only gamma. We rescaled gamma by kappa already when we defined it so that's where it has gone
@@ -178,14 +178,14 @@ __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 					 +conj(X1s[1])*(-u11s *X2su[0]-u12s *X2su[1])
 					 +conj(X1su[0])* (u12s *X2s[0]+conj(u11s)*X2s[1])
 					 +conj(X1su[1])* (-u11s *X2s[0]+conj(u12s)*X2s[1]))).real();
-			dSdpi[i+kvol*(ndim+mu)]=dSdpis[1];
+			dSdpi[i+kvolHalo*(ndim+mu)]=dSdpis[1];
 
 			dSdpis[2]+=-(gamval_c*
 					(conj(X1s[0])*(u11s *X2su[0]+u12s *X2su[1])
 					 +conj(X1s[1])*(conj(u12s)*X2su[0]-conj(u11s)*X2su[1])
 					 +conj(X1su[0])*(conj(u11s)*X2s[0]+u12s *X2s[1])
 					 +conj(X1su[1])*(conj(u12s)*X2s[0]-u11s *X2s[1]))).imag();
-			dSdpi[i+kvol*(2*ndim+mu)]=dSdpis[2];
+			dSdpi[i+kvolHalo*(2*ndim+mu)]=dSdpis[2];
 		}
 	}
 }
@@ -199,7 +199,7 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t,Comple
 
 	const unsigned short mu=3;
 	for(unsigned int i=gthreadId;i<kvol;i+=gsize*bsize){
-		const unsigned int ind=i+kvol*mu;
+		const unsigned int ind=i+kvolHalo*mu;
 		const Complex_f u11s=u11t[ind];	const Complex_f u12s=u12t[ind];
 		//TODO: The only diffrence with these is that the sign flips for the temporal components
 		//			Can we figure out a way of doing this without having to read in a large array. 
@@ -212,10 +212,10 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t,Comple
 			Complex_f X1s[nc];	 Complex_f X1su[nc];
 			Complex_f X2s[nc];	 Complex_f X2su[nc];
 
-			X1s[0]=X1[i+kvol*(idirac)]; X1s[1]=X1[i+kvol*(1+idirac)];
-			X1su[0]=X1[uid+kvol*(idirac)]; X1su[1]=X1[uid+kvol*(1+idirac)];
-			X2s[0]=X2[i+kvol*(idirac)]; X2s[1]=X2[i+kvol*(1+idirac)];
-			X2su[0]=X2[uid+kvol*(idirac)]; X2su[1]=X2[uid+kvol*(1+idirac)];
+			X1s[0]=X1[i+kvolHalo*(idirac)]; X1s[1]=X1[i+kvolHalo*(1+idirac)];
+			X1su[0]=X1[uid+kvolHalo*(idirac)]; X1su[1]=X1[uid+kvolHalo*(1+idirac)];
+			X2s[0]=X2[i+kvolHalo*(idirac)]; X2s[1]=X2[i+kvolHalo*(1+idirac)];
+			X2su[0]=X2[uid+kvolHalo*(idirac)]; X2su[1]=X2[uid+kvolHalo*(1+idirac)];
 
 			float dSdpis[3];
 			dSdpis[0]=dSdpi[ind];
@@ -227,13 +227,13 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t,Comple
 					+dk4ps*(conj(X1su[0])*(+u12s*X2s[0]-conj(u11s)*X2s[1])
 						+conj(X1su[1])*(-u11s*X2s[0]-conj(u12s)*X2s[1]))).imag();
 
-			dSdpis[1]=dSdpi[i+kvol*(ndim+mu)];
+			dSdpis[1]=dSdpi[i+kvolHalo*(ndim+mu)];
 			dSdpis[1]+=(dk4ms*(conj(X1s[0])*(-conj(u12s)*X2su[0]+conj(u11s)*X2su[1])
 						+conj(X1s[1])*(-u11s *X2su[0]-u12s *X2su[1]))
 					+dk4ps*(conj(X1su[0])*(-u12s *X2s[0]-conj(u11s)*X2s[1])
 						+conj(X1su[1])*( u11s *X2s[0]-conj(u12s)*X2s[1]))).real();
 
-			dSdpis[2]=dSdpi[i+kvol*(2*ndim+mu)];
+			dSdpis[2]=dSdpi[i+kvolHalo*(2*ndim+mu)];
 			dSdpis[2]+=-(dk4ms* (conj(X1s[0])* (u11s *X2su[0]+u12s *X2su[1])
 						+conj(X1s[1])* (conj(u12s)*X2su[0]-conj(u11s)*X2su[1]))
 					+dk4ps*(conj(X1su[0])*(-conj(u11s)*X2s[0]-u12s *X2s[1])
@@ -242,8 +242,8 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t,Comple
 			const unsigned short gindex=mu*ndirac+(idirac>>1);
 			//Rescaling gind by nc
 			const unsigned short gind = gamin[gindex]<<1;	
-			X2s[0]=X2[i+kvol*(gind)]; X2s[1]=X2[i+kvol*(1+gind)];
-			X2su[0]=X2[uid+kvol*(gind)]; X2su[1]=X2[uid+kvol*(1+gind)];
+			X2s[0]=X2[i+kvolHalo*(gind)]; X2s[1]=X2[i+kvolHalo*(1+gind)];
+			X2su[0]=X2[uid+kvolHalo*(gind)]; X2su[1]=X2[uid+kvolHalo*(1+gind)];
 
 			dSdpis[0]+=-(dk4ms*(conj(X1s[0])*(-conj(u12s)*X2su[0]+conj(u11s)*X2su[1])
 						+conj(X1s[1])*(u11s *X2su[0]+u12s *X2su[1]))
@@ -257,14 +257,14 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t,Comple
 					-dk4ps*(conj(X1su[0])*(-u12s *X2s[0]-conj(u11s)*X2s[1])
 						+conj(X1su[1])*(u11s*X2s[0]-conj(u12s)*X2s[1]))).real();
 			//dSdpi[(i*nadj+1)*ndim+mu]=dSdpis[1];
-			dSdpi[i+kvol*(ndim+mu)]=dSdpis[1];
+			dSdpi[i+kvolHalo*(ndim+mu)]=dSdpis[1];
 
 			dSdpis[2]+=-(dk4ms*(conj(X1s[0])*(u11s*X2su[0] +u12s *X2su[1])
 						+conj(X1s[1])* (conj(u12s)*X2su[0]-conj(u11s)*X2su[1]))
 					-dk4ps*(conj(X1su[0])*(-conj(u11s)*X2s[0]-u12s *X2s[1])
 						+conj(X1su[1])*(-conj(u12s)*X2s[0]+u11s *X2s[1]))).imag();
 			//dSdpi[(i*nadj+2)*ndim+mu]=dSdpis[2];
-			dSdpi[i+kvol*(2*ndim+mu)]=dSdpis[2];
+			dSdpi[i+kvolHalo*(2*ndim+mu)]=dSdpis[2];
 		}
 	}
 }
@@ -279,19 +279,19 @@ void cuGauge_force(Complex_f *ut[2],double *dSdpi,float beta,unsigned int *iu,un
 #ifdef _DEBUG
 		cudaMallocManaged((void **)&Sigma[i][0],kvol*sizeof(Complex_f),cudaMemAttachGlobal);
 		cudaMallocManaged((void **)&Sigma[i][1],kvol*sizeof(Complex_f),cudaMemAttachGlobal);
-		cudaMallocManaged((void **)&ush[i][0],(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
-		cudaMallocManaged((void **)&ush[i][1],(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
+		cudaMallocManaged((void **)&ush[i][0],kvolHalo*sizeof(Complex_f),cudaMemAttachGlobal);
+		cudaMallocManaged((void **)&ush[i][1],kvolHalo*sizeof(Complex_f),cudaMemAttachGlobal);
 #else
 		cudaMallocAsync((void **)&Sigma[i][0],kvol*sizeof(Complex_f),streams[i]);
 		cudaMallocAsync((void **)&Sigma[i][1],kvol*sizeof(Complex_f),streams[i]);
-		cudaMallocAsync((void **)&ush[i][0],(kvol+halo)*sizeof(Complex_f),streams[i]);
-		cudaMallocAsync((void **)&ush[i][1],(kvol+halo)*sizeof(Complex_f),streams[i]);
+		cudaMallocAsync((void **)&ush[i][0],kvolHalo*sizeof(Complex_f),streams[i]);
+		cudaMallocAsync((void **)&ush[i][1],kvolHalo*sizeof(Complex_f),streams[i]);
 #endif
 	}
-	for(int mu=0; mu<ndim; mu++){
+	for(unsigned short mu=0; mu<ndim; mu++){
 		cudaMemsetAsync(Sigma[mu][0],0, kvol*sizeof(Complex_f),streams[mu]);
 		cudaMemsetAsync(Sigma[mu][1],0, kvol*sizeof(Complex_f),streams[mu]);
-		for(int nu=0; nu<ndim; nu++)
+		for(unsigned short nu=0; nu<ndim; nu++)
 			if(nu!=mu){
 				//The @f$-\nu@f$ Staple
 				Plus_staple<<<dimGrid,dimBlock,0,streams[mu]>>>(mu, nu, iu, Sigma[mu][0], Sigma[mu][1],ut[0],ut[1]);
@@ -300,8 +300,8 @@ void cuGauge_force(Complex_f *ut[2],double *dSdpi,float beta,unsigned int *iu,un
 
 #if(nproc>1)
 				//Prefetch to the CPU for until we get NCCL working
-				//cudaMemPrefetchAsync(ush[0], kvol*sizeof(Complex_f),cudaCpuDeviceId,streams[0]);
-				//cudaMemPrefetchAsync(ush[1], kvol*sizeof(Complex_f),cudaCpuDeviceId,streams[1]);
+				//cudaMemPrefetchAsync(ush[0], kvolHalo*sizeof(Complex_f),cudaCpuDeviceId,streams[0]);
+				//cudaMemPrefetchAsync(ush[1], kvolHalo*sizeof(Complex_f),cudaCpuDeviceId,streams[1]);
 				CHalo_swap_dir(ush[mu][0], 1, mu, DOWN); CHalo_swap_dir(ush[mu][1], 1, mu, DOWN);
 				//cudaMemPrefetchAsync(ush[0]+kvol, halo*sizeof(Complex_f),device,streams[0]);
 				//cudaMemPrefetchAsync(ush[1]+kvol, halo*sizeof(Complex_f),device,streams[1]);

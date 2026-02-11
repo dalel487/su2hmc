@@ -26,7 +26,7 @@ __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, compl
 			complex<T> a_1=conj(jqq)*gamval_d[ind_d];
 			//We subtract a_2, hence the minus
 			complex<T> a_2=-jqq*gamval_d[ind_d];
-			ind_d=i+kvol*(idirac); unsigned int ind_g=i+kvol*(igork);
+			ind_d=i+kvolHalo*(idirac); unsigned int ind_g=i+kvolHalo*(igork);
 			phi_s[idirac]=phi[ind_d]+a_1*r[ind_g];
 			phi_s[igork]=phi[ind_g]+a_2*r[ind_d];
 			ind_d+=kvol; ind_g+=kvol;
@@ -39,10 +39,10 @@ __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, compl
 		//Spacelike terms. Here's hoping I haven't put time as the zeroth component somewhere!
 #ifndef NO_SPACE
 		for(unsigned short mu = 0; mu <3; mu++){
-			ind = i+kvol*mu;
+			ind = i+kvolHalo*mu;
 			const unsigned int did=id[ind]; const unsigned int uid = iu[ind];
 			u11s=u11t[ind]; u12s=u12t[ind];
-			ind = did+kvol*mu;
+			ind = did+kvolHalo*mu;
 			u11sd=u11t[ind]; u12sd=u12t[ind];
 			for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
 				unsigned short idirac=igorkov&3;		
@@ -51,8 +51,8 @@ __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, compl
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing in the dirac term.
 				unsigned short igork1 = (igorkov<4) ? gamin_d[gind] : gamin_d[gind]+4;
 				for(unsigned short c=0;c<nc;c++){
-					ru[c]=r[uid+kvol*(igorkov*nc+c)]; rd[c]=r[did+kvol*(igorkov*nc+c)];
-					rgu[c]=r[uid+kvol*(igork1*nc+c)]; rgd[c]=r[did+kvol*(igork1*nc+c)];
+					ru[c]=r[uid+kvolHalo*(igorkov*nc+c)]; rd[c]=r[did+kvolHalo*(igorkov*nc+c)];
+					rgu[c]=r[uid+kvolHalo*(igork1*nc+c)]; rgd[c]=r[did+kvolHalo*(igork1*nc+c)];
 				}
 				//Wilson + Dirac term in that order. Definitely easier
 				phi_s[igorkov*nc]+=-akappa*(u11s*ru[0]+ u12s*ru[1]+\
@@ -73,45 +73,45 @@ __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, compl
 		//Note that for the igorkov 4..7 loop idirac=igorkov-4, so we don't need to declare idiracPP separately
 #endif
 #ifndef NO_TIME
-		ind=i+kvol*3;
+		ind=i+kvolHalo*3;
 		u11s=u11t[ind]; u12s=u12t[ind];
 		const T dk4ms=dk4m[i];	const T dk4ps=dk4p[i];
 		const unsigned int did=id[ind]; const unsigned int uid = iu[ind];
-		ind=did+kvol*3;
+		ind=did+kvolHalo*3;
 		u11sd=u11t[ind]; u12sd=u12t[ind];
 		const T dk4msd=dk4m[did];	const T dk4psd=dk4p[did];
 		for(unsigned short igorkov=0;igorkov<ndirac;igorkov++){
 			unsigned short igork1 = gamin_d[3*ndirac+igorkov];
 			for(unsigned short c=0;c<nc;c++){
-				ru[c]=r[uid+kvol*(igorkov*nc+c)]; rd[c]=r[did+kvol*(igorkov*nc+c)];
-				rgu[c]=r[uid+kvol*(igork1*nc+c)]; rgd[c]=r[did+kvol*(igork1*nc+c)];
+				ru[c]=r[uid+kvolHalo*(igorkov*nc+c)]; rd[c]=r[did+kvolHalo*(igorkov*nc+c)];
+				rgu[c]=r[uid+kvolHalo*(igork1*nc+c)]; rgd[c]=r[did+kvolHalo*(igork1*nc+c)];
 			}
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			phi_s[igorkov*nc]+=
 				-dk4ps*(u11s*(ru[0]-rgu[0]) +u12s*(ru[1]-rgu[1]))
 				-dk4msd*(conj(u11sd)*(rd[0]+rgd[0]) -u12sd *(rd[1]+rgd[1]));
-			phi[i+kvol*(igorkov*nc)]=phi_s[igorkov*nc];
+			phi[i+kvolHalo*(igorkov*nc)]=phi_s[igorkov*nc];
 
 			phi_s[igorkov*nc+1]+=
 				-dk4ps*(-conj(u12s)*(ru[0]-rgu[0]) +conj(u11s)*(ru[1]-rgu[1]))
 				-dk4msd*(conj(u12sd)*(rd[0]+rgd[0]) +u11sd *(rd[1]+rgd[1]));
-			phi[i+kvol*(igorkov*nc+1)]=phi_s[igorkov*nc+1];
+			phi[i+kvolHalo*(igorkov*nc+1)]=phi_s[igorkov*nc+1];
 			const unsigned short igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
 																		//the FORTRAN code did it.
 			igork1 += 4;
 			//And the gorkov terms. Note that dk4p and dk4m swap positions compared to the above				
 			for(unsigned short c=0;c<nc;c++){
-				ru[c]=r[uid+kvol*(igorkovPP*nc+c)]; rd[c]=r[did+kvol*(igorkovPP*nc+c)];
-				rgu[c]=r[uid+kvol*(igork1*nc+c)]; rgd[c]=r[did+kvol*(igork1*nc+c)];
+				ru[c]=r[uid+kvolHalo*(igorkovPP*nc+c)]; rd[c]=r[did+kvolHalo*(igorkovPP*nc+c)];
+				rgu[c]=r[uid+kvolHalo*(igork1*nc+c)]; rgd[c]=r[did+kvolHalo*(igork1*nc+c)];
 			}
 			//And the Gor'kov terms. Note that dk4p and dk4m swap positions compared to the above				
 			phi_s[igorkovPP*nc]+=-dk4ms*(u11s*(ru[0]-rgu[0])+ u12s*(ru[1]-rgu[1]))-
 				dk4psd*(conj(u11sd)*(rd[0]+rgd[0])- u12sd*(rd[1]+rgd[1]));
-			phi[i+kvol*(igorkovPP*nc)]=phi_s[igorkovPP*nc];
+			phi[i+kvolHalo*(igorkovPP*nc)]=phi_s[igorkovPP*nc];
 
 			phi_s[igorkovPP*nc+1]+=-dk4ms*(conj(-u12s)*(ru[0]-rgu[0]) +conj(u11s)*(ru[1]-rgu[1]))
 				-dk4psd*(conj(u12sd)*(rd[0]+rgd[0]) +u11sd*(rd[1]+rgd[1]));
-			phi[i+kvol*(igorkovPP*nc+1)]=phi_s[igorkovPP*nc+1];
+			phi[i+kvolHalo*(igorkovPP*nc+1)]=phi_s[igorkovPP*nc+1];
 		}
 #endif
 	}
@@ -135,10 +135,10 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 			//We subtract a_1, hence the minus
 			complex<T> a_1=-conj(jqq)*gamval_d[4*ndirac+idirac];
 			complex<T> a_2=jqq*gamval_d[4*ndirac+idirac];
-			phi_s[idirac*nc]=phi[i+kvol*(idirac*nc)]+a_1*r[i+kvol*(igork*nc)];
-			phi_s[igork*nc]=phi[i+kvol*(igork*nc)]+a_2*r[i+kvol*(idirac*nc)];
-			phi_s[idirac*nc+1]=phi[i+kvol*(idirac*nc+1)]+a_1*r[i+kvol*(igork*nc+1)];
-			phi_s[igork*nc+1]=phi[i+kvol*(igork*nc+1)]+a_2*r[i+kvol*(idirac*nc+1)];
+			phi_s[idirac*nc]=phi[i+kvolHalo*(idirac*nc)]+a_1*r[i+kvolHalo*(igork*nc)];
+			phi_s[igork*nc]=phi[i+kvolHalo*(igork*nc)]+a_2*r[i+kvolHalo*(idirac*nc)];
+			phi_s[idirac*nc+1]=phi[i+kvolHalo*(idirac*nc+1)]+a_1*r[i+kvolHalo*(igork*nc+1)];
+			phi_s[igork*nc+1]=phi[i+kvolHalo*(igork*nc+1)]+a_2*r[i+kvolHalo*(idirac*nc+1)];
 		}
 		complex<T> u11s;	 complex<T> u12s;
 		complex<T> u11sd;	 complex<T> u12sd;
@@ -146,10 +146,10 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 		//Spacelike terms. Here's hoping I haven't put time as the zeroth component somewhere!
 #ifndef NO_SPACE
 		for(unsigned short mu = 0; mu <3; mu++){
-			ind = i+kvol*mu;
+			ind = i+kvolHalo*mu;
 			const unsigned int did=id[ind]; const unsigned int uid = iu[ind];
 			u11s=u11t[ind]; u12s=u12t[ind];
-			ind = did+kvol*mu;
+			ind = did+kvolHalo*mu;
 			u11sd=u11t[ind]; u12sd=u12t[ind];
 			for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
 				unsigned short idirac=igorkov&3;		
@@ -157,8 +157,8 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing.
 				unsigned short igork1 = (igorkov<4) ? gamin_d[mu*ndirac+idirac] : gamin_d[mu*ndirac+idirac]+4;
 				for(unsigned short c=0;c<nc;c++){
-					ru[c]=r[uid+kvol*(igorkov*nc+c)]; rd[c]=r[did+kvol*(igorkov*nc+c)];
-					rgd[c]=r[did+kvol*(igork1*nc+c)]; rgu[c]=r[uid+kvol*(igork1*nc+c)];
+					ru[c]=r[uid+kvolHalo*(igorkov*nc+c)]; rd[c]=r[did+kvolHalo*(igorkov*nc+c)];
+					rgd[c]=r[did+kvolHalo*(igork1*nc+c)]; rgu[c]=r[uid+kvolHalo*(igork1*nc+c)];
 				}
 				//Wilson + Dirac term in that order. Definitely easier
 				phi_s[igorkov*nc]-= akappa*(u11s*ru[0] +u12s*ru[1]
@@ -182,44 +182,44 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 		//Note that for the igorkov 4..7 loop idirac=igorkov-4, so we don't need to declare idiracPP separately
 		//Under dagger, dk4p and dk4m get swapped and the dirac component flips sign.
 #ifndef NO_TIME
-		ind=i+kvol*3;
+		ind=i+kvolHalo*3;
 		u11s=u11t[ind]; u12s=u12t[ind];
 		const T dk4ms=dk4m[i];	const T dk4ps=dk4p[i];
 		const unsigned int did=id[ind]; const unsigned int uid = iu[ind];
-		ind=did+kvol*3;
+		ind=did+kvolHalo*3;
 		u11sd=u11t[ind]; u12sd=u12t[ind];
 		const T dk4msd=dk4m[did];	const T dk4psd=dk4p[did];
 		for(unsigned short igorkov=0; igorkov<ndirac; igorkov++){
 			unsigned short igork1 = gamin_d[3*ndirac+igorkov];	
 			for(unsigned short c=0;c<nc;c++){
-				ru[c]=r[uid+kvol*(igorkov*nc+c)]; rd[c]=r[did+kvol*(igorkov*nc+c)];
-				rgu[c]=r[uid+kvol*(igork1*nc+c)]; rgd[c]=r[did+kvol*(igork1*nc+c)];
+				ru[c]=r[uid+kvolHalo*(igorkov*nc+c)]; rd[c]=r[did+kvolHalo*(igorkov*nc+c)];
+				rgu[c]=r[uid+kvolHalo*(igork1*nc+c)]; rgd[c]=r[did+kvolHalo*(igork1*nc+c)];
 			}
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			phi_s[igorkov*nc]+=
 				-dk4ms*(u11s*(ru[0]+rgu[0]) +u12s*(ru[1]+rgu[1]))
 				-dk4psd*(conj(u11sd)*(rd[0]-rgd[0]) -u12sd *(rd[1]-rgd[1]));
-			phi[i+kvol*(igorkov*nc)]=phi_s[igorkov*nc];
+			phi[i+kvolHalo*(igorkov*nc)]=phi_s[igorkov*nc];
 
 			phi_s[igorkov*nc+1]+=
 				-dk4ms*(-conj(u12s)*(ru[0]+rgu[0]) +conj(u11s)*(ru[1]+rgu[1]))
 				-dk4psd*(conj(u12sd)*(rd[0]-rgd[0]) +u11sd *(rd[1]-rgd[1]));
-			phi[i+kvol*(igorkov*nc+1)]=phi_s[igorkov*nc+1];
+			phi[i+kvolHalo*(igorkov*nc+1)]=phi_s[igorkov*nc+1];
 			const unsigned short igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
 																		//the FORTRAN code did it.
 			igork1 += 4;
 			for(unsigned short c=0;c<nc;c++){
-				ru[c]=r[uid+kvol*(igorkovPP*nc+c)]; rd[c]=r[did+kvol*(igorkovPP*nc+c)];
-				rgu[c]=r[uid+kvol*(igork1*nc+c)]; rgd[c]=r[did+kvol*(igork1*nc+c)];
+				ru[c]=r[uid+kvolHalo*(igorkovPP*nc+c)]; rd[c]=r[did+kvolHalo*(igorkovPP*nc+c)];
+				rgu[c]=r[uid+kvolHalo*(igork1*nc+c)]; rgd[c]=r[did+kvolHalo*(igork1*nc+c)];
 			}
 			//And the Gor'kov terms. Note that dk4p and dk4m swap positions compared to the above				
 			phi_s[igorkovPP*nc]+=-dk4ps*(u11s*(ru[0]+rgu[0]) +u12s*(ru[1]+rgu[1]))
 				-dk4msd*(conj(u11sd)*(rd[0]-rgd[0]) -u12sd*(rd[1]-rgd[1]));
-			phi[i+kvol*(igorkovPP*nc)]=phi_s[igorkovPP*nc];
+			phi[i+kvolHalo*(igorkovPP*nc)]=phi_s[igorkovPP*nc];
 
 			phi_s[igorkovPP*nc+1]+=dk4ps*(conj(u12s)*(ru[0]+rgu[0]) -conj(u11s)*(ru[1]+rgu[1]))
 				-dk4msd*(conj(u12sd)*(rd[0]-rgd[0]) +u11sd*(rd[1]-rgd[1]));
-			phi[i+kvol*(igorkovPP*nc+1)]=phi_s[igorkovPP*nc+1];
+			phi[i+kvolHalo*(igorkovPP*nc+1)]=phi_s[igorkovPP*nc+1];
 		}
 #endif
 	}
@@ -247,23 +247,23 @@ __global__ void cuHdslash(complex<T> *phi, const complex<T> *r, const complex<T>
 #pragma unroll
 			for(unsigned short c=0; c<nc; c++)
 				//NOTE: idirac is increasing by nc each time. So should be read as idirac*nc 
-				phi_s[idirac+c]=phi[i+kvol*(c+idirac)];
+				phi_s[idirac+c]=phi[i+kvolHalo*(c+idirac)];
 
 		//#pragma unroll
 		for(unsigned short mu = 0; mu <ndim; mu++){
-			unsigned int ind=i+kvol*mu;
+			unsigned int ind=i+kvolHalo*mu;
 			const complex<T> u11s=u11t[ind];	const complex<T> u12s=u12t[ind];
 			const int did=id[ind];	const int uid = iu[ind];
-			ind=did+kvol*mu;
+			ind=did+kvolHalo*mu;
 			const complex<T> u11sd=u11t[ind];	const complex<T> u12sd=u12t[ind];
 #pragma unroll
 			for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
 				const unsigned short igork1 = gamin_d[mu*ndirac+(idirac>>1)] << (nc-1);
 #pragma unroll
 				for(unsigned short c=0;c<nc;c++){
-					ind =kvol*(idirac+c);
+					ind =kvolHalo*(idirac+c);
 					ru[c]=r[uid+ind]; rd[c]=r[did+ind];
-					ind =kvol*(igork1+c);
+					ind =kvolHalo*(igork1+c);
 					rgu[c]=r[uid+ind]; rgd[c]=r[did+ind];
 				}
 				//Can manually vectorise with a pragma?
@@ -293,13 +293,13 @@ __global__ void cuHdslash(complex<T> *phi, const complex<T> *r, const complex<T>
 							+u12s*(ru[1]-rgu[1]));
 					phi_s[idirac+0]-= dk4ms*(conj(u11sd)*(rd[0]+rgd[0])
 							-u12sd *(rd[1]+rgd[1]));
-					phi[i+kvol*(0+idirac)]=phi_s[idirac+0];
+					phi[i+kvolHalo*(0+idirac)]=phi_s[idirac+0];
 
 					phi_s[idirac+1]-= dk4ps*(-conj(u12s)*(ru[0]-rgu[0])
 							+conj(u11s)*(ru[1]-rgu[1]));
 					phi_s[idirac+1]-= dk4ms*(conj(u12sd)*(rd[0]+rgd[0])
 							+u11sd *(rd[1]+rgd[1]));
-					phi[i+kvol*(1+idirac)]=phi_s[idirac+1];
+					phi[i+kvolHalo*(1+idirac)]=phi_s[idirac+1];
 				}
 			}
 		}
@@ -327,23 +327,23 @@ __global__ void cuHdslashd(complex<T> *phi, const complex<T>* r, const complex<T
 #pragma unroll
 			for(unsigned short c=0; c<nc; c++)
 				//NOTE: idirac is increasing by nc each time. So should be read as idirac*nc 
-				phi_s[idirac+c]=phi[i+kvol*(c+idirac)];
+				phi_s[idirac+c]=phi[i+kvolHalo*(c+idirac)];
 
 		//#pragma unroll
 		for(unsigned short mu = 0; mu <ndim; mu++){
-			unsigned int ind=i+kvol*mu;
+			unsigned int ind=i+kvolHalo*mu;
 			const complex<T> u11s=u11t[ind];	const complex<T> u12s=u12t[ind];
 			const int did=id[ind];	const int uid = iu[ind];
-			ind=did+kvol*mu;
+			ind=did+kvolHalo*mu;
 			const complex<T> u11sd=u11t[ind];	const complex<T> u12sd=u12t[ind];
 #pragma unroll
 			for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc){
 				unsigned short igork1 = gamin_d[mu*ndirac+(idirac>>1)] << (nc-1);
 #pragma unroll
 				for(unsigned short c=0;c<nc;c++){
-					ind =kvol*(idirac+c);
+					ind =kvolHalo*(idirac+c);
 					ru[c]=r[uid+ind]; rd[c]=r[did+ind];
-					ind =kvol*(igork1+c);
+					ind =kvolHalo*(igork1+c);
 					rgu[c]=r[uid+ind]; rgd[c]=r[did+ind];
 				}
 				//Can manually vectorise with a pragma?
@@ -373,13 +373,13 @@ __global__ void cuHdslashd(complex<T> *phi, const complex<T>* r, const complex<T
 							+u12s*(ru[1]+rgu[1]));
 					phi_s[idirac]+= -dk4ps*(conj(u11sd)*(rd[0]-rgd[0])
 							-u12sd *(rd[1]-rgd[1]));
-					phi[i+kvol*(0+idirac)]=phi_s[idirac+0];
+					phi[i+kvolHalo*(0+idirac)]=phi_s[idirac+0];
 
 					phi_s[idirac+1]-= dk4ms*(-conj(u12s)*(ru[0]+rgu[0])
 							+conj(u11s)*(ru[1]+rgu[1]));
 					phi_s[idirac+1]-= +dk4ps*(conj(u12sd)*(rd[0]-rgd[0])
 							+u11sd *(rd[1]-rgd[1]));
-					phi[i+kvol*(1+idirac)]=phi_s[idirac+1];
+					phi[i+kvolHalo*(1+idirac)]=phi_s[idirac+1];
 				}
 			}
 		}
@@ -532,21 +532,21 @@ void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned in
 		Complex gamval[20], const unsigned short gamin[16],	double *dk4m, double *dk4p, Complex_f jqq, float akappa,\
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslash";
-	cudaMemcpy(phi, r, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice);
+	cudaMemcpy(phi, r, kfermHalo*sizeof(Complex),cudaMemcpyDeviceToDevice);
 	cuDslash<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 }
 void cuDslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
 		Complex gamval[20], const unsigned short gamin[16],	double *dk4m, double *dk4p, Complex_f jqq, float akappa,\ 
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslashd";
-	cudaMemcpy(phi, r, kferm*sizeof(Complex),cudaMemcpyDeviceToDevice);
+	cudaMemcpy(phi, r, kfermHalo*sizeof(Complex),cudaMemcpyDeviceToDevice);
 	cuDslashd<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 }
 void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
 		Complex gamval[20], const unsigned short gamin[16],	double *dk4m, double *dk4p, float akappa,\ 
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Hdslash";
-	cudaMemcpy(phi, r, kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice);
+	cudaMemcpy(phi, r, kferm2Halo*sizeof(Complex),cudaMemcpyDeviceToDevice);
 	cuHdslash<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
 }
 void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
@@ -554,7 +554,7 @@ void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned 
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Hdslashd";
 	//Spacelike term
-	cudaMemcpy(phi, r, kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice);
+	cudaMemcpy(phi, r, kferm2Halo*sizeof(Complex),cudaMemcpyDeviceToDevice);
 	cuHdslashd<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
 }
 
@@ -564,7 +564,7 @@ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,u
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslash_f";
 	int cuCpyStat=0;
-	if((cuCpyStat=cudaMemcpy(phi, r, kferm*sizeof(Complex_f),cudaMemcpyDefault))){
+	if((cuCpyStat=cudaMemcpy(phi, r, kfermHalo*sizeof(Complex_f),cudaMemcpyDefault))){
 		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
 				CPYERROR,funcname,cuCpyStat);
 		exit(cuCpyStat);
@@ -576,7 +576,7 @@ void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslashd_f";
 	int cuCpyStat=0;
-	if((cuCpyStat=cudaMemcpy(phi, r, kferm*sizeof(Complex_f),cudaMemcpyDefault))){
+	if((cuCpyStat=cudaMemcpy(phi, r, kfermHalo*sizeof(Complex_f),cudaMemcpyDefault))){
 		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
 				CPYERROR,funcname,cuCpyStat);
 		exit(cuCpyStat);
@@ -587,7 +587,7 @@ void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu
 		const unsigned short gamin[16],	float *dk[2], float akappa, dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Hdslash_f";
 	int cuCpyStat=0;
-	if((cuCpyStat=cudaMemcpy(phi, r, kferm2*sizeof(Complex_f),cudaMemcpyDefault))){
+	if((cuCpyStat=cudaMemcpy(phi, r, kferm2Halo*sizeof(Complex_f),cudaMemcpyDefault))){
 		fprintf(stderr,"Error %d in %s: Cuda failed to copy r into device Phi with code %d.\nExiting,,,\n\n",\
 				CPYERROR,funcname,cuCpyStat);
 		exit(cuCpyStat);
@@ -602,7 +602,7 @@ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *i
 	int cuCpyStat=0;
 	//__shared__ int gamin_s[16]; __shared__ Complex_f gamval_s[20];
 	//intShare(gamin_s,gamin,16); floatShare(gamval_s,gamval,2*20);
-	if((cuCpyStat=cudaMemcpy(phi, r, kferm2*sizeof(Complex_f),cudaMemcpyDefault))){
+	if((cuCpyStat=cudaMemcpy(phi, r, kferm2Halo*sizeof(Complex_f),cudaMemcpyDefault))){
 		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
 				CPYERROR,funcname,cuCpyStat);
 		exit(cuCpyStat);

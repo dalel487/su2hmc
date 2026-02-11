@@ -223,12 +223,14 @@ extern cudaMemPool_t mempool;
 ///	@brief	Total Halo size
 #define	halo	(2*(halox+haloy+haloz+halot))
 
+///	@brief	Subvolume + halo size
+#define	kvolHalo		kvol+halo
 ///	@brief	Gor'kov lattice and halo
-#define	kfermHalo	(nc*ngorkov*(kvol+halo))
+#define	kfermHalo	(nc*ngorkov*(kvolHalo))
 ///	@brief	Dirac lattice and halo
-#define	kferm2Halo	(nc*ndirac*(kvol+halo))
+#define	kferm2Halo	(nc*ndirac*(kvolHalo))
 ///	@brief	Momentum lattice and halo
-#define	kmomHalo	(ndim*nadj*(kvol+halo))
+#define	kmomHalo	(ndim*nadj*(kvolHalo))
 
 //		These all used to be multipled by kferm or kferm2 at the start of Congradq or Congradp
 //		On 20240516 in Room 2.19 of the Lloyd building of Trinity we copped that doing so means that the residue is larger
