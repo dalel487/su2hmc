@@ -354,11 +354,11 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 	 * @return	Zero on success, integer error code otherwise
 	 */
 	const char funcname[] = "par_swrite";
-	#if (nproc>1)
+#if (nproc>1)
 	MPI_Status status;
 	//Used for seed array later on
 	MPI_Datatype MPI_SEED_TYPE = (sizeof(seed)==sizeof(int)) ? MPI_INT:MPI_LONG;
-	#endif
+#endif
 	Complex *u1buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
 	Complex *u2buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
 #ifdef _DEBUG
@@ -1144,6 +1144,7 @@ int DHalo_swap_dir(double *d, int ncpt, int idir, int layer){
 						CANTRECV, funcname, rank, pu[idir]);
 				MPI_Abort(comm,CANTRECV);
 			}
+			break;
 		case(UP):
 			if(halosize[idir]+h1d[idir]>kvol+halo){
 				fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
@@ -1167,6 +1168,7 @@ int DHalo_swap_dir(double *d, int ncpt, int idir, int layer){
 						CANTRECV, funcname, rank, pd[idir]);
 				MPI_Abort(comm,CANTRECV);
 			}
+			break;
 	}	
 	free(sendbuf);
 	MPI_Wait(&request, &status);
@@ -1229,7 +1231,7 @@ int Trial_Exchange(Complex *ut[2],Complex_f *ut_f[2]){
 #endif
 	free(z);
 #endif
-//And get the single precision gauge fields preppeed
+	//And get the single precision gauge fields preppeed
 #ifdef __NVCC__
 	cuComplex_convert(ut_f[0],ut[0],ndim*(kvol+halo),true,dimBlock,dimGrid);
 	cuComplex_convert(ut_f[1],ut[1],ndim*(kvol+halo),true,dimBlock,dimGrid);
