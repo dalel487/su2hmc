@@ -271,7 +271,7 @@ inline int C_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsi
 	//Pointers mean that's not an issue for us so I'm leaving it out
 #pragma omp parallel for simd aligned (x,y,table:AVX)
 	for(int i=0; i<n; i++)
-		x[i]=y[table[i*ndim+mu]*ndim+mu];
+		x[i]=y[table[i+kvol*mu]*ndim+mu];
 	return 0;
 }
 inline int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu)
@@ -281,7 +281,7 @@ inline int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned
 	//Pointers mean that's not an issue for us so I'm leaving it out
 #pragma omp parallel for simd aligned (x,y,table:AVX)
 	for(int i=0; i<n; i++)
-		x[i]=y[table[i*ndim+mu]*ndim+mu];
+		x[i]=y[table[i+kvol*mu]*ndim+mu];
 	return 0;
 }
 inline int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
