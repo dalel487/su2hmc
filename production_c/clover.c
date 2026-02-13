@@ -10,7 +10,7 @@
 #pragma omp declare simd
 inline int Clover_SU2plaq(Complex_f *ut[nc], Complex_f Leaves[nc], unsigned int *iu,  int i, int mu, int nu){
 	const char *funcname = "SU2plaq";
-	int uidm = iu[mu+ndim*i]; 
+	int uidm = iu[mu*kvol+i]; 
 	/***
 	 *	Let's take a quick moment to compare this to the analysis code.
 	 *	The analysis code stores the gauge field as a 4 component real valued vector, whereas the produciton code
@@ -24,7 +24,7 @@ inline int Clover_SU2plaq(Complex_f *ut[nc], Complex_f Leaves[nc], unsigned int 
 	Leaves[0]=ut[0][i*ndim+mu]*ut[0][uidm*ndim+nu]-ut[1][i*ndim+mu]*conj(ut[1][uidm*ndim+nu]);
 	Leaves[1]=ut[0][i*ndim+mu]*ut[1][uidm*ndim+nu]+ut[1][i*ndim+mu]*conj(ut[0][uidm*ndim+nu]);
 
-	int uidn = iu[nu+ndim*i]; 
+	int uidn = iu[nu*kvol+i]; 
 	Complex_f a11=Leaves[0]*conj(ut[0][uidn*ndim+mu])+Leaves[1]*conj(ut[1][uidn*ndim+mu]);
 	Complex_f a12=-Leaves[0]*ut[1][uidn*ndim+mu]+Leaves[1]*ut[0][uidn*ndim+mu];
 
@@ -46,12 +46,12 @@ int Leaf(Complex_f *ut[nc], Complex_f Leaves[nc], unsigned int *iu, unsigned int
 			break;
 		case(1):
 			//\mu<0 and \nu>=0
-			didm = id[mu+ndim*i];
+			didm = id[mu*kvol+i];
 			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu(x-\hat{\mu})@f$
 			Leaves[0]=conj(ut[0][didm*ndim+mu])*ut[0][didm*ndim+nu]+ut[1][didm*ndim+mu]*conj(ut[1][didm*ndim+nu]);
 			Leaves[1]=conj(ut[0][didm*ndim+mu])*ut[1][didm*ndim+nu]-ut[1][didm*ndim+mu]*conj(ut[0][didm*ndim+nu]);
 
-			int uin_didm=id[nu+ndim*didm];
+			int uin_didm=id[nu*kvol+didm];
 			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu(x+\hat{\mu})U_\mu(x-\hat{\mu}+\hat{\nu})@f$
 			//a[0]=Leaves[0][i+kvol*leaf]*conj(ut[0][didm*ndim+nu])+conj(Leaves[1][i+kvol*leaf])*ut[1][didm*ndim+nu];
 			a[0]=Leaves[0]*ut[0][uin_didm*ndim+mu]-Leaves[1]*conj(ut[1][uin_didm*ndim+mu]);
@@ -67,12 +67,12 @@ int Leaf(Complex_f *ut[nc], Complex_f Leaves[nc], unsigned int *iu, unsigned int
 			//\mu>=0 and \nu<0
 			//TODO: Figure out down site index
 			//Another awkward index
-			uidm = iu[mu+ndim*i]; int din_uidm=id[nu+ndim*uidm];
+			uidm = iu[mu*kvol+i]; int din_uidm=id[nu*kvol+uidm];
 			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{\mu}-\hat{\nu})@f$
 			Leaves[0]=ut[0][i*ndim+mu]*conj(ut[0][din_uidm*ndim+nu])+ut[1][i*ndim+mu]*conj(ut[1][din_uidm*ndim+nu]);
 			Leaves[1]=-ut[0][i*ndim+mu]*ut[1][din_uidm*ndim+nu]+ut[1][i*ndim+mu]*ut[0][din_uidm*ndim+nu];
 
-			didn = id[nu+ndim*i]; 
+			didn = id[nu*kvol+i]; 
 			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{\mu}-\hat{\nu})U_\mu^\dagger(x-\hat{\nu})@f$
 			a[0]=Leaves[0]*conj(ut[0][didn*ndim+mu])+Leaves[1]*conj(ut[1][didn*ndim+mu]);
 			a[1]=-Leaves[0]*ut[1][didn*ndim+mu]+Leaves[1]*ut[0][didn*ndim+mu];
@@ -85,7 +85,7 @@ int Leaf(Complex_f *ut[nc], Complex_f Leaves[nc], unsigned int *iu, unsigned int
 		case(3):
 			//\mu<0 and \nu<0
 			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu})@f$
-			didm = id[mu+ndim*i];int dim_didn=id[nu+ndim*didm];
+			didm = id[mu*kvol+i];int dim_didn=id[nu*kvol+didm];
 			Leaves[0]=conj(ut[0][didm*ndim+mu])*conj(ut[0][dim_didn*ndim+nu])-ut[1][didm*ndim+mu]*conj(ut[1][dim_didn*ndim+nu]);
 			Leaves[1]=-conj(ut[0][didm*ndim+mu])*ut[1][dim_didn*ndim+nu]-ut[1][didm*ndim+mu]*ut[0][dim_didn*ndim+nu];
 
@@ -93,7 +93,7 @@ int Leaf(Complex_f *ut[nc], Complex_f Leaves[nc], unsigned int *iu, unsigned int
 			a[0]=Leaves[0]*ut[0][dim_didn*ndim+mu]-Leaves[1]*conj(ut[1][dim_didn*ndim+mu]);
 			a[1]=Leaves[0]*ut[1][dim_didn*ndim+mu]+Leaves[1]*conj(ut[0][dim_didn*ndim+mu]);
 
-			didn = id[nu+ndim*i]; 
+			didn = id[nu*kvol+i]; 
 			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(x-\hat{\mu}-\hat{\nu})U_\nu(x-\hat{\nu})@f$
 			Leaves[0]=a[0]*ut[0][didn*ndim+nu]-a[1]*conj(ut[1][didn*ndim+nu]);
 			Leaves[1]=a[0]*ut[1][didn*ndim+nu]+a[1]*conj(ut[0][didn*ndim+nu]);

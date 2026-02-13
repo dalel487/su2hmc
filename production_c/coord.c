@@ -283,14 +283,14 @@ int Addrc(unsigned int *iu, unsigned int *id){
 			{
 				FILE *id_out = fopen("id_out", "w");
 				for(int i=0;i<kvol;i++)
-					fprintf(id_out,"%i\t%i\t%i\t%i\n",id[i],id[i*ndim+1],id[i*ndim+2],id[i*ndim+3]);
+					fprintf(id_out,"%i\t%i\t%i\t%i\n",id[i],id[i+kvol*1],id[i+kvol*2],id[i+kvol*3]);
 				fclose(id_out);
 			}
 #pragma omp section
 			{
 				FILE *iu_out = fopen("iu_out", "w");
 				for(int i=0;i<kvol;i++)
-					fprintf(iu_out,"%i\t%i\t%i\t%i\n",iu[i],iu[i*ndim+1],iu[i*ndim+2],iu[i*ndim+3]);
+					fprintf(iu_out,"%i\t%i\t%i\t%i\n",iu[i],iu[i+kvol*1],iu[i+kvol*2],iu[i+kvol*3]);
 				fclose(iu_out);
 
 			}
