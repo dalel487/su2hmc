@@ -275,8 +275,8 @@ int main(int argc, char *argv[]){
 	Transpose_z(ut[0],ndim,kvol);
 	Transpose_z(ut[1],ndim,kvol);
 	//And the index arrays
-	Transpose_U(iu,ndim,kvol);
-	Transpose_U(id,ndim,kvol);
+//	Transpose_U(iu,ndim,kvol);
+//	Transpose_U(id,ndim,kvol);
 	cudaDeviceSynchronise();
 #endif
 #ifdef DIAGNOSTIC

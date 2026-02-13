@@ -21,8 +21,8 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 	//First things first, calculate a few constants for coordinates
 	Addrc(iu, id);
 	//And confirm they're legit
-	Check_addr(iu, ksize, ksizet, 0, kvol+halo);
-	Check_addr(id, ksize, ksizet, 0, kvol+halo);
+	Check_addr(iu, ksize, ksizet, 0, kvolHalo);
+	Check_addr(id, ksize, ksizet, 0, kvolHalo);
 #ifdef _DEBUG
 	printf("Checked addresses\n");
 #endif

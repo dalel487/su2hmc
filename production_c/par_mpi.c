@@ -241,6 +241,8 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 							for(int ix=pstart[0][iproc]; ix<pstop[0][iproc]; ix++){
 								//j is the relative memory index of icoord
 								int j = Coord2gindex(ix,iy,iz,it);
+								//TODO: Don't change this for SoA. We can use this to flip the memory layout without calling a
+								//transpose
 								u1buff[i]=u11Read[idim*gvol+j];
 								u2buff[i]=u12Read[idim*gvol+j];
 								//C starts counting from zero, not 1 so increment afterwards or start at int i=-1

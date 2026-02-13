@@ -119,7 +119,7 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							iaddr = ia(jx-1,jy,jz,jt);
 #endif
 						}
-						id[0+ndim*ic]=iaddr;
+						id[0*kvol+ic]=iaddr;
 
 						if(jx<ksize-1)
 							iaddr = ia(jx+1,jy,jz,jt);
@@ -141,7 +141,7 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							iaddr = ia(jx+1,jy,jz,jt);
 #endif
 						}
-						iu[0+ndim*ic]=iaddr;
+						iu[0*kvol+ic]=iaddr;
 
 						if(jy)
 							iaddr = ia(jx,jy-1,jz,jt);
@@ -163,7 +163,7 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							iaddr = ia(jx,jy-1,jz,jt);
 #endif
 						}
-						id[1+ndim*ic]=iaddr;
+						id[1*kvol+ic]=iaddr;
 
 						if(jy<ksize-1)
 							iaddr = ia(jx,jy+1,jz,jt);
@@ -185,7 +185,7 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							iaddr = ia(jx,jy+1,jz,jt);
 #endif
 						}
-						iu[1+ndim*ic]=iaddr;
+						iu[1*kvol+ic]=iaddr;
 
 						if(jz)
 							iaddr = ia(jx,jy,jz-1,jt);
@@ -207,7 +207,7 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							iaddr = ia(jx,jy,jz-1,jt);
 #endif
 						}
-						id[2+ndim*ic]=iaddr;
+						id[2*kvol+ic]=iaddr;
 
 						if(jz<ksize-1)
 							iaddr = ia(jx,jy,jz+1,jt);
@@ -229,7 +229,7 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							iaddr = ia(jx,jy,jz+1,jt);
 #endif
 						}
-						iu[2+ndim*ic]=iaddr;
+						iu[2*kvol+ic]=iaddr;
 
 						if(jt)
 							iaddr = ia(jx,jy,jz,jt-1);
@@ -251,7 +251,7 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							iaddr = ia(jx,jy,jz,jt-1);
 #endif
 						}
-						id[3+ndim*ic]=iaddr;
+						id[3*kvol+ic]=iaddr;
 
 						if(jt<ksizet-1)
 							iaddr = ia(jx,jy,jz,jt+1);
@@ -273,7 +273,7 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							iaddr = ia(jx,jy,jz,jt+1);
 #endif
 						}
-						iu[3+ndim*ic]=iaddr;
+						iu[3*kvol+ic]=iaddr;
 					}
 		//Print iu and id for diagnostics
 #ifdef _DEBUG
@@ -283,14 +283,14 @@ int Addrc(unsigned int *iu, unsigned int *id){
 			{
 				FILE *id_out = fopen("id_out", "w");
 				for(int i=0;i<kvol;i++)
-					fprintf(id_out,"%i\t%i\t%i\t%i\n",id[i*ndim],id[i*ndim+1],id[i*ndim+2],id[i*ndim+3]);
+					fprintf(id_out,"%i\t%i\t%i\t%i\n",id[i],id[i*ndim+1],id[i*ndim+2],id[i*ndim+3]);
 				fclose(id_out);
 			}
 #pragma omp section
 			{
 				FILE *iu_out = fopen("iu_out", "w");
 				for(int i=0;i<kvol;i++)
-					fprintf(iu_out,"%i\t%i\t%i\t%i\n",iu[i*ndim],iu[i*ndim+1],iu[i*ndim+2],iu[i*ndim+3]);
+					fprintf(iu_out,"%i\t%i\t%i\t%i\n",iu[i],iu[i*ndim+1],iu[i*ndim+2],iu[i*ndim+3]);
 				fclose(iu_out);
 
 			}

@@ -34,8 +34,8 @@ int Gauge_force(double *dSdpi, Complex_f *ut[2],unsigned int *iu,unsigned int *i
 				//The +ν Staple
 #pragma omp parallel for simd //aligned(ut[0],ut[1],Sigma[0],Sigma[1],iu:AVX)
 				for(int i=0;i<kvol;i++){
-					int uidm = iu[mu+ndim*i];
-					int uidn = iu[nu+ndim*i];
+					int uidm = iu[mu*kvol+i];
+					int uidn = iu[nu*kvol+i];
 					Complex_f	a11=ut[0][uidm*ndim+nu]*conj(ut[0][uidn*ndim+mu])+\
 										 ut[1][uidm*ndim+nu]*conj(ut[1][uidn*ndim+mu]);
 					Complex_f	a12=-ut[0][uidm*ndim+nu]*ut[1][uidn*ndim+mu]+\
@@ -51,8 +51,8 @@ int Gauge_force(double *dSdpi, Complex_f *ut[2],unsigned int *iu,unsigned int *i
 				//Next up, the -ν staple
 #pragma omp parallel for simd //aligned(ut[0],ut[1],ush[0],ush[1],Sigma[0],Sigma[1],iu,id:AVX)
 				for(int i=0;i<kvol;i++){
-					int uidm = iu[mu+ndim*i];
-					int didn = id[nu+ndim*i];
+					int uidm = iu[mu*kvol+i];
+					int didn = id[nu*kvol+i];
 					//uidm is correct here
 					Complex_f a11=conj(ush[0][uidm])*conj(ut[0][didn*ndim+mu])-\
 									  ush[1][uidm]*conj(ut[1][didn*ndim+mu]);
@@ -222,7 +222,7 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 					//a bit neater (although harder to follow as a consequence).
 
 					//Up indices
-					uid = iu[mu+ndim*i];
+					uid = iu[mu*kvol+i];
 					//Which entry of the spinor is being multiplied by row idirac of the gamma matrix mu
 					igork1 = gamin[mu*ndirac+idirac];	
 
@@ -314,7 +314,7 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 				//We're not done tripping yet!! Time like term is different. dk4? shows up
 				//For consistency we'll leave mu in instead of hard coding.
 				mu=3;
-				uid = iu[mu+ndim*i];
+				uid = iu[mu*kvol+i];
 				igork1 = gamin[mu*ndirac+idirac];	
 #ifndef NO_TIME
 				dSdpi[(i*nadj)*ndim+mu]+=creal(I*

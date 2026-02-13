@@ -223,15 +223,15 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	Transpose_z(ut[0],kvol,ndim);
 	Transpose_z(ut[1],kvol,ndim);
 	//Set up  index arrays for CPU
-	Transpose_U(iu,kvol,ndim);
-	Transpose_U(id,kvol,ndim);
+	//Transpose_U(iu,kvol,ndim);
+	//Transpose_U(id,kvol,ndim);
 	cudaDeviceSynchronise();
 #else
 #pragma omp parallel for reduction(+:xd,xu,xdd,xuu) 
 #endif
 	for(int i = 0; i<kvol; i++){
-		int did=id[3+ndim*i];
-		int uid=iu[3+ndim*i];
+		int did=id[3*kvol+i];
+		int uid=iu[3*kvol+i];
 		for(int igorkov=0; igorkov<4; igorkov++){
 			int igork1=gamin[3*ndirac+igorkov];
 			//For the C Version I'll try and factorise where possible
@@ -283,8 +283,8 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	//Revert index and gauge arrays
 	Transpose_z(ut[0],ndim,kvol);
 	Transpose_z(ut[1],ndim,kvol);
-	Transpose_U(iu,ndim,kvol);
-	Transpose_U(id,ndim,kvol);
+	//Transpose_U(iu,ndim,kvol);
+	//Transpose_U(id,ndim,kvol);
 #else
 	free(x); free(xi);
 #endif

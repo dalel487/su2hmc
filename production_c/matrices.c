@@ -45,7 +45,7 @@ int Dslash(Complex *phi, Complex *r, Complex *ut[2], unsigned int *iu,unsigned i
 		//Spacelike terms. Here's hoping I haven't put time as the zeroth component somewhere!
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
-			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
+			int did=id[mu*kvol+i]; int uid = iu[mu*kvol+i];
 #pragma omp simd aligned(phi,r,gamval:AVX)
 			for(int igorkov=0; igorkov<ngorkov; igorkov++){
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing in the dirac term.
@@ -79,7 +79,7 @@ int Dslash(Complex *phi, Complex *r, Complex *ut[2], unsigned int *iu,unsigned i
 		//We can fit it into a single loop by declaring igorkovPP=igorkov+4 instead of looping igorkov=4..7  separately
 		//Note that for the igorkov 4..7 loop idirac=igorkov-4, so we don't need to declare idiracPP separately
 #endif
-		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
+		int did=id[3*kvol+i]; int uid = iu[3*kvol+i];
 #ifndef NO_TIME
 #pragma omp simd aligned(phi,r:AVX)
 		for(int igorkov=0; igorkov<4; igorkov++){
@@ -147,7 +147,7 @@ int Dslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned int *iu,unsigned i
 		//Spacelike terms. Here's hoping I haven't put time as the zeroth component somewhere!
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
-			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
+			int did=id[mu*kvol+i]; int uid = iu[mu*kvol+i];
 #pragma omp simd aligned(phi,r,gamval:AVX)
 			for(int igorkov=0; igorkov<ngorkov; igorkov++){
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing.
@@ -184,7 +184,7 @@ int Dslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned int *iu,unsigned i
 		//We can fit it into a single loop by declaring igorkovPP=igorkov+4 instead of looping igorkov=4..7  separately
 		//Note that for the igorkov 4..7 loop idirac=igorkov-4, so we don't need to declare idiracPP separately
 		//Under dagger, dk[1] and dk[0] get swapped and the dirac component flips sign.
-		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
+		int did=id[3*kvol+i]; int uid = iu[3*kvol+i];
 #ifndef NO_TIME
 #pragma omp simd aligned(phi,r:AVX)
 		for(int igorkov=0; igorkov<4; igorkov++){
@@ -240,7 +240,7 @@ int Hdslash(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned 
 	for(int i=0;i<kvol;i++){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <3; mu++){
-			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
+			int did=id[mu*kvol+i]; int uid = iu[mu*kvol+i];
 #pragma omp simd aligned(phi,r,gamval:AVX)
 			for(int idirac=0; idirac<ndirac; idirac++){
 				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
@@ -271,7 +271,7 @@ int Hdslash(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned 
 		}
 #endif
 		//Timelike terms
-		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
+		int did=id[3*kvol+i]; int uid = iu[3*kvol+i];
 #ifndef NO_TIME
 #pragma omp simd aligned(phi,r:AVX)
 		for(int idirac=0; idirac<ndirac; idirac++){
@@ -314,7 +314,7 @@ int Hdslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned
 	for(int i=0;i<kvol;i++){
 #ifndef NO_SPACE
 		for(int mu = 0; mu <ndim-1; mu++){
-			int did=id[mu+ndim*i]; int uid = iu[mu+ndim*i];
+			int did=id[mu*kvol+i]; int uid = iu[mu*kvol+i];
 #pragma omp simd aligned(phi,r,gamval:AVX)
 			for(int idirac=0; idirac<ndirac; idirac++){
 				//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
@@ -349,7 +349,7 @@ int Hdslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned
 		}
 #endif
 		//Timelike terms
-		int did=id[3+ndim*i]; int uid = iu[3+ndim*i];
+		int did=id[3*kvol+i]; int uid = iu[3*kvol+i];
 #ifndef NO_TIME
 #pragma omp simd aligned(phi,r:AVX)
 		for(int idirac=0; idirac<ndirac; idirac++){
@@ -407,7 +407,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu, un
 		//Spacelike terms. Here's hoping I haven't put time as the zeroth component somewhere!
 #ifndef NO_SPACE
 		for(unsigned short mu = 0; mu <3; mu++){
-			unsigned int did=id[mu+ndim*i]; unsigned int uid = iu[mu+ndim*i];
+			unsigned int did=id[mu*kvol+i]; unsigned int uid = iu[mu*kvol+i];
 #pragma omp simd aligned(phi,r,gamval_f,gamin:AVX)
 			for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing in the dirac term.
@@ -441,7 +441,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu, un
 		//We can fit it into a single loop by declaring igorkovPP=igorkov+4 instead of looping igorkov=4..7  separately
 		//Note that for the igorkov 4..7 loop idirac=igorkov-4, so we don't need to declare idiracPP separately
 #endif
-		unsigned int did=id[3+ndim*i]; unsigned int uid = iu[3+ndim*i];
+		unsigned int did=id[3*kvol+i]; unsigned int uid = iu[3*kvol+i];
 #ifndef NO_TIME
 #pragma omp simd aligned(phi,r,gamin:AVX)
 		for(unsigned short igorkov=0; igorkov<4; igorkov++){
@@ -509,7 +509,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,un
 		//Spacelike terms. Here's hoping I haven't put time as the zeroth component somewhere!
 #ifndef NO_SPACE
 		for(unsigned short mu = 0; mu <3; mu++){
-			unsigned int did=id[mu+ndim*i]; unsigned int uid = iu[mu+ndim*i];
+			unsigned int did=id[mu*kvol+i]; unsigned int uid = iu[mu*kvol+i];
 #pragma omp simd aligned(phi,r,gamval_f:AVX)
 			for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing.
@@ -546,7 +546,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,un
 		//We can fit it into a single loop by declaring igorkovPP=igorkov+4 instead of looping igorkov=4..7  separately
 		//Note that for the igorkov 4..7 loop idirac=igorkov-4, so we don't need to declare idiracPP separately
 		//Under dagger, dk_f[1] and dk_f[0] get swapped and the dirac component flips sign.
-		unsigned int did=id[3+ndim*i]; unsigned int uid = iu[3+ndim*i];
+		unsigned int did=id[3*kvol+i]; unsigned int uid = iu[3*kvol+i];
 #ifndef NO_TIME
 #pragma omp simd aligned(phi,r:AVX)
 		for(unsigned short igorkov=0; igorkov<4; igorkov++){
@@ -615,7 +615,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned  int *iu,u
 		for(unsigned short mu = 0; mu <3; mu++){
 #pragma omp simd aligned(u11s,u12s,did,uid,id,iu,u11sd,u12sd:AVX)
 			for(unsigned short j =0;j<AVX;j++){
-				did[j]=id[(i+j)*ndim+mu]; uid[j] = iu[(i+j)*ndim+mu];
+				did[j]=id[(i+j)+kvol*mu]; uid[j] = iu[(i+j)+kvol*mu];
 				u11s[j]=ut[0][(i+j)*ndim+mu];	u12s[j]=ut[1][(i+j)*ndim+mu];
 				u11sd[j]=ut[0][did[j]*ndim+mu];	u12sd[j]=ut[1][did[j]*ndim+mu];
 			}
@@ -664,7 +664,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned  int *iu,u
 #pragma omp simd
 		for(unsigned short j=0;j<AVX;j++){
 			u11s[j]=ut[0][(i+j)*ndim+3];	u12s[j]=ut[1][(i+j)*ndim+3];
-			did[j]=id[(i+j)*ndim+3];uid[j]= iu[(i+j)*ndim+3];
+			did[j]=id[(i+j)+kvol*3];uid[j]= iu[(i+j)+kvol*3];
 			u11sd[j]=ut[0][did[j]*ndim+3];	u12sd[j]=ut[1][did[j]*ndim+3];
 			dk4ms[j]=dk[0][did[j]];   dk4ps[j]=dk[1][i+j];
 		}
@@ -748,7 +748,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,u
 			//FORTRAN had mod((idirac-1),4)+1 to prevent issues with non-zero indexing.
 #pragma omp simd aligned(u11s,u12s,did,uid,id,iu,u11sd,u12sd:AVX)
 			for(unsigned short j =0;j<AVX;j++){
-				did[j]=id[(i+j)*ndim+mu]; uid[j] = iu[(i+j)*ndim+mu];
+				did[j]=id[(i+j)+kvol*mu]; uid[j] = iu[(i+j)+kvol*mu];
 				u11s[j]=ut[0][(i+j)*ndim+mu];	u12s[j]=ut[1][(i+j)*ndim+mu];
 				u11sd[j]=ut[0][did[j]*ndim+mu];	u12sd[j]=ut[1][did[j]*ndim+mu];
 			}
@@ -799,7 +799,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,u
 #pragma omp simd aligned(u11s,u12s,did,uid,id,iu,u11sd,u12sd,dk4ms,dk4ps:AVX)
 		for(unsigned short j=0;j<AVX;j++){
 			u11s[j]=ut[0][(i+j)*ndim+3];	u12s[j]=ut[1][(i+j)*ndim+3];
-			did[j]=id[(i+j)*ndim+3];		uid[j]= iu[(i+j)*ndim+3];
+			did[j]=id[(i+j)+kvol*3];		uid[j]= iu[(i+j)+kvol*3];
 			u11sd[j]=ut[0][did[j]*ndim+3];	u12sd[j]=ut[1][did[j]*ndim+3];
 			dk4ms[j]=dk[0][i+j];   			dk4ps[j]=dk[1][did[j]];
 		}

@@ -658,10 +658,3 @@ void cuMixed_Sumto(double *d, float *f,const unsigned int n,const dim3 dimGrid,c
 	Mixed_Sumto<<<dimGrid,dimBlock>>>(d,f,n);
 	return;
 }
-
-template __global__ void Transpose<float>(float *, const float*, const int, const int);
-template __global__ void Transpose<double>(double *, const double*, const int, const int);
-template __global__ void Transpose<int>(int *, const int*, const int, const int);
-template __global__ void Transpose<unsigned int>(unsigned int *, const unsigned int*, const int, const int);
-template __global__ void Transpose<Complex_f>(Complex_f *, const Complex_f*, const int, const int);
-template __global__ void Transpose<Complex>(Complex *, const Complex*, const int, const int);

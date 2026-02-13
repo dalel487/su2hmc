@@ -57,7 +57,7 @@ int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u
 #pragma omp declare simd
 inline int SU2plaq(Complex_f *ut[2], Complex_f Sigma[2], unsigned int *iu,  int i, int mu, int nu){
 	const char *funcname = "SU2plaq";
-	int uidm = iu[mu+ndim*i]; 
+	int uidm = iu[mu*kvol+i]; 
 	/***
 	 *	Let's take a quick moment to compare this to the analysis code.
 	 *	The analysis code stores the gauge field as a 4 component real valued vector, whereas the produciton code
@@ -72,7 +72,7 @@ inline int SU2plaq(Complex_f *ut[2], Complex_f Sigma[2], unsigned int *iu,  int 
 	Sigma[0]=ut[0][i*ndim+mu]*ut[0][uidm*ndim+nu]-ut[1][i*ndim+mu]*conj(ut[1][uidm*ndim+nu]);
 	Sigma[1]=ut[0][i*ndim+mu]*ut[1][uidm*ndim+nu]+ut[1][i*ndim+mu]*conj(ut[0][uidm*ndim+nu]);
 
-	int uidn = iu[nu+ndim*i]; 
+	int uidn = iu[nu*kvol+i]; 
 	Complex_f a11=Sigma[0]*conj(ut[0][uidn*ndim+mu])+Sigma[1]*conj(ut[1][uidn*ndim+mu]);
 	Complex_f a12=-Sigma[0]*ut[1][uidn*ndim+mu]+Sigma[1]*ut[0][uidn*ndim+mu];
 
