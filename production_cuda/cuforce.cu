@@ -79,9 +79,9 @@ __global__ void cuGaugeForce(int mu, Complex_f *Sigma11, Complex_f *Sigma12,doub
 		Complex_f a11 = u11t[ind]*Sigma12[i]+u12t[ind]*conj(Sigma11[i]);
 		Complex_f a12 = u11t[ind]*Sigma11[i]+conj(u12t[ind])*Sigma12[i];
 		//Not worth splitting into different streams, before we get ideas...
-		dSdpi[ind]=beta*a11.imag();
-		dSdpi[i+kvolHalo*(1*ndim+mu)]=beta*a11.real();
-		dSdpi[i+kvolHalo*(2*ndim+mu)]=beta*a12.imag();
+		dSdpi[i+kvol*mu]=beta*a11.imag();
+		dSdpi[i+kvol*(1*ndim+mu)]=beta*a11.real();
+		dSdpi[i+kvol*(2*ndim+mu)]=beta*a12.imag();
 	}
 }
 /**
@@ -133,7 +133,8 @@ __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 			X2su[0]=X2[uid+kvolHalo*(idirac)]; X2su[1]=X2[uid+kvolHalo*(1+idirac)];
 
 			float dSdpis[3];
-			dSdpis[0]=dSdpi[ind];
+			//Careful!! cant use ind here as dSdpi has no halo!
+			dSdpis[0]=dSdpi[i+kvol*mu];
 			//Multiplying by i and taking the real component is the same as taking the negative imaginary component
 			//The positions of u11 and u12 might look a bit funky here. That's just because we've multiplied by the
 			//generators by hand
@@ -143,14 +144,14 @@ __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 					+conj(X1su[0])*(u12s*X2s[0]-conj(u11s)*X2s[1])
 					+conj(X1su[1])*(-u11s*X2s[0]-conj(u12s)*X2s[1])).imag();
 
-			dSdpis[1]=dSdpi[i+kvolHalo*(ndim+mu)];
+			dSdpis[1]=dSdpi[i+kvol*(ndim+mu)];
 			dSdpis[1]+=akappa*(
 					(conj(X1s[0])*(-conj(u12s)*X2su[0]+conj(u11s)*X2su[1])
 					 +conj(X1s[1])*(-u11s*X2su[0]-u12s*X2su[1])
 					 +conj(X1su[0])*(-u12s*X2s[0]-conj(u11s)*X2s[1])
 					 +conj(X1su[1])*(u11s*X2s[0]-conj(u12s)*X2s[1]))).real();
 
-			dSdpis[2]=dSdpi[i+kvolHalo*(2*ndim+mu)];
+			dSdpis[2]=dSdpi[i+kvol*(2*ndim+mu)];
 			dSdpis[2]+=-akappa*(
 					conj(X1s[0])*(u11s *X2su[0]+u12s *X2su[1])
 					+conj(X1s[1])*(conj(u12s)*X2su[0]-conj(u11s)*X2su[1])
@@ -171,21 +172,21 @@ __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 					 +conj(X1s[1])* (u11s *X2su[0]+u12s *X2su[1])
 					 +conj(X1su[0])* (-u12s *X2s[0] +conj(u11s)*X2s[1])
 					 +conj(X1su[1])*(u11s *X2s[0] +conj(u12s)*X2s[1]))).imag();
-			dSdpi[ind]=dSdpis[0];
+			dSdpi[i+kvol*mu]=dSdpis[0];
 
 			dSdpis[1]+=(gamval_c*
 					(conj(X1s[0])* (-conj(u12s)*X2su[0] +conj(u11s)*X2su[1])
 					 +conj(X1s[1])*(-u11s *X2su[0]-u12s *X2su[1])
 					 +conj(X1su[0])* (u12s *X2s[0]+conj(u11s)*X2s[1])
 					 +conj(X1su[1])* (-u11s *X2s[0]+conj(u12s)*X2s[1]))).real();
-			dSdpi[i+kvolHalo*(ndim+mu)]=dSdpis[1];
+			dSdpi[i+kvol*(ndim+mu)]=dSdpis[1];
 
 			dSdpis[2]+=-(gamval_c*
 					(conj(X1s[0])*(u11s *X2su[0]+u12s *X2su[1])
 					 +conj(X1s[1])*(conj(u12s)*X2su[0]-conj(u11s)*X2su[1])
 					 +conj(X1su[0])*(conj(u11s)*X2s[0]+u12s *X2s[1])
 					 +conj(X1su[1])*(conj(u12s)*X2s[0]-u11s *X2s[1]))).imag();
-			dSdpi[i+kvolHalo*(2*ndim+mu)]=dSdpis[2];
+			dSdpi[i+kvol*(2*ndim+mu)]=dSdpis[2];
 		}
 	}
 }
@@ -218,7 +219,7 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t,Comple
 			X2su[0]=X2[uid+kvolHalo*(idirac)]; X2su[1]=X2[uid+kvolHalo*(1+idirac)];
 
 			float dSdpis[3];
-			dSdpis[0]=dSdpi[ind];
+			dSdpis[0]=dSdpi[i+kvol*mu];
 			//Multiplying by i and taking the real component is the same as taking the negative imaginary component
 			//The positions of u11 and u12 might look a bit funky here. That's just because we've multiplied by the
 			//generators by hand
@@ -227,13 +228,13 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t,Comple
 					+dk4ps*(conj(X1su[0])*(+u12s*X2s[0]-conj(u11s)*X2s[1])
 						+conj(X1su[1])*(-u11s*X2s[0]-conj(u12s)*X2s[1]))).imag();
 
-			dSdpis[1]=dSdpi[i+kvolHalo*(ndim+mu)];
+			dSdpis[1]=dSdpi[i+kvol*(ndim+mu)];
 			dSdpis[1]+=(dk4ms*(conj(X1s[0])*(-conj(u12s)*X2su[0]+conj(u11s)*X2su[1])
 						+conj(X1s[1])*(-u11s *X2su[0]-u12s *X2su[1]))
 					+dk4ps*(conj(X1su[0])*(-u12s *X2s[0]-conj(u11s)*X2s[1])
 						+conj(X1su[1])*( u11s *X2s[0]-conj(u12s)*X2s[1]))).real();
 
-			dSdpis[2]=dSdpi[i+kvolHalo*(2*ndim+mu)];
+			dSdpis[2]=dSdpi[i+kvol*(2*ndim+mu)];
 			dSdpis[2]+=-(dk4ms* (conj(X1s[0])* (u11s *X2su[0]+u12s *X2su[1])
 						+conj(X1s[1])* (conj(u12s)*X2su[0]-conj(u11s)*X2su[1]))
 					+dk4ps*(conj(X1su[0])*(-conj(u11s)*X2s[0]-u12s *X2s[1])
@@ -249,22 +250,19 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t,Comple
 						+conj(X1s[1])*(u11s *X2su[0]+u12s *X2su[1]))
 					-dk4ps*(conj(X1su[0])* (u12s *X2s[0]-conj(u11s)*X2s[1])
 						+conj(X1su[1])*(-u11s *X2s[0]-conj(u12s)*X2s[1]))).imag();
-			//dSdpi[(i*nadj)*ndim+mu]=dSdpis[0];
-			dSdpi[ind]=dSdpis[0];
+			dSdpi[i+kvol*mu]=dSdpis[0];
 
 			dSdpis[1]+=(dk4ms*(conj(X1s[0])*(-conj(u12s)*X2su[0]+conj(u11s)*X2su[1])
 						+conj(X1s[1])*(-u11s*X2su[0]-u12s *X2su[1]))
 					-dk4ps*(conj(X1su[0])*(-u12s *X2s[0]-conj(u11s)*X2s[1])
 						+conj(X1su[1])*(u11s*X2s[0]-conj(u12s)*X2s[1]))).real();
-			//dSdpi[(i*nadj+1)*ndim+mu]=dSdpis[1];
-			dSdpi[i+kvolHalo*(ndim+mu)]=dSdpis[1];
+			dSdpi[i+kvol*(ndim+mu)]=dSdpis[1];
 
 			dSdpis[2]+=-(dk4ms*(conj(X1s[0])*(u11s*X2su[0] +u12s *X2su[1])
 						+conj(X1s[1])* (conj(u12s)*X2su[0]-conj(u11s)*X2su[1]))
 					-dk4ps*(conj(X1su[0])*(-conj(u11s)*X2s[0]-u12s *X2s[1])
 						+conj(X1su[1])*(-conj(u12s)*X2s[0]+u11s *X2s[1]))).imag();
-			//dSdpi[(i*nadj+2)*ndim+mu]=dSdpis[2];
-			dSdpi[i+kvolHalo*(2*ndim+mu)]=dSdpis[2];
+			dSdpi[i+kvol*(2*ndim+mu)]=dSdpis[2];
 		}
 	}
 }
@@ -334,8 +332,6 @@ void cuForce(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, \
 #pragma unroll
 	for(unsigned short mu=0;mu<3;mu++){
 		cuForce_s<<<dimGrid,dimBlock,0,streams[mu]>>>(dSdpi,ut[0],ut[1],X1,X2,gamval,iu,gamin,akappa,mu);
-		//			cuForce_s1<<<dimGrid,dimBlock,0,streams[mu*nadj+1]>>>(dSdpi,ut[0],ut[1],X1,X2,gamval,dk[1],dk[1],iu,gamin,akappa,idirac,mu);
-		//			cuForce_s2<<<dimGrid,dimBlock,0,streams[mu*nadj+2]>>>(dSdpi,ut[0],ut[1],X1,X2,gamval,dk[1],dk[1],iu,gamin,akappa,idirac,mu);
 	}
 	//Set stream for time direction
 	unsigned short mu=3;
