@@ -516,7 +516,6 @@ int main(int argc, char *argv[]){
 			memcpy(ut[0]+kvolHalo*mu, u[0]+kvol*mu, kvol*sizeof(Complex));
 			memcpy(ut[1]+kvolHalo*mu, u[1]+kvol*mu, kvol*sizeof(Complex));
 #endif
-		}
 	}
 	Trial_Exchange(ut,ut_f);
 #if (defined(USE_RAN2)||defined(__RANLUX__)||!defined(__INTEL_MKL__))
