@@ -1191,30 +1191,30 @@ int Trial_Exchange(Complex *ut[2],Complex_f *ut_f[2]){
 	Complex *z = (Complex *)aligned_alloc(AVX,kvolHalo*sizeof(Complex));
 	for(int mu=0;mu<ndim;mu++){
 		//Copy the column from ut[0]
-		#ifdef __NVCC__
+#ifdef __NVCC__
 		cudaMemcpy(z,ut[0]+kvolHalo*mu,kvol*sizeof(Complex),cudaMemcpyDefault);
-		#else
-		memcpy(z,ut[0]+kvolHalo*mu,kvol*sizeof(Complex),cudaMemcpyDefault);
-		#endif
+#else
+		memcpy(z,ut[0]+kvolHalo*mu,kvol*sizeof(Complex));
+#endif
 
 		//Halo exchange on that column
 		ZHalo_swap_all(z, 1);
 		//And the swap back/getting the next halo
-		#ifdef __NVCC__
+#ifdef __NVCC__
 		cudaMemcpy(ut[0]+kvolHalo*mu,z,kvolHalo*sizeof(Complex),cudaMemcpyDefault);
 		cudaMemcpy(z,ut[1]+kvolHalo*mu,kvol*sizeof(Complex),cudaMemcpyDefault);
-		#else
-		memcpy(ut[0]+kvolHalo*mu,z,kvolHalo*sizeof(Complex),cudaMemcpyDefault);
-		memcpy(z,ut[1]+kvolHalo*mu,kvol*sizeof(Complex),cudaMemcpyDefault);
-		#endif
+#else
+		memcpy(ut[0]+kvolHalo*mu,z,kvolHalo*sizeof(Complex));
+		memcpy(z,ut[1]+kvolHalo*mu,kvol*sizeof(Complex));
+#endif
 
-//Repeat
+		//Repeat
 		ZHalo_swap_all(z, 1);
-		#ifdef __NVCC__
+#ifdef __NVCC__
 		cudaMemcpy(ut[1]+kvolHalo*mu,z,kvolHalo*sizeof(Complex),cudaMemcpyDefault);
-		#else
-		memcpy(ut[1]+kvolHalo*mu,z,kvolHalo*sizeof(Complex),cudaMemcpyDefault);
-		#endif
+#else
+		memcpy(ut[1]+kvolHalo*mu,z,kvolHalo*sizeof(Complex));
+#endif
 	}
 	//Now we prefetch the halo
 #ifdef __NVCC__
