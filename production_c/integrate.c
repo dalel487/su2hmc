@@ -57,7 +57,6 @@ int Gauge_Update(const double d, double *pp, Complex *ut[2],Complex_f *ut_f[2]){
 			double SSS = d*sin(AAA)/AAA;
 			Complex a11 = CCC+I*SSS*pp[i+kvol*(2*ndim+mu)];
 			Complex a12 = pp[i+kvol*(1*ndim+mu)]*SSS + I*SSS*pp[ind];
-			Complex a12 = pp[(i*nadj+1)*ndim+mu]*SSS + I*SSS*pp[i*nadj*ndim+mu];
 			//b11 and b12 are ut[0] and ut[1] terms, so we'll use ut[1] directly
 			//but use b11 for ut[0] to prevent RAW dependency
 			Complex b11 = ut[0][i+kvol*mu];

@@ -166,7 +166,7 @@ void Force_t(double *dSdpi, Complex_f *ut[2],Complex_f *X1, Complex_f *X2, Compl
 		//TODO: The only diffrence with these is that the sign flips for the temporal components
 		//			Can we figure out a way of doing this without having to read in a large array. 
 		//			Will result in a conditional inside a CUDA loop. If i>kvol3
-		const float dk[0]s=dk[0][i];	const float dk[1]s=dk[1][i];
+		const float dks[2] = [dk[0][i],dk[1][i]];
 		//Up indices
 		const unsigned int uid = iu[ind];
 		//Similarly to Hdslash we always see idirac*nc so we do that here too.
@@ -185,21 +185,21 @@ void Force_t(double *dSdpi, Complex_f *ut[2],Complex_f *X1, Complex_f *X2, Compl
 			//Multiplying by i and taking the real component is the same as taking the negative imaginary component
 			//The positions of u11 and u12 might look a bit funky here. That's just because we've multiplied by the
 			//generators by hand
-			dSdpis[0]+=-cimag(dk[0]s*(conj(X1s[0])*(-conj(u12s)*X2su[0]+conj(u11s)*X2su[1])
+			dSdpis[0]+=-cimag(dks[0]*(conj(X1s[0])*(-conj(u12s)*X2su[0]+conj(u11s)*X2su[1])
 						+conj(X1s[1])*(u11s *X2su[0]+u12s *X2su[1]))
-					+dk[1]s*(conj(X1su[0])*(+u12s*X2s[0]-conj(u11s)*X2s[1])
+					+dks[1]*(conj(X1su[0])*(+u12s*X2s[0]-conj(u11s)*X2s[1])
 						+conj(X1su[1])*(-u11s*X2s[0]-conj(u12s)*X2s[1])));
 
 			dSdpis[1]=dSdpi[i+kvol*(ndim+mu)];
-			dSdpis[1]+=creal(dk[0]s*(conj(X1s[0])*(-conj(u12s)*X2su[0]+conj(u11s)*X2su[1])
+			dSdpis[1]+=creal(dks[0]*(conj(X1s[0])*(-conj(u12s)*X2su[0]+conj(u11s)*X2su[1])
 						+conj(X1s[1])*(-u11s *X2su[0]-u12s *X2su[1]))
-					+dk[1]s*(conj(X1su[0])*(-u12s *X2s[0]-conj(u11s)*X2s[1])
+					+dks[1]*(conj(X1su[0])*(-u12s *X2s[0]-conj(u11s)*X2s[1])
 						+conj(X1su[1])*( u11s *X2s[0]-conj(u12s)*X2s[1])));
 
 			dSdpis[2]=dSdpi[i+kvol*(2*ndim+mu)];
-			dSdpis[2]+=-cimag(dk[0]s* (conj(X1s[0])* (u11s *X2su[0]+u12s *X2su[1])
+			dSdpis[2]+=-cimag(dks[0]* (conj(X1s[0])* (u11s *X2su[0]+u12s *X2su[1])
 						+conj(X1s[1])* (conj(u12s)*X2su[0]-conj(u11s)*X2su[1]))
-					+dk[1]s*(conj(X1su[0])*(-conj(u11s)*X2s[0]-u12s *X2s[1])
+					+dks[1]*(conj(X1su[0])*(-conj(u11s)*X2s[0]-u12s *X2s[1])
 						+conj(X1su[1])* (-conj(u12s)*X2s[0]+u11s *X2s[1])));
 
 			const unsigned short gindex=mu*ndirac+(idirac>>1);
@@ -208,21 +208,21 @@ void Force_t(double *dSdpi, Complex_f *ut[2],Complex_f *X1, Complex_f *X2, Compl
 			X2s[0]=X2[i+kvolHalo*(gind)]; X2s[1]=X2[i+kvolHalo*(1+gind)];
 			X2su[0]=X2[uid+kvolHalo*(gind)]; X2su[1]=X2[uid+kvolHalo*(1+gind)];
 
-			dSdpis[0]+=-cimag(dk[0]s*(conj(X1s[0])*(-conj(u12s)*X2su[0]+conj(u11s)*X2su[1])
+			dSdpis[0]+=-cimag(dks[0]*(conj(X1s[0])*(-conj(u12s)*X2su[0]+conj(u11s)*X2su[1])
 						+conj(X1s[1])*(u11s *X2su[0]+u12s *X2su[1]))
-					-dk[1]s*(conj(X1su[0])* (u12s *X2s[0]-conj(u11s)*X2s[1])
+					-dks[1]*(conj(X1su[0])* (u12s *X2s[0]-conj(u11s)*X2s[1])
 						+conj(X1su[1])*(-u11s *X2s[0]-conj(u12s)*X2s[1])));
 			dSdpi[i+kvol*mu]=dSdpis[0];
 
-			dSdpis[1]+=creal(dk[0]s*(conj(X1s[0])*(-conj(u12s)*X2su[0]+conj(u11s)*X2su[1])
+			dSdpis[1]+=creal(dks[0]*(conj(X1s[0])*(-conj(u12s)*X2su[0]+conj(u11s)*X2su[1])
 						+conj(X1s[1])*(-u11s*X2su[0]-u12s *X2su[1]))
-					-dk[1]s*(conj(X1su[0])*(-u12s *X2s[0]-conj(u11s)*X2s[1])
+					-dks[1]*(conj(X1su[0])*(-u12s *X2s[0]-conj(u11s)*X2s[1])
 						+conj(X1su[1])*(u11s*X2s[0]-conj(u12s)*X2s[1])));
 			dSdpi[i+kvol*(ndim+mu)]=dSdpis[1];
 
-			dSdpis[2]+=-cimag(dk[0]s*(conj(X1s[0])*(u11s*X2su[0] +u12s *X2su[1])
+			dSdpis[2]+=-cimag(dks[0]*(conj(X1s[0])*(u11s*X2su[0] +u12s *X2su[1])
 						+conj(X1s[1])* (conj(u12s)*X2su[0]-conj(u11s)*X2su[1]))
-					-dk[1]s*(conj(X1su[0])*(-conj(u11s)*X2s[0]-u12s *X2s[1])
+					-dks[1]*(conj(X1su[0])*(-conj(u11s)*X2s[0]-u12s *X2s[1])
 						+conj(X1su[1])*(-conj(u12s)*X2s[0]+u11s *X2s[1])));
 			dSdpi[i+kvol*(2*ndim+mu)]=dSdpis[2];
 		}
@@ -284,7 +284,6 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 			const Complex blasa=2.0; const double blasb=-1.0;
 			cublasZdscal(cublas_handle,kferm2,&blasb,(cuDoubleComplex *)(X0+na*kferm2),1);
 			cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&blasa,(cuDoubleComplex *)X1,1,(cuDoubleComplex *)(X0+na*kferm2),1);
-			#else
 #elifdef __USE_MKL__
 			const Complex blasa=2.0; const Complex blasb=-1.0;
 			//This is not a general BLAS Routine. BLIS and MKl support it
@@ -363,8 +362,8 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 #else
 //Thankfully the CUDA version is much neater so we're using that style going forwards
 		for(unsigned short mu=0;mu<ndim-1;mu++)
-			Force_s(dSdpi,ut_f,X1,X2,gamval,iu,gamin,akappa,mu);
-		Force_t(dSdpi,ut_f,X1,X2,dk_f,gamval,iu,gamin,akappa);
+			Force_s(dSdpi,ut_f,X1_f,X2_f,gamval_f,iu,gamin,akappa,mu);
+		Force_t(dSdpi,ut_f,X1_f,X2_f,gamval_f,dk_f,iu,gamin,akappa);
 #endif
 		if(c_sw){
 #ifndef __NVCC__
