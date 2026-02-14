@@ -84,8 +84,7 @@ void Force_s(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, Comp
 	for(unsigned int i=0;i<kvol;i++){
 		const unsigned int ind=i+kvolHalo*mu;
 		const Complex_f u11s=ut[0][ind]; const Complex_f u12s=ut[1][ind];
-		//const int uid = iu[mu+ndim*i];
-		const unsigned int uid = iu[ind];
+		const unsigned int uid = iu[i+kvol*mu];
 		//Similarly to Hdslash we always see idirac*nc so we do that here too.
 		#pragma omp simd
 		for(unsigned short idirac=0;idirac<nc*ndirac;idirac+=nc){
@@ -168,7 +167,7 @@ void Force_t(double *dSdpi, Complex_f *ut[2],Complex_f *X1, Complex_f *X2, Compl
 		//			Will result in a conditional inside a CUDA loop. If i>kvol3
 		const float dks[2] = {dk[0][i],dk[1][i]};
 		//Up indices
-		const unsigned int uid = iu[ind];
+		const unsigned int uid = iu[i+kvol*mu];
 		//Similarly to Hdslash we always see idirac*nc so we do that here too.
 		#pragma omp simd
 		for(unsigned short idirac=0;idirac<ndirac*nc;idirac+=nc){
@@ -298,18 +297,16 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 			for(int i=0;i<kvol;i++)
 				for(int idirac=0;idirac<ndirac;idirac++){
 					X0[((na*kvol+i)*ndirac+idirac)*nc]=
-						2*X1[(i*ndirac+idirac)*nc]-X0[((na*kvol+i)*ndirac+idirac)*nc];
+						2*X1[i+kvolHalo*(0+idirac)]-X0[((na*kvol+i)*ndirac+idirac)*nc];
 					X0[((na*kvol+i)*ndirac+idirac)*nc+1]=
-						2*X1[(i*ndirac+idirac)*nc+1]-X0[((na*kvol+i)*ndirac+idirac)*nc+1];
+						2*X1[i+kvolHalo*(1+idirac)]-X0[((na*kvol+i)*ndirac+idirac)*nc+1];
 				}
 #endif
 		}
 		//Convert X1 to single precision
 #ifdef __NVCC__
-		else{
 			cuComplex_convert(X1_f,X1,kferm2,true,dimBlock,dimGrid);
 			cudaDeviceSynchronise();
-		}
 #else
 		for(unsigned int i=0;i<kferm2;i++)
 			X1_f[i]=(Complex_f)X1[i];
@@ -366,7 +363,6 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 #endif
 		if(c_sw){
 #ifndef __NVCC__
-			Complex_f *X1_f= (Complex_f *)aligned_alloc(AVX,kferm2*sizeof(Complex_f));
 			for(unsigned int i=0;i<kferm2;i++){
 				X1_f[i]=(Complex_f)X1[i];
 			}

@@ -467,7 +467,7 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 			//cudaMemPrefetchAsync(R,kfermHalo*sizeof(Complex_f),device,NULL);
 			//Transpose needed here for Dslashd
-			Transpose_c(R,ngorkov*nc,kvol);
+//			Transpose_c(R,ngorkov*nc,kvol);
 			//R is random so this techincally isn't required. But it does keep the code output consistent with previous
 			//versions.
 			cudaDeviceSynchronise();
@@ -526,7 +526,7 @@ int main(int argc, char *argv[]){
 	//Initialise Trial Fields
 #ifdef __NVCC__
 	//pp is random at this point so swapping the order isn't really necessary. But it does ensure that it matches for CPU and GPU
-	Transpose_d(pp,nadj*ndim,kvol);
+	//Transpose_d(pp,nadj*ndim,kvol);
 	//cudaMemPrefetchAsync(pp,kmom*sizeof(double),device,streams[1]);
 #endif
 	double H0, S0;

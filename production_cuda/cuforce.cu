@@ -120,8 +120,7 @@ __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 	for(unsigned int i=gthreadId;i<kvol;i+=gsize*bsize){
 		const unsigned int ind=i+kvolHalo*mu;
 		const Complex_f u11s=u11t[ind]; const Complex_f u12s=u12t[ind];
-		//const int uid = iu[mu+ndim*i];
-		const unsigned int uid = iu[ind];
+		const unsigned int uid = iu[i+kvol*mu];
 		//Similarly to Hdslash we always see idirac*nc so we do that here too.
 		for(unsigned short idirac=0;idirac<nc*ndirac;idirac+=nc){
 			Complex_f X1s[nc];	 Complex_f X1su[nc];
@@ -207,7 +206,7 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t,Comple
 		//			Will result in a conditional inside a CUDA loop. If i>kvol3
 		const float dk4ms=dk4m[i];	const float dk4ps=dk4p[i];
 		//Up indices
-		const unsigned int uid = iu[ind];
+		const unsigned int uid = iu[i+kvol*mu];
 		//Similarly to Hdslash we always see idirac*nc so we do that here too.
 		for(unsigned short idirac=0;idirac<ndirac*nc;idirac+=nc){
 			Complex_f X1s[nc];	 Complex_f X1su[nc];

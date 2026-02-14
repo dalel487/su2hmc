@@ -28,87 +28,102 @@ int Dslash(Complex *phi, Complex *r, Complex *ut[2], unsigned int *iu,unsigned i
 #else
 	memcpy(phi, r, kferm*sizeof(Complex));
 #pragma omp parallel for
-	for(int i=0;i<kvol;i++){
-#pragma omp simd aligned(phi,r,gamval:AVX)
-		for(int idirac = 0; idirac<ndirac; idirac++){
-			int igork = idirac+4;
-			Complex a_1, a_2;
-			a_1=conj(jqq)*gamval[4*ndirac+idirac];
+	for(unsigned int i=0;i<kvol;i++){
+		Complex ru[nc]; Complex rd[nc];
+		Complex rgu[nc]; Complex rgd[nc];
+		Complex phi_s[ngorkov*nc];
+		for(unsigned short idirac=0;idirac<ndirac*nc;idirac+=nc){
+			unsigned short igork = ((idirac>>1)+4)<<1;
+			unsigned int ind_d =4*ndirac+(idirac>>1);
+			Complex a_1=conj(jqq)*gamval[ind_d];
 			//We subtract a_2, hence the minus
-			a_2=-jqq*gamval[4*ndirac+idirac];
-			phi[(i*ngorkov+idirac)*nc]+=a_1*r[(i*ngorkov+igork)*nc+0];
-			phi[(i*ngorkov+idirac)*nc+1]+=a_1*r[(i*ngorkov+igork)*nc+1];
-			phi[(i*ngorkov+igork)*nc+0]+=a_2*r[(i*ngorkov+idirac)*nc];
-			phi[(i*ngorkov+igork)*nc+1]+=a_2*r[(i*ngorkov+idirac)*nc+1];
+			Complex a_2=-jqq*gamval[ind_d];
+			ind_d=i+kvolHalo*(idirac); unsigned int ind_g=i+kvolHalo*(igork);
+			phi_s[idirac]=phi[ind_d]+a_1*r[ind_g];
+			phi_s[igork]=phi[ind_g]+a_2*r[ind_d];
+			ind_d+=kvol; ind_g+=kvol;
+			phi_s[idirac+1]=phi[ind_d]+a_1*r[ind_g];
+			phi_s[igork+1]=phi[ind_g]+a_2*r[ind_d];
 		}
-
+		Complex u11s;	Complex u12s;
+		Complex u11sd; Complex u12sd;
+		unsigned int ind;
 		//Spacelike terms. Here's hoping I haven't put time as the zeroth component somewhere!
 #ifndef NO_SPACE
-		for(int mu = 0; mu <3; mu++){
-			int did=id[mu*kvol+i]; int uid = iu[mu*kvol+i];
-#pragma omp simd aligned(phi,r,gamval:AVX)
-			for(int igorkov=0; igorkov<ngorkov; igorkov++){
+		for(unsigned short mu = 0; mu <3; mu++){
+			ind = i+kvolHalo*mu;
+			const unsigned int did=id[ind]; const unsigned int uid = iu[ind];
+			u11s=ut[0][ind]; u12s=ut[1][ind];
+			ind = did+kvolHalo*mu;
+			u11sd=ut[0][ind]; u12sd=ut[1][ind];
+			for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
+				unsigned short idirac=igorkov&3;		
+				unsigned short gind=mu*ndirac+idirac;
+				const Complex gam=gamval[gind];
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing in the dirac term.
-				int idirac=igorkov%4;		
-				int igork1 = (igorkov<4) ? gamin[mu*ndirac+idirac] : gamin[mu*ndirac+idirac]+4;
-				//Can manually vectorise with a pragma?
+				unsigned short igork1 = (igorkov<4) ? gamin[gind] : gamin[gind]+4;
+				for(unsigned short c=0;c<nc;c++){
+					ru[c]=r[uid+kvolHalo*(igorkov*nc+c)]; rd[c]=r[did+kvolHalo*(igorkov*nc+c)];
+					rgu[c]=r[uid+kvolHalo*(igork1*nc+c)]; rgd[c]=r[did+kvolHalo*(igork1*nc+c)];
+				}
 				//Wilson + Dirac term in that order. Definitely easier
-				//to read when split into different loops, but should be faster this way
-				phi[(i*ngorkov+igorkov)*nc]+=-akappa*(ut[0][i+kvol*mu]*r[(uid*ngorkov+igorkov)*nc]+\
-						ut[1][i+kvol*mu]*r[(uid*ngorkov+igorkov)*nc+1]+\
-						conj(ut[0][did+kvol*mu])*r[(did*ngorkov+igorkov)*nc]-\
-						ut[1][did+kvol*mu]*r[(did*ngorkov+igorkov)*nc+1])+\
-													  //Dirac term. Reminder! gamval was rescaled by kappa when we defined it
-													  gamval[mu*ndirac+idirac]*(ut[0][i+kvol*mu]*r[(uid*ngorkov+igork1)*nc]+\
-															  ut[1][i+kvol*mu]*r[(uid*ngorkov+igork1)*nc+1]-\
-															  conj(ut[0][did+kvol*mu])*r[(did*ngorkov+igork1)*nc]+\
-															  ut[1][did+kvol*mu]*r[(did*ngorkov+igork1)*nc+1]);
+				phi_s[igorkov*nc]+=-akappa*(u11s*ru[0]+ u12s*ru[1]+\
+						conj(u11sd)*rd[0]- u12sd*rd[1]);
+				//Dirac term
+				phi_s[igorkov*nc]+=gam*(u11s*rgu[0]+ u12s*rgu[1]-\
+						conj(u11sd)*rgd[0]+ u12sd*rgd[1]);
 
-				phi[(i*ngorkov+igorkov)*nc+1]+=-akappa*(-conj(ut[1][i+kvol*mu])*r[(uid*ngorkov+igorkov)*nc]+\
-						conj(ut[0][i+kvol*mu])*r[(uid*ngorkov+igorkov)*nc+1]+\
-						conj(ut[1][did+kvol*mu])*r[(did*ngorkov+igorkov)*nc]+\
-						ut[0][did+kvol*mu]*r[(did*ngorkov+igorkov)*nc+1])+\
-														 //Dirac term
-														 gamval[mu*ndirac+idirac]*(-conj(ut[1][i+kvol*mu])*r[(uid*ngorkov+igork1)*nc]+\
-																 conj(ut[0][i+kvol*mu])*r[(uid*ngorkov+igork1)*nc+1]-\
-																 conj(ut[1][did+kvol*mu])*r[(did*ngorkov+igork1)*nc]-\
-																 ut[0][did+kvol*mu]*r[(did*ngorkov+igork1)*nc+1]);
+				phi_s[igorkov*nc+1]+=-akappa*(-conj(u12s)*ru[0]+ conj(u11s)*ru[1]+\
+						conj(u12sd)*rd[0]+ u11sd*rd[1]);
+				//Dirac term
+				phi_s[igorkov*nc+1]+=gam*(-conj(u12s)*rgu[0]+ conj(u11s)*rgu[1]-\
+						conj(u12sd)*rgd[0]- u11sd*rgd[1]);
 			}
 		}
 		//Timelike terms next. These run from igorkov=0..3 and 4..7 with slightly different rules for each
 		//We can fit it into a single loop by declaring igorkovPP=igorkov+4 instead of looping igorkov=4..7  separately
 		//Note that for the igorkov 4..7 loop idirac=igorkov-4, so we don't need to declare idiracPP separately
 #endif
-		int did=id[3*kvol+i]; int uid = iu[3*kvol+i];
 #ifndef NO_TIME
-#pragma omp simd aligned(phi,r:AVX)
-		for(int igorkov=0; igorkov<4; igorkov++){
-			int igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
-												//the FORTRAN code did it.
-			int igork1 = gamin[3*ndirac+igorkov];	int igork1PP = igork1+4;
-
+		ind=i+kvolHalo*3;
+		u11s=ut[0][ind]; u12s=ut[1][ind];
+		const double dk4ms=dk[0][i];	const double dk4ps=dk[1][i];
+		const unsigned int did=id[ind]; const unsigned int uid = iu[ind];
+		ind=did+kvolHalo*3;
+		u11sd=ut[0][ind]; u12sd=ut[1][ind];
+		const double dk4msd=dk[0][did];	const double dk4psd=dk[1][did];
+		for(unsigned short igorkov=0;igorkov<ndirac;igorkov++){
+			unsigned short igork1 = gamin[3*ndirac+igorkov];
+			for(unsigned short c=0;c<nc;c++){
+				ru[c]=r[uid+kvolHalo*(igorkov*nc+c)]; rd[c]=r[did+kvolHalo*(igorkov*nc+c)];
+				rgu[c]=r[uid+kvolHalo*(igork1*nc+c)]; rgd[c]=r[did+kvolHalo*(igork1*nc+c)];
+			}
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
-			phi[(i*ngorkov+igorkov)*nc]+=
-				-dk[1][i]*(ut[0][i+kvol*3]*(r[(uid*ngorkov+igorkov)*nc]-r[(uid*ngorkov+igork1)*nc])
-						+ut[1][i+kvol*3]*(r[(uid*ngorkov+igorkov)*nc+1]-r[(uid*ngorkov+igork1)*nc+1]))
-				-dk[0][did]*(conj(ut[0][did+kvol*3])*(r[(did*ngorkov+igorkov)*nc]+r[(did*ngorkov+igork1)*nc])
-						-ut[1][did+kvol*3] *(r[(did*ngorkov+igorkov)*nc+1]+r[(did*ngorkov+igork1)*nc+1]));
-			phi[(i*ngorkov+igorkov)*nc+1]+=
-				-dk[1][i]*(-conj(ut[1][i+kvol*3])*(r[(uid*ngorkov+igorkov)*nc]-r[(uid*ngorkov+igork1)*nc])
-						+conj(ut[0][i+kvol*3])*(r[(uid*ngorkov+igorkov)*nc+1]-r[(uid*ngorkov+igork1)*nc+1]))
-				-dk[0][did]*(conj(ut[1][did+kvol*3])*(r[(did*ngorkov+igorkov)*nc]+r[(did*ngorkov+igork1)*nc])
-						+ut[0][did+kvol*3] *(r[(did*ngorkov+igorkov)*nc+1]+r[(did*ngorkov+igork1)*nc+1]));
+			phi_s[igorkov*nc]+=
+				-dk4ps*(u11s*(ru[0]-rgu[0]) +u12s*(ru[1]-rgu[1]))
+				-dk4msd*(conj(u11sd)*(rd[0]+rgd[0]) -u12sd *(rd[1]+rgd[1]));
+			phi[i+kvolHalo*(igorkov*nc)]=phi_s[igorkov*nc];
 
-			//And the +4 terms. Note that dk[1] and dk[0] swap positions compared to the above				
-			phi[(i*ngorkov+igorkovPP)*nc]+=-dk[0][i]*(ut[0][i+kvol*3]*(r[(uid*ngorkov+igorkovPP)*nc]-r[(uid*ngorkov+igork1PP)*nc])+\
-					ut[1][i+kvol*3]*(r[(uid*ngorkov+igorkovPP)*nc+1]-r[(uid*ngorkov+igork1PP)*nc+1]))-\
-													 dk[1][did]*(conj(ut[0][did+kvol*3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])-\
-															 ut[1][did+kvol*3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
+			phi_s[igorkov*nc+1]+=
+				-dk4ps*(-conj(u12s)*(ru[0]-rgu[0]) +conj(u11s)*(ru[1]-rgu[1]))
+				-dk4msd*(conj(u12sd)*(rd[0]+rgd[0]) +u11sd *(rd[1]+rgd[1]));
+			phi[i+kvolHalo*(igorkov*nc+1)]=phi_s[igorkov*nc+1];
+			const unsigned short igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
+																		//the FORTRAN code did it.
+			igork1 += 4;
+			//And the gorkov terms. Note that dk4p and dk4m swap positions compared to the above				
+			for(unsigned short c=0;c<nc;c++){
+				ru[c]=r[uid+kvolHalo*(igorkovPP*nc+c)]; rd[c]=r[did+kvolHalo*(igorkovPP*nc+c)];
+				rgu[c]=r[uid+kvolHalo*(igork1*nc+c)]; rgd[c]=r[did+kvolHalo*(igork1*nc+c)];
+			}
+			//And the Gor'kov terms. Note that dk4p and dk4m swap positions compared to the above				
+			phi_s[igorkovPP*nc]+=-dk4ms*(u11s*(ru[0]-rgu[0])+ u12s*(ru[1]-rgu[1]))-
+				dk4psd*(conj(u11sd)*(rd[0]+rgd[0])- u12sd*(rd[1]+rgd[1]));
+			phi[i+kvolHalo*(igorkovPP*nc)]=phi_s[igorkovPP*nc];
 
-			phi[(i*ngorkov+igorkovPP)*nc+1]+=-dk[0][i]*(conj(-ut[1][i+kvol*3])*(r[(uid*ngorkov+igorkovPP)*nc]-r[(uid*ngorkov+igork1PP)*nc])+\
-					conj(ut[0][i+kvol*3])*(r[(uid*ngorkov+igorkovPP)*nc+1]-r[(uid*ngorkov+igork1PP)*nc+1]))-\
-														dk[1][did]*(conj(ut[1][did+kvol*3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])+\
-																ut[0][did+kvol*3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
+			phi_s[igorkovPP*nc+1]+=-dk4ms*(conj(-u12s)*(ru[0]-rgu[0]) +conj(u11s)*(ru[1]-rgu[1]))
+				-dk4psd*(conj(u12sd)*(rd[0]+rgd[0]) +u11sd*(rd[1]+rgd[1]));
+			phi[i+kvolHalo*(igorkovPP*nc+1)]=phi_s[igorkovPP*nc+1];
 		}
 #endif
 	}
@@ -129,93 +144,104 @@ int Dslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned int *iu,unsigned i
 #else
 	memcpy(phi, r, kferm*sizeof(Complex));
 #pragma omp parallel for
-	for(int i=0;i<kvol;i++){
-#pragma omp simd aligned(phi,r,gamval:AVX)
-		//Diquark Term (antihermitian) The signs of a_1 and a_2 below flip under dagger
-		for(int idirac = 0; idirac<ndirac; idirac++){
-			int igork = idirac+4;
-			Complex a_1, a_2;
+	for(unsigned int i=0;i<kvol;i++){
+		Complex ru[nc];  Complex rd[nc];
+		Complex rgu[nc];  Complex rgd[nc];
+		Complex phi_s[ngorkov*nc];
+		#pragma omp simd
+		for(unsigned short idirac = 0; idirac<ndirac; idirac++){
+			unsigned short igork = idirac+4;
+			//Diquark Term (antihermitian) The signs of a_1 and a_2 below flip under dagger
 			//We subtract a_1, hence the minus
-			a_1=-conj(jqq)*gamval[4*ndirac+idirac];
-			a_2=jqq*gamval[4*ndirac+idirac];
-			phi[(i*ngorkov+idirac)*nc]+=a_1*r[(i*ngorkov+igork)*nc];
-			phi[(i*ngorkov+idirac)*nc+1]+=a_1*r[(i*ngorkov+igork)*nc+1];
-			phi[(i*ngorkov+igork)*nc]+=a_2*r[(i*ngorkov+idirac)*nc];
-			phi[(i*ngorkov+igork)*nc+1]+=a_2*r[(i*ngorkov+idirac)*nc+1];
+			Complex a_1=-conj(jqq)*gamval[4*ndirac+idirac];
+			Complex a_2=jqq*gamval[4*ndirac+idirac];
+			phi_s[idirac*nc]=phi[i+kvolHalo*(idirac*nc)]+a_1*r[i+kvolHalo*(igork*nc)];
+			phi_s[igork*nc]=phi[i+kvolHalo*(igork*nc)]+a_2*r[i+kvolHalo*(idirac*nc)];
+			phi_s[idirac*nc+1]=phi[i+kvolHalo*(idirac*nc+1)]+a_1*r[i+kvolHalo*(igork*nc+1)];
+			phi_s[igork*nc+1]=phi[i+kvolHalo*(igork*nc+1)]+a_2*r[i+kvolHalo*(idirac*nc+1)];
 		}
-
+		Complex u11s;	 Complex u12s;
+		Complex u11sd;	 Complex u12sd;
+		unsigned int ind;
 		//Spacelike terms. Here's hoping I haven't put time as the zeroth component somewhere!
 #ifndef NO_SPACE
-		for(int mu = 0; mu <3; mu++){
-			int did=id[mu*kvol+i]; int uid = iu[mu*kvol+i];
-#pragma omp simd aligned(phi,r,gamval:AVX)
-			for(int igorkov=0; igorkov<ngorkov; igorkov++){
+		for(unsigned short mu = 0; mu <3; mu++){
+			ind = i+kvolHalo*mu;
+			const unsigned int did=id[ind]; const unsigned int uid = iu[ind];
+			u11s=ut[0][ind]; u12s=ut[1][ind];
+			ind = did+kvolHalo*mu;
+			u11sd=ut[0][ind]; u12sd=ut[1][ind];
+			#pragma omp simd
+			for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
+				unsigned short idirac=igorkov&3;		
+				const Complex gam=gamval[mu*ndirac+idirac];
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing.
-				int idirac=igorkov%4;		
-				int igork1 = (igorkov<4) ? gamin[mu*ndirac+idirac] : gamin[mu*ndirac+idirac]+4;
+				unsigned short igork1 = (igorkov<4) ? gamin[mu*ndirac+idirac] : gamin[mu*ndirac+idirac]+4;
+				for(unsigned short c=0;c<nc;c++){
+					ru[c]=r[uid+kvolHalo*(igorkov*nc+c)]; rd[c]=r[did+kvolHalo*(igorkov*nc+c)];
+					rgd[c]=r[did+kvolHalo*(igork1*nc+c)]; rgu[c]=r[uid+kvolHalo*(igork1*nc+c)];
+				}
 				//Wilson + Dirac term in that order. Definitely easier
-				//to read when split into different loops, but should be faster this way
-				//Reminder! gamval was rescaled by kappa when we defined it
-				phi[(i*ngorkov+igorkov)*nc]+=
-					-akappa*(      ut[0][i+kvol*mu]*r[(uid*ngorkov+igorkov)*nc]
-							+ut[1][i+kvol*mu]*r[(uid*ngorkov+igorkov)*nc+1]
-							+conj(ut[0][did+kvol*mu])*r[(did*ngorkov+igorkov)*nc]
-							-ut[1][did+kvol*mu] *r[(did*ngorkov+igorkov)*nc+1])
-					-gamval[mu*ndirac+idirac]*
-					(          ut[0][i+kvol*mu]*r[(uid*ngorkov+igork1)*nc]
-								  +ut[1][i+kvol*mu]*r[(uid*ngorkov+igork1)*nc+1]
-								  -conj(ut[0][did+kvol*mu])*r[(did*ngorkov+igork1)*nc]
-								  +ut[1][did+kvol*mu] *r[(did*ngorkov+igork1)*nc+1]);
+				phi_s[igorkov*nc]-= akappa*(u11s*ru[0] +u12s*ru[1]
+						+conj(u11sd)*rd[0] -u12sd *rd[1]);
 
-				phi[(i*ngorkov+igorkov)*nc+1]+=
-					-akappa*(-conj(ut[1][i+kvol*mu])*r[(uid*ngorkov+igorkov)*nc]
-							+conj(ut[0][i+kvol*mu])*r[(uid*ngorkov+igorkov)*nc+1]
-							+conj(ut[1][did+kvol*mu])*r[(did*ngorkov+igorkov)*nc]
-							+ut[0][did+kvol*mu] *r[(did*ngorkov+igorkov)*nc+1])
-					-gamval[mu*ndirac+idirac]*
-					(-conj(ut[1][i+kvol*mu])*r[(uid*ngorkov+igork1)*nc]
-					 +conj(ut[0][i+kvol*mu])*r[(uid*ngorkov+igork1)*nc+1]
-					 -conj(ut[1][did+kvol*mu])*r[(did*ngorkov+igork1)*nc]
-					 -ut[0][did+kvol*mu] *r[(did*ngorkov+igork1)*nc+1]);
+				//Dirac term
+				phi_s[igorkov*nc]-=gam* (u11s*rgu[0] +u12s*rgu[1]
+						-conj(u11sd)*rgd[0] +u12sd *rgd[1]);
+
+				phi_s[igorkov*nc+1]-= akappa*(-conj(u12s)*ru[0] +conj(u11s)*ru[1]
+						+conj(u12sd)*rd[0] +u11sd *rd[1]);
+				//Dirac term
+				phi_s[igorkov*nc+1]-=gam* (-conj(u12s)*rgu[0] +conj(u11s)*rgu[1]
+						-conj(u12sd)*rgd[0] -u11sd *rgd[1]);
+
 			}
 		}
 #endif
 		//Timelike terms next. These run from igorkov=0..3 and 4..7 with slightly different rules for each
 		//We can fit it into a single loop by declaring igorkovPP=igorkov+4 instead of looping igorkov=4..7  separately
 		//Note that for the igorkov 4..7 loop idirac=igorkov-4, so we don't need to declare idiracPP separately
-		//Under dagger, dk[1] and dk[0] get swapped and the dirac component flips sign.
-		int did=id[3*kvol+i]; int uid = iu[3*kvol+i];
+		//Under dagger, dk4p and dk4m get swapped and the dirac component flips sign.
 #ifndef NO_TIME
-#pragma omp simd aligned(phi,r:AVX)
-		for(int igorkov=0; igorkov<4; igorkov++){
-			//the FORTRAN code did it.
-			int igork1 = gamin[3*ndirac+igorkov];	
+		ind=i+kvolHalo*3;
+		u11s=ut[0][ind]; u12s=ut[1][ind];
+		const double dk4ms=dk[0][i];	const double dk4ps=dk[1][i];
+		const unsigned int did=id[ind]; const unsigned int uid = iu[ind];
+		ind=did+kvolHalo*3;
+		u11sd=ut[0][ind]; u12sd=ut[1][ind];
+		const double dk4msd=dk[0][did];	const double dk4psd=dk[1][did];
+		#pragma omp simd
+		for(unsigned short igorkov=0; igorkov<ndirac; igorkov++){
+			unsigned short igork1 = gamin[3*ndirac+igorkov];	
+			for(unsigned short c=0;c<nc;c++){
+				ru[c]=r[uid+kvolHalo*(igorkov*nc+c)]; rd[c]=r[did+kvolHalo*(igorkov*nc+c)];
+				rgu[c]=r[uid+kvolHalo*(igork1*nc+c)]; rgd[c]=r[did+kvolHalo*(igork1*nc+c)];
+			}
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
-			phi[(i*ngorkov+igorkov)*nc]+=
-				-dk[0][i]*(ut[0][i+kvol*3]*(r[(uid*ngorkov+igorkov)*nc]+r[(uid*ngorkov+igork1)*nc])
-						+ut[1][i+kvol*3]*(r[(uid*ngorkov+igorkov)*nc+1]+r[(uid*ngorkov+igork1)*nc+1]))
-				-dk[1][did]*(conj(ut[0][did+kvol*3])*(r[(did*ngorkov+igorkov)*nc]-r[(did*ngorkov+igork1)*nc])
-						-ut[1][did+kvol*3] *(r[(did*ngorkov+igorkov)*nc+1]-r[(did*ngorkov+igork1)*nc+1]));
-			phi[(i*ngorkov+igorkov)*nc+1]+=
-				-dk[0][i]*(-conj(ut[1][i+kvol*3])*(r[(uid*ngorkov+igorkov)*nc]+r[(uid*ngorkov+igork1)*nc])
-						+conj(ut[0][i+kvol*3])*(r[(uid*ngorkov+igorkov)*nc+1]+r[(uid*ngorkov+igork1)*nc+1]))
-				-dk[1][did]*(conj(ut[1][did+kvol*3])*(r[(did*ngorkov+igorkov)*nc]-r[(did*ngorkov+igork1)*nc])
-						+ut[0][did+kvol*3] *(r[(did*ngorkov+igorkov)*nc+1]-r[(did*ngorkov+igork1)*nc+1]));
+			phi_s[igorkov*nc]+=
+				-dk4ms*(u11s*(ru[0]+rgu[0]) +u12s*(ru[1]+rgu[1]))
+				-dk4psd*(conj(u11sd)*(rd[0]-rgd[0]) -u12sd *(rd[1]-rgd[1]));
+			phi[i+kvolHalo*(igorkov*nc)]=phi_s[igorkov*nc];
 
+			phi_s[igorkov*nc+1]+=
+				-dk4ms*(-conj(u12s)*(ru[0]+rgu[0]) +conj(u11s)*(ru[1]+rgu[1]))
+				-dk4psd*(conj(u12sd)*(rd[0]-rgd[0]) +u11sd *(rd[1]-rgd[1]));
+			phi[i+kvolHalo*(igorkov*nc+1)]=phi_s[igorkov*nc+1];
+			const unsigned short igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
+																		//the FORTRAN code did it.
+			igork1 += 4;
+			for(unsigned short c=0;c<nc;c++){
+				ru[c]=r[uid+kvolHalo*(igorkovPP*nc+c)]; rd[c]=r[did+kvolHalo*(igorkovPP*nc+c)];
+				rgu[c]=r[uid+kvolHalo*(igork1*nc+c)]; rgd[c]=r[did+kvolHalo*(igork1*nc+c)];
+			}
+			//And the Gor'kov terms. Note that dk4p and dk4m swap positions compared to the above				
+			phi_s[igorkovPP*nc]+=-dk4ps*(u11s*(ru[0]+rgu[0]) +u12s*(ru[1]+rgu[1]))
+				-dk4msd*(conj(u11sd)*(rd[0]-rgd[0]) -u12sd*(rd[1]-rgd[1]));
+			phi[i+kvolHalo*(igorkovPP*nc)]=phi_s[igorkovPP*nc];
 
-			int igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
-			int igork1PP = igork1+4;
-			//And the +4 terms. Note that dk[1] and dk[0] swap positions compared to the above				
-			phi[(i*ngorkov+igorkovPP)*nc]+=-dk[1][i]*(ut[0][i+kvol*3]*(r[(uid*ngorkov+igorkovPP)*nc]+r[(uid*ngorkov+igork1PP)*nc])+\
-					ut[1][i+kvol*3]*(r[(uid*ngorkov+igorkovPP)*nc+1]+r[(uid*ngorkov+igork1PP)*nc+1]))-\
-													 dk[0][did]*(conj(ut[0][did+kvol*3])*(r[(did*ngorkov+igorkovPP)*nc]-r[(did*ngorkov+igork1PP)*nc])-\
-															 ut[1][did+kvol*3]*(r[(did*ngorkov+igorkovPP)*nc+1]-r[(did*ngorkov+igork1PP)*nc+1]));
-
-			phi[(i*ngorkov+igorkovPP)*nc+1]+=dk[1][i]*(conj(ut[1][i+kvol*3])*(r[(uid*ngorkov+igorkovPP)*nc]+r[(uid*ngorkov+igork1PP)*nc])-\
-					conj(ut[0][i+kvol*3])*(r[(uid*ngorkov+igorkovPP)*nc+1]+r[(uid*ngorkov+igork1PP)*nc+1]))-\
-														dk[0][did]*(conj(ut[1][did+kvol*3])*(r[(did*ngorkov+igorkovPP)*nc]-r[(did*ngorkov+igork1PP)*nc])+
-																ut[0][did+kvol*3]*(r[(did*ngorkov+igorkovPP)*nc+1]-r[(did*ngorkov+igork1PP)*nc+1]));
-
+			phi_s[igorkovPP*nc+1]+=dk4ps*(conj(u12s)*(ru[0]+rgu[0]) -conj(u11s)*(ru[1]+rgu[1]))
+				-dk4msd*(conj(u12sd)*(rd[0]-rgd[0]) +u11sd*(rd[1]-rgd[1]));
+			phi[i+kvolHalo*(igorkovPP*nc+1)]=phi_s[igorkovPP*nc+1];
 		}
 #endif
 	}
@@ -376,7 +402,7 @@ int Hdslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned
 //Float Versions
 //int Dslash_f(Complex_f *phi, Complex_f *r){
 int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu, unsigned int *id,\
-		Complex_f gamval_f[20],	const unsigned short gamin[16],	float *dk_f[2], Complex_f jqq, float akappa){
+		Complex_f gamval[20],	const unsigned short gamin[16],	float *dk[2], Complex_f jqq, float akappa){
 	const char *funcname = "Dslash_f";
 	//Get the halos in order
 #if(nproc>1)
@@ -391,86 +417,101 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu, un
 	memcpy(phi, r, kferm*sizeof(Complex_f));
 #pragma omp parallel for
 	for(unsigned int i=0;i<kvol;i++){
-#pragma omp simd aligned(phi,r,gamval_f:AVX)
-		for(unsigned short idirac = 0; idirac<ndirac; idirac++){
-			unsigned short igork = idirac+4;
-			Complex_f a_1, a_2;
-			a_1=conj(jqq)*gamval_f[4*ndirac+idirac];
+		Complex_f ru[nc]; Complex_f rd[nc];
+		Complex_f rgu[nc]; Complex_f rgd[nc];
+		Complex_f phi_s[ngorkov*nc];
+		for(unsigned short idirac=0;idirac<ndirac*nc;idirac+=nc){
+			unsigned short igork = ((idirac>>1)+4)<<1;
+			unsigned int ind_d =4*ndirac+(idirac>>1);
+			Complex_f a_1=conj(jqq)*gamval[ind_d];
 			//We subtract a_2, hence the minus
-			a_2=-jqq*gamval_f[4*ndirac+idirac];
-			phi[(i*ngorkov+idirac)*nc]+=a_1*r[(i*ngorkov+igork)*nc+0];
-			phi[(i*ngorkov+idirac)*nc+1]+=a_1*r[(i*ngorkov+igork)*nc+1];
-			phi[(i*ngorkov+igork)*nc+0]+=a_2*r[(i*ngorkov+idirac)*nc];
-			phi[(i*ngorkov+igork)*nc+1]+=a_2*r[(i*ngorkov+idirac)*nc+1];
+			Complex_f a_2=-jqq*gamval[ind_d];
+			ind_d=i+kvolHalo*(idirac); unsigned int ind_g=i+kvolHalo*(igork);
+			phi_s[idirac]=phi[ind_d]+a_1*r[ind_g];
+			phi_s[igork]=phi[ind_g]+a_2*r[ind_d];
+			ind_d+=kvol; ind_g+=kvol;
+			phi_s[idirac+1]=phi[ind_d]+a_1*r[ind_g];
+			phi_s[igork+1]=phi[ind_g]+a_2*r[ind_d];
 		}
-
+		Complex_f u11s;	Complex_f u12s;
+		Complex_f u11sd; Complex_f u12sd;
+		unsigned int ind;
 		//Spacelike terms. Here's hoping I haven't put time as the zeroth component somewhere!
 #ifndef NO_SPACE
 		for(unsigned short mu = 0; mu <3; mu++){
-			unsigned int did=id[mu*kvol+i]; unsigned int uid = iu[mu*kvol+i];
-#pragma omp simd aligned(phi,r,gamval_f,gamin:AVX)
+			ind = i+kvolHalo*mu;
+			const unsigned int did=id[ind]; const unsigned int uid = iu[ind];
+			u11s=ut[0][ind]; u12s=ut[1][ind];
+			ind = did+kvolHalo*mu;
+			u11sd=ut[0][ind]; u12sd=ut[1][ind];
 			for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
+				unsigned short idirac=igorkov&3;		
+				unsigned short gind=mu*ndirac+idirac;
+				const Complex_f gam=gamval[gind];
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing in the dirac term.
-				unsigned short idirac=igorkov%4;		
-				unsigned short igork1 = (igorkov<4) ? gamin[mu*ndirac+idirac] : gamin[mu*ndirac+idirac]+4;
-				//Can manually vectorise with a pragma?
+				unsigned short igork1 = (igorkov<4) ? gamin[gind] : gamin[gind]+4;
+				for(unsigned short c=0;c<nc;c++){
+					ru[c]=r[uid+kvolHalo*(igorkov*nc+c)]; rd[c]=r[did+kvolHalo*(igorkov*nc+c)];
+					rgu[c]=r[uid+kvolHalo*(igork1*nc+c)]; rgd[c]=r[did+kvolHalo*(igork1*nc+c)];
+				}
 				//Wilson + Dirac term in that order. Definitely easier
-				//to read when split into different loops, but should be faster this way
-				phi[(i*ngorkov+igorkov)*nc]+=-akappa*(ut[0][i+kvol*mu]*r[(uid*ngorkov+igorkov)*nc]+\
-						ut[1][i+kvol*mu]*r[(uid*ngorkov+igorkov)*nc+1]+\
-						conj(ut[0][did+kvol*mu])*r[(did*ngorkov+igorkov)*nc]-\
-						ut[1][did+kvol*mu]*r[(did*ngorkov+igorkov)*nc+1])+\
-													  //Dirac term. Reminder! gamval was rescaled by kappa when we defined it
-													  gamval_f[mu*ndirac+idirac]*(ut[0][i+kvol*mu]*r[(uid*ngorkov+igork1)*nc]+\
-															  ut[1][i+kvol*mu]*r[(uid*ngorkov+igork1)*nc+1]-\
-															  conj(ut[0][did+kvol*mu])*r[(did*ngorkov+igork1)*nc]+\
-															  ut[1][did+kvol*mu]*r[(did*ngorkov+igork1)*nc+1]);
+				phi_s[igorkov*nc]+=-akappa*(u11s*ru[0]+ u12s*ru[1]+\
+						conj(u11sd)*rd[0]- u12sd*rd[1]);
+				//Dirac term
+				phi_s[igorkov*nc]+=gam*(u11s*rgu[0]+ u12s*rgu[1]-\
+						conj(u11sd)*rgd[0]+ u12sd*rgd[1]);
 
-				phi[(i*ngorkov+igorkov)*nc+1]+=-akappa*(-conj(ut[1][i+kvol*mu])*r[(uid*ngorkov+igorkov)*nc]+\
-						conj(ut[0][i+kvol*mu])*r[(uid*ngorkov+igorkov)*nc+1]+\
-						conj(ut[1][did+kvol*mu])*r[(did*ngorkov+igorkov)*nc]+\
-						ut[0][did+kvol*mu]*r[(did*ngorkov+igorkov)*nc+1])+\
-														 //Dirac term
-														 gamval_f[mu*ndirac+idirac]*(-conj(ut[1][i+kvol*mu])*r[(uid*ngorkov+igork1)*nc]+\
-																 conj(ut[0][i+kvol*mu])*r[(uid*ngorkov+igork1)*nc+1]-\
-																 conj(ut[1][did+kvol*mu])*r[(did*ngorkov+igork1)*nc]-\
-																 ut[0][did+kvol*mu]*r[(did*ngorkov+igork1)*nc+1]);
+				phi_s[igorkov*nc+1]+=-akappa*(-conj(u12s)*ru[0]+ conj(u11s)*ru[1]+\
+						conj(u12sd)*rd[0]+ u11sd*rd[1]);
+				//Dirac term
+				phi_s[igorkov*nc+1]+=gam*(-conj(u12s)*rgu[0]+ conj(u11s)*rgu[1]-\
+						conj(u12sd)*rgd[0]- u11sd*rgd[1]);
 			}
 		}
 		//Timelike terms next. These run from igorkov=0..3 and 4..7 with slightly different rules for each
 		//We can fit it into a single loop by declaring igorkovPP=igorkov+4 instead of looping igorkov=4..7  separately
 		//Note that for the igorkov 4..7 loop idirac=igorkov-4, so we don't need to declare idiracPP separately
 #endif
-		unsigned int did=id[3*kvol+i]; unsigned int uid = iu[3*kvol+i];
 #ifndef NO_TIME
-#pragma omp simd aligned(phi,r,gamin:AVX)
-		for(unsigned short igorkov=0; igorkov<4; igorkov++){
-			unsigned short igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
-												//the FORTRAN code did it.
-			unsigned short igork1 = gamin[3*ndirac+igorkov];	unsigned short igork1PP = igork1+4;
-
+		ind=i+kvolHalo*3;
+		u11s=ut[0][ind]; u12s=ut[1][ind];
+		const float dk4ms=dk[0][i];	const float dk4ps=dk[1][i];
+		const unsigned int did=id[ind]; const unsigned int uid = iu[ind];
+		ind=did+kvolHalo*3;
+		u11sd=ut[0][ind]; u12sd=ut[1][ind];
+		const float dk4msd=dk[0][did];	const float dk4psd=dk[1][did];
+		for(unsigned short igorkov=0;igorkov<ndirac;igorkov++){
+			unsigned short igork1 = gamin[3*ndirac+igorkov];
+			for(unsigned short c=0;c<nc;c++){
+				ru[c]=r[uid+kvolHalo*(igorkov*nc+c)]; rd[c]=r[did+kvolHalo*(igorkov*nc+c)];
+				rgu[c]=r[uid+kvolHalo*(igork1*nc+c)]; rgd[c]=r[did+kvolHalo*(igork1*nc+c)];
+			}
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
-			phi[(i*ngorkov+igorkov)*nc]+=
-				-dk_f[1][i]*(ut[0][i+kvol*3]*(r[(uid*ngorkov+igorkov)*nc]-r[(uid*ngorkov+igork1)*nc])
-						+ut[1][i+kvol*3]*(r[(uid*ngorkov+igorkov)*nc+1]-r[(uid*ngorkov+igork1)*nc+1]))
-				-dk_f[0][did]*(conj(ut[0][did+kvol*3])*(r[(did*ngorkov+igorkov)*nc]+r[(did*ngorkov+igork1)*nc])
-						-ut[1][did+kvol*3] *(r[(did*ngorkov+igorkov)*nc+1]+r[(did*ngorkov+igork1)*nc+1]));
-			phi[(i*ngorkov+igorkov)*nc+1]+=
-				-dk_f[1][i]*(-conj(ut[1][i+kvol*3])*(r[(uid*ngorkov+igorkov)*nc]-r[(uid*ngorkov+igork1)*nc])
-						+conj(ut[0][i+kvol*3])*(r[(uid*ngorkov+igorkov)*nc+1]-r[(uid*ngorkov+igork1)*nc+1]))
-				-dk_f[0][did]*(conj(ut[1][did+kvol*3])*(r[(did*ngorkov+igorkov)*nc]+r[(did*ngorkov+igork1)*nc])
-						+ut[0][did+kvol*3] *(r[(did*ngorkov+igorkov)*nc+1]+r[(did*ngorkov+igork1)*nc+1]));
+			phi_s[igorkov*nc]+=
+				-dk4ps*(u11s*(ru[0]-rgu[0]) +u12s*(ru[1]-rgu[1]))
+				-dk4msd*(conj(u11sd)*(rd[0]+rgd[0]) -u12sd *(rd[1]+rgd[1]));
+			phi[i+kvolHalo*(igorkov*nc)]=phi_s[igorkov*nc];
 
-			//And the +4 terms. Note that dk_f[1] and dk_f[0] swap positions compared to the above				
-			phi[(i*ngorkov+igorkovPP)*nc]+=-dk_f[0][i]*(ut[0][i+kvol*3]*(r[(uid*ngorkov+igorkovPP)*nc]-r[(uid*ngorkov+igork1PP)*nc])
-					+ut[1][i+kvol*3]*(r[(uid*ngorkov+igorkovPP)*nc+1]-r[(uid*ngorkov+igork1PP)*nc+1]))
-				-dk_f[1][did]*(conj(ut[0][did+kvol*3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])
-						-ut[1][did+kvol*3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
+			phi_s[igorkov*nc+1]+=
+				-dk4ps*(-conj(u12s)*(ru[0]-rgu[0]) +conj(u11s)*(ru[1]-rgu[1]))
+				-dk4msd*(conj(u12sd)*(rd[0]+rgd[0]) +u11sd *(rd[1]+rgd[1]));
+			phi[i+kvolHalo*(igorkov*nc+1)]=phi_s[igorkov*nc+1];
+			const unsigned short igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
+																		//the FORTRAN code did it.
+			igork1 += 4;
+			//And the gorkov terms. Note that dk4p and dk4m swap positions compared to the above				
+			for(unsigned short c=0;c<nc;c++){
+				ru[c]=r[uid+kvolHalo*(igorkovPP*nc+c)]; rd[c]=r[did+kvolHalo*(igorkovPP*nc+c)];
+				rgu[c]=r[uid+kvolHalo*(igork1*nc+c)]; rgd[c]=r[did+kvolHalo*(igork1*nc+c)];
+			}
+			//And the Gor'kov terms. Note that dk4p and dk4m swap positions compared to the above				
+			phi_s[igorkovPP*nc]+=-dk4ms*(u11s*(ru[0]-rgu[0])+ u12s*(ru[1]-rgu[1]))-
+				dk4psd*(conj(u11sd)*(rd[0]+rgd[0])- u12sd*(rd[1]+rgd[1]));
+			phi[i+kvolHalo*(igorkovPP*nc)]=phi_s[igorkovPP*nc];
 
-			phi[(i*ngorkov+igorkovPP)*nc+1]+=-dk_f[0][i]*(conj(-ut[1][i+kvol*3])*(r[(uid*ngorkov+igorkovPP)*nc]-r[(uid*ngorkov+igork1PP)*nc])
-					+conj(ut[0][i+kvol*3])*(r[(uid*ngorkov+igorkovPP)*nc+1]-r[(uid*ngorkov+igork1PP)*nc+1]))
-				-dk_f[1][did]*(conj(ut[1][did+kvol*3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])
-						+ut[0][did+kvol*3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
+			phi_s[igorkovPP*nc+1]+=-dk4ms*(conj(-u12s)*(ru[0]-rgu[0]) +conj(u11s)*(ru[1]-rgu[1]))
+				-dk4psd*(conj(u12sd)*(rd[0]+rgd[0]) +u11sd*(rd[1]+rgd[1]));
+			phi[i+kvolHalo*(igorkovPP*nc+1)]=phi_s[igorkovPP*nc+1];
 		}
 #endif
 	}
@@ -478,7 +519,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu, un
 	return 0;
 }
 int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,unsigned int *id,\
-		Complex_f gamval_f[20], const unsigned short gamin[16], float *dk_f[2], Complex_f jqq, float akappa){
+		Complex_f gamval[20], const unsigned short gamin[16], float *dk[2], Complex_f jqq, float akappa){
 	const char *funcname = "Dslashd_f";
 	//Get the halos in order
 #if(nproc>1)
@@ -492,92 +533,103 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,un
 	memcpy(phi, r, kferm*sizeof(Complex_f));
 #pragma omp parallel for
 	for(unsigned int i=0;i<kvol;i++){
-#pragma omp simd aligned(phi,r,gamval_f:AVX)
-		//Diquark Term (antihermitian) The signs of a_1 and a_2 below flip under dagger
+		Complex_f ru[nc];  Complex_f rd[nc];
+		Complex_f rgu[nc];  Complex_f rgd[nc];
+		Complex_f phi_s[ngorkov*nc];
+#pragma omp simd
 		for(unsigned short idirac = 0; idirac<ndirac; idirac++){
 			unsigned short igork = idirac+4;
-			Complex_f a_1, a_2;
+			//Diquark Term (antihermitian) The signs of a_1 and a_2 below flip under dagger
 			//We subtract a_1, hence the minus
-			a_1=-conj(jqq)*gamval_f[4*ndirac+idirac];
-			a_2=jqq*gamval_f[4*ndirac+idirac];
-			phi[(i*ngorkov+idirac)*nc]+=a_1*r[(i*ngorkov+igork)*nc];
-			phi[(i*ngorkov+idirac)*nc+1]+=a_1*r[(i*ngorkov+igork)*nc+1];
-			phi[(i*ngorkov+igork)*nc]+=a_2*r[(i*ngorkov+idirac)*nc];
-			phi[(i*ngorkov+igork)*nc+1]+=a_2*r[(i*ngorkov+idirac)*nc+1];
+			Complex_f a_1=-conj(jqq)*gamval[4*ndirac+idirac];
+			Complex_f a_2=jqq*gamval[4*ndirac+idirac];
+			phi_s[idirac*nc]=phi[i+kvolHalo*(idirac*nc)]+a_1*r[i+kvolHalo*(igork*nc)];
+			phi_s[igork*nc]=phi[i+kvolHalo*(igork*nc)]+a_2*r[i+kvolHalo*(idirac*nc)];
+			phi_s[idirac*nc+1]=phi[i+kvolHalo*(idirac*nc+1)]+a_1*r[i+kvolHalo*(igork*nc+1)];
+			phi_s[igork*nc+1]=phi[i+kvolHalo*(igork*nc+1)]+a_2*r[i+kvolHalo*(idirac*nc+1)];
 		}
-
+		Complex_f u11s;	 Complex_f u12s;
+		Complex_f u11sd;	 Complex_f u12sd;
+		unsigned int ind;
 		//Spacelike terms. Here's hoping I haven't put time as the zeroth component somewhere!
 #ifndef NO_SPACE
 		for(unsigned short mu = 0; mu <3; mu++){
-			unsigned int did=id[mu*kvol+i]; unsigned int uid = iu[mu*kvol+i];
-#pragma omp simd aligned(phi,r,gamval_f:AVX)
+			ind = i+kvolHalo*mu;
+			const unsigned int did=id[ind]; const unsigned int uid = iu[ind];
+			u11s=ut[0][ind]; u12s=ut[1][ind];
+			ind = did+kvolHalo*mu;
+			u11sd=ut[0][ind]; u12sd=ut[1][ind];
+#pragma omp simd
 			for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
+				unsigned short idirac=igorkov&3;		
+				const Complex_f gam=gamval[mu*ndirac+idirac];
 				//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing.
-				unsigned short idirac=igorkov%4;		
 				unsigned short igork1 = (igorkov<4) ? gamin[mu*ndirac+idirac] : gamin[mu*ndirac+idirac]+4;
+				for(unsigned short c=0;c<nc;c++){
+					ru[c]=r[uid+kvolHalo*(igorkov*nc+c)]; rd[c]=r[did+kvolHalo*(igorkov*nc+c)];
+					rgd[c]=r[did+kvolHalo*(igork1*nc+c)]; rgu[c]=r[uid+kvolHalo*(igork1*nc+c)];
+				}
 				//Wilson + Dirac term in that order. Definitely easier
-				//to read when split into different loops, but should be faster this way
-				//Reminder! gamval was rescaled by kappa when we defined it
-				phi[(i*ngorkov+igorkov)*nc]+=
-					-akappa*(      ut[0][i+kvol*mu]*r[(uid*ngorkov+igorkov)*nc]
-							+ut[1][i+kvol*mu]*r[(uid*ngorkov+igorkov)*nc+1]
-							+conj(ut[0][did+kvol*mu])*r[(did*ngorkov+igorkov)*nc]
-							-ut[1][did+kvol*mu] *r[(did*ngorkov+igorkov)*nc+1])
-					-gamval_f[mu*ndirac+idirac]*
-					(          ut[0][i+kvol*mu]*r[(uid*ngorkov+igork1)*nc]
-								  +ut[1][i+kvol*mu]*r[(uid*ngorkov+igork1)*nc+1]
-								  -conj(ut[0][did+kvol*mu])*r[(did*ngorkov+igork1)*nc]
-								  +ut[1][did+kvol*mu] *r[(did*ngorkov+igork1)*nc+1]);
+				phi_s[igorkov*nc]-= akappa*(u11s*ru[0] +u12s*ru[1]
+						+conj(u11sd)*rd[0] -u12sd *rd[1]);
 
-				phi[(i*ngorkov+igorkov)*nc+1]+=
-					-akappa*(-conj(ut[1][i+kvol*mu])*r[(uid*ngorkov+igorkov)*nc]
-							+conj(ut[0][i+kvol*mu])*r[(uid*ngorkov+igorkov)*nc+1]
-							+conj(ut[1][did+kvol*mu])*r[(did*ngorkov+igorkov)*nc]
-							+ut[0][did+kvol*mu] *r[(did*ngorkov+igorkov)*nc+1])
-					-gamval_f[mu*ndirac+idirac]*
-					(-conj(ut[1][i+kvol*mu])*r[(uid*ngorkov+igork1)*nc]
-					 +conj(ut[0][i+kvol*mu])*r[(uid*ngorkov+igork1)*nc+1]
-					 -conj(ut[1][did+kvol*mu])*r[(did*ngorkov+igork1)*nc]
-					 -ut[0][did+kvol*mu] *r[(did*ngorkov+igork1)*nc+1]);
+				//Dirac term
+				phi_s[igorkov*nc]-=gam* (u11s*rgu[0] +u12s*rgu[1]
+						-conj(u11sd)*rgd[0] +u12sd *rgd[1]);
+
+				phi_s[igorkov*nc+1]-= akappa*(-conj(u12s)*ru[0] +conj(u11s)*ru[1]
+						+conj(u12sd)*rd[0] +u11sd *rd[1]);
+				//Dirac term
+				phi_s[igorkov*nc+1]-=gam* (-conj(u12s)*rgu[0] +conj(u11s)*rgu[1]
+						-conj(u12sd)*rgd[0] -u11sd *rgd[1]);
+
 			}
 		}
 #endif
 		//Timelike terms next. These run from igorkov=0..3 and 4..7 with slightly different rules for each
 		//We can fit it into a single loop by declaring igorkovPP=igorkov+4 instead of looping igorkov=4..7  separately
 		//Note that for the igorkov 4..7 loop idirac=igorkov-4, so we don't need to declare idiracPP separately
-		//Under dagger, dk_f[1] and dk_f[0] get swapped and the dirac component flips sign.
-		unsigned int did=id[3*kvol+i]; unsigned int uid = iu[3*kvol+i];
+		//Under dagger, dk4p and dk4m get swapped and the dirac component flips sign.
 #ifndef NO_TIME
-#pragma omp simd aligned(phi,r:AVX)
-		for(unsigned short igorkov=0; igorkov<4; igorkov++){
-			//the FORTRAN code did it.
+		ind=i+kvolHalo*3;
+		u11s=ut[0][ind]; u12s=ut[1][ind];
+		const float dk4ms=dk[0][i];	const float dk4ps=dk[1][i];
+		const unsigned int did=id[ind]; const unsigned int uid = iu[ind];
+		ind=did+kvolHalo*3;
+		u11sd=ut[0][ind]; u12sd=ut[1][ind];
+		const float dk4msd=dk[0][did];	const float dk4psd=dk[1][did];
+#pragma omp simd
+		for(unsigned short igorkov=0; igorkov<ndirac; igorkov++){
 			unsigned short igork1 = gamin[3*ndirac+igorkov];	
+			for(unsigned short c=0;c<nc;c++){
+				ru[c]=r[uid+kvolHalo*(igorkov*nc+c)]; rd[c]=r[did+kvolHalo*(igorkov*nc+c)];
+				rgu[c]=r[uid+kvolHalo*(igork1*nc+c)]; rgd[c]=r[did+kvolHalo*(igork1*nc+c)];
+			}
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
-			phi[(i*ngorkov+igorkov)*nc]+=
-				-dk_f[0][i]*(ut[0][i+kvol*3]*(r[(uid*ngorkov+igorkov)*nc]+r[(uid*ngorkov+igork1)*nc])
-						+ut[1][i+kvol*3]*(r[(uid*ngorkov+igorkov)*nc+1]+r[(uid*ngorkov+igork1)*nc+1]))
-				-dk_f[1][did]*(conj(ut[0][did+kvol*3])*(r[(did*ngorkov+igorkov)*nc]-r[(did*ngorkov+igork1)*nc])
-						-ut[1][did+kvol*3] *(r[(did*ngorkov+igorkov)*nc+1]-r[(did*ngorkov+igork1)*nc+1]));
-			phi[(i*ngorkov+igorkov)*nc+1]+=
-				-dk_f[0][i]*(-conj(ut[1][i+kvol*3])*(r[(uid*ngorkov+igorkov)*nc]+r[(uid*ngorkov+igork1)*nc])
-						+conj(ut[0][i+kvol*3])*(r[(uid*ngorkov+igorkov)*nc+1]+r[(uid*ngorkov+igork1)*nc+1]))
-				-dk_f[1][did]*(conj(ut[1][did+kvol*3])*(r[(did*ngorkov+igorkov)*nc]-r[(did*ngorkov+igork1)*nc])
-						+ut[0][did+kvol*3] *(r[(did*ngorkov+igorkov)*nc+1]-r[(did*ngorkov+igork1)*nc+1]));
+			phi_s[igorkov*nc]+=
+				-dk4ms*(u11s*(ru[0]+rgu[0]) +u12s*(ru[1]+rgu[1]))
+				-dk4psd*(conj(u11sd)*(rd[0]-rgd[0]) -u12sd *(rd[1]-rgd[1]));
+			phi[i+kvolHalo*(igorkov*nc)]=phi_s[igorkov*nc];
 
+			phi_s[igorkov*nc+1]+=
+				-dk4ms*(-conj(u12s)*(ru[0]+rgu[0]) +conj(u11s)*(ru[1]+rgu[1]))
+				-dk4psd*(conj(u12sd)*(rd[0]-rgd[0]) +u11sd *(rd[1]-rgd[1]));
+			phi[i+kvolHalo*(igorkov*nc+1)]=phi_s[igorkov*nc+1];
+			const unsigned short igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
+																		//the FORTRAN code did it.
+			igork1 += 4;
+			for(unsigned short c=0;c<nc;c++){
+				ru[c]=r[uid+kvolHalo*(igorkovPP*nc+c)]; rd[c]=r[did+kvolHalo*(igorkovPP*nc+c)];
+				rgu[c]=r[uid+kvolHalo*(igork1*nc+c)]; rgd[c]=r[did+kvolHalo*(igork1*nc+c)];
+			}
+			//And the Gor'kov terms. Note that dk4p and dk4m swap positions compared to the above				
+			phi_s[igorkovPP*nc]+=-dk4ps*(u11s*(ru[0]+rgu[0]) +u12s*(ru[1]+rgu[1]))
+				-dk4msd*(conj(u11sd)*(rd[0]-rgd[0]) -u12sd*(rd[1]-rgd[1]));
+			phi[i+kvolHalo*(igorkovPP*nc)]=phi_s[igorkovPP*nc];
 
-			unsigned short igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
-			unsigned short igork1PP = igork1+4;
-			//And the +4 terms. Note that dk_f[1] and dk_f[0] swap positions compared to the above				
-			phi[(i*ngorkov+igorkovPP)*nc]+=-dk_f[1][i]*(ut[0][i+kvol*3]*(r[(uid*ngorkov+igorkovPP)*nc]+r[(uid*ngorkov+igork1PP)*nc])
-					+ut[1][i+kvol*3]*(r[(uid*ngorkov+igorkovPP)*nc+1]+r[(uid*ngorkov+igork1PP)*nc+1]))
-				-dk_f[0][did]*(conj(ut[0][did+kvol*3])*(r[(did*ngorkov+igorkovPP)*nc]-r[(did*ngorkov+igork1PP)*nc])
-						-ut[1][did+kvol*3]*(r[(did*ngorkov+igorkovPP)*nc+1]-r[(did*ngorkov+igork1PP)*nc+1]));
-
-			phi[(i*ngorkov+igorkovPP)*nc+1]+=dk_f[1][i]*(conj(ut[1][i+kvol*3])*(r[(uid*ngorkov+igorkovPP)*nc]+r[(uid*ngorkov+igork1PP)*nc])
-					-conj(ut[0][i+kvol*3])*(r[(uid*ngorkov+igorkovPP)*nc+1]+r[(uid*ngorkov+igork1PP)*nc+1]))
-				-dk_f[0][did]*(conj(ut[1][did+kvol*3])*(r[(did*ngorkov+igorkovPP)*nc]-r[(did*ngorkov+igork1PP)*nc])
-						+ut[0][did+kvol*3]*(r[(did*ngorkov+igorkovPP)*nc+1]-r[(did*ngorkov+igork1PP)*nc+1]));
-
+			phi_s[igorkovPP*nc+1]+=dk4ps*(conj(u12s)*(ru[0]+rgu[0]) -conj(u11s)*(ru[1]+rgu[1]))
+				-dk4msd*(conj(u12sd)*(rd[0]-rgd[0]) +u11sd*(rd[1]-rgd[1]));
+			phi[i+kvolHalo*(igorkovPP*nc+1)]=phi_s[igorkovPP*nc+1];
 		}
 #endif
 	}
