@@ -110,7 +110,7 @@ debug:	$(EXE)
 $(EXE):	$(OBJ)
 		$(MPICC) ../main.c -MP $(CFLAGS) -o $@ $(OBJ) $(LFLAGS)  
 %.o: %.c
-	$(MPICC) $(CFLAGS) -std=gnu11 $(IFLAGS) -c $<  
+	$(MPICC) $(CFLAGS) $(IFLAGS) -c $<  
 
 clean:
 		rm -f $(OBJ) $(TMP) $(DEPS)

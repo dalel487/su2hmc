@@ -29,7 +29,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 	double chem1=exp(fmu); double chem2 = 1/chem1;
 	//CUDA this. Only limit will be the bus speed
 #pragma omp parallel for simd //aligned(dk[0],dk[1]:AVX)
-	for(int i = 0; i<kvol; i++){
+	for(unsigned int i = 0; i<kvol; i++){
 		dk[1][i]=akappa*chem1;
 		dk[0][i]=akappa*chem2;
 	}
@@ -40,7 +40,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 		printf("Implementing antiperiodic boundary conditions on rank %i\n", rank);
 #endif
 #pragma omp parallel for simd //aligned(dk[0],dk[1]:AVX)
-		for(int k= kvol-1; k>=kvol-kvol3; k--){
+		for(unsigned int k= kvol-1; k>=kvol-kvol3; k--){
 			//int k = kvol - kvol3 + i;
 			dk[1][k]*=-1;
 			dk[0][k]*=-1;
@@ -58,7 +58,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 	cuReal_convert(dk_f[0],dk[0],kvol+halo,true,dimBlock,dimGrid);
 #else
 #pragma omp parallel for simd //aligned(dk[0],dk[1],dk_f[0],dk_f[1]:AVX)
-	for(int i=0;i<kvol+halo;i++){
+	for(unsigned int i=0;i<kvol+halo;i++){
 		dk_f[1][i]=(float)dk[1][i];
 		dk_f[0][i]=(float)dk[0][i];
 	}
@@ -82,8 +82,8 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 	cblas_zdscal(5*4, akappa, gamval_t, 1);
 #else
 #pragma omp parallel for simd collapse(2) aligned(gamval,gamval_f:AVX)
-	for(int i=0;i<5;i++)
-		for(int j=0;j<4;j++)
+	for(unsigned short i=0;i<5;i++)
+		for(unsigned short j=0;j<4;j++)
 			gamval_t[i][j]*=akappa;
 #endif
 
@@ -93,7 +93,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 	cuComplex_convert(gamval_f,gamval,20,true,dimBlockOne,dimGridOne);	
 #else
 	memcpy(gamval,gamval_t,5*4*sizeof(Complex));
-	for(int i=0;i<5*4;i++)
+	for(unsigned short i=0;i<5*4;i++)
 		gamval_f[i]=(Complex_f)gamval[i];
 #endif
 
@@ -109,7 +109,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 			//memset is safe to use here because zero is zero 
 #pragma omp parallel for simd //aligned(ut[0]:AVX) 
 										//Leave it to the GPU?
-			for(int i=0; i<kvol;i++)
+			for(unsigned int i=0; i<kvol;i++)
 				for(unsigned short mu=0;mu<ndim;mu++){
 					ut[0][i+kvol*mu]=1;	ut[1][i+kvol*mu]=0;
 				}
@@ -117,14 +117,14 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 		else if(istart>0){
 			//Ideally, we can use gsl_ranlux as the PRNG
 #ifdef __RANLUX__
-			for(int i=0; i<kvol;i++)
+			for(unsigned int i=0; i<kvol;i++)
 				for(unsigned short mu=0;mu<ndim;mu++){
 					ut[0][i+kvol*mu]=2*(gsl_rng_uniform(ranlux_instd)-0.5+I*(gsl_rng_uniform(ranlux_instd)-0.5));
 					ut[1][i+kvol*mu]=2*(gsl_rng_uniform(ranlux_instd)-0.5+I*(gsl_rng_uniform(ranlux_instd)-0.5));
 				}
 			//Last resort, Numerical Recipes' Ran2
 #else
-			for(int i=0; i<kvol;i++)
+			for(unsigned int i=0; i<kvol;i++)
 				for(unsigned short mu=0;mu<ndim;mu++){
 					ut[0][i+kvol*mu]=2*(ran2(&seed)-0.5+I*(ran2(&seed)-0.5));
 					ut[1][i+kvol*mu]=2*(ran2(&seed)-0.5+I*(ran2(&seed)-0.5));
@@ -176,7 +176,7 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 	hp*=hp;
 #else
 	double hp=0;
-	for(int i = 0; i<kmom; i++)
+	for(unsigned int i = 0; i<kmom; i++)
 		hp+=pp[i]*pp[i]; 
 #endif
 	hp*=0.5;
@@ -200,7 +200,7 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 	if(c_sw)
 		Clover(clover,ut,iu,id);
 	//Iterating over flavours
-	for(int na=0;na<nf;na++){
+	for(unsigned short na=0;na<nf;na++){
 #ifdef __NVCC__
 #ifdef _DEBUG
 		cudaDeviceSynchronise();
@@ -235,7 +235,7 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 #else
 		//It is a dot product of the flattened arrays, could use
 		//a module to convert index to coordinate array...
-		for(int j=0;j<kferm2;j++)
+		for(unsigned int j=0;j<kferm2;j++)
 			hf+=creal(conj(smallPhi[j])*X1[j]);
 #endif
 	}
@@ -268,7 +268,7 @@ inline int C_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsi
 	//FORTRAN had a second parameter m giving the size of y (kvol+halo) normally
 	//Pointers mean that's not an issue for us so I'm leaving it out
 #pragma omp parallel for simd aligned (x,y,table:AVX)
-	for(int i=0; i<n; i++)
+	for(unsigned int i=0; i<n; i++)
 		x[i]=y[table[i+kvol*mu]+kvol*mu];
 	return 0;
 }
@@ -278,7 +278,7 @@ inline int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned
 	//FORTRAN had a second parameter m giving the size of y (kvol+halo) normally
 	//Pointers mean that's not an issue for us so I'm leaving it out
 #pragma omp parallel for simd aligned (x,y,table:AVX)
-	for(int i=0; i<n; i++)
+	for(unsigned int i=0; i<n; i++)
 		x[i]=y[table[i+kvol*mu]+kvol*mu];
 	return 0;
 }
@@ -290,11 +290,11 @@ inline int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
 	cuFill_Small_Phi(na,smallPhi,Phi,dimBlock,dimGrid);
 #else
 #pragma omp parallel for simd aligned(smallPhi,Phi:AVX) collapse(3)
-	for(int i = 0; i<kvol;i++)
-		for(int idirac = 0; idirac<ndirac; idirac++)
-			for(int ic= 0; ic<nc; ic++)
+	for(unsigned int i = 0; i<kvol;i++)
+		for(unsigned short idirac = 0; idirac<ndirac; idirac++)
+			for(unsigned short ic= 0; ic<nc; ic++)
 				//	  PHI_index=i*16+j*2+k;
-				smallPhi[(i*ndirac+idirac)*nc+ic]=Phi[((na*kvol+i)*ngorkov+idirac)*nc+ic];
+				smallPhi[i + kvol * (ic + nc * idirac)] = Phi[i + kvol * (ic + idirac * (nc + ngorkov * na))];
 #endif
 	return 0;
 }
@@ -304,10 +304,10 @@ inline int UpDownPart(const unsigned int na, Complex *X0, Complex *R1){
 	cudaDeviceSynchronise();
 #else
 #pragma omp parallel for simd collapse(2) aligned(X0,R1:AVX)
-	for(int i=0; i<kvol; i++)
-		for(int idirac = 0; idirac < ndirac; idirac++){
-			X0[((na*kvol+i)*ndirac+idirac)*nc]=R1[(i*ngorkov+idirac)*nc];
-			X0[((na*kvol+i)*ndirac+idirac)*nc+1]=R1[(i*ngorkov+idirac)*nc+1];
+	for(unsigned int i=0; i<kvol; i++)
+		for(unsigned short idirac = 0; idirac < ndirac; idirac++){
+			X0[i + kvol * (0 + nc * (idirac + ndirac * na))] = R1[i + kvol * (0 + nc * idirac)];
+			X0[i + kvol * (1 + nc * (idirac + ndirac * na))] = R1[i + kvol * (1 + nc * idirac)];
 		}
 #endif
 	return 0;

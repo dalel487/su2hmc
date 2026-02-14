@@ -39,8 +39,9 @@ __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, compl
 		//Spacelike terms. Here's hoping I haven't put time as the zeroth component somewhere!
 #ifndef NO_SPACE
 		for(unsigned short mu = 0; mu <3; mu++){
-			ind = i+kvolHalo*mu;
+			ind = i+kvol*mu;
 			const unsigned int did=id[ind]; const unsigned int uid = iu[ind];
+			ind = i+kvolHalo*mu;
 			u11s=u11t[ind]; u12s=u12t[ind];
 			ind = did+kvolHalo*mu;
 			u11sd=u11t[ind]; u12sd=u12t[ind];
@@ -76,6 +77,7 @@ __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, compl
 		ind=i+kvolHalo*3;
 		u11s=u11t[ind]; u12s=u12t[ind];
 		const T dk4ms=dk4m[i];	const T dk4ps=dk4p[i];
+		ind=i+kvol*3;
 		const unsigned int did=id[ind]; const unsigned int uid = iu[ind];
 		ind=did+kvolHalo*3;
 		u11sd=u11t[ind]; u12sd=u12t[ind];
@@ -146,8 +148,9 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 		//Spacelike terms. Here's hoping I haven't put time as the zeroth component somewhere!
 #ifndef NO_SPACE
 		for(unsigned short mu = 0; mu <3; mu++){
-			ind = i+kvolHalo*mu;
+			ind = i+kvol*mu;
 			const unsigned int did=id[ind]; const unsigned int uid = iu[ind];
+			ind = i+kvolHalo*mu;
 			u11s=u11t[ind]; u12s=u12t[ind];
 			ind = did+kvolHalo*mu;
 			u11sd=u11t[ind]; u12sd=u12t[ind];
@@ -185,6 +188,7 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 		ind=i+kvolHalo*3;
 		u11s=u11t[ind]; u12s=u12t[ind];
 		const T dk4ms=dk4m[i];	const T dk4ps=dk4p[i];
+			ind = i+kvol*mu;
 		const unsigned int did=id[ind]; const unsigned int uid = iu[ind];
 		ind=did+kvolHalo*3;
 		u11sd=u11t[ind]; u12sd=u12t[ind];
@@ -253,6 +257,7 @@ __global__ void cuHdslash(complex<T> *phi, const complex<T> *r, const complex<T>
 		for(unsigned short mu = 0; mu <ndim; mu++){
 			unsigned int ind=i+kvolHalo*mu;
 			const complex<T> u11s=u11t[ind];	const complex<T> u12s=u12t[ind];
+			ind = i+kvol*mu;
 			const int did=id[ind];	const int uid = iu[ind];
 			ind=did+kvolHalo*mu;
 			const complex<T> u11sd=u11t[ind];	const complex<T> u12sd=u12t[ind];
@@ -333,6 +338,7 @@ __global__ void cuHdslashd(complex<T> *phi, const complex<T>* r, const complex<T
 		for(unsigned short mu = 0; mu <ndim; mu++){
 			unsigned int ind=i+kvolHalo*mu;
 			const complex<T> u11s=u11t[ind];	const complex<T> u12s=u12t[ind];
+			ind = i+kvol*mu;
 			const int did=id[ind];	const int uid = iu[ind];
 			ind=did+kvolHalo*mu;
 			const complex<T> u11sd=u11t[ind];	const complex<T> u12sd=u12t[ind];
