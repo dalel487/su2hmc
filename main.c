@@ -464,14 +464,10 @@ int main(int argc, char *argv[]){
 #else
 			vsRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, R, 0, 1/sqrt(2));
 #endif
-#ifdef __NVCC__
-			//cudaMemPrefetchAsync(R,kfermHalo*sizeof(Complex_f),device,NULL);
 			//Transpose needed here for Dslashd
-//			Transpose_c(R,ngorkov*nc,kvol);
 			//R is random so this techincally isn't required. But it does keep the code output consistent with previous
 			//versions.
-			cudaDeviceSynchronise();
-#endif
+			Transpose_c(R,ngorkov*nc,kvolHalo);
 			Dslashd_f(R1_f,R,ut_f,iu,id,gamval_f,gamin,dk_f,jqq,akappa);
 			if(c_sw)
 				ByClover_f(R1_f,R,clover,sigval_f,akappa,sigin);
@@ -524,11 +520,9 @@ int main(int argc, char *argv[]){
 	vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, kmom, pp, 0, 1);
 #endif
 	//Initialise Trial Fields
-#ifdef __NVCC__
-	//pp is random at this point so swapping the order isn't really necessary. But it does ensure that it matches for CPU and GPU
-	//Transpose_d(pp,nadj*ndim,kvol);
-	//cudaMemPrefetchAsync(pp,kmom*sizeof(double),device,streams[1]);
-#endif
+	//pp is random at this point so swapping the order isn't really necessary. But it does ensure that it matches
+	//previous results 
+	Transpose_d(pp,nadj*ndim,kvol);
 	double H0, S0;
 	Hamilton(&H0,&S0,rescga,pp,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,\
 			jqq,akappa,beta,c_sw,&ancgh,itraj);
