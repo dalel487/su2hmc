@@ -166,7 +166,7 @@ void Force_t(double *dSdpi, Complex_f *ut[2],Complex_f *X1, Complex_f *X2, Compl
 		//TODO: The only diffrence with these is that the sign flips for the temporal components
 		//			Can we figure out a way of doing this without having to read in a large array. 
 		//			Will result in a conditional inside a CUDA loop. If i>kvol3
-		const float dks[2] = [dk[0][i],dk[1][i]];
+		const float dks[2] = {dk[0][i],dk[1][i]};
 		//Up indices
 		const unsigned int uid = iu[ind];
 		//Similarly to Hdslash we always see idirac*nc so we do that here too.
@@ -250,8 +250,8 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 	cudaMallocAsync((void **)&X1_f,kferm2*sizeof(Complex_f),streams[1]);
 	cudaMallocAsync((void **)&X2_f,kferm2*sizeof(Complex_f),streams[0]);
 #else
-	Complex_f *X1_f= (Complex *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
-	Complex_f *X2_f= (Complex *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
+	Complex_f *X1_f= (Complex_f *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
+	Complex_f *X2_f= (Complex_f *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
 #endif
 	if(c_sw)
 		Clover(clover,ut_f,iu,id);
@@ -319,7 +319,6 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 		if(c_sw)
 			HbyClover_f(X2_f,X1_f,clover,sigval_f,akappa,sigin);
 		//TODO: Get a single precision force update on CPU. It'll make things easier I' sure
-#endif
 		alignas(8) const float blasd=2.0;
 #ifdef __NVCC__
 		cudaDeviceSynchronise();
@@ -368,15 +367,11 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 		if(c_sw){
 #ifndef __NVCC__
 			Complex_f *X1_f= (Complex_f *)aligned_alloc(AVX,kferm2*sizeof(Complex_f));
-			Complex_f *X2_f= (Complex_f *)aligned_alloc(AVX,kferm2*sizeof(Complex_f));
 			for(unsigned int i=0;i<kferm2;i++){
-				X1_f[i]=(Complex_f)X1[i]; X2_f[i]=(Complex_f)X2[i];
+				X1_f[i]=(Complex_f)X1[i];
 			}
 #endif
 			Clover_Force(dSdpi,ut_f,X1_f,X2_f,sigval_f,sigin,iu,id,akappa);
-#ifndef __NVCC__
-			free(X1_f); free(X2_f);
-#endif
 		}
 	}
 	if(c_sw)
@@ -384,7 +379,7 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 #ifdef __NVCC__
 	cudaFreeAsync(X1_f,streams[0]); cudaFreeAsync(X2_f,streams[1]);
 #else
-	free(X2); 
+			free(X1_f); free(X2_f);
 #endif
 	return 0;
 }
