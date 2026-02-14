@@ -15,7 +15,7 @@
 //and use a variable to hold them instead to reduce the number of evaluations.
 int Dslash(Complex *phi, Complex *r, Complex *ut[2], unsigned int *iu,unsigned int *id,\
 		Complex gamval[20], const unsigned short gamin[16], double *dk[2], Complex_f jqq, float akappa){
-	const char *funcname = "Dslash";
+	const char funcname[] = "Dslash";
 	//Get the halos in order
 #if(nproc>1)
 	ZHalo_swap_all(r, 16);
@@ -134,7 +134,7 @@ int Dslash(Complex *phi, Complex *r, Complex *ut[2], unsigned int *iu,unsigned i
 }
 int Dslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned int *iu,unsigned int *id,\
 		Complex gamval[20], const unsigned short gamin[16], double *dk[2],Complex_f jqq, float akappa){
-	const char *funcname = "Dslashd";
+	const char funcname[] = "Dslashd";
 	//Get the halos in order
 #if(nproc>1)
 	ZHalo_swap_all(r, 16);
@@ -254,7 +254,7 @@ int Dslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned int *iu,unsigned i
 }
 int Hdslash(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned  int *id,\
 		Complex gamval[20], const unsigned short gamin[16], double *dk[2], float akappa){
-	const char *funcname = "Hdslash";
+	const char funcname[] = "Hdslash";
 	//Get the halos in order
 #if(nproc>1)
 	ZHalo_swap_all(r, 8);
@@ -267,11 +267,10 @@ int Hdslash(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned 
 #else
 	memcpy(phi, r, kferm2*sizeof(Complex));
 #pragma omp parallel for
+	for(unsigned int i=0;i<kvol;i++){
 	Complex ru[2];  Complex rd[2];
 	Complex rgu[2];  Complex rgd[2];
 	Complex phi_s[ndirac*nc];
-#pragma omp parallel for
-	for(unsigned int i=0;i<kvol;i++){
 #pragma omp simd
 		for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll
@@ -298,7 +297,6 @@ int Hdslash(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned 
 					rgu[c]=r[uid+ind]; rgd[c]=r[did+ind];
 				}
 				//Can manually vectorise with a pragma?
-#pragma omp simd
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
 				//Spacelike terms
@@ -341,7 +339,7 @@ int Hdslash(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned 
 }
 int Hdslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned  int *id,\
 		Complex gamval[20], const unsigned short gamin[16], double *dk[2], float akappa){
-	const char *funcname = "Hdslashd";
+	const char funcname[] = "Hdslashd";
 	//Get the halos in order. Because C is row major, we need to extract the correct
 	//terms for each halo first. Changing the indices was considered but that caused
 	//issues with the BLAS routines.
@@ -356,11 +354,11 @@ int Hdslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned
 	memcpy(phi, r, kferm2*sizeof(Complex));
 	//Spacelike term
 #pragma omp parallel for
+	for(unsigned int i=0;i<kvol;i++){
 	//Right. Time to prefetch
 	Complex ru[2];  Complex rd[2];
 	Complex rgu[2];  Complex rgd[2];
 	Complex phi_s[ndirac*nc];
-	for(unsigned int i=0;i<kvol;i++){
 #pragma omp simd
 		for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll
@@ -431,7 +429,7 @@ int Hdslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned
 //int Dslash_f(Complex_f *phi, Complex_f *r){
 int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu, unsigned int *id,\
 		Complex_f gamval[20],	const unsigned short gamin[16],	float *dk[2], Complex_f jqq, float akappa){
-	const char *funcname = "Dslash_f";
+	const char funcname[] = "Dslash_f";
 	//Get the halos in order
 #if(nproc>1)
 	CHalo_swap_all(r, 16);
@@ -550,7 +548,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu, un
 }
 int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,unsigned int *id,\
 		Complex_f gamval[20], const unsigned short gamin[16], float *dk[2], Complex_f jqq, float akappa){
-	const char *funcname = "Dslashd_f";
+	const char funcname[] = "Dslashd_f";
 	//Get the halos in order
 #if(nproc>1)
 	CHalo_swap_all(r, 16);
@@ -670,7 +668,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,un
 }
 int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned  int *iu,unsigned  int *id,\
 		Complex_f gamval[20], const unsigned short gamin[16], float *dk[2], float akappa){
-	const char *funcname = "Hdslash_f";
+	const char funcname[] = "Hdslash_f";
 	//Get the halos in order
 #if(nproc>1)
 	CHalo_swap_all(r, 8);
@@ -680,11 +678,11 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned  int *iu,u
 #else
 	//Mass term
 	memcpy(phi, r, kferm2*sizeof(Complex_f));
-	Complex ru[2];  Complex rd[2];
-	Complex rgu[2];  Complex rgd[2];
-	Complex phi_s[ndirac*nc];
 #pragma omp parallel for
 	for(unsigned int i=0;i<kvol;i++){
+	Complex_f ru[2];  Complex_f rd[2];
+	Complex_f rgu[2];  Complex_f rgd[2];
+	Complex_f phi_s[ndirac*nc];
 #pragma omp simd
 		for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll
@@ -753,7 +751,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned  int *iu,u
 }
 int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,unsigned int *id,\
 		Complex_f gamval[20], const unsigned short gamin[16], float *dk[2], float akappa){
-	const char *funcname = "Hdslashd_f";
+	const char funcname[] = "Hdslashd_f";
 	//Get the halos in order. Because C is row major, we need to extract the correct
 	//terms for each halo first. Changing the indices was considered but that caused
 	//issues with the BLAS routines.
@@ -771,11 +769,11 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,u
 	//Enough room on L1 data cache for Zen 2 to hold 160 elements at a time
 	//Vectorise with 128 maybe?
 #pragma omp parallel for
+	for(unsigned int i=0;i<kvol;i++){
 	//Right. Time to prefetch
 	Complex_f ru[2];  Complex_f rd[2];
 	Complex_f rgu[2];  Complex_f rgd[2];
 	Complex_f phi_s[ndirac*nc];
-	for(unsigned int i=0;i<kvol;i++){
 #pragma omp simd
 		for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll
@@ -845,7 +843,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,u
 
 
 inline void Transpose_c(Complex_f *out, const int fast_in, const int fast_out){
-	const volatile char *funcname="Transpose_c";
+	const volatile char funcname[]="Transpose_c";
 
 #ifdef __NVCC__
 	cuTranspose_c(out,fast_in,fast_out,dimGrid,dimBlock);
@@ -868,7 +866,7 @@ inline void Transpose_c(Complex_f *out, const int fast_in, const int fast_out){
 #endif
 }
 inline void Transpose_z(Complex *out, const int fast_in, const int fast_out){
-	const volatile char *funcname="Transpose_c";
+	const volatile char funcname[]="Transpose_c";
 
 #ifdef __NVCC__
 	cuTranspose_z(out,fast_in,fast_out,dimGrid,dimBlock);
@@ -891,7 +889,7 @@ inline void Transpose_z(Complex *out, const int fast_in, const int fast_out){
 #endif
 }
 inline void Transpose_f(float *out, const int fast_in, const int fast_out){
-	const char *funcname="Transpose_f";
+	const char funcname[]="Transpose_f";
 
 #ifdef __NVCC__
 	cuTranspose_f(out,fast_in,fast_out,dimGrid,dimBlock);
@@ -914,7 +912,7 @@ inline void Transpose_f(float *out, const int fast_in, const int fast_out){
 #endif
 }
 inline void Transpose_d(double *out, const int fast_in, const int fast_out){
-	const char *funcname="Transpose_f";
+	const char funcname[]="Transpose_f";
 
 #ifdef __NVCC__
 	cuTranspose_d(out,fast_in,fast_out,dimGrid,dimBlock);
@@ -937,7 +935,7 @@ inline void Transpose_d(double *out, const int fast_in, const int fast_out){
 #endif
 }
 inline void Transpose_I(int *out, const int fast_in, const int fast_out){
-	const char *funcname="Transpose_I";
+	const char funcname[]="Transpose_I";
 
 #ifdef __NVCC__
 	cuTranspose_I(out,fast_in,fast_out,dimGrid,dimBlock);
@@ -960,7 +958,7 @@ inline void Transpose_I(int *out, const int fast_in, const int fast_out){
 #endif
 }
 inline void Transpose_U(unsigned int *out, const int fast_in, const int fast_out){
-	const char *funcname="Transpose_I";
+	const char funcname[]="Transpose_I";
 
 #ifdef __NVCC__
 	cuTranspose_U(out,fast_in,fast_out,dimGrid,dimBlock);

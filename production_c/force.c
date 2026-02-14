@@ -296,10 +296,10 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 #pragma omp parallel for simd collapse(2)
 			for(int i=0;i<kvol;i++)
 				for(int idirac=0;idirac<ndirac;idirac++){
-					X0[((na*kvol+i)*ndirac+idirac)*nc]=
-						2*X1[i+kvolHalo*(0+idirac)]-X0[((na*kvol+i)*ndirac+idirac)*nc];
-					X0[((na*kvol+i)*ndirac+idirac)*nc+1]=
-						2*X1[i+kvolHalo*(1+idirac)]-X0[((na*kvol+i)*ndirac+idirac)*nc+1];
+					X0[i+kvol*(0+nc*(idirac+ndirac*na))]=
+						2*X1[i+kvolHalo*(0+idirac*c)]-X0[((na*kvol+i)*ndirac+idirac)*nc];
+					X0[i+kvol*(1+nc*(idirac+ndirac*na))]=
+						2*X1[i+kvolHalo*(1+idirac*nc)]-X0[((na*kvol+i)*ndirac+idirac)*nc+1];
 				}
 #endif
 		}
@@ -321,7 +321,7 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 		cudaDeviceSynchronise();
 		cublasCsscal(cublas_handle,kferm2, &blasd, (cuComplex *)X2_f, 1);
 #elif defined USE_BLAS
-		cblas_Csscal(kferm2, blasd, X2_f, 1);
+		cblas_csscal(kferm2, blasd, X2_f, 1);
 #else
 #pragma unroll
 		for(int i=0;i<kferm2;i++)

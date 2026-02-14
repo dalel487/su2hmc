@@ -188,7 +188,7 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 		ind=i+kvolHalo*3;
 		u11s=u11t[ind]; u12s=u12t[ind];
 		const T dk4ms=dk4m[i];	const T dk4ps=dk4p[i];
-			ind = i+kvol*mu;
+			ind = i+kvol*3;
 		const unsigned int did=id[ind]; const unsigned int uid = iu[ind];
 		ind=did+kvolHalo*3;
 		u11sd=u11t[ind]; u12sd=u12t[ind];
