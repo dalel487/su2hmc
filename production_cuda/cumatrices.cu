@@ -29,7 +29,7 @@ __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, compl
 			ind_d=i+kvolHalo*(idirac); unsigned int ind_g=i+kvolHalo*(igork);
 			phi_s[idirac]=phi[ind_d]+a_1*r[ind_g];
 			phi_s[igork]=phi[ind_g]+a_2*r[ind_d];
-			ind_d+=kvol; ind_g+=kvol;
+			ind_d+=kvolHalo; ind_g+=kvolHalo;
 			phi_s[idirac+1]=phi[ind_d]+a_1*r[ind_g];
 			phi_s[igork+1]=phi[ind_g]+a_2*r[ind_d];
 		}
@@ -131,16 +131,18 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 		complex<T> ru[nc];  complex<T> rd[nc];
 		complex<T> rgu[nc];  complex<T> rgd[nc];
 		complex<T> phi_s[ngorkov*nc];
-		for(unsigned short idirac = 0; idirac<ndirac; idirac++){
-			unsigned short igork = idirac+4;
-			//Diquark Term (antihermitian) The signs of a_1 and a_2 below flip under dagger
-			//We subtract a_1, hence the minus
-			complex<T> a_1=-conj(jqq)*gamval_d[4*ndirac+idirac];
-			complex<T> a_2=jqq*gamval_d[4*ndirac+idirac];
-			phi_s[idirac*nc]=phi[i+kvolHalo*(idirac*nc)]+a_1*r[i+kvolHalo*(igork*nc)];
-			phi_s[igork*nc]=phi[i+kvolHalo*(igork*nc)]+a_2*r[i+kvolHalo*(idirac*nc)];
-			phi_s[idirac*nc+1]=phi[i+kvolHalo*(idirac*nc+1)]+a_1*r[i+kvolHalo*(igork*nc+1)];
-			phi_s[igork*nc+1]=phi[i+kvolHalo*(igork*nc+1)]+a_2*r[i+kvolHalo*(idirac*nc+1)];
+		for(unsigned short idirac=0;idirac<ndirac*nc;idirac+=nc){
+			unsigned short igork = ((idirac>>1)+4)<<1;
+			unsigned int ind_d =4*ndirac+(idirac>>1);
+			complex<T> a_1=-conj(jqq)*gamval_d[ind_d];
+			//We subtract a_2, hence the minus
+			complex<T> a_2=jqq*gamval_d[ind_d];
+			ind_d=i+kvolHalo*(idirac); unsigned int ind_g=i+kvolHalo*(igork);
+			phi_s[idirac]=phi[ind_d]+a_1*r[ind_g];
+			phi_s[igork]=phi[ind_g]+a_2*r[ind_d];
+			ind_d+=kvolHalo; ind_g+=kvolHalo;
+			phi_s[idirac+1]=phi[ind_d]+a_1*r[ind_g];
+			phi_s[igork+1]=phi[ind_g]+a_2*r[ind_d];
 		}
 		complex<T> u11s;	 complex<T> u12s;
 		complex<T> u11sd;	 complex<T> u12sd;

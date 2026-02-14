@@ -41,7 +41,7 @@ int Dslash(Complex *phi, Complex *r, Complex *ut[2], unsigned int *iu,unsigned i
 			ind_d=i+kvolHalo*(idirac); unsigned int ind_g=i+kvolHalo*(igork);
 			phi_s[idirac]=phi[ind_d]+a_1*r[ind_g];
 			phi_s[igork]=phi[ind_g]+a_2*r[ind_d];
-			ind_d+=kvol; ind_g+=kvol;
+			ind_d+=kvolHalo; ind_g+=kvolHalo;
 			phi_s[idirac+1]=phi[ind_d]+a_1*r[ind_g];
 			phi_s[igork+1]=phi[ind_g]+a_2*r[ind_d];
 		}
@@ -151,16 +151,18 @@ int Dslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned int *iu,unsigned i
 		Complex rgu[nc];  Complex rgd[nc];
 		Complex phi_s[ngorkov*nc];
 #pragma omp simd
-		for(unsigned short idirac = 0; idirac<ndirac; idirac++){
-			unsigned short igork = idirac+4;
-			//Diquark Term (antihermitian) The signs of a_1 and a_2 below flip under dagger
-			//We subtract a_1, hence the minus
-			Complex a_1=-conj(jqq)*gamval[4*ndirac+idirac];
-			Complex a_2=jqq*gamval[4*ndirac+idirac];
-			phi_s[idirac*nc]=phi[i+kvolHalo*(idirac*nc)]+a_1*r[i+kvolHalo*(igork*nc)];
-			phi_s[igork*nc]=phi[i+kvolHalo*(igork*nc)]+a_2*r[i+kvolHalo*(idirac*nc)];
-			phi_s[idirac*nc+1]=phi[i+kvolHalo*(idirac*nc+1)]+a_1*r[i+kvolHalo*(igork*nc+1)];
-			phi_s[igork*nc+1]=phi[i+kvolHalo*(igork*nc+1)]+a_2*r[i+kvolHalo*(idirac*nc+1)];
+		for(unsigned short idirac=0;idirac<ndirac*nc;idirac+=nc){
+			unsigned short igork = ((idirac>>1)+4)<<1;
+			unsigned int ind_d =4*ndirac+(idirac>>1);
+			Complex a_1=-conj(jqq)*gamval_d[ind_d];
+			//We subtract a_2, hence the minus
+			Complex a_2=jqq*gamval_d[ind_d];
+			ind_d=i+kvolHalo*(idirac); unsigned int ind_g=i+kvolHalo*(igork);
+			phi_s[idirac]=phi[ind_d]+a_1*r[ind_g];
+			phi_s[igork]=phi[ind_g]+a_2*r[ind_d];
+			ind_d+=kvolHalo; ind_g+=kvolHalo;
+			phi_s[idirac+1]=phi[ind_d]+a_1*r[ind_g];
+			phi_s[igork+1]=phi[ind_g]+a_2*r[ind_d];
 		}
 		Complex u11s;	 Complex u12s;
 		Complex u11sd;	 Complex u12sd;
@@ -455,7 +457,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu, un
 			ind_d=i+kvolHalo*(idirac); unsigned int ind_g=i+kvolHalo*(igork);
 			phi_s[idirac]=phi[ind_d]+a_1*r[ind_g];
 			phi_s[igork]=phi[ind_g]+a_2*r[ind_d];
-			ind_d+=kvol; ind_g+=kvol;
+			ind_d+=kvolHalo; ind_g+=kvolHalo;
 			phi_s[idirac+1]=phi[ind_d]+a_1*r[ind_g];
 			phi_s[igork+1]=phi[ind_g]+a_2*r[ind_d];
 		}
@@ -565,16 +567,18 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,un
 		Complex_f rgu[nc];  Complex_f rgd[nc];
 		Complex_f phi_s[ngorkov*nc];
 #pragma omp simd
-		for(unsigned short idirac = 0; idirac<ndirac; idirac++){
-			unsigned short igork = idirac+4;
-			//Diquark Term (antihermitian) The signs of a_1 and a_2 below flip under dagger
-			//We subtract a_1, hence the minus
-			Complex_f a_1=-conj(jqq)*gamval[4*ndirac+idirac];
-			Complex_f a_2=jqq*gamval[4*ndirac+idirac];
-			phi_s[idirac*nc]=phi[i+kvolHalo*(idirac*nc)]+a_1*r[i+kvolHalo*(igork*nc)];
-			phi_s[igork*nc]=phi[i+kvolHalo*(igork*nc)]+a_2*r[i+kvolHalo*(idirac*nc)];
-			phi_s[idirac*nc+1]=phi[i+kvolHalo*(idirac*nc+1)]+a_1*r[i+kvolHalo*(igork*nc+1)];
-			phi_s[igork*nc+1]=phi[i+kvolHalo*(igork*nc+1)]+a_2*r[i+kvolHalo*(idirac*nc+1)];
+		for(unsigned short idirac=0;idirac<ndirac*nc;idirac+=nc){
+			unsigned short igork = ((idirac>>1)+4)<<1;
+			unsigned int ind_d =4*ndirac+(idirac>>1);
+			Complex a_1=-conj(jqq)*gamval_d[ind_d];
+			//We subtract a_2, hence the minus
+			Complex a_2=jqq*gamval_d[ind_d];
+			ind_d=i+kvolHalo*(idirac); unsigned int ind_g=i+kvolHalo*(igork);
+			phi_s[idirac]=phi[ind_d]+a_1*r[ind_g];
+			phi_s[igork]=phi[ind_g]+a_2*r[ind_d];
+			ind_d+=kvolHalo; ind_g+=kvolHalo;
+			phi_s[idirac+1]=phi[ind_d]+a_1*r[ind_g];
+			phi_s[igork+1]=phi[ind_g]+a_2*r[ind_d];
 		}
 		Complex_f u11s;	 Complex_f u12s;
 		Complex_f u11sd;	 Complex_f u12sd;
