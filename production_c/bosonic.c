@@ -92,15 +92,8 @@ double Polyakov(Complex_f *ut[2]){
 	Sigma[1] = (Complex_f *)aligned_alloc(AVX,kvol3*sizeof(Complex_f));
 
 	//Extract the time component from each site and save in corresponding Sigma
-#ifdef USE_BLAS
-	cblas_ccopy(kvol3, ut[0]+3, ndim, Sigma[0], 1);
-	cblas_ccopy(kvol3, ut[1]+3, ndim, Sigma[1], 1);
-#else
-	for(int i=0; i<kvol3; i++){
-		Sigma[0][i]=ut[0][i+kvol*3];
-		Sigma[1][i]=ut[1][i+kvol*3];
-	}
-#endif
+	memcpy(Sigma[0],ut[0]+3*kvolHalo,kvol3*sizeof(Complex_f));
+	memcpy(Sigma[1],ut[1]+3*kvolHalo,kvol3*sizeof(Complex_f));
 	/*	Some Fortran commentary
 		Changed this routine.
 		ut[0] and ut[1] now defined as normal ie (kvol+halo,4).

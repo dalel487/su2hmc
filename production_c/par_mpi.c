@@ -1188,39 +1188,33 @@ int Trial_Exchange(Complex *ut[2],Complex_f *ut_f[2]){
 	//cudaMemPrefetchAsync(ut[0], ndim*kvol*sizeof(Complex),cudaCpuDeviceId,NULL);
 	//cudaMemPrefetchAsync(ut[1], ndim*kvol*sizeof(Complex),cudaCpuDeviceId,NULL);
 #endif
-	Complex *z = (Complex *)aligned_alloc(AVX,(kvol+halo)*sizeof(Complex));
+	Complex *z = (Complex *)aligned_alloc(AVX,kvolHalo*sizeof(Complex));
 	for(int mu=0;mu<ndim;mu++){
 		//Copy the column from ut[0]
-#ifdef USE_BLAS
-		cblas_zcopy(kvol, &ut[0][mu], ndim, z, 1);
-#else
-		for(int i=0; i<kvol;i++)
-			z[i]=ut[0][i+kvol*mu];
-#endif
+		#ifdef __NVCC__
+		cudaMemcpy(z,ut[0]+kvolHalo*mu,kvol*sizeof(Complex),cudaMemcpyDefault);
+		#else
+		memcpy(z,ut[0]+kvolHalo*mu,kvol*sizeof(Complex),cudaMemcpyDefault);
+		#endif
+
 		//Halo exchange on that column
 		ZHalo_swap_all(z, 1);
-		//And the swap back
-#ifdef USE_BLAS
-		cblas_zcopy(kvol+halo, z, 1, &ut[0][mu], ndim);
-		//Now we prefetch the halo
-#ifdef __NVCC__
-		//cudaMemPrefetchAsync(ut[0]+ndim*kvol, ndim*halo*sizeof(Complex),device,NULL);
-#endif
-		//Repeat for ut[1]
-		cblas_zcopy(kvol, &ut[1][mu], ndim, z, 1);
-#else
-		for(int i=0; i<kvol+halo;i++){
-			ut[0][i+kvol*mu]=z[i];
-			z[i]=ut[1][i+kvol*mu];
-		}
-#endif
+		//And the swap back/getting the next halo
+		#ifdef __NVCC__
+		cudaMemcpy(ut[0]+kvolHalo*mu,z,kvolHalo*sizeof(Complex),cudaMemcpyDefault);
+		cudaMemcpy(z,ut[1]+kvolHalo*mu,kvol*sizeof(Complex),cudaMemcpyDefault);
+		#else
+		memcpy(ut[0]+kvolHalo*mu,z,kvolHalo*sizeof(Complex),cudaMemcpyDefault);
+		memcpy(z,ut[1]+kvolHalo*mu,kvol*sizeof(Complex),cudaMemcpyDefault);
+		#endif
+
+//Repeat
 		ZHalo_swap_all(z, 1);
-#ifdef USE_BLAS
-		cblas_zcopy(kvol+halo, z, 1, &ut[1][mu], ndim);
-#else
-		for(int i=0; i<kvol+halo;i++)
-			ut[1][i+kvol*mu]=z[i];
-#endif
+		#ifdef __NVCC__
+		cudaMemcpy(ut[1]+kvolHalo*mu,z,kvolHalo*sizeof(Complex),cudaMemcpyDefault);
+		#else
+		memcpy(ut[1]+kvolHalo*mu,z,kvolHalo*sizeof(Complex),cudaMemcpyDefault);
+		#endif
 	}
 	//Now we prefetch the halo
 #ifdef __NVCC__
@@ -1230,12 +1224,12 @@ int Trial_Exchange(Complex *ut[2],Complex_f *ut_f[2]){
 #endif
 	//And get the single precision gauge fields preppeed
 #ifdef __NVCC__
-	cuComplex_convert(ut_f[0],ut[0],ndim*(kvol+halo),true,dimBlock,dimGrid);
-	cuComplex_convert(ut_f[1],ut[1],ndim*(kvol+halo),true,dimBlock,dimGrid);
+	cuComplex_convert(ut_f[0],ut[0],ndim*kvolHalo,true,dimBlock,dimGrid);
+	cuComplex_convert(ut_f[1],ut[1],ndim*kvolHalo,true,dimBlock,dimGrid);
 	cudaDeviceSynchronise();
 #else
 #pragma omp parallel for simd 
-	for(int i=0;i<ndim*(kvol+halo);i++){
+	for(int i=0;i<ndim*kvolHalo;i++){
 		ut_f[0][i]=(Complex_f)ut[0][i];
 		ut_f[1][i]=(Complex_f)ut[1][i];
 	}
