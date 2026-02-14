@@ -361,7 +361,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			cudaDeviceSynchronise();
 #endif
 			if(fac_f!=0){
-				alignas(16) double fac=(double)fac_f;
+				alignas(16) const double fac=(double)fac_f;
 #ifdef	__NVCC__
 				cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&fac,(cuDoubleComplex *)p,1,(cuDoubleComplex *)x2,1);
 #elif defined USE_BLAS

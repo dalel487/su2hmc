@@ -431,7 +431,7 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 					sprintf(dump_buff,"_d%d",idim);
 					strcat(part_dump,dump_buff);
 					FILE *pdump=fopen(part_dump,"wb");
-					fwrite(u1buff,ndim*kvol*sizeof(Complex),1,pdump);
+					fwrite(u1buff,kvol*sizeof(Complex),1,pdump);
 					fclose(pdump);
 #endif
 #if(nproc>1)
