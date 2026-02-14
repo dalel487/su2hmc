@@ -54,25 +54,25 @@ int Dslash(Complex *phi, Complex *r, Complex *ut[2], unsigned int *iu,unsigned i
 				//Can manually vectorise with a pragma?
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
-				phi[(i*ngorkov+igorkov)*nc]+=-akappa*(ut[0][i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc]+\
-						ut[1][i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc+1]+\
-						conj(ut[0][did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]-\
-						ut[1][did*ndim+mu]*r[(did*ngorkov+igorkov)*nc+1])+\
+				phi[(i*ngorkov+igorkov)*nc]+=-akappa*(ut[0][i+kvol*mu]*r[(uid*ngorkov+igorkov)*nc]+\
+						ut[1][i+kvol*mu]*r[(uid*ngorkov+igorkov)*nc+1]+\
+						conj(ut[0][did+kvol*mu])*r[(did*ngorkov+igorkov)*nc]-\
+						ut[1][did+kvol*mu]*r[(did*ngorkov+igorkov)*nc+1])+\
 													  //Dirac term. Reminder! gamval was rescaled by kappa when we defined it
-													  gamval[mu*ndirac+idirac]*(ut[0][i*ndim+mu]*r[(uid*ngorkov+igork1)*nc]+\
-															  ut[1][i*ndim+mu]*r[(uid*ngorkov+igork1)*nc+1]-\
-															  conj(ut[0][did*ndim+mu])*r[(did*ngorkov+igork1)*nc]+\
-															  ut[1][did*ndim+mu]*r[(did*ngorkov+igork1)*nc+1]);
+													  gamval[mu*ndirac+idirac]*(ut[0][i+kvol*mu]*r[(uid*ngorkov+igork1)*nc]+\
+															  ut[1][i+kvol*mu]*r[(uid*ngorkov+igork1)*nc+1]-\
+															  conj(ut[0][did+kvol*mu])*r[(did*ngorkov+igork1)*nc]+\
+															  ut[1][did+kvol*mu]*r[(did*ngorkov+igork1)*nc+1]);
 
-				phi[(i*ngorkov+igorkov)*nc+1]+=-akappa*(-conj(ut[1][i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc]+\
-						conj(ut[0][i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc+1]+\
-						conj(ut[1][did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]+\
-						ut[0][did*ndim+mu]*r[(did*ngorkov+igorkov)*nc+1])+\
+				phi[(i*ngorkov+igorkov)*nc+1]+=-akappa*(-conj(ut[1][i+kvol*mu])*r[(uid*ngorkov+igorkov)*nc]+\
+						conj(ut[0][i+kvol*mu])*r[(uid*ngorkov+igorkov)*nc+1]+\
+						conj(ut[1][did+kvol*mu])*r[(did*ngorkov+igorkov)*nc]+\
+						ut[0][did+kvol*mu]*r[(did*ngorkov+igorkov)*nc+1])+\
 														 //Dirac term
-														 gamval[mu*ndirac+idirac]*(-conj(ut[1][i*ndim+mu])*r[(uid*ngorkov+igork1)*nc]+\
-																 conj(ut[0][i*ndim+mu])*r[(uid*ngorkov+igork1)*nc+1]-\
-																 conj(ut[1][did*ndim+mu])*r[(did*ngorkov+igork1)*nc]-\
-																 ut[0][did*ndim+mu]*r[(did*ngorkov+igork1)*nc+1]);
+														 gamval[mu*ndirac+idirac]*(-conj(ut[1][i+kvol*mu])*r[(uid*ngorkov+igork1)*nc]+\
+																 conj(ut[0][i+kvol*mu])*r[(uid*ngorkov+igork1)*nc+1]-\
+																 conj(ut[1][did+kvol*mu])*r[(did*ngorkov+igork1)*nc]-\
+																 ut[0][did+kvol*mu]*r[(did*ngorkov+igork1)*nc+1]);
 			}
 		}
 		//Timelike terms next. These run from igorkov=0..3 and 4..7 with slightly different rules for each
@@ -89,26 +89,26 @@ int Dslash(Complex *phi, Complex *r, Complex *ut[2], unsigned int *iu,unsigned i
 
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			phi[(i*ngorkov+igorkov)*nc]+=
-				-dk[1][i]*(ut[0][i*ndim+3]*(r[(uid*ngorkov+igorkov)*nc]-r[(uid*ngorkov+igork1)*nc])
-						+ut[1][i*ndim+3]*(r[(uid*ngorkov+igorkov)*nc+1]-r[(uid*ngorkov+igork1)*nc+1]))
-				-dk[0][did]*(conj(ut[0][did*ndim+3])*(r[(did*ngorkov+igorkov)*nc]+r[(did*ngorkov+igork1)*nc])
-						-ut[1][did*ndim+3] *(r[(did*ngorkov+igorkov)*nc+1]+r[(did*ngorkov+igork1)*nc+1]));
+				-dk[1][i]*(ut[0][i+kvol*3]*(r[(uid*ngorkov+igorkov)*nc]-r[(uid*ngorkov+igork1)*nc])
+						+ut[1][i+kvol*3]*(r[(uid*ngorkov+igorkov)*nc+1]-r[(uid*ngorkov+igork1)*nc+1]))
+				-dk[0][did]*(conj(ut[0][did+kvol*3])*(r[(did*ngorkov+igorkov)*nc]+r[(did*ngorkov+igork1)*nc])
+						-ut[1][did+kvol*3] *(r[(did*ngorkov+igorkov)*nc+1]+r[(did*ngorkov+igork1)*nc+1]));
 			phi[(i*ngorkov+igorkov)*nc+1]+=
-				-dk[1][i]*(-conj(ut[1][i*ndim+3])*(r[(uid*ngorkov+igorkov)*nc]-r[(uid*ngorkov+igork1)*nc])
-						+conj(ut[0][i*ndim+3])*(r[(uid*ngorkov+igorkov)*nc+1]-r[(uid*ngorkov+igork1)*nc+1]))
-				-dk[0][did]*(conj(ut[1][did*ndim+3])*(r[(did*ngorkov+igorkov)*nc]+r[(did*ngorkov+igork1)*nc])
-						+ut[0][did*ndim+3] *(r[(did*ngorkov+igorkov)*nc+1]+r[(did*ngorkov+igork1)*nc+1]));
+				-dk[1][i]*(-conj(ut[1][i+kvol*3])*(r[(uid*ngorkov+igorkov)*nc]-r[(uid*ngorkov+igork1)*nc])
+						+conj(ut[0][i+kvol*3])*(r[(uid*ngorkov+igorkov)*nc+1]-r[(uid*ngorkov+igork1)*nc+1]))
+				-dk[0][did]*(conj(ut[1][did+kvol*3])*(r[(did*ngorkov+igorkov)*nc]+r[(did*ngorkov+igork1)*nc])
+						+ut[0][did+kvol*3] *(r[(did*ngorkov+igorkov)*nc+1]+r[(did*ngorkov+igork1)*nc+1]));
 
 			//And the +4 terms. Note that dk[1] and dk[0] swap positions compared to the above				
-			phi[(i*ngorkov+igorkovPP)*nc]+=-dk[0][i]*(ut[0][i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc]-r[(uid*ngorkov+igork1PP)*nc])+\
-					ut[1][i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc+1]-r[(uid*ngorkov+igork1PP)*nc+1]))-\
-													 dk[1][did]*(conj(ut[0][did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])-\
-															 ut[1][did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
+			phi[(i*ngorkov+igorkovPP)*nc]+=-dk[0][i]*(ut[0][i+kvol*3]*(r[(uid*ngorkov+igorkovPP)*nc]-r[(uid*ngorkov+igork1PP)*nc])+\
+					ut[1][i+kvol*3]*(r[(uid*ngorkov+igorkovPP)*nc+1]-r[(uid*ngorkov+igork1PP)*nc+1]))-\
+													 dk[1][did]*(conj(ut[0][did+kvol*3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])-\
+															 ut[1][did+kvol*3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
 
-			phi[(i*ngorkov+igorkovPP)*nc+1]+=-dk[0][i]*(conj(-ut[1][i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc]-r[(uid*ngorkov+igork1PP)*nc])+\
-					conj(ut[0][i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc+1]-r[(uid*ngorkov+igork1PP)*nc+1]))-\
-														dk[1][did]*(conj(ut[1][did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])+\
-																ut[0][did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
+			phi[(i*ngorkov+igorkovPP)*nc+1]+=-dk[0][i]*(conj(-ut[1][i+kvol*3])*(r[(uid*ngorkov+igorkovPP)*nc]-r[(uid*ngorkov+igork1PP)*nc])+\
+					conj(ut[0][i+kvol*3])*(r[(uid*ngorkov+igorkovPP)*nc+1]-r[(uid*ngorkov+igork1PP)*nc+1]))-\
+														dk[1][did]*(conj(ut[1][did+kvol*3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])+\
+																ut[0][did+kvol*3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
 		}
 #endif
 	}
@@ -157,26 +157,26 @@ int Dslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned int *iu,unsigned i
 				//to read when split into different loops, but should be faster this way
 				//Reminder! gamval was rescaled by kappa when we defined it
 				phi[(i*ngorkov+igorkov)*nc]+=
-					-akappa*(      ut[0][i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc]
-							+ut[1][i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc+1]
-							+conj(ut[0][did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]
-							-ut[1][did*ndim+mu] *r[(did*ngorkov+igorkov)*nc+1])
+					-akappa*(      ut[0][i+kvol*mu]*r[(uid*ngorkov+igorkov)*nc]
+							+ut[1][i+kvol*mu]*r[(uid*ngorkov+igorkov)*nc+1]
+							+conj(ut[0][did+kvol*mu])*r[(did*ngorkov+igorkov)*nc]
+							-ut[1][did+kvol*mu] *r[(did*ngorkov+igorkov)*nc+1])
 					-gamval[mu*ndirac+idirac]*
-					(          ut[0][i*ndim+mu]*r[(uid*ngorkov+igork1)*nc]
-								  +ut[1][i*ndim+mu]*r[(uid*ngorkov+igork1)*nc+1]
-								  -conj(ut[0][did*ndim+mu])*r[(did*ngorkov+igork1)*nc]
-								  +ut[1][did*ndim+mu] *r[(did*ngorkov+igork1)*nc+1]);
+					(          ut[0][i+kvol*mu]*r[(uid*ngorkov+igork1)*nc]
+								  +ut[1][i+kvol*mu]*r[(uid*ngorkov+igork1)*nc+1]
+								  -conj(ut[0][did+kvol*mu])*r[(did*ngorkov+igork1)*nc]
+								  +ut[1][did+kvol*mu] *r[(did*ngorkov+igork1)*nc+1]);
 
 				phi[(i*ngorkov+igorkov)*nc+1]+=
-					-akappa*(-conj(ut[1][i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc]
-							+conj(ut[0][i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc+1]
-							+conj(ut[1][did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]
-							+ut[0][did*ndim+mu] *r[(did*ngorkov+igorkov)*nc+1])
+					-akappa*(-conj(ut[1][i+kvol*mu])*r[(uid*ngorkov+igorkov)*nc]
+							+conj(ut[0][i+kvol*mu])*r[(uid*ngorkov+igorkov)*nc+1]
+							+conj(ut[1][did+kvol*mu])*r[(did*ngorkov+igorkov)*nc]
+							+ut[0][did+kvol*mu] *r[(did*ngorkov+igorkov)*nc+1])
 					-gamval[mu*ndirac+idirac]*
-					(-conj(ut[1][i*ndim+mu])*r[(uid*ngorkov+igork1)*nc]
-					 +conj(ut[0][i*ndim+mu])*r[(uid*ngorkov+igork1)*nc+1]
-					 -conj(ut[1][did*ndim+mu])*r[(did*ngorkov+igork1)*nc]
-					 -ut[0][did*ndim+mu] *r[(did*ngorkov+igork1)*nc+1]);
+					(-conj(ut[1][i+kvol*mu])*r[(uid*ngorkov+igork1)*nc]
+					 +conj(ut[0][i+kvol*mu])*r[(uid*ngorkov+igork1)*nc+1]
+					 -conj(ut[1][did+kvol*mu])*r[(did*ngorkov+igork1)*nc]
+					 -ut[0][did+kvol*mu] *r[(did*ngorkov+igork1)*nc+1]);
 			}
 		}
 #endif
@@ -192,29 +192,29 @@ int Dslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned int *iu,unsigned i
 			int igork1 = gamin[3*ndirac+igorkov];	
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			phi[(i*ngorkov+igorkov)*nc]+=
-				-dk[0][i]*(ut[0][i*ndim+3]*(r[(uid*ngorkov+igorkov)*nc]+r[(uid*ngorkov+igork1)*nc])
-						+ut[1][i*ndim+3]*(r[(uid*ngorkov+igorkov)*nc+1]+r[(uid*ngorkov+igork1)*nc+1]))
-				-dk[1][did]*(conj(ut[0][did*ndim+3])*(r[(did*ngorkov+igorkov)*nc]-r[(did*ngorkov+igork1)*nc])
-						-ut[1][did*ndim+3] *(r[(did*ngorkov+igorkov)*nc+1]-r[(did*ngorkov+igork1)*nc+1]));
+				-dk[0][i]*(ut[0][i+kvol*3]*(r[(uid*ngorkov+igorkov)*nc]+r[(uid*ngorkov+igork1)*nc])
+						+ut[1][i+kvol*3]*(r[(uid*ngorkov+igorkov)*nc+1]+r[(uid*ngorkov+igork1)*nc+1]))
+				-dk[1][did]*(conj(ut[0][did+kvol*3])*(r[(did*ngorkov+igorkov)*nc]-r[(did*ngorkov+igork1)*nc])
+						-ut[1][did+kvol*3] *(r[(did*ngorkov+igorkov)*nc+1]-r[(did*ngorkov+igork1)*nc+1]));
 			phi[(i*ngorkov+igorkov)*nc+1]+=
-				-dk[0][i]*(-conj(ut[1][i*ndim+3])*(r[(uid*ngorkov+igorkov)*nc]+r[(uid*ngorkov+igork1)*nc])
-						+conj(ut[0][i*ndim+3])*(r[(uid*ngorkov+igorkov)*nc+1]+r[(uid*ngorkov+igork1)*nc+1]))
-				-dk[1][did]*(conj(ut[1][did*ndim+3])*(r[(did*ngorkov+igorkov)*nc]-r[(did*ngorkov+igork1)*nc])
-						+ut[0][did*ndim+3] *(r[(did*ngorkov+igorkov)*nc+1]-r[(did*ngorkov+igork1)*nc+1]));
+				-dk[0][i]*(-conj(ut[1][i+kvol*3])*(r[(uid*ngorkov+igorkov)*nc]+r[(uid*ngorkov+igork1)*nc])
+						+conj(ut[0][i+kvol*3])*(r[(uid*ngorkov+igorkov)*nc+1]+r[(uid*ngorkov+igork1)*nc+1]))
+				-dk[1][did]*(conj(ut[1][did+kvol*3])*(r[(did*ngorkov+igorkov)*nc]-r[(did*ngorkov+igork1)*nc])
+						+ut[0][did+kvol*3] *(r[(did*ngorkov+igorkov)*nc+1]-r[(did*ngorkov+igork1)*nc+1]));
 
 
 			int igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
 			int igork1PP = igork1+4;
 			//And the +4 terms. Note that dk[1] and dk[0] swap positions compared to the above				
-			phi[(i*ngorkov+igorkovPP)*nc]+=-dk[1][i]*(ut[0][i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc]+r[(uid*ngorkov+igork1PP)*nc])+\
-					ut[1][i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc+1]+r[(uid*ngorkov+igork1PP)*nc+1]))-\
-													 dk[0][did]*(conj(ut[0][did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]-r[(did*ngorkov+igork1PP)*nc])-\
-															 ut[1][did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]-r[(did*ngorkov+igork1PP)*nc+1]));
+			phi[(i*ngorkov+igorkovPP)*nc]+=-dk[1][i]*(ut[0][i+kvol*3]*(r[(uid*ngorkov+igorkovPP)*nc]+r[(uid*ngorkov+igork1PP)*nc])+\
+					ut[1][i+kvol*3]*(r[(uid*ngorkov+igorkovPP)*nc+1]+r[(uid*ngorkov+igork1PP)*nc+1]))-\
+													 dk[0][did]*(conj(ut[0][did+kvol*3])*(r[(did*ngorkov+igorkovPP)*nc]-r[(did*ngorkov+igork1PP)*nc])-\
+															 ut[1][did+kvol*3]*(r[(did*ngorkov+igorkovPP)*nc+1]-r[(did*ngorkov+igork1PP)*nc+1]));
 
-			phi[(i*ngorkov+igorkovPP)*nc+1]+=dk[1][i]*(conj(ut[1][i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc]+r[(uid*ngorkov+igork1PP)*nc])-\
-					conj(ut[0][i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc+1]+r[(uid*ngorkov+igork1PP)*nc+1]))-\
-														dk[0][did]*(conj(ut[1][did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]-r[(did*ngorkov+igork1PP)*nc])+
-																ut[0][did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]-r[(did*ngorkov+igork1PP)*nc+1]));
+			phi[(i*ngorkov+igorkovPP)*nc+1]+=dk[1][i]*(conj(ut[1][i+kvol*3])*(r[(uid*ngorkov+igorkovPP)*nc]+r[(uid*ngorkov+igork1PP)*nc])-\
+					conj(ut[0][i+kvol*3])*(r[(uid*ngorkov+igorkovPP)*nc+1]+r[(uid*ngorkov+igork1PP)*nc+1]))-\
+														dk[0][did]*(conj(ut[1][did+kvol*3])*(r[(did*ngorkov+igorkovPP)*nc]-r[(did*ngorkov+igork1PP)*nc])+
+																ut[0][did+kvol*3]*(r[(did*ngorkov+igorkovPP)*nc+1]-r[(did*ngorkov+igork1PP)*nc+1]));
 
 		}
 #endif
@@ -248,25 +248,25 @@ int Hdslash(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned 
 				//Can manually vectorise with a pragma?
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
-				phi[(i*ndirac+idirac)*nc]+=-akappa*(ut[0][i*ndim+mu]*r[(uid*ndirac+idirac)*nc]+\
-						ut[1][i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]+\
-						conj(ut[0][did*ndim+mu])*r[(did*ndirac+idirac)*nc]-\
-						ut[1][did*ndim+mu]*r[(did*ndirac+idirac)*nc+1])+\
+				phi[(i*ndirac+idirac)*nc]+=-akappa*(ut[0][i+kvol*mu]*r[(uid*ndirac+idirac)*nc]+\
+						ut[1][i+kvol*mu]*r[(uid*ndirac+idirac)*nc+1]+\
+						conj(ut[0][did+kvol*mu])*r[(did*ndirac+idirac)*nc]-\
+						ut[1][did+kvol*mu]*r[(did*ndirac+idirac)*nc+1])+\
 													//Dirac term
-													gamval[mu*ndirac+idirac]*(ut[0][i*ndim+mu]*r[(uid*ndirac+igork1)*nc]+\
-															ut[1][i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]-\
-															conj(ut[0][did*ndim+mu])*r[(did*ndirac+igork1)*nc]+\
-															ut[1][did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
+													gamval[mu*ndirac+idirac]*(ut[0][i+kvol*mu]*r[(uid*ndirac+igork1)*nc]+\
+															ut[1][i+kvol*mu]*r[(uid*ndirac+igork1)*nc+1]-\
+															conj(ut[0][did+kvol*mu])*r[(did*ndirac+igork1)*nc]+\
+															ut[1][did+kvol*mu]*r[(did*ndirac+igork1)*nc+1]);
 
-				phi[(i*ndirac+idirac)*nc+1]+=-akappa*(-conj(ut[1][i*ndim+mu])*r[(uid*ndirac+idirac)*nc]+\
-						conj(ut[0][i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]+\
-						conj(ut[1][did*ndim+mu])*r[(did*ndirac+idirac)*nc]+\
-						ut[0][did*ndim+mu]*r[(did*ndirac+idirac)*nc+1])+\
+				phi[(i*ndirac+idirac)*nc+1]+=-akappa*(-conj(ut[1][i+kvol*mu])*r[(uid*ndirac+idirac)*nc]+\
+						conj(ut[0][i+kvol*mu])*r[(uid*ndirac+idirac)*nc+1]+\
+						conj(ut[1][did+kvol*mu])*r[(did*ndirac+idirac)*nc]+\
+						ut[0][did+kvol*mu]*r[(did*ndirac+idirac)*nc+1])+\
 													  //Dirac term
-													  gamval[mu*ndirac+idirac]*(-conj(ut[1][i*ndim+mu])*r[(uid*ndirac+igork1)*nc]+\
-															  conj(ut[0][i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]-\
-															  conj(ut[1][did*ndim+mu])*r[(did*ndirac+igork1)*nc]-\
-															  ut[0][did*ndim+mu]*r[(did*ndirac+igork1)*nc+1]);
+													  gamval[mu*ndirac+idirac]*(-conj(ut[1][i+kvol*mu])*r[(uid*ndirac+igork1)*nc]+\
+															  conj(ut[0][i+kvol*mu])*r[(uid*ndirac+igork1)*nc+1]-\
+															  conj(ut[1][did+kvol*mu])*r[(did*ndirac+igork1)*nc]-\
+															  ut[0][did+kvol*mu]*r[(did*ndirac+igork1)*nc+1]);
 			}
 		}
 #endif
@@ -279,15 +279,15 @@ int Hdslash(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned 
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			//Reminder! gamval was rescaled by kappa when we defined it
 			phi[(i*ndirac+idirac)*nc]+=
-				-dk[1][i]*(ut[0][i*ndim+3]*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
-						+ut[1][i*ndim+3]*(r[(uid*ndirac+idirac)*nc+1]-r[(uid*ndirac+igork1)*nc+1]))
-				-dk[0][did]*(conj(ut[0][did*ndim+3])*(r[(did*ndirac+idirac)*nc]+r[(did*ndirac+igork1)*nc])
-						-ut[1][did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]+r[(did*ndirac+igork1)*nc+1]));
+				-dk[1][i]*(ut[0][i+kvol*3]*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
+						+ut[1][i+kvol*3]*(r[(uid*ndirac+idirac)*nc+1]-r[(uid*ndirac+igork1)*nc+1]))
+				-dk[0][did]*(conj(ut[0][did+kvol*3])*(r[(did*ndirac+idirac)*nc]+r[(did*ndirac+igork1)*nc])
+						-ut[1][did+kvol*3] *(r[(did*ndirac+idirac)*nc+1]+r[(did*ndirac+igork1)*nc+1]));
 			phi[(i*ndirac+idirac)*nc+1]+=
-				-dk[1][i]*(-conj(ut[1][i*ndim+3])*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
-						+conj(ut[0][i*ndim+3])*(r[(uid*ndirac+idirac)*nc+1]-r[(uid*ndirac+igork1)*nc+1]))
-				-dk[0][did]*(conj(ut[1][did*ndim+3])*(r[(did*ndirac+idirac)*nc]+r[(did*ndirac+igork1)*nc])
-						+ut[0][did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]+r[(did*ndirac+igork1)*nc+1]));
+				-dk[1][i]*(-conj(ut[1][i+kvol*3])*(r[(uid*ndirac+idirac)*nc]-r[(uid*ndirac+igork1)*nc])
+						+conj(ut[0][i+kvol*3])*(r[(uid*ndirac+idirac)*nc+1]-r[(uid*ndirac+igork1)*nc+1]))
+				-dk[0][did]*(conj(ut[1][did+kvol*3])*(r[(did*ndirac+idirac)*nc]+r[(did*ndirac+igork1)*nc])
+						+ut[0][did+kvol*3] *(r[(did*ndirac+idirac)*nc+1]+r[(did*ndirac+igork1)*nc+1]));
 		}
 #endif
 	}
@@ -325,26 +325,26 @@ int Hdslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned
 
 				//Reminder! gamval was rescaled by kappa when we defined it
 				phi[(i*ndirac+idirac)*nc]+=
-					-akappa*(ut[0][i*ndim+mu]*r[(uid*ndirac+idirac)*nc]
-							+ut[1][i*ndim+mu]*r[(uid*ndirac+idirac)*nc+1]
-							+conj(ut[0][did*ndim+mu])*r[(did*ndirac+idirac)*nc]
-							-ut[1][did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
+					-akappa*(ut[0][i+kvol*mu]*r[(uid*ndirac+idirac)*nc]
+							+ut[1][i+kvol*mu]*r[(uid*ndirac+idirac)*nc+1]
+							+conj(ut[0][did+kvol*mu])*r[(did*ndirac+idirac)*nc]
+							-ut[1][did+kvol*mu] *r[(did*ndirac+idirac)*nc+1])
 					-gamval[mu*ndirac+idirac]*
-					(          ut[0][i*ndim+mu]*r[(uid*ndirac+igork1)*nc]
-								  +ut[1][i*ndim+mu]*r[(uid*ndirac+igork1)*nc+1]
-								  -conj(ut[0][did*ndim+mu])*r[(did*ndirac+igork1)*nc]
-								  +ut[1][did*ndim+mu] *r[(did*ndirac+igork1)*nc+1]);
+					(          ut[0][i+kvol*mu]*r[(uid*ndirac+igork1)*nc]
+								  +ut[1][i+kvol*mu]*r[(uid*ndirac+igork1)*nc+1]
+								  -conj(ut[0][did+kvol*mu])*r[(did*ndirac+igork1)*nc]
+								  +ut[1][did+kvol*mu] *r[(did*ndirac+igork1)*nc+1]);
 
 				phi[(i*ndirac+idirac)*nc+1]+=
-					-akappa*(-conj(ut[1][i*ndim+mu])*r[(uid*ndirac+idirac)*nc]
-							+conj(ut[0][i*ndim+mu])*r[(uid*ndirac+idirac)*nc+1]
-							+conj(ut[1][did*ndim+mu])*r[(did*ndirac+idirac)*nc]
-							+ut[0][did*ndim+mu] *r[(did*ndirac+idirac)*nc+1])
+					-akappa*(-conj(ut[1][i+kvol*mu])*r[(uid*ndirac+idirac)*nc]
+							+conj(ut[0][i+kvol*mu])*r[(uid*ndirac+idirac)*nc+1]
+							+conj(ut[1][did+kvol*mu])*r[(did*ndirac+idirac)*nc]
+							+ut[0][did+kvol*mu] *r[(did*ndirac+idirac)*nc+1])
 					-gamval[mu*ndirac+idirac]*
-					(-conj(ut[1][i*ndim+mu])*r[(uid*ndirac+igork1)*nc]
-					 +conj(ut[0][i*ndim+mu])*r[(uid*ndirac+igork1)*nc+1]
-					 -conj(ut[1][did*ndim+mu])*r[(did*ndirac+igork1)*nc]
-					 -ut[0][did*ndim+mu] *r[(did*ndirac+igork1)*nc+1]);
+					(-conj(ut[1][i+kvol*mu])*r[(uid*ndirac+igork1)*nc]
+					 +conj(ut[0][i+kvol*mu])*r[(uid*ndirac+igork1)*nc+1]
+					 -conj(ut[1][did+kvol*mu])*r[(did*ndirac+igork1)*nc]
+					 -ut[0][did+kvol*mu] *r[(did*ndirac+igork1)*nc+1]);
 			}
 		}
 #endif
@@ -357,16 +357,16 @@ int Hdslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			//dk[0] and dk[1] swap under dagger
 			phi[(i*ndirac+idirac)*nc]+=
-				-dk[0][i]*(ut[0][i*ndim+3]*(r[(uid*ndirac+idirac)*nc]+r[(uid*ndirac+igork1)*nc])
-						+ut[1][i*ndim+3]*(r[(uid*ndirac+idirac)*nc+1]+r[(uid*ndirac+igork1)*nc+1]))
-				-dk[1][did]*(conj(ut[0][did*ndim+3])*(r[(did*ndirac+idirac)*nc]-r[(did*ndirac+igork1)*nc])
-						-ut[1][did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]-r[(did*ndirac+igork1)*nc+1]));
+				-dk[0][i]*(ut[0][i+kvol*3]*(r[(uid*ndirac+idirac)*nc]+r[(uid*ndirac+igork1)*nc])
+						+ut[1][i+kvol*3]*(r[(uid*ndirac+idirac)*nc+1]+r[(uid*ndirac+igork1)*nc+1]))
+				-dk[1][did]*(conj(ut[0][did+kvol*3])*(r[(did*ndirac+idirac)*nc]-r[(did*ndirac+igork1)*nc])
+						-ut[1][did+kvol*3] *(r[(did*ndirac+idirac)*nc+1]-r[(did*ndirac+igork1)*nc+1]));
 
 			phi[(i*ndirac+idirac)*nc+1]+=
-				-dk[0][i]*(-conj(ut[1][i*ndim+3])*(r[(uid*ndirac+idirac)*nc]+r[(uid*ndirac+igork1)*nc])
-						+conj(ut[0][i*ndim+3])*(r[(uid*ndirac+idirac)*nc+1]+r[(uid*ndirac+igork1)*nc+1]))
-				-dk[1][did]*(conj(ut[1][did*ndim+3])*(r[(did*ndirac+idirac)*nc]-r[(did*ndirac+igork1)*nc])
-						+ut[0][did*ndim+3] *(r[(did*ndirac+idirac)*nc+1]-r[(did*ndirac+igork1)*nc+1]));
+				-dk[0][i]*(-conj(ut[1][i+kvol*3])*(r[(uid*ndirac+idirac)*nc]+r[(uid*ndirac+igork1)*nc])
+						+conj(ut[0][i+kvol*3])*(r[(uid*ndirac+idirac)*nc+1]+r[(uid*ndirac+igork1)*nc+1]))
+				-dk[1][did]*(conj(ut[1][did+kvol*3])*(r[(did*ndirac+idirac)*nc]-r[(did*ndirac+igork1)*nc])
+						+ut[0][did+kvol*3] *(r[(did*ndirac+idirac)*nc+1]-r[(did*ndirac+igork1)*nc+1]));
 		}
 #endif
 	}
@@ -416,25 +416,25 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu, un
 				//Can manually vectorise with a pragma?
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
-				phi[(i*ngorkov+igorkov)*nc]+=-akappa*(ut[0][i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc]+\
-						ut[1][i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc+1]+\
-						conj(ut[0][did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]-\
-						ut[1][did*ndim+mu]*r[(did*ngorkov+igorkov)*nc+1])+\
+				phi[(i*ngorkov+igorkov)*nc]+=-akappa*(ut[0][i+kvol*mu]*r[(uid*ngorkov+igorkov)*nc]+\
+						ut[1][i+kvol*mu]*r[(uid*ngorkov+igorkov)*nc+1]+\
+						conj(ut[0][did+kvol*mu])*r[(did*ngorkov+igorkov)*nc]-\
+						ut[1][did+kvol*mu]*r[(did*ngorkov+igorkov)*nc+1])+\
 													  //Dirac term. Reminder! gamval was rescaled by kappa when we defined it
-													  gamval_f[mu*ndirac+idirac]*(ut[0][i*ndim+mu]*r[(uid*ngorkov+igork1)*nc]+\
-															  ut[1][i*ndim+mu]*r[(uid*ngorkov+igork1)*nc+1]-\
-															  conj(ut[0][did*ndim+mu])*r[(did*ngorkov+igork1)*nc]+\
-															  ut[1][did*ndim+mu]*r[(did*ngorkov+igork1)*nc+1]);
+													  gamval_f[mu*ndirac+idirac]*(ut[0][i+kvol*mu]*r[(uid*ngorkov+igork1)*nc]+\
+															  ut[1][i+kvol*mu]*r[(uid*ngorkov+igork1)*nc+1]-\
+															  conj(ut[0][did+kvol*mu])*r[(did*ngorkov+igork1)*nc]+\
+															  ut[1][did+kvol*mu]*r[(did*ngorkov+igork1)*nc+1]);
 
-				phi[(i*ngorkov+igorkov)*nc+1]+=-akappa*(-conj(ut[1][i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc]+\
-						conj(ut[0][i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc+1]+\
-						conj(ut[1][did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]+\
-						ut[0][did*ndim+mu]*r[(did*ngorkov+igorkov)*nc+1])+\
+				phi[(i*ngorkov+igorkov)*nc+1]+=-akappa*(-conj(ut[1][i+kvol*mu])*r[(uid*ngorkov+igorkov)*nc]+\
+						conj(ut[0][i+kvol*mu])*r[(uid*ngorkov+igorkov)*nc+1]+\
+						conj(ut[1][did+kvol*mu])*r[(did*ngorkov+igorkov)*nc]+\
+						ut[0][did+kvol*mu]*r[(did*ngorkov+igorkov)*nc+1])+\
 														 //Dirac term
-														 gamval_f[mu*ndirac+idirac]*(-conj(ut[1][i*ndim+mu])*r[(uid*ngorkov+igork1)*nc]+\
-																 conj(ut[0][i*ndim+mu])*r[(uid*ngorkov+igork1)*nc+1]-\
-																 conj(ut[1][did*ndim+mu])*r[(did*ngorkov+igork1)*nc]-\
-																 ut[0][did*ndim+mu]*r[(did*ngorkov+igork1)*nc+1]);
+														 gamval_f[mu*ndirac+idirac]*(-conj(ut[1][i+kvol*mu])*r[(uid*ngorkov+igork1)*nc]+\
+																 conj(ut[0][i+kvol*mu])*r[(uid*ngorkov+igork1)*nc+1]-\
+																 conj(ut[1][did+kvol*mu])*r[(did*ngorkov+igork1)*nc]-\
+																 ut[0][did+kvol*mu]*r[(did*ngorkov+igork1)*nc+1]);
 			}
 		}
 		//Timelike terms next. These run from igorkov=0..3 and 4..7 with slightly different rules for each
@@ -451,26 +451,26 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu, un
 
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			phi[(i*ngorkov+igorkov)*nc]+=
-				-dk_f[1][i]*(ut[0][i*ndim+3]*(r[(uid*ngorkov+igorkov)*nc]-r[(uid*ngorkov+igork1)*nc])
-						+ut[1][i*ndim+3]*(r[(uid*ngorkov+igorkov)*nc+1]-r[(uid*ngorkov+igork1)*nc+1]))
-				-dk_f[0][did]*(conj(ut[0][did*ndim+3])*(r[(did*ngorkov+igorkov)*nc]+r[(did*ngorkov+igork1)*nc])
-						-ut[1][did*ndim+3] *(r[(did*ngorkov+igorkov)*nc+1]+r[(did*ngorkov+igork1)*nc+1]));
+				-dk_f[1][i]*(ut[0][i+kvol*3]*(r[(uid*ngorkov+igorkov)*nc]-r[(uid*ngorkov+igork1)*nc])
+						+ut[1][i+kvol*3]*(r[(uid*ngorkov+igorkov)*nc+1]-r[(uid*ngorkov+igork1)*nc+1]))
+				-dk_f[0][did]*(conj(ut[0][did+kvol*3])*(r[(did*ngorkov+igorkov)*nc]+r[(did*ngorkov+igork1)*nc])
+						-ut[1][did+kvol*3] *(r[(did*ngorkov+igorkov)*nc+1]+r[(did*ngorkov+igork1)*nc+1]));
 			phi[(i*ngorkov+igorkov)*nc+1]+=
-				-dk_f[1][i]*(-conj(ut[1][i*ndim+3])*(r[(uid*ngorkov+igorkov)*nc]-r[(uid*ngorkov+igork1)*nc])
-						+conj(ut[0][i*ndim+3])*(r[(uid*ngorkov+igorkov)*nc+1]-r[(uid*ngorkov+igork1)*nc+1]))
-				-dk_f[0][did]*(conj(ut[1][did*ndim+3])*(r[(did*ngorkov+igorkov)*nc]+r[(did*ngorkov+igork1)*nc])
-						+ut[0][did*ndim+3] *(r[(did*ngorkov+igorkov)*nc+1]+r[(did*ngorkov+igork1)*nc+1]));
+				-dk_f[1][i]*(-conj(ut[1][i+kvol*3])*(r[(uid*ngorkov+igorkov)*nc]-r[(uid*ngorkov+igork1)*nc])
+						+conj(ut[0][i+kvol*3])*(r[(uid*ngorkov+igorkov)*nc+1]-r[(uid*ngorkov+igork1)*nc+1]))
+				-dk_f[0][did]*(conj(ut[1][did+kvol*3])*(r[(did*ngorkov+igorkov)*nc]+r[(did*ngorkov+igork1)*nc])
+						+ut[0][did+kvol*3] *(r[(did*ngorkov+igorkov)*nc+1]+r[(did*ngorkov+igork1)*nc+1]));
 
 			//And the +4 terms. Note that dk_f[1] and dk_f[0] swap positions compared to the above				
-			phi[(i*ngorkov+igorkovPP)*nc]+=-dk_f[0][i]*(ut[0][i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc]-r[(uid*ngorkov+igork1PP)*nc])
-					+ut[1][i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc+1]-r[(uid*ngorkov+igork1PP)*nc+1]))
-				-dk_f[1][did]*(conj(ut[0][did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])
-						-ut[1][did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
+			phi[(i*ngorkov+igorkovPP)*nc]+=-dk_f[0][i]*(ut[0][i+kvol*3]*(r[(uid*ngorkov+igorkovPP)*nc]-r[(uid*ngorkov+igork1PP)*nc])
+					+ut[1][i+kvol*3]*(r[(uid*ngorkov+igorkovPP)*nc+1]-r[(uid*ngorkov+igork1PP)*nc+1]))
+				-dk_f[1][did]*(conj(ut[0][did+kvol*3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])
+						-ut[1][did+kvol*3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
 
-			phi[(i*ngorkov+igorkovPP)*nc+1]+=-dk_f[0][i]*(conj(-ut[1][i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc]-r[(uid*ngorkov+igork1PP)*nc])
-					+conj(ut[0][i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc+1]-r[(uid*ngorkov+igork1PP)*nc+1]))
-				-dk_f[1][did]*(conj(ut[1][did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])
-						+ut[0][did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
+			phi[(i*ngorkov+igorkovPP)*nc+1]+=-dk_f[0][i]*(conj(-ut[1][i+kvol*3])*(r[(uid*ngorkov+igorkovPP)*nc]-r[(uid*ngorkov+igork1PP)*nc])
+					+conj(ut[0][i+kvol*3])*(r[(uid*ngorkov+igorkovPP)*nc+1]-r[(uid*ngorkov+igork1PP)*nc+1]))
+				-dk_f[1][did]*(conj(ut[1][did+kvol*3])*(r[(did*ngorkov+igorkovPP)*nc]+r[(did*ngorkov+igork1PP)*nc])
+						+ut[0][did+kvol*3]*(r[(did*ngorkov+igorkovPP)*nc+1]+r[(did*ngorkov+igork1PP)*nc+1]));
 		}
 #endif
 	}
@@ -519,26 +519,26 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,un
 				//to read when split into different loops, but should be faster this way
 				//Reminder! gamval was rescaled by kappa when we defined it
 				phi[(i*ngorkov+igorkov)*nc]+=
-					-akappa*(      ut[0][i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc]
-							+ut[1][i*ndim+mu]*r[(uid*ngorkov+igorkov)*nc+1]
-							+conj(ut[0][did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]
-							-ut[1][did*ndim+mu] *r[(did*ngorkov+igorkov)*nc+1])
+					-akappa*(      ut[0][i+kvol*mu]*r[(uid*ngorkov+igorkov)*nc]
+							+ut[1][i+kvol*mu]*r[(uid*ngorkov+igorkov)*nc+1]
+							+conj(ut[0][did+kvol*mu])*r[(did*ngorkov+igorkov)*nc]
+							-ut[1][did+kvol*mu] *r[(did*ngorkov+igorkov)*nc+1])
 					-gamval_f[mu*ndirac+idirac]*
-					(          ut[0][i*ndim+mu]*r[(uid*ngorkov+igork1)*nc]
-								  +ut[1][i*ndim+mu]*r[(uid*ngorkov+igork1)*nc+1]
-								  -conj(ut[0][did*ndim+mu])*r[(did*ngorkov+igork1)*nc]
-								  +ut[1][did*ndim+mu] *r[(did*ngorkov+igork1)*nc+1]);
+					(          ut[0][i+kvol*mu]*r[(uid*ngorkov+igork1)*nc]
+								  +ut[1][i+kvol*mu]*r[(uid*ngorkov+igork1)*nc+1]
+								  -conj(ut[0][did+kvol*mu])*r[(did*ngorkov+igork1)*nc]
+								  +ut[1][did+kvol*mu] *r[(did*ngorkov+igork1)*nc+1]);
 
 				phi[(i*ngorkov+igorkov)*nc+1]+=
-					-akappa*(-conj(ut[1][i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc]
-							+conj(ut[0][i*ndim+mu])*r[(uid*ngorkov+igorkov)*nc+1]
-							+conj(ut[1][did*ndim+mu])*r[(did*ngorkov+igorkov)*nc]
-							+ut[0][did*ndim+mu] *r[(did*ngorkov+igorkov)*nc+1])
+					-akappa*(-conj(ut[1][i+kvol*mu])*r[(uid*ngorkov+igorkov)*nc]
+							+conj(ut[0][i+kvol*mu])*r[(uid*ngorkov+igorkov)*nc+1]
+							+conj(ut[1][did+kvol*mu])*r[(did*ngorkov+igorkov)*nc]
+							+ut[0][did+kvol*mu] *r[(did*ngorkov+igorkov)*nc+1])
 					-gamval_f[mu*ndirac+idirac]*
-					(-conj(ut[1][i*ndim+mu])*r[(uid*ngorkov+igork1)*nc]
-					 +conj(ut[0][i*ndim+mu])*r[(uid*ngorkov+igork1)*nc+1]
-					 -conj(ut[1][did*ndim+mu])*r[(did*ngorkov+igork1)*nc]
-					 -ut[0][did*ndim+mu] *r[(did*ngorkov+igork1)*nc+1]);
+					(-conj(ut[1][i+kvol*mu])*r[(uid*ngorkov+igork1)*nc]
+					 +conj(ut[0][i+kvol*mu])*r[(uid*ngorkov+igork1)*nc+1]
+					 -conj(ut[1][did+kvol*mu])*r[(did*ngorkov+igork1)*nc]
+					 -ut[0][did+kvol*mu] *r[(did*ngorkov+igork1)*nc+1]);
 			}
 		}
 #endif
@@ -554,29 +554,29 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,un
 			unsigned short igork1 = gamin[3*ndirac+igorkov];	
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			phi[(i*ngorkov+igorkov)*nc]+=
-				-dk_f[0][i]*(ut[0][i*ndim+3]*(r[(uid*ngorkov+igorkov)*nc]+r[(uid*ngorkov+igork1)*nc])
-						+ut[1][i*ndim+3]*(r[(uid*ngorkov+igorkov)*nc+1]+r[(uid*ngorkov+igork1)*nc+1]))
-				-dk_f[1][did]*(conj(ut[0][did*ndim+3])*(r[(did*ngorkov+igorkov)*nc]-r[(did*ngorkov+igork1)*nc])
-						-ut[1][did*ndim+3] *(r[(did*ngorkov+igorkov)*nc+1]-r[(did*ngorkov+igork1)*nc+1]));
+				-dk_f[0][i]*(ut[0][i+kvol*3]*(r[(uid*ngorkov+igorkov)*nc]+r[(uid*ngorkov+igork1)*nc])
+						+ut[1][i+kvol*3]*(r[(uid*ngorkov+igorkov)*nc+1]+r[(uid*ngorkov+igork1)*nc+1]))
+				-dk_f[1][did]*(conj(ut[0][did+kvol*3])*(r[(did*ngorkov+igorkov)*nc]-r[(did*ngorkov+igork1)*nc])
+						-ut[1][did+kvol*3] *(r[(did*ngorkov+igorkov)*nc+1]-r[(did*ngorkov+igork1)*nc+1]));
 			phi[(i*ngorkov+igorkov)*nc+1]+=
-				-dk_f[0][i]*(-conj(ut[1][i*ndim+3])*(r[(uid*ngorkov+igorkov)*nc]+r[(uid*ngorkov+igork1)*nc])
-						+conj(ut[0][i*ndim+3])*(r[(uid*ngorkov+igorkov)*nc+1]+r[(uid*ngorkov+igork1)*nc+1]))
-				-dk_f[1][did]*(conj(ut[1][did*ndim+3])*(r[(did*ngorkov+igorkov)*nc]-r[(did*ngorkov+igork1)*nc])
-						+ut[0][did*ndim+3] *(r[(did*ngorkov+igorkov)*nc+1]-r[(did*ngorkov+igork1)*nc+1]));
+				-dk_f[0][i]*(-conj(ut[1][i+kvol*3])*(r[(uid*ngorkov+igorkov)*nc]+r[(uid*ngorkov+igork1)*nc])
+						+conj(ut[0][i+kvol*3])*(r[(uid*ngorkov+igorkov)*nc+1]+r[(uid*ngorkov+igork1)*nc+1]))
+				-dk_f[1][did]*(conj(ut[1][did+kvol*3])*(r[(did*ngorkov+igorkov)*nc]-r[(did*ngorkov+igork1)*nc])
+						+ut[0][did+kvol*3] *(r[(did*ngorkov+igorkov)*nc+1]-r[(did*ngorkov+igork1)*nc+1]));
 
 
 			unsigned short igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
 			unsigned short igork1PP = igork1+4;
 			//And the +4 terms. Note that dk_f[1] and dk_f[0] swap positions compared to the above				
-			phi[(i*ngorkov+igorkovPP)*nc]+=-dk_f[1][i]*(ut[0][i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc]+r[(uid*ngorkov+igork1PP)*nc])
-					+ut[1][i*ndim+3]*(r[(uid*ngorkov+igorkovPP)*nc+1]+r[(uid*ngorkov+igork1PP)*nc+1]))
-				-dk_f[0][did]*(conj(ut[0][did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]-r[(did*ngorkov+igork1PP)*nc])
-						-ut[1][did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]-r[(did*ngorkov+igork1PP)*nc+1]));
+			phi[(i*ngorkov+igorkovPP)*nc]+=-dk_f[1][i]*(ut[0][i+kvol*3]*(r[(uid*ngorkov+igorkovPP)*nc]+r[(uid*ngorkov+igork1PP)*nc])
+					+ut[1][i+kvol*3]*(r[(uid*ngorkov+igorkovPP)*nc+1]+r[(uid*ngorkov+igork1PP)*nc+1]))
+				-dk_f[0][did]*(conj(ut[0][did+kvol*3])*(r[(did*ngorkov+igorkovPP)*nc]-r[(did*ngorkov+igork1PP)*nc])
+						-ut[1][did+kvol*3]*(r[(did*ngorkov+igorkovPP)*nc+1]-r[(did*ngorkov+igork1PP)*nc+1]));
 
-			phi[(i*ngorkov+igorkovPP)*nc+1]+=dk_f[1][i]*(conj(ut[1][i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc]+r[(uid*ngorkov+igork1PP)*nc])
-					-conj(ut[0][i*ndim+3])*(r[(uid*ngorkov+igorkovPP)*nc+1]+r[(uid*ngorkov+igork1PP)*nc+1]))
-				-dk_f[0][did]*(conj(ut[1][did*ndim+3])*(r[(did*ngorkov+igorkovPP)*nc]-r[(did*ngorkov+igork1PP)*nc])
-						+ut[0][did*ndim+3]*(r[(did*ngorkov+igorkovPP)*nc+1]-r[(did*ngorkov+igork1PP)*nc+1]));
+			phi[(i*ngorkov+igorkovPP)*nc+1]+=dk_f[1][i]*(conj(ut[1][i+kvol*3])*(r[(uid*ngorkov+igorkovPP)*nc]+r[(uid*ngorkov+igork1PP)*nc])
+					-conj(ut[0][i+kvol*3])*(r[(uid*ngorkov+igorkovPP)*nc+1]+r[(uid*ngorkov+igork1PP)*nc+1]))
+				-dk_f[0][did]*(conj(ut[1][did+kvol*3])*(r[(did*ngorkov+igorkovPP)*nc]-r[(did*ngorkov+igork1PP)*nc])
+						+ut[0][did+kvol*3]*(r[(did*ngorkov+igorkovPP)*nc+1]-r[(did*ngorkov+igork1PP)*nc+1]));
 
 		}
 #endif
@@ -616,8 +616,8 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned  int *iu,u
 #pragma omp simd aligned(u11s,u12s,did,uid,id,iu,u11sd,u12sd:AVX)
 			for(unsigned short j =0;j<AVX;j++){
 				did[j]=id[(i+j)+kvol*mu]; uid[j] = iu[(i+j)+kvol*mu];
-				u11s[j]=ut[0][(i+j)*ndim+mu];	u12s[j]=ut[1][(i+j)*ndim+mu];
-				u11sd[j]=ut[0][did[j]*ndim+mu];	u12sd[j]=ut[1][did[j]*ndim+mu];
+				u11s[j]=ut[0][(i+j)+kvol*mu];	u12s[j]=ut[1][(i+j)+kvol*mu];
+				u11sd[j]=ut[0][did[j]+kvol*mu];	u12sd[j]=ut[1][did[j]+kvol*mu];
 			}
 #pragma unroll
 			for(unsigned short idirac=0; idirac<ndirac; idirac++){
@@ -663,9 +663,9 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned  int *iu,u
 		alignas(AVX) float dk4ms[AVX],dk4ps[AVX];
 #pragma omp simd
 		for(unsigned short j=0;j<AVX;j++){
-			u11s[j]=ut[0][(i+j)*ndim+3];	u12s[j]=ut[1][(i+j)*ndim+3];
+			u11s[j]=ut[0][(i+j)+kvol*3];	u12s[j]=ut[1][(i+j)+kvol*3];
 			did[j]=id[(i+j)+kvol*3];uid[j]= iu[(i+j)+kvol*3];
-			u11sd[j]=ut[0][did[j]*ndim+3];	u12sd[j]=ut[1][did[j]*ndim+3];
+			u11sd[j]=ut[0][did[j]+kvol*3];	u12sd[j]=ut[1][did[j]+kvol*3];
 			dk4ms[j]=dk[0][did[j]];   dk4ps[j]=dk[1][i+j];
 		}
 
@@ -749,8 +749,8 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,u
 #pragma omp simd aligned(u11s,u12s,did,uid,id,iu,u11sd,u12sd:AVX)
 			for(unsigned short j =0;j<AVX;j++){
 				did[j]=id[(i+j)+kvol*mu]; uid[j] = iu[(i+j)+kvol*mu];
-				u11s[j]=ut[0][(i+j)*ndim+mu];	u12s[j]=ut[1][(i+j)*ndim+mu];
-				u11sd[j]=ut[0][did[j]*ndim+mu];	u12sd[j]=ut[1][did[j]*ndim+mu];
+				u11s[j]=ut[0][(i+j)+kvol*mu];	u12s[j]=ut[1][(i+j)+kvol*mu];
+				u11sd[j]=ut[0][did[j]+kvol*mu];	u12sd[j]=ut[1][did[j]+kvol*mu];
 			}
 #pragma unroll
 			for(unsigned short idirac=0; idirac<ndirac; idirac++){
@@ -798,9 +798,9 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,u
 		alignas(AVX) float dk4ms[AVX],dk4ps[AVX];
 #pragma omp simd aligned(u11s,u12s,did,uid,id,iu,u11sd,u12sd,dk4ms,dk4ps:AVX)
 		for(unsigned short j=0;j<AVX;j++){
-			u11s[j]=ut[0][(i+j)*ndim+3];	u12s[j]=ut[1][(i+j)*ndim+3];
+			u11s[j]=ut[0][(i+j)+kvol*3];	u12s[j]=ut[1][(i+j)+kvol*3];
 			did[j]=id[(i+j)+kvol*3];		uid[j]= iu[(i+j)+kvol*3];
-			u11sd[j]=ut[0][did[j]*ndim+3];	u12sd[j]=ut[1][did[j]*ndim+3];
+			u11sd[j]=ut[0][did[j]+kvol*3];	u12sd[j]=ut[1][did[j]+kvol*3];
 			dk4ms[j]=dk[0][i+j];   			dk4ps[j]=dk[1][did[j]];
 		}
 #pragma unroll

@@ -109,28 +109,26 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 			//memset is safe to use here because zero is zero 
 #pragma omp parallel for simd //aligned(ut[0]:AVX) 
 										//Leave it to the GPU?
-			for(int i=0; i<kvol*ndim;i++){
-				ut[0][i]=1;	ut[1][i]=0;
-			}
+			for(int i=0; i<kvol;i++)
+				for(unsigned short mu=0;mu<ndim;mu++){
+					ut[0][i+kvol*mu]=1;	ut[1][i+kvol*mu]=0;
+				}
 		}
 		else if(istart>0){
 			//Ideally, we can use gsl_ranlux as the PRNG
 #ifdef __RANLUX__
-			for(int i=0; i<kvol*ndim;i++){
-				ut[0][i]=2*(gsl_rng_uniform(ranlux_instd)-0.5+I*(gsl_rng_uniform(ranlux_instd)-0.5));
-				ut[1][i]=2*(gsl_rng_uniform(ranlux_instd)-0.5+I*(gsl_rng_uniform(ranlux_instd)-0.5));
-			}
-			//If not, the Intel Vectorise Mersenne Twister
-#elif (defined __USE_MKL__&&!defined USE_RAN2)
-			//Good news, casting works for using a double to create random complex numbers
-			vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*kvol, ut[0], -1, 1);
-			vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD_ACCURATE, stream, 2*ndim*kvol, ut[1], -1, 1);
+			for(int i=0; i<kvol;i++)
+				for(unsigned short mu=0;mu<ndim;mu++){
+					ut[0][i+kvol*mu]=2*(gsl_rng_uniform(ranlux_instd)-0.5+I*(gsl_rng_uniform(ranlux_instd)-0.5));
+					ut[1][i+kvol*mu]=2*(gsl_rng_uniform(ranlux_instd)-0.5+I*(gsl_rng_uniform(ranlux_instd)-0.5));
+				}
 			//Last resort, Numerical Recipes' Ran2
 #else
-			for(int i=0; i<kvol*ndim;i++){
-				ut[0][i]=2*(ran2(&seed)-0.5+I*(ran2(&seed)-0.5));
-				ut[1][i]=2*(ran2(&seed)-0.5+I*(ran2(&seed)-0.5));
-			}
+			for(int i=0; i<kvol;i++)
+				for(unsigned short mu=0;mu<ndim;mu++){
+					ut[0][i+kvol*mu]=2*(ran2(&seed)-0.5+I*(ran2(&seed)-0.5));
+					ut[1][i+kvol*mu]=2*(ran2(&seed)-0.5+I*(ran2(&seed)-0.5));
+				}
 #endif
 		}
 		else
@@ -145,15 +143,15 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 		//Send trials to accelerator for reunitarisation
 		Reunitarise(ut);
 		//Get trials back
+		for(unsigned short mu=0;mu<ndim;mu++){
 #ifdef __NVCC__
-		cudaMemcpyAsync(u[0],ut[0],ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[0]);
-		//cudaMemPrefetchAsync(u[0], ndim*kvol*sizeof(Complex),device,streams[0]);
-		cudaMemcpyAsync(u[1],ut[1],ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[1]);
-		//cudaMemPrefetchAsync(u[1], ndim*kvol*sizeof(Complex),device,streams[1]);
+			cudaMemcpy(u[0]+kvol*mu, ut[0]+kvolHalo*mu, kvol*sizeof(Complex),cudaMemcpyDefault);
+			cudaMemcpy(u[1]+kvol*mu, ut[1]+kvolHalo*mu, kvol*sizeof(Complex),cudaMemcpyDefault);
 #else
-		memcpy(u[0], ut[0], ndim*kvol*sizeof(Complex));
-		memcpy(u[1], ut[1], ndim*kvol*sizeof(Complex));
+			memcpy(u[0]+kvol*mu, ut[0]+kvolHalo*mu, kvol*sizeof(Complex));
+			memcpy(u[1]+kvol*mu, ut[1]+kvolHalo*mu, kvol*sizeof(Complex));
 #endif
+		}
 	}
 #ifdef _DEBUG
 	printf("Initialisation Complete\n");
@@ -271,7 +269,7 @@ inline int C_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsi
 	//Pointers mean that's not an issue for us so I'm leaving it out
 #pragma omp parallel for simd aligned (x,y,table:AVX)
 	for(int i=0; i<n; i++)
-		x[i]=y[table[i+kvol*mu]*ndim+mu];
+		x[i]=y[table[i+kvol*mu]+kvol*mu];
 	return 0;
 }
 inline int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu)
@@ -281,7 +279,7 @@ inline int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned
 	//Pointers mean that's not an issue for us so I'm leaving it out
 #pragma omp parallel for simd aligned (x,y,table:AVX)
 	for(int i=0; i<n; i++)
-		x[i]=y[table[i+kvol*mu]*ndim+mu];
+		x[i]=y[table[i+kvol*mu]+kvol*mu];
 	return 0;
 }
 inline int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
@@ -319,13 +317,14 @@ inline int Reunitarise(Complex *ut[2]){
 #ifdef __NVCC__
 	cuReunitarise(ut,dimGrid,dimBlock);
 #else
-#pragma omp parallel for simd
-	for(int i=0; i<kvol*ndim; i++){
+#pragma omp parallel for
+	for(unsigned int i=0; i<kvol; i++)
+	#pragma omp simd
+	for(unsigned short mu=0;mu<ndim;mu++){
 		//Declaring anorm inside the loop will hopefully let the compiler know it
 		//is safe to vectorise aggressively
-		double anorm=sqrt(conj(ut[0][i])*ut[0][i]+conj(ut[1][i])*ut[1][i]);
-		ut[0][i]/=anorm;
-		ut[1][i]/=anorm;
+		double anorm=sqrt(conj(ut[0][i+kvol*mu])*ut[0][i+kvol*mu]+conj(ut[1][i+kvol*mu])*ut[1][i+kvol*mu]);
+		ut[0][i+kvol*mu]/=anorm; ut[1][i+kvol*mu]/=anorm;
 	}
 #endif
 	return 0;

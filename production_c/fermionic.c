@@ -214,18 +214,18 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	//The halo exchange for the trial fields was done already at the end of the trajectory
 	//No point doing it again
 
-	//Instead of typing id[i*ndim+3] a lot, we'll just assign them to variables.
+	//Instead of typing id[i+kvol*3] a lot, we'll just assign them to variables.
 	//Idea. One loop instead of two loops but for xuu and xdd just use ngorkov-(igorkov+1) instead
 	//Dirty CUDA work around since it won't convert thrust<complex> to double
 	//TODO: get a reduction routine ready for CUDA
 #ifdef __NVCC__
 	//Swapping back the gauge fields to SoA since the rest of the code is running on CPU and hasn't been ported
-	Transpose_z(ut[0],kvol,ndim);
-	Transpose_z(ut[1],kvol,ndim);
+//	Transpose_z(ut[0],kvol,ndim);
+//	Transpose_z(ut[1],kvol,ndim);
 	//Set up  index arrays for CPU
 	//Transpose_U(iu,kvol,ndim);
 	//Transpose_U(id,kvol,ndim);
-	cudaDeviceSynchronise();
+//	cudaDeviceSynchronise();
 #else
 #pragma omp parallel for reduction(+:xd,xu,xdd,xuu) 
 #endif
@@ -236,38 +236,38 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 			int igork1=gamin[3*ndirac+igorkov];
 			//For the C Version I'll try and factorise where possible
 			xu+=dk[1][did]*(conj(x[(did*ngorkov+igorkov)*nc])*(\
-						ut[0][did*ndim+3]*(xi[(i*ngorkov+igork1)*nc]-xi[(i*ngorkov+igorkov)*nc])+\
-						ut[1][did*ndim+3]*(xi[(i*ngorkov+igork1)*nc+1]-xi[(i*ngorkov+igorkov)*nc+1]) )+\
+						ut[0][did+kvol*3]*(xi[(i*ngorkov+igork1)*nc]-xi[(i*ngorkov+igorkov)*nc])+\
+						ut[1][did+kvol*3]*(xi[(i*ngorkov+igork1)*nc+1]-xi[(i*ngorkov+igorkov)*nc+1]) )+\
 					conj(x[(did*ngorkov+igorkov)*nc+1])*(\
-						conj(ut[0][did*ndim+3])*(xi[(i*ngorkov+igork1)*nc+1]-xi[(i*ngorkov+igorkov)*nc+1])+\
-						conj(ut[1][did*ndim+3])*(xi[(i*ngorkov+igorkov)*nc]-xi[(i*ngorkov+igork1)*nc])));
+						conj(ut[0][did+kvol*3])*(xi[(i*ngorkov+igork1)*nc+1]-xi[(i*ngorkov+igorkov)*nc+1])+\
+						conj(ut[1][did+kvol*3])*(xi[(i*ngorkov+igorkov)*nc]-xi[(i*ngorkov+igork1)*nc])));
 		}
 		for(int igorkov=0; igorkov<4; igorkov++){
 			int igork1=gamin[3*ndirac+igorkov];
 			xd+=dk[0][i]*(conj(x[(uid*ngorkov+igorkov)*nc])*(\
-						conj(ut[0][i*ndim+3])*(xi[(i*ngorkov+igork1)*nc]+xi[(i*ngorkov+igorkov)*nc])-\
-						ut[1][i*ndim+3]*(xi[(i*ngorkov+igork1)*nc+1]+xi[(i*ngorkov+igorkov)*nc+1]) )+\
+						conj(ut[0][i+kvol*3])*(xi[(i*ngorkov+igork1)*nc]+xi[(i*ngorkov+igorkov)*nc])-\
+						ut[1][i+kvol*3]*(xi[(i*ngorkov+igork1)*nc+1]+xi[(i*ngorkov+igorkov)*nc+1]) )+\
 					conj(x[(uid*ngorkov+igorkov)*nc+1])*(\
-						ut[0][i*ndim+3]*(xi[(i*ngorkov+igork1)*nc+1]+xi[(i*ngorkov+igorkov)*nc+1])+\
-						conj(ut[1][i*ndim+3])*(xi[(i*ngorkov+igorkov)*nc]+xi[(i*ngorkov+igork1)*nc]) ) );
+						ut[0][i+kvol*3]*(xi[(i*ngorkov+igork1)*nc+1]+xi[(i*ngorkov+igorkov)*nc+1])+\
+						conj(ut[1][i+kvol*3])*(xi[(i*ngorkov+igorkov)*nc]+xi[(i*ngorkov+igork1)*nc]) ) );
 		}
 		for(int igorkovPP=4; igorkovPP<8; igorkovPP++){
 			int igork1PP=4+gamin[3*ndirac+igorkovPP-4];
 			xuu-=dk[0][did]*(conj(x[(did*ngorkov+igorkovPP)*nc])*(\
-						ut[0][did*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc]-xi[(i*ngorkov+igorkovPP)*nc])+\
-						ut[1][did*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc+1]-xi[(i*ngorkov+igorkovPP)*nc+1]) )+\
+						ut[0][did+kvol*3]*(xi[(i*ngorkov+igork1PP)*nc]-xi[(i*ngorkov+igorkovPP)*nc])+\
+						ut[1][did+kvol*3]*(xi[(i*ngorkov+igork1PP)*nc+1]-xi[(i*ngorkov+igorkovPP)*nc+1]) )+\
 					conj(x[(did*ngorkov+igorkovPP)*nc+1])*(\
-						conj(ut[0][did*ndim+3])*(xi[(i*ngorkov+igork1PP)*nc+1]-xi[(i*ngorkov+igorkovPP)*nc+1])+\
-						conj(ut[1][did*ndim+3])*(xi[(i*ngorkov+igorkovPP)*nc]-xi[(i*ngorkov+igork1PP)*nc]) ) );
+						conj(ut[0][did+kvol*3])*(xi[(i*ngorkov+igork1PP)*nc+1]-xi[(i*ngorkov+igorkovPP)*nc+1])+\
+						conj(ut[1][did+kvol*3])*(xi[(i*ngorkov+igorkovPP)*nc]-xi[(i*ngorkov+igork1PP)*nc]) ) );
 		}
 		for(int igorkovPP=4; igorkovPP<8; igorkovPP++){
 			int igork1PP=4+gamin[3*ndirac+igorkovPP-4];
 			xdd-=dk[1][i]*(conj(x[(uid*ngorkov+igorkovPP)*nc])*(\
-						conj(ut[0][i*ndim+3])*(xi[(i*ngorkov+igork1PP)*nc]+xi[(i*ngorkov+igorkovPP)*nc])-\
-						ut[1][i*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc+1]+xi[(i*ngorkov+igorkovPP)*nc+1]) )+\
+						conj(ut[0][i+kvol*3])*(xi[(i*ngorkov+igork1PP)*nc]+xi[(i*ngorkov+igorkovPP)*nc])-\
+						ut[1][i+kvol*3]*(xi[(i*ngorkov+igork1PP)*nc+1]+xi[(i*ngorkov+igorkovPP)*nc+1]) )+\
 					conj(x[(uid*ngorkov+igorkovPP)*nc+1])*(\
-						ut[0][i*ndim+3]*(xi[(i*ngorkov+igork1PP)*nc+1]+xi[(i*ngorkov+igorkovPP)*nc+1])+\
-						conj(ut[1][i*ndim+3])*(xi[(i*ngorkov+igorkovPP)*nc]+xi[(i*ngorkov+igork1PP)*nc]) ) );
+						ut[0][i+kvol*3]*(xi[(i*ngorkov+igork1PP)*nc+1]+xi[(i*ngorkov+igorkovPP)*nc+1])+\
+						conj(ut[1][i+kvol*3])*(xi[(i*ngorkov+igorkovPP)*nc]+xi[(i*ngorkov+igork1PP)*nc]) ) );
 		}
 	}
 	*endenf=creal(xu-xd-xuu+xdd);
@@ -281,8 +281,8 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #ifdef __NVCC__
 	cudaFree(x); cudaFree(xi);
 	//Revert index and gauge arrays
-	Transpose_z(ut[0],ndim,kvol);
-	Transpose_z(ut[1],ndim,kvol);
+//	Transpose_z(ut[0],ndim,kvol);
+//	Transpose_z(ut[1],ndim,kvol);
 	//Transpose_U(iu,ndim,kvol);
 	//Transpose_U(id,ndim,kvol);
 #else

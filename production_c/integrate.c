@@ -59,9 +59,9 @@ int Gauge_Update(const double d, double *pp, Complex *ut[2],Complex_f *ut_f[2]){
 			Complex a12 = pp[(i*nadj+1)*ndim+mu]*SSS + I*SSS*pp[i*nadj*ndim+mu];
 			//b11 and b12 are ut[0] and ut[1] terms, so we'll use ut[1] directly
 			//but use b11 for ut[0] to prevent RAW dependency
-			Complex b11 = ut[0][i*ndim+mu];
-			ut[0][i*ndim+mu] = a11*b11-a12*conj(ut[1][i*ndim+mu]);
-			ut[1][i*ndim+mu] = a11*ut[1][i*ndim+mu]+a12*conj(b11);
+			Complex b11 = ut[0][i+kvol*mu];
+			ut[0][i+kvol*mu] = a11*b11-a12*conj(ut[1][i+kvol*mu]);
+			ut[1][i+kvol*mu] = a11*ut[1][i+kvol*mu]+a12*conj(b11);
 		}
 #endif
 	Reunitarise(ut);

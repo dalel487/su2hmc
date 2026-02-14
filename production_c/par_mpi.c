@@ -264,8 +264,8 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 #else
 #pragma omp simd aligned(u11,u12,u1buff,u2buff:AVX)
 					for(i=0;i<kvol;i++){
-						u11[i*ndim+idim]=u1buff[i];
-						u12[i*ndim+idim]=u2buff[i];
+						u11[i+kvol*idim]=u1buff[i];
+						u12[i+kvol*idim]=u2buff[i];
 					}
 #endif
 				}		
@@ -320,22 +320,26 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 						CANTRECV, funcname, rank);
 				MPI_Abort(comm,CANTRECV);
 			}
-#if defined USE_BLAS
-			cblas_zcopy(kvol,u1buff,1,u11+idim,ndim);
-			cblas_zcopy(kvol,u2buff,1,u12+idim,ndim);
+#ifdef __NVCC__
+			cudaMemcpy(u1buff+idim*kvol,u11+idim*kvol,kvol*sizeof(Complex),cudaMemcpyDefault);
+			cudaMemcpy(u2buff+idim*kvol,u12+idim*kvol,kvol*sizeof(Complex),cudaMemcpyDefault);
 #else
-#pragma omp parallel for simd aligned(u11,u12,u1buff,u2buff:AVX)
-			for(int i=0;i<kvol;i++){
-				u11[i*ndim+idim]=u1buff[i];
-				u12[i*ndim+idim]=u2buff[i];
-			}
+			memcpy(u1buff+idim*kvol,u11+idim*kvol,kvol*sizeof(Complex));
+			memcpy(u2buff+idim*kvol,u12+idim*kvol,kvol*sizeof(Complex));
 #endif
 		}
 	}
 #endif
 	free(u1buff); free(u2buff);
-	memcpy(u11t, u11, ndim*kvol*sizeof(Complex));
-	memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
+	for(unsigned short mu=0;mu<ndim;mu++){
+#ifdef __NVCC__
+		cudaMemcpy(u11t+kvolHalo*mu, u11+kvol*mu, kvol*sizeof(Complex),cudaMemcpyDefault);
+		cudaMemcpy(u12t+kvolHalo*mu, u12+kvol*mu, kvol*sizeof(Complex),cudaMemcpyDefault);
+#else
+		memcpy(u11t+kvolHalo*mu, u11+kvol*mu, kvol*sizeof(Complex));
+		memcpy(u12t+kvolHalo*mu, u12+kvol*mu, kvol*sizeof(Complex));
+#endif
+	}
 	return 0;
 }
 int Par_swrite(const int itraj, const int icheck, const float beta, const float fmu, const float akappa, 
@@ -417,15 +421,12 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 #endif
 					//No need to do MPI Send/Receive on the master rank
 					//Array looping is slow so we use memcpy instead
-#if defined USE_BLAS
-					cblas_zcopy(kvol,u11+idim,ndim,u1buff,1);
-					cblas_zcopy(kvol,u12+idim,ndim,u2buff,1);
+#ifdef __NVCC__
+					cudaMemcpy(u1buff+idim*kvol,u11+idim*kvol,kvol*sizeof(Complex),cudaMemcpyDefault);
+					cudaMemcpy(u2buff+idim*kvol,u12+idim*kvol,kvol*sizeof(Complex),cudaMemcpyDefault);
 #else
-#pragma omp parallel for simd aligned(u11,u12,u1buff,u2buff:AVX)
-					for(int i=0;i<kvol;i++){
-						u1buff[i]=u11[i*ndim+idim];
-						u2buff[i]=u12[i*ndim+idim];
-					}
+					memcpy(u1buff+idim*kvol,u11+idim*kvol,kvol*sizeof(Complex));
+					memcpy(u2buff+idim*kvol,u12+idim*kvol,kvol*sizeof(Complex));
 #endif
 #ifdef _DEBUG
 					char part_dump[FILELEN]="";
@@ -535,8 +536,8 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 #else
 #pragma omp parallel for simd aligned(u11,u12,u1buff,u2buff:AVX)
 			for(int i=0;i<kvol;i++){
-				u1buff[i]=u11[i*ndim+idim];
-				u2buff[i]=u12[i*ndim+idim];
+				u1buff[i]=u11[i+kvol*idim];
+				u2buff[i]=u12[i+kvol*idim];
 			}
 #endif
 #ifdef _DEBUG
@@ -1200,7 +1201,7 @@ int Trial_Exchange(Complex *ut[2],Complex_f *ut_f[2]){
 		cblas_zcopy(kvol, &ut[0][mu], ndim, z, 1);
 #else
 		for(int i=0; i<kvol;i++)
-			z[i]=ut[0][i*ndim+mu];
+			z[i]=ut[0][i+kvol*mu];
 #endif
 		//Halo exchange on that column
 		ZHalo_swap_all(z, 1);
@@ -1215,8 +1216,8 @@ int Trial_Exchange(Complex *ut[2],Complex_f *ut_f[2]){
 		cblas_zcopy(kvol, &ut[1][mu], ndim, z, 1);
 #else
 		for(int i=0; i<kvol+halo;i++){
-			ut[0][i*ndim+mu]=z[i];
-			z[i]=ut[1][i*ndim+mu];
+			ut[0][i+kvol*mu]=z[i];
+			z[i]=ut[1][i+kvol*mu];
 		}
 #endif
 		ZHalo_swap_all(z, 1);
@@ -1224,7 +1225,7 @@ int Trial_Exchange(Complex *ut[2],Complex_f *ut_f[2]){
 		cblas_zcopy(kvol+halo, z, 1, &ut[1][mu], ndim);
 #else
 		for(int i=0; i<kvol+halo;i++)
-			ut[1][i*ndim+mu]=z[i];
+			ut[1][i+kvol*mu]=z[i];
 #endif
 	}
 	//Now we prefetch the halo

@@ -36,12 +36,12 @@ int Gauge_force(double *dSdpi, Complex_f *ut[2],unsigned int *iu,unsigned int *i
 				for(int i=0;i<kvol;i++){
 					int uidm = iu[mu*kvol+i];
 					int uidn = iu[nu*kvol+i];
-					Complex_f	a11=ut[0][uidm*ndim+nu]*conj(ut[0][uidn*ndim+mu])+\
-										 ut[1][uidm*ndim+nu]*conj(ut[1][uidn*ndim+mu]);
-					Complex_f	a12=-ut[0][uidm*ndim+nu]*ut[1][uidn*ndim+mu]+\
-										 ut[1][uidm*ndim+nu]*ut[0][uidn*ndim+mu];
-					Sigma[0][i]+=a11*conj(ut[0][i*ndim+nu])+a12*conj(ut[1][i*ndim+nu]);
-					Sigma[1][i]+=-a11*ut[1][i*ndim+nu]+a12*ut[0][i*ndim+nu];
+					Complex_f	a11=ut[0][uidm+kvol*nu]*conj(ut[0][uidn+kvol*mu])+\
+										 ut[1][uidm+kvol*nu]*conj(ut[1][uidn+kvol*mu]);
+					Complex_f	a12=-ut[0][uidm+kvol*nu]*ut[1][uidn+kvol*mu]+\
+										 ut[1][uidm+kvol*nu]*ut[0][uidn+kvol*mu];
+					Sigma[0][i]+=a11*conj(ut[0][i+kvol*nu])+a12*conj(ut[1][i+kvol*nu]);
+					Sigma[1][i]+=-a11*ut[1][i+kvol*nu]+a12*ut[0][i+kvol*nu];
 				}
 				C_gather(ush[0], ut[0], kvol, id, nu);
 				C_gather(ush[1], ut[1], kvol, id, nu);
@@ -54,18 +54,18 @@ int Gauge_force(double *dSdpi, Complex_f *ut[2],unsigned int *iu,unsigned int *i
 					int uidm = iu[mu*kvol+i];
 					int didn = id[nu*kvol+i];
 					//uidm is correct here
-					Complex_f a11=conj(ush[0][uidm])*conj(ut[0][didn*ndim+mu])-\
-									  ush[1][uidm]*conj(ut[1][didn*ndim+mu]);
-					Complex_f a12=-conj(ush[0][uidm])*ut[1][didn*ndim+mu]-\
-									  ush[1][uidm]*ut[0][didn*ndim+mu];
-					Sigma[0][i]+=a11*ut[0][didn*ndim+nu]-a12*conj(ut[1][didn*ndim+nu]);
-					Sigma[1][i]+=a11*ut[1][didn*ndim+nu]+a12*conj(ut[0][didn*ndim+nu]);
+					Complex_f a11=conj(ush[0][uidm])*conj(ut[0][didn+kvol*mu])-\
+									  ush[1][uidm]*conj(ut[1][didn+kvol*mu]);
+					Complex_f a12=-conj(ush[0][uidm])*ut[1][didn+kvol*mu]-\
+									  ush[1][uidm]*ut[0][didn+kvol*mu];
+					Sigma[0][i]+=a11*ut[0][didn+kvol*nu]-a12*conj(ut[1][didn+kvol*nu]);
+					Sigma[1][i]+=a11*ut[1][didn+kvol*nu]+a12*conj(ut[0][didn+kvol*nu]);
 				}
 			}
 #pragma omp parallel for simd //aligned(ut[0],ut[1],Sigma[0],Sigma[1],dSdpi:AVX)
 		for(int i=0;i<kvol;i++){
-			Complex_f a11 = ut[0][i*ndim+mu]*Sigma[1][i]+ut[1][i*ndim+mu]*conj(Sigma[0][i]);
-			Complex_f a12 = ut[0][i*ndim+mu]*Sigma[0][i]+conj(ut[1][i*ndim+mu])*Sigma[1][i];
+			Complex_f a11 = ut[0][i+kvol*mu]*Sigma[1][i]+ut[1][i+kvol*mu]*conj(Sigma[0][i]);
+			Complex_f a12 = ut[0][i+kvol*mu]*Sigma[0][i]+conj(ut[1][i+kvol*mu])*Sigma[1][i];
 
 			dSdpi[(i*nadj)*ndim+mu]=(double)(beta*cimag(a11));
 			dSdpi[(i*nadj+1)*ndim+mu]=(double)(beta*creal(a11));
@@ -230,84 +230,84 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 					//Montvay and Munster and notice a missing kappa in the code, that is why.
 					dSdpi[(i*nadj)*ndim+mu]+=akappa*creal(I*
 							(conj(X1[(i*ndirac+idirac)*nc])*
-							 (-conj(ut[1][i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
-							  +conj(ut[0][i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1])
+							 (-conj(ut[1][i+kvol*mu])*X2[(uid*ndirac+idirac)*nc]
+							  +conj(ut[0][i+kvol*mu])*X2[(uid*ndirac+idirac)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc])*
-							 ( ut[1][i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
-								-conj(ut[0][i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])
+							 ( ut[1][i+kvol*mu] *X2[(i*ndirac+idirac)*nc]
+								-conj(ut[0][i+kvol*mu])*X2[(i*ndirac+idirac)*nc+1])
 							 +conj(X1[(i*ndirac+idirac)*nc+1])*
-							 (ut[0][i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
-							  +ut[1][i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1])
+							 (ut[0][i+kvol*mu] *X2[(uid*ndirac+idirac)*nc]
+							  +ut[1][i+kvol*mu] *X2[(uid*ndirac+idirac)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-							 (-ut[0][i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
-							  -conj(ut[1][i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])));
+							 (-ut[0][i+kvol*mu] *X2[(i*ndirac+idirac)*nc]
+							  -conj(ut[1][i+kvol*mu])*X2[(i*ndirac+idirac)*nc+1])));
 					dSdpi[(i*nadj)*ndim+mu]+=creal(I*gamval[mu*ndirac+idirac]*
 							(conj(X1[(i*ndirac+idirac)*nc])*
-							 (-conj(ut[1][i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
-							  +conj(ut[0][i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1])
+							 (-conj(ut[1][i+kvol*mu])*X2[(uid*ndirac+igork1)*nc]
+							  +conj(ut[0][i+kvol*mu])*X2[(uid*ndirac+igork1)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc])*
-							 (-ut[1][i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
-							  +conj(ut[0][i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1])
+							 (-ut[1][i+kvol*mu] *X2[(i*ndirac+igork1)*nc]
+							  +conj(ut[0][i+kvol*mu])*X2[(i*ndirac+igork1)*nc+1])
 							 +conj(X1[(i*ndirac+idirac)*nc+1])*
-							 (ut[0][i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
-							  +ut[1][i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1])
+							 (ut[0][i+kvol*mu] *X2[(uid*ndirac+igork1)*nc]
+							  +ut[1][i+kvol*mu] *X2[(uid*ndirac+igork1)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-							 (ut[0][i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
-							  +conj(ut[1][i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1])));
+							 (ut[0][i+kvol*mu] *X2[(i*ndirac+igork1)*nc]
+							  +conj(ut[1][i+kvol*mu])*X2[(i*ndirac+igork1)*nc+1])));
 
 					dSdpi[(i*nadj+1)*ndim+mu]+=akappa*creal(
 							(conj(X1[(i*ndirac+idirac)*nc])*
-							 (-conj(ut[1][i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
-							  +conj(ut[0][i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1])
+							 (-conj(ut[1][i+kvol*mu])*X2[(uid*ndirac+idirac)*nc]
+							  +conj(ut[0][i+kvol*mu])*X2[(uid*ndirac+idirac)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc])*
-							 (-ut[1][i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
-							  -conj(ut[0][i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])
+							 (-ut[1][i+kvol*mu] *X2[(i*ndirac+idirac)*nc]
+							  -conj(ut[0][i+kvol*mu])*X2[(i*ndirac+idirac)*nc+1])
 							 +conj(X1[(i*ndirac+idirac)*nc+1])*
-							 (-ut[0][i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
-							  -ut[1][i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1])
+							 (-ut[0][i+kvol*mu] *X2[(uid*ndirac+idirac)*nc]
+							  -ut[1][i+kvol*mu] *X2[(uid*ndirac+idirac)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-							 (ut[0][i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
-							  -conj(ut[1][i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])));
+							 (ut[0][i+kvol*mu] *X2[(i*ndirac+idirac)*nc]
+							  -conj(ut[1][i+kvol*mu])*X2[(i*ndirac+idirac)*nc+1])));
 					dSdpi[(i*nadj+1)*ndim+mu]+=creal(gamval[mu*ndirac+idirac]*
 							(conj(X1[(i*ndirac+idirac)*nc])*
-							 (-conj(ut[1][i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
-							  +conj(ut[0][i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1])
+							 (-conj(ut[1][i+kvol*mu])*X2[(uid*ndirac+igork1)*nc]
+							  +conj(ut[0][i+kvol*mu])*X2[(uid*ndirac+igork1)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc])*
-							 (ut[1][i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
-							  +conj(ut[0][i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1])
+							 (ut[1][i+kvol*mu] *X2[(i*ndirac+igork1)*nc]
+							  +conj(ut[0][i+kvol*mu])*X2[(i*ndirac+igork1)*nc+1])
 							 +conj(X1[(i*ndirac+idirac)*nc+1])*
-							 (-ut[0][i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
-							  -ut[1][i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1])
+							 (-ut[0][i+kvol*mu] *X2[(uid*ndirac+igork1)*nc]
+							  -ut[1][i+kvol*mu] *X2[(uid*ndirac+igork1)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-							 (-ut[0][i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
-							  +conj(ut[1][i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1])));
+							 (-ut[0][i+kvol*mu] *X2[(i*ndirac+igork1)*nc]
+							  +conj(ut[1][i+kvol*mu])*X2[(i*ndirac+igork1)*nc+1])));
 
 					dSdpi[(i*nadj+2)*ndim+mu]+=akappa*creal(I*
 							(conj(X1[(i*ndirac+idirac)*nc])*
-							 (ut[0][i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
-							  +ut[1][i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1])
+							 (ut[0][i+kvol*mu] *X2[(uid*ndirac+idirac)*nc]
+							  +ut[1][i+kvol*mu] *X2[(uid*ndirac+idirac)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc])*
-							 (-conj(ut[0][i*ndim+mu])*X2[(i*ndirac+idirac)*nc]
-							  -ut[1][i*ndim+mu] *X2[(i*ndirac+idirac)*nc+1])
+							 (-conj(ut[0][i+kvol*mu])*X2[(i*ndirac+idirac)*nc]
+							  -ut[1][i+kvol*mu] *X2[(i*ndirac+idirac)*nc+1])
 							 +conj(X1[(i*ndirac+idirac)*nc+1])*
-							 (conj(ut[1][i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
-							  -conj(ut[0][i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1])
+							 (conj(ut[1][i+kvol*mu])*X2[(uid*ndirac+idirac)*nc]
+							  -conj(ut[0][i+kvol*mu])*X2[(uid*ndirac+idirac)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-							 (-conj(ut[1][i*ndim+mu])*X2[(i*ndirac+idirac)*nc]
-							  +ut[0][i*ndim+mu] *X2[(i*ndirac+idirac)*nc+1])));
+							 (-conj(ut[1][i+kvol*mu])*X2[(i*ndirac+idirac)*nc]
+							  +ut[0][i+kvol*mu] *X2[(i*ndirac+idirac)*nc+1])));
 					dSdpi[(i*nadj+2)*ndim+mu]+=creal(I*gamval[mu*ndirac+idirac]*
 							(conj(X1[(i*ndirac+idirac)*nc])*
-							 (ut[0][i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
-							  +ut[1][i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1])
+							 (ut[0][i+kvol*mu] *X2[(uid*ndirac+igork1)*nc]
+							  +ut[1][i+kvol*mu] *X2[(uid*ndirac+igork1)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc])*
-							 (conj(ut[0][i*ndim+mu])*X2[(i*ndirac+igork1)*nc]
-							  +ut[1][i*ndim+mu] *X2[(i*ndirac+igork1)*nc+1])
+							 (conj(ut[0][i+kvol*mu])*X2[(i*ndirac+igork1)*nc]
+							  +ut[1][i+kvol*mu] *X2[(i*ndirac+igork1)*nc+1])
 							 +conj(X1[(i*ndirac+idirac)*nc+1])*
-							 (conj(ut[1][i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
-							  -conj(ut[0][i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1])
+							 (conj(ut[1][i+kvol*mu])*X2[(uid*ndirac+igork1)*nc]
+							  -conj(ut[0][i+kvol*mu])*X2[(uid*ndirac+igork1)*nc+1])
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-							 (conj(ut[1][i*ndim+mu])*X2[(i*ndirac+igork1)*nc]
-							  -ut[0][i*ndim+mu] *X2[(i*ndirac+igork1)*nc+1])));
+							 (conj(ut[1][i+kvol*mu])*X2[(i*ndirac+igork1)*nc]
+							  -ut[0][i+kvol*mu] *X2[(i*ndirac+igork1)*nc+1])));
 
 				}
 #endif
@@ -319,84 +319,84 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 #ifndef NO_TIME
 				dSdpi[(i*nadj)*ndim+mu]+=creal(I*
 						(conj(X1[(i*ndirac+idirac)*nc])*
-						 (dk[0][i]*(-conj(ut[1][i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
-										+conj(ut[0][i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1]))
+						 (dk[0][i]*(-conj(ut[1][i+kvol*mu])*X2[(uid*ndirac+idirac)*nc]
+										+conj(ut[0][i+kvol*mu])*X2[(uid*ndirac+idirac)*nc+1]))
 						 +conj(X1[(uid*ndirac+idirac)*nc])*
-						 (dk[1][i]*      (+ut[1][i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
-												-conj(ut[0][i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1]))
+						 (dk[1][i]*      (+ut[1][i+kvol*mu] *X2[(i*ndirac+idirac)*nc]
+												-conj(ut[0][i+kvol*mu])*X2[(i*ndirac+idirac)*nc+1]))
 						 +conj(X1[(i*ndirac+idirac)*nc+1])*
-						 (dk[0][i]*       (ut[0][i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
-												 +ut[1][i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1]))
+						 (dk[0][i]*       (ut[0][i+kvol*mu] *X2[(uid*ndirac+idirac)*nc]
+												 +ut[1][i+kvol*mu] *X2[(uid*ndirac+idirac)*nc+1]))
 						 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-						 (dk[1][i]*      (-ut[0][i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
-												-conj(ut[1][i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1]))))
+						 (dk[1][i]*      (-ut[0][i+kvol*mu] *X2[(i*ndirac+idirac)*nc]
+												-conj(ut[1][i+kvol*mu])*X2[(i*ndirac+idirac)*nc+1]))))
 					+creal(I*
 							(conj(X1[(i*ndirac+idirac)*nc])*
-							 (dk[0][i]*(-conj(ut[1][i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
-											+conj(ut[0][i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1]))
+							 (dk[0][i]*(-conj(ut[1][i+kvol*mu])*X2[(uid*ndirac+igork1)*nc]
+											+conj(ut[0][i+kvol*mu])*X2[(uid*ndirac+igork1)*nc+1]))
 							 +conj(X1[(uid*ndirac+idirac)*nc])*
-							 (-dk[1][i]*       (ut[1][i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
-													  -conj(ut[0][i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1]))
+							 (-dk[1][i]*       (ut[1][i+kvol*mu] *X2[(i*ndirac+igork1)*nc]
+													  -conj(ut[0][i+kvol*mu])*X2[(i*ndirac+igork1)*nc+1]))
 							 +conj(X1[(i*ndirac+idirac)*nc+1])*
-							 (dk[0][i]*       (ut[0][i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
-													 +ut[1][i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1]))
+							 (dk[0][i]*       (ut[0][i+kvol*mu] *X2[(uid*ndirac+igork1)*nc]
+													 +ut[1][i+kvol*mu] *X2[(uid*ndirac+igork1)*nc+1]))
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-							 (-dk[1][i]*      (-ut[0][i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
-													 -conj(ut[1][i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1]))));
+							 (-dk[1][i]*      (-ut[0][i+kvol*mu] *X2[(i*ndirac+igork1)*nc]
+													 -conj(ut[1][i+kvol*mu])*X2[(i*ndirac+igork1)*nc+1]))));
 
 				dSdpi[(i*nadj+1)*ndim+mu]+=creal(
 						conj(X1[(i*ndirac+idirac)*nc])*
-						(dk[0][i]*(-conj(ut[1][i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
-									  +conj(ut[0][i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1]))
+						(dk[0][i]*(-conj(ut[1][i+kvol*mu])*X2[(uid*ndirac+idirac)*nc]
+									  +conj(ut[0][i+kvol*mu])*X2[(uid*ndirac+idirac)*nc+1]))
 						+conj(X1[(uid*ndirac+idirac)*nc])*
-						(dk[1][i]*      (-ut[1][i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
-											  -conj(ut[0][i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1]))
+						(dk[1][i]*      (-ut[1][i+kvol*mu] *X2[(i*ndirac+idirac)*nc]
+											  -conj(ut[0][i+kvol*mu])*X2[(i*ndirac+idirac)*nc+1]))
 						+conj(X1[(i*ndirac+idirac)*nc+1])*
-						(dk[0][i]*      (-ut[0][i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
-											  -ut[1][i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1]))
+						(dk[0][i]*      (-ut[0][i+kvol*mu] *X2[(uid*ndirac+idirac)*nc]
+											  -ut[1][i+kvol*mu] *X2[(uid*ndirac+idirac)*nc+1]))
 						+conj(X1[(uid*ndirac+idirac)*nc+1])*
-						(dk[1][i]*      ( ut[0][i*ndim+mu] *X2[(i*ndirac+idirac)*nc]
-												-conj(ut[1][i*ndim+mu])*X2[(i*ndirac+idirac)*nc+1])))
+						(dk[1][i]*      ( ut[0][i+kvol*mu] *X2[(i*ndirac+idirac)*nc]
+												-conj(ut[1][i+kvol*mu])*X2[(i*ndirac+idirac)*nc+1])))
 					+creal(
 							(conj(X1[(i*ndirac+idirac)*nc])*
-							 (dk[0][i]*(-conj(ut[1][i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
-											+conj(ut[0][i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1]))
+							 (dk[0][i]*(-conj(ut[1][i+kvol*mu])*X2[(uid*ndirac+igork1)*nc]
+											+conj(ut[0][i+kvol*mu])*X2[(uid*ndirac+igork1)*nc+1]))
 							 +conj(X1[(uid*ndirac+idirac)*nc])*
-							 (-dk[1][i]*      (-ut[1][i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
-													 -conj(ut[0][i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1]))
+							 (-dk[1][i]*      (-ut[1][i+kvol*mu] *X2[(i*ndirac+igork1)*nc]
+													 -conj(ut[0][i+kvol*mu])*X2[(i*ndirac+igork1)*nc+1]))
 							 +conj(X1[(i*ndirac+idirac)*nc+1])*
-							 (dk[0][i]*      (-ut[0][i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
-													-ut[1][i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1]))
+							 (dk[0][i]*      (-ut[0][i+kvol*mu] *X2[(uid*ndirac+igork1)*nc]
+													-ut[1][i+kvol*mu] *X2[(uid*ndirac+igork1)*nc+1]))
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-							 (-dk[1][i]*       (ut[0][i*ndim+mu] *X2[(i*ndirac+igork1)*nc]
-													  -conj(ut[1][i*ndim+mu])*X2[(i*ndirac+igork1)*nc+1]))));
+							 (-dk[1][i]*       (ut[0][i+kvol*mu] *X2[(i*ndirac+igork1)*nc]
+													  -conj(ut[1][i+kvol*mu])*X2[(i*ndirac+igork1)*nc+1]))));
 
 				dSdpi[(i*nadj+2)*ndim+mu]+=creal(I*
 						(conj(X1[(i*ndirac+idirac)*nc])*
-						 (dk[0][i]*       (ut[0][i*ndim+mu] *X2[(uid*ndirac+idirac)*nc]
-												 +ut[1][i*ndim+mu] *X2[(uid*ndirac+idirac)*nc+1]))
+						 (dk[0][i]*       (ut[0][i+kvol*mu] *X2[(uid*ndirac+idirac)*nc]
+												 +ut[1][i+kvol*mu] *X2[(uid*ndirac+idirac)*nc+1]))
 						 +conj(X1[(uid*ndirac+idirac)*nc])*
-						 (dk[1][i]*(-conj(ut[0][i*ndim+mu])*X2[(i*ndirac+idirac)*nc]
-										-ut[1][i*ndim+mu] *X2[(i*ndirac+idirac)*nc+1]))
+						 (dk[1][i]*(-conj(ut[0][i+kvol*mu])*X2[(i*ndirac+idirac)*nc]
+										-ut[1][i+kvol*mu] *X2[(i*ndirac+idirac)*nc+1]))
 						 +conj(X1[(i*ndirac+idirac)*nc+1])*
-						 (dk[0][i]* (conj(ut[1][i*ndim+mu])*X2[(uid*ndirac+idirac)*nc]
-										 -conj(ut[0][i*ndim+mu])*X2[(uid*ndirac+idirac)*nc+1]))
+						 (dk[0][i]* (conj(ut[1][i+kvol*mu])*X2[(uid*ndirac+idirac)*nc]
+										 -conj(ut[0][i+kvol*mu])*X2[(uid*ndirac+idirac)*nc+1]))
 						 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-						 (dk[1][i]*(-conj(ut[1][i*ndim+mu])*X2[(i*ndirac+idirac)*nc]
-										+ut[0][i*ndim+mu] *X2[(i*ndirac+idirac)*nc+1]))))
+						 (dk[1][i]*(-conj(ut[1][i+kvol*mu])*X2[(i*ndirac+idirac)*nc]
+										+ut[0][i+kvol*mu] *X2[(i*ndirac+idirac)*nc+1]))))
 					+creal(I*
 							(conj(X1[(i*ndirac+idirac)*nc])*
-							 (dk[0][i]*       (ut[0][i*ndim+mu] *X2[(uid*ndirac+igork1)*nc]
-													 +ut[1][i*ndim+mu] *X2[(uid*ndirac+igork1)*nc+1]))
+							 (dk[0][i]*       (ut[0][i+kvol*mu] *X2[(uid*ndirac+igork1)*nc]
+													 +ut[1][i+kvol*mu] *X2[(uid*ndirac+igork1)*nc+1]))
 							 +conj(X1[(uid*ndirac+idirac)*nc])*
-							 (-dk[1][i]*(-conj(ut[0][i*ndim+mu])*X2[(i*ndirac+igork1)*nc]
-											 -ut[1][i*ndim+mu] *X2[(i*ndirac+igork1)*nc+1]))
+							 (-dk[1][i]*(-conj(ut[0][i+kvol*mu])*X2[(i*ndirac+igork1)*nc]
+											 -ut[1][i+kvol*mu] *X2[(i*ndirac+igork1)*nc+1]))
 							 +conj(X1[(i*ndirac+idirac)*nc+1])*
-							 (dk[0][i]* (conj(ut[1][i*ndim+mu])*X2[(uid*ndirac+igork1)*nc]
-											 -conj(ut[0][i*ndim+mu])*X2[(uid*ndirac+igork1)*nc+1]))
+							 (dk[0][i]* (conj(ut[1][i+kvol*mu])*X2[(uid*ndirac+igork1)*nc]
+											 -conj(ut[0][i+kvol*mu])*X2[(uid*ndirac+igork1)*nc+1]))
 							 +conj(X1[(uid*ndirac+idirac)*nc+1])*
-							 (-dk[1][i]*(-conj(ut[1][i*ndim+mu])*X2[(i*ndirac+igork1)*nc]
-											 +ut[0][i*ndim+mu] *X2[(i*ndirac+igork1)*nc+1]))));
+							 (-dk[1][i]*(-conj(ut[1][i+kvol*mu])*X2[(i*ndirac+igork1)*nc]
+											 +ut[0][i+kvol*mu] *X2[(i*ndirac+igork1)*nc+1]))));
 
 #endif
 			}
