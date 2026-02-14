@@ -467,7 +467,7 @@ int main(int argc, char *argv[]){
 			//Transpose needed here for Dslashd
 			//R is random so this techincally isn't required. But it does keep the code output consistent with previous
 			//versions.
-			Transpose_c(R,ngorkov*nc,kvolHalo);
+//			Transpose_c(R,ngorkov*nc,kvolHalo);
 			Dslashd_f(R1_f,R,ut_f,iu,id,gamval_f,gamin,dk_f,jqq,akappa);
 			if(c_sw)
 				ByClover_f(R1_f,R,clover,sigval_f,akappa,sigin);
@@ -522,7 +522,7 @@ int main(int argc, char *argv[]){
 	//Initialise Trial Fields
 	//pp is random at this point so swapping the order isn't really necessary. But it does ensure that it matches
 	//previous results 
-	Transpose_d(pp,nadj*ndim,kvol);
+//	Transpose_d(pp,nadj*ndim,kvol);
 	double H0, S0;
 	Hamilton(&H0,&S0,rescga,pp,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,\
 			jqq,akappa,beta,c_sw,&ancgh,itraj);

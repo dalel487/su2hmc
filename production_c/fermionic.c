@@ -85,8 +85,6 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #ifdef __NVCC__
 	//cudaMemPrefetchAsync(xi_f,kferm*sizeof(Complex_f),device,streams[0]);
 	cuComplex_convert(xi_f,xi,kferm,false,dimBlock,dimGrid);
-	//Transpose needed here for Dslashd
-	Transpose_c(xi_f,ngorkov*nc,kvol);
 	//Flip all the gauge fields around so memory is coalesced
 	cudaMemcpyAsync(x, xi, kferm*sizeof(Complex),cudaMemcpyDefault,0);
 #else
@@ -106,16 +104,22 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #ifdef __NVCC__
 	cudaDeviceSynchronise();
 	cudaFree(xi_f);	
-	cuComplex_convert(R1_f,R1,kferm,false,dimBlock,dimGrid);
-	cudaMemcpy(Phi, R1, kferm*sizeof(Complex),cudaMemcpyDefault);
+	for(unsigned short j=0;j<ngorkov*nc;j++){
+	cuComplex_convert(R1_f+j*kvolHalo,R1+j*kvolHalo,kvol,false,dimBlock,dimGrid);
+	//Phi has no halo
+	cudaMemcpy(Phi+j*kvol, R1+j*kvolHalo, kvol*sizeof(Complex),cudaMemcpyDefault);
+	}
 #else
 #pragma omp parallel for simd aligned(R1,R1_f:AVX)
-	for(int i=0;i<kferm;i++)
-		R1[i]=(Complex)R1_f[i];
+	for(int i=0;i<kvol;i++)
+	for(unsigned short j=0;j<ngorkov*nc;j++){
+		R1[i+j*kvolHalo]=(Complex)R1_f[i+j*kvolHalo];
 	//Copying R1 to the first (zeroth) flavour index of Phi
 	//This should be safe with memcpy since the pointer name
 	//references the first block of memory for that pointer
-	memcpy(Phi, R1, kferm*sizeof(Complex));
+	for(unsigned short j=0;j<ngorkov*nc;j++){
+	memcpy(Phi+j*kvol, R1+j*kvolHalo, kvol*sizeof(Complex));
+	}
 #endif
 	///Evaluate xi = (M^† M)^-1 R_1 
 	if(Congradp(0, res, Phi,R1,ut,ut_f,clover,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,c_sw,itercg)==ITERLIM)
