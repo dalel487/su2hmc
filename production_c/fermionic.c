@@ -78,17 +78,21 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #endif
 	//Setting up noise. Again need that annoying stride 
 	for(unsigned short j=0;j<nc*ngorkov;j++)
-	Gauss_c(xi_f+j*kvolHalo, kvol, 0, (float)(1/sqrt(2)));
+		Gauss_c(xi_f+j*kvolHalo, kvol, 0, (float)(1/sqrt(2)));
 #ifdef __NVCC__
 	//cudaMemPrefetchAsync(xi_f,kferm*sizeof(Complex_f),device,streams[0]);
-	cuComplex_convert(xi_f,xi,kferm,false,dimBlock,dimGrid);
-	//Flip all the gauge fields around so memory is coalesced
-	cudaMemcpyAsync(x, xi, kferm*sizeof(Complex),cudaMemcpyDefault,0);
+	for(unsigned short j=0;j<nc*ngorkov;j++){
+		cuComplex_convert(xi_f+j*kvol,xi+j*kvolHalo,kvol,false,dimBlock,dimGrid);
+		//Flip all the gauge fields around so memory is coalesced
+		cudaMemcpyAsync(x+j*kvolHalo, xi+j*kvol, kvol*sizeof(Complex),cudaMemcpyDefault,0);
+	}
 #else
-#pragma omp parallel for simd aligned(xi,xi_f:AVX)
-	for(int i=0;i<kferm;i++)
-		xi[i]=(Complex)xi_f[i];
-	memcpy(x, xi, kferm*sizeof(Complex));
+#pragma omp parallel for simd collapse(2) aligned(xi,xi_f:AVX)
+	for(unsigned short j=0;j<nc*ngorkov;j++){
+		for(unsigned int i=0;i<kferm;i++)
+			xi[i+j*kvol]=(Complex)xi_f[i+j*kvolHalo];
+		memcpy(x+j*kvolHalo, xi+j*kvol, kvol*sizeof(Complex));
+	}
 #endif
 	//R_1= @f$M^\dagger\Xi@f$
 	//R1 is local in FORTRAN but since its going to be reset anyway I'm going to recycle the
@@ -102,27 +106,27 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	cudaDeviceSynchronise();
 	cudaFree(xi_f);	
 	for(unsigned short j=0;j<ngorkov*nc;j++){
-	cuComplex_convert(R1_f+j*kvolHalo,R1+j*kvolHalo,kvol,false,dimBlock,dimGrid);
-	//Phi has no halo
-	cudaMemcpy(Phi+j*kvol, R1+j*kvolHalo, kvol*sizeof(Complex),cudaMemcpyDefault);
+		cuComplex_convert(R1_f+j*kvolHalo,R1+j*kvolHalo,kvol,false,dimBlock,dimGrid);
+		//Phi has no halo
+		cudaMemcpy(Phi+j*kvol, R1+j*kvolHalo, kvol*sizeof(Complex),cudaMemcpyDefault);
 	}
 #else
 #pragma omp parallel for simd aligned(R1,R1_f:AVX)
-	for(int i=0;i<kvol;i++)
 	for(unsigned short j=0;j<ngorkov*nc;j++){
-		R1[i+j*kvolHalo]=(Complex)R1_f[i+j*kvolHalo];
-	//Copying R1 to the first (zeroth) flavour index of Phi
-	//This should be safe with memcpy since the pointer name
-	//references the first block of memory for that pointer
-	for(unsigned short j=0;j<ngorkov*nc;j++){
-	memcpy(Phi+j*kvol, R1+j*kvolHalo, kvol*sizeof(Complex));
+		for(int i=0;i<kvol;i++)
+			R1[i+j*kvolHalo]=(Complex)R1_f[i+j*kvolHalo];
+		//Copying R1 to the first (zeroth) flavour index of Phi
+		//This should be safe with memcpy since the pointer name
+		//references the first block of memory for that pointer
+		memcpy(Phi+j*kvol, R1+j*kvolHalo, kvol*sizeof(Complex));
 	}
 #endif
 	///Evaluate xi = (M^† M)^-1 R_1 
 	if(Congradp(0, res, Phi,R1,ut,ut_f,clover,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,c_sw,itercg)==ITERLIM)
 		return ITERLIM;
 #ifdef __NVCC__
-	cudaMemcpyAsync(xi,R1,kferm*sizeof(Complex),cudaMemcpyDefault,streams[3]);
+	for(unsigned short j=0;j<ngorkov*nc;j++)
+		cudaMemcpyAsync(xi+j*kvol,R1+j*kvolHalo,kvol*sizeof(Complex),cudaMemcpyDefault,streams[j]);
 #ifdef _DEBUG
 	cudaFree(R1_f);
 	if(c_sw){
@@ -135,7 +139,8 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	}
 #endif
 #else
-	memcpy(xi,R1,kferm*sizeof(Complex));
+	for(unsigned short j=0;j<ngorkov*nc;j++)
+		memcpy(xi+j*kvol,R1+j*kvolHalo,kvol*sizeof(Complex));
 	free(xi_f);	free(R1_f);
 	if(c_sw){
 		free(clover[0]); free(clover[1]);
@@ -221,12 +226,12 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	//TODO: get a reduction routine ready for CUDA
 #ifdef __NVCC__
 	//Swapping back the gauge fields to SoA since the rest of the code is running on CPU and hasn't been ported
-//	Transpose_z(ut[0],kvol,ndim);
-//	Transpose_z(ut[1],kvol,ndim);
+	//	Transpose_z(ut[0],kvol,ndim);
+	//	Transpose_z(ut[1],kvol,ndim);
 	//Set up  index arrays for CPU
 	//Transpose_U(iu,kvol,ndim);
 	//Transpose_U(id,kvol,ndim);
-//	cudaDeviceSynchronise();
+	//	cudaDeviceSynchronise();
 #else
 #pragma omp parallel for reduction(+:xd,xu,xdd,xuu) 
 #endif
@@ -282,8 +287,8 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #ifdef __NVCC__
 	cudaFree(x); cudaFree(xi);
 	//Revert index and gauge arrays
-//	Transpose_z(ut[0],ndim,kvol);
-//	Transpose_z(ut[1],ndim,kvol);
+	//	Transpose_z(ut[0],ndim,kvol);
+	//	Transpose_z(ut[1],ndim,kvol);
 	//Transpose_U(iu,ndim,kvol);
 	//Transpose_U(id,ndim,kvol);
 #else

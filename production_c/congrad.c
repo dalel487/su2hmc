@@ -974,7 +974,7 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 		}
 	}
 #ifdef __NVCC__
-	Transpose_z(xi,kvol,ngorkov*nc);
+	//Transpose_z(xi,kvol,ngorkov*nc);
 	cudaDeviceSynchronise();
 #endif
 	P_free_f(&p_f,&r_f,&x1_f,&x2_f,&xi_f);
