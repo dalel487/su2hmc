@@ -280,7 +280,7 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 #endif
 			*ancg+=itercg;
 #ifdef __NVCC__
-			const Complex blasa=2.0; const double blasb=-1.0;
+			alignas(16) const Complex blasa=2.0; alignas(16) const double blasb=-1.0;
 			cublasZdscal(cublas_handle,kferm2,&blasb,(cuDoubleComplex *)(X0+na*kferm2),1);
 			cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&blasa,(cuDoubleComplex *)X1,1,(cuDoubleComplex *)(X0+na*kferm2),1);
 #elifdef __USE_MKL__
