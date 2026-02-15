@@ -76,12 +76,9 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	Complex_f *xi_f =(Complex_f *)aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 	Complex_f *R1_f = (Complex_f *)aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 #endif
-	//Setting up noise.
-#if (defined(USE_RAN2)||defined(__RANLUX__)||!defined(__USE_MKL__))
-	Gauss_c(xi_f, kferm, 0, (float)(1/sqrt(2)));
-#else
-	vsRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, xi_f, 0, 1/sqrt(2));
-#endif
+	//Setting up noise. Again need that annoying stride 
+	for(unsigned short j=0;j<nc*ngorkov;j++)
+	Gauss_c(xi_f+j*kvolHalo, kvol, 0, (float)(1/sqrt(2)));
 #ifdef __NVCC__
 	//cudaMemPrefetchAsync(xi_f,kferm*sizeof(Complex_f),device,streams[0]);
 	cuComplex_convert(xi_f,xi,kferm,false,dimBlock,dimGrid);
