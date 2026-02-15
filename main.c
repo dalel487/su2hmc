@@ -438,7 +438,7 @@ int main(int argc, char *argv[]){
 			//How do we optimise this for use in CUDA? Do we use CUDA's PRNG
 			//or stick with MKL and synchronise/copy over the array
 #ifdef __NVCC__
-			Complex_f *R1_f,*R, R1;
+			Complex_f *R1_f,*R1; Complex *R1;
 			cudaMallocManaged((void **)&R,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
 #ifdef _DEBUG
 			cudaMallocManaged((void **)&R1, kferm*sizeof(Complex),cudaMemAttachGlobal);
@@ -464,7 +464,7 @@ int main(int argc, char *argv[]){
 			//Split into chunks to take into account the halos.
 			for(unsigned short j=0;j<nc*ngorkov;j++)
 				Gauss_c(R+j*kvolHalo,kvol , 0, 1/sqrt(2));
-			
+
 			//Transpose needed here for Dslashd
 			//R is random so this techincally isn't required. But it does keep the code output consistent with previous
 			//versions.
@@ -495,14 +495,15 @@ int main(int argc, char *argv[]){
 			//Up/down partitioning (using only pseudofermions of flavour 1)
 #endif
 			UpDownPart(na, X0, R1);
-			#ifdef __NVCC__
-			#ifdef __DEBUG
+#ifdef __NVCC__
+#ifdef __DEBUG
 			cudaFree(R1);
-			#else
+#else
 			cudaFreeAsync(R1,streams[0]);
-			#else
+#endif
+#else
 			free(R1);
-			#endif
+#endif
 		}	
 		if(c_sw)
 			Clover_free(clover);

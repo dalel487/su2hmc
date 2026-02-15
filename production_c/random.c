@@ -14,7 +14,7 @@
 #include <time.h>
 
 //Declaring external variables
-#ifdef __RANLUX
+#ifdef __RANLUX__
 /// @brief RANLUX instance
 gsl_rng *ranlux_instd;
 /// @brief RANLUX seed

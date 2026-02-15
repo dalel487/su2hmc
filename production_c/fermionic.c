@@ -9,40 +9,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 		Complex gamval[20], Complex_f gamval_f[20],	const unsigned short gamin[16],\
 		Complex *sigval,Complex_f *sigval_f, unsigned short *sigin, double *dk[2],float *dk_f[2],\
 		Complex_f jqq, float akappa,	float c_sw,Complex *Phi){
-	/*
-	 * @brief	Calculate fermion expectation values via a noisy estimator
-	 * 
-	 * Matrix inversion via conjugate gradient algorithm
-	 * Solves @f(Mx=x_1@f)
-	 * (Numerical Recipes section 2.10 pp.70-73)   
-	 * uses NEW lookup tables **
-	 * Implemented in Congradq
-	 *
-	 * @param	pbp:				@f(\langle\bar{\Psi}\Psi\rangle@f)
-	 *	@param	endenf:			Energy density
-	 *	@param	denf:				Number Density
-	 *	@param	qq:				Diquark condensate
-	 *	@param	qbqb:				Antidiquark condensate
-	 *	@param	res:				Conjugate Gradient Residue
-	 *	@param	itercg:			Iterations of Conjugate Gradient
-	 * @param	u11t,u12t		Double precisiongauge field
-	 * @param	u11t_f,u12t_f:	Single precision gauge fields
-	 *	@param	iu,id				Lattice indices
-	 *	@param	gamval_f:		Gamma matrices
-	 *	@param	gamin:			Indices for Dirac terms
-	 * @param	dk4m_f:			$exp(-\mu)$ float
-	 * @param	dk4p_f:			$exp(\mu)$ float
-	 *	@param	jqq:				Diquark source
-	 *	@param	akappa:			Hopping parameter
-	 *	@param	Phi:				Pseudofermion field	
-	 *	@param	R1:				A useful array for holding things that was already assigned in main.
-	 *									In particular, we'll be using it to catch the output of
-	 *									@f$ M^\dagger\Xi@f$ before the inversion, then used to store the
-	 *									output of the inversion
-	 *
-	 * @return Zero on success, integer error code otherwise
-	 */
-	const char *funcname = "Measure";
+	const char funcname[] = "Measure";
 	//This x is just a storage container
 
 #ifdef __NVCC__
@@ -76,6 +43,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	Complex *xi =(Complex *)aligned_alloc(AVX,kferm*sizeof(Complex));
 	Complex_f *xi_f =(Complex_f *)aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 	Complex_f *R1_f = (Complex_f *)aligned_alloc(AVX,kferm*sizeof(Complex_f));
+	Complex *R1 = (Complex *)aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 #endif
 	//Setting up noise. Again need that annoying stride 
 	for(unsigned short j=0;j<nc*ngorkov;j++)

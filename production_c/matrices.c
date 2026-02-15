@@ -627,7 +627,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,un
 		ind=i+kvolHalo*3;
 		u11s=ut[0][ind]; u12s=ut[1][ind];
 		const float dk4ms=dk[0][i];	const float dk4ps=dk[1][i];
-		ind = i+kvolHalo*3;
+		ind = i+kvol*3;
 		const unsigned int did=id[ind]; const unsigned int uid = iu[ind];
 		ind=did+kvolHalo*3;
 		u11sd=ut[0][ind]; u12sd=ut[1][ind];
