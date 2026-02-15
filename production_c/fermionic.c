@@ -8,7 +8,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 		Complex *ut[2], Complex_f *ut_f[2], unsigned int *iu, unsigned int *id,\
 		Complex gamval[20], Complex_f gamval_f[20],	const unsigned short gamin[16],\
 		Complex *sigval,Complex_f *sigval_f, unsigned short *sigin, double *dk[2],float *dk_f[2],\
-		Complex_f jqq, float akappa,	float c_sw,Complex *Phi, Complex *R1){
+		Complex_f jqq, float akappa,	float c_sw,Complex *Phi){
 	/*
 	 * @brief	Calculate fermion expectation values via a noisy estimator
 	 * 
@@ -48,15 +48,16 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #ifdef __NVCC__
 	int device=-1;
 	cudaGetDevice(&device);
-	Complex	*x, *xi; Complex_f *xi_f, *R1_f, *clover[nc];
+	Complex	*x, *xi; Complex_f *xi_f, *R1_f, *R1, *clover[nc];
 #ifdef _DEBUG
-	cudaMallocManaged((void **)&R1_f,kfermHalo*sizeof(Complex_f), cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&R1,kfermHalo*sizeof(Complex), cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&R1_f,kferm*sizeof(Complex_f), cudaMemAttachGlobal);
 	if(c_sw){
 		cudaMallocManaged((void **)&clover[0], 6*kvol*sizeof(Complex),cudaMemAttachGlobal);
 		cudaMallocManaged((void **)&clover[1], 6*kvol*sizeof(Complex),cudaMemAttachGlobal);
 	}
 #else
-	cudaMallocAsync((void **)&R1_f,kfermHalo*sizeof(Complex_f),streams[0]);
+	cudaMallocAsync((void **)&R1_f,kferm*sizeof(Complex_f),streams[0]);
 	if(c_sw){
 		cudaMallocAsync((void **)&clover[0], 6*kvol*sizeof(Complex),streams[1]);
 		cudaMallocAsync((void **)&clover[1], 6*kvol*sizeof(Complex),streams[2]);
@@ -74,7 +75,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	Complex *x =(Complex *)aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 	Complex *xi =(Complex *)aligned_alloc(AVX,kferm*sizeof(Complex));
 	Complex_f *xi_f =(Complex_f *)aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
-	Complex_f *R1_f = (Complex_f *)aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
+	Complex_f *R1_f = (Complex_f *)aligned_alloc(AVX,kferm*sizeof(Complex_f));
 #endif
 	//Setting up noise. Again need that annoying stride 
 	for(unsigned short j=0;j<nc*ngorkov;j++)
@@ -89,13 +90,12 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #else
 #pragma omp parallel for simd collapse(2) aligned(xi,xi_f:AVX)
 	for(unsigned short j=0;j<nc*ngorkov;j++){
-		for(unsigned int i=0;i<kferm;i++)
+		for(unsigned int i=0;i<kvol;i++)
 			xi[i+j*kvol]=(Complex)xi_f[i+j*kvolHalo];
 		memcpy(x+j*kvolHalo, xi+j*kvol, kvol*sizeof(Complex));
 	}
 #endif
 	//R_1= @f$M^\dagger\Xi@f$
-	//R1 is local in FORTRAN but since its going to be reset anyway I'm going to recycle the
 	//global
 	Dslashd_f(R1_f,xi_f,ut_f,iu,id,gamval_f,gamin,dk_f,jqq,akappa);
 	if(c_sw){
@@ -106,20 +106,26 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	cudaDeviceSynchronise();
 	cudaFree(xi_f);	
 	for(unsigned short j=0;j<ngorkov*nc;j++){
-		cuComplex_convert(R1_f+j*kvolHalo,R1+j*kvolHalo,kvol,false,dimBlock,dimGrid);
+		cuComplex_convert(R1_f+j*kvol,R1+j*kvolHalo,kvol,false,dimBlock,dimGrid);
 		//Phi has no halo
 		cudaMemcpy(Phi+j*kvol, R1+j*kvolHalo, kvol*sizeof(Complex),cudaMemcpyDefault);
 	}
+#ifdef _DEBUG
+	cudaFree(R1_f);
+#else
+	cudaFreeAsync(R1_f,streams[0]);
+	#endif
 #else
 #pragma omp parallel for simd aligned(R1,R1_f:AVX)
 	for(unsigned short j=0;j<ngorkov*nc;j++){
 		for(int i=0;i<kvol;i++)
-			R1[i+j*kvolHalo]=(Complex)R1_f[i+j*kvolHalo];
+			R1[i+j*kvolHalo]=(Complex)R1_f[i+j*kvol];
 		//Copying R1 to the first (zeroth) flavour index of Phi
 		//This should be safe with memcpy since the pointer name
 		//references the first block of memory for that pointer
 		memcpy(Phi+j*kvol, R1+j*kvolHalo, kvol*sizeof(Complex));
 	}
+	free(R1_f);
 #endif
 	///Evaluate xi = (M^† M)^-1 R_1 
 	if(Congradp(0, res, Phi,R1,ut,ut_f,clover,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,c_sw,itercg)==ITERLIM)
@@ -128,23 +134,24 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	for(unsigned short j=0;j<ngorkov*nc;j++)
 		cudaMemcpyAsync(xi+j*kvol,R1+j*kvolHalo,kvol*sizeof(Complex),cudaMemcpyDefault,streams[j]);
 #ifdef _DEBUG
-	cudaFree(R1_f);
 	if(c_sw){
 		cudaFree(clover[0]); cudaFree(clover[1]);
 	}
+	cudaFree(R1);
 #else
-	cudaFreeAsync(R1_f,streams[0]);
 	if(c_sw){
 		cudaFreeAsync(clover[0],streams[1]); cudaFreeAsync(clover[1],streams[2]);
 	}
+	cudaFreeAsync(R1,streams[0]);
 #endif
 #else
 	for(unsigned short j=0;j<ngorkov*nc;j++)
 		memcpy(xi+j*kvol,R1+j*kvolHalo,kvol*sizeof(Complex));
-	free(xi_f);	free(R1_f);
+	free(xi_f);
 	if(c_sw){
 		free(clover[0]); free(clover[1]);
 	}
+	free(R1);
 #endif
 #ifdef USE_BLAS
 	Complex buff;

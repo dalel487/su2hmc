@@ -377,7 +377,7 @@ int main(int argc, char *argv[]){
 	Complex qq;
 	double *dSdpi;
 	//Field and related declarations
-	Complex *Phi, *R1, *X0, *X1;
+	Complex *Phi, *X0, *X1;
 	//Initialise Arrays. Leaving it late for scoping
 	//check the sizes in sizes.h
 #ifdef __NVCC__
@@ -396,7 +396,6 @@ int main(int argc, char *argv[]){
 	cudaMallocManaged((void **)&pp, kmom*sizeof(double),cudaMemAttachGlobal);
 	cudaDeviceSynchronise();
 #else
-	R1= aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 	Phi= aligned_alloc(AVX,nf*kferm*sizeof(Complex)); 
 	X0= aligned_alloc(AVX,nf*kferm2*sizeof(Complex)); 
 	X1= aligned_alloc(AVX,kferm2Halo*sizeof(Complex)); 
@@ -439,16 +438,19 @@ int main(int argc, char *argv[]){
 			//How do we optimise this for use in CUDA? Do we use CUDA's PRNG
 			//or stick with MKL and synchronise/copy over the array
 #ifdef __NVCC__
-			Complex_f *R1_f,*R;
+			Complex_f *R1_f,*R, R1;
 			cudaMallocManaged((void **)&R,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
 #ifdef _DEBUG
+			cudaMallocManaged((void **)&R1, kferm*sizeof(Complex),cudaMemAttachGlobal);
 			cudaMallocManaged((void **)&R1_f,kferm*sizeof(Complex_f),cudaMemAttachGlobal);
 			cudaMemset(R1_f,0,kferm*sizeof(Complex_f));
 #else
+			cudaMallocAsync((void **)&R1, kferm*sizeof(Complex),cudaMemAttachGlobal,streams[0]);
 			cudaMallocAsync((void **)&R1_f,kferm*sizeof(Complex_f),streams[0]);
 			cudaMemsetAsync(R1_f,0,kferm*sizeof(Complex_f),streams[0]);
 #endif
 #else
+			Complex *R1= aligned_alloc(AVX,kferm*sizeof(Complex));
 			Complex_f *R1_f=aligned_alloc(AVX,kferm*sizeof(Complex_f));
 			Complex_f *R=aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 			memset(R1_f,0,kferm*sizeof(Complex_f));
@@ -460,7 +462,7 @@ int main(int argc, char *argv[]){
 			//cudaMemPrefetchAsync(R1_f,kferm*sizeof(Complex_f),device,streams[1]);
 #endif
 			//Split into chunks to take into account the halos.
-			for(unsigned short j=0;j<nc*ngorkov,j++)
+			for(unsigned short j=0;j<nc*ngorkov;j++)
 				Gauss_c(R+j*kvolHalo,kvol , 0, 1/sqrt(2));
 			
 			//Transpose needed here for Dslashd
@@ -493,6 +495,14 @@ int main(int argc, char *argv[]){
 			//Up/down partitioning (using only pseudofermions of flavour 1)
 #endif
 			UpDownPart(na, X0, R1);
+			#ifdef __NVCC__
+			#ifdef __DEBUG
+			cudaFree(R1);
+			#else
+			cudaFreeAsync(R1,streams[0]);
+			#else
+			free(R1);
+			#endif
 		}	
 		if(c_sw)
 			Clover_free(clover);
@@ -651,7 +661,7 @@ int main(int argc, char *argv[]){
 			//that trajectory
 			int measure_check=0;
 			measure_check = Measure(&pbp,&endenf,&denf,&qq,&qbqb,respbp,&itercg,ut,ut_f,iu,id,\
-					gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,c_sw,Phi,R1);
+					gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,c_sw,Phi);
 #ifdef _DEBUG
 			if(!rank)
 				printf("Finished measurements\n");
@@ -769,7 +779,7 @@ int main(int argc, char *argv[]){
 	//Free arrays
 #ifdef __NVCC__
 	//Make a routine that does this for us
-	cudaFree(dk[0]); cudaFree(dk[1]); cudaFree(R1); cudaFree(dSdpi); cudaFree(pp);
+	cudaFree(dk[0]); cudaFree(dk[1]); cudaFree(dSdpi); cudaFree(pp);
 	cudaFree(Phi); cudaFree(ut[0]); cudaFree(ut[1]);
 	cudaFree(X0); cudaFree(X1); cudaFree(u[0]); cudaFree(u[1]);
 	cudaFree(id); cudaFree(iu); 
@@ -780,7 +790,7 @@ int main(int argc, char *argv[]){
 	}
 	cublasDestroy(cublas_handle);
 #else
-	free(dk[0]); free(dk[1]); free(R1); free(dSdpi); free(pp);
+	free(dk[0]); free(dk[1]);free(dSdpi); free(pp);
 	free(Phi); free(ut[0]); free(ut[1]);
 	free(X0); free(X1); free(u[0]); free(u[1]);
 	free(id); free(iu);
