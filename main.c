@@ -444,7 +444,7 @@ int main(int argc, char *argv[]){
 			cudaMallocManaged((void **)&R1_f,kferm*sizeof(Complex_f),cudaMemAttachGlobal);
 			cudaMemset(R1_f,0,kferm*sizeof(Complex_f));
 #else
-			cudaMallocAsync((void **)&R1, kferm*sizeof(Complex),cudaMemAttachGlobal,streams[0]);
+			cudaMallocAsync((void **)&R1, kferm*sizeof(Complex),streams[0]);
 			cudaMallocAsync((void **)&R1_f,kferm*sizeof(Complex_f),streams[0]);
 			cudaMemsetAsync(R1_f,0,kferm*sizeof(Complex_f),streams[0]);
 #endif
@@ -495,7 +495,7 @@ int main(int argc, char *argv[]){
 #endif
 			UpDownPart(na, X0, R1);
 #ifdef __NVCC__
-#ifdef __DEBUG
+#ifdef _DEBUG
 			cudaFree(R1);
 #else
 			cudaFreeAsync(R1,streams[0]);

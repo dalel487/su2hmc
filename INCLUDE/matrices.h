@@ -225,6 +225,14 @@ extern "C"
 	void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut_f[2],unsigned int *iu,unsigned int *id,\
 			Complex_f gamval_f[20],const unsigned short gamin[16], float *dk_f[2], float akappa_f, dim3 dimGrid, dim3 dimBlock);
 
+/**
+ * @brief Performs a block reduction for sum
+ *
+ * @param g_in_data:		The input global data array
+ * @param g_out_data:	The output global data array
+ * @param n:				The size of the input array
+ *
+ */
 	/**
 	 * @brief	Sum all terms in an array of doubles
 	 * @param	input:	Input array
@@ -234,6 +242,15 @@ extern "C"
 	 * @return	Sum of all terms in input
 	 */
 	double cureduce_sum_d(double *input, const unsigned int n,const unsigned short stream);
+	/**
+	 * @brief	Sum all terms in an array of floats
+	 * @param	input:	Input array
+	 * @param	n:			Number of terms
+	 * @param	stream:	What stream to use (useful for simultaneous reductions)
+	 *
+	 * @return	Sum of all terms in input
+	 */
+	float cureduce_sum_f(float *input, const unsigned int n,const unsigned short stream);
 	/**
 	 * @brief In place transpose
 	 *

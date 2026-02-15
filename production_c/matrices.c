@@ -440,7 +440,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu, un
 	//Mass term
 	//Diquark Term (antihermitian)
 #ifdef __NVCC__
-	cuDslash_f(phi,r,ut[0],ut[1],iu,id,gamval_f,gamin,dk_f[0],dk_f[1],jqq,akappa,dimGrid,dimBlock);
+	cuDslash_f(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm*sizeof(Complex_f));
 #pragma omp parallel for
@@ -558,7 +558,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,un
 
 	//Mass term
 #ifdef __NVCC__
-	cuDslashd_f(phi,r,ut[0],ut[1],iu,id,gamval_f,gamin,dk_f[0],dk_f[1],jqq,akappa,dimGrid,dimBlock);
+	cuDslashd_f(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa,dimGrid,dimBlock);
 #else
 	memcpy(phi, r, kferm*sizeof(Complex_f));
 #pragma omp parallel for

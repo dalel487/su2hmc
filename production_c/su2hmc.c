@@ -294,7 +294,7 @@ inline int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
 		for(unsigned short idirac = 0; idirac<ndirac; idirac++)
 			for(unsigned short ic= 0; ic<nc; ic++)
 				//	  PHI_index=i*16+j*2+k;
-				smallPhi[i + kvol * (ic + nc * idirac)] = Phi[i + kvol * (ic + idirac * (nc + ngorkov * na))];
+				smallPhi[i + kvol * (ic + nc * idirac)] = Phi[i + kvol * (ic + nc * (idirac + ngorkov * na))];
 #endif
 	return 0;
 }

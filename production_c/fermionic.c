@@ -15,7 +15,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #ifdef __NVCC__
 	int device=-1;
 	cudaGetDevice(&device);
-	Complex	*x, *xi; Complex_f *xi_f, *R1_f, *R1, *clover[nc];
+	Complex	*x, *xi, *R1 ; Complex_f *xi_f, *R1_f, *clover[nc];
 #ifdef _DEBUG
 	cudaMallocManaged((void **)&R1,kfermHalo*sizeof(Complex), cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&R1_f,kferm*sizeof(Complex_f), cudaMemAttachGlobal);
