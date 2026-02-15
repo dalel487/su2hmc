@@ -24,6 +24,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 		cudaMallocManaged((void **)&clover[1], 6*kvol*sizeof(Complex),cudaMemAttachGlobal);
 	}
 #else
+	cudaMallocAsync((void **)&R1,kfermHalo*sizeof(Complex),streams[0]);
 	cudaMallocAsync((void **)&R1_f,kferm*sizeof(Complex_f),streams[0]);
 	if(c_sw){
 		cudaMallocAsync((void **)&clover[0], 6*kvol*sizeof(Complex),streams[1]);
@@ -43,7 +44,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	Complex *xi =(Complex *)aligned_alloc(AVX,kferm*sizeof(Complex));
 	Complex_f *xi_f =(Complex_f *)aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 	Complex_f *R1_f = (Complex_f *)aligned_alloc(AVX,kferm*sizeof(Complex_f));
-	Complex *R1 = (Complex *)aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
+	Complex *R1 = (Complex *)aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 #endif
 	//Setting up noise. Again need that annoying stride 
 	for(unsigned short j=0;j<nc*ngorkov;j++)
@@ -82,7 +83,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	cudaFree(R1_f);
 #else
 	cudaFreeAsync(R1_f,streams[0]);
-	#endif
+#endif
 #else
 #pragma omp parallel for simd aligned(R1,R1_f:AVX)
 	for(unsigned short j=0;j<ngorkov*nc;j++){

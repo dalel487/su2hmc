@@ -381,7 +381,6 @@ int main(int argc, char *argv[]){
 	//Initialise Arrays. Leaving it late for scoping
 	//check the sizes in sizes.h
 #ifdef __NVCC__
-	cudaMallocManaged((void **)&R1, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
 #ifdef _DEBUG
 	cudaMallocManaged((void **)&X0, nf*kferm2*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&Phi, nf*kferm*sizeof(Complex),cudaMemAttachGlobal);
@@ -438,7 +437,7 @@ int main(int argc, char *argv[]){
 			//How do we optimise this for use in CUDA? Do we use CUDA's PRNG
 			//or stick with MKL and synchronise/copy over the array
 #ifdef __NVCC__
-			Complex_f *R1_f,*R1; Complex *R1;
+			Complex_f *R1_f,*R; Complex *R1;
 			cudaMallocManaged((void **)&R,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
 #ifdef _DEBUG
 			cudaMallocManaged((void **)&R1, kferm*sizeof(Complex),cudaMemAttachGlobal);
