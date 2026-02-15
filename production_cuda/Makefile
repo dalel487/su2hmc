@@ -129,7 +129,7 @@ diagnostic: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 diagnostic: NVCCFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 diagnostic: debug
 
-debug:		CFLAGS += -g -O0 -D_DEBUG #-D_DEBUGCG -DDIAGNOSTIC -DNO_TIME -DNO_SPACE
+debug:		CFLAGS += -g -O0 -D_DEBUG -D_DEBUGCG #-DNO_TIME -DNO_SPACE
 debug:		NVCCFLAGS += -Xptxas -O0,-v -G -g -D_DEBUG -arch=native -keep 
 debug:		$(EXE)
 		 

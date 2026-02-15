@@ -381,7 +381,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 				cblas_zdotc_sub(kferm2, p, 1, x2, 1, &alpha);
 #else
 				alpha=0;
-#pragma omp parallel for simd aligned(p,x2:AVX)
+#pragma omp parallel for simd aligned(p,x2:AVX) reduction(+:alpha)
 				for(unsigned int i=0; i<kferm2; i++)
 					alpha+=conj(p[i])*x2[i];
 #endif
@@ -737,7 +737,7 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 				cblas_zdotc_sub(kferm, p, 1, x2, 1, &alpha);
 #else
 				alpha=0;
-#pragma omp parallel for simd aligned(p,x2:AVX)
+#pragma omp parallel for simd aligned(p,x2:AVX) reduction(+:alpha)
 				for(unsigned int i=0; i<kferm; i++)
 					alpha+=conj(p[i])*x2[i];
 #endif
