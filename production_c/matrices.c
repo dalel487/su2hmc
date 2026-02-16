@@ -13,8 +13,8 @@
 #include <matrices.h>
 //TODO: Check and see are there any terms we are evaluating twice in the same loop
 //and use a variable to hold them instead to reduce the number of evaluations.
-int Dslash(Complex *phi, Complex *r, Complex *ut[2], unsigned int *iu,unsigned int *id,\
-		Complex gamval[20], const unsigned short gamin[16], double *dk[2], Complex_f jqq, float akappa){
+int Dslash(Complex *phi, Complex *r, Complex *ut[nc], unsigned int *iu,unsigned int *id,\
+		Complex gamval[20], const unsigned short gamin[16], double *dk[nc], Complex_f jqq, float akappa){
 	const char funcname[] = "Dslash";
 	//Get the halos in order
 #if(nproc>1)
@@ -28,7 +28,7 @@ int Dslash(Complex *phi, Complex *r, Complex *ut[2], unsigned int *iu,unsigned i
 #else
 	for(unsigned short j=0;j<nc*ngorkov;j++)
 		memcpy(phi+j*kvolHalo, r+j*kvolHalo, kvol*sizeof(Complex));
-#pragma omp parallel for
+#pragma omp parallel for simd
 	for(unsigned int i=0;i<kvol;i++){
 		Complex ru[nc]; Complex rd[nc];
 		Complex rgu[nc]; Complex rgd[nc];
@@ -133,8 +133,8 @@ int Dslash(Complex *phi, Complex *r, Complex *ut[2], unsigned int *iu,unsigned i
 #endif
 	return 0;
 }
-int Dslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned int *iu,unsigned int *id,\
-		Complex gamval[20], const unsigned short gamin[16], double *dk[2],Complex_f jqq, float akappa){
+int Dslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned int *id,\
+		Complex gamval[20], const unsigned short gamin[16], double *dk[nc],Complex_f jqq, float akappa){
 	const char funcname[] = "Dslashd";
 	//Get the halos in order
 #if(nproc>1)
@@ -147,12 +147,11 @@ int Dslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned int *iu,unsigned i
 #else
 	for(unsigned short j=0;j<nc*ngorkov;j++)
 		memcpy(phi+j*kvol, r+j*kvolHalo, kvol*sizeof(Complex));
-#pragma omp parallel for
+#pragma omp parallel for simd
 	for(unsigned int i=0;i<kvol;i++){
 		Complex ru[nc];  Complex rd[nc];
 		Complex rgu[nc];  Complex rgd[nc];
 		Complex phi_s[ngorkov*nc];
-#pragma omp simd
 		for(unsigned short idirac=0;idirac<ndirac*nc;idirac+=nc){
 			unsigned short igork = ((idirac>>1)+4)<<1;
 			unsigned int ind_d =4*ndirac+(idirac>>1);
@@ -178,7 +177,6 @@ int Dslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned int *iu,unsigned i
 			u11s=ut[0][ind]; u12s=ut[1][ind];
 			ind = did+kvolHalo*mu;
 			u11sd=ut[0][ind]; u12sd=ut[1][ind];
-#pragma omp simd
 			for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
 				unsigned short idirac=igorkov&3;		
 				const Complex gam=gamval[mu*ndirac+idirac];
@@ -218,7 +216,6 @@ int Dslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned int *iu,unsigned i
 		ind=did+kvolHalo*3;
 		u11sd=ut[0][ind]; u12sd=ut[1][ind];
 		const double dk4msd=dk[0][did];	const double dk4psd=dk[1][did];
-#pragma omp simd
 		for(unsigned short igorkov=0; igorkov<ndirac; igorkov++){
 			unsigned short igork1 = gamin[3*ndirac+igorkov];	
 			for(unsigned short c=0;c<nc;c++){
@@ -256,8 +253,8 @@ int Dslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned int *iu,unsigned i
 #endif
 	return 0;
 }
-int Hdslash(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned  int *id,\
-		Complex gamval[20], const unsigned short gamin[16], double *dk[2], float akappa){
+int Hdslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned  int *iu,unsigned  int *id,\
+		Complex gamval[20], const unsigned short gamin[16], double *dk[nc], float akappa){
 	const char funcname[] = "Hdslash";
 	//Get the halos in order
 #if(nproc>1)
@@ -271,12 +268,11 @@ int Hdslash(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned 
 #else
 	for(unsigned short j=0;j<nc*ndirac;j++)
 		memcpy(phi+j*kvolHalo, r+j*kvolHalo, kvol*sizeof(Complex));
-#pragma omp parallel for
+#pragma omp parallel for simd
 	for(unsigned int i=0;i<kvol;i++){
-		Complex ru[2];  Complex rd[2];
-		Complex rgu[2];  Complex rgd[2];
+		Complex ru[nc];  Complex rd[nc];
+		Complex rgu[nc];  Complex rgd[nc];
 		Complex phi_s[ndirac*nc];
-#pragma omp simd
 		for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll
 			for(unsigned short c=0; c<nc; c++)
@@ -291,7 +287,6 @@ int Hdslash(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned 
 			const int did=id[ind];	const int uid = iu[ind];
 			ind=did+kvolHalo*mu;
 			const Complex u11sd=ut[0][ind];	const Complex u12sd=ut[1][ind];
-#pragma omp simd
 			for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
 				const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
 #pragma unroll
@@ -342,8 +337,8 @@ int Hdslash(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned 
 #endif
 	return 0;
 }
-int Hdslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned  int *id,\
-		Complex gamval[20], const unsigned short gamin[16], double *dk[2], float akappa){
+int Hdslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned  int *iu,unsigned  int *id,\
+		Complex gamval[20], const unsigned short gamin[16], double *dk[nc], float akappa){
 	const char funcname[] = "Hdslashd";
 	//Get the halos in order. Because C is row major, we need to extract the correct
 	//terms for each halo first. Changing the indices was considered but that caused
@@ -359,13 +354,12 @@ int Hdslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned
 	for(unsigned short j=0;j<nc*ndirac;j++)
 		memcpy(phi+j*kvol, r+j*kvolHalo, kvol*sizeof(Complex));
 	//Spacelike term
-#pragma omp parallel for
+#pragma omp parallel for simd
 	for(unsigned int i=0;i<kvol;i++){
 		//Right. Time to prefetch
-		Complex ru[2];  Complex rd[2];
-		Complex rgu[2];  Complex rgd[2];
+		Complex ru[nc];  Complex rd[nc];
+		Complex rgu[nc];  Complex rgd[nc];
 		Complex phi_s[ndirac*nc];
-#pragma omp simd
 		for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll
 			for(unsigned short c=0; c<nc; c++)
@@ -380,7 +374,6 @@ int Hdslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned
 			const int did=id[ind];	const int uid = iu[ind];
 			ind=did+kvolHalo*mu;
 			const Complex u11sd=ut[0][ind];	const Complex u12sd=ut[1][ind];
-#pragma omp simd
 			for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc){
 				unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
 #pragma unroll
@@ -433,8 +426,8 @@ int Hdslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned
 }
 //Float Versions
 //int Dslash_f(Complex_f *phi, Complex_f *r){
-int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu, unsigned int *id,\
-		Complex_f gamval[20],	const unsigned short gamin[16],	float *dk[2], Complex_f jqq, float akappa){
+int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu, unsigned int *id,\
+		Complex_f gamval[20],	const unsigned short gamin[16],	float *dk[nc], Complex_f jqq, float akappa){
 	const char funcname[] = "Dslash_f";
 	//Get the halos in order
 #if(nproc>1)
@@ -448,7 +441,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu, un
 #else
 	for(unsigned short j=0;j<nc*ngorkov;j++)
 		memcpy(phi+j*kvolHalo, r+j*kvolHalo, kvol*sizeof(Complex_f));
-#pragma omp parallel for
+#pragma omp parallel for simd
 	for(unsigned int i=0;i<kvol;i++){
 		Complex_f ru[nc]; Complex_f rd[nc];
 		Complex_f rgu[nc]; Complex_f rgd[nc];
@@ -553,8 +546,8 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu, un
 #endif
 	return 0;
 }
-int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,unsigned int *id,\
-		Complex_f gamval[20], const unsigned short gamin[16], float *dk[2], Complex_f jqq, float akappa){
+int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,unsigned int *id,\
+		Complex_f gamval[20], const unsigned short gamin[16], float *dk[nc], Complex_f jqq, float akappa){
 	const char funcname[] = "Dslashd_f";
 	//Get the halos in order
 #if(nproc>1)
@@ -567,12 +560,11 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,un
 #else
 	for(unsigned short j=0;j<nc*ngorkov;j++)
 		memcpy(phi+j*kvol, r+j*kvolHalo, kvol*sizeof(Complex_f));
-#pragma omp parallel for
+#pragma omp parallel for simd
 	for(unsigned int i=0;i<kvol;i++){
 		Complex_f ru[nc];  Complex_f rd[nc];
 		Complex_f rgu[nc];  Complex_f rgd[nc];
 		Complex_f phi_s[ngorkov*nc];
-#pragma omp simd
 		for(unsigned short idirac=0;idirac<ndirac*nc;idirac+=nc){
 			unsigned short igork = ((idirac>>1)+4)<<1;
 			unsigned int ind_d =4*ndirac+(idirac>>1);
@@ -598,7 +590,6 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,un
 			u11s=ut[0][ind]; u12s=ut[1][ind];
 			ind = did+kvolHalo*mu;
 			u11sd=ut[0][ind]; u12sd=ut[1][ind];
-#pragma omp simd
 			for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
 				unsigned short idirac=igorkov&3;		
 				const Complex_f gam=gamval[mu*ndirac+idirac];
@@ -638,7 +629,6 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,un
 		ind=did+kvolHalo*3;
 		u11sd=ut[0][ind]; u12sd=ut[1][ind];
 		const float dk4msd=dk[0][did];	const float dk4psd=dk[1][did];
-#pragma omp simd
 		for(unsigned short igorkov=0; igorkov<ndirac; igorkov++){
 			unsigned short igork1 = gamin[3*ndirac+igorkov];	
 			for(unsigned short c=0;c<nc;c++){
@@ -676,8 +666,8 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,un
 #endif
 	return 0;
 }
-int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned  int *iu,unsigned  int *id,\
-		Complex_f gamval[20], const unsigned short gamin[16], float *dk[2], float akappa){
+int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned  int *iu,unsigned  int *id,\
+		Complex_f gamval[20], const unsigned short gamin[16], float *dk[nc], float akappa){
 	const char funcname[] = "Hdslash_f";
 	//Get the halos in order
 #if(nproc>1)
@@ -689,12 +679,11 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned  int *iu,u
 	//Mass term
 	for(unsigned short j=0;j<nc*ndirac;j++)
 		memcpy(phi+j*kvolHalo, r+j*kvolHalo, kvol*sizeof(Complex_f));
-#pragma omp parallel for
+#pragma omp parallel for simd
 	for(unsigned int i=0;i<kvol;i++){
-		Complex_f ru[2];  Complex_f rd[2];
-		Complex_f rgu[2];  Complex_f rgd[2];
+		Complex_f ru[nc];  Complex_f rd[nc];
+		Complex_f rgu[nc];  Complex_f rgd[nc];
 		Complex_f phi_s[ndirac*nc];
-#pragma omp simd
 		for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll
 			for(unsigned short c=0; c<nc; c++)
@@ -709,7 +698,6 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned  int *iu,u
 			const int did=id[ind];	const int uid = iu[ind];
 			ind=did+kvolHalo*mu;
 			const Complex_f u11sd=ut[0][ind];	const Complex_f u12sd=ut[1][ind];
-#pragma omp simd
 			for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
 				const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
 #pragma unroll
@@ -760,8 +748,8 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned  int *iu,u
 #endif
 	return 0;
 }
-int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,unsigned int *id,\
-		Complex_f gamval[20], const unsigned short gamin[16], float *dk[2], float akappa){
+int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,unsigned int *id,\
+		Complex_f gamval[20], const unsigned short gamin[16], float *dk[nc], float akappa){
 	const char funcname[] = "Hdslashd_f";
 	//Get the halos in order. Because C is row major, we need to extract the correct
 	//terms for each halo first. Changing the indices was considered but that caused
@@ -778,15 +766,12 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,u
 		memcpy(phi+j*kvol, r+j*kvolHalo, kvol*sizeof(Complex_f));
 
 	//Spacelike term
-	//Enough room on L1 data cache for Zen 2 to hold 160 elements at a time
-	//Vectorise with 128 maybe?
-#pragma omp parallel for
+#pragma omp parallel for simd
 	for(unsigned int i=0;i<kvol;i++){
 		//Right. Time to prefetch
-		Complex_f ru[2];  Complex_f rd[2];
-		Complex_f rgu[2];  Complex_f rgd[2];
+		Complex_f ru[nc];  Complex_f rd[nc];
+		Complex_f rgu[nc];  Complex_f rgd[nc];
 		Complex_f phi_s[ndirac*nc];
-#pragma omp simd
 		for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll
 			for(unsigned short c=0; c<nc; c++)
@@ -801,7 +786,6 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,u
 			const int did=id[ind];	const int uid = iu[ind];
 			ind=did+kvolHalo*mu;
 			const Complex_f u11sd=ut[0][ind];	const Complex_f u12sd=ut[1][ind];
-#pragma omp simd
 			for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc){
 				unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
 #pragma unroll
