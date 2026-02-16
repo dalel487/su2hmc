@@ -449,7 +449,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu, u
 		for(unsigned short idirac=0;idirac<ndirac*nc;idirac+=nc){
 			unsigned short igork = ((idirac>>1)+4)<<1;
 			unsigned int ind_d =4*ndirac+(idirac>>1);
-			Complex_f a_1=conj(jqq)*gamval[ind_d];
+			Complex_f a_1=conjf(jqq)*gamval[ind_d];
 			//We subtract a_2, hence the minus
 			Complex_f a_2=-jqq*gamval[ind_d];
 			ind_d=i+kvolHalo*(idirac); unsigned int ind_g=i+kvolHalo*(igork);
@@ -483,16 +483,16 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu, u
 				}
 				//Wilson + Dirac term in that order. Definitely easier
 				phi_s[igorkov*nc]+=-akappa*(u11s*ru[0]+ u12s*ru[1]+\
-						conj(u11sd)*rd[0]- u12sd*rd[1]);
+						conjf(u11sd)*rd[0]- u12sd*rd[1]);
 				//Dirac term
 				phi_s[igorkov*nc]+=gam*(u11s*rgu[0]+ u12s*rgu[1]-\
-						conj(u11sd)*rgd[0]+ u12sd*rgd[1]);
+						conjf(u11sd)*rgd[0]+ u12sd*rgd[1]);
 
-				phi_s[igorkov*nc+1]+=-akappa*(-conj(u12s)*ru[0]+ conj(u11s)*ru[1]+\
-						conj(u12sd)*rd[0]+ u11sd*rd[1]);
+				phi_s[igorkov*nc+1]+=-akappa*(-conjf(u12s)*ru[0]+ conjf(u11s)*ru[1]+\
+						conjf(u12sd)*rd[0]+ u11sd*rd[1]);
 				//Dirac term
-				phi_s[igorkov*nc+1]+=gam*(-conj(u12s)*rgu[0]+ conj(u11s)*rgu[1]-\
-						conj(u12sd)*rgd[0]- u11sd*rgd[1]);
+				phi_s[igorkov*nc+1]+=gam*(-conjf(u12s)*rgu[0]+ conjf(u11s)*rgu[1]-\
+						conjf(u12sd)*rgd[0]- u11sd*rgd[1]);
 			}
 		}
 		//Timelike terms next. These run from igorkov=0..3 and 4..7 with slightly different rules for each
@@ -517,12 +517,12 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu, u
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			phi_s[igorkov*nc]+=
 				-dk4ps*(u11s*(ru[0]-rgu[0]) +u12s*(ru[1]-rgu[1]))
-				-dk4msd*(conj(u11sd)*(rd[0]+rgd[0]) -u12sd *(rd[1]+rgd[1]));
+				-dk4msd*(conjf(u11sd)*(rd[0]+rgd[0]) -u12sd *(rd[1]+rgd[1]));
 			phi[i+kvolHalo*(igorkov*nc)]=phi_s[igorkov*nc];
 
 			phi_s[igorkov*nc+1]+=
-				-dk4ps*(-conj(u12s)*(ru[0]-rgu[0]) +conj(u11s)*(ru[1]-rgu[1]))
-				-dk4msd*(conj(u12sd)*(rd[0]+rgd[0]) +u11sd *(rd[1]+rgd[1]));
+				-dk4ps*(-conjf(u12s)*(ru[0]-rgu[0]) +conjf(u11s)*(ru[1]-rgu[1]))
+				-dk4msd*(conjf(u12sd)*(rd[0]+rgd[0]) +u11sd *(rd[1]+rgd[1]));
 			phi[i+kvolHalo*(igorkov*nc+1)]=phi_s[igorkov*nc+1];
 			const unsigned short igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
 																		//the FORTRAN code did it.
@@ -534,11 +534,11 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu, u
 			}
 			//And the Gor'kov terms. Note that dk4p and dk4m swap positions compared to the above				
 			phi_s[igorkovPP*nc]+=-dk4ms*(u11s*(ru[0]-rgu[0])+ u12s*(ru[1]-rgu[1]))-
-				dk4psd*(conj(u11sd)*(rd[0]+rgd[0])- u12sd*(rd[1]+rgd[1]));
+				dk4psd*(conjf(u11sd)*(rd[0]+rgd[0])- u12sd*(rd[1]+rgd[1]));
 			phi[i+kvolHalo*(igorkovPP*nc)]=phi_s[igorkovPP*nc];
 
-			phi_s[igorkovPP*nc+1]+=-dk4ms*(conj(-u12s)*(ru[0]-rgu[0]) +conj(u11s)*(ru[1]-rgu[1]))
-				-dk4psd*(conj(u12sd)*(rd[0]+rgd[0]) +u11sd*(rd[1]+rgd[1]));
+			phi_s[igorkovPP*nc+1]+=-dk4ms*(conjf(-u12s)*(ru[0]-rgu[0]) +conjf(u11s)*(ru[1]-rgu[1]))
+				-dk4psd*(conjf(u12sd)*(rd[0]+rgd[0]) +u11sd*(rd[1]+rgd[1]));
 			phi[i+kvolHalo*(igorkovPP*nc+1)]=phi_s[igorkovPP*nc+1];
 		}
 #endif
@@ -568,7 +568,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,u
 		for(unsigned short idirac=0;idirac<ndirac*nc;idirac+=nc){
 			unsigned short igork = ((idirac>>1)+4)<<1;
 			unsigned int ind_d =4*ndirac+(idirac>>1);
-			Complex_f a_1=-conj(jqq)*gamval[ind_d];
+			Complex_f a_1=-conjf(jqq)*gamval[ind_d];
 			//We subtract a_2, hence the minus
 			Complex_f a_2=jqq*gamval[ind_d];
 			ind_d=i+kvolHalo*(idirac); unsigned int ind_g=i+kvolHalo*(igork);
@@ -601,17 +601,17 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,u
 				}
 				//Wilson + Dirac term in that order. Definitely easier
 				phi_s[igorkov*nc]-= akappa*(u11s*ru[0] +u12s*ru[1]
-						+conj(u11sd)*rd[0] -u12sd *rd[1]);
+						+conjf(u11sd)*rd[0] -u12sd *rd[1]);
 
 				//Dirac term
 				phi_s[igorkov*nc]-=gam* (u11s*rgu[0] +u12s*rgu[1]
-						-conj(u11sd)*rgd[0] +u12sd *rgd[1]);
+						-conjf(u11sd)*rgd[0] +u12sd *rgd[1]);
 
-				phi_s[igorkov*nc+1]-= akappa*(-conj(u12s)*ru[0] +conj(u11s)*ru[1]
-						+conj(u12sd)*rd[0] +u11sd *rd[1]);
+				phi_s[igorkov*nc+1]-= akappa*(-conjf(u12s)*ru[0] +conjf(u11s)*ru[1]
+						+conjf(u12sd)*rd[0] +u11sd *rd[1]);
 				//Dirac term
-				phi_s[igorkov*nc+1]-=gam* (-conj(u12s)*rgu[0] +conj(u11s)*rgu[1]
-						-conj(u12sd)*rgd[0] -u11sd *rgd[1]);
+				phi_s[igorkov*nc+1]-=gam* (-conjf(u12s)*rgu[0] +conjf(u11s)*rgu[1]
+						-conjf(u12sd)*rgd[0] -u11sd *rgd[1]);
 
 			}
 		}
@@ -638,12 +638,12 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,u
 			//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 			phi_s[igorkov*nc]+=
 				-dk4ms*(u11s*(ru[0]+rgu[0]) +u12s*(ru[1]+rgu[1]))
-				-dk4psd*(conj(u11sd)*(rd[0]-rgd[0]) -u12sd *(rd[1]-rgd[1]));
+				-dk4psd*(conjf(u11sd)*(rd[0]-rgd[0]) -u12sd *(rd[1]-rgd[1]));
 			phi[i+kvolHalo*(igorkov*nc)]=phi_s[igorkov*nc];
 
 			phi_s[igorkov*nc+1]+=
-				-dk4ms*(-conj(u12s)*(ru[0]+rgu[0]) +conj(u11s)*(ru[1]+rgu[1]))
-				-dk4psd*(conj(u12sd)*(rd[0]-rgd[0]) +u11sd *(rd[1]-rgd[1]));
+				-dk4ms*(-conjf(u12s)*(ru[0]+rgu[0]) +conjf(u11s)*(ru[1]+rgu[1]))
+				-dk4psd*(conjf(u12sd)*(rd[0]-rgd[0]) +u11sd *(rd[1]-rgd[1]));
 			phi[i+kvolHalo*(igorkov*nc+1)]=phi_s[igorkov*nc+1];
 			const unsigned short igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
 																		//the FORTRAN code did it.
@@ -654,11 +654,11 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,u
 			}
 			//And the Gor'kov terms. Note that dk4p and dk4m swap positions compared to the above				
 			phi_s[igorkovPP*nc]+=-dk4ps*(u11s*(ru[0]+rgu[0]) +u12s*(ru[1]+rgu[1]))
-				-dk4msd*(conj(u11sd)*(rd[0]-rgd[0]) -u12sd*(rd[1]-rgd[1]));
+				-dk4msd*(conjf(u11sd)*(rd[0]-rgd[0]) -u12sd*(rd[1]-rgd[1]));
 			phi[i+kvolHalo*(igorkovPP*nc)]=phi_s[igorkovPP*nc];
 
-			phi_s[igorkovPP*nc+1]+=dk4ps*(conj(u12s)*(ru[0]+rgu[0]) -conj(u11s)*(ru[1]+rgu[1]))
-				-dk4msd*(conj(u12sd)*(rd[0]-rgd[0]) +u11sd*(rd[1]-rgd[1]));
+			phi_s[igorkovPP*nc+1]+=dk4ps*(conjf(u12s)*(ru[0]+rgu[0]) -conjf(u11s)*(ru[1]+rgu[1]))
+				-dk4msd*(conjf(u12sd)*(rd[0]-rgd[0]) +u11sd*(rd[1]-rgd[1]));
 			phi[i+kvolHalo*(igorkovPP*nc+1)]=phi_s[igorkovPP*nc+1];
 		}
 #endif
@@ -714,16 +714,16 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned  int *iu,
 				if(mu<3){
 					const Complex_f gam=gamval[mu*ndirac+(idirac>>1)];
 					phi_s[idirac]+=-akappa*(u11s*ru[0]+u12s*ru[1]+\
-							conj(u11sd)*rd[0]-u12sd*rd[1]);
+							conjf(u11sd)*rd[0]-u12sd*rd[1]);
 					//Dirac term
 					phi_s[idirac]+=gam*(u11s*rgu[0]+u12s*rgu[1]-\
-							conj(u11sd)*rgd[0]+ u12sd*rgd[1]);
+							conjf(u11sd)*rgd[0]+ u12sd*rgd[1]);
 
-					phi_s[idirac+1]+=-akappa*(-conj(u12s)*ru[0]+ conj(u11s)*ru[1]+\
-							conj(u12sd)*rd[0]+ u11sd*rd[1]);
+					phi_s[idirac+1]+=-akappa*(-conjf(u12s)*ru[0]+ conjf(u11s)*ru[1]+\
+							conjf(u12sd)*rd[0]+ u11sd*rd[1]);
 					//Dirac term
-					phi_s[idirac+1]+=gam*(-conj(u12s)*rgu[0]+ conj(u11s)*rgu[1]-\
-							conj(u12sd)*rgd[0]- u11sd*rgd[1]);
+					phi_s[idirac+1]+=gam*(-conjf(u12s)*rgu[0]+ conjf(u11s)*rgu[1]-\
+							conjf(u12sd)*rgd[0]- u11sd*rgd[1]);
 				}
 				//Timelike terms
 				else{
@@ -732,13 +732,13 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned  int *iu,
 
 					phi_s[idirac+0]-= dk4ps*(u11s*(ru[0]-rgu[0])
 							+u12s*(ru[1]-rgu[1]));
-					phi_s[idirac+0]-= dk4ms*(conj(u11sd)*(rd[0]+rgd[0])
+					phi_s[idirac+0]-= dk4ms*(conjf(u11sd)*(rd[0]+rgd[0])
 							-u12sd *(rd[1]+rgd[1]));
 					phi[i+kvolHalo*(0+idirac)]=phi_s[idirac+0];
 
-					phi_s[idirac+1]-= dk4ps*(-conj(u12s)*(ru[0]-rgu[0])
-							+conj(u11s)*(ru[1]-rgu[1]));
-					phi_s[idirac+1]-= dk4ms*(conj(u12sd)*(rd[0]+rgd[0])
+					phi_s[idirac+1]-= dk4ps*(-conjf(u12s)*(ru[0]-rgu[0])
+							+conjf(u11s)*(ru[1]-rgu[1]));
+					phi_s[idirac+1]-= dk4ms*(conjf(u12sd)*(rd[0]+rgd[0])
 							+u11sd *(rd[1]+rgd[1]));
 					phi[i+kvolHalo*(1+idirac)]=phi_s[idirac+1];
 				}
@@ -802,16 +802,16 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,
 				if(mu<3){
 					const Complex_f gam=gamval[mu*ndirac+(idirac>>1)];
 					phi_s[idirac]-=akappa*(u11s*ru[0] +u12s*ru[1]
-							+conj(u11sd)*rd[0] -u12sd *rd[1]);
+							+conjf(u11sd)*rd[0] -u12sd *rd[1]);
 					//Dirac term
 					phi_s[idirac]-=gam* (u11s*rgu[0] +u12s*rgu[1]
-							-conj(u11sd)*rgd[0] +u12sd *rgd[1]);
+							-conjf(u11sd)*rgd[0] +u12sd *rgd[1]);
 
-					phi_s[idirac+1]-=akappa*(-conj(u12s)*ru[0] +conj(u11s)*ru[1]
-							+conj(u12sd)*rd[0] +u11sd *rd[1]);
+					phi_s[idirac+1]-=akappa*(-conjf(u12s)*ru[0] +conjf(u11s)*ru[1]
+							+conjf(u12sd)*rd[0] +u11sd *rd[1]);
 					//Dirac term
-					phi_s[idirac+1]-=gam*(-conj(u12s)*rgu[0] +conj(u11s)*rgu[1]
-							-conj(u12sd)*rgd[0] -u11sd *rgd[1]);
+					phi_s[idirac+1]-=gam*(-conjf(u12s)*rgu[0] +conjf(u11s)*rgu[1]
+							-conjf(u12sd)*rgd[0] -u11sd *rgd[1]);
 				}
 				//Timelike terms
 				else{
@@ -820,13 +820,13 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,
 
 					phi_s[idirac]+= -dk4ms*(u11s*(ru[0]+rgu[0])
 							+u12s*(ru[1]+rgu[1]));
-					phi_s[idirac]+= -dk4ps*(conj(u11sd)*(rd[0]-rgd[0])
+					phi_s[idirac]+= -dk4ps*(conjf(u11sd)*(rd[0]-rgd[0])
 							-u12sd *(rd[1]-rgd[1]));
 					phi[i+kvolHalo*(0+idirac)]=phi_s[idirac+0];
 
-					phi_s[idirac+1]-= dk4ms*(-conj(u12s)*(ru[0]+rgu[0])
-							+conj(u11s)*(ru[1]+rgu[1]));
-					phi_s[idirac+1]-= +dk4ps*(conj(u12sd)*(rd[0]-rgd[0])
+					phi_s[idirac+1]-= dk4ms*(-conjf(u12s)*(ru[0]+rgu[0])
+							+conjf(u11s)*(ru[1]+rgu[1]));
+					phi_s[idirac+1]-= +dk4ps*(conjf(u12sd)*(rd[0]-rgd[0])
 							+u11sd *(rd[1]-rgd[1]));
 					phi[i+kvolHalo*(1+idirac)]=phi_s[idirac+1];
 				}
