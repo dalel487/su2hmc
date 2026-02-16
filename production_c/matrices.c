@@ -26,7 +26,8 @@ int Dslash(Complex *phi, Complex *r, Complex *ut[2], unsigned int *iu,unsigned i
 #ifdef __NVCC__
 	cuDslash(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa,dimGrid,dimBlock);
 #else
-	memcpy(phi, r, kferm*sizeof(Complex));
+	for(unsigned short j=0;j<nc*ngorkov;j++)
+		memcpy(phi+j*kvolHalo, r+j*kvolHalo, kvol*sizeof(Complex));
 #pragma omp parallel for
 	for(unsigned int i=0;i<kvol;i++){
 		Complex ru[nc]; Complex rd[nc];
@@ -144,7 +145,8 @@ int Dslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned int *iu,unsigned i
 #ifdef __NVCC__
 	cuDslashd(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa,dimGrid,dimBlock);
 #else
-	memcpy(phi, r, kferm*sizeof(Complex));
+	for(unsigned short j=0;j<nc*ngorkov;j++)
+		memcpy(phi+j*kvol, r+j*kvolHalo, kvol*sizeof(Complex));
 #pragma omp parallel for
 	for(unsigned int i=0;i<kvol;i++){
 		Complex ru[nc];  Complex rd[nc];
@@ -267,12 +269,13 @@ int Hdslash(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned 
 #ifdef __NVCC__
 	cuHdslash(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa,dimGrid,dimBlock);
 #else
-	memcpy(phi, r, kferm2*sizeof(Complex));
+	for(unsigned short j=0;j<nc*ndirac;j++)
+		memcpy(phi+j*kvolHalo, r+j*kvolHalo, kvol*sizeof(Complex));
 #pragma omp parallel for
 	for(unsigned int i=0;i<kvol;i++){
-	Complex ru[2];  Complex rd[2];
-	Complex rgu[2];  Complex rgd[2];
-	Complex phi_s[ndirac*nc];
+		Complex ru[2];  Complex rd[2];
+		Complex rgu[2];  Complex rgd[2];
+		Complex phi_s[ndirac*nc];
 #pragma omp simd
 		for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll
@@ -353,14 +356,15 @@ int Hdslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned  int *iu,unsigned
 #ifdef __NVCC__
 	cuHdslashd(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa,dimGrid,dimBlock);
 #else
-	memcpy(phi, r, kferm2*sizeof(Complex));
+	for(unsigned short j=0;j<nc*ndirac;j++)
+		memcpy(phi+j*kvol, r+j*kvolHalo, kvol*sizeof(Complex));
 	//Spacelike term
 #pragma omp parallel for
 	for(unsigned int i=0;i<kvol;i++){
-	//Right. Time to prefetch
-	Complex ru[2];  Complex rd[2];
-	Complex rgu[2];  Complex rgd[2];
-	Complex phi_s[ndirac*nc];
+		//Right. Time to prefetch
+		Complex ru[2];  Complex rd[2];
+		Complex rgu[2];  Complex rgd[2];
+		Complex phi_s[ndirac*nc];
 #pragma omp simd
 		for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll
@@ -442,7 +446,8 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu, un
 #ifdef __NVCC__
 	cuDslash_f(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa,dimGrid,dimBlock);
 #else
-	memcpy(phi, r, kferm*sizeof(Complex_f));
+	for(unsigned short j=0;j<nc*ngorkov;j++)
+		memcpy(phi+j*kvolHalo, r+j*kvolHalo, kvol*sizeof(Complex_f));
 #pragma omp parallel for
 	for(unsigned int i=0;i<kvol;i++){
 		Complex_f ru[nc]; Complex_f rd[nc];
@@ -560,7 +565,8 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,un
 #ifdef __NVCC__
 	cuDslashd_f(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa,dimGrid,dimBlock);
 #else
-	memcpy(phi, r, kferm*sizeof(Complex_f));
+	for(unsigned short j=0;j<nc*ngorkov;j++)
+		memcpy(phi+j*kvol, r+j*kvolHalo, kvol*sizeof(Complex_f));
 #pragma omp parallel for
 	for(unsigned int i=0;i<kvol;i++){
 		Complex_f ru[nc];  Complex_f rd[nc];
@@ -681,12 +687,13 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned  int *iu,u
 	cuHdslash_f(phi,r,ut,iu,id,gamval,gamin,dk,akappa,dimGrid,dimBlock);
 #else
 	//Mass term
-	memcpy(phi, r, kferm2*sizeof(Complex_f));
+	for(unsigned short j=0;j<nc*ndirac;j++)
+		memcpy(phi+j*kvolHalo, r+j*kvolHalo, kvol*sizeof(Complex_f));
 #pragma omp parallel for
 	for(unsigned int i=0;i<kvol;i++){
-	Complex_f ru[2];  Complex_f rd[2];
-	Complex_f rgu[2];  Complex_f rgd[2];
-	Complex_f phi_s[ndirac*nc];
+		Complex_f ru[2];  Complex_f rd[2];
+		Complex_f rgu[2];  Complex_f rgd[2];
+		Complex_f phi_s[ndirac*nc];
 #pragma omp simd
 		for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll
@@ -767,17 +774,18 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,u
 #ifdef __NVCC__
 	cuHdslashd_f(phi,r,ut,iu,id,gamval,gamin,dk,akappa,dimGrid,dimBlock);
 #else
-	memcpy(phi, r, kferm2*sizeof(Complex_f));
+	for(unsigned short j=0;j<nc*ndirac;j++)
+		memcpy(phi+j*kvol, r+j*kvolHalo, kvol*sizeof(Complex_f));
 
 	//Spacelike term
 	//Enough room on L1 data cache for Zen 2 to hold 160 elements at a time
 	//Vectorise with 128 maybe?
 #pragma omp parallel for
 	for(unsigned int i=0;i<kvol;i++){
-	//Right. Time to prefetch
-	Complex_f ru[2];  Complex_f rd[2];
-	Complex_f rgu[2];  Complex_f rgd[2];
-	Complex_f phi_s[ndirac*nc];
+		//Right. Time to prefetch
+		Complex_f ru[2];  Complex_f rd[2];
+		Complex_f rgu[2];  Complex_f rgd[2];
+		Complex_f phi_s[ndirac*nc];
 #pragma omp simd
 		for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll

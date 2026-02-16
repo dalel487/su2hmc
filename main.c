@@ -160,9 +160,12 @@ int main(int argc, char *argv[]){
 	int device=-1;
 	cudaGetDevice(&device);
 	//For asynchronous memory, when CUDA syncs any unused memory in the pool is released back to the OS
-	//unless a threshold is given. We'll base our threshold off of Congradq
+	//unless a threshold is given. We'll base our threshold off of Congradp
+	//12*kvol for the clover and 4*16*kvolHalo for the fermion fields 
+	//Factor of 1.5 because we need it in single and double precsion should be plenty without being excessive.
+	//Not everything has a halo so larger halos give us more headroom too.
 	cudaDeviceGetDefaultMemPool(&mempool, device);
-	int threshold=2*kferm2*sizeof(Complex_f);
+	int threshold=8*kfermHalo*sizeof(Complex);
 	cudaMemPoolSetAttribute(mempool, cudaMemPoolAttrReleaseThreshold, &threshold);
 #endif
 #ifdef _DEBUG
@@ -268,22 +271,17 @@ int main(int argc, char *argv[]){
 	//Send trials to accelerator for reunitarisation
 	Reunitarise(ut);
 	//Get trials back
+	//Memcpy routines need to be strided if there is a halo since the lattice is not contiguous in memory
 	for(unsigned short mu=0;mu<ndim;mu++){
 #ifdef __NVCC__
-		cudaMemcpy(u[0]+kvol*mu, ut[0]+kvolHalo*mu, kvol*sizeof(Complex),cudaMemcpyDefault);
-		cudaMemcpy(u[1]+kvol*mu, ut[1]+kvolHalo*mu, kvol*sizeof(Complex),cudaMemcpyDefault);
+		cudaMemcpyAsync(u[0]+kvol*mu, ut[0]+kvolHalo*mu, kvol*sizeof(Complex),cudaMemcpyDefault,streams[mu]);
+		cudaMemcpyAsync(u[1]+kvol*mu, ut[1]+kvolHalo*mu, kvol*sizeof(Complex),cudaMemcpyDefault,streams[mu]);
 #else
 		memcpy(u[0]+kvol*mu, ut[0]+kvolHalo*mu, kvol*sizeof(Complex));
 		memcpy(u[1]+kvol*mu, ut[1]+kvolHalo*mu, kvol*sizeof(Complex));
 #endif
 	}
 #ifdef __NVCC__
-	//Flip all the gauge fields around so memory is coalesced
-	//Transpose_z(ut[0],ndim,kvol);
-	//Transpose_z(ut[1],ndim,kvol);
-	//And the index arrays
-	//	Transpose_U(iu,ndim,kvol);
-	//	Transpose_U(id,ndim,kvol);
 	cudaDeviceSynchronise();
 #endif
 #ifdef DIAGNOSTIC
@@ -444,14 +442,14 @@ int main(int argc, char *argv[]){
 			cudaMallocManaged((void **)&R1_f,kferm*sizeof(Complex_f),cudaMemAttachGlobal);
 			cudaMemset(R1_f,0,kferm*sizeof(Complex_f));
 #else
-			cudaMallocAsync((void **)&R1, kferm*sizeof(Complex),streams[0]);
+			cudaMallocAsync((void **)&R1, kferm*sizeof(Complex),streams[1]);
 			cudaMallocAsync((void **)&R1_f,kferm*sizeof(Complex_f),streams[0]);
 			cudaMemsetAsync(R1_f,0,kferm*sizeof(Complex_f),streams[0]);
 #endif
 #else
+			Complex_f *R=aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 			Complex *R1= aligned_alloc(AVX,kferm*sizeof(Complex));
 			Complex_f *R1_f=aligned_alloc(AVX,kferm*sizeof(Complex_f));
-			Complex_f *R=aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 			memset(R1_f,0,kferm*sizeof(Complex_f));
 #endif
 			//The FORTRAN code had two Gaussian routines.
@@ -479,11 +477,12 @@ int main(int argc, char *argv[]){
 #ifdef _DEBUG
 			cudaFree(R1_f);
 #else
-			cudaFreeAsync(R1_f,NULL);
-#endif
-			cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,NULL);
-			//cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,streams[1]);
+			//Stream needs to wait for conversion to complete
 			cudaDeviceSynchronise();
+			cudaFreeAsync(R1_f,streams[0]);
+#endif
+			cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,stream[1]);
+			//cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,streams[1]);
 #else
 			free(R); 
 #pragma omp simd aligned(R1_f,R1:AVX)
@@ -498,7 +497,9 @@ int main(int argc, char *argv[]){
 #ifdef _DEBUG
 			cudaFree(R1);
 #else
-			cudaFreeAsync(R1,streams[0]);
+			//Stream needs to wait for UpDownPart to complete
+			cudaDeviceSynchronise();
+			cudaFreeAsync(R1,streams[1]);
 #endif
 #else
 			free(R1);
@@ -595,8 +596,8 @@ int main(int argc, char *argv[]){
 			//JIS 20100525: remove when all is ok....
 			for(unsigned short mu=0;mu<ndim;mu++){
 #ifdef __NVCC__
-				cudaMemcpy(u[0]+kvol*mu,ut[0]+kvolHalo*mu,kvol*sizeof(Complex),cudaMemcpyDefault);
-				cudaMemcpy(u[1]+kvol*mu,ut[1]+kvolHalo*mu,kvol*sizeof(Complex),cudaMemcpyDefault);
+				cudaMemcpyAsync(u[0]+kvol*mu,ut[0]+kvolHalo*mu,kvol*sizeof(Complex),cudaMemcpyDefault,streams[mu]);
+				cudaMemcpyAsync(u[1]+kvol*mu,ut[1]+kvolHalo*mu,kvol*sizeof(Complex),cudaMemcpyDefault,streams[mu]);
 				//			Transpose_z(u[0],kvol,ndim);
 				//			Transpose_z(u[1],kvol,ndim);
 #else
@@ -619,6 +620,7 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 		cublasDnrm2(cublas_handle,kmom, pp, 1,&vel2);
 		vel2*=vel2;
+		cudaDeviceSynchronise();
 #elif defined USE_BLAS
 		vel2 = cblas_dnrm2(kmom, pp, 1);
 		vel2*=vel2;

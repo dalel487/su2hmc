@@ -190,7 +190,7 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 		ind=i+kvolHalo*3;
 		u11s=u11t[ind]; u12s=u12t[ind];
 		const T dk4ms=dk4m[i];	const T dk4ps=dk4p[i];
-			ind = i+kvol*3;
+		ind = i+kvol*3;
 		const unsigned int did=id[ind]; const unsigned int uid = iu[ind];
 		ind=did+kvolHalo*3;
 		u11sd=u11t[ind]; u12sd=u12t[ind];
@@ -540,21 +540,38 @@ void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned in
 		Complex gamval[20], const unsigned short gamin[16],	double *dk4m, double *dk4p, Complex_f jqq, float akappa,\
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslash";
-	cudaMemcpy(phi, r, kfermHalo*sizeof(Complex),cudaMemcpyDeviceToDevice);
+	for(unsigned short j=0;j<nc*ngorkov;j++)
+		if((cuCpyStat=cudaMemcpy(phi+j*kvolHalo, r+j*kvolHalo, kvol*sizeof(Complex),cudaMemcpyDefault))){
+			fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
+					CPYERROR,funcname,cuCpyStat);
+			exit(cuCpyStat);
+		}
 	cuDslash<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 }
 void cuDslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
 		Complex gamval[20], const unsigned short gamin[16],	double *dk4m, double *dk4p, Complex_f jqq, float akappa,\ 
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslashd";
-	cudaMemcpy(phi, r, kfermHalo*sizeof(Complex),cudaMemcpyDeviceToDevice);
+	int cuCpyStat=0;
+	for(unsigned short j=0;j<nc*ngorkov;j++)
+		if((cuCpyStat=cudaMemcpy(phi+j*kvol, r+j*kvolHalo, kvol*sizeof(Complex),cudaMemcpyDefault))){
+			fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
+					CPYERROR,funcname,cuCpyStat);
+			exit(cuCpyStat);
+		}
 	cuDslashd<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 }
 void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
 		Complex gamval[20], const unsigned short gamin[16],	double *dk4m, double *dk4p, float akappa,\ 
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Hdslash";
-	cudaMemcpy(phi, r, kferm2Halo*sizeof(Complex),cudaMemcpyDeviceToDevice);
+	int cuCpyStat=0;
+	for(unsigned short j=0;j<nc*ndirac;j++)
+		if((cuCpyStat=cudaMemcpy(phi+j*kvolHalo, r+j*kvolHalo, kvol*sizeof(Complex),cudaMemcpyDefault))){
+			fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
+					CPYERROR,funcname,cuCpyStat);
+			exit(cuCpyStat);
+		}
 	cuHdslash<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
 }
 void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
@@ -562,7 +579,13 @@ void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned 
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Hdslashd";
 	//Spacelike term
-	cudaMemcpy(phi, r, kferm2Halo*sizeof(Complex),cudaMemcpyDeviceToDevice);
+	int cuCpyStat=0;
+	for(unsigned short j=0;j<nc*ndirac;j++)
+		if((cuCpyStat=cudaMemcpy(phi+j*kvol, r+j*kvolHalo, kvol*sizeof(Complex),cudaMemcpyDefault))){
+			fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
+					CPYERROR,funcname,cuCpyStat);
+			exit(cuCpyStat);
+		}
 	cuHdslashd<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
 }
 
@@ -572,11 +595,12 @@ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,u
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslash_f";
 	int cuCpyStat=0;
-	if((cuCpyStat=cudaMemcpy(phi, r, kfermHalo*sizeof(Complex_f),cudaMemcpyDefault))){
-		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
-				CPYERROR,funcname,cuCpyStat);
-		exit(cuCpyStat);
-	}
+	for(unsigned short j=0;j<nc*ngorkov;j++)
+		if((cuCpyStat=cudaMemcpy(phi+j*kvolHalo, r+j*kvolHalo, kvol*sizeof(Complex_f),cudaMemcpyDefault))){
+			fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
+					CPYERROR,funcname,cuCpyStat);
+			exit(cuCpyStat);
+		}
 	cuDslash<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 }
 void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
@@ -584,22 +608,24 @@ void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslashd_f";
 	int cuCpyStat=0;
-	if((cuCpyStat=cudaMemcpy(phi, r, kfermHalo*sizeof(Complex_f),cudaMemcpyDefault))){
-		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
-				CPYERROR,funcname,cuCpyStat);
-		exit(cuCpyStat);
-	}
+	for(unsigned short j=0;j<nc*ngorkov;j++)
+		if((cuCpyStat=cudaMemcpy(phi+j*kvol, r+j*kvolHalo, kvol*sizeof(Complex_f),cudaMemcpyDefault))){
+			fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
+					CPYERROR,funcname,cuCpyStat);
+			exit(cuCpyStat);
+		}
 	cuDslashd<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
 }
 void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,unsigned int *id, Complex_f gamval[20],
 		const unsigned short gamin[16],	float *dk[2], float akappa, dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Hdslash_f";
 	int cuCpyStat=0;
-	if((cuCpyStat=cudaMemcpy(phi, r, kferm2Halo*sizeof(Complex_f),cudaMemcpyDefault))){
-		fprintf(stderr,"Error %d in %s: Cuda failed to copy r into device Phi with code %d.\nExiting,,,\n\n",\
-				CPYERROR,funcname,cuCpyStat);
-		exit(cuCpyStat);
-	}
+	for(unsigned short j=0;j<nc*ndirac;j++)
+		if((cuCpyStat=cudaMemcpy(phi+j*kvolHalo, r+j*kvolHalo, kvol*sizeof(Complex_f),cudaMemcpyDefault))){
+			fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
+					CPYERROR,funcname,cuCpyStat);
+			exit(cuCpyStat);
+		}
 	const int bsize=dimGrid.x*dimGrid.y*dimGrid.z;
 	const int shareSize= ndim*bsize*nc*sizeof(Complex_f);
 	cuHdslash<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa);
@@ -608,13 +634,12 @@ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *i
 		Complex_f gamval[20],const unsigned short gamin[16],float *dk[2], float akappa,dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Hdslashd_f";
 	int cuCpyStat=0;
-	//__shared__ int gamin_s[16]; __shared__ Complex_f gamval_s[20];
-	//intShare(gamin_s,gamin,16); floatShare(gamval_s,gamval,2*20);
-	if((cuCpyStat=cudaMemcpy(phi, r, kferm2Halo*sizeof(Complex_f),cudaMemcpyDefault))){
-		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
-				CPYERROR,funcname,cuCpyStat);
-		exit(cuCpyStat);
-	}
+	for(unsigned short j=0;j<nc*ndirac;j++)
+		if((cuCpyStat=cudaMemcpy(phi+j*kvol, r+j*kvolHalo, kvol*sizeof(Complex_f),cudaMemcpyDefault))){
+			fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
+					CPYERROR,funcname,cuCpyStat);
+			exit(cuCpyStat);
+		}
 	cuHdslashd<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa);
 }
 
