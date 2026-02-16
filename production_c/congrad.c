@@ -294,7 +294,11 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 		cuComplex_convert(clover_f[1],clover[1],6*kvol,false,dimBlock,dimGrid);
 	}
 	//cudaMemcpy is blocking, so use async instead
-	cudaMemcpy(p_f, X1_f, kferm2*sizeof(Complex_f),cudaMemcpyDeviceToDevice);
+	cudaDeviceSynchronise();
+	//Needs to be strided
+	for(unsigned int j=0;j<nc*ndirac;j++)
+		cudaMemcpyAsync(p_f+j*kvolHalo, X1_f+j*kvol, kvol*sizeof(Complex_f),cudaMemcpyDefault,streams[j]);
+	cudaDeviceSynchronise();
 #else
 #pragma omp parallel for simd aligned(X1_f,r_f,X1,r:AVX)
 	for(unsigned int i=0;i<kferm2;i++){
@@ -309,7 +313,8 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			clover[0][i]=(Complex)clover_f[0][i];
 			clover[1][i]=(Complex)clover_f[1][i];
 		}
-	memcpy(p_f, X1_f, kferm2*sizeof(Complex_f));
+	for(unsigned int j=0;j<nc*ndirac;j++)
+		memcpy(p_f+j*kvolHalo, X1_f+j*kvol, kvol*sizeof(Complex_f));
 #endif
 
 	alignas(16) double betan=1;double beta_max=FLT_MAX; bool do_dp=true;
@@ -317,23 +322,23 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 		if(do_dp){
 #ifdef _DEBUGCG
 			if(!rank)
-			printf("Going to double precision on iteration %d.%sbetan %e\talpha %e.%s",
-					*itercg,endline,betan,alpha,endline);
+				printf("Going to double precision on iteration %d.%sbetan %e\talpha %e.%s",
+						*itercg,endline,betan,alpha,endline);
 #elifdef _DEBUG
 			if(!rank)
-			printf("\nGoing to double precision on iteration %d.%sbetan %e\talpha %e.\n",
-					*itercg,endline,betan,alpha);
+				printf("\nGoing to double precision on iteration %d.%sbetan %e\talpha %e.\n",
+						*itercg,endline,betan,alpha);
 #endif
 #ifdef __NVCC__
 			//Update the residue vector, but not on the first call.
 			if(*itercg)
 				cuMixed_Sumto((double *)X1,(float *)X1_f,2*kferm2,dimGrid,dimBlock);
 			//Bring everything into double precision
-			cuComplex_convert(p_f,p,kferm2,false,dimBlock,dimGrid);
 			cuComplex_convert(r_f,r,kferm2,false,dimBlock,dimGrid);
 			//Reset X1_f to zero.
-			cudaDeviceSynchronise();
-			cudaMemsetAsync(X1_f,0,kferm2*sizeof(Complex_f),streams[4]);
+			cudaMemset(X1_f,0,kferm2*sizeof(Complex_f));
+			for(unsigned short j=0;j<nc*idirac;j++)
+				cuComplex_convert(p_f+j*kvolHalo,p+j*kvolHalo,kvol,false,dimBlock,dimGrid);
 #else
 			//Update the residue vector, but not on the first call.
 			if(*itercg)
@@ -341,11 +346,12 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 				for(unsigned int i=0;i<kferm2;i++){
 					X1[i]+=(Complex)X1_f[i];
 				}
-#pragma omp parallel for simd aligned(r,p,X1_f:AVX)
-			for(unsigned int i=0;i<kferm2;i++){
-				r[i]=(Complex)r_f[i]; X1_f[i]=0;
-				p[i]=(Complex)p_f[i];
-			}
+#pragma omp parallel for simd collapse(2) aligned(r,p,X1_f:AVX)
+			for(unsigned short j=0;j<nc*idirac;j++)
+				for(unsigned int i=0;i<kvol;i++){
+					r[i+j*kvol]=(Complex)r_f[i+j*kvol]; X1_f[i+j*kvol]=0;
+					p[i+j*kvolHalo]=(Complex)p_f[i+j*kvolHalo];
+				}
 #endif
 			///@f$x2 =  (M^\dagger M)p @f$
 			//No need to synchronise here. The memcpy in Hdslash is blocking
@@ -367,9 +373,10 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #elif defined USE_BLAS
 				cblas_zaxpy(kferm2, &fac, p, 1, x2, 1);
 #else
-#pragma omp parallel for simd aligned(p,x2:AVX)
-				for(unsigned int i=0; i<kferm2; i++)
-					x2[i]+=fac*p[i];
+#pragma omp parallel for simd collapse(2) aligned(p,x2:AVX)
+				for(unsigned short j=0;j<nc*ndirac;j++)
+					for(unsigned int i=0; i<kvol; i++)
+						x2[i+j*kvol]+=fac*p[i+j*kvolHalo];
 #endif
 			}
 
@@ -381,9 +388,10 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 				cblas_zdotc_sub(kferm2, p, 1, x2, 1, &alpha);
 #else
 				alpha=0;
-#pragma omp parallel for simd aligned(p,x2:AVX) reduction(+:alpha)
-				for(unsigned int i=0; i<kferm2; i++)
-					alpha+=conj(p[i])*x2[i];
+#pragma omp parallel for simd collapse(2) aligned(p,x2:AVX) reduction(+:alpha)
+				for(unsigned short j=0;j<nc*idirac;j++)
+					for(unsigned int i=0; i<kvol; i++)
+						alpha+=conj(p[i+j*kvolHalo])*x2[i+j*kvol];
 #endif
 				//For now I'll cast it into a float for the reduction. Each rank only sends and writes
 				//to the real part so this is fine
@@ -399,8 +407,10 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #elif defined USE_BLAS
 				cblas_zaxpy(kferm2, &alpha, p, 1, X1, 1);
 #else
-				for(unsigned int i=0; i<kferm2; i++)
-					X1[i]+=alpha*p[i];
+#pragma omp parallel for simd collapse(2) aligned(p,X1:AVX)
+				for(unsigned short j=0;j<nc*idirac;j++)
+					for(unsigned int i=0; i<kvol; i++)
+						X1[i+j*kvol]+=alpha*p[i+j*kvolHalo];
 #endif
 			}
 
@@ -456,15 +466,17 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			const Complex a = 1.0;
 			cblas_zaxpy(kferm2,&a,r,1,p,1);
 #else 
-#pragma omp parallel for simd aligned(r,p:AVX)
-			for(unsigned int i=0; i<kferm2; i++)
-				p[i]=r[i]+beta*p[i];
+#pragma omp parallel for simd collapse(2) aligned(r,p:AVX)
+			for(unsigned short j=0;j<nc*ndirac;j++)
+				for(unsigned int i=0; i<kvol; i++)
+					p[i+j*kvolHalo]=r[i+j*kvol]+beta*p[i*j*kvolHalo];
 #endif
-#pragma omp parallel for simd aligned(r,p:AVX)
-			for(unsigned int i=0; i<kferm2; i++){
-				p_f[i]=(Complex_f)p[i];
-				r_f[i]=(Complex_f)r[i];
-			}
+#pragma omp parallel for simd collapse(2) aligned(r,p:AVX)
+			for(unsigned short j=0;j<nc*ndirac;j++)
+				for(unsigned int i=0; i<kvol; i++){
+					p_f[i+j*kvolHalo]=(Complex_f)p[i+j*kvolHalo];
+					r_f[i+j*kvol]=(Complex_f)r[i+j*kvol];
+				}
 #endif
 #ifdef _DEBUGCG
 			if(!rank) printf("Double precision. Iter(CG)=%i\tbeta_n=%e\talpha=%e\n", *itercg, betan, alpha);
@@ -502,9 +514,10 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #elif defined USE_BLAS
 				cblas_caxpy(kferm2, &fac_f, p_f, 1, x2_f, 1);
 #else
-#pragma omp parallel for simd aligned(p_f,x2_f:AVX)
-				for(unsigned int i=0; i<kferm2; i++)
-					x2_f[i]+=fac_f*p_f[i];
+#pragma omp parallel for simd collapse(2) aligned(p_f,x2_f:AVX)
+				for(unsigned short j=0;j<nc*ndirac;j++)
+					for(unsigned int i=0; i<kvol; i++)
+						x2_f[i+j*kvol]+=fac_f*p_f[i+j*kvolHalo];
 #endif
 			}
 			/// First iteration @f$ \vec{r}_0=\vec{p}_0@f$
@@ -516,9 +529,10 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 				cblas_cdotc_sub(kferm2, p_f, 1, x2_f, 1, &alphad);
 #else
 				alphad=0;
-#pragma omp parallel for simd aligned(p_f,x2_f:AVX)
-				for(unsigned int i=0; i<kferm2; i++)
-					alphad+=conj(p_f[i])*x2_f[i];
+#pragma omp parallel for simd collapse(2) aligned(p_f,x2_f:AVX)
+				for(unsigned short j=0;j<nc*ndirac;j++)
+					for(unsigned int i=0; i<kvol; i++)
+						alphad+=conj(p_f[i+j*kvolHalo])*x2_f[i+j*kvol];
 #endif
 				//For now I'll cast it into a float for the reduction. Each rank only sends and writes
 				//to the real part so this is fine
@@ -535,8 +549,10 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 				Complex_f alpha_f = (Complex_f)alpha;
 				cblas_caxpy(kferm2, &alpha_f, p_f, 1, X1_f, 1);
 #else
-				for(unsigned int i=0; i<kferm2; i++)
-					X1_f[i]+=alpha*p_f[i];
+#pragma omp parallel for simd collapse(2) aligned(X1_f,p_f:AVX)
+				for(unsigned short j=0;j<nc*ndirac;j++)
+					for(unsigned int i=0; i<kvol; i++)
+						X1_f[i+j*kvol]+=alpha*p_f[i+j*kvolHalo];
 #endif
 			}			
 			/// @f$r_{n+1} = r_n-\alpha(M^\dagger M)p_n@f$ and @f$\beta_n=r^\dagger r@f$
@@ -576,15 +592,15 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #endif
 			if(betan_f<beta_max*d_prec){ 
 #ifdef _DEBUG
-			if(!rank)
-				printf("Residue %e is less than %e times %e.%s",betan_f,d_prec,beta_max,endline);
+				if(!rank)
+					printf("Residue %e is less than %e times %e.%s",betan_f,d_prec,beta_max,endline);
 #endif
 				do_dp=true;
 			}
 			else if(betan<resid){
 #ifdef _DEBUG
-			if(!rank)
-				printf("Betan %e is less than target residue %e.%s",betan,resid,endline);
+				if(!rank)
+					printf("Betan %e is less than target residue %e.%s",betan,resid,endline);
 #endif
 				do_dp=true;
 				//break;
@@ -617,8 +633,10 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			Complex_f a = 1.0;
 			cblas_caxpy(kferm2,&a,r_f,1,p_f,1);
 #else 
-			for(unsigned int i=0; i<kferm2; i++)
-				p_f[i]=r_f[i]+beta*p_f[i];
+#pragma omp parallel for simd collapse(2) aligned(p_f,r_f:AVX)
+			for(unsigned short j=0;j<nc*ndirac;j++)
+				for(unsigned int i=0; i<kvol; i++)
+					p_f[i+j*kvolHalo]=r_f[i+j*kvol]+beta*p_f[i+j*kvolHalo];
 #endif
 		}
 	}
@@ -687,12 +705,12 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 		if(do_dp){
 #ifdef _DEBUGCG
 			if(!rank)
-			printf("Going to double precision on iteration %d.  %sbetan %e\talpha %e.  %s",
-					*itercg,endline,betan,alpha,endline);
+				printf("Going to double precision on iteration %d.  %sbetan %e\talpha %e.  %s",
+						*itercg,endline,betan,alpha,endline);
 #elifdef _DEBUG
 			if(!rank)
-			printf("\nGoing to double precision on iteration %d. %sbetan %e\talpha %e.\n",
-					*itercg,endline,betan,alpha);
+				printf("\nGoing to double precision on iteration %d. %sbetan %e\talpha %e.\n",
+						*itercg,endline,betan,alpha);
 #endif
 #ifdef __NVCC__
 			//Update the residue vector, but not on the first call.
@@ -763,7 +781,7 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 			Complex alpha_m=(Complex)(-alpha);
 #ifdef _DEBUG
 			if(!rank)
-			printf("alpha_m = %e + %ei\n", creal(alpha_m), cimag(alpha_m));
+				printf("alpha_m = %e + %ei\n", creal(alpha_m), cimag(alpha_m));
 #endif
 			cublasZaxpy(cublas_handle, kferm,(cuDoubleComplex *)&alpha_m,(cuDoubleComplex *)x2,1,(cuDoubleComplex *)r,1);
 			double betan_d;
@@ -928,8 +946,8 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 #endif
 			if(betan_f<beta_max*d_prec){
 #ifdef _DEBUG
-			if(!rank)
-				printf("Residue %e is less than %e times %e. %s",betan_f,d_prec,beta_max,endline);
+				if(!rank)
+					printf("Residue %e is less than %e times %e. %s",betan_f,d_prec,beta_max,endline);
 #endif
 				do_dp=true;
 			}
