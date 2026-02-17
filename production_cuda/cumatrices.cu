@@ -135,7 +135,6 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 			unsigned short igork = ((idirac>>1)+4)<<1;
 			unsigned int ind_d =4*ndirac+(idirac>>1);
 			complex<T> a_1=-conj(jqq)*gamval_d[ind_d];
-			//We subtract a_2, hence the minus
 			complex<T> a_2=jqq*gamval_d[ind_d];
 			ind_d=i+kvolHalo*(idirac); unsigned int ind_g=i+kvolHalo*(igork);
 			phi_s[idirac]=phi[ind_d]+a_1*r[ind_g];
@@ -540,6 +539,7 @@ void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned in
 		Complex gamval[20], const unsigned short gamin[16],	double *dk4m, double *dk4p, Complex_f jqq, float akappa,\
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslash";
+	int cuCpyStat=0;
 	for(unsigned short j=0;j<nc*ngorkov;j++)
 		if((cuCpyStat=cudaMemcpy(phi+j*kvolHalo, r+j*kvolHalo, kvol*sizeof(Complex),cudaMemcpyDefault))){
 			fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\

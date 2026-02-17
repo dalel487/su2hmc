@@ -57,8 +57,9 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 		cudaMemcpyAsync(x+j*kvolHalo, xi+j*kvol, kvol*sizeof(Complex),cudaMemcpyDefault,0);
 	}
 #else
-#pragma omp parallel for simd collapse(2) aligned(xi,xi_f:AVX)
+#pragma omp parallel for
 	for(unsigned short j=0;j<nc*ngorkov;j++){
+	#pragma omp simd aligned(xi,xi_f:AVX)
 		for(unsigned int i=0;i<kvol;i++)
 			xi[i+j*kvol]=(Complex)xi_f[i+j*kvolHalo];
 		memcpy(x+j*kvolHalo, xi+j*kvol, kvol*sizeof(Complex));

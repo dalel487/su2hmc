@@ -156,7 +156,6 @@ int Dslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned 
 			unsigned short igork = ((idirac>>1)+4)<<1;
 			unsigned int ind_d =4*ndirac+(idirac>>1);
 			Complex a_1=-conj(jqq)*gamval[ind_d];
-			//We subtract a_2, hence the minus
 			Complex a_2=jqq*gamval[ind_d];
 			ind_d=i+kvolHalo*(idirac); unsigned int ind_g=i+kvolHalo*(igork);
 			phi_s[idirac]=phi[ind_d]+a_1*r[ind_g];
@@ -569,7 +568,6 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,u
 			unsigned short igork = ((idirac>>1)+4)<<1;
 			unsigned int ind_d =4*ndirac+(idirac>>1);
 			Complex_f a_1=-conjf(jqq)*gamval[ind_d];
-			//We subtract a_2, hence the minus
 			Complex_f a_2=jqq*gamval[ind_d];
 			ind_d=i+kvolHalo*(idirac); unsigned int ind_g=i+kvolHalo*(igork);
 			phi_s[idirac]=phi[ind_d]+a_1*r[ind_g];

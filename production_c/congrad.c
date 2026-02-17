@@ -322,12 +322,12 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 		if(do_dp){
 #ifdef _DEBUGCG
 			if(!rank)
-				printf("Going to double precision on iteration %d.%sbetan %e\talpha %e.%s",
-						*itercg,endline,betan,alpha,endline);
+				printf("Going to double precision on iteration %d. betan %e\talpha %e.\n",
+						*itercg,betan,alpha);
 #elifdef _DEBUG
 			if(!rank)
-				printf("\nGoing to double precision on iteration %d.%sbetan %e\talpha %e.\n",
-						*itercg,endline,betan,alpha);
+				printf("\nGoing to double precision on iteration %d. betan %e\talpha %e.\n",
+						*itercg,betan,alpha);
 #endif
 #ifdef __NVCC__
 			//Update the residue vector, but not on the first call.
@@ -593,20 +593,20 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			if(betan_f<beta_max*d_prec){ 
 #ifdef _DEBUG
 				if(!rank)
-					printf("Residue %e is less than %e times %e.%s",betan_f,d_prec,beta_max,endline);
+					printf("\nResidue %e is less than %e times %e.%s",betan_f,d_prec,beta_max,endline);
 #endif
 				do_dp=true;
 			}
 			else if(betan<resid){
 #ifdef _DEBUG
 				if(!rank)
-					printf("Betan %e is less than target residue %e.%s",betan,resid,endline);
+					printf("\nBetan %e is less than target residue %e.\n",betan,resid);
 #endif
 				do_dp=true;
 				//break;
 			}
 			else if(*itercg==niterc-1){
-				if(!rank) fprintf(stderr, "Warning %i in %s: Exceeded iteration limit %i beta_n=%e\n", ITERLIM, funcname, *itercg, betan);
+				if(!rank) fprintf(stderr, "\nWarning %i in %s: Exceeded iteration limit %i beta_n=%e\n", ITERLIM, funcname, *itercg, betan);
 				ret_val=ITERLIM;	break;
 			}
 			//Here we evaluate beta=(r_{k+1}.r_{k+1})/(r_k.r_k) and then shuffle our indices down the line.

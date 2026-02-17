@@ -219,14 +219,12 @@ int main(int argc, char *argv[]){
 
 	cudaMallocManaged((void **)&u[0],ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&u[1],ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
-#ifdef _DEBUG
 	cudaMallocManaged((void **)&ut[0],ndim*(kvolHalo)*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&ut[1],ndim*(kvolHalo)*sizeof(Complex),cudaMemAttachGlobal);
+#ifdef _DEBUG
 	cudaMallocManaged((void **)&ut_f[0],ndim*(kvolHalo)*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&ut_f[1],ndim*(kvolHalo)*sizeof(Complex_f),cudaMemAttachGlobal);
 #else
-	cudaMalloc((void **)&ut[0],ndim*(kvolHalo)*sizeof(Complex));
-	cudaMalloc((void **)&ut[1],ndim*(kvolHalo)*sizeof(Complex));
 	cudaMalloc((void **)&ut_f[0],ndim*(kvolHalo)*sizeof(Complex_f));
 	cudaMalloc((void **)&ut_f[1],ndim*(kvolHalo)*sizeof(Complex_f));
 #endif
@@ -484,7 +482,7 @@ int main(int argc, char *argv[]){
 			cudaDeviceSynchronise();
 			cudaFreeAsync(R1_f,streams[0]);
 #endif
-			cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,stream[1]);
+			cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,streams[1]);
 			//cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,streams[1]);
 #else
 			free(R); 
