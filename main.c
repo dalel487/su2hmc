@@ -198,6 +198,7 @@ int main(int argc, char *argv[]){
 	//And clover arrays. These only get assigned if @f$c_\text{SW}>0@f$
 	Complex *sigval; Complex_f *sigval_f; unsigned short *sigin;
 #ifdef __NVCC__
+//Managed here because it's easier to fill them on CPU
 	cudaMallocManaged((void**)&iu,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
 	cudaMallocManaged((void**)&id,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
 
@@ -218,12 +219,14 @@ int main(int argc, char *argv[]){
 
 	cudaMallocManaged((void **)&u[0],ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&u[1],ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
+#ifdef _DEBUG
 	cudaMallocManaged((void **)&ut[0],ndim*(kvolHalo)*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&ut[1],ndim*(kvolHalo)*sizeof(Complex),cudaMemAttachGlobal);
-#ifdef _DEBUG
 	cudaMallocManaged((void **)&ut_f[0],ndim*(kvolHalo)*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&ut_f[1],ndim*(kvolHalo)*sizeof(Complex_f),cudaMemAttachGlobal);
 #else
+	cudaMalloc((void **)&ut[0],ndim*(kvolHalo)*sizeof(Complex));
+	cudaMalloc((void **)&ut[1],ndim*(kvolHalo)*sizeof(Complex));
 	cudaMalloc((void **)&ut_f[0],ndim*(kvolHalo)*sizeof(Complex_f));
 	cudaMalloc((void **)&ut_f[1],ndim*(kvolHalo)*sizeof(Complex_f));
 #endif
@@ -302,7 +305,7 @@ int main(int argc, char *argv[]){
 	Average_Plaquette(&hg,&avplaqs,&avplaqt,ut_f,iu,beta);
 	//Trajectory length
 	double traj=stepl*dt;
-	//Acceptance probability
+	//end trajectory probability
 	double proby = 2.5/stepl;
 	char suffix[FILELEN]="";
 	int buffer; char buff2[7];

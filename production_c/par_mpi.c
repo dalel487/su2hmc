@@ -1223,6 +1223,7 @@ int Trial_Exchange(Complex *ut[2],Complex_f *ut_f[2]){
 	free(z);
 #endif
 	//And get the single precision gauge fields preppeed
+	//This can be done in a single block as we want halos in SP too
 #ifdef __NVCC__
 	cuComplex_convert(ut_f[0],ut[0],ndim*kvolHalo,true,dimBlock,dimGrid);
 	cuComplex_convert(ut_f[1],ut[1],ndim*kvolHalo,true,dimBlock,dimGrid);

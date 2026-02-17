@@ -337,7 +337,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			cuComplex_convert(r_f,r,kferm2,false,dimBlock,dimGrid);
 			//Reset X1_f to zero.
 			cudaMemset(X1_f,0,kferm2*sizeof(Complex_f));
-			for(unsigned short j=0;j<nc*idirac;j++)
+			for(unsigned short j=0;j<nc*ndirac;j++)
 				cuComplex_convert(p_f+j*kvolHalo,p+j*kvolHalo,kvol,false,dimBlock,dimGrid);
 #else
 			//Update the residue vector, but not on the first call.
@@ -347,7 +347,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 					X1[i]+=(Complex)X1_f[i];
 				}
 #pragma omp parallel for simd collapse(2) aligned(r,p,X1_f:AVX)
-			for(unsigned short j=0;j<nc*idirac;j++)
+			for(unsigned short j=0;j<nc*ndirac;j++)
 				for(unsigned int i=0;i<kvol;i++){
 					r[i+j*kvol]=(Complex)r_f[i+j*kvol]; X1_f[i+j*kvol]=0;
 					p[i+j*kvolHalo]=(Complex)p_f[i+j*kvolHalo];
@@ -389,7 +389,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #else
 				alpha=0;
 #pragma omp parallel for simd collapse(2) aligned(p,x2:AVX) reduction(+:alpha)
-				for(unsigned short j=0;j<nc*idirac;j++)
+				for(unsigned short j=0;j<nc*ndirac;j++)
 					for(unsigned int i=0; i<kvol; i++)
 						alpha+=conj(p[i+j*kvolHalo])*x2[i+j*kvol];
 #endif
@@ -408,7 +408,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 				cblas_zaxpy(kferm2, &alpha, p, 1, X1, 1);
 #else
 #pragma omp parallel for simd collapse(2) aligned(p,X1:AVX)
-				for(unsigned short j=0;j<nc*idirac;j++)
+				for(unsigned short j=0;j<nc*ndirac;j++)
 					for(unsigned int i=0; i<kvol; i++)
 						X1[i+j*kvol]+=alpha*p[i+j*kvolHalo];
 #endif
