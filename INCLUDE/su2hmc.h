@@ -320,6 +320,17 @@ extern "C"
 	 * @return Zero on success, integer error code otherwise
 	 */
 	int Reunitarise(Complex *ut[2]);
+	/**
+	 * @brief takes an array of complex float and double precision numbers and converts the precision
+	 *
+	 * @param	a:				Float array
+	 * @param	b:				Double array
+	 * @param	len:			Number of elements to convert per stride. Striding needed to handle halo terms
+	 * @param	dtof:			If true, convert double to float. Otherwise convert float to double
+	 * @param	stride:		For terms with a halo, we need to convert in blocks of len seperated by (len+halo)
+	 *
+	 */
+	int ComplexConvert(Complex_f *a, Complex *b, const unsigned int len, const bool dtof, const unsigned short stride);
 	//CUDA Declarations:
 	//#################
 #ifdef __NVCC__
@@ -409,7 +420,7 @@ extern "C"
 	 * @param	dtof:					If true, convert double to float. Otherwise convert float to double
 	 * @param 	dimGrid,dimBlock:	CUDA grid/block size
 	 */
-	void cuComplex_convert(Complex_f *a, Complex *b, const unsigned int len, const bool dtof, dim3 dimBlock, dim3 dimGrid);
+	void cuComplex_convert(Complex_f *a, Complex *b, const unsigned int len,  const bool dtof, dim3 dimBlock, dim3 dimGrid);
 	/**
 	 * @brief takes an array of real-valued float and double precision numbers and converts the precision
 	 *

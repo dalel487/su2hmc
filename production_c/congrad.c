@@ -284,16 +284,16 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 	Q_allocate(&p,&x1,&x2,clover);
 
 	//Instead of copying element-wise in a loop, use memcpy.
-#ifdef __NVCC__
 	//Get X1 in single precision
-	cuComplex_convert(X1_f,X1,kferm2,true,dimBlock,dimGrid);
-	cuComplex_convert(r_f,r,kferm2,true,dimBlock,dimGrid);
+	ComplexConvert(X1_f,X1,kferm2,true,1);
+	ComplexConvert(r_f,r,kferm2,true,1);
 	//And clover in double
 	if(c_sw){
-		cuComplex_convert(clover_f[0],clover[0],6*kvol,false,dimBlock,dimGrid);
-		cuComplex_convert(clover_f[1],clover[1],6*kvol,false,dimBlock,dimGrid);
+		ComplexConvert(clover_f[0],clover[0],6*kvol,false,1);
+		ComplexConvert(clover_f[1],clover[1],6*kvol,false,1);
 	}
-	//cudaMemcpy is blocking, so use async instead
+#ifdef __NVCC__
+	//Ensure conversion is done
 	cudaDeviceSynchronise();
 	//Needs to be strided
 	for(unsigned int j=0;j<nc*ndirac;j++)
@@ -301,18 +301,6 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 	cudaDeviceSynchronise();
 #else
 #pragma omp parallel for simd aligned(X1_f,r_f,X1,r:AVX)
-	for(unsigned int i=0;i<kferm2;i++){
-		//X1 and r in single precision
-		X1_f[i]=(Complex_f)X1[i];
-		r_f[i]=(Complex_f)r[i];
-	}
-	//Clover in double precision
-	if(c_sw)
-#pragma omp parallel for simd
-		for(unsigned int i=0;i<6*kvol;i++){
-			clover[0][i]=(Complex)clover_f[0][i];
-			clover[1][i]=(Complex)clover_f[1][i];
-		}
 	for(unsigned int j=0;j<nc*ndirac;j++)
 		memcpy(p_f+j*kvolHalo, X1_f+j*kvol, kvol*sizeof(Complex_f));
 #endif
@@ -329,16 +317,15 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 				printf("\nGoing to double precision on iteration %d. betan %e\talpha %e.\n",
 						*itercg,betan,alpha);
 #endif
+			ComplexConvert(r_f,r,kferm2,false,1);
+			ComplexConvert(p_f,p,kvol,false,nc*ndirac);
 #ifdef __NVCC__
 			//Update the residue vector, but not on the first call.
 			if(*itercg)
 				cuMixed_Sumto((double *)X1,(float *)X1_f,2*kferm2,dimGrid,dimBlock);
 			//Bring everything into double precision
-			cuComplex_convert(r_f,r,kferm2,false,dimBlock,dimGrid);
 			//Reset X1_f to zero.
 			cudaMemset(X1_f,0,kferm2*sizeof(Complex_f));
-			for(unsigned short j=0;j<nc*ndirac;j++)
-				cuComplex_convert(p_f+j*kvolHalo,p+j*kvolHalo,kvol,false,dimBlock,dimGrid);
 #else
 			//Update the residue vector, but not on the first call.
 			if(*itercg)
@@ -346,12 +333,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 				for(unsigned int i=0;i<kferm2;i++){
 					X1[i]+=(Complex)X1_f[i];
 				}
-#pragma omp parallel for simd collapse(2) aligned(r,p,X1_f:AVX)
-			for(unsigned short j=0;j<nc*ndirac;j++)
-				for(unsigned int i=0;i<kvol;i++){
-					r[i+j*kvol]=(Complex)r_f[i+j*kvol]; X1_f[i+j*kvol]=0;
-					p[i+j*kvolHalo]=(Complex)p_f[i+j*kvolHalo];
-				}
+			memset(X1_f,0,kferm2*sizeof(Complex_f));
 #endif
 			///@f$x2 =  (M^\dagger M)p @f$
 			//No need to synchronise here. The memcpy in Hdslash is blocking
@@ -366,33 +348,36 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #ifdef	__NVCC__
 			cudaDeviceSynchronise();
 #endif
-			if(fac_f!=0){
-				alignas(16) const double fac=(double)fac_f;
+			if(fac_f!=0)
+				for(unsigned short j=0;j<nc*ndirac;j++) {
+					alignas(16) const double fac=(double)fac_f;
 #ifdef	__NVCC__
-				cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&fac,(cuDoubleComplex *)p,1,(cuDoubleComplex *)x2,1);
+					cublasZaxpy(cublas_handle,kvol,(cuDoubleComplex *)&fac,(cuDoubleComplex *)p+j*kvolHalo,1,(cuDoubleComplex *)x2+j*kvol,1);
 #elif defined USE_BLAS
-				cblas_zaxpy(kferm2, &fac, p, 1, x2, 1);
+					cblas_zaxpy(kvol, &fac, p+j*kvolHalo, 1, x2+j*kvol, 1);
 #else
-#pragma omp parallel for simd collapse(2) aligned(p,x2:AVX)
-				for(unsigned short j=0;j<nc*ndirac;j++)
+#pragma omp parallel for simd aligned(p,x2:AVX)
 					for(unsigned int i=0; i<kvol; i++)
 						x2[i+j*kvol]+=fac*p[i+j*kvolHalo];
 #endif
-			}
+				}
 
 			/// @f$\alpha_d= p* (M^\dagger M+c_\text{SW} \sum\limits_{\mu\ne\nu}\frac{1}{2}\sigma_{\mu\nu}F_{\mu\nu}+J^2)p@f$
 			if(*itercg){
-#ifdef __NVCC__
-				cublasZdotc(cublas_handle,kferm2,(cuDoubleComplex *)p,1,(cuDoubleComplex *)x2,1,(cuDoubleComplex *)&alpha);
-#elif defined USE_BLAS
-				cblas_zdotc_sub(kferm2, p, 1, x2, 1, &alpha);
-#else
 				alpha=0;
-#pragma omp parallel for simd collapse(2) aligned(p,x2:AVX) reduction(+:alpha)
-				for(unsigned short j=0;j<nc*ndirac;j++)
+				for(unsigned short j=0;j<nc*ndirac;j++) {
+					double alpha_t=0;
+#ifdef __NVCC__
+					cublasZdotc(cublas_handle,kvol,(cuDoubleComplex *)p+j*kvolHalo,1,(cuDoubleComplex *)x2+j*kvol,1,(cuDoubleComplex *)&alpha_t);
+#elif defined USE_BLAS
+					cblas_zdotc_sub(kvol, p+j*kvolHalo, 1, x2+j*kvol, 1, &alpha_t);
+#else
+#pragma omp parallel for simd aligned(p,x2:AVX) reduction(+:alpha)
 					for(unsigned int i=0; i<kvol; i++)
-						alpha+=conj(p[i+j*kvolHalo])*x2[i+j*kvol];
+						alpha_t+=conj(p[i+j*kvolHalo])*x2[i+j*kvol];
 #endif
+					alpha+=alpha_t;
+				}
 				//For now I'll cast it into a float for the reduction. Each rank only sends and writes
 				//to the real part so this is fine
 #if(nproc>1)
@@ -401,17 +386,18 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 				///@f$alpha=\frac{\alpha_n}{\alpha_d}=\frac{r\cdot r}{p(M^\dagger M+c_\text{SW} \sum\limits_{\mu\ne\nu}\frac{1}{2}\sigma_{\mu\nu}F_{\mu\nu}+J^2)p}@f$
 				alpha=alphan/creal(alpha);
 				/// @f$x+\alpha p@f$ 
+				for(unsigned short j=0;j<nc*ndirac;j++){
 #ifdef __NVCC__
-				//A bit of a hack. No idea why passing alpha on it's own causes a segfault
-				cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&alpha,(cuDoubleComplex *)p,1,(cuDoubleComplex *)X1,1);
+					//A bit of a hack. No idea why passing alpha on it's own causes a segfault
+					cublasZaxpy(cublas_handle,kvol,(cuDoubleComplex *)&alpha,(cuDoubleComplex *)p+j*kvolHalo,1,(cuDoubleComplex *)X1+j*kvol,1);
 #elif defined USE_BLAS
-				cblas_zaxpy(kferm2, &alpha, p, 1, X1, 1);
+					cblas_zaxpy(kvol, &alpha, p+j*kvolHalo, 1, X1+j*kvol, 1);
 #else
-#pragma omp parallel for simd collapse(2) aligned(p,X1:AVX)
-				for(unsigned short j=0;j<nc*ndirac;j++)
+#pragma omp parallel for simd aligned(p,X1:AVX)
 					for(unsigned int i=0; i<kvol; i++)
 						X1[i+j*kvol]+=alpha*p[i+j*kvolHalo];
 #endif
+				}
 			}
 
 #ifdef	__NVCC__
@@ -450,34 +436,31 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			alignas(16) const Complex beta = (*itercg) ?  betan/betad : 0;
 			betad=betan; alphan=betan;
 #ifdef __NVCC__
-			cublasZdscal(cublas_handle,kferm2,(double *)&beta,(cuDoubleComplex *)p,1);
 			alpha_m=1;
-			cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&alpha_m,(cuDoubleComplex *)r,1,(cuDoubleComplex *)p,1);
-			cuComplex_convert(p_f,p,kferm2,true,dimBlock,dimGrid);
-			cuComplex_convert(r_f,r,kferm2,true,dimBlock,dimGrid);
-#else
-#ifdef __USE_MKL__
+			for(unsigned short j=0;j<nc*ndirac;j++){
+				cublasZdscal(cublas_handle,kvol,(double *)&beta,(cuDoubleComplex *)p+j*kvolHalo,1);
+				cublasZaxpy(cublas_handle,kvol,(cuDoubleComplex *)&alpha_m,(cuDoubleComplex *)r+j*kvol,1,(cuDoubleComplex *)p+j*kvolHalo,1);
+			}
+#elifdef __USE_MKL__
 			const Complex a = 1.0;
 			//There is cblas_?axpby in the MKL and AMD though, set a = 1 and b = \beta.
 			//If we get a small enough \beta_n before hitting the iteration cap we break
-			cblas_zaxpby(kferm2, &a, r, 1, &beta,  p, 1);
-#elif defined USE_BLAS
-			cblas_zscal(kferm2,&beta,p,1);
+			for(unsigned short j=0;j<nc*ndirac;j++)
+				cblas_zaxpby(kvol, &a, r+j*kvol, 1, &beta,  p+j*kvolHalo, 1);
+#elifdef USE_BLAS
 			const Complex a = 1.0;
-			cblas_zaxpy(kferm2,&a,r,1,p,1);
+			for(unsigned short j=0;j<nc*ndirac;j++){
+				cblas_zscal(kvol,&beta,p+j*kvolHalo,1);
+				cblas_zaxpy(kvol,&a,r+j*kvol,1,p+j*kvolHalo,1);
+			}
 #else 
 #pragma omp parallel for simd collapse(2) aligned(r,p:AVX)
 			for(unsigned short j=0;j<nc*ndirac;j++)
 				for(unsigned int i=0; i<kvol; i++)
 					p[i+j*kvolHalo]=r[i+j*kvol]+beta*p[i*j*kvolHalo];
 #endif
-#pragma omp parallel for simd collapse(2) aligned(r,p:AVX)
-			for(unsigned short j=0;j<nc*ndirac;j++)
-				for(unsigned int i=0; i<kvol; i++){
-					p_f[i+j*kvolHalo]=(Complex_f)p[i+j*kvolHalo];
-					r_f[i+j*kvol]=(Complex_f)r[i+j*kvol];
-				}
-#endif
+			ComplexConvert(p_f,p,kvol,true,nc*ndirac);
+			ComplexConvert(r_f,r,kferm2,true,1);
 #ifdef _DEBUGCG
 			if(!rank) printf("Double precision. Iter(CG)=%i\tbeta_n=%e\talpha=%e\n", *itercg, betan, alpha);
 			fflush(stdout);
@@ -508,32 +491,35 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #endif
 			///@f$x2 =  (M^\dagger M+J^2)p@f$
 			//No point adding zero a couple of hundred times if the diquark source is zero
-			if(fac_f!=0){
+			if(fac_f!=0)
+				for(unsigned short j=0;j<nc*ndirac;j++) {
 #ifdef	__NVCC__
-				cublasCaxpy(cublas_handle,kferm2,(cuComplex *)&fac_f,(cuComplex *)p_f,1,(cuComplex *)x2_f,1);
+					cublasCaxpy(cublas_handle,kvol,(cuComplex *)&fac_f,(cuComplex *)p_f+j*kvolHalo,1,(cuComplex *)x2_f+j*kvol,1);
 #elif defined USE_BLAS
-				cblas_caxpy(kferm2, &fac_f, p_f, 1, x2_f, 1);
+					cblas_caxpy(kvol, &fac_f, p_f+j*kvolHalo, 1, x2_f+j*kvol, 1);
 #else
-#pragma omp parallel for simd collapse(2) aligned(p_f,x2_f:AVX)
-				for(unsigned short j=0;j<nc*ndirac;j++)
+#pragma omp parallel for simd aligned(p_f,x2_f:AVX)
 					for(unsigned int i=0; i<kvol; i++)
 						x2_f[i+j*kvol]+=fac_f*p_f[i+j*kvolHalo];
 #endif
-			}
+				}
 			/// First iteration @f$ \vec{r}_0=\vec{p}_0@f$
 			/// @f$\alpha_d= p* (M^\dagger M+c_\text{SW} \sum\limits_{\mu\ne\nu}\frac{1}{2}\sigma_{\mu\nu}F_{\mu\nu}+J^2)p@f$
 			if(*itercg){
-#ifdef __NVCC__
-				cublasCdotc(cublas_handle,kferm2,(cuComplex *)p_f,1,(cuComplex *)x2_f,1,(cuComplex *)&alphad);
-#elif defined USE_BLAS
-				cblas_cdotc_sub(kferm2, p_f, 1, x2_f, 1, &alphad);
-#else
 				alphad=0;
-#pragma omp parallel for simd collapse(2) aligned(p_f,x2_f:AVX)
-				for(unsigned short j=0;j<nc*ndirac;j++)
+				for(unsigned short j=0;j<nc*ndirac;j++){
+					float alpha_t=0;
+#ifdef __NVCC__
+					cublasCdotc(cublas_handle,kvol,(cuComplex *)p_f+j*kvolHalo,1,(cuComplex *)x2_f+j*kvol,1,(cuComplex *)&alpha_t);
+#elif defined USE_BLAS
+					cblas_cdotc_sub(kvol, p_f+j*kvoHalo, 1, x2_f+j*kvol, 1, &alpha_t);
+#else
+#pragma omp parallel for simd aligned(p_f,x2_f:AVX)
 					for(unsigned int i=0; i<kvol; i++)
-						alphad+=conj(p_f[i+j*kvolHalo])*x2_f[i+j*kvol];
+						alpha_t+=conj(p_f[i+j*kvolHalo])*x2_f[i+j*kvol];
 #endif
+					alphad+=alpha_t;
+				}
 				//For now I'll cast it into a float for the reduction. Each rank only sends and writes
 				//to the real part so this is fine
 #if(nproc>1)
@@ -542,20 +528,22 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 				///@f$alpha=\frac{\alpha_n}{\alpha_d}=\frac{r\cdot r}{p(M^\dagger M+c_\text{SW} \sum\limits_{\mu\ne\nu}\frac{1}{2}\sigma_{\mu\nu}F_{\mu\nu}+J^2)p}@f$
 				alpha=alphan/creal(alphad);
 				/// @f$x+\alpha p@f$ 
+				for(unsigned short j=0;j<nc*ndirac;j++){
 #ifdef __NVCC__
-				alignas(8) Complex_f alpha_f = (Complex_f)alpha;
-				cublasCaxpy(cublas_handle,kferm2,(cuComplex *)&alpha_f,(cuComplex *)p_f,1,(cuComplex *)X1_f,1);
+					alignas(8) Complex_f alpha_f = (Complex_f)alpha;
+					cublasCaxpy(cublas_handle,kvol,(cuComplex *)&alpha_f,(cuComplex *)p_f+j*kvolHalo,1,(cuComplex *)X1_f+j*kvol,1);
 #elif defined USE_BLAS
-				Complex_f alpha_f = (Complex_f)alpha;
-				cblas_caxpy(kferm2, &alpha_f, p_f, 1, X1_f, 1);
+					Complex_f alpha_f = (Complex_f)alpha;
+					cblas_caxpy(kvol, &alpha_f, p_f+j*kvolHalo, 1, X1_f+j*kvol, 1);
 #else
-#pragma omp parallel for simd collapse(2) aligned(X1_f,p_f:AVX)
-				for(unsigned short j=0;j<nc*ndirac;j++)
+#pragma omp parallel for simd aligned(X1_f,p_f:AVX)
 					for(unsigned int i=0; i<kvol; i++)
 						X1_f[i+j*kvol]+=alpha*p_f[i+j*kvolHalo];
 #endif
+				}
 			}			
 			/// @f$r_{n+1} = r_n-\alpha(M^\dagger M)p_n@f$ and @f$\beta_n=r^\dagger r@f$
+			// And no Halos here so nice and easy
 #ifdef	__NVCC__
 			alignas(8) __managed__ Complex_f alpha_m=(Complex_f)(-alpha);
 			cublasCaxpy(cublas_handle, kferm2,(cuComplex *)&alpha_m,(cuComplex *)x2_f,1,(cuComplex *)r_f,1);
@@ -616,28 +604,29 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			betad=betan; alphan=betan;
 			//BLAS for p=r+\betap doesn't exist in standard BLAS. This is NOT an axpy case as we're multiplying y by
 			//\beta instead of x.
+			for(unsigned short j=0;j<nc*ndirac;j++){
 #ifdef __NVCC__
-			alignas(8) Complex_f beta_f=(Complex_f)beta;
-			alpha_m = 1.0;
-			cublasCscal(cublas_handle,kferm2,(cuComplex *)&beta_f,(cuComplex *)p_f,1);
-			cublasCaxpy(cublas_handle,kferm2,(cuComplex *)&alpha_m,(cuComplex *)r_f,1,(cuComplex *)p_f,1);
+				alignas(8) Complex_f beta_f=(Complex_f)beta;
+				alpha_m = 1.0;
+				cublasCscal(cublas_handle,kvol,(cuComplex *)&beta_f,(cuComplex *)p_f+j*kvolHalo,1);
+				cublasCaxpy(cublas_handle,kvol,(cuComplex *)&alpha_m,(cuComplex *)r_f+j*kvolHalo,1,(cuComplex *)p_f+j*kvolHalo,1);
 #elif (defined __USE_MKL__)
-			Complex_f a = 1.0;
-			Complex_f beta_f=(Complex_f)beta;
-			//There is cblas_?axpby in the MKL and AMD though, set a = 1 and b = \beta.
-			//If we get a small enough \beta_n before hitting the iteration cap we break
-			cblas_caxpby(kferm2, &a, r_f, 1, &beta_f,  p_f, 1);
+				Complex_f a = 1.0;
+				Complex_f beta_f=(Complex_f)beta;
+				//There is cblas_?axpby in the MKL and AMD though, set a = 1 and b = \beta.
+				//If we get a small enough \beta_n before hitting the iteration cap we break
+				cblas_caxpby(kvol, &a, r_f+j*kvol, 1, &beta_f,  p_f+j*kvolHalo, 1);
 #elif defined USE_BLAS
-			Complex_f beta_f=(Complex_f)beta;
-			cblas_cscal(kferm2,&beta_f,p_f,1);
-			Complex_f a = 1.0;
-			cblas_caxpy(kferm2,&a,r_f,1,p_f,1);
+				Complex_f beta_f=(Complex_f)beta;
+				cblas_cscal(kvol,&beta_f,p_f+j*kvolHalo,1);
+				Complex_f a = 1.0;
+				cblas_caxpy(kvol,&a,r_f+j*kvol,1,p_f+j*kvolHalo,1);
 #else 
-#pragma omp parallel for simd collapse(2) aligned(p_f,r_f:AVX)
-			for(unsigned short j=0;j<nc*ndirac;j++)
+#pragma omp parallel for simd aligned(p_f,r_f:AVX)
 				for(unsigned int i=0; i<kvol; i++)
 					p_f[i+j*kvolHalo]=r_f[i+j*kvol]+beta*p_f[i+j*kvolHalo];
 #endif
+			}
 		}
 	}
 	Q_free_f(&p_f,&x1_f,&x2_f,&r_f,&X1_f);
@@ -675,28 +664,31 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 	P_allocate_f(&p_f,&r_f,&x1_f,&x2_f,&xi_f);
 	P_allocate(&p, &r, &x1, &x2,clover);
 
+	ComplexConvert(r_f,Phi+na*kferm,kferm,true,1);
+	ComplexConvert(xi_f,xi,kferm,true,1);
+	if(c_sw){
+		ComplexConvert(clover_f[0],clover[0],6*kvol,false,1);
+		ComplexConvert(clover_f[1],clover[1],6*kvol,false,1);
+	}
 	//Instead of copying element-wise in a loop, use memcpy.
 #ifdef __NVCC__
-	//Get xi  in single precision, then swap to AoS format
-	cudaMemcpy(p,xi,kferm*sizeof(Complex),cudaMemcpyDefault);
-	cuComplex_convert(p_f,xi,kferm,true,dimBlock,dimGrid);
-	//And repeat for r
-	cuComplex_convert(r_f,Phi+na*kferm,kferm,true,dimBlock,dimGrid);
-	//Clover to double
-	if(c_sw){
-		cuComplex_convert(clover_f[0],clover[0],6*kvol,false,dimBlock,dimGrid);
-		cuComplex_convert(clover_f[1],clover[1],6*kvol,false,dimBlock,dimGrid);
-	}
+	//Get r in single precision
+	//Get xi  in single precision
 	cudaMemcpy(r,Phi+na*kferm,kferm*sizeof(Complex),cudaMemcpyDefault);
-	cudaMemcpy(xi_f,p_f,kferm*sizeof(Complex_f),cudaMemcpyDefault);
-#else
-	memcpy(p,xi,kferm*sizeof(Complex));
-	memcpy(r,Phi+na*kferm,kferm*sizeof(Complex));
-#pragma omp parallel for simd aligned(p_f,xi_f,xi,r_f,Phi:AVX)
-	for(unsigned int i =0;i<kferm;i++){
-		p_f[i]=xi_f[i]=(Complex_f)xi[i];
-		r_f[i]=(Complex_f)Phi[na*kferm+i];
+	for(unsigned short j=0;j<nc*ngorkov;j++){
+		cudaMemcpyAsync(p+j*kvolHalo,xi+j*kvol,kvol*sizeof(Complex),cudaMemcpyDefault,streams[j]);
+		cudaMemcpyAsync(p_f+j*kvolHalo,xi_f+j*kvol,kvol*sizeof(Complex_f),cudaMemcpyDefault,streams[j]);
 	}
+	//Clover to double
+	cudaDeviceSynchronise();
+#else
+	memcpy(r,Phi+na*kferm,kferm*sizeof(Complex));
+	//These strided loops for MPI halos are a total pain in the arse...
+	for(unsigned short j=0;j<nc*ngorkov;j++){
+		memcpy(p+j*kvolHalo,xi+kvol,kvol*sizeof(Complex));
+		memcpy(p_f+j*kvolHalo,xi_f+kvol,kvol*sizeof(Complex_f));
+	}
+
 #endif
 
 	double betan=1;double beta_max=FLT_MAX; bool do_dp=true;
@@ -712,13 +704,14 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 				printf("\nGoing to double precision on iteration %d. %sbetan %e\talpha %e.\n",
 						*itercg,endline,betan,alpha);
 #endif
+			ComplexConvert(r_f,r,kferm,false,1);
+			//TODO: Banking on converting the halo too being faster than multiple launches
+			ComplexConvert(p_f,p,kvol,false,nc*ngorkov);
 #ifdef __NVCC__
 			//Update the residue vector, but not on the first call.
 			if(*itercg)
 				cuMixed_Sumto((double *)xi,(float *)xi_f,2*kferm,dimGrid,dimBlock);
 			//Bring everything into double precision
-			cuComplex_convert(p_f,p,kferm,false,dimBlock,dimGrid);
-			cuComplex_convert(r_f,r,kferm,false,dimBlock,dimGrid);
 			//Reset xi_f to zero.
 			cudaDeviceSynchronise();
 			cudaMemsetAsync(xi_f,0,kferm*sizeof(Complex_f),streams[4]);
@@ -726,14 +719,9 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 			//Update the residue vector, but not on the first call.
 			if(*itercg)
 #pragma omp parallel for simd aligned(xi,xi_f:AVX)
-				for(unsigned int i=0;i<kferm;i++){
+				for(unsigned int i=0;i<kferm;i++)
 					xi[i]+=(Complex)xi_f[i];
-				}
-#pragma omp parallel for simd aligned(r,p,xi_f:AVX)
-			for(unsigned int i=0;i<kferm;i++){
-				r[i]=(Complex)r_f[i]; xi_f[i]=0;
-				p[i]=(Complex)p_f[i];
-			}
+			memset(xi_f,0,kferm*sizeof(Complex_f));
 #endif
 			///@f$x2 =  (M^\dagger M)p @f$
 			//No need to synchronise here.  The memcpy in Dslash is blocking
@@ -764,7 +752,7 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 #if(nproc>1)
 				Par_dsum((double *)&alpha);
 #endif
-				///@f$alpha=\frac{\alpha_n}{\alpha_d}=\frac{r\cdot r}{p(M^\dagger M)p}@f$
+				///@f$alpha=\frac{\alpha_n} {\alpha_d}=\frac{r\cdot r}{p(M^\dagger M)p}@f$
 				alpha=alphan/creal(alpha);
 				/// @f$x+\alpha p@f$
 #ifdef __NVCC__

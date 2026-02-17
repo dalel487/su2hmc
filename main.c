@@ -463,10 +463,6 @@ int main(int argc, char *argv[]){
 			for(unsigned short j=0;j<nc*ngorkov;j++)
 				Gauss_c(R+j*kvolHalo,kvol , 0, 1/sqrt(2));
 
-			//Transpose needed here for Dslashd
-			//R is random so this techincally isn't required. But it does keep the code output consistent with previous
-			//versions.
-			//			Transpose_c(R,ngorkov*nc,kvolHalo);
 			Dslashd_f(R1_f,R,ut_f,iu,id,gamval_f,gamin,dk_f,jqq,akappa);
 			if(c_sw)
 				ByClover_f(R1_f,R,clover,sigval_f,akappa,sigin);
@@ -483,7 +479,6 @@ int main(int argc, char *argv[]){
 			cudaFreeAsync(R1_f,streams[0]);
 #endif
 			cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,streams[1]);
-			//cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,streams[1]);
 #else
 			free(R); 
 #pragma omp simd aligned(R1_f,R1:AVX)

@@ -65,6 +65,8 @@
 #define	ARRAYLEN		11004 
 /// @brief Copy failed
 #define	CPYERROR		11005 
+/// @brief Undefined stride
+#define	STRDERROR	11006 
 
 									//Warnings:
 									//---------

@@ -319,13 +319,57 @@ inline int Reunitarise(Complex *ut[2]){
 #else
 #pragma omp parallel for
 	for(unsigned int i=0; i<kvol; i++)
-	#pragma omp simd
-	for(unsigned short mu=0;mu<ndim;mu++){
-		//Declaring anorm inside the loop will hopefully let the compiler know it
-		//is safe to vectorise aggressively
-		double anorm=sqrt(conj(ut[0][i+kvol*mu])*ut[0][i+kvol*mu]+conj(ut[1][i+kvol*mu])*ut[1][i+kvol*mu]);
-		ut[0][i+kvol*mu]/=anorm; ut[1][i+kvol*mu]/=anorm;
-	}
+#pragma omp simd
+		for(unsigned short mu=0;mu<ndim;mu++){
+			//Declaring anorm inside the loop will hopefully let the compiler know it
+			//is safe to vectorise aggressively
+			double anorm=sqrt(conj(ut[0][i+kvol*mu])*ut[0][i+kvol*mu]+conj(ut[1][i+kvol*mu])*ut[1][i+kvol*mu]);
+			ut[0][i+kvol*mu]/=anorm; ut[1][i+kvol*mu]/=anorm;
+		}
 #endif
+	return 0;
+}
+int ComplexConvert(Complex_f *a, Complex *b, const unsigned int len, const bool dtof, const unsigned short stride){
+	const char funcname[] = "ComplexConvert";
+	switch(stride){
+		case(0):
+			fprintf(stderr,"Error %i in %s: Stride of %d is not valid.\nExiting...\n\n",STRDERROR,funcname,stride);
+#if (nproc>1)
+			MPI_ABORT(STRDERROR);
+#else
+			exit(STRDERROR);
+#endif
+			break;
+		case(1):
+#ifdef __NVCC__
+			cuComplex_convert(a,b,len,dtof,dimBlock,dimGrid);
+#else
+			if(dtof)
+#pragma omp parallel for simd aligned(a,b:AVX)
+				for(unsigned int i=0;i<len;i++)
+					a[i]=(Complex_f)b[i];
+			else
+#pragma omp parallel for simd aligned(a,b:AVX)
+				for(unsigned int i=0;i<len;i++)
+					b[i]=(Complex)a[i];
+#endif
+			break;
+		default:
+			for(unsigned short j=0;j<stride;j++){
+#ifdef __NVCC__
+				cuComplex_convert(a+j*(len+halo),b+j*(len+halo),len,dtof,dimBlock,dimGrid);
+#else
+				if(dtof)
+#pragma omp parallel for simd aligned(a,b:AVX)
+					for(unsigned int i=0;i<len;i++)
+						a[i+j*(len+halo)]=(Complex_f)b[i+j*(len+halo)];
+				else
+#pragma omp parallel for simd aligned(a,b:AVX)
+					for(unsigned int i=0;i<len;i++)
+						b[i+j*(len+halo)]=(Complex)a[i+j*(len+halo)];
+#endif
+			}
+		break;
+	}
 	return 0;
 }
