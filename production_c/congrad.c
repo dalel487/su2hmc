@@ -560,7 +560,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #elif defined USE_BLAS
 				for(unsigned short j=0;j<nc*ndirac;j++){
 					float alpha_t=0;
-					cblas_cdotc_sub(kvol, p_f+j*kvoHalo, 1, x2_f+j*kvol, 1, &alpha_t);
+					cblas_cdotc_sub(kvol, p_f+j*kvolHalo, 1, x2_f+j*kvol, 1, &alpha_t);
 					alphad+=alpha_t;
 				}
 #else
@@ -753,8 +753,8 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 	memcpy(r,Phi+na*kferm,kferm*sizeof(Complex));
 	//These strided loops for MPI halos are a total pain in the arse...
 	for(unsigned short j=0;j<nc*ngorkov;j++){
-		memcpy(p+j*kvolHalo,xi+kvol,kvol*sizeof(Complex));
-		memcpy(p_f+j*kvolHalo,xi_f+kvol,kvol*sizeof(Complex_f));
+		memcpy(p+j*kvolHalo,xi+j*kvol,kvol*sizeof(Complex));
+		memcpy(p_f+j*kvolHalo,xi_f+j*kvol,kvol*sizeof(Complex_f));
 	}
 
 #endif
