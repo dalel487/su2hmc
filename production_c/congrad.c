@@ -380,7 +380,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #ifdef __NVCC__
 #if(nproc>1)
 				for(unsigned short j=0;j<nc*ndirac;j++){
-					double alpha_t=0;
+					Complex alpha_t=0;
 					cublasZdotc(cublas_handle,kvol,(cuDoubleComplex *)p+j*kvolHalo,1,(cuDoubleComplex *)x2+j*kvol,1,(cuDoubleComplex *)&alpha_t);
 					alpha+=alpha_t;
 				}
@@ -389,9 +389,9 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #endif
 #elif defined USE_BLAS
 				for(unsigned short j=0;j<nc*ndirac;j++){
-					double alpha_t=0;
+					Complex alpha_t=0;
 					cblas_zdotc_sub(kvol, p+j*kvolHalo, 1, x2+j*kvol, 1, &alpha_t);
-					alpha+=alpha_t;
+					alpha+=creal(alpha_t);
 				}
 #else
 #pragma omp parallel for simd collapse(2) aligned(p,x2:AVX) reduction(+:alpha)
@@ -550,7 +550,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #ifdef __NVCC__
 #if(nproc>1)
 				for(unsigned short j=0;j<nc*ndirac;j++){
-					float alpha_t=0;
+					Complex alpha_t=0;
 					cublasCdotc(cublas_handle,kvol,(cuComplex *)p_f+j*kvolHalo,1,(cuComplex *)x2_f+j*kvol,1,(cuComplex *)&alpha_t);
 					alphad+=alpha_t;
 				}
@@ -559,9 +559,9 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #endif
 #elif defined USE_BLAS
 				for(unsigned short j=0;j<nc*ndirac;j++){
-					float alpha_t=0;
+					Complex_f alpha_t=0;
 					cblas_cdotc_sub(kvol, p_f+j*kvolHalo, 1, x2_f+j*kvol, 1, &alpha_t);
-					alphad+=alpha_t;
+					alphad+=creal(alpha_t);
 				}
 #else
 #pragma omp parallel for simd aligned(p_f,x2_f:AVX) reduction(alphad:+)
