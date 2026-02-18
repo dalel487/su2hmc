@@ -113,11 +113,7 @@ int main(int argc, char *argv[]){
 	int iprint = 1; //How often are measurements made
 	int icheck = 5; //How often are configurations saved
 	int ibound = -1;
-#ifdef USE_MATH_DEFINES
-	const double tpi = 2*M_PI;
-#else
-	const double tpi = 2*acos(-1.0);
-#endif
+
 	float dt=0.004;	float c_sw = 0.0;	float delb=0; //Not used?
 	float ajq = 0.0;	int stepl = 250;	int ntraj = 10;
 	//rank is zero means it must be the "master process"
@@ -198,7 +194,7 @@ int main(int argc, char *argv[]){
 	//And clover arrays. These only get assigned if @f$c_\text{SW}>0@f$
 	Complex *sigval; Complex_f *sigval_f; unsigned short *sigin;
 #ifdef __NVCC__
-//Managed here because it's easier to fill them on CPU
+	//Managed here because it's easier to fill them on CPU
 	cudaMallocManaged((void**)&iu,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
 	cudaMallocManaged((void**)&id,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
 
@@ -272,16 +268,22 @@ int main(int argc, char *argv[]){
 	//Send trials to accelerator for reunitarisation
 	Reunitarise(ut);
 	//Get trials back
-	//Memcpy routines need to be strided if there is a halo since the lattice is not contiguous in memory
-	for(unsigned short mu=0;mu<ndim;mu++){
 #ifdef __NVCC__
+#if(nproc>1) //Memcpy routines need to be strided if there is a halo since the lattice is not contiguous in memory
+	for(unsigned short mu=0;mu<ndim;mu++){
 		cudaMemcpyAsync(u[0]+kvol*mu, ut[0]+kvolHalo*mu, kvol*sizeof(Complex),cudaMemcpyDefault,streams[mu]);
 		cudaMemcpyAsync(u[1]+kvol*mu, ut[1]+kvolHalo*mu, kvol*sizeof(Complex),cudaMemcpyDefault,streams[mu]);
+	}
 #else
+	cudaMemcpyAsync(u[0], ut[0], ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[0]);
+	cudaMemcpyAsync(u[1], ut[1], ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[1]);
+#endif
+#else
+	for(unsigned short mu=0;mu<ndim;mu++){
 		memcpy(u[0]+kvol*mu, ut[0]+kvolHalo*mu, kvol*sizeof(Complex));
 		memcpy(u[1]+kvol*mu, ut[1]+kvolHalo*mu, kvol*sizeof(Complex));
-#endif
 	}
+#endif
 #ifdef __NVCC__
 	cudaDeviceSynchronise();
 #endif
@@ -418,7 +420,8 @@ int main(int argc, char *argv[]){
 #endif
 	double action;
 	//Conjugate Gradient iteration counters
-	double ancg,ancgh,totancg,totancgh=0;
+	double ancg,ancgh,totancg,totancgh;
+	ancg=ancgh=totancg=totancgh=0;
 	for(int itraj = iread+1; itraj <= ntraj+iread; itraj++){
 		//Reset conjugate gradient averages
 		ancg = 0; ancgh = 0;
@@ -507,18 +510,23 @@ int main(int argc, char *argv[]){
 		//========
 		//We're going to make the most of the new Gauss_d routine to send a flattened array
 		//and do this all in one step.
-		for(unsigned short mu=0;mu<ndim;mu++){
 #ifdef __NVCC__
-			cudaMemcpy(ut[0]+kvolHalo*mu, u[0]+kvol*mu, kvol*sizeof(Complex),cudaMemcpyDefault);
-			cudaMemcpy(ut[1]+kvolHalo*mu, u[1]+kvol*mu, kvol*sizeof(Complex),cudaMemcpyDefault);
-			//Convert to SoA
-			//Transpose_z(ut[0],ndim,kvol);
-			//Transpose_z(ut[1],ndim,kvol);
+#if(nproc>1)//Strided memcpy
+		for(unsigned short mu=0;mu<ndim;mu++){
+			cudaMemcpyAsync(ut[0]+kvolHalo*mu, u[0]+kvol*mu, kvol*sizeof(Complex),cudaMemcpyDefault,streams[mu]);
+			cudaMemcpyAsync(ut[1]+kvolHalo*mu, u[1]+kvol*mu, kvol*sizeof(Complex),cudaMemcpyDefault,streams[mu]);
+		}
+#else 
+		cudaMemcpyAsync(ut[0], u[0], ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[0]);
+		cudaMemcpyAsync(ut[1], u[1], ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[1]);
+#endif
+		cudaDeviceSynchronise();
 #else
+		for(unsigned short mu=0;mu<ndim;mu++){
 			memcpy(ut[0]+kvolHalo*mu, u[0]+kvol*mu, kvol*sizeof(Complex));
 			memcpy(ut[1]+kvolHalo*mu, u[1]+kvol*mu, kvol*sizeof(Complex));
-#endif
 		}
+#endif
 		Trial_Exchange(ut,ut_f);
 		Gauss_d(pp, kmom, 0, 1);
 
@@ -590,17 +598,22 @@ int main(int argc, char *argv[]){
 			//Original FORTRAN Comment:
 			//JIS 20100525: write config here to preempt troubles during measurement!
 			//JIS 20100525: remove when all is ok....
-			for(unsigned short mu=0;mu<ndim;mu++){
 #ifdef __NVCC__
+#if(nproc>1) //strided Memcpy
+			for(unsigned short mu=0;mu<ndim;mu++){
 				cudaMemcpyAsync(u[0]+kvol*mu,ut[0]+kvolHalo*mu,kvol*sizeof(Complex),cudaMemcpyDefault,streams[mu]);
 				cudaMemcpyAsync(u[1]+kvol*mu,ut[1]+kvolHalo*mu,kvol*sizeof(Complex),cudaMemcpyDefault,streams[mu]);
-				//			Transpose_z(u[0],kvol,ndim);
-				//			Transpose_z(u[1],kvol,ndim);
+			}
 #else
+			cudaMemcpyAsync(u[0],ut[0],ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[0]);
+			cudaMemcpyAsync(u[1],ut[1],ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[1]);
+#endif
+#else
+			for(unsigned short mu=0;mu<ndim;mu++){
 				memcpy(u[0]+kvol*mu,ut[0]+kvolHalo*mu,kvol*sizeof(Complex));
 				memcpy(u[1]+kvol*mu,ut[1]+kvolHalo*mu,kvol*sizeof(Complex));
-#endif
 			}
+#endif
 			naccp++;
 			//Divide by gvol since we've summed over all lattice sites
 			action=S1/gvol;
@@ -633,18 +646,23 @@ int main(int argc, char *argv[]){
 		if(itraj%iprint==0){
 			//If rejected, copy the previously accepted field in for measurements
 			if(!acc){
-				for(unsigned short mu=0;mu<ndim;mu++){
 #ifdef __NVCC__
-					cudaMemcpy(ut[0]+kvolHalo*mu, u[0]+kvol*mu, kvol*sizeof(Complex),cudaMemcpyDefault);
-					cudaMemcpy(ut[1]+kvolHalo*mu, u[1]+kvol*mu, kvol*sizeof(Complex),cudaMemcpyDefault);
-					//	cudaDeviceSynchronise();
-					//	Transpose_z(ut[0],ndim,kvol);
-					//	Transpose_z(ut[1],ndim,kvol);
+#if(nproc>1) //Strided Memcpy
+				for(unsigned short mu=0;mu<ndim;mu++){
+					cudaMemcpyAsync(ut[0]+kvolHalo*mu, u[0]+kvol*mu, kvol*sizeof(Complex),cudaMemcpyDefault,streams[mu]);
+					cudaMemcpyAsync(ut[1]+kvolHalo*mu, u[1]+kvol*mu, kvol*sizeof(Complex),cudaMemcpyDefault,streams[mu]);
+				}
 #else
+				cudaMemcpyAsync(ut[0], u[0], ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[0]);
+				cudaMemcpyAsync(ut[1], u[1], ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[1]);
+#endif
+				cudaDeviceSynchronise();
+#else
+				for(unsigned short mu=0;mu<ndim;mu++){
 					memcpy(ut[0]+kvolHalo*mu, u[0]+kvol*mu, kvol*sizeof(Complex));
 					memcpy(ut[1]+kvolHalo*mu, u[1]+kvol*mu, kvol*sizeof(Complex));
-#endif
 				}
+#endif
 				Trial_Exchange(ut,ut_f);
 			}
 #ifdef _DEBUG

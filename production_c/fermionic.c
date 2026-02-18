@@ -49,19 +49,18 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	//Setting up noise. Again need that annoying stride 
 	for(unsigned short j=0;j<nc*ngorkov;j++)
 		Gauss_c(xi_f+j*kvolHalo, kvol, 0, (float)(1/sqrt(2)));
+	ComplexConvert(xi_f,xi,kvol,false,nc*ngorkov);
 #ifdef __NVCC__
-	//cudaMemPrefetchAsync(xi_f,kferm*sizeof(Complex_f),device,streams[0]);
+#if (nproc>1) //strided
 	for(unsigned short j=0;j<nc*ngorkov;j++){
-		cuComplex_convert(xi_f+j*kvol,xi+j*kvolHalo,kvol,false,dimBlock,dimGrid);
-		//Flip all the gauge fields around so memory is coalesced
 		cudaMemcpyAsync(x+j*kvolHalo, xi+j*kvol, kvol*sizeof(Complex),cudaMemcpyDefault,0);
 	}
 #else
+	cudaMemcpyAsync(x, xi, kferm*sizeof(Complex),cudaMemcpyDefault,0);
+#endif
+#else
 #pragma omp parallel for
 	for(unsigned short j=0;j<nc*ngorkov;j++){
-	#pragma omp simd aligned(xi,xi_f:AVX)
-		for(unsigned int i=0;i<kvol;i++)
-			xi[i+j*kvol]=(Complex)xi_f[i+j*kvolHalo];
 		memcpy(x+j*kvolHalo, xi+j*kvol, kvol*sizeof(Complex));
 	}
 #endif
@@ -72,37 +71,41 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 		Clover(clover,ut_f,iu,id);
 		ByClover_f(R1_f,xi_f,clover,sigval_f,akappa,sigin);
 	}
+	ComplexConvert(R1_f,R1,kvol,false,nc*ngorkov);
 #ifdef __NVCC__
-	cudaDeviceSynchronise();
 	cudaFree(xi_f);	
-	for(unsigned short j=0;j<ngorkov*nc;j++){
-		cuComplex_convert(R1_f+j*kvol,R1+j*kvolHalo,kvol,false,dimBlock,dimGrid);
-		//Phi has no halo
-		cudaMemcpy(Phi+j*kvol, R1+j*kvolHalo, kvol*sizeof(Complex),cudaMemcpyDefault);
-	}
+	cudaDeviceSynchronise();
 #ifdef _DEBUG
 	cudaFree(R1_f);
 #else
 	cudaFreeAsync(R1_f,streams[0]);
 #endif
-#else
-#pragma omp parallel for simd aligned(R1,R1_f:AVX)
+#if (nproc>1) //strided
 	for(unsigned short j=0;j<ngorkov*nc;j++){
-		for(int i=0;i<kvol;i++)
-			R1[i+j*kvolHalo]=(Complex)R1_f[i+j*kvol];
-		//Copying R1 to the first (zeroth) flavour index of Phi
-		//This should be safe with memcpy since the pointer name
-		//references the first block of memory for that pointer
+		//Phi has no halo
+		cudaMemcpyAsync(Phi+j*kvol, R1+j*kvolHalo, kvol*sizeof(Complex),cudaMemcpyDefault,streams[j]);
+	}
+#else
+	cudaMemcpyAsync(Phi, R1, kferm*sizeof(Complex),cudaMemcpyDefault,streams[0]);
+#endif
+	cudaDeviceSynchronise();
+#else
+	free(xi_f); free(R1_f);
+#pragma omp parallel for 
+	for(unsigned short j=0;j<ngorkov*nc;j++){
 		memcpy(Phi+j*kvol, R1+j*kvolHalo, kvol*sizeof(Complex));
 	}
-	free(R1_f);
 #endif
 	///Evaluate xi = (M^† M)^-1 R_1 
 	if(Congradp(0, res, Phi,R1,ut,ut_f,clover,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,c_sw,itercg)==ITERLIM)
 		return ITERLIM;
 #ifdef __NVCC__
+#if (nproc>1)
 	for(unsigned short j=0;j<ngorkov*nc;j++)
 		cudaMemcpyAsync(xi+j*kvol,R1+j*kvolHalo,kvol*sizeof(Complex),cudaMemcpyDefault,streams[j]);
+#else
+	cudaMemcpyAsync(xi,R1,kferm*sizeof(Complex),cudaMemcpyDefault,streams[0]);
+#endif
 #ifdef _DEBUG
 	if(c_sw){
 		cudaFree(clover[0]); cudaFree(clover[1]);
@@ -112,28 +115,41 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	if(c_sw){
 		cudaFreeAsync(clover[0],streams[1]); cudaFreeAsync(clover[1],streams[2]);
 	}
+	cudaDeviceSynchronise();
 	cudaFreeAsync(R1,streams[0]);
 #endif
+	cudaDeviceSynchronise();
 #else
 	for(unsigned short j=0;j<ngorkov*nc;j++)
 		memcpy(xi+j*kvol,R1+j*kvolHalo,kvol*sizeof(Complex));
-	free(xi_f);
 	if(c_sw){
 		free(clover[0]); free(clover[1]);
 	}
 	free(R1);
 #endif
+	*pbp = 0;
 #ifdef USE_BLAS
-	Complex buff;
+	alignas(16) Complex buff;
 #ifdef __NVCC__
+#if(nproc>1)
+	for(unsigned short j=0;j<ngorkov*nc;j++){
+		buff=0;
+		cublasZdotc(cublas_handle,kvol,(cuDoubleComplex *)x+j*kvolHalo,1,(cuDoubleComplex *)xi+j*kvol,1,(cuDoubleComplex *)&buff);
+		*pbp+=creal(buff);
+	}
+#else
 	cublasZdotc(cublas_handle,kferm,(cuDoubleComplex *)x,1,(cuDoubleComplex *)xi,1,(cuDoubleComplex *)&buff);
+	*pbp+=creal(buff);
+#endif
 	cudaDeviceSynchronise();
 #elif defined USE_BLAS
-	cblas_zdotc_sub(kferm, x, 1, xi,  1, &buff);
+	for(unsigned short j=0;j<ngorkov*nc;j++){
+		buff=0;
+		cblas_zdotc_sub(kvol, x+j*kvolHalo, 1, xi+j*kvol,  1, &buff);
+		*pbp+=creal(buff);
+	}
 #endif
-	*pbp=creal(buff);
 #else
-	*pbp = 0;
 #pragma unroll
 	for(int i=0;i<kferm;i++)
 		*pbp+=creal(conj(x[i])*xi[i]);
@@ -150,34 +166,34 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 		//Unrolling the colour indices, Then its just (γ_5*x)*Ξ or (γ_5*Ξ)*x 
 #pragma unroll
 		for(int ic = 0; ic<nc; ic++){
-			Complex dot;
+			alignas(16) Complex dot=0;
 			//Because we have kvol on the outer index and are summing over it, we set the
 			//step for BLAS to be ngorkov*nc=16. 
 			//Does this make sense to do on the GPU?
 #ifdef __NVCC__
-			cublasZdotc(cublas_handle,kvol,(cuDoubleComplex *)(x+idirac*nc+ic),ngorkov*nc,(cuDoubleComplex *)(xi+igork*nc+ic), ngorkov*nc,(cuDoubleComplex *)&dot);
+			cublasZdotc(cublas_handle,kvol,(cuDoubleComplex *)x+kvolHalo*(idirac*nc+ic),1,(cuDoubleComplex *)xi+kvol*(igork*nc+ic), 1,(cuDoubleComplex *)&dot);
 #else
-			cblas_zdotc_sub(kvol, &x[idirac*nc+ic], ngorkov*nc, &xi[igork*nc+ic], ngorkov*nc, &dot);
+			cblas_zdotc_sub(kvol, x+kvolHalo*(idirac*nc+ic), 1, xi+kvolHalo*(igork*nc+ic), 1, &dot);
 #endif
 			*qbqb+=gamval[4*ndirac+idirac]*dot;
 #ifdef __NVCC__
-			cublasZdotc(cublas_handle,kvol,(cuDoubleComplex *)(x+igork*nc+ic),ngorkov*nc,(cuDoubleComplex *)(xi+idirac*nc+ic), ngorkov*nc,(cuDoubleComplex *)&dot);
+			cublasZdotc(cublas_handle,kvol,(cuDoubleComplex *)x+kvolHalo*(igork*nc+ic),1,(cuDoubleComplex *)xi+kvol*(idirac*nc+ic), 1,(cuDoubleComplex *)&dot);
 #else
-			cblas_zdotc_sub(kvol, &x[igork*nc+ic], ngorkov*nc, &xi[idirac*nc+ic], ngorkov*nc, &dot);
+			cblas_zdotc_sub(kvol, x+kvolHalo*(igork*nc+ic), 1, xi+kvol*(idirac*nc+ic), 1, &dot);
 #endif
 			*qq-=gamval[4*ndirac+idirac]*dot;
 		}
 	}
 #else
-#pragma unroll(2)
-	for(int i=0; i<kvol; i++)
-		//What is the optimal order to evaluate these in?
-		for(int idirac = 0; idirac<ndirac; idirac++){
+	//What is the optimal order to evaluate these in?
+#pragma omp parallel for simd collapse(2) aligned(x,xi:AVX) reduction(+:*qq,*qbqb)
+	for(int idirac = 0; idirac<ndirac; idirac++)
+		for(int i=0; i<kvol; i++){
 			int igork=idirac+4;
-			*qbqb+=gamval[4*ndirac+idirac]*conj(x[(i*ngorkov+idirac)*nc])*xi[(i*ngorkov+igork)*nc];
-			*qq-=gamval[4*ndirac+idirac]*conj(x[(i*ngorkov+igork)*nc])*xi[(i*ngorkov+idirac)*nc];
-			*qbqb+=gamval[4*ndirac+idirac]*conj(x[(i*ngorkov+idirac)*nc+1])*xi[(i*ngorkov+igork)*nc+1];
-			*qq-=gamval[4*ndirac+idirac]*conj(x[(i*ngorkov+igork)*nc+1])*xi[(i*ngorkov+idirac)*nc+1];
+			*qbqb+=gamval[4*ndirac+idirac]*conj(x[i+kvolHalo*(idirac*nc)])*xi[i+kvol*(igork*nc)];
+			*qbqb+=gamval[4*ndirac+idirac]*conj(x[i+kvolHalo*(idirac*nc+1)])*xi[i+kvol*(igork*nc+1)];
+			*qq-=gamval[4*ndirac+idirac]*conj(x[i*kvolHalo*(igork*nc)])*xi[i+kvol*(idirac*nc)];
+			*qq-=gamval[4*ndirac+idirac]*conj(x[i*kvolHalo*(igork*nc+1)])*xi[i+kvol*(idirac*nc+1)];
 		}
 #endif
 	//In the FORTRAN Code dsum was used instead despite qq and qbqb being complex
@@ -200,57 +216,59 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	//Instead of typing id[i+kvol*3] a lot, we'll just assign them to variables.
 	//Idea. One loop instead of two loops but for xuu and xdd just use ngorkov-(igorkov+1) instead
 	//Dirty CUDA work around since it won't convert thrust<complex> to double
-	//TODO: get a reduction routine ready for CUDA
-#ifdef __NVCC__
-	//Swapping back the gauge fields to SoA since the rest of the code is running on CPU and hasn't been ported
-	//	Transpose_z(ut[0],kvol,ndim);
-	//	Transpose_z(ut[1],kvol,ndim);
-	//Set up  index arrays for CPU
-	//Transpose_U(iu,kvol,ndim);
-	//Transpose_U(id,kvol,ndim);
-	//	cudaDeviceSynchronise();
-#else
-#pragma omp parallel for reduction(+:xd,xu,xdd,xuu) 
-#endif
-	for(int i = 0; i<kvol; i++){
-		int did=id[3*kvol+i];
-		int uid=iu[3*kvol+i];
-		for(int igorkov=0; igorkov<4; igorkov++){
-			int igork1=gamin[3*ndirac+igorkov];
-			//For the C Version I'll try and factorise where possible
-			xu+=dk[1][did]*(conj(x[(did*ngorkov+igorkov)*nc])*(\
-						ut[0][did+kvol*3]*(xi[(i*ngorkov+igork1)*nc]-xi[(i*ngorkov+igorkov)*nc])+\
-						ut[1][did+kvol*3]*(xi[(i*ngorkov+igork1)*nc+1]-xi[(i*ngorkov+igorkov)*nc+1]) )+\
-					conj(x[(did*ngorkov+igorkov)*nc+1])*(\
-						conj(ut[0][did+kvol*3])*(xi[(i*ngorkov+igork1)*nc+1]-xi[(i*ngorkov+igorkov)*nc+1])+\
-						conj(ut[1][did+kvol*3])*(xi[(i*ngorkov+igorkov)*nc]-xi[(i*ngorkov+igork1)*nc])));
+	
+	//TODO: Make the code below CUDA friendly.
+	for(unsigned short igorkov=0; igorkov<4; igorkov++){
+		const unsigned short igork1=gamin[3*ndirac+igorkov];
+		//For the C Version I'll try and factorise where possible
+#pragma omp parallel for simd aligned(dk,x,xi:AVX)  reduction(+:xu) 
+		for(unsigned int i = 0; i<kvol; i++){
+			unsigned int did=id[3*kvol+i];
+			xu+=dk[1][did]*(conj(x[did+kvolHalo*(igorkov*nc)])*(\
+						ut[0][did+kvol*3]*(xi[i+kvol*(igork1)*nc]-xi[i+kvol*(igorkov)*nc])+\
+						ut[1][did+kvol*3]*(xi[i+kvol*(igork1)*nc+1]-xi[i+kvol*(igorkov)*nc+1]) )+\
+					conj(x[did+kvolHalo*(igorkov*nc+1)])*(\
+						conj(ut[0][did+kvol*3])*(xi[i+kvol*(igork1)*nc+1]-xi[i+kvol*(igorkov)*nc+1])+\
+						conj(ut[1][did+kvol*3])*(xi[i+kvol*(igorkov)*nc]-xi[i+kvol*(igork1)*nc])));
 		}
-		for(int igorkov=0; igorkov<4; igorkov++){
-			int igork1=gamin[3*ndirac+igorkov];
-			xd+=dk[0][i]*(conj(x[(uid*ngorkov+igorkov)*nc])*(\
-						conj(ut[0][i+kvol*3])*(xi[(i*ngorkov+igork1)*nc]+xi[(i*ngorkov+igorkov)*nc])-\
-						ut[1][i+kvol*3]*(xi[(i*ngorkov+igork1)*nc+1]+xi[(i*ngorkov+igorkov)*nc+1]) )+\
-					conj(x[(uid*ngorkov+igorkov)*nc+1])*(\
-						ut[0][i+kvol*3]*(xi[(i*ngorkov+igork1)*nc+1]+xi[(i*ngorkov+igorkov)*nc+1])+\
-						conj(ut[1][i+kvol*3])*(xi[(i*ngorkov+igorkov)*nc]+xi[(i*ngorkov+igork1)*nc]) ) );
+	}
+	for(unsigned short igorkov=0; igorkov<4; igorkov++){
+		const unsigned short igork1=gamin[3*ndirac+igorkov];
+#pragma omp parallel for simd aligned(dk,x,xi:AVX)  reduction(+:xd) 
+		for(unsigned int i = 0; i<kvol; i++){
+			unsigned int uid=iu[3*kvol+i];
+			xd+=dk[0][i]*(conj(x[uid+kvolHalo*(igorkov*nc)])*(\
+						conj(ut[0][i+kvol*3])*(xi[i+kvol*(igork1*nc)]+xi[i+kvol*(igorkov*nc)])-\
+						ut[1][i+kvol*3]*(xi[i+kvol*(igork1*nc+1)]+xi[i+kvol*(igorkov*nc+1)]) )+\
+					conj(x[uid+kvolHalo*(igorkov*nc+1)])*(\
+						ut[0][i+kvol*3]*(xi[i+kvol*(igork1*nc+1)]+xi[i+kvol*(igorkov*nc+1)])+\
+						conj(ut[1][i+kvol*3])*(xi[i+kvol*(igorkov*nc)]+xi[i+kvol*(igork1*nc)]) ) );
 		}
-		for(int igorkovPP=4; igorkovPP<8; igorkovPP++){
-			int igork1PP=4+gamin[3*ndirac+igorkovPP-4];
-			xuu-=dk[0][did]*(conj(x[(did*ngorkov+igorkovPP)*nc])*(\
-						ut[0][did+kvol*3]*(xi[(i*ngorkov+igork1PP)*nc]-xi[(i*ngorkov+igorkovPP)*nc])+\
-						ut[1][did+kvol*3]*(xi[(i*ngorkov+igork1PP)*nc+1]-xi[(i*ngorkov+igorkovPP)*nc+1]) )+\
-					conj(x[(did*ngorkov+igorkovPP)*nc+1])*(\
-						conj(ut[0][did+kvol*3])*(xi[(i*ngorkov+igork1PP)*nc+1]-xi[(i*ngorkov+igorkovPP)*nc+1])+\
-						conj(ut[1][did+kvol*3])*(xi[(i*ngorkov+igorkovPP)*nc]-xi[(i*ngorkov+igork1PP)*nc]) ) );
+	}
+	for(unsigned short igorkovPP=4; igorkovPP<8; igorkovPP++){
+		const unsigned short igork1PP=4+gamin[3*ndirac+igorkovPP-4];
+#pragma omp parallel for simd aligned(dk,x,xi:AVX)  reduction(+:xuu) 
+		for(unsigned int i = 0; i<kvol; i++){
+			unsigned int did=id[3*kvol+i];
+			xuu-=dk[0][did]*(conj(x[did+kvolHalo*(igorkovPP*nc)])*(\
+						ut[0][did+kvol*3]*(xi[i+kvol*(igork1PP*nc)]-xi[i+kvol*(igorkovPP*nc)])+\
+						ut[1][did+kvol*3]*(xi[i+kvol*(igork1PP*nc+1)]-xi[i+kvol*(igorkovPP*nc+1)]) )+\
+					conj(x[did+kvolHalo*(igorkovPP*nc+1)])*(\
+						conj(ut[0][did+kvol*3])*(xi[i+kvol*(igork1PP)*nc+1]-xi[i+kvol*(igorkovPP)*nc+1])+\
+						conj(ut[1][did+kvol*3])*(xi[i+kvol*(igorkovPP)*nc]-xi[i+kvol*(igork1PP)*nc]) ) );
 		}
-		for(int igorkovPP=4; igorkovPP<8; igorkovPP++){
-			int igork1PP=4+gamin[3*ndirac+igorkovPP-4];
-			xdd-=dk[1][i]*(conj(x[(uid*ngorkov+igorkovPP)*nc])*(\
-						conj(ut[0][i+kvol*3])*(xi[(i*ngorkov+igork1PP)*nc]+xi[(i*ngorkov+igorkovPP)*nc])-\
-						ut[1][i+kvol*3]*(xi[(i*ngorkov+igork1PP)*nc+1]+xi[(i*ngorkov+igorkovPP)*nc+1]) )+\
-					conj(x[(uid*ngorkov+igorkovPP)*nc+1])*(\
-						ut[0][i+kvol*3]*(xi[(i*ngorkov+igork1PP)*nc+1]+xi[(i*ngorkov+igorkovPP)*nc+1])+\
-						conj(ut[1][i+kvol*3])*(xi[(i*ngorkov+igorkovPP)*nc]+xi[(i*ngorkov+igork1PP)*nc]) ) );
+	}
+	for(unsigned short igorkovPP=4; igorkovPP<8; igorkovPP++){
+		const unsigned short igork1PP=4+gamin[3*ndirac+igorkovPP-4];
+#pragma omp parallel for simd aligned(dk,x,xi:AVX)  reduction(+:xdd) 
+		for(unsigned int i = 0; i<kvol; i++){
+			unsigned int uid=iu[3*kvol+i];
+			xdd-=dk[1][i]*(conj(x[uid+kvolHalo*(igorkovPP*nc)])*(\
+						conj(ut[0][i+kvol*3])*(xi[i+kvol*(igork1PP*nc)]+xi[i+kvol*(igorkovPP*nc)])-\
+						ut[1][i+kvol*3]*(xi[i+kvol*(igork1PP*nc+1)]+xi[i+kvol*(igorkovPP*nc+1)]) )+\
+					conj(x[uid+kvolHalo*(igorkovPP*nc+1)])*(\
+						ut[0][i+kvol*3]*(xi[i+kvol*(igork1PP*nc+1)]+xi[i+kvol*(igorkovPP*nc+1)])+\
+						conj(ut[1][i+kvol*3])*(xi[i+kvol*(igorkovPP*nc)]+xi[i+kvol*(igork1PP*nc)]) ) );
 		}
 	}
 	*endenf=creal(xu-xd-xuu+xdd);

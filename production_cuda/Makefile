@@ -54,7 +54,7 @@ CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/latest/cuda/lib64/ \
 
 LFLAGS +=		-lstdc++ -lpthread -ldl #${CULFLAGS}
 
-NVCCFLAGS+=	${IFLAGS} --resource-usage -err-no -w --allow-unsupported-compiler #-expt-relaxed-constexpr 
+NVCCFLAGS+=	${IFLAGS} --resource-usage -err-no -w -arch=native --allow-unsupported-compiler #-expt-relaxed-constexpr 
 			#Last flag is an experimental one used to call host functions in device code. Not sure
 			#if it does what we want because the error message suggesting it came up when declaring
 			#a11 and a12 in the Dslash routine
@@ -121,7 +121,7 @@ profiler:	NVCCFLAGS += -Xptxas -O3,-v -lineinfo #-D_DEBUGCG #-keep
 profiler:	release
 
 release:	CFLAGS +=  -Ofast  #-fprofile-use=./gcc_pgo
-release:	NVCCFLAGS += -arch=native #--maxrregcount=64 -G -dopt=on
+release:	NVCCFLAGS +=  #--maxrregcount=64 -G -dopt=on
 release:	$(EXE)
 
 diagnostic: CSRC+= diagnostics.c
@@ -130,7 +130,7 @@ diagnostic: NVCCFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 diagnostic: debug
 
 debug:		CFLAGS += -g -O0 -D_DEBUG -D_DEBUGCG #-DNO_TIME -DNO_SPACE
-debug:		NVCCFLAGS += -Xptxas -O0,-v -G -g -D_DEBUG -arch=native -keep 
+debug:		NVCCFLAGS += -Xptxas -O0,-v -G -g -D_DEBUG  -keep 
 debug:		$(EXE)
 		 
 $(EXE): $(OBJ) ../main.c
