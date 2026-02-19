@@ -874,61 +874,54 @@ int ZHalo_swap_dir(Complex *z, int ncpt, int idir, int layer){
 		MPI_Abort(comm,BROADERR);
 	}
 	//How big is the data being sent and received
-	int msg_size=ncpt*halosize[idir];
-	Complex *sendbuf = (Complex *)aligned_alloc(AVX,msg_size*sizeof(Complex));
-	//In each case we set up the data being sent then do the exchange
-	switch(layer){
-		case(DOWN):
-			if(halosize[idir]+h1u[idir]>kvol+halo){
-				fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
-						"a memory leak on rank %i.\nExiting...\n\n"
-						,BOUNDERROR, funcname, msg_size, ncpt*h1u[idir], rank);
-				MPI_Abort(comm,BOUNDERROR);
-			}
 #pragma omp parallel for
-			for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
-#pragma omp simd aligned(z, sendbuf:AVX)
-				for(int icpt = 0; icpt <ncpt; icpt++)
-					sendbuf[ihalo*ncpt+icpt]=z[ncpt*hd[ndim*ihalo+idir]+icpt];
-			//For the zdnhaloswapdir we send off the down halo and receive into the up halo
-			if(MPI_Isend(sendbuf, msg_size, MPI_C_DOUBLE_COMPLEX, pd[idir], tag, comm, &request)){
-				fprintf(stderr,"Error %i in %s: Failed to send off the down halo from rank %i to rank %i.\nExiting...\n"
-						,CANTSEND, funcname, rank, pd[idir]);
-				MPI_Abort(comm,CANTSEND);
-			}
-			if(MPI_Recv(&z[ncpt*h1u[idir]], msg_size, MPI_C_DOUBLE_COMPLEX, pu[idir], tag, comm, &status)){
-				fprintf(stderr,"Error %i in %s: Rank %i failed to receive into up halo from rank %i.\nExiting...\n",
-						CANTRECV, funcname, rank, pu[idir]);
-				MPI_Abort(comm,CANTRECV);
-			}
-			break;
-		case(UP):
-			if(halosize[idir]+h1d[idir]>kvol+halo){
-				fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
-						"a memory leak on rank %i.\nExiting...\n\n"
-						,BOUNDERROR, funcname, msg_size, ncpt*h1d[idir], rank);
-				MPI_Abort(comm,BOUNDERROR);
-			}
-#pragma omp parallel for
-			for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
-#pragma omp simd aligned(z, sendbuf:AVX)
-				for(int icpt = 0; icpt <ncpt; icpt++)
+	for(unsigned short icpt=0;icpt<ncpt;icpt++){
+		//In each case we set up the data being sent then do the exchange
+		switch(layer){
+			case(DOWN):
+				if(halosize[idir]+h1u[idir]>kvol+halo){
+					fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
+							"a memory leak on rank %i.\nExiting...\n\n"
+							,BOUNDERROR, funcname, halosize[idir], ncpt*h1u[idir], rank);
+					MPI_Abort(comm,BOUNDERROR);
+				}
+				//For the zdnhaloswapdir we send off the down halo and receive into the up halo
+				if(MPI_Isend(z+hd[ndim*ihalo+idir]+kvolHalo*icpt, halosize[idir], MPI_C_DOUBLE_COMPLEX, pd[idir], tag, comm, &request)){
+					fprintf(stderr,"Error %i in %s: Failed to send off the down halo from rank %i to rank %i.\nExiting...\n"
+							,CANTSEND, funcname, rank, pd[idir]);
+					MPI_Abort(comm,CANTSEND);
+				}
+				if(MPI_Irecv(z+h1u[idir]+kvolHalo*icpt, halosize[idir], MPI_C_DOUBLE_COMPLEX, pu[idir], tag, comm, &status)){
+					fprintf(stderr,"Error %i in %s: Rank %i failed to receive into up halo from rank %i.\nExiting...\n",
+							CANTRECV, funcname, rank, pu[idir]);
+					MPI_Abort(comm,CANTRECV);
+				}
+				break;
+			case(UP):
+				if(halosize[idir]+h1d[idir]>kvol+halo){
+					fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
+							"a memory leak on rank %i.\nExiting...\n\n"
+							,BOUNDERROR, funcname, halosize[idir], ncpt*h1d[idir], rank);
+					MPI_Abort(comm,BOUNDERROR);
+				}
+#pragma omp parallel simd aligned(sendbuf,z:AVX)
+				for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
 					sendbuf[ihalo*ncpt+icpt]=z[ncpt*hu[ndim*ihalo+idir]+icpt];
-			//For the zuphaloswapdir we send off the up halo and receive into the down halo
-			if(MPI_Isend(sendbuf, msg_size, MPI_C_DOUBLE_COMPLEX, pu[idir], tag, comm, &request)){
-				fprintf(stderr,"Error %i in %s: Failed to send off the up halo from rank %i to rank %i.\nExiting...\n",
-						CANTSEND, funcname, rank, pu[idir]);
-				MPI_Abort(comm,CANTSEND);
-			}
-			if(MPI_Recv(&z[ncpt*h1d[idir]], msg_size, MPI_C_DOUBLE_COMPLEX, pd[idir], tag, comm, &status)){
-				fprintf(stderr,"Error %i in %s: Rank %i failed to receive into doww halo from rank %i.\nExiting...\n",
-						CANTRECV, funcname, rank, pd[idir]);
-				MPI_Abort(comm,CANTRECV);
-			}
-			break;
+				//For the zuphaloswapdir we send off the up halo and receive into the down halo
+				if(MPI_Isend(z+hu[ndim*ihalo+idir]+kvolHalo*icpt, halosize[idir], MPI_C_DOUBLE_COMPLEX, pd[idir], tag, comm, &request)){
+					fprintf(stderr,"Error %i in %s: Failed to send off the up halo from rank %i to rank %i.\nExiting...\n",
+							CANTSEND, funcname, rank, pu[idir]);
+					MPI_Abort(comm,CANTSEND);
+				}
+				if(MPI_Irecv(z+h1d[idir]+kvolHalo*icpt, halosize[idir], MPI_C_DOUBLE_COMPLEX, pu[idir], tag, comm, &status)){
+					fprintf(stderr,"Error %i in %s: Rank %i failed to receive into doww halo from rank %i.\nExiting...\n",
+							CANTRECV, funcname, rank, pd[idir]);
+					MPI_Abort(comm,CANTRECV);
+				}
+				break;
+		}
+		MPI_Wait(&request, &status);
 	}
-	free(sendbuf);
-	MPI_Wait(&request, &status);
 	return 0;
 }
 inline int CHalo_swap_all(Complex_f *c, int ncpt){
@@ -944,7 +937,7 @@ inline int CHalo_swap_all(Complex_f *c, int ncpt){
 	 * -------
 	 * Zero on success, integer error code otherwise
 	 */
-	const char funcname[] = "ZHalo_swap_all";
+	const char funcname[] = "CHalo_swap_all";
 
 	//FORTRAN called zdnhaloswapall and zuphaloswapall here
 	//Those functions looped over the directions and called zXXhaloswapdir
@@ -993,62 +986,50 @@ int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer){
 				LAYERROR, funcname, layer);
 		MPI_Abort(comm,LAYERROR);
 	}
-	//How big is the data being sent and received
-	int msg_size=ncpt*halosize[idir];
-	Complex_f *sendbuf = (Complex_f *)aligned_alloc(AVX,msg_size*sizeof(Complex_f));
-	//In each case we set up the data being sent then do the exchange
-	switch(layer){
-		case(DOWN):
-			if(halosize[idir]+h1u[idir]>kvol+halo){
-				fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
-						"a memory leak on rank %i.\nExiting...\n\n"
-						,BOUNDERROR, funcname, msg_size, ncpt*h1u[idir], rank);
-				MPI_Abort(comm,BOUNDERROR);
-			}
 #pragma omp parallel for
-			for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
-#pragma omp simd aligned(c, sendbuf:AVX)
-				for(int icpt = 0; icpt <ncpt; icpt++)
-					sendbuf[ihalo*ncpt+icpt]=c[ncpt*hd[ndim*ihalo+idir]+icpt];
-			//For the zdnhaloswapdir we send off the down halo and receive into the up halo
-			if(MPI_Isend(sendbuf, msg_size, MPI_C_FLOAT_COMPLEX, pd[idir], tag, comm, &request)){
-				fprintf(stderr,"Error %i in %s: Failed to send off the down halo from rank %i to rank %i.\nExiting...\n"
-						,CANTSEND, funcname, rank, pd[idir]);
-				MPI_Abort(comm,CANTSEND);
-			}
-			if(MPI_Recv(&c[ncpt*h1u[idir]], msg_size, MPI_C_FLOAT_COMPLEX, pu[idir], tag, comm, &status)){
-				fprintf(stderr,"Error %i in %s: Rank %i failed to receive into up halo from rank %i.\nExiting...\n",
-						CANTRECV, funcname, rank, pu[idir]);
-				MPI_Abort(comm,CANTRECV);
-			}
-			break;
-		case(UP):
-			if(halosize[idir]+h1d[idir]>kvol+halo){
-				fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
-						"a memory leak on rank %i.\nExiting...\n\n"
-						,BOUNDERROR, funcname, msg_size, ncpt*h1d[idir], rank);
-				MPI_Abort(comm,BOUNDERROR);
-			}
-#pragma omp parallel for
-			for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
-#pragma omp simd aligned(c, sendbuf:AVX)
-				for(int icpt = 0; icpt <ncpt; icpt++)
-					sendbuf[ihalo*ncpt+icpt]=c[ncpt*hu[ndim*ihalo+idir]+icpt];
-			//For the zuphaloswapdir we send off the up halo and receive into the down halo
-			if(MPI_Isend(sendbuf, msg_size, MPI_C_FLOAT_COMPLEX, pu[idir], tag, comm, &request)){
-				fprintf(stderr,"Error %i in %s: Failed to send off the up halo from rank %i to rank %i.\nExiting...\n",
-						CANTSEND, funcname, rank, pu[idir]);
-				MPI_Abort(comm,CANTSEND);
-			}
-			if(MPI_Recv(&c[ncpt*h1d[idir]], msg_size, MPI_C_FLOAT_COMPLEX, pd[idir], tag, comm, &status)){
-				fprintf(stderr,"Error %i in %s: Rank %i failed to receive into doww halo from rank %i.\nExiting...\n",
-						CANTRECV, funcname, rank, pd[idir]);
-				MPI_Abort(comm,CANTRECV);
-			}
-			break;
+	for(unsigned short icpt=0;icpt<ncpt;icpt++){
+		switch(layer){
+			case(DOWN):
+				if(halosize[idir]+h1u[idir]>kvol+halo){
+					fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
+							"a memory leak on rank %i.\nExiting...\n\n"
+							,BOUNDERROR, funcname, halosize[idir], ncpt*h1u[idir], rank);
+					MPI_Abort(comm,BOUNDERROR);
+				}
+				//For the cdnhaloswapdir we send off the down halo and receive into the up halo
+				if(MPI_Isend(c+hd[ndim*ihalo+idir]+kvolHalo*icpt, halosize[idir], MPI_C_FLOAT_COMPLEX, pd[idir], tag, comm, &request)){
+					fprintf(stderr,"Error %i in %s: Failed to send off the down halo from rank %i to rank %i.\nExiting...\n"
+							,CANTSEND, funcname, rank, pd[idir]);
+					MPI_Abort(comm,CANTSEND);
+				}
+				if(MPI_Irecv(c+h1u[idir]+kvolHalo*icpt, halosize[idir], MPI_C_FLOAT_COMPLEX, pu[idir], tag, comm, &status)){
+					fprintf(stderr,"Error %i in %s: Rank %i failed to receive into up halo from rank %i.\nExiting...\n",
+							CANTRECV, funcname, rank, pu[idir]);
+					MPI_Abort(comm,CANTRECV);
+				}
+				break;
+			case(UP):
+				if(halosize[idir]+h1d[idir]>kvol+halo){
+					fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
+							"a memory leak on rank %i.\nExiting...\n\n"
+							,BOUNDERROR, funcname, halosize[idir], ncpt*h1d[idir], rank);
+					MPI_Abort(comm,BOUNDERROR);
+				}
+				//For the cuphaloswapdir we send off the up halo and receive into the down halo
+				if(MPI_Isend(c+hu[ndim*ihalo+idir]+kvolHalo*icpt, halosize[idir], MPI_C_FLOAT_COMPLEX, pd[idir], tag, comm, &request)){
+					fprintf(stderr,"Error %i in %s: Failed to send off the up halo from rank %i to rank %i.\nExiting...\n",
+							CANTSEND, funcname, rank, pu[idir]);
+					MPI_Abort(comm,CANTSEND);
+				}
+				if(MPI_Irecv(c+h1d[idir]+kvolHalo*icpt, halosize[idir], MPI_C_FLOAT_COMPLEX, pu[idir], tag, comm, &status)){
+					fprintf(stderr,"Error %i in %s: Rank %i failed to receive into doww halo from rank %i.\nExiting...\n",
+							CANTRECV, funcname, rank, pd[idir]);
+					MPI_Abort(comm,CANTRECV);
+				}
+				break;
+		}
+		MPI_Wait(&request, &status);
 	}
-	free(sendbuf);
-	MPI_Wait(&request, &status);
 	return 0;
 }
 inline int DHalo_swap_all(double *d, int ncpt){
@@ -1109,66 +1090,56 @@ int DHalo_swap_dir(double *d, int ncpt, int idir, int layer){
 	const char funcname[] = "DHalo_swap_dir";
 	MPI_Status status;
 	//How big is the data being sent and received
-	int msg_size=ncpt*halosize[idir];
-	double *sendbuf = (double *)aligned_alloc(AVX,msg_size*sizeof(double));
 	if(layer!=DOWN && layer!=UP){
 		fprintf(stderr, "Error %i in %s: Cannot swap in the direction given by %i.\nExiting...\n\n",
 				LAYERROR, funcname, layer);
 		MPI_Abort(comm,LAYERROR);
 	}
-	//Impliment the switch. The code is taken from the end of the dedicated functions in the FORTRAN code.
-	switch(layer){
-		case(DOWN):
-			if(halosize[idir]+h1u[idir]>kvol+halo){
-				fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
-						"a memory leak on rank %i.\nExiting...\n\n"
-						,BOUNDERROR, funcname, msg_size, ncpt*h1u[idir], rank);
-				MPI_Abort(comm,BOUNDERROR);
-			}
 #pragma omp parallel for
-			for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
-#pragma omp simd aligned(d,sendbuf:AVX)
-				for(int icpt = 0; icpt <ncpt; icpt++)
-					sendbuf[ihalo*ncpt+icpt]=d[ncpt*hd[ndim*ihalo+idir]+icpt];
-			//For the cdnhaloswapdir we send off the down halo and receive into the up halo
-			if(MPI_Isend(sendbuf, msg_size, MPI_DOUBLE, pd[idir], tag, comm, &request)){
-				fprintf(stderr, "Error %i in %s: Failed to send off the down halo from rank %i to rank %i.\nExiting...\n\n",
-						CANTSEND, funcname, rank, pd[idir]);
-				MPI_Abort(comm,CANTSEND);
-			}
-			if(MPI_Recv(&d[ncpt*h1u[idir]], msg_size, MPI_DOUBLE, pu[idir], tag, comm, &status)){
-				fprintf(stderr, "Error %i in %s: Rank %i failed to receive into up halo from rank %i.\nExiting...\n\n",
-						CANTRECV, funcname, rank, pu[idir]);
-				MPI_Abort(comm,CANTRECV);
-			}
-			break;
-		case(UP):
-			if(halosize[idir]+h1d[idir]>kvol+halo){
-				fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
-						"a memory leak on rank %i.\nExiting...\n\n"
-						,BOUNDERROR, funcname, msg_size, ncpt*h1d[idir], rank);
-				MPI_Abort(comm,BOUNDERROR);
-			}
-#pragma omp parallel for
-			for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
-#pragma omp simd aligned(d,sendbuf:AVX)
-				for(int icpt = 0; icpt <ncpt; icpt++)
-					sendbuf[ihalo*ncpt+icpt]=d[ncpt*hu[ndim*ihalo+idir]+icpt];
-			//For the cuphaloswapdir we send off the up halo and receive into the down halo
-			if(MPI_Isend(sendbuf, msg_size, MPI_DOUBLE, pu[idir], tag, comm, &request)){
-				fprintf(stderr,"Error %i in %s: Failed to send off the up halo from rank %i to rank %i.\nExiting...\n\n",
-						CANTSEND, funcname, rank, pu[idir]);
-				MPI_Abort(comm,CANTSEND);
-			}
-			if(MPI_Recv(&d[ncpt*h1d[idir]], msg_size, MPI_DOUBLE, pd[idir], tag, comm, &status)){
-				fprintf(stderr, "Error %i in %s: Rank %i failed to receive into doww halo from rank %i.\nExiting...\n\n",
-						CANTRECV, funcname, rank, pd[idir]);
-				MPI_Abort(comm,CANTRECV);
-			}
-			break;
+	for(unsigned short icpt=0;icpt<ncpt;icpt++){
+		//Implement the switch. The code is taken from the end of the dedicated functions in the FORTRAN code.
+		switch(layer){
+			case(DOWN):
+				if(halosize[idir]+h1u[idir]>kvol+halo){
+					fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
+							"a memory leak on rank %i.\nExiting...\n\n"
+							,BOUNDERROR, funcname, halosize[idir], ncpt*h1u[idir], rank);
+					MPI_Abort(comm,BOUNDERROR);
+				}
+				//For the ddnhaloswapdir we send off the down halo and receive into the up halo
+				if(MPI_Isend(d+hd[ndim*ihalo+idir]+kvolHalo*icpt, halosize[idir], MPI_Double, pd[idir], tag, comm, &request)){
+					fprintf(stderr, "Error %i in %s: Failed to send off the down halo from rank %i to rank %i.\nExiting...\n\n",
+							CANTSEND, funcname, rank, pd[idir]);
+					MPI_Abort(comm,CANTSEND);
+				}
+				if(MPI_Irecv(d+h1u[idir]+kvolHalo*icpt, halosize[idir], MPI_DOUBLE, pu[idir], tag, comm, &status)){
+					fprintf(stderr, "Error %i in %s: Rank %i failed to receive into up halo from rank %i.\nExiting...\n\n",
+							CANTRECV, funcname, rank, pu[idir]);
+					MPI_Abort(comm,CANTRECV);
+				}
+				break;
+			case(UP):
+				if(halosize[idir]+h1d[idir]>kvol+halo){
+					fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
+							"a memory leak on rank %i.\nExiting...\n\n"
+							,BOUNDERROR, funcname, halosize[idir], ncpt*h1d[idir], rank);
+					MPI_Abort(comm,BOUNDERROR);
+				}
+				//For the duphaloswapdir we send off the up halo and receive into the down halo
+				if(MPI_Isend(d+hu[ndim*ihalo+idir]+kvolHalo*icpt, halosize[idir], MPI_Double, pd[idir], tag, comm, &request)){
+					fprintf(stderr,"Error %i in %s: Failed to send off the up halo from rank %i to rank %i.\nExiting...\n\n",
+							CANTSEND, funcname, rank, pu[idir]);
+					MPI_Abort(comm,CANTSEND);
+				}
+				if(MPI_Irecv(d+h1d[idir]+kvolHalo*icpt, halosize[idir], MPI_DOUBLE, pu[idir], tag, comm, &status)){
+					fprintf(stderr, "Error %i in %s: Rank %i failed to receive into doww halo from rank %i.\nExiting...\n\n",
+							CANTRECV, funcname, rank, pd[idir]);
+					MPI_Abort(comm,CANTRECV);
+				}
+				break;
+		}
+		MPI_Wait(&request, &status);
 	}	
-	free(sendbuf);
-	MPI_Wait(&request, &status);
 	return 0;
 }
 #endif

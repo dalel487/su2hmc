@@ -96,7 +96,7 @@ TMP=	$(MOD) $(EDT) core
 -include $(DEPS)
 all:	$(EXE)
 
-profiler:	CFLAGS += -g #-D_DEBUGCG
+profiler:	CFLAGS += -g -D_DEBUG
 profiler:	release
 
 release:	CFLAGS +=  -O3 

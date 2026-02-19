@@ -44,7 +44,10 @@ int Addrc(unsigned int *iu, unsigned int *id){
 		//Need to watch these +/- 1 at the end. Is that a FORTRAN thing or a program thing?
 		//The only time I see h1d called that +1 term gets cancelled by a -1 so I'm going
 		//to omit it here at my own peril. (Turned out I was right)
+		///In original AOS code halo was stored after the sublattice
 		h1d[0]=kvol; 
+		//For SOA each direction gets its own halo. Instead we have a j*kvol+h1?[i] term in the halo exchange
+		//h1d[0]=0; 
 		h1u[0]=h1d[0]+halox;
 		halosize[0]=halox;
 
