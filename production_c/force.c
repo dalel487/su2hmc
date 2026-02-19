@@ -86,7 +86,7 @@ void Force_s(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, Comp
 		const Complex_f u11s=ut[0][ind]; const Complex_f u12s=ut[1][ind];
 		const unsigned int uid = iu[i+kvol*mu];
 		//Similarly to Hdslash we always see idirac*nc so we do that here too.
-		#pragma omp simd
+#pragma omp simd
 		for(unsigned short idirac=0;idirac<nc*ndirac;idirac+=nc){
 			Complex_f X1s[nc];	 Complex_f X1su[nc];
 			Complex_f X2s[nc];	 Complex_f X2su[nc];
@@ -158,7 +158,7 @@ void Force_t(double *dSdpi, Complex_f *ut[2],Complex_f *X1, Complex_f *X2, Compl
 		float *dk[2], unsigned int *iu, const unsigned short gamin[16],float akappa){
 
 	const unsigned short mu=3;
-	#pragma omp parallel for
+#pragma omp parallel for
 	for(unsigned int i=0;i<kvol;i++){
 		const unsigned int ind=i+kvolHalo*mu;
 		const Complex_f u11s=ut[0][ind];	const Complex_f u12s=ut[1][ind];
@@ -169,7 +169,7 @@ void Force_t(double *dSdpi, Complex_f *ut[2],Complex_f *X1, Complex_f *X2, Compl
 		//Up indices
 		const unsigned int uid = iu[i+kvol*mu];
 		//Similarly to Hdslash we always see idirac*nc so we do that here too.
-		#pragma omp simd
+#pragma omp simd
 		for(unsigned short idirac=0;idirac<ndirac*nc;idirac+=nc){
 			Complex_f X1s[nc];	 Complex_f X1su[nc];
 			Complex_f X2s[nc];	 Complex_f X2su[nc];
@@ -258,14 +258,14 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 	for(int na = 0; na<nf; na++){
 #ifdef __NVCC__
 #if(nproc>1) //Strided
-for(unsigned short j=0;j<nc*idirac;j++)
-		cudaMemcpyAsync(X1+j*kvolHalo,X0+na*kferm2+j*kvol,kvol*sizeof(Complex),cudaMemcpyDeviceToDevice,streams[j]);
+		for(unsigned short j=0;j<nc*idirac;j++)
+			cudaMemcpyAsync(X1+j*kvolHalo,X0+na*kferm2+j*kvol,kvol*sizeof(Complex),cudaMemcpyDeviceToDevice,streams[j]);
 #else
 		cudaMemcpyAsync(X1,X0+na*kferm2,kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice,NULL);
-		#endif
+#endif
 #else
-for(unsigned short j=0;j<nc*idirac;j++)
-		memcpy(X1+j*kvolHalo,X0+na*kferm2+j*kvol,kvol*sizeof(Complex));
+		for(unsigned short j=0;j<nc*ndirac;j++)
+			memcpy(X1+j*kvolHalo,X0+na*kferm2+j*kvol,kvol*sizeof(Complex));
 #endif
 		if(!iflag){
 			int itercg=1;
@@ -288,12 +288,12 @@ for(unsigned short j=0;j<nc*idirac;j++)
 #ifdef __NVCC__
 			alignas(16) const Complex blasa=2.0; alignas(16) const double blasb=-1.0;
 			cublasZdscal(cublas_handle,kferm2,&blasb,(cuDoubleComplex *)(X0+na*kferm2),1);
-			#if(nproc>1) //strided
+#if(nproc>1) //strided
 			for(unsigned short j=0;j<nc*ndirac;j++)
-			cublasZaxpy(cublas_handle,kvol,(cuDoubleComplex *)&blasa,(cuDoubleComplex *)X1+j*kvolHalo,1,(cuDoubleComplex *)X0+na*kferm2+j*kvol,1);
-			#else
+				cublasZaxpy(cublas_handle,kvol,(cuDoubleComplex *)&blasa,(cuDoubleComplex *)X1+j*kvolHalo,1,(cuDoubleComplex *)X0+na*kferm2+j*kvol,1);
+#else
 			cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&blasa,(cuDoubleComplex *)X1,1,(cuDoubleComplex *)(X0+na*kferm2),1);
-			#endif
+#endif
 #elifdef __USE_MKL__
 			const Complex blasa=2.0; const Complex blasb=-1.0;
 			//This is not a general BLAS Routine. BLIS and MKl support it
@@ -303,23 +303,24 @@ for(unsigned short j=0;j<nc*idirac;j++)
 			const Complex blasa=2.0; const double blasb=-1.0;
 			cblas_zdscal(kferm2,blasb,X0+na*kferm2,1);
 			for(unsigned short j=0;j<nc*ndirac;j++)
-			cblas_zaxpy(kvol,&blasa,X1+j*kvolHalo,1,X0+na*kferm2+j*kvol,1);
+				cblas_zaxpy(kvol,&blasa,X1+j*kvolHalo,1,X0+na*kferm2+j*kvol,1);
 #else
 #pragma omp parallel for simd collapse(2) aligned(X0,X1:AVX)
-				for(int idirac=0;idirac<ndirac;idirac++){
-			for(int i=0;i<kvol;i++)
+			for(int idirac=0;idirac<ndirac;idirac++){
+				for(int i=0;i<kvol;i++)
 					X0[i+kvol*(0+nc*(idirac+ndirac*na))]=
 						2*X1[i+kvolHalo*(0+idirac*c)]-X0[i+kvol*(0+nc*(idirac+ndirac*na))];
-					X0[i+kvol*(1+nc*(idirac+ndirac*na))]=
-						2*X1[i+kvolHalo*(1+idirac*c)]-X0[i+kvol*(1+nc*(idirac+ndirac*na))];
-				}
+				X0[i+kvol*(1+nc*(idirac+ndirac*na))]=
+					2*X1[i+kvolHalo*(1+idirac*c)]-X0[i+kvol*(1+nc*(idirac+ndirac*na))];
+			}
 #endif
 		}
 		//Convert X1 to single precision
 #ifdef __NVCC__
-			cudaDeviceSynchronise();
+		cudaDeviceSynchronise();
 #endif
-			ComplexConvert(X1_f,X1,kferm2,true,nc*ndirac);
+		//Since it has to be stridded in MPI, we have to pass kvol and nc*ndirac instead of kferm2
+		ComplexConvert(X1_f,X1,kvol,true,nc*ndirac);
 		Hdslash_f(X2_f,X1_f,ut_f,iu,id,gamval_f,gamin,dk_f,akappa);
 		//TODO: Clover product also needed here?
 		if(c_sw)
@@ -328,21 +329,21 @@ for(unsigned short j=0;j<nc*idirac;j++)
 		alignas(8) const float blasd=2.0;
 #ifdef __NVCC__
 		cudaDeviceSynchronise();
-		#if(nproc>1)
+#if(nproc>1)
 		for(unsigned short j=0;j<nc*ndirac;j++)
-		cublasCsscal(cublas_handle,kvol, &blasd, (cuComplex *)X2_f+j*kvolHalo, 1);
-		#else
+			cublasCsscal(cublas_handle,kvol, &blasd, (cuComplex *)X2_f+j*kvolHalo, 1);
+#else
 		cublasCsscal(cublas_handle,kferm2, &blasd, (cuComplex *)X2_f, 1);
-		#endif
+#endif
 #elif defined USE_BLAS
 		for(unsigned short j=0;j<nc*ndirac;j++)
-		cblas_csscal(kvol, blasd, X2_f+j*kvolHalo, 1);
+			cblas_csscal(kvol, blasd, X2_f+j*kvolHalo, 1);
 #else
 #pragma unroll
 #pragma omp parallel for simd collapse(2) aligned(X2_f:AVX)
 		for(unsigned short j=0;j<nc*ndirac;j++)
-		for(unsigned int i=0;i<kvol;i++)
-			X2_f[i+j*kvolHalo]*=2;
+			for(unsigned int i=0;i<kvol;i++)
+				X2_f[i+j*kvolHalo]*=2;
 #endif
 #if(npx>1)
 		CHalo_swap_dir(X1_f,8,0,DOWN);
@@ -373,7 +374,7 @@ for(unsigned short j=0;j<nc*idirac;j++)
 		cuForce(dSdpi,ut_f,X1_f,X2_f,gamval_f,dk_f,iu,gamin,akappa,dimGrid,dimBlock);
 		cudaDeviceSynchronise();
 #else
-//Thankfully the CUDA version is much neater so we're using that style going forwards
+		//Thankfully the CUDA version is much neater so we're using that style going forwards
 		for(unsigned short mu=0;mu<ndim-1;mu++)
 			Force_s(dSdpi,ut_f,X1_f,X2_f,gamval_f,iu,gamin,akappa,mu);
 		Force_t(dSdpi,ut_f,X1_f,X2_f,gamval_f,dk_f,iu,gamin,akappa);
@@ -387,7 +388,7 @@ for(unsigned short j=0;j<nc*idirac;j++)
 #ifdef __NVCC__
 	cudaFreeAsync(X1_f,streams[0]); cudaFreeAsync(X2_f,streams[1]);
 #else
-			free(X1_f); free(X2_f);
+	free(X1_f); free(X2_f);
 #endif
 	return 0;
 }

@@ -149,10 +149,10 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 			cudaMemcpy(u[0]+kvol*mu, ut[0]+kvolHalo*mu, kvol*sizeof(Complex),cudaMemcpyDefault);
 			cudaMemcpy(u[1]+kvol*mu, ut[1]+kvolHalo*mu, kvol*sizeof(Complex),cudaMemcpyDefault);
 		}
-		#else
-			cudaMemcpy(u[0], ut[0], ndim*kvol*sizeof(Complex),cudaMemcpyDefault);
-			cudaMemcpy(u[1], ut[1], ndim*kvol*sizeof(Complex),cudaMemcpyDefault);
-		#endif
+#else
+		cudaMemcpy(u[0], ut[0], ndim*kvol*sizeof(Complex),cudaMemcpyDefault);
+		cudaMemcpy(u[1], ut[1], ndim*kvol*sizeof(Complex),cudaMemcpyDefault);
+#endif
 #else
 		for(unsigned short mu=0;mu<ndim;mu++){
 			memcpy(u[0]+kvol*mu, ut[0]+kvolHalo*mu, kvol*sizeof(Complex));
@@ -211,13 +211,13 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 #ifdef __NVCC__
 #if (nproc>1) //strided for multi-GPU
 		for(unsigned short j=0;j<nc*ndirac;j++)
-		cudaMemcpyAsync(X1+j*kvolHalo,X0+na*kferm2+j*kvol,kvol*sizeof(Complex),cudaMemcpyDeviceToDevice,streams[j]);
+			cudaMemcpyAsync(X1+j*kvolHalo,X0+na*kferm2+j*kvol,kvol*sizeof(Complex),cudaMemcpyDeviceToDevice,streams[j]);
 #else
 		cudaMemcpyAsync(X1,X0+na*kferm2,kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice,streams[0]);
-		#endif
+#endif
 #else
 		for(unsigned short j=0;j<nc*ndirac;j++)
-		memcpy(X1+j*kvolHalo,X0+na*kferm2+j*kvol,kvol*sizeof(Complex));
+			memcpy(X1+j*kvolHalo,X0+na*kferm2+j*kvol,kvol*sizeof(Complex));
 #endif
 		Fill_Small_Phi(na, smallPhi, Phi);
 		if(Congradq(na,res2,X1,smallPhi,ud,ut,clover,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,\
@@ -228,28 +228,42 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 #ifdef __NVCC__
 #if (nproc>1) //strided for multi-GPU
 		for(unsigned short j=0;j<nc*ndirac;j++)
-		cudaMemcpyAsync(X0+na*kferm2+j*kvol,X1+j*kvolHalo,kvol*sizeof(Complex),cudaMemcpyDeviceToDevice,streams[j]);
-		#else
+			cudaMemcpyAsync(X0+na*kferm2+j*kvol,X1+j*kvolHalo,kvol*sizeof(Complex),cudaMemcpyDeviceToDevice,streams[j]);
+#else
 		cudaMemcpyAsync(X0+na*kferm2,X1,kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice,streams[0]);
-		#endif
+#endif
 #else
 		for(unsigned short j=0;j<nc*ndirac;j++)
-		memcpy(X0+na*kferm2+j*kvol,X1+j*kvolHalo,kvol*sizeof(Complex));
+			memcpy(X0+na*kferm2+j*kvol,X1+j*kvolHalo,kvol*sizeof(Complex));
 #endif
 		Fill_Small_Phi(na, smallPhi,Phi);
 #ifdef __NVCC__
-		Complex dot;
+		alignas(16) Complex dot=0;
+#if (nproc>1)
+		for(unsigned short j=0;j<nc*ndirac;j++){
+			alignas(16) Complex buff;
+			cublasZdotc(cublas_handle,kvol,(cuDoubleComplex *)smallPhi+j*kvol,1,(cuDoubleComplex *) X1+j*kvolHalo,1,(cuDoubleComplex *) &buff);
+			dot+=buff;
+		}
+#else
 		cublasZdotc(cublas_handle,kferm2,(cuDoubleComplex *)smallPhi,1,(cuDoubleComplex *) X1,1,(cuDoubleComplex *) &dot);
+#endif
 		hf+=creal(dot);
 #elif defined USE_BLAS
 		Complex dot;
-		cblas_zdotc_sub(kferm2, smallPhi, 1, X1, 1, &dot);
+		for(unsigned short j=0;j<nc*ndirac;j++){
+			alignas(16) Complex buff;
+			cblas_zdotc_sub(kvol, smallPhi+j*kvol, 1, X1+j*kvolHalo, 1, &buff);
+			dot+=buff;
+		}
 		hf+=creal(dot);
 #else
 		//It is a dot product of the flattened arrays, could use
 		//a module to convert index to coordinate array...
-		for(unsigned int j=0;j<kferm2;j++)
-			hf+=creal(conj(smallPhi[j])*X1[j]);
+#pragma omp parallel for simd collapse(2) aligned(smallPhi,X1:AVX)
+		for(unsigned short j=0;j<nc*ndirac;j++)
+			for(unsigned int i=0;i<kvol;i++)
+				hf+=creal(conj(smallPhi[i+j*kvol])*X1[i+j*kvolHalo]);
 #endif
 	}
 	if(c_sw)
@@ -259,7 +273,6 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 	cudaFree(smallPhi);
 #else
 	cudaFreeAsync(smallPhi,NULL);
-	cudaDeviceSynchronise();
 #endif
 #else
 	free(smallPhi);
@@ -355,15 +368,15 @@ int ComplexConvert(Complex_f *a, Complex *b, const unsigned int len, const bool 
 			break;
 		case(1):
 #ifdef __NVCC__
-			cuComplex_convert(a,b,len,dtof,dimBlock,dimGrid);
+			cuComplex_convert(a,b,len*stride,dtof,dimBlock,dimGrid);
 #else
 			if(dtof)
 #pragma omp parallel for simd aligned(a,b:AVX)
-				for(unsigned int i=0;i<len;i++)
+				for(unsigned int i=0;i<len*stride;i++)
 					a[i]=(Complex_f)b[i];
 			else
 #pragma omp parallel for simd aligned(a,b:AVX)
-				for(unsigned int i=0;i<len;i++)
+				for(unsigned int i=0;i<len*stride;i++)
 					b[i]=(Complex)a[i];
 #endif
 			break;
@@ -382,7 +395,7 @@ int ComplexConvert(Complex_f *a, Complex *b, const unsigned int len, const bool 
 						b[i+j*(len+halo)]=(Complex)a[i+j*(len+halo)];
 #endif
 			}
-		break;
+			break;
 	}
 	return 0;
 }
