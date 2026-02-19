@@ -246,8 +246,8 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 	Complex_f *clover[2];
 #ifdef __NVCC__
 	Complex_f *X1_f, *X2_f;
-	cudaMallocAsync((void **)&X1_f,kferm2*sizeof(Complex_f),streams[1]);
-	cudaMallocAsync((void **)&X2_f,kferm2*sizeof(Complex_f),streams[0]);
+	cudaMallocAsync((void **)&X1_f,kferm2Halo*sizeof(Complex_f),streams[1]);
+	cudaMallocAsync((void **)&X2_f,kferm2Halo*sizeof(Complex_f),streams[0]);
 #else
 	Complex_f *X1_f= (Complex_f *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
 	Complex_f *X2_f= (Complex_f *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
@@ -257,9 +257,15 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 
 	for(int na = 0; na<nf; na++){
 #ifdef __NVCC__
-		cudaMemcpyAsync(X1,X0+na*kferm2,kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice,NULL);
+#if(nproc>1) //Strided
+for(unsigned short j=0;j<nc*idirac;j++)
+		cudaMemcpyAsync(X1+j*kvolHalo,X0+na*kferm2+j*kvol,kvol*sizeof(Complex),cudaMemcpyDeviceToDevice,streams[j]);
 #else
-		memcpy(X1,X0+na*kferm2,kferm2*sizeof(Complex));
+		cudaMemcpyAsync(X1,X0+na*kferm2,kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice,NULL);
+		#endif
+#else
+for(unsigned short j=0;j<nc*idirac;j++)
+		memcpy(X1+j*kvolHalo,X0+na*kferm2+j*kvol,kvol*sizeof(Complex));
 #endif
 		if(!iflag){
 			int itercg=1;
@@ -282,7 +288,12 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 #ifdef __NVCC__
 			alignas(16) const Complex blasa=2.0; alignas(16) const double blasb=-1.0;
 			cublasZdscal(cublas_handle,kferm2,&blasb,(cuDoubleComplex *)(X0+na*kferm2),1);
+			#if(nproc>1) //strided
+			for(unsigned short j=0;j<nc*ndirac;j++)
+			cublasZaxpy(cublas_handle,kvol,(cuDoubleComplex *)&blasa,(cuDoubleComplex *)X1+j*kvolHalo,1,(cuDoubleComplex *)X0+na*kferm2+j*kvol,1);
+			#else
 			cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&blasa,(cuDoubleComplex *)X1,1,(cuDoubleComplex *)(X0+na*kferm2),1);
+			#endif
 #elifdef __USE_MKL__
 			const Complex blasa=2.0; const Complex blasb=-1.0;
 			//This is not a general BLAS Routine. BLIS and MKl support it
@@ -291,26 +302,24 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 #elifdef USE_BLAS
 			const Complex blasa=2.0; const double blasb=-1.0;
 			cblas_zdscal(kferm2,blasb,X0+na*kferm2,1);
-			cblas_zaxpy(kferm2,&blasa,X1,1,X0+na*kferm2,1);
+			for(unsigned short j=0;j<nc*ndirac;j++)
+			cblas_zaxpy(kvol,&blasa,X1+j*kvolHalo,1,X0+na*kferm2+j*kvol,1);
 #else
-#pragma omp parallel for simd collapse(2)
-			for(int i=0;i<kvol;i++)
+#pragma omp parallel for simd collapse(2) aligned(X0,X1:AVX)
 				for(int idirac=0;idirac<ndirac;idirac++){
+			for(int i=0;i<kvol;i++)
 					X0[i+kvol*(0+nc*(idirac+ndirac*na))]=
-						2*X1[i+kvolHalo*(0+idirac*c)]-X0[((na*kvol+i)*ndirac+idirac)*nc];
+						2*X1[i+kvolHalo*(0+idirac*c)]-X0[i+kvol*(0+nc*(idirac+ndirac*na))];
 					X0[i+kvol*(1+nc*(idirac+ndirac*na))]=
-						2*X1[i+kvolHalo*(1+idirac*nc)]-X0[((na*kvol+i)*ndirac+idirac)*nc+1];
+						2*X1[i+kvolHalo*(1+idirac*c)]-X0[i+kvol*(1+nc*(idirac+ndirac*na))];
 				}
 #endif
 		}
 		//Convert X1 to single precision
 #ifdef __NVCC__
-			cuComplex_convert(X1_f,X1,kferm2,true,dimBlock,dimGrid);
 			cudaDeviceSynchronise();
-#else
-		for(unsigned int i=0;i<kferm2;i++)
-			X1_f[i]=(Complex_f)X1[i];
 #endif
+			ComplexConvert(X1_f,X1,kferm2,true,nc*ndirac);
 		Hdslash_f(X2_f,X1_f,ut_f,iu,id,gamval_f,gamin,dk_f,akappa);
 		//TODO: Clover product also needed here?
 		if(c_sw)
@@ -319,13 +328,21 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 		alignas(8) const float blasd=2.0;
 #ifdef __NVCC__
 		cudaDeviceSynchronise();
+		#if(nproc>1)
+		for(unsigned short j=0;j<nc*ndirac;j++)
+		cublasCsscal(cublas_handle,kvol, &blasd, (cuComplex *)X2_f+j*kvolHalo, 1);
+		#else
 		cublasCsscal(cublas_handle,kferm2, &blasd, (cuComplex *)X2_f, 1);
+		#endif
 #elif defined USE_BLAS
-		cblas_csscal(kferm2, blasd, X2_f, 1);
+		for(unsigned short j=0;j<nc*ndirac;j++)
+		cblas_csscal(kvol, blasd, X2_f+j*kvolHalo, 1);
 #else
 #pragma unroll
-		for(int i=0;i<kferm2;i++)
-			X2_f[i]*=2;
+#pragma omp parallel for simd collapse(2) aligned(X2_f:AVX)
+		for(unsigned short j=0;j<nc*ndirac;j++)
+		for(unsigned int i=0;i<kvol;i++)
+			X2_f[i+j*kvolHalo]*=2;
 #endif
 #if(npx>1)
 		CHalo_swap_dir(X1_f,8,0,DOWN);
@@ -362,11 +379,6 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 		Force_t(dSdpi,ut_f,X1_f,X2_f,gamval_f,dk_f,iu,gamin,akappa);
 #endif
 		if(c_sw){
-#ifndef __NVCC__
-			for(unsigned int i=0;i<kferm2;i++){
-				X1_f[i]=(Complex_f)X1[i];
-			}
-#endif
 			Clover_Force(dSdpi,ut_f,X1_f,X2_f,sigval_f,sigin,iu,id,akappa);
 		}
 	}

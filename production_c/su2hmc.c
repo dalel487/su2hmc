@@ -143,15 +143,22 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 		//Send trials to accelerator for reunitarisation
 		Reunitarise(ut);
 		//Get trials back
-		for(unsigned short mu=0;mu<ndim;mu++){
 #ifdef __NVCC__
+#if (nproc>1) //Strided for multi-GPU
+		for(unsigned short mu=0;mu<ndim;mu++){
 			cudaMemcpy(u[0]+kvol*mu, ut[0]+kvolHalo*mu, kvol*sizeof(Complex),cudaMemcpyDefault);
 			cudaMemcpy(u[1]+kvol*mu, ut[1]+kvolHalo*mu, kvol*sizeof(Complex),cudaMemcpyDefault);
+		}
+		#else
+			cudaMemcpy(u[0], ut[0], ndim*kvol*sizeof(Complex),cudaMemcpyDefault);
+			cudaMemcpy(u[1], ut[1], ndim*kvol*sizeof(Complex),cudaMemcpyDefault);
+		#endif
 #else
+		for(unsigned short mu=0;mu<ndim;mu++){
 			memcpy(u[0]+kvol*mu, ut[0]+kvolHalo*mu, kvol*sizeof(Complex));
 			memcpy(u[1]+kvol*mu, ut[1]+kvolHalo*mu, kvol*sizeof(Complex));
-#endif
 		}
+#endif
 	}
 #ifdef _DEBUG
 	printf("Initialisation Complete\n");
@@ -202,15 +209,15 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 	//Iterating over flavours
 	for(unsigned short na=0;na<nf;na++){
 #ifdef __NVCC__
-#ifdef _DEBUG
-		cudaDeviceSynchronise();
-#endif
-		cudaMemcpyAsync(X1,X0+na*kferm2,kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice,streams[0]);
-#ifdef _DEBUG
-		cudaDeviceSynchronise();
-#endif
+#if (nproc>1) //strided for multi-GPU
+		for(unsigned short j=0;j<nc*ndirac;j++)
+		cudaMemcpyAsync(X1+j*kvolHalo,X0+na*kferm2+j*kvol,kvol*sizeof(Complex),cudaMemcpyDeviceToDevice,streams[j]);
 #else
-		memcpy(X1,X0+na*kferm2,kferm2*sizeof(Complex));
+		cudaMemcpyAsync(X1,X0+na*kferm2,kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice,streams[0]);
+		#endif
+#else
+		for(unsigned short j=0;j<nc*ndirac;j++)
+		memcpy(X1+j*kvolHalo,X0+na*kferm2+j*kvol,kvol*sizeof(Complex));
 #endif
 		Fill_Small_Phi(na, smallPhi, Phi);
 		if(Congradq(na,res2,X1,smallPhi,ud,ut,clover,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,\
@@ -219,9 +226,15 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 
 		*ancgh+=itercg;
 #ifdef __NVCC__
+#if (nproc>1) //strided for multi-GPU
+		for(unsigned short j=0;j<nc*ndirac;j++)
+		cudaMemcpyAsync(X0+na*kferm2+j*kvol,X1+j*kvolHalo,kvol*sizeof(Complex),cudaMemcpyDeviceToDevice,streams[j]);
+		#else
 		cudaMemcpyAsync(X0+na*kferm2,X1,kferm2*sizeof(Complex),cudaMemcpyDeviceToDevice,streams[0]);
+		#endif
 #else
-		memcpy(X0+na*kferm2,X1,kferm2*sizeof(Complex));
+		for(unsigned short j=0;j<nc*ndirac;j++)
+		memcpy(X0+na*kferm2+j*kvol,X1+j*kvolHalo,kvol*sizeof(Complex));
 #endif
 		Fill_Small_Phi(na, smallPhi,Phi);
 #ifdef __NVCC__
