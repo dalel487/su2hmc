@@ -9,7 +9,7 @@
 //=====================================
 #pragma omp declare simd
 inline int Clover_SU2plaq(Complex_f *ut[nc], Complex_f Leaves[nc], unsigned int *iu,  int i, int mu, int nu){
-	const char *funcname = "SU2plaq";
+	const char funcname[] = "SU2plaq";
 	int uidm = iu[mu*kvol+i]; 
 	/***
 	 *	Let's take a quick moment to compare this to the analysis code.
@@ -34,7 +34,7 @@ inline int Clover_SU2plaq(Complex_f *ut[nc], Complex_f Leaves[nc], unsigned int 
 }
 #pragma omp declare simd
 int Leaf(Complex_f *ut[nc], Complex_f Leaves[nc], unsigned int *iu, unsigned int *id, int i, int mu, int nu, short leaf){
-	char *funcname="Leaf";
+	char funcname[]="Leaf";
 	Complex_f a[2];
 	unsigned int didm,didn,uidn,uidm;
 	///NOTE: The multiplication order is the opposite of the textbook version. This is to maintain compatability with the

@@ -1,4 +1,7 @@
 MF=Makefile
+CC ?=			gcc
+CXX ?=		g++
+MPICC ?=		mpicc
 
 IFLAGS=	-I../INCLUDE  $(shell gsl-config --cflags)
 

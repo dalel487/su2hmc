@@ -12,7 +12,7 @@
 
 
 int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *ut[2], unsigned int *iu, float beta){
-	const char *funcname = "Average_Plaquette";
+	const char funcname[] = "Average_Plaquette";
 	/*There was a halo exchange here but moved it outside
 	  The FORTRAN code used several consecutive loops to get the plaquette
 	  Instead we'll just make the arrays variables and do everything in one loop
@@ -56,7 +56,7 @@ int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u
 #ifndef __NVCC__
 #pragma omp declare simd
 inline int SU2plaq(Complex_f *ut[2], Complex_f Sigma[2], unsigned int *iu,  int i, int mu, int nu){
-	const char *funcname = "SU2plaq";
+	const char funcname[] = "SU2plaq";
 	int uidm = iu[mu*kvol+i]; 
 	/***
 	 *	Let's take a quick moment to compare this to the analysis code.
@@ -82,7 +82,7 @@ inline int SU2plaq(Complex_f *ut[2], Complex_f Sigma[2], unsigned int *iu,  int 
 }
 #endif
 double Polyakov(Complex_f *ut[2]){
-	const char *funcname = "Polyakov";
+	const char funcname[] = "Polyakov";
 	double poly = 0;
 	Complex_f *Sigma[2];
 #ifdef __NVCC__

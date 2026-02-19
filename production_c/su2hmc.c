@@ -10,7 +10,7 @@
 int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa, Complex_f ajq,\
 		Complex *u[2], Complex *ut[2], Complex_f *ut_f[2], Complex gamval[20], Complex_f gamval_f[20],
 		unsigned short gamin[16], double *dk[2], float *dk_f[2], unsigned int *iu, unsigned int *id){
-	const char *funcname = "Init";
+	const char funcname[] = "Init";
 
 #ifdef _OPENMP
 	omp_set_num_threads(nthreads);
@@ -169,7 +169,7 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 		unsigned int *iu,unsigned int *id, Complex gamval[20], Complex_f gamval_f[20],const unsigned short gamin[16], Complex *sigval, Complex_f *sigval_f,
 		unsigned short *sigin, double *dk[2],float *dk_f[2],Complex_f jqq,float akappa,float beta,float c_sw, double *ancgh,
 		int traj){
-	const char *funcname = "Hamilton";
+	const char funcname[] = "Hamilton";
 	//Iterate over momentum terms.
 #ifdef __NVCC__
 	double hp;
@@ -290,7 +290,7 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 }
 inline int C_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu)
 {
-	const char *funcname = "C_gather";
+	const char funcname[] = "C_gather";
 	//FORTRAN had a second parameter m giving the size of y (kvol+halo) normally
 	//Pointers mean that's not an issue for us so I'm leaving it out
 #pragma omp parallel for simd aligned (x,y,table:AVX)
@@ -300,7 +300,7 @@ inline int C_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsi
 }
 inline int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu)
 {
-	const char *funcname = "Z_gather";
+	const char funcname[] = "Z_gather";
 	//FORTRAN had a second parameter m giving the size of y (kvol+halo) normally
 	//Pointers mean that's not an issue for us so I'm leaving it out
 #pragma omp parallel for simd aligned (x,y,table:AVX)
@@ -310,7 +310,7 @@ inline int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned
 }
 inline int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
 {
-	const char *funcname = "Fill_Small_Phi";
+	const char funcname[] = "Fill_Small_Phi";
 	//BIG and small phi index
 #ifdef __NVCC__
 	cuFill_Small_Phi(na,smallPhi,Phi,dimBlock,dimGrid);
@@ -339,7 +339,7 @@ inline int UpDownPart(const unsigned int na, Complex *X0, Complex *R1){
 	return 0;
 }
 inline int Reunitarise(Complex *ut[2]){
-	const char *funcname = "Reunitarise";
+	const char funcname[] = "Reunitarise";
 #ifdef __NVCC__
 	cuReunitarise(ut,dimGrid,dimBlock);
 #else

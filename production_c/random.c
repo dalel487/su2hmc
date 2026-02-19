@@ -69,7 +69,7 @@ int Par_ranread(char *filename, double *ranval){
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "Par_psread";
+	const char funcname[] = "Par_psread";
 	FILE *dest;
 	if(!rank){
 		if(!(dest = fopen(filename, "rb"))){
@@ -125,7 +125,7 @@ int Par_ranset(unsigned long *seed,int iread)
 int Par_ranset(long *seed,int iread)
 #endif
 {
-	const char *funcname = "Par_ranset";
+	const char funcname[] = "Par_ranset";
 	//If we're not using the master thread, we need to change the seed
 #ifdef _DEBUG
 	printf("Master seed: %i\t",*seed);
@@ -151,7 +151,7 @@ double Par_granf(){
 	 *
 	 * @return the random number generated
 	 */
-	const char *funcname = "Par_granf";
+	const char funcname[] = "Par_granf";
 	double ran_val=0;
 	if(!rank){
 #ifdef __RANLUX__
@@ -178,7 +178,7 @@ int Gauss_z(Complex *ps, unsigned int n, const Complex mu, const double sigma){
 	 * 
 	 * @return Zero on success integer error code otherwise
 	 */
-	const char *funcname = "Gauss_z";
+	const char funcname[] = "Gauss_z";
 	if(n<=0){
 		fprintf(stderr, "Error %i in %s: Array cannot have length %i.\nExiting...\n\n",
 				ARRAYLEN, funcname, n);
@@ -224,7 +224,7 @@ int Gauss_c(Complex_f *ps, unsigned int n, const Complex_f mu, const float sigma
 	 * 
 	 * @return Zero on success integer error code otherwise
 	 */
-	const char *funcname = "Gauss_z";
+	const char funcname[] = "Gauss_z";
 	if(n<=0){
 		fprintf(stderr, "Error %i in %s: Array cannot have length %i.\nExiting...\n\n",
 				ARRAYLEN, funcname, n);
@@ -270,7 +270,7 @@ int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma){
 	 * 
 	 * @return Zero on success integer error code otherwise
 	 */
-	const char *funcname = "Gauss_z";
+	const char funcname[] = "Gauss_z";
 	//The FORTRAN Code had two different Gauss Routines. gaussp having unit
 	//mean and variance and gauss0 where the variance would appear to be 1/sqrt(2)
 	//(Since we multiply by sqrt(-ln(r)) instead of sqrt(-2ln(r)) )
@@ -333,7 +333,7 @@ int Gauss_f(float *ps, unsigned int n, const float mu, const float sigma){
 	 * 
 	 * @return Zero on success integer error code otherwise
 	 */
-	const char *funcname = "Gauss_z";
+	const char funcname[] = "Gauss_z";
 	//The FORTRAN Code had two different Gauss Routines. gaussp having unit
 	//mean and variance and gauss0 where the variance would appear to be 1/sqrt(2)
 	//(Since we multiply by sqrt(-ln(r)) instead of sqrt(-2ln(r)) )
