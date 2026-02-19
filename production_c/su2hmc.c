@@ -192,7 +192,7 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 	//avplaq? isn't seen again here.
 	Average_Plaquette(&hg,&avplaqs,&avplaqt,ut,iu,beta);
 
-	double hf = 0; int itercg = 0;
+	alignas(8) double hf = 0; int itercg = 0;
 #ifdef __NVCC__
 	Complex *smallPhi;
 #ifdef _DEBUG
@@ -250,9 +250,9 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 #endif
 		hf+=creal(dot);
 #elif defined USE_BLAS
-		Complex dot;
+		Complex dot=0;
 		for(unsigned short j=0;j<nc*ndirac;j++){
-			alignas(16) Complex buff;
+			alignas(16) Complex buff=0;
 			cblas_zdotc_sub(kvol, smallPhi+j*kvol, 1, X1+j*kvolHalo, 1, &buff);
 			dot+=buff;
 		}
