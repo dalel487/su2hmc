@@ -26,12 +26,11 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 #ifdef _DEBUG
 	printf("Checked addresses\n");
 #endif
-	double chem1=exp(fmu); double chem2 = 1/chem1;
+	double chem1=exp(-fmu); double chem2 = 1/chem1;
 	//CUDA this. Only limit will be the bus speed
 #pragma omp parallel for simd //aligned(dk[0],dk[1]:AVX)
 	for(unsigned int i = 0; i<kvol; i++){
-		dk[1][i]=akappa*chem1;
-		dk[0][i]=akappa*chem2;
+		dk[0][i]=akappa*chem1; dk[1][i]=akappa*chem2;
 	}
 	//Anti periodic Boundary Conditions. Flip the terms at the edge of the time
 	//direction
