@@ -361,7 +361,7 @@ int ComplexConvert(Complex_f *a, Complex *b, const unsigned int len, const bool 
 		case(0):
 			fprintf(stderr,"Error %i in %s: Stride of %d is not valid.\nExiting...\n\n",STRDERROR,funcname,stride);
 #if (nproc>1)
-			MPI_ABORT(STRDERROR);
+			MPI_Abort(comm,STRDERROR);
 #else
 			exit(STRDERROR);
 #endif
