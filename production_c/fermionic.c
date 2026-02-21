@@ -17,14 +17,14 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	cudaGetDevice(&device);
 	Complex	*x, *xi, *R1 ; Complex_f *xi_f, *R1_f, *clover[nc];
 #ifdef _DEBUG
-	cudaMallocManaged((void **)&R1,kfermHalo*sizeof(Complex), cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&R1,kferm*sizeof(Complex), cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&R1_f,kferm*sizeof(Complex_f), cudaMemAttachGlobal);
 	if(c_sw){
 		cudaMallocManaged((void **)&clover[0], 6*kvol*sizeof(Complex),cudaMemAttachGlobal);
 		cudaMallocManaged((void **)&clover[1], 6*kvol*sizeof(Complex),cudaMemAttachGlobal);
 	}
 #else
-	cudaMallocAsync((void **)&R1,kfermHalo*sizeof(Complex),streams[0]);
+	cudaMallocAsync((void **)&R1,kferm*sizeof(Complex),streams[0]);
 	cudaMallocAsync((void **)&R1_f,kferm*sizeof(Complex_f),streams[0]);
 	if(c_sw){
 		cudaMallocAsync((void **)&clover[0], 6*kvol*sizeof(Complex),streams[1]);
@@ -44,12 +44,13 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	Complex *xi =(Complex *)aligned_alloc(AVX,kferm*sizeof(Complex));
 	Complex_f *xi_f =(Complex_f *)aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
 	Complex_f *R1_f = (Complex_f *)aligned_alloc(AVX,kferm*sizeof(Complex_f));
-	Complex *R1 = (Complex *)aligned_alloc(AVX,kfermHalo*sizeof(Complex));
+	Complex *R1 = (Complex *)aligned_alloc(AVX,kferm*sizeof(Complex));
 #endif
 	//Setting up noise. Again need that annoying stride 
-	for(unsigned short j=0;j<nc*ngorkov;j++)
+	for(unsigned short j=0;j<nc*ngorkov;j++){
 		Gauss_c(xi_f+j*kvolHalo, kvol, 0, (float)(1/sqrt(2)));
-	ComplexConvert(xi_f,xi,kvol,false,nc*ngorkov);
+		ComplexConvert(xi_f+j*kvolHalo,xi+j*kvol,kvol,false,1);
+	}
 #ifdef __NVCC__
 #if (nproc>1) //strided
 	for(unsigned short j=0;j<nc*ngorkov;j++){
@@ -71,14 +72,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 		Clover(clover,ut_f,iu,id);
 		ByClover_f(R1_f,xi_f,clover,sigval_f,akappa,sigin);
 	}
-	//Since R1 has a halo and R1_f does not this needs to be strided manually
-#if(nproc>1)
-	for(unsigned short j=0;j<nc*ngorkov;j++)
-		ComplexConvert(R1_f+j*kvol,R1+j*kvolHalo,kvol,false,1);
-#else
-	//But for single rank can be done in one go
 	ComplexConvert(R1_f,R1,kferm,false,1);
-#endif
 #ifdef __NVCC__
 	cudaFree(xi_f);	
 	cudaDeviceSynchronise();
@@ -87,32 +81,17 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #else
 	cudaFreeAsync(R1_f,streams[0]);
 #endif
-#if (nproc>1) //strided
-	for(unsigned short j=0;j<ngorkov*nc;j++){
-		//Phi has no halo
-		cudaMemcpyAsync(Phi+j*kvol, R1+j*kvolHalo, kvol*sizeof(Complex),cudaMemcpyDefault,streams[j]);
-	}
-#else
 	cudaMemcpyAsync(Phi, R1, kferm*sizeof(Complex),cudaMemcpyDefault,streams[0]);
-#endif
 	cudaDeviceSynchronise();
 #else
 	free(xi_f); free(R1_f);
-#pragma omp parallel for 
-	for(unsigned short j=0;j<ngorkov*nc;j++){
-		memcpy(Phi+j*kvol, R1+j*kvolHalo, kvol*sizeof(Complex));
-	}
+	memcpy(Phi, R1, kferm*sizeof(Complex));
 #endif
 	///Evaluate xi = (M^† M)^-1 R_1 
 	if(Congradp(0, res, Phi,R1,ut,ut_f,clover,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,c_sw,itercg)==ITERLIM)
 		return ITERLIM;
 #ifdef __NVCC__
-#if (nproc>1)
-	for(unsigned short j=0;j<ngorkov*nc;j++)
-		cudaMemcpyAsync(xi+j*kvol,R1+j*kvolHalo,kvol*sizeof(Complex),cudaMemcpyDefault,streams[j]);
-#else
 	cudaMemcpyAsync(xi,R1,kferm*sizeof(Complex),cudaMemcpyDefault,streams[0]);
-#endif
 #ifdef _DEBUG
 	if(c_sw){
 		cudaFree(clover[0]); cudaFree(clover[1]);
@@ -127,8 +106,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #endif
 	cudaDeviceSynchronise();
 #else
-	for(unsigned short j=0;j<ngorkov*nc;j++)
-		memcpy(xi+j*kvol,R1+j*kvolHalo,kvol*sizeof(Complex));
+	memcpy(xi,R1,kferm*sizeof(Complex));
 	if(c_sw){
 		free(clover[0]); free(clover[1]);
 	}

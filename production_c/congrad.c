@@ -794,8 +794,8 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 			//Update the residue vector, but not on the first call.
 			if(*itercg)
 #pragma omp parallel for simd aligned(xi,xi_f:AVX)
-				for(unsigned int i=0;i<kferm;i++)
-					xi[i]+=(Complex)xi_f[i];
+					for(unsigned int i=0;i<kferm;i++)
+						xi[i]+=(Complex)xi_f[i];
 			memset(xi_f,0,kferm*sizeof(Complex_f));
 #endif
 			///@f$x2 =  (M^\dagger M)p @f$
