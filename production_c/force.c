@@ -344,20 +344,20 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 				X2_f[i+j*kvolHalo]*=2;
 #endif
 #if(npx>1)
-		CHalo_swap_dir(X1_f,8,0,DOWN);
-		CHalo_swap_dir(X2_f,8,0,DOWN);
+		CHalo_swap_dir(X1_f,nc*ndirac,0,DOWN);
+		CHalo_swap_dir(X2_f,nc*ndirac,0,DOWN);
 #endif
 #if(npy>1)
-		CHalo_swap_dir(X1_f,8,1,DOWN);
-		CHalo_swap_dir(X2_f,8,1,DOWN);
+		CHalo_swap_dir(X1_f,nc*ndirac,1,DOWN);
+		CHalo_swap_dir(X2_f,nc*ndirac,1,DOWN);
 #endif
 #if(npz>1)
-		CHalo_swap_dir(X1_f,8,2,DOWN);
-		CHalo_swap_dir(X2_f,8,2,DOWN);
+		CHalo_swap_dir(X1_f,nc*ndirac,2,DOWN);
+		CHalo_swap_dir(X2_f,nc*ndirac,2,DOWN);
 #endif
 #if(npt>1)
-		CHalo_swap_dir(X1_f,8,3,DOWN);
-		CHalo_swap_dir(X2_f,8,3,DOWN);
+		CHalo_swap_dir(X1_f,nc*ndirac,3,DOWN);
+		CHalo_swap_dir(X2_f,nc*ndirac,3,DOWN);
 #endif
 
 		//	The original FORTRAN Comment:

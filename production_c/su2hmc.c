@@ -110,7 +110,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 										//Leave it to the GPU?
 			for(unsigned int i=0; i<kvol;i++)
 				for(unsigned short mu=0;mu<ndim;mu++){
-					ut[0][i+kvoHalol*mu]=1;	ut[1][i+kvolHalo*mu]=0;
+					ut[0][i+kvolHalo*mu]=1;	ut[1][i+kvolHalo*mu]=0;
 				}
 		}
 		else if(istart>0){
@@ -294,7 +294,7 @@ inline int C_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsi
 	//Pointers mean that's not an issue for us so I'm leaving it out
 #pragma omp parallel for simd aligned (x,y,table:AVX)
 	for(unsigned int i=0; i<n; i++)
-		x[i]=y[table[i+kvol*mu]+kvol*mu];
+		x[i]=y[table[i+kvol*mu]+kvolHalo*mu];
 	return 0;
 }
 inline int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu)
@@ -304,7 +304,7 @@ inline int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned
 	//Pointers mean that's not an issue for us so I'm leaving it out
 #pragma omp parallel for simd aligned (x,y,table:AVX)
 	for(unsigned int i=0; i<n; i++)
-		x[i]=y[table[i+kvol*mu]+kvol*mu];
+		x[i]=y[table[i+kvol*mu]+kvolHalo*mu];
 	return 0;
 }
 inline int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
