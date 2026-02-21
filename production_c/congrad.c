@@ -285,7 +285,13 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 
 	//Instead of copying element-wise in a loop, use memcpy.
 	//Get X1 in single precision
+	//Since X1 has a halo and X1_f does not we have to do this manually
+#if (nproc>1)
+	for(unsigned short j=0;j<nc*ndirac;j++)
+		ComplexConvert(X1_f+j*kvol,X1+j*kvolHalo,kvol,true,1);
+#else
 	ComplexConvert(X1_f,X1,kferm2,true,1);
+#endif
 	ComplexConvert(r_f,r,kferm2,true,1);
 	//And clover in double
 	if(c_sw){
@@ -325,6 +331,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			ComplexConvert(p_f,p,kvol,false,nc*ndirac);
 #ifdef __NVCC__
 			//Update the residue vector, but not on the first call.
+			//TODO: Check for multi-gpu. I fear this will get messy
 			if(*itercg)
 				cuMixed_Sumto((double *)X1,(float *)X1_f,2*kferm2,dimGrid,dimBlock);
 			//Bring everything into double precision
@@ -333,10 +340,11 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #else
 			//Update the residue vector, but not on the first call.
 			if(*itercg)
-#pragma omp parallel for simd aligned(X1,X1_f:AVX)
-				for(unsigned int i=0;i<kferm2;i++){
-					X1[i]+=(Complex)X1_f[i];
-				}
+#pragma omp parallel for simd collapse(2) aligned(X1,X1_f:AVX)
+				for(unsigned short j=0;j<nc*ndirac;j++)
+					for(unsigned int i=0;i<kvol;i++){
+						X1[i+j*kvolHalo]+=(Complex)X1_f[i+j*kvol];
+					}
 			memset(X1_f,0,kferm2*sizeof(Complex_f));
 #endif
 			///@f$x2 =  (M^\dagger M)p @f$
@@ -410,18 +418,18 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #ifdef __NVCC__
 #if (nproc>1)
 				for(unsigned short j=0;j<nc*ndirac;j++)
-					cublasZaxpy(cublas_handle,kvol,(cuDoubleComplex *)&alpha,(cuDoubleComplex *)p+j*kvolHalo,1,(cuDoubleComplex *)X1+j*kvol,1);
+					cublasZaxpy(cublas_handle,kvol,(cuDoubleComplex *)&alpha,(cuDoubleComplex *)p+j*kvolHalo,1,(cuDoubleComplex *)X1+j*kvolHalo,1);
 #else
 				cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&alpha,(cuDoubleComplex *)p,1,(cuDoubleComplex *)X1,1);
 #endif
 #elif defined USE_BLAS
 				for(unsigned short j=0;j<nc*ndirac;j++)
-					cblas_zaxpy(kvol, &alpha, p+j*kvolHalo, 1, X1+j*kvol, 1);
+					cblas_zaxpy(kvol, &alpha, p+j*kvolHalo, 1, X1+j*kvolHalo, 1);
 #else
 #pragma omp parallel for simd collapse(2) aligned(p,X1:AVX)
 				for(unsigned short j=0;j<nc*ndirac;j++)
 					for(unsigned int i=0; i<kvol; i++)
-						X1[i+j*kvol]+=alpha*p[i+j*kvolHalo];
+						X1[i+j*kvolHalo]+=alpha*p[i+j*kvolHalo];
 #endif
 			}
 
@@ -489,7 +497,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #pragma omp parallel for simd collapse(2) aligned(r,p:AVX)
 			for(unsigned short j=0;j<nc*ndirac;j++)
 				for(unsigned int i=0; i<kvol; i++)
-					p[i+j*kvolHalo]=r[i+j*kvol]+beta*p[i*j*kvolHalo];
+					p[i+j*kvolHalo]=r[i+j*kvol]+beta*p[i+j*kvolHalo];
 #endif
 			ComplexConvert(p_f,p,kvol,true,nc*ndirac);
 			ComplexConvert(r_f,r,kferm2,true,1);
@@ -983,7 +991,7 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 #endif
 #else
 				for(unsigned short j=0;j<nc*ngorkov;j++)
-				cblas_caxpy(kvol, (Complex_f*)&alpha_f,(Complex_f*)p_f+j*kvolHalo, 1, (Complex_f*)xi_f+j*kvol, 1);
+					cblas_caxpy(kvol, (Complex_f*)&alpha_f,(Complex_f*)p_f+j*kvolHalo, 1, (Complex_f*)xi_f+j*kvol, 1);
 #endif
 #else
 #pragma omp parallel for simd collapse(2) aligned(xi_f,p_f:AVX)

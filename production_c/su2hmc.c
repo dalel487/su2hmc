@@ -110,7 +110,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 										//Leave it to the GPU?
 			for(unsigned int i=0; i<kvol;i++)
 				for(unsigned short mu=0;mu<ndim;mu++){
-					ut[0][i+kvol*mu]=1;	ut[1][i+kvol*mu]=0;
+					ut[0][i+kvoHalol*mu]=1;	ut[1][i+kvolHalo*mu]=0;
 				}
 		}
 		else if(istart>0){
@@ -118,15 +118,15 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 #ifdef __RANLUX__
 			for(unsigned int i=0; i<kvol;i++)
 				for(unsigned short mu=0;mu<ndim;mu++){
-					ut[0][i+kvol*mu]=2*(gsl_rng_uniform(ranlux_instd)-0.5+I*(gsl_rng_uniform(ranlux_instd)-0.5));
-					ut[1][i+kvol*mu]=2*(gsl_rng_uniform(ranlux_instd)-0.5+I*(gsl_rng_uniform(ranlux_instd)-0.5));
+					ut[0][i+kvolHalo*mu]=2*(gsl_rng_uniform(ranlux_instd)-0.5+I*(gsl_rng_uniform(ranlux_instd)-0.5));
+					ut[1][i+kvolHalo*mu]=2*(gsl_rng_uniform(ranlux_instd)-0.5+I*(gsl_rng_uniform(ranlux_instd)-0.5));
 				}
 			//Last resort, Numerical Recipes' Ran2
 #else
 			for(unsigned int i=0; i<kvol;i++)
 				for(unsigned short mu=0;mu<ndim;mu++){
-					ut[0][i+kvol*mu]=2*(ran2(&seed)-0.5+I*(ran2(&seed)-0.5));
-					ut[1][i+kvol*mu]=2*(ran2(&seed)-0.5+I*(ran2(&seed)-0.5));
+					ut[0][i+kvolHalo*mu]=2*(ran2(&seed)-0.5+I*(ran2(&seed)-0.5));
+					ut[1][i+kvolHalo*mu]=2*(ran2(&seed)-0.5+I*(ran2(&seed)-0.5));
 				}
 #endif
 		}
@@ -342,14 +342,13 @@ inline int Reunitarise(Complex *ut[2]){
 #ifdef __NVCC__
 	cuReunitarise(ut,dimGrid,dimBlock);
 #else
-#pragma omp parallel for
-	for(unsigned int i=0; i<kvol; i++)
-#pragma omp simd
-		for(unsigned short mu=0;mu<ndim;mu++){
+#pragma omp parallel for simd
+	for(unsigned short mu=0;mu<ndim;mu++)
+		for(unsigned int i=0; i<kvol; i++){
 			//Declaring anorm inside the loop will hopefully let the compiler know it
 			//is safe to vectorise aggressively
-			double anorm=sqrt(conj(ut[0][i+kvol*mu])*ut[0][i+kvol*mu]+conj(ut[1][i+kvol*mu])*ut[1][i+kvol*mu]);
-			ut[0][i+kvol*mu]/=anorm; ut[1][i+kvol*mu]/=anorm;
+			double anorm=sqrt(conj(ut[0][i+kvolHalo*mu])*ut[0][i+kvolHalo*mu]+conj(ut[1][i+kvolHalo*mu])*ut[1][i+kvolHalo*mu]);
+			ut[0][i+kvolHalo*mu]/=anorm; ut[1][i+kvolHalo*mu]/=anorm;
 		}
 #endif
 	return 0;

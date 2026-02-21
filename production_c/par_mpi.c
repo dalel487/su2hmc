@@ -582,7 +582,7 @@ inline int Par_isum(int *ival){
 	//Container to receive data.
 	int *itmp;
 
-	if(MPI_Allreduce(ival, itmp, 1, MPI_DOUBLE, MPI_SUM, comm)){
+	if(MPI_Allreduce(ival, itmp, 1, MPI_INTEGER, MPI_SUM, comm)){
 		fprintf(stderr,"Error %i in %s: Couldn't complete reduction for %i.\nExiting...\n\n", REDUCERR, funcname, *ival);
 		MPI_Abort(comm,REDUCERR);
 	}
@@ -891,7 +891,7 @@ int ZHalo_swap_dir(Complex *z, int ncpt, int idir, int layer){
 #pragma omp simd aligned(sendbuff,z:AVX)
 				//In each case we set up the data being sent then do the exchange
 				for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
-					sendbuff[ihalo]=z[hu[ndim*ihalo+idir]+kvolHalo*icpt];
+					sendbuff[ihalo]=z[hd[ndim*ihalo+idir]+kvolHalo*icpt];
 				//For the zdnhaloswapdir we send off the down halo and receive into the up halo
 				if(MPI_Isend(sendbuff, halosize[idir], MPI_C_DOUBLE_COMPLEX, pd[idir], icpt, comm, &req)){
 					fprintf(stderr,"Error %i in %s: Failed to send off the down halo from rank %i to rank %i.\nExiting...\n"
@@ -914,7 +914,7 @@ int ZHalo_swap_dir(Complex *z, int ncpt, int idir, int layer){
 #pragma omp simd aligned(sendbuff,z:AVX)
 				//In each case we set up the data being sent then do the exchange
 				for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
-					sendbuff[ihalo]=z[hd[ndim*ihalo+idir]+kvolHalo*icpt];
+					sendbuff[ihalo]=z[hu[ndim*ihalo+idir]+kvolHalo*icpt];
 				//For the zuphaloswapdir we send off the up halo and receive into the down halo
 				if(MPI_Isend(sendbuff, halosize[idir], MPI_C_DOUBLE_COMPLEX, pu[idir], icpt, comm, &req)){
 					fprintf(stderr,"Error %i in %s: Failed to send off the up halo from rank %i to rank %i.\nExiting...\n",
@@ -1244,8 +1244,8 @@ int Trial_Exchange(Complex *ut[2],Complex_f *ut_f[2]){
 	free(z);
 #endif
 #endif
-	ComplexConvert(ut_f[0],ut[0],kvolHalo,true,1);
-	ComplexConvert(ut_f[1],ut[1],kvolHalo,true,1);
+	ComplexConvert(ut_f[0],ut[0],ndim*kvolHalo,true,1);
+	ComplexConvert(ut_f[1],ut[1],ndim*kvolHalo,true,1);
 	return 0;
 }
 #if(npt>1)

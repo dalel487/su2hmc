@@ -80,13 +80,12 @@ int Gauge_force(double *dSdpi, Complex_f *ut[2],unsigned int *iu,unsigned int *i
 void Force_s(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, Complex_f gamval[20],\
 		unsigned int *iu, const unsigned short gamin[16],const float akappa, const unsigned short mu){
 
-#pragma omp parallel for
+#pragma omp parallel for simd
 	for(unsigned int i=0;i<kvol;i++){
 		const unsigned int ind=i+kvolHalo*mu;
 		const Complex_f u11s=ut[0][ind]; const Complex_f u12s=ut[1][ind];
 		const unsigned int uid = iu[i+kvol*mu];
 		//Similarly to Hdslash we always see idirac*nc so we do that here too.
-#pragma omp simd
 		for(unsigned short idirac=0;idirac<nc*ndirac;idirac+=nc){
 			Complex_f X1s[nc];	 Complex_f X1su[nc];
 			Complex_f X2s[nc];	 Complex_f X2su[nc];
@@ -158,7 +157,7 @@ void Force_t(double *dSdpi, Complex_f *ut[2],Complex_f *X1, Complex_f *X2, Compl
 		float *dk[2], unsigned int *iu, const unsigned short gamin[16],float akappa){
 
 	const unsigned short mu=3;
-#pragma omp parallel for
+#pragma omp parallel for simd
 	for(unsigned int i=0;i<kvol;i++){
 		const unsigned int ind=i+kvolHalo*mu;
 		const Complex_f u11s=ut[0][ind];	const Complex_f u12s=ut[1][ind];
@@ -169,7 +168,6 @@ void Force_t(double *dSdpi, Complex_f *ut[2],Complex_f *X1, Complex_f *X2, Compl
 		//Up indices
 		const unsigned int uid = iu[i+kvol*mu];
 		//Similarly to Hdslash we always see idirac*nc so we do that here too.
-#pragma omp simd
 		for(unsigned short idirac=0;idirac<ndirac*nc;idirac+=nc){
 			Complex_f X1s[nc];	 Complex_f X1su[nc];
 			Complex_f X2s[nc];	 Complex_f X2su[nc];

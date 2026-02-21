@@ -71,7 +71,14 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 		Clover(clover,ut_f,iu,id);
 		ByClover_f(R1_f,xi_f,clover,sigval_f,akappa,sigin);
 	}
-	ComplexConvert(R1_f,R1,kvol,false,nc*ngorkov);
+	//Since R1 has a halo and R1_f does not this needs to be strided manually
+#if(nproc>1)
+	for(unsigned short j=0;j<nc*ngorkov;j++)
+		ComplexConvert(R1_f+j*kvol,R1+j*kvolHalo,kvol,false,1);
+#else
+	//But for single rank can be done in one go
+	ComplexConvert(R1_f,R1,kferm,false,1);
+#endif
 #ifdef __NVCC__
 	cudaFree(xi_f);	
 	cudaDeviceSynchronise();
@@ -216,7 +223,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	//Instead of typing id[i+kvol*3] a lot, we'll just assign them to variables.
 	//Idea. One loop instead of two loops but for xuu and xdd just use ngorkov-(igorkov+1) instead
 	//Dirty CUDA work around since it won't convert thrust<complex> to double
-	
+
 	//TODO: Make the code below CUDA friendly.
 	for(unsigned short igorkov=0; igorkov<4; igorkov++){
 		const unsigned short igork1=gamin[3*ndirac+igorkov];

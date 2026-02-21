@@ -69,15 +69,15 @@ inline int SU2plaq(Complex_f *ut[2], Complex_f Sigma[2], unsigned int *iu,  int 
 	 *	This applies to the Sigmas and a's below too
 	 */
 
-	Sigma[0]=ut[0][i+kvol*mu]*ut[0][uidm+kvol*nu]-ut[1][i+kvol*mu]*conj(ut[1][uidm+kvol*nu]);
-	Sigma[1]=ut[0][i+kvol*mu]*ut[1][uidm+kvol*nu]+ut[1][i+kvol*mu]*conj(ut[0][uidm+kvol*nu]);
+	Sigma[0]=ut[0][i+kvolHalo*mu]*ut[0][uidm+kvolHalo*nu]-ut[1][i+kvolHalo*mu]*conj(ut[1][uidm+kvolHalo*nu]);
+	Sigma[1]=ut[0][i+kvolHalo*mu]*ut[1][uidm+kvolHalo*nu]+ut[1][i+kvolHalo*mu]*conj(ut[0][uidm+kvolHalo*nu]);
 
 	int uidn = iu[nu*kvol+i]; 
-	Complex_f a11=Sigma[0]*conj(ut[0][uidn+kvol*mu])+Sigma[1]*conj(ut[1][uidn+kvol*mu]);
-	Complex_f a12=-Sigma[0]*ut[1][uidn+kvol*mu]+Sigma[1]*ut[0][uidn+kvol*mu];
+	Complex_f a11=Sigma[0]*conj(ut[0][uidn+kvolHalo*mu])+Sigma[1]*conj(ut[1][uidn+kvolHalo*mu]);
+	Complex_f a12=-Sigma[0]*ut[1][uidn+kvolHalo*mu]+Sigma[1]*ut[0][uidn+kvolHalo*mu];
 
-	Sigma[0]=a11*conj(ut[0][i+kvol*nu])+a12*conj(ut[1][i+kvol*nu]);
-	Sigma[1]=-a11*ut[1][i+kvol*nu]+a12*ut[0][i+kvol*nu];
+	Sigma[0]=a11*conj(ut[0][i+kvolHalo*nu])+a12*conj(ut[1][i+kvolHalo*nu]);
+	Sigma[1]=-a11*ut[1][i+kvolHalo*nu]+a12*ut[0][i+kvolHalo*nu];
 	return 0;
 }
 #endif

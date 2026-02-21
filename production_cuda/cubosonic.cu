@@ -137,8 +137,8 @@ void cuPolyakov(Complex_f *Sigma[2], Complex_f *ut[2], dim3 dimGrid, dim3 dimBlo
 	cudaMallocAsync((void **)&Sigma[1],kvol3*sizeof(Complex_f),streams[0]);
 #endif
 	//Extract the time component from each site and save in corresponding Sigma
-	cublasCcopy(cublas_handle,kvol3, (cuComplex *)(ut[0])+3*kvol, 1, (cuComplex *)Sigma[0], 1);
-	cublasCcopy(cublas_handle,kvol3, (cuComplex *)(ut[1])+3*kvol, 1, (cuComplex *)Sigma[1], 1);
+	cublasCcopy(cublas_handle,kvol3, (cuComplex *)(ut[0])+3*kvolHalo, 1, (cuComplex *)Sigma[0], 1);
+	cublasCcopy(cublas_handle,kvol3, (cuComplex *)(ut[1])+3*kvolHalo, 1, (cuComplex *)Sigma[1], 1);
 
 	cudaDeviceSynchronise();
 	Polyakov<<<dimGrid,dimBlock>>>(Sigma[0],Sigma[1],ut[0],ut[1]);
