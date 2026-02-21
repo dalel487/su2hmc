@@ -123,7 +123,7 @@ extern cudaMemPool_t mempool;
 #endif
 
 ///	@brief Processor grid t extent
-#define	npt	2
+#define	npt	1
 #if(npt<1)
 #error "npt is expected it to be greater than or equal to 1"
 #elif(nt%npt!=0)

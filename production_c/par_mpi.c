@@ -873,9 +873,11 @@ int ZHalo_swap_dir(Complex *z, int ncpt, int idir, int layer){
 		MPI_Abort(comm,BROADERR);
 	}
 	//How big is the data being sent and received
-//#pragma omp parallel for
-	for(unsigned short icpt=0;icpt<ncpt;icpt++)
-		if(halosize[idir]!=0){
+	//#pragma omp parallel for
+	for(unsigned short icpt=0;icpt<ncpt;icpt++){
+#ifdef _DEBUG
+		printf("Rank %d: Function %s: dir: %d icpt= %d of %d\n",rank, funcname, idir, icpt,ncpt);
+#endif
 		MPI_Request req; MPI_Status stat;
 		Complex *sendbuff = (Complex *)aligned_alloc(AVX,halosize[idir]*sizeof(Complex));
 		switch(layer){
@@ -992,9 +994,11 @@ int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer){
 				LAYERROR, funcname, layer);
 		MPI_Abort(comm,LAYERROR);
 	}
-//#pragma omp parallel for
-	for(unsigned short icpt=0;icpt<ncpt;icpt++)
-		if(halosize[idir]!=0){
+	//#pragma omp parallel for
+	for(unsigned short icpt=0;icpt<ncpt;icpt++){
+#ifdef _DEBUG
+		printf("Rank %d: Function %s: dir: %d icpt= %d of %d\n",rank, funcname, idir, icpt,ncpt);
+#endif
 		MPI_Request req; MPI_Status stat;
 		Complex_f *sendbuff = (Complex_f *)aligned_alloc(AVX,halosize[idir]*sizeof(Complex_f));
 		switch(layer){
@@ -1111,8 +1115,11 @@ int DHalo_swap_dir(double *d, int ncpt, int idir, int layer){
 				LAYERROR, funcname, layer);
 		MPI_Abort(comm,LAYERROR);
 	}
-//#pragma omp parallel for
+	//#pragma omp parallel for
 	for(unsigned short icpt=0;icpt<ncpt;icpt++){
+#ifdef _DEBUG
+		printf("Rank %d: Function %s: dir: %d icpt= %d of %d\n",rank, funcname, idir, icpt,ncpt);
+#endif
 		//Implement the switch. The code is taken from the end of the dedicated functions in the FORTRAN code.
 		MPI_Request req; MPI_Status stat;
 		double *sendbuff = (double *)aligned_alloc(AVX,halosize[idir]*sizeof(double));

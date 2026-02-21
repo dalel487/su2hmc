@@ -107,7 +107,7 @@ diagnostic: SRC+= diagnostics.c
 diagnostic: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 diagnostic: debug
 
-debug:	CFLAGS += -g -O0 -D_DEBUG -Wall -D_DEBUGCG 
+debug:	CFLAGS += -g -O0 -D_DEBUG -Wall #-D_DEBUGCG 
 debug:	$(EXE)
 
 $(EXE):	$(OBJ)
