@@ -96,7 +96,7 @@ TMP=	$(MOD) $(EDT) core
 -include $(DEPS)
 all:	$(EXE)
 
-profiler:	CFLAGS += -g -D_DEBUG
+profiler:	CFLAGS += -g #-D_DEBUG
 profiler:	release
 
 release:	CFLAGS +=  -O3 
@@ -107,7 +107,7 @@ diagnostic: SRC+= diagnostics.c
 diagnostic: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 diagnostic: debug
 
-debug:	CFLAGS += -g -O0 -D_DEBUG -Wall #-D_DEBUGCG 
+debug:	CFLAGS += -g -O0 -D_DEBUG -D_DEBUG_MPI -Wall #-D_DEBUGCG 
 debug:	$(EXE)
 
 $(EXE):	$(OBJ)

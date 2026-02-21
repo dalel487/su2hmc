@@ -228,7 +228,7 @@ int main(int argc, char *argv[]){
 	id = (unsigned int*)aligned_alloc(AVX,ndim*kvol*sizeof(int));
 	iu = (unsigned int*)aligned_alloc(AVX,ndim*kvol*sizeof(int));
 
-	unsigned short gamin[16]; Complex gamval[20]; Complex_f gamval_f[20];
+	alignas(AVX) unsigned short gamin[16]; alignas(AVX) Complex gamval[20]; alignas(AVX) Complex_f gamval_f[20];
 
 	dk[0] = (double *)aligned_alloc(AVX,(kvolHalo)*sizeof(double));
 	dk[1] = (double *)aligned_alloc(AVX,(kvolHalo)*sizeof(double));
@@ -815,7 +815,7 @@ int main(int argc, char *argv[]){
 		free(sigval); free(sigval_f); free(sigin);
 	}
 #endif
-	free(hd); free(hu);free(h1u); free(h1d); free(halosize); free(pcoord);
+	free(hd); free(hu);
 #ifdef __RANLUX__
 	gsl_rng_free(ranlux_instd);
 #endif

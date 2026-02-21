@@ -7,7 +7,8 @@
 #endif
 #include <par_mpi.h>
 
-unsigned int *hu, *hd, *h1u, *h1d, *halosize;
+unsigned int *hu, *hd;
+alignas(AVX) unsigned int halosize[ndim], h1u[ndim], h1d[ndim];
 int Addrc(unsigned int *iu, unsigned int *id){
 	/*
 	 * Loads the addresses required during the update
@@ -29,9 +30,6 @@ int Addrc(unsigned int *iu, unsigned int *id){
 		//Rather than having 8 ih variables I'm going to use a 2x4 array
 		//down is 0, up is 1
 		int ih[2][4] = {{-1,-1,-1,-1},{-1,-1,-1,-1}};
-		h1u = (unsigned int *)aligned_alloc(AVX,ndim*sizeof(int));
-		h1d = (unsigned int *)aligned_alloc(AVX,ndim*sizeof(int));
-		halosize= (unsigned int *)aligned_alloc(AVX,ndim*sizeof(int));
 		hd = (unsigned int *)aligned_alloc(AVX,ndim*halo*sizeof(int));
 		hu = (unsigned int *)aligned_alloc(AVX,ndim*halo*sizeof(int));
 

@@ -875,7 +875,7 @@ int ZHalo_swap_dir(Complex *z, int ncpt, int idir, int layer){
 	//How big is the data being sent and received
 	//#pragma omp parallel for
 	for(unsigned short icpt=0;icpt<ncpt;icpt++){
-#ifdef _DEBUG
+#ifdef _DEBUG_MPI
 		printf("Rank %d: Function %s: dir: %d icpt= %d of %d\n",rank, funcname, idir, icpt,ncpt);
 #endif
 		MPI_Request req; MPI_Status stat;
@@ -893,12 +893,12 @@ int ZHalo_swap_dir(Complex *z, int ncpt, int idir, int layer){
 				for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
 					sendbuff[ihalo]=z[hu[ndim*ihalo+idir]+kvolHalo*icpt];
 				//For the zdnhaloswapdir we send off the down halo and receive into the up halo
-				if(MPI_Isend(sendbuff, halosize[idir], MPI_C_DOUBLE_COMPLEX, pd[idir], tag, comm, &req)){
+				if(MPI_Isend(sendbuff, halosize[idir], MPI_C_DOUBLE_COMPLEX, pd[idir], icpt, comm, &req)){
 					fprintf(stderr,"Error %i in %s: Failed to send off the down halo from rank %i to rank %i.\nExiting...\n"
 							,CANTSEND, funcname, rank, pd[idir]);
 					MPI_Abort(comm,CANTSEND);
 				}
-				if(MPI_Recv(z+h1u[idir]+kvolHalo*icpt, halosize[idir], MPI_C_DOUBLE_COMPLEX, pu[idir], tag, comm, &stat)){
+				if(MPI_Recv(z+h1u[idir]+kvolHalo*icpt, halosize[idir], MPI_C_DOUBLE_COMPLEX, pu[idir], icpt, comm, &stat)){
 					fprintf(stderr,"Error %i in %s: Rank %i failed to receive into up halo from rank %i.\nExiting...\n",
 							CANTRECV, funcname, rank, pu[idir]);
 					MPI_Abort(comm,CANTRECV);
@@ -916,12 +916,12 @@ int ZHalo_swap_dir(Complex *z, int ncpt, int idir, int layer){
 				for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
 					sendbuff[ihalo]=z[hd[ndim*ihalo+idir]+kvolHalo*icpt];
 				//For the zuphaloswapdir we send off the up halo and receive into the down halo
-				if(MPI_Isend(sendbuff, halosize[idir], MPI_C_DOUBLE_COMPLEX, pd[idir], tag, comm, &req)){
+				if(MPI_Isend(sendbuff, halosize[idir], MPI_C_DOUBLE_COMPLEX, pu[idir], icpt, comm, &req)){
 					fprintf(stderr,"Error %i in %s: Failed to send off the up halo from rank %i to rank %i.\nExiting...\n",
 							CANTSEND, funcname, rank, pu[idir]);
 					MPI_Abort(comm,CANTSEND);
 				}
-				if(MPI_Recv(z+h1d[idir]+kvolHalo*icpt, halosize[idir], MPI_C_DOUBLE_COMPLEX, pu[idir], tag, comm, &stat)){
+				if(MPI_Recv(z+h1d[idir]+kvolHalo*icpt, halosize[idir], MPI_C_DOUBLE_COMPLEX, pd[idir], icpt, comm, &stat)){
 					fprintf(stderr,"Error %i in %s: Rank %i failed to receive into doww halo from rank %i.\nExiting...\n",
 							CANTRECV, funcname, rank, pd[idir]);
 					MPI_Abort(comm,CANTRECV);
@@ -996,7 +996,7 @@ int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer){
 	}
 	//#pragma omp parallel for
 	for(unsigned short icpt=0;icpt<ncpt;icpt++){
-#ifdef _DEBUG
+#ifdef _DEBUG_MPI
 		printf("Rank %d: Function %s: dir: %d icpt= %d of %d\n",rank, funcname, idir, icpt,ncpt);
 #endif
 		MPI_Request req; MPI_Status stat;
@@ -1014,12 +1014,12 @@ int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer){
 				for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
 					sendbuff[ihalo]=c[hd[ndim*ihalo+idir]+kvolHalo*icpt];
 				//For the cdnhaloswapdir we send off the down halo and receive into the up halo
-				if(MPI_Isend(sendbuff, halosize[idir], MPI_C_FLOAT_COMPLEX, pd[idir], tag, comm, &req)){
+				if(MPI_Isend(sendbuff, halosize[idir], MPI_C_FLOAT_COMPLEX, pd[idir], icpt, comm, &req)){
 					fprintf(stderr,"Error %i in %s: Failed to send off the down halo from rank %i to rank %i.\nExiting...\n"
 							,CANTSEND, funcname, rank, pd[idir]);
 					MPI_Abort(comm,CANTSEND);
 				}
-				if(MPI_Recv(c+h1u[idir]+kvolHalo*icpt, halosize[idir], MPI_C_FLOAT_COMPLEX, pu[idir], tag, comm, &stat)){
+				if(MPI_Recv(c+h1u[idir]+kvolHalo*icpt, halosize[idir], MPI_C_FLOAT_COMPLEX, pu[idir], icpt, comm, &stat)){
 					fprintf(stderr,"Error %i in %s: Rank %i failed to receive into up halo from rank %i.\nExiting...\n",
 							CANTRECV, funcname, rank, pu[idir]);
 					MPI_Abort(comm,CANTRECV);
@@ -1036,12 +1036,12 @@ int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer){
 				for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
 					sendbuff[ihalo]=c[hu[ndim*ihalo+idir]+kvolHalo*icpt];
 				//For the cuphaloswapdir we send off the up halo and receive into the down halo
-				if(MPI_Isend(sendbuff, halosize[idir], MPI_C_FLOAT_COMPLEX, pd[idir], tag, comm, &req)){
+				if(MPI_Isend(sendbuff, halosize[idir], MPI_C_FLOAT_COMPLEX, pu[idir], icpt, comm, &req)){
 					fprintf(stderr,"Error %i in %s: Failed to send off the up halo from rank %i to rank %i.\nExiting...\n",
 							CANTSEND, funcname, rank, pu[idir]);
 					MPI_Abort(comm,CANTSEND);
 				}
-				if(MPI_Recv(c+h1d[idir]+kvolHalo*icpt, halosize[idir], MPI_C_FLOAT_COMPLEX, pu[idir], tag, comm, &stat)){
+				if(MPI_Recv(c+h1d[idir]+kvolHalo*icpt, halosize[idir], MPI_C_FLOAT_COMPLEX, pd[idir], icpt, comm, &stat)){
 					fprintf(stderr,"Error %i in %s: Rank %i failed to receive into doww halo from rank %i.\nExiting...\n",
 							CANTRECV, funcname, rank, pd[idir]);
 					MPI_Abort(comm,CANTRECV);
@@ -1117,7 +1117,7 @@ int DHalo_swap_dir(double *d, int ncpt, int idir, int layer){
 	}
 	//#pragma omp parallel for
 	for(unsigned short icpt=0;icpt<ncpt;icpt++){
-#ifdef _DEBUG
+#ifdef _DEBUG_MPI
 		printf("Rank %d: Function %s: dir: %d icpt= %d of %d\n",rank, funcname, idir, icpt,ncpt);
 #endif
 		//Implement the switch. The code is taken from the end of the dedicated functions in the FORTRAN code.
@@ -1136,12 +1136,12 @@ int DHalo_swap_dir(double *d, int ncpt, int idir, int layer){
 				for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
 					sendbuff[ihalo]=d[hd[ndim*ihalo+idir]+kvolHalo*icpt];
 				//For the ddnhaloswapdir we send off the down halo and receive into the up halo
-				if(MPI_Isend(sendbuff, halosize[idir], MPI_DOUBLE, pd[idir], tag, comm, &req)){
+				if(MPI_Isend(sendbuff, halosize[idir], MPI_DOUBLE, pd[idir], icpt, comm, &req)){
 					fprintf(stderr, "Error %i in %s: Failed to send off the down halo from rank %i to rank %i.\nExiting...\n\n",
 							CANTSEND, funcname, rank, pd[idir]);
 					MPI_Abort(comm,CANTSEND);
 				}
-				if(MPI_Recv(d+h1u[idir]+kvolHalo*icpt, halosize[idir], MPI_DOUBLE, pu[idir], tag, comm, &stat)){
+				if(MPI_Recv(d+h1u[idir]+kvolHalo*icpt, halosize[idir], MPI_DOUBLE, pu[idir], icpt, comm, &stat)){
 					fprintf(stderr, "Error %i in %s: Rank %i failed to receive into up halo from rank %i.\nExiting...\n\n",
 							CANTRECV, funcname, rank, pu[idir]);
 					MPI_Abort(comm,CANTRECV);
@@ -1159,12 +1159,12 @@ int DHalo_swap_dir(double *d, int ncpt, int idir, int layer){
 				for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
 					sendbuff[ihalo]=d[hu[ndim*ihalo+idir]+kvolHalo*icpt];
 				//For the duphaloswapdir we send off the up halo and receive into the down halo
-				if(MPI_Isend(sendbuff, halosize[idir], MPI_DOUBLE, pd[idir], tag, comm, &req)){
+				if(MPI_Isend(sendbuff, halosize[idir], MPI_DOUBLE, pu[idir], icpt, comm, &req)){
 					fprintf(stderr,"Error %i in %s: Failed to send off the up halo from rank %i to rank %i.\nExiting...\n\n",
 							CANTSEND, funcname, rank, pu[idir]);
 					MPI_Abort(comm,CANTSEND);
 				}
-				if(MPI_Recv(d+h1d[idir]+kvolHalo*icpt, halosize[idir], MPI_DOUBLE, pu[idir], tag, comm, &stat)){
+				if(MPI_Recv(d+h1d[idir]+kvolHalo*icpt, halosize[idir], MPI_DOUBLE, pd[idir], icpt, comm, &stat)){
 					fprintf(stderr, "Error %i in %s: Rank %i failed to receive into doww halo from rank %i.\nExiting...\n\n",
 							CANTRECV, funcname, rank, pd[idir]);
 					MPI_Abort(comm,CANTRECV);
