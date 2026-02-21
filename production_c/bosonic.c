@@ -120,7 +120,6 @@ double Polyakov(Complex_f *ut[2]){
 			Sigma[1][i]=Sigma[0][i]*ut[1][indexu+kvol*3]+Sigma[1][i]*conj(ut[0][indexu+kvol*3]);
 			Sigma[0][i]=a11;
 		}
-	free(Sigma[1]);
 #endif
 
 	//Multiply this partial loop with the contributions of the other cores in the
@@ -147,12 +146,13 @@ double Polyakov(Complex_f *ut[2]){
 	  */
 	if(!pcoord[3+rank*ndim])
 #pragma omp parallel for simd reduction(+:poly)
-		for(int i=0;i<kvol3;i++)
+		for(unsigned int i=0;i<kvol3;i++)
 			poly+=creal(Sigma[0][i]);
 #ifdef __NVCC__
 	cudaFree(Sigma[0]);
 #else
 	free(Sigma[0]); 
+	free(Sigma[1]);
 #endif
 
 #if(nproc>1)

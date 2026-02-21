@@ -20,8 +20,9 @@ export I_MPI_CC := $(CC)
 endif
 
 ifneq ($(filter icc icx, $(CC)),)
+			#-xSKYLAKE -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE,RAPTORLAKE
 CFLAGS += -qopt-zmm-usage=high -ipo -static-intel -static-libgcc \
-			-xHOST -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE,RAPTORLAKE\
+			-xSKYLAKE -fsanitize=numerical\
 			-D__USE_MKL__  -qopenmp  -inline-level=2 \
 			-qopenmp-simd  -use-intel-optimized-headers -diag-disable=10441
 __USE_MKL__ = 1
@@ -107,7 +108,7 @@ diagnostic: SRC+= diagnostics.c
 diagnostic: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 diagnostic: debug
 
-debug:	CFLAGS += -g -O0 -D_DEBUG -D_DEBUG_MPI -Wall #-D_DEBUGCG 
+debug:	CFLAGS += -g -O0 -D_DEBUG #-D_DEBUG_MPI -Wall #-D_DEBUGCG 
 debug:	$(EXE)
 
 $(EXE):	$(OBJ)

@@ -1190,14 +1190,19 @@ int Trial_Exchange(Complex *ut[2],Complex_f *ut_f[2]){
 #ifdef __NVCC__
 	int device=-1;
 	cudaGetDevice(&device);
-	//cudaMemPrefetchAsync(ut[0], ndim*kvol*sizeof(Complex),cudaCpuDeviceId,NULL);
-	//cudaMemPrefetchAsync(ut[1], ndim*kvol*sizeof(Complex),cudaCpuDeviceId,NULL);
 	Complex *z;
-	cudaMalloc((void **)&z,kvolHalo*sizeof(Complex));
+#ifdef _DEBUG
+	cudaMallocManaged((void **)&z,kvolHalo*sizeof(Complex),cudaMemAttachGlobal);
+#else
+	cudaMallocAsync((void **)&z,kvolHalo*sizeof(Complex),streams[0]);
+#endif
+	cudaDeviceSynchronise();
 #else
 	printf("kvolHalo %d, sizeof(Complex) %d, alloc size %d\n",kvolHalo,sizeof(Complex),kvolHalo*sizeof(Complex));
 	Complex *z = (Complex *)aligned_alloc(AVX,kvolHalo*sizeof(Complex));
 #endif
+	//	ZHalo_swap_all(ut[0],ndim); ZHalo_swap_all(ut[1],ndim);
+	//	
 	for(int mu=0;mu<ndim;mu++){
 		//Copy the column from ut[0]
 #ifdef __NVCC__
@@ -1226,25 +1231,21 @@ int Trial_Exchange(Complex *ut[2],Complex_f *ut_f[2]){
 #endif
 	}
 	//Now we prefetch the halo
-#ifdef __NVCC__
-	//cudaMemPrefetchAsync(ut[1]+ndim*kvol, ndim*halo*sizeof(Complex),device,NULL);
-	cudaFree(z);
-#endif
-	free(z);
-#endif
 	//And get the single precision gauge fields preppeed
-	//This can be done in a single block as we want halos in SP too
+	//Since we want the halos converted too set the stride to one
 #ifdef __NVCC__
-	cuComplex_convert(ut_f[0],ut[0],ndim*kvolHalo,true,dimBlock,dimGrid);
-	cuComplex_convert(ut_f[1],ut[1],ndim*kvolHalo,true,dimBlock,dimGrid);
+#ifdef _DEBUG
+	cudaFree(z);
+#else
+	cudaFreeAsync(z,streams[0]);
+#endif
 	cudaDeviceSynchronise();
 #else
-#pragma omp parallel for simd 
-	for(int i=0;i<ndim*kvolHalo;i++){
-		ut_f[0][i]=(Complex_f)ut[0][i];
-		ut_f[1][i]=(Complex_f)ut[1][i];
-	}
+	free(z);
 #endif
+#endif
+	ComplexConvert(ut_f[0],ut[0],kvolHalo,true,1);
+	ComplexConvert(ut_f[1],ut[1],kvolHalo,true,1);
 	return 0;
 }
 #if(npt>1)
