@@ -158,7 +158,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #ifdef __NVCC__
 			cublasZdotc(cublas_handle,kvol,(cuDoubleComplex *)x+kvolHalo*(idirac*nc+ic),1,(cuDoubleComplex *)xi+kvol*(igork*nc+ic), 1,(cuDoubleComplex *)&dot);
 #else
-			cblas_zdotc_sub(kvol, x+kvolHalo*(idirac*nc+ic), 1, xi+kvolHalo*(igork*nc+ic), 1, &dot);
+			cblas_zdotc_sub(kvol, x+kvolHalo*(idirac*nc+ic), 1, xi+kvol*(igork*nc+ic), 1, &dot);
 #endif
 			*qbqb+=gamval[4*ndirac+idirac]*dot;
 #ifdef __NVCC__
@@ -177,8 +177,8 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 			int igork=idirac+4;
 			*qbqb+=gamval[4*ndirac+idirac]*conj(x[i+kvolHalo*(idirac*nc)])*xi[i+kvol*(igork*nc)];
 			*qbqb+=gamval[4*ndirac+idirac]*conj(x[i+kvolHalo*(idirac*nc+1)])*xi[i+kvol*(igork*nc+1)];
-			*qq-=gamval[4*ndirac+idirac]*conj(x[i*kvolHalo*(igork*nc)])*xi[i+kvol*(idirac*nc)];
-			*qq-=gamval[4*ndirac+idirac]*conj(x[i*kvolHalo*(igork*nc+1)])*xi[i+kvol*(idirac*nc+1)];
+			*qq-=gamval[4*ndirac+idirac]*conj(x[i+kvolHalo*(igork*nc)])*xi[i+kvol*(idirac*nc)];
+			*qq-=gamval[4*ndirac+idirac]*conj(x[i+kvolHalo*(igork*nc+1)])*xi[i+kvol*(idirac*nc+1)];
 		}
 #endif
 	//In the FORTRAN Code dsum was used instead despite qq and qbqb being complex
