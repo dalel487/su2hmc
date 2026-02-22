@@ -19,6 +19,7 @@ int Gauge_force(double *dSdpi, Complex_f *ut[2],unsigned int *iu,unsigned int *i
 	//Was a trial field halo exchange here at one point.
 #ifdef __NVCC__
 	cuGauge_force(ut,dSdpi,beta,iu,id,dimGrid,dimBlock);
+	cudaDeviceSynchronise();
 #else
 	Complex_f *Sigma[2], *ush[2];
 	Sigma[0] = (Complex_f *)aligned_alloc(AVX,kvol*sizeof(Complex_f)); 

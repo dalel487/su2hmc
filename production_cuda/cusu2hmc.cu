@@ -262,6 +262,7 @@ void cuReunitarise(Complex *ut[2], dim3 dimGrid, dim3 dimBlock){
 void cuGauge_Update(const double d, double *pp, Complex *ut[2], dim3 dimGrid, dim3 dimBlock){
 	for(int mu=0;mu<ndim;mu++)
 		cuGauge_Update<<<dimGrid,dimBlock,0,streams[mu]>>>(d,pp,ut[0],ut[1],mu);
+	cudaDeviceSynchronise();
 }
 
 //Conj template instantiation

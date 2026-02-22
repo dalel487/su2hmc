@@ -137,7 +137,7 @@ extern cudaMemPool_t mempool;
 #endif
 
 ///	@brief Number of threads for OpenMP, which can be overwritten at runtime
-#define	nthreads	4
+#define	nthreads	8
 
 //    Existing parameter definitions.
 ///	@brief Sublattice x extent
