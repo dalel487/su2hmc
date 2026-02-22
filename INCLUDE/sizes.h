@@ -132,6 +132,9 @@ extern cudaMemPool_t mempool;
 
 ///	@brief	Number of processors for MPI
 #define	nproc	(npx*npy*npz*npt)
+#if (defined __NVCC__ && nproc>1)
+#error	"Multi-GPU is not yet supported"
+#endif
 
 ///	@brief Number of threads for OpenMP, which can be overwritten at runtime
 #define	nthreads	4
