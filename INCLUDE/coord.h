@@ -27,16 +27,16 @@
 #ifdef __CUDACC__
 __managed__
 #endif
+///@brief Up halo starting element
+extern unsigned int h1u[ndim];
+///@brief Down halo starting element
+extern unsigned int h1d[ndim];
 ///@brief Up halo indices
 extern unsigned int *hu;
 ///@brief Down halo indices
 extern unsigned int *hd;
-///@brief Up halo starting element
-extern unsigned int *h1u;
-///@brief Down halo starting element
-extern unsigned int *h1d;
 ///@brief Array containing the size of the halo in each direction
-extern unsigned int  *halosize;;
+extern unsigned int halosize[ndim];
 #ifdef __cplusplus
 extern "C"
 {

@@ -79,7 +79,7 @@ __global__ void cuFill_Small_Phi(const unsigned int na, Complex *smallPhi, Compl
 		for(unsigned short idirac = 0; idirac<ndirac; idirac++)
 			for(unsigned short ic= 0; ic<nc; ic++)
 				//	  PHI_index=i*16+j*2+k;
-				smallPhi[i + kvol * (ic + nc * idirac)] = Phi[i + kvol * (ic + idirac * (nc + ngorkov * na))];
+				smallPhi[i + kvol * (ic + nc * idirac)] = Phi[i + kvol * (ic + nc * (idirac + ngorkov * na))];
 }
 __global__ void cuUpDownPart(const unsigned int na, Complex *X0, Complex *R1){
 

@@ -7,7 +7,8 @@
 #endif
 #include <par_mpi.h>
 
-unsigned int *hu, *hd, *h1u, *h1d, *halosize;
+unsigned int *hu, *hd;
+alignas(AVX) unsigned int halosize[ndim], h1u[ndim], h1d[ndim];
 int Addrc(unsigned int *iu, unsigned int *id){
 	/*
 	 * Loads the addresses required during the update
@@ -25,13 +26,10 @@ int Addrc(unsigned int *iu, unsigned int *id){
 	 * ========
 	 * Zero on success, integer error code otherwise
 	 */
-	const char *funcname = "Addrc";
+	const char funcname[] = "Addrc";
 		//Rather than having 8 ih variables I'm going to use a 2x4 array
 		//down is 0, up is 1
 		int ih[2][4] = {{-1,-1,-1,-1},{-1,-1,-1,-1}};
-		h1u = (unsigned int *)aligned_alloc(AVX,ndim*sizeof(int));
-		h1d = (unsigned int *)aligned_alloc(AVX,ndim*sizeof(int));
-		halosize= (unsigned int *)aligned_alloc(AVX,ndim*sizeof(int));
 		hd = (unsigned int *)aligned_alloc(AVX,ndim*halo*sizeof(int));
 		hu = (unsigned int *)aligned_alloc(AVX,ndim*halo*sizeof(int));
 
@@ -44,7 +42,10 @@ int Addrc(unsigned int *iu, unsigned int *id){
 		//Need to watch these +/- 1 at the end. Is that a FORTRAN thing or a program thing?
 		//The only time I see h1d called that +1 term gets cancelled by a -1 so I'm going
 		//to omit it here at my own peril. (Turned out I was right)
+		///In original AOS code halo was stored after the sublattice
 		h1d[0]=kvol; 
+		//For SOA each direction gets its own halo. Instead we have a j*kvol+h1?[i] term in the halo exchange
+		//h1d[0]=0; 
 		h1u[0]=h1d[0]+halox;
 		halosize[0]=halox;
 
@@ -119,7 +120,7 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							iaddr = ia(jx-1,jy,jz,jt);
 #endif
 						}
-						id[0+ndim*ic]=iaddr;
+						id[0*kvol+ic]=iaddr;
 
 						if(jx<ksize-1)
 							iaddr = ia(jx+1,jy,jz,jt);
@@ -141,7 +142,7 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							iaddr = ia(jx+1,jy,jz,jt);
 #endif
 						}
-						iu[0+ndim*ic]=iaddr;
+						iu[0*kvol+ic]=iaddr;
 
 						if(jy)
 							iaddr = ia(jx,jy-1,jz,jt);
@@ -163,7 +164,7 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							iaddr = ia(jx,jy-1,jz,jt);
 #endif
 						}
-						id[1+ndim*ic]=iaddr;
+						id[1*kvol+ic]=iaddr;
 
 						if(jy<ksize-1)
 							iaddr = ia(jx,jy+1,jz,jt);
@@ -185,7 +186,7 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							iaddr = ia(jx,jy+1,jz,jt);
 #endif
 						}
-						iu[1+ndim*ic]=iaddr;
+						iu[1*kvol+ic]=iaddr;
 
 						if(jz)
 							iaddr = ia(jx,jy,jz-1,jt);
@@ -207,7 +208,7 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							iaddr = ia(jx,jy,jz-1,jt);
 #endif
 						}
-						id[2+ndim*ic]=iaddr;
+						id[2*kvol+ic]=iaddr;
 
 						if(jz<ksize-1)
 							iaddr = ia(jx,jy,jz+1,jt);
@@ -229,7 +230,7 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							iaddr = ia(jx,jy,jz+1,jt);
 #endif
 						}
-						iu[2+ndim*ic]=iaddr;
+						iu[2*kvol+ic]=iaddr;
 
 						if(jt)
 							iaddr = ia(jx,jy,jz,jt-1);
@@ -251,7 +252,7 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							iaddr = ia(jx,jy,jz,jt-1);
 #endif
 						}
-						id[3+ndim*ic]=iaddr;
+						id[3*kvol+ic]=iaddr;
 
 						if(jt<ksizet-1)
 							iaddr = ia(jx,jy,jz,jt+1);
@@ -273,7 +274,7 @@ int Addrc(unsigned int *iu, unsigned int *id){
 							iaddr = ia(jx,jy,jz,jt+1);
 #endif
 						}
-						iu[3+ndim*ic]=iaddr;
+						iu[3*kvol+ic]=iaddr;
 					}
 		//Print iu and id for diagnostics
 #ifdef _DEBUG
@@ -282,15 +283,17 @@ int Addrc(unsigned int *iu, unsigned int *id){
 #pragma omp section
 			{
 				FILE *id_out = fopen("id_out", "w");
+					fprintf(id_out,"x\ty\tz\ti\n");
 				for(int i=0;i<kvol;i++)
-					fprintf(id_out,"%i\t%i\t%i\t%i\n",id[i*ndim],id[i*ndim+1],id[i*ndim+2],id[i*ndim+3]);
+					fprintf(id_out,"%03i\t%03i\t%03i\t%03i\n",id[i],id[i+kvol*1],id[i+kvol*2],id[i+kvol*3]);
 				fclose(id_out);
 			}
 #pragma omp section
 			{
 				FILE *iu_out = fopen("iu_out", "w");
+					fprintf(iu_out,"x\ty\tz\ti\n");
 				for(int i=0;i<kvol;i++)
-					fprintf(iu_out,"%i\t%i\t%i\t%i\n",iu[i*ndim],iu[i*ndim+1],iu[i*ndim+2],iu[i*ndim+3]);
+					fprintf(iu_out,"%03i\t%03i\t%03i\t%03i\n",iu[i],iu[i+kvol*1],iu[i+kvol*2],iu[i+kvol*3]);
 				fclose(iu_out);
 
 			}
@@ -316,7 +319,7 @@ inline int ia(int x, int y, int z, int t){
 	 *
 	 * Future... Switch for Row and column major, and zero or one indexing
 	 */
-	const char *funcname = "ia";
+	const char funcname[] = "ia";
 	//We need to ensure that the indices aren't out of bounds using while loops
 	while(x<0) x+=ksizex; while(x>=ksizex) x-= ksizex;
 	while(y<0) y+=ksizey; while(y>=ksizey) y-= ksizey;
@@ -342,7 +345,7 @@ int Check_addr(unsigned int *table, int lns, int lnt, int imin, int imax){
 	 * =======
 	 * Zero on success, integer error code otherwise.
 	 */
-	const char *funcname = "Check_addr";
+	const char funcname[] = "Check_addr";
 	//Get the total number of elements in each dimension of the table
 	int ntable = lns*lns*lns*lnt;
 	int iaddr;
@@ -386,7 +389,7 @@ inline int Index2lcoord(int index, int *coord){
 	 * Zero on success. Integer Error code otherwise
 	 */ 
 
-	const char *funcname = "Index2lcoord";
+	const char funcname[] = "Index2lcoord";
 	//A divide and conquer approach. Going from the deepest coordinate
 	//to the least deep coordinate, we take the modulo of the index by
 	//the length of that axis to get the coordinate, and then divide
@@ -423,7 +426,7 @@ inline int Index2gcoord(int index, int *coord){
 	 * Zero on success. Integer Error code otherwise
 	 */ 
 
-	const char *funcname = "Index2gcoord";
+	const char funcname[] = "Index2gcoord";
 	//A divide and conquer approach. Going from the deepest coordinate
 	//to the least deep coordinate, we take the modulo of the index by
 	//the length of that axis to get the coordinate, and then divide
@@ -454,7 +457,7 @@ inline int Coord2lindex(int ix, int iy, int iz, int it){
 	 * ========
 	 * int index: The position of the point
 	 */
-	const char *funcname = "Coord2gindex";
+	const char funcname[] = "Coord2gindex";
 
 	//I've factorised this function compared to its original 
 	//implementation to reduce the number of multiplications
@@ -480,7 +483,7 @@ inline int Coord2gindex(int ix, int iy, int iz, int it){
 	 * ========
 	 * int index: The position of the point
 	 */
-	const char *funcname = "Coord2gindex";
+	const char funcname[] = "Coord2gindex";
 
 	//I've factorised this function compared to its original 
 	//implementation to reduce the number of multiplications
@@ -509,7 +512,7 @@ int Testlcoord(int cap){
 	 * ========
 	 * Zero on success, integer error code otherwise.
 	 */
-	const char *funcname = "Testlcoord";
+	const char funcname[] = "Testlcoord";
 	//The storage array for the coordinates, and the index and its test value.
 	int coord[4], index, index2;
 	for(index =0; index<cap; index++){
@@ -553,7 +556,7 @@ int Testgcoord(int cap){
 	 * ========
 	 * Zero on success, integer error code otherwise 
 	 */
-	const char *funcname = "Testgcoord";
+	const char funcname[] = "Testgcoord";
 	int coord[4], index, index2;
 #pragma omp parallel for private(coord, index, index2)
 	for(index=0; index<cap; index++){

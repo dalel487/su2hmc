@@ -1,4 +1,7 @@
 MF=Makefile
+CC ?=			gcc
+CXX ?=		g++
+MPICC ?=		mpicc
 
 IFLAGS=	-I../INCLUDE  $(shell gsl-config --cflags)
 
@@ -93,7 +96,7 @@ TMP=	$(MOD) $(EDT) core
 -include $(DEPS)
 all:	$(EXE)
 
-profiler:	CFLAGS += -g #-D_DEBUGCG
+profiler:	CFLAGS += -g #-D_DEBUG
 profiler:	release
 
 release:	CFLAGS +=  -O3 
@@ -104,13 +107,13 @@ diagnostic: SRC+= diagnostics.c
 diagnostic: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 diagnostic: debug
 
-debug:	CFLAGS += -g -O0 -D_DEBUG -D_DEBUGCG -Wall
+debug:	CFLAGS += -g -O0 -D_DEBUG #-D_DEBUG_MPI -Wall #-D_DEBUGCG 
 debug:	$(EXE)
 
 $(EXE):	$(OBJ)
 		$(MPICC) ../main.c -MP $(CFLAGS) -o $@ $(OBJ) $(LFLAGS)  
 %.o: %.c
-	$(MPICC) $(CFLAGS) -std=gnu11 $(IFLAGS) -c $<  
+	$(MPICC) $(CFLAGS) $(IFLAGS) -c $<  
 
 clean:
 		rm -f $(OBJ) $(TMP) $(DEPS)

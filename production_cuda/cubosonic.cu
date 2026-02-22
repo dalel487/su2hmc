@@ -123,15 +123,8 @@ __host__ void cuAverage_Plaquette(double *hgs, double *hgt, Complex_f *u11t, Com
 
 	*hgs= (double)thrust::reduce(hgs_T,hgs_T+kvol,(float)0);
 	*hgt= (double)thrust::reduce(hgt_T,hgt_T+kvol,(float)0);
-	//Temporary holders to keep OMP happy.
-	/*
-		double hgs_t=0; double hgt_t=0;
-#pragma omp parallel for simd reduction(+:hgs_t,hgt_t)
-for(int i=0;i<kvol;i++){
-hgs_t+=hgs_d[i]; hgt_t+=hgt_d[i];
-}
-	 *hgs=hgs_t; *hgt=hgt_t;
-	 */
+	cudaDeviceSynchronise();
+
 	cudaFreeAsync(hgs_d,streams[0]); cudaFreeAsync(hgt_d,streams[1]);
 	}
 void cuPolyakov(Complex_f *Sigma[2], Complex_f *ut[2], dim3 dimGrid, dim3 dimBlock){
@@ -144,8 +137,8 @@ void cuPolyakov(Complex_f *Sigma[2], Complex_f *ut[2], dim3 dimGrid, dim3 dimBlo
 	cudaMallocAsync((void **)&Sigma[1],kvol3*sizeof(Complex_f),streams[0]);
 #endif
 	//Extract the time component from each site and save in corresponding Sigma
-	cublasCcopy(cublas_handle,kvol3, (cuComplex *)(ut[0])+3*kvol, 1, (cuComplex *)Sigma[0], 1);
-	cublasCcopy(cublas_handle,kvol3, (cuComplex *)(ut[1])+3*kvol, 1, (cuComplex *)Sigma[1], 1);
+	cublasCcopy(cublas_handle,kvol3, (cuComplex *)(ut[0])+3*kvolHalo, 1, (cuComplex *)Sigma[0], 1);
+	cublasCcopy(cublas_handle,kvol3, (cuComplex *)(ut[1])+3*kvolHalo, 1, (cuComplex *)Sigma[1], 1);
 
 	cudaDeviceSynchronise();
 	Polyakov<<<dimGrid,dimBlock>>>(Sigma[0],Sigma[1],ut[0],ut[1]);

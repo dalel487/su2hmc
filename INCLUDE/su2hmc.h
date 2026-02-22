@@ -213,10 +213,6 @@ extern "C"
 	 *	@param	akappa:						Hopping parameter
 	 *	@param	c_sw:							Clover parameter
 	 *	@param	Phi:							Pseudofermion field	
-	 *	@param	R1:							A useful array for holding things that was already assigned in main.
-	 *												In particular, we'll be using it to catch the output of
-	 *												@f$ M^\dagger\Xi@f$ before the inversion, then used to store the
-	 *												output of the inversion
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
@@ -224,7 +220,7 @@ extern "C"
 			Complex *ut[2], Complex_f *ut_f[2], unsigned int *iu, unsigned int *id,\
 			Complex gamval[20], Complex_f gamval_f[20],	const unsigned short gamin[16],\
 			Complex *sigval,Complex_f *sigval_f, unsigned short *sigin, double *dk[2],float *dk_f[2],\
-			Complex_f jqq, float akappa,	float c_sw,Complex *Phi, Complex *R1);
+			Complex_f jqq, float akappa,	float c_sw,Complex *Phi);
 	/** 
 	 * @brief	Calculates the gauge action using new (how new?) lookup table
 	 * @brief	Follows a routine called qedplaq in some QED3 code
@@ -324,6 +320,17 @@ extern "C"
 	 * @return Zero on success, integer error code otherwise
 	 */
 	int Reunitarise(Complex *ut[2]);
+	/**
+	 * @brief takes an array of complex float and double precision numbers and converts the precision
+	 *
+	 * @param	a:				Float array
+	 * @param	b:				Double array
+	 * @param	len:			Number of elements to convert per stride. Striding needed to handle halo terms
+	 * @param	dtof:			If true, convert double to float. Otherwise convert float to double
+	 * @param	stride:		For terms with a halo, we need to convert in blocks of len seperated by (len+halo)
+	 *
+	 */
+	int ComplexConvert(Complex_f *a, Complex *b, const unsigned int len, const bool dtof, const unsigned short stride);
 	//CUDA Declarations:
 	//#################
 #ifdef __NVCC__
@@ -413,7 +420,7 @@ extern "C"
 	 * @param	dtof:					If true, convert double to float. Otherwise convert float to double
 	 * @param 	dimGrid,dimBlock:	CUDA grid/block size
 	 */
-	void cuComplex_convert(Complex_f *a, Complex *b, const unsigned int len, const bool dtof, dim3 dimBlock, dim3 dimGrid);
+	void cuComplex_convert(Complex_f *a, Complex *b, const unsigned int len,  const bool dtof, dim3 dimBlock, dim3 dimGrid);
 	/**
 	 * @brief takes an array of real-valued float and double precision numbers and converts the precision
 	 *

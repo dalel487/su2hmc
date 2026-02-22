@@ -12,7 +12,7 @@
 
 
 int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *ut[2], unsigned int *iu, float beta){
-	const char *funcname = "Average_Plaquette";
+	const char funcname[] = "Average_Plaquette";
 	/*There was a halo exchange here but moved it outside
 	  The FORTRAN code used several consecutive loops to get the plaquette
 	  Instead we'll just make the arrays variables and do everything in one loop
@@ -56,8 +56,8 @@ int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u
 #ifndef __NVCC__
 #pragma omp declare simd
 inline int SU2plaq(Complex_f *ut[2], Complex_f Sigma[2], unsigned int *iu,  int i, int mu, int nu){
-	const char *funcname = "SU2plaq";
-	int uidm = iu[mu+ndim*i]; 
+	const char funcname[] = "SU2plaq";
+	int uidm = iu[mu*kvol+i]; 
 	/***
 	 *	Let's take a quick moment to compare this to the analysis code.
 	 *	The analysis code stores the gauge field as a 4 component real valued vector, whereas the produciton code
@@ -69,20 +69,20 @@ inline int SU2plaq(Complex_f *ut[2], Complex_f Sigma[2], unsigned int *iu,  int 
 	 *	This applies to the Sigmas and a's below too
 	 */
 
-	Sigma[0]=ut[0][i*ndim+mu]*ut[0][uidm*ndim+nu]-ut[1][i*ndim+mu]*conj(ut[1][uidm*ndim+nu]);
-	Sigma[1]=ut[0][i*ndim+mu]*ut[1][uidm*ndim+nu]+ut[1][i*ndim+mu]*conj(ut[0][uidm*ndim+nu]);
+	Sigma[0]=ut[0][i+kvolHalo*mu]*ut[0][uidm+kvolHalo*nu]-ut[1][i+kvolHalo*mu]*conj(ut[1][uidm+kvolHalo*nu]);
+	Sigma[1]=ut[0][i+kvolHalo*mu]*ut[1][uidm+kvolHalo*nu]+ut[1][i+kvolHalo*mu]*conj(ut[0][uidm+kvolHalo*nu]);
 
-	int uidn = iu[nu+ndim*i]; 
-	Complex_f a11=Sigma[0]*conj(ut[0][uidn*ndim+mu])+Sigma[1]*conj(ut[1][uidn*ndim+mu]);
-	Complex_f a12=-Sigma[0]*ut[1][uidn*ndim+mu]+Sigma[1]*ut[0][uidn*ndim+mu];
+	int uidn = iu[nu*kvol+i]; 
+	Complex_f a11=Sigma[0]*conj(ut[0][uidn+kvolHalo*mu])+Sigma[1]*conj(ut[1][uidn+kvolHalo*mu]);
+	Complex_f a12=-Sigma[0]*ut[1][uidn+kvolHalo*mu]+Sigma[1]*ut[0][uidn+kvolHalo*mu];
 
-	Sigma[0]=a11*conj(ut[0][i*ndim+nu])+a12*conj(ut[1][i*ndim+nu]);
-	Sigma[1]=-a11*ut[1][i*ndim+nu]+a12*ut[0][i*ndim+nu];
+	Sigma[0]=a11*conj(ut[0][i+kvolHalo*nu])+a12*conj(ut[1][i+kvolHalo*nu]);
+	Sigma[1]=-a11*ut[1][i+kvolHalo*nu]+a12*ut[0][i+kvolHalo*nu];
 	return 0;
 }
 #endif
 double Polyakov(Complex_f *ut[2]){
-	const char *funcname = "Polyakov";
+	const char funcname[] = "Polyakov";
 	double poly = 0;
 	Complex_f *Sigma[2];
 #ifdef __NVCC__
@@ -92,15 +92,8 @@ double Polyakov(Complex_f *ut[2]){
 	Sigma[1] = (Complex_f *)aligned_alloc(AVX,kvol3*sizeof(Complex_f));
 
 	//Extract the time component from each site and save in corresponding Sigma
-#ifdef USE_BLAS
-	cblas_ccopy(kvol3, ut[0]+3, ndim, Sigma[0], 1);
-	cblas_ccopy(kvol3, ut[1]+3, ndim, Sigma[1], 1);
-#else
-	for(int i=0; i<kvol3; i++){
-		Sigma[0][i]=ut[0][i*ndim+3];
-		Sigma[1][i]=ut[1][i*ndim+3];
-	}
-#endif
+	memcpy(Sigma[0],ut[0]+3*kvolHalo,kvol3*sizeof(Complex_f));
+	memcpy(Sigma[1],ut[1]+3*kvolHalo,kvol3*sizeof(Complex_f));
 	/*	Some Fortran commentary
 		Changed this routine.
 		ut[0] and ut[1] now defined as normal ie (kvol+halo,4).
@@ -122,12 +115,11 @@ double Polyakov(Complex_f *ut[2]){
 			//Seems a bit more efficient to increment indexu instead of reassigning
 			//it every single loop
 			int indexu=it*kvol3+i;
-			Complex_f	a11=Sigma[0][i]*ut[0][indexu*ndim+3]-Sigma[1][i]*conj(ut[1][indexu*ndim+3]);
+			Complex_f	a11=Sigma[0][i]*ut[0][indexu+kvol*3]-Sigma[1][i]*conj(ut[1][indexu+kvol*3]);
 			//Instead of having to store a second buffer just assign it directly
-			Sigma[1][i]=Sigma[0][i]*ut[1][indexu*ndim+3]+Sigma[1][i]*conj(ut[0][indexu*ndim+3]);
+			Sigma[1][i]=Sigma[0][i]*ut[1][indexu+kvol*3]+Sigma[1][i]*conj(ut[0][indexu+kvol*3]);
 			Sigma[0][i]=a11;
 		}
-	free(Sigma[1]);
 #endif
 
 	//Multiply this partial loop with the contributions of the other cores in the
@@ -154,12 +146,13 @@ double Polyakov(Complex_f *ut[2]){
 	  */
 	if(!pcoord[3+rank*ndim])
 #pragma omp parallel for simd reduction(+:poly)
-		for(int i=0;i<kvol3;i++)
+		for(unsigned int i=0;i<kvol3;i++)
 			poly+=creal(Sigma[0][i]);
 #ifdef __NVCC__
 	cudaFree(Sigma[0]);
 #else
 	free(Sigma[0]); 
+	free(Sigma[1]);
 #endif
 
 #if(nproc>1)

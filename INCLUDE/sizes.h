@@ -65,7 +65,7 @@ extern cudaMemPool_t mempool;
 // Common block definition for parallel variables
 
 ///	@brief Lattice x extent
-#define	nx 8
+#define	nx 24
 #if(nx<1)
 #error "nx is expected it to be greater than or equal to 1"
 #endif
@@ -85,7 +85,7 @@ extern cudaMemPool_t mempool;
 #endif
 
 ///	@brief	Lattice temporal extent. This also corresponds to the inverse temperature
-#define	nt	16
+#define	nt	24
 #if(nt<1)
 #error "nt is expected it to be greater than or equal to 1"
 #endif
@@ -123,7 +123,7 @@ extern cudaMemPool_t mempool;
 #endif
 
 ///	@brief Processor grid t extent
-#define	npt	1
+#define	npt	2
 #if(npt<1)
 #error "npt is expected it to be greater than or equal to 1"
 #elif(nt%npt!=0)
@@ -132,6 +132,9 @@ extern cudaMemPool_t mempool;
 
 ///	@brief	Number of processors for MPI
 #define	nproc	(npx*npy*npz*npt)
+#if (defined __NVCC__ && nproc>1)
+#error	"Multi-GPU is not yet supported"
+#endif
 
 ///	@brief Number of threads for OpenMP, which can be overwritten at runtime
 #define	nthreads	4
@@ -223,12 +226,14 @@ extern cudaMemPool_t mempool;
 ///	@brief	Total Halo size
 #define	halo	(2*(halox+haloy+haloz+halot))
 
+///	@brief	Subvolume + halo size
+#define	kvolHalo		(kvol+halo)
 ///	@brief	Gor'kov lattice and halo
-#define	kfermHalo	(nc*ngorkov*(kvol+halo))
+#define	kfermHalo	(nc*ngorkov*kvolHalo)
 ///	@brief	Dirac lattice and halo
-#define	kferm2Halo	(nc*ndirac*(kvol+halo))
+#define	kferm2Halo	(nc*ndirac*kvolHalo)
 ///	@brief	Momentum lattice and halo
-#define	kmomHalo	(ndim*nadj*(kvol+halo))
+#define	kmomHalo	(ndim*nadj*kvolHalo)
 
 //		These all used to be multipled by kferm or kferm2 at the start of Congradq or Congradp
 //		On 20240516 in Room 2.19 of the Lloyd building of Trinity we copped that doing so means that the residue is larger

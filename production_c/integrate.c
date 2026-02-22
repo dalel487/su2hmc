@@ -9,18 +9,18 @@
 #include <matrices.h>
 int Force_debug(double ave_dSdpi[3],double *dSdpi){
 #ifdef __NVCC__
-		ave_dSdpi[0]=cureduce_sum_d(dSdpi,kvol*ndim,0);
-		ave_dSdpi[1]=cureduce_sum_d(dSdpi+kvol*ndim,kvol*ndim,1);
-		ave_dSdpi[2]=cureduce_sum_d(dSdpi+2*kvol*ndim,kvol*ndim,2);
-		cudaDeviceSynchronise();
+	ave_dSdpi[0]=cureduce_sum_d(dSdpi,kvol*ndim,0);
+	ave_dSdpi[1]=cureduce_sum_d(dSdpi+kvol*ndim,kvol*ndim,1);
+	ave_dSdpi[2]=cureduce_sum_d(dSdpi+2*kvol*ndim,kvol*ndim,2);
+	cudaDeviceSynchronise();
 #else
-		for(unsigned int i=0;i<kvol*ndim;i++){
-			ave_dSdpi[0]+=dSdpi[i];
-			ave_dSdpi[1]+=dSdpi[i+kvol*ndim];
-			ave_dSdpi[2]+=dSdpi[i+2*kvol*ndim];
-		}
+	for(unsigned int i=0;i<kvol*ndim;i++){
+		ave_dSdpi[0]+=dSdpi[i];
+		ave_dSdpi[1]+=dSdpi[i+kvol*ndim];
+		ave_dSdpi[2]+=dSdpi[i+2*kvol*ndim];
+	}
 #endif
-		ave_dSdpi[0]/=(ndim*kvol); ave_dSdpi[1]/=(ndim*kvol); ave_dSdpi[2]/=(ndim*kvol);
+	ave_dSdpi[0]/=(ndim*kvol); ave_dSdpi[1]/=(ndim*kvol); ave_dSdpi[2]/=(ndim*kvol);
 }
 
 int Gauge_Update(const double d, double *pp, Complex *ut[2],Complex_f *ut_f[2]){
@@ -42,26 +42,26 @@ int Gauge_Update(const double d, double *pp, Complex *ut[2],Complex_f *ut_f[2]){
 #else
 #pragma omp parallel for simd collapse(2) aligned(pp:AVX) 
 	for(unsigned int i=0;i<kvol;i++)
-		for(int mu = 0; mu<ndim; mu++){
+		for(unsigned short mu = 0; mu<ndim; mu++){
 			/*
 			 * Sticking to what was in the FORTRAN for variable names.
 			 * CCC for cosine SSS for sine AAA for...
 			 * Re-exponentiating the force field. Can be done analytically in SU(2)
 			 * using sine and cosine which is nice
 			 */
-
-			double AAA = d*sqrt(pp[i*nadj*ndim+mu]*pp[i*nadj*ndim+mu]\
-					+pp[(i*nadj+1)*ndim+mu]*pp[(i*nadj+1)*ndim+mu]\
-					+pp[(i*nadj+2)*ndim+mu]*pp[(i*nadj+2)*ndim+mu]);
+			const unsigned int ind = i+kvol*mu;
+			double AAA = d*sqrt(pp[ind]*pp[ind]\
+					+pp[i+kvol*(1*ndim+mu)]*pp[i+kvol*(1*ndim+mu)]\
+					+pp[i+kvol*(2*ndim+mu)]*pp[i+kvol*(2*ndim+mu)]);
 			double CCC = cos(AAA);
 			double SSS = d*sin(AAA)/AAA;
-			Complex a11 = CCC+I*SSS*pp[(i*nadj+2)*ndim+mu];
-			Complex a12 = pp[(i*nadj+1)*ndim+mu]*SSS + I*SSS*pp[i*nadj*ndim+mu];
+			Complex a11 = CCC+I*SSS*pp[i+kvol*(2*ndim+mu)];
+			Complex a12 = pp[i+kvol*(1*ndim+mu)]*SSS + I*SSS*pp[ind];
 			//b11 and b12 are ut[0] and ut[1] terms, so we'll use ut[1] directly
 			//but use b11 for ut[0] to prevent RAW dependency
-			Complex b11 = ut[0][i*ndim+mu];
-			ut[0][i*ndim+mu] = a11*b11-a12*conj(ut[1][i*ndim+mu]);
-			ut[1][i*ndim+mu] = a11*ut[1][i*ndim+mu]+a12*conj(b11);
+			Complex b11 = ut[0][i+kvolHalo*mu];
+			ut[0][i+kvolHalo*mu] = a11*b11-a12*conj(ut[1][i+kvolHalo*mu]);
+			ut[1][i+kvolHalo*mu] = a11*ut[1][i+kvolHalo*mu]+a12*conj(b11);
 		}
 #endif
 	Reunitarise(ut);
@@ -136,238 +136,238 @@ int Leapfrog(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex 
 		}
 	}while(!end_traj);
 
-	return 0;
-}
+		return 0;
+	}
 #elif defined INT_OMF2
-int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi,double *dk[2],float *dk_f[2],
-		double *dSdpi,double *pp, unsigned int *iu,unsigned int *id, Complex gamval[20], Complex_f gamval_f[20], const unsigned short gamin[16],
-		Complex *sigval, Complex_f *sigval_f, unsigned short *sigin, const Complex jqq, const float beta, const float akappa, 
-		const float c_sw, const int stepl, const float dt, double *ancg, int *itot, const float proby)
-{
-	const char funcname[] = "OMF2";
-	const double lambda=0.5-(pow(2.0*sqrt(326.0)+36.0,1.0/3.0)/12.0)+1.0/(6*pow(2.0*sqrt(326.0) + 36.0,1.0/3.0));
-	//const double lambda=1.0/6.0;
-	//	const double lambda=0.5;
+	int OMF2(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi,double *dk[2],float *dk_f[2],
+			double *dSdpi,double *pp, unsigned int *iu,unsigned int *id, Complex gamval[20], Complex_f gamval_f[20], const unsigned short gamin[16],
+			Complex *sigval, Complex_f *sigval_f, unsigned short *sigin, const Complex jqq, const float beta, const float akappa, 
+			const float c_sw, const int stepl, const float dt, double *ancg, int *itot, const float proby)
+	{
+		const char funcname[] = "OMF2";
+		const double lambda=0.5-(pow(2.0*sqrt(326.0)+36.0,1.0/3.0)/12.0)+1.0/(6*pow(2.0*sqrt(326.0) + 36.0,1.0/3.0));
+		//const double lambda=1.0/6.0;
+		//	const double lambda=0.5;
 
-	//Gauge update by half dt
-	const	double dU = dt*0.5;
+		//Gauge update by half dt
+		const	double dU = dt*0.5;
 
-	//Momentum updates by lambda, 2lambda and (1-2lambda) in the middle
-	const double dp= -lambda*dt;
-	const double dp2= 2.0*dp;
-	const double dpm= -(1.0-2.0*lambda)*dt;
-	//Initial step forward for p
-	//=======================
+		//Momentum updates by lambda, 2lambda and (1-2lambda) in the middle
+		const double dp= -lambda*dt;
+		const double dp2= 2.0*dp;
+		const double dpm= -(1.0-2.0*lambda)*dt;
+		//Initial step forward for p
+		//=======================
 #ifdef _DEBUG
-	if(!rank){
-		double ave_dSdpi[3];
-		Force_debug(ave_dSdpi,dSdpi);
-		printf("Before evaluating force on rank %i, dSdpi[0] %e dSdpi[1] %e dSdpi[2] %e\n", rank,ave_dSdpi[0],ave_dSdpi[1],ave_dSdpi[2]);
-		double ave_pp[3];
-		Force_debug(ave_pp,pp);
-		printf("Average momentum pp[0] %e pp[1] %e pp[2] %e\n", ave_pp[0],ave_pp[1],ave_pp[2]);
+		if(!rank){
+			double ave_dSdpi[3];
+			Force_debug(ave_dSdpi,dSdpi);
+			printf("Before evaluating force on rank %i, dSdpi[0] %e dSdpi[1] %e dSdpi[2] %e\n", rank,ave_dSdpi[0],ave_dSdpi[1],ave_dSdpi[2]);
+			double ave_pp[3];
+			Force_debug(ave_pp,pp);
+			printf("Average momentum pp[0] %e pp[1] %e pp[2] %e\n", ave_pp[0],ave_pp[1],ave_pp[2]);
 		}
 #endif
-	Force(dSdpi, 1, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
+		Force(dSdpi, 1, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
 #ifdef _DEBUG
-	if(!rank){
-		double ave_dSdpi[3];
-		Force_debug(ave_dSdpi,dSdpi);
-		printf("Average force on rank %i, dSdpi[0] %e dSdpi[1] %e dSdpi[2] %e\n", rank,ave_dSdpi[0],ave_dSdpi[1],ave_dSdpi[2]);
+		if(!rank){
+			double ave_dSdpi[3];
+			Force_debug(ave_dSdpi,dSdpi);
+			printf("Average force on rank %i, dSdpi[0] %e dSdpi[1] %e dSdpi[2] %e\n", rank,ave_dSdpi[0],ave_dSdpi[1],ave_dSdpi[2]);
 		}
 #endif
-	//Initial momentum update
-	Momentum_Update(dp,dSdpi,pp);
+		//Initial momentum update
+		Momentum_Update(dp,dSdpi,pp);
 #ifdef _DEBUG
-	if(!rank){
-		double ave_pp[3];
-		Force_debug(ave_pp,pp);
-		printf("Average initial momentum on rank %i, pp[0] %e pp[1] %e pp[2] %e\n", rank,ave_pp[0],ave_pp[1],ave_pp[2]);
-		}
-#endif
-
-	//Main loop for classical time evolution
-	//======================================
-	bool end_traj=false; int step =1;
-	//	for(int step = 1; step<=stepmax; step++){
-	do{
-#ifdef _DEBUG
-		if(!rank)
-			printf("Step: %d\n", step);
-#endif
-		//First gauge update
-		Gauge_Update(dU,pp,ut,ut_f);
-
-		//Calculate force for middle momentum update
-		Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
-#ifdef _DEBUG
-	if(!rank){
-		double ave_dSdpi[3];
-		Force_debug(ave_dSdpi,dSdpi);
-		printf("First force update on rank %i, dSdpi[0] %e dSdpi[1] %e dSdpi[2] %e\n", rank,ave_dSdpi[0],ave_dSdpi[1],ave_dSdpi[2]);
-		}
-#endif
-		//Now do the middle momentum update
-		Momentum_Update(dpm,dSdpi,pp);
-#ifdef _DEBUG
-	if(!rank){
-		double ave_pp[3];
-		Force_debug(ave_pp,pp);
-		printf("Average middle momentum on rank %i, pp[0] %e pp[1] %e pp[2] %e\n", rank,ave_pp[0],ave_pp[1],ave_pp[2]);
+		if(!rank){
+			double ave_pp[3];
+			Force_debug(ave_pp,pp);
+			printf("Average initial momentum on rank %i, pp[0] %e pp[1] %e pp[2] %e\n", rank,ave_pp[0],ave_pp[1],ave_pp[2]);
 		}
 #endif
 
-		//Second gauge update
-		Gauge_Update(dU,pp,ut,ut_f);
+		//Main loop for classical time evolution
+		//======================================
+		bool end_traj=false; int step =1;
+		//	for(int step = 1; step<=stepmax; step++){
+		do{
+#ifdef _DEBUG
+			if(!rank)
+				printf("Step: %d\n", step);
+#endif
+			//First gauge update
+			Gauge_Update(dU,pp,ut,ut_f);
 
-		//Calculate force for second momentum update
-		Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
+			//Calculate force for middle momentum update
+			Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
 #ifdef _DEBUG
-	if(!rank){
-		double ave_dSdpi[3];
-		Force_debug(ave_dSdpi,dSdpi);
-		printf("Second force update on rank %i, dSdpi[0] %e dSdpi[1] %e dSdpi[2] %e\n", rank,ave_dSdpi[0],ave_dSdpi[1],ave_dSdpi[2]);
-		}
+			if(!rank){
+				double ave_dSdpi[3];
+				Force_debug(ave_dSdpi,dSdpi);
+				printf("First force update on rank %i, dSdpi[0] %e dSdpi[1] %e dSdpi[2] %e\n", rank,ave_dSdpi[0],ave_dSdpi[1],ave_dSdpi[2]);
+			}
+#endif
+			//Now do the middle momentum update
+			Momentum_Update(dpm,dSdpi,pp);
+#ifdef _DEBUG
+			if(!rank){
+				double ave_pp[3];
+				Force_debug(ave_pp,pp);
+				printf("Average middle momentum on rank %i, pp[0] %e pp[1] %e pp[2] %e\n", rank,ave_pp[0],ave_pp[1],ave_pp[2]);
+			}
 #endif
 
-		//if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
-		if(step==stepl){
-			//Final momentum step
-			Momentum_Update(dp,dSdpi,pp);
+			//Second gauge update
+			Gauge_Update(dU,pp,ut,ut_f);
+
+			//Calculate force for second momentum update
+			Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
 #ifdef _DEBUG
-	if(!rank){
-		double ave_pp[3];
-		Force_debug(ave_pp,pp);
-		printf("Average final momentum on rank %i, pp[0] %e pp[1] %e pp[2] %e\n", rank,ave_pp[0],ave_pp[1],ave_pp[2]);
-		}
+			if(!rank){
+				double ave_dSdpi[3];
+				Force_debug(ave_dSdpi,dSdpi);
+				printf("Second force update on rank %i, dSdpi[0] %e dSdpi[1] %e dSdpi[2] %e\n", rank,ave_dSdpi[0],ave_dSdpi[1],ave_dSdpi[2]);
+			}
 #endif
-			*itot+=step;
-			//Two force terms, so an extra factor of two in the average?
-			//Or leave it as it was, to get the average CG iterations per trajectory rather than force
-			*ancg/=step;
-			end_traj=true;
-			break;
-		}
-		else{
-			//Since we apply the momentum at the start and end of a step we instead apply a double step here
-			Momentum_Update(dp2,dSdpi,pp);
+
+			//if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
+			if(step==stepl){
+				//Final momentum step
+				Momentum_Update(dp,dSdpi,pp);
 #ifdef _DEBUG
-	if(!rank){
-		double ave_pp[3];
-		Force_debug(ave_pp,pp);
-		printf("Average intermediate momentum on rank %i, pp[0] %e pp[1] %e pp[2] %e\n", rank,ave_pp[0],ave_pp[1],ave_pp[2]);
-		}
+				if(!rank){
+					double ave_pp[3];
+					Force_debug(ave_pp,pp);
+					printf("Average final momentum on rank %i, pp[0] %e pp[1] %e pp[2] %e\n", rank,ave_pp[0],ave_pp[1],ave_pp[2]);
+				}
 #endif
-			step++;
+				*itot+=step;
+				//Two force terms, so an extra factor of two in the average?
+				//Or leave it as it was, to get the average CG iterations per trajectory rather than force
+				*ancg/=step;
+				end_traj=true;
+				break;
+			}
+			else{
+				//Since we apply the momentum at the start and end of a step we instead apply a double step here
+				Momentum_Update(dp2,dSdpi,pp);
+#ifdef _DEBUG
+				if(!rank){
+					double ave_pp[3];
+					Force_debug(ave_pp,pp);
+					printf("Average intermediate momentum on rank %i, pp[0] %e pp[1] %e pp[2] %e\n", rank,ave_pp[0],ave_pp[1],ave_pp[2]);
+				}
+#endif
+				step++;
+			}
+		}while(!end_traj);
+			return 0;
 		}
-	}while(!end_traj);
-	return 0;
-}
 #elif defined INT_OMF4
 #warning "OMF4 can be less efficient than OMF2 in certain cases. Use with caution. See http://dx.doi.org/10.1103/PhysRevE.73.036706"
-int OMF4(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi,double *dk[2],float *dk_f[2],
-		double *dSdpi,double *pp, unsigned int *iu,unsigned int *id, Complex gamval[20], Complex_f gamval_f[20], const unsigned short gamin[16],
-		Complex *sigval, Complex_f *sigval_f, unsigned short *sigin, const Complex jqq, const float beta, const float akappa, 
-		const float c_sw, const int stepl, const float dt, double *ancg, int *itot, const float proby)
-{
-	const char funcname[] = "OMF4";
-	//These values were lifted from openqcd-fastsum, 
-	const double theta = 0.08398315262876693;
-	const double rho = 0.2539785108410595;
-	const double lambda = 0.6822365335719091;
-	const double vartheta = -0.03230286765269967;
+		int OMF4(Complex *ut[2],Complex_f *ut_f[2],Complex *X0,Complex *X1, Complex *Phi,double *dk[2],float *dk_f[2],
+				double *dSdpi,double *pp, unsigned int *iu,unsigned int *id, Complex gamval[20], Complex_f gamval_f[20], const unsigned short gamin[16],
+				Complex *sigval, Complex_f *sigval_f, unsigned short *sigin, const Complex jqq, const float beta, const float akappa, 
+				const float c_sw, const int stepl, const float dt, double *ancg, int *itot, const float proby)
+		{
+			const char funcname[] = "OMF4";
+			//These values were lifted from openqcd-fastsum, 
+			const double theta = 0.08398315262876693;
+			const double rho = 0.2539785108410595;
+			const double lambda = 0.6822365335719091;
+			const double vartheta = -0.03230286765269967;
 
-	///@brief Momentum updates
-	///@brief Outer updates depend on theta. We have two of these, doubled for between full steps
-	const double dpO= -theta*dt;
-	const double dpO2= 2*dpO;
-	///@brief Middle updates depend on lambda
-	const double dpM= -lambda*dt;
-	///@brief Inner updates depend on theta and lambda
-	const double dpI= -(0.5-theta-lambda)*dt;
+			///@brief Momentum updates
+			///@brief Outer updates depend on theta. We have two of these, doubled for between full steps
+			const double dpO= -theta*dt;
+			const double dpO2= 2*dpO;
+			///@brief Middle updates depend on lambda
+			const double dpM= -lambda*dt;
+			///@brief Inner updates depend on theta and lambda
+			const double dpI= -(0.5-theta-lambda)*dt;
 
-	///@brief Gauge updates. These depend on rho and theta
-	///@brief Outer gauge update depends on rho
-	const	double duO = dt*rho;
-	///@brief Middle gauge update depends on vartheta
-	const	double duM = dt*vartheta;
-	///@brief Inner gauge update depends on rho and vartheta
-	const	double duI = dt*(1-2*(rho+vartheta));
+			///@brief Gauge updates. These depend on rho and theta
+			///@brief Outer gauge update depends on rho
+			const	double duO = dt*rho;
+			///@brief Middle gauge update depends on vartheta
+			const	double duM = dt*vartheta;
+			///@brief Inner gauge update depends on rho and vartheta
+			const	double duI = dt*(1-2*(rho+vartheta));
 
-	//Initial step forward for p
-	//=======================
+			//Initial step forward for p
+			//=======================
 #ifdef _DEBUG
-	printf("Evaluating force on rank %i\n", rank);
+			printf("Evaluating force on rank %i\n", rank);
 #endif
-	Force(dSdpi, 1, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
-	Momentum_Update(dpO,dSdpi,pp);
-
-	//Main loop for classical time evolution
-	//======================================
-	bool end_traj=false; int step =1;
-	//	for(int step = 1; step<=stepmax; step++){
-	do{
-#ifdef _DEBUG
-		if(!rank)
-			printf("Step: %d\n", step);
-#endif
-		//First outer gauge update
-		Gauge_Update(duO,pp,ut,ut_f);
-
-		//Calculate force for first middle momentum update
-		Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
-		//Now do the first middle momentum update
-		Momentum_Update(dpM,dSdpi,pp);
-
-		//First middle gauge update
-		Gauge_Update(duM,pp,ut,ut_f);
-
-		//Calculate force for first inner momentum update
-		Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
-		//Now do the first inner momentum update
-		Momentum_Update(dpI,dSdpi,pp);
-
-		//Inner gauge update
-		Gauge_Update(duI,pp,ut,ut_f);
-
-		//Calculate force for second inner momentum update
-		Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
-		//Now do the second inner momentum update
-		Momentum_Update(dpI,dSdpi,pp);
-
-		//Second middle gauge update
-		Gauge_Update(duM,pp,ut,ut_f);
-
-		//Calculate force for second middle momentum update
-		Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
-		//Now do the second middle momentum update
-		Momentum_Update(dpM,dSdpi,pp);
-
-		//Second outer gauge update
-		Gauge_Update(duO,pp,ut,ut_f);
-
-		//Calculate force for outer momentum update
-		Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
-
-		//Outer momentum update depends on if we've finished the trajectory
-		//if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
-		if(step==stepl){
-			//Final momentum step
+			Force(dSdpi, 1, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
 			Momentum_Update(dpO,dSdpi,pp);
-			*itot+=step;
 
-			//Four force terms, so an extra factor of four in the average?
-			//Or leave it as it was, to get the average CG iterations per trajectory rather than force
-			*ancg/=step;
-			end_traj=true;
-			break;
-		}
-		else{
-			//Since we apply the momentum at the start and end of a step we instead apply a double step here
-			Momentum_Update(dpO2,dSdpi,pp);
-			step++;
-		}
-	}while(!end_traj);
-	return 0;
-}
+			//Main loop for classical time evolution
+			//======================================
+			bool end_traj=false; int step =1;
+			//	for(int step = 1; step<=stepmax; step++){
+			do{
+#ifdef _DEBUG
+				if(!rank)
+					printf("Step: %d\n", step);
+#endif
+				//First outer gauge update
+				Gauge_Update(duO,pp,ut,ut_f);
+
+				//Calculate force for first middle momentum update
+				Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
+				//Now do the first middle momentum update
+				Momentum_Update(dpM,dSdpi,pp);
+
+				//First middle gauge update
+				Gauge_Update(duM,pp,ut,ut_f);
+
+				//Calculate force for first inner momentum update
+				Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
+				//Now do the first inner momentum update
+				Momentum_Update(dpI,dSdpi,pp);
+
+				//Inner gauge update
+				Gauge_Update(duI,pp,ut,ut_f);
+
+				//Calculate force for second inner momentum update
+				Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
+				//Now do the second inner momentum update
+				Momentum_Update(dpI,dSdpi,pp);
+
+				//Second middle gauge update
+				Gauge_Update(duM,pp,ut,ut_f);
+
+				//Calculate force for second middle momentum update
+				Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
+				//Now do the second middle momentum update
+				Momentum_Update(dpM,dSdpi,pp);
+
+				//Second outer gauge update
+				Gauge_Update(duO,pp,ut,ut_f);
+
+				//Calculate force for outer momentum update
+				Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,beta,c_sw,ancg);
+
+				//Outer momentum update depends on if we've finished the trajectory
+				//if(step>=stepl*4.0/5.0 && (step>=stepl*(6.0/5.0) || Par_granf()<proby)){
+				if(step==stepl){
+					//Final momentum step
+					Momentum_Update(dpO,dSdpi,pp);
+					*itot+=step;
+
+					//Four force terms, so an extra factor of four in the average?
+					//Or leave it as it was, to get the average CG iterations per trajectory rather than force
+					*ancg/=step;
+					end_traj=true;
+					break;
+				}
+				else{
+					//Since we apply the momentum at the start and end of a step we instead apply a double step here
+					Momentum_Update(dpO2,dSdpi,pp);
+					step++;
+				}
+			}while(!end_traj);
+				return 0;
+			}
 #endif

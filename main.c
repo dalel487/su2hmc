@@ -113,11 +113,7 @@ int main(int argc, char *argv[]){
 	int iprint = 1; //How often are measurements made
 	int icheck = 5; //How often are configurations saved
 	int ibound = -1;
-#ifdef USE_MATH_DEFINES
-	const double tpi = 2*M_PI;
-#else
-	const double tpi = 2*acos(-1.0);
-#endif
+
 	float dt=0.004;	float c_sw = 0.0;	float delb=0; //Not used?
 	float ajq = 0.0;	int stepl = 250;	int ntraj = 10;
 	//rank is zero means it must be the "master process"
@@ -160,9 +156,12 @@ int main(int argc, char *argv[]){
 	int device=-1;
 	cudaGetDevice(&device);
 	//For asynchronous memory, when CUDA syncs any unused memory in the pool is released back to the OS
-	//unless a threshold is given. We'll base our threshold off of Congradq
+	//unless a threshold is given. We'll base our threshold off of Congradp
+	//12*kvol for the clover and 4*16*kvolHalo for the fermion fields 
+	//Factor of 1.5 because we need it in single and double precsion should be plenty without being excessive.
+	//Not everything has a halo so larger halos give us more headroom too.
 	cudaDeviceGetDefaultMemPool(&mempool, device);
-	int threshold=2*kferm2*sizeof(Complex_f);
+	int threshold=8*kfermHalo*sizeof(Complex);
 	cudaMemPoolSetAttribute(mempool, cudaMemPoolAttrReleaseThreshold, &threshold);
 #endif
 #ifdef _DEBUG
@@ -195,17 +194,18 @@ int main(int argc, char *argv[]){
 	//And clover arrays. These only get assigned if @f$c_\text{SW}>0@f$
 	Complex *sigval; Complex_f *sigval_f; unsigned short *sigin;
 #ifdef __NVCC__
+	//Managed here because it's easier to fill them on CPU
 	cudaMallocManaged((void**)&iu,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
 	cudaMallocManaged((void**)&id,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
 
-	cudaMallocManaged((void **)&dk[0],(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&dk[1],(kvol+halo)*sizeof(double),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&dk[0],(kvolHalo)*sizeof(double),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&dk[1],(kvolHalo)*sizeof(double),cudaMemAttachGlobal);
 #ifdef _DEBUG
-	cudaMallocManaged((void **)&dk_f[0],(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&dk_f[1],(kvol+halo)*sizeof(float),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&dk_f[0],(kvolHalo)*sizeof(float),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&dk_f[1],(kvolHalo)*sizeof(float),cudaMemAttachGlobal);
 #else
-	cudaMalloc((void **)&dk_f[0],(kvol+halo)*sizeof(float));
-	cudaMalloc((void **)&dk_f[1],(kvol+halo)*sizeof(float));
+	cudaMalloc((void **)&dk_f[0],(kvolHalo)*sizeof(float));
+	cudaMalloc((void **)&dk_f[1],(kvolHalo)*sizeof(float));
 #endif
 
 	unsigned short	*gamin; Complex *gamval; Complex_f *gamval_f;
@@ -215,32 +215,32 @@ int main(int argc, char *argv[]){
 
 	cudaMallocManaged((void **)&u[0],ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&u[1],ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&ut[0],ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&ut[1],ndim*(kvol+halo)*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&ut[0],ndim*(kvolHalo)*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&ut[1],ndim*(kvolHalo)*sizeof(Complex),cudaMemAttachGlobal);
 #ifdef _DEBUG
-	cudaMallocManaged((void **)&ut_f[0],ndim*(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&ut_f[1],ndim*(kvol+halo)*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&ut_f[0],ndim*(kvolHalo)*sizeof(Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&ut_f[1],ndim*(kvolHalo)*sizeof(Complex_f),cudaMemAttachGlobal);
 #else
-	cudaMalloc((void **)&ut_f[0],ndim*(kvol+halo)*sizeof(Complex_f));
-	cudaMalloc((void **)&ut_f[1],ndim*(kvol+halo)*sizeof(Complex_f));
+	cudaMalloc((void **)&ut_f[0],ndim*(kvolHalo)*sizeof(Complex_f));
+	cudaMalloc((void **)&ut_f[1],ndim*(kvolHalo)*sizeof(Complex_f));
 #endif
 #else
 	id = (unsigned int*)aligned_alloc(AVX,ndim*kvol*sizeof(int));
 	iu = (unsigned int*)aligned_alloc(AVX,ndim*kvol*sizeof(int));
 
-	unsigned short gamin[16]; Complex gamval[20]; Complex_f gamval_f[20];
+	alignas(AVX) unsigned short gamin[16]; alignas(AVX) Complex gamval[20]; alignas(AVX) Complex_f gamval_f[20];
 
-	dk[0] = (double *)aligned_alloc(AVX,(kvol+halo)*sizeof(double));
-	dk[1] = (double *)aligned_alloc(AVX,(kvol+halo)*sizeof(double));
-	dk_f[0] = (float *)aligned_alloc(AVX,(kvol+halo)*sizeof(float));
-	dk_f[1] = (float *)aligned_alloc(AVX,(kvol+halo)*sizeof(float));
+	dk[0] = (double *)aligned_alloc(AVX,(kvolHalo)*sizeof(double));
+	dk[1] = (double *)aligned_alloc(AVX,(kvolHalo)*sizeof(double));
+	dk_f[0] = (float *)aligned_alloc(AVX,(kvolHalo)*sizeof(float));
+	dk_f[1] = (float *)aligned_alloc(AVX,(kvolHalo)*sizeof(float));
 
 	u[0] = (Complex *)aligned_alloc(AVX,ndim*kvol*sizeof(Complex));
 	u[1] = (Complex *)aligned_alloc(AVX,ndim*kvol*sizeof(Complex));
-	ut[0] = (Complex *)aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex));
-	ut[1] = (Complex *)aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex));
-	ut_f[0] = (Complex_f *)aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex_f));
-	ut_f[1] = (Complex_f *)aligned_alloc(AVX,ndim*(kvol+halo)*sizeof(Complex_f));
+	ut[0] = (Complex *)aligned_alloc(AVX,ndim*(kvolHalo)*sizeof(Complex));
+	ut[1] = (Complex *)aligned_alloc(AVX,ndim*(kvolHalo)*sizeof(Complex));
+	ut_f[0] = (Complex_f *)aligned_alloc(AVX,ndim*(kvolHalo)*sizeof(Complex_f));
+	ut_f[1] = (Complex_f *)aligned_alloc(AVX,ndim*(kvolHalo)*sizeof(Complex_f));
 #endif
 	/**
 	 * @subsection Initialisation
@@ -268,15 +268,23 @@ int main(int argc, char *argv[]){
 	//Send trials to accelerator for reunitarisation
 	Reunitarise(ut);
 	//Get trials back
-	memcpy(u[0], ut[0], ndim*kvol*sizeof(Complex));
-	memcpy(u[1], ut[1], ndim*kvol*sizeof(Complex));
 #ifdef __NVCC__
-	//Flip all the gauge fields around so memory is coalesced
-	Transpose_z(ut[0],ndim,kvol);
-	Transpose_z(ut[1],ndim,kvol);
-	//And the index arrays
-	Transpose_U(iu,ndim,kvol);
-	Transpose_U(id,ndim,kvol);
+#if(nproc>1) //Memcpy routines need to be strided if there is a halo since the lattice is not contiguous in memory
+	for(unsigned short mu=0;mu<ndim;mu++){
+		cudaMemcpyAsync(u[0]+kvol*mu, ut[0]+kvolHalo*mu, kvol*sizeof(Complex),cudaMemcpyDefault,streams[mu]);
+		cudaMemcpyAsync(u[1]+kvol*mu, ut[1]+kvolHalo*mu, kvol*sizeof(Complex),cudaMemcpyDefault,streams[mu]);
+	}
+#else
+	cudaMemcpyAsync(u[0], ut[0], ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[0]);
+	cudaMemcpyAsync(u[1], ut[1], ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[1]);
+#endif
+#else
+	for(unsigned short mu=0;mu<ndim;mu++){
+		memcpy(u[0]+kvol*mu, ut[0]+kvolHalo*mu, kvol*sizeof(Complex));
+		memcpy(u[1]+kvol*mu, ut[1]+kvolHalo*mu, kvol*sizeof(Complex));
+	}
+#endif
+#ifdef __NVCC__
 	cudaDeviceSynchronise();
 #endif
 #ifdef DIAGNOSTIC
@@ -297,7 +305,7 @@ int main(int argc, char *argv[]){
 	Average_Plaquette(&hg,&avplaqs,&avplaqt,ut_f,iu,beta);
 	//Trajectory length
 	double traj=stepl*dt;
-	//Acceptance probability
+	//end trajectory probability
 	double proby = 2.5/stepl;
 	char suffix[FILELEN]="";
 	int buffer; char buff2[7];
@@ -370,11 +378,10 @@ int main(int argc, char *argv[]){
 	Complex qq;
 	double *dSdpi;
 	//Field and related declarations
-	Complex *Phi, *R1, *X0, *X1;
+	Complex *Phi, *X0, *X1;
 	//Initialise Arrays. Leaving it late for scoping
 	//check the sizes in sizes.h
 #ifdef __NVCC__
-	cudaMallocManaged((void **)&R1, kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
 #ifdef _DEBUG
 	cudaMallocManaged((void **)&X0, nf*kferm2*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&Phi, nf*kferm*sizeof(Complex),cudaMemAttachGlobal);
@@ -389,7 +396,6 @@ int main(int argc, char *argv[]){
 	cudaMallocManaged((void **)&pp, kmom*sizeof(double),cudaMemAttachGlobal);
 	cudaDeviceSynchronise();
 #else
-	R1= aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 	Phi= aligned_alloc(AVX,nf*kferm*sizeof(Complex)); 
 	X0= aligned_alloc(AVX,nf*kferm2*sizeof(Complex)); 
 	X1= aligned_alloc(AVX,kferm2Halo*sizeof(Complex)); 
@@ -414,7 +420,8 @@ int main(int argc, char *argv[]){
 #endif
 	double action;
 	//Conjugate Gradient iteration counters
-	double ancg,ancgh,totancg,totancgh=0;
+	double ancg,ancgh,totancg,totancgh;
+	ancg=ancgh=totancg=totancgh=0;
 	for(int itraj = iread+1; itraj <= ntraj+iread; itraj++){
 		//Reset conjugate gradient averages
 		ancg = 0; ancgh = 0;
@@ -432,18 +439,21 @@ int main(int argc, char *argv[]){
 			//How do we optimise this for use in CUDA? Do we use CUDA's PRNG
 			//or stick with MKL and synchronise/copy over the array
 #ifdef __NVCC__
-			Complex_f *R1_f,*R;
+			Complex_f *R1_f,*R; Complex *R1;
 			cudaMallocManaged((void **)&R,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
 #ifdef _DEBUG
+			cudaMallocManaged((void **)&R1, kferm*sizeof(Complex),cudaMemAttachGlobal);
 			cudaMallocManaged((void **)&R1_f,kferm*sizeof(Complex_f),cudaMemAttachGlobal);
 			cudaMemset(R1_f,0,kferm*sizeof(Complex_f));
 #else
+			cudaMallocAsync((void **)&R1, kferm*sizeof(Complex),streams[1]);
 			cudaMallocAsync((void **)&R1_f,kferm*sizeof(Complex_f),streams[0]);
 			cudaMemsetAsync(R1_f,0,kferm*sizeof(Complex_f),streams[0]);
 #endif
 #else
-			Complex_f *R1_f=aligned_alloc(AVX,kferm*sizeof(Complex_f));
 			Complex_f *R=aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
+			Complex *R1= aligned_alloc(AVX,kferm*sizeof(Complex));
+			Complex_f *R1_f=aligned_alloc(AVX,kferm*sizeof(Complex_f));
 			memset(R1_f,0,kferm*sizeof(Complex_f));
 #endif
 			//The FORTRAN code had two Gaussian routines.
@@ -452,22 +462,13 @@ int main(int argc, char *argv[]){
 #if (defined __NVCC__ && defined _DEBUG)
 			//cudaMemPrefetchAsync(R1_f,kferm*sizeof(Complex_f),device,streams[1]);
 #endif
-#if (defined(USE_RAN2)||defined(__RANLUX__)||!defined(__INTEL_MKL__))
-			Gauss_c(R, kferm, 0, 1/sqrt(2));
-#else
-			vsRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, 2*kferm, R, 0, 1/sqrt(2));
-#endif
-#ifdef __NVCC__
-			//cudaMemPrefetchAsync(R,kfermHalo*sizeof(Complex_f),device,NULL);
-			//Transpose needed here for Dslashd
-			Transpose_c(R,ngorkov*nc,kvol);
-			//R is random so this techincally isn't required. But it does keep the code output consistent with previous
-			//versions.
-			cudaDeviceSynchronise();
-#endif
+			//Split into chunks to take into account the halos.
+			for(unsigned short j=0;j<nc*ngorkov;j++)
+				Gauss_c(R+j*kvolHalo,kvol , 0, 1/sqrt(2));
+
 			Dslashd_f(R1_f,R,ut_f,iu,id,gamval_f,gamin,dk_f,jqq,akappa);
 			if(c_sw)
-				ByClover_f(R1_f,R,clover,sigval_f,akappa,sigin);
+				ByClover_f(R1_f,R,clover,sigval_f,akappa,sigin,true);
 #ifdef __NVCC__
 			//Make sure the multiplication is finished before freeing its input!!
 			cudaFree(R);//cudaDeviceSynchronise(); 
@@ -476,11 +477,11 @@ int main(int argc, char *argv[]){
 #ifdef _DEBUG
 			cudaFree(R1_f);
 #else
-			cudaFreeAsync(R1_f,NULL);
-#endif
-			cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,NULL);
-			//cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,streams[1]);
+			//Stream needs to wait for conversion to complete
 			cudaDeviceSynchronise();
+			cudaFreeAsync(R1_f,streams[0]);
+#endif
+			cudaMemcpyAsync(Phi+na*kferm,R1, kferm*sizeof(Complex),cudaMemcpyDefault,streams[1]);
 #else
 			free(R); 
 #pragma omp simd aligned(R1_f,R1:AVX)
@@ -491,6 +492,17 @@ int main(int argc, char *argv[]){
 			//Up/down partitioning (using only pseudofermions of flavour 1)
 #endif
 			UpDownPart(na, X0, R1);
+#ifdef __NVCC__
+#ifdef _DEBUG
+			cudaFree(R1);
+#else
+			//Stream needs to wait for UpDownPart to complete
+			cudaDeviceSynchronise();
+			cudaFreeAsync(R1,streams[1]);
+#endif
+#else
+			free(R1);
+#endif
 		}	
 		if(c_sw)
 			Clover_free(clover);
@@ -499,27 +511,29 @@ int main(int argc, char *argv[]){
 		//We're going to make the most of the new Gauss_d routine to send a flattened array
 		//and do this all in one step.
 #ifdef __NVCC__
-		cudaMemcpyAsync(ut[0], u[0], ndim*kvol*sizeof(Complex),cudaMemcpyHostToDevice,NULL);
-		cudaMemcpyAsync(ut[1], u[1], ndim*kvol*sizeof(Complex),cudaMemcpyHostToDevice,NULL);
-		//Convert to SoA
-		Transpose_z(ut[0],ndim,kvol);
-		Transpose_z(ut[1],ndim,kvol);
+#if(nproc>1)//Strided memcpy
+		for(unsigned short mu=0;mu<ndim;mu++){
+			cudaMemcpyAsync(ut[0]+kvolHalo*mu, u[0]+kvol*mu, kvol*sizeof(Complex),cudaMemcpyDefault,streams[mu]);
+			cudaMemcpyAsync(ut[1]+kvolHalo*mu, u[1]+kvol*mu, kvol*sizeof(Complex),cudaMemcpyDefault,streams[mu]);
+		}
+#else 
+		cudaMemcpyAsync(ut[0], u[0], ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[0]);
+		cudaMemcpyAsync(ut[1], u[1], ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[1]);
+#endif
+		cudaDeviceSynchronise();
 #else
-		memcpy(ut[0], u[0], ndim*kvol*sizeof(Complex));
-		memcpy(ut[1], u[1], ndim*kvol*sizeof(Complex));
+		for(unsigned short mu=0;mu<ndim;mu++){
+			memcpy(ut[0]+kvolHalo*mu, u[0]+kvol*mu, kvol*sizeof(Complex));
+			memcpy(ut[1]+kvolHalo*mu, u[1]+kvol*mu, kvol*sizeof(Complex));
+		}
 #endif
 		Trial_Exchange(ut,ut_f);
-#if (defined(USE_RAN2)||defined(__RANLUX__)||!defined(__INTEL_MKL__))
 		Gauss_d(pp, kmom, 0, 1);
-#else
-		vdRngGaussian(VSL_RNG_METHOD_GAUSSIAN_ICDF, stream, kmom, pp, 0, 1);
-#endif
+
 		//Initialise Trial Fields
-#ifdef __NVCC__
-		//pp is random at this point so swapping the order isn't really necessary. But it does ensure that it matches for CPU and GPU
-		Transpose_d(pp,nadj*ndim,kvol);
-		//cudaMemPrefetchAsync(pp,kmom*sizeof(double),device,streams[1]);
-#endif
+		//pp is random at this point so swapping the order isn't really necessary. But it does ensure that it matches
+		//previous results 
+		//	Transpose_d(pp,nadj*ndim,kvol);
 		double H0, S0;
 		Hamilton(&H0,&S0,rescga,pp,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,\
 				jqq,akappa,beta,c_sw,&ancgh,itraj);
@@ -584,11 +598,21 @@ int main(int argc, char *argv[]){
 			//Original FORTRAN Comment:
 			//JIS 20100525: write config here to preempt troubles during measurement!
 			//JIS 20100525: remove when all is ok....
-			memcpy(u[0],ut[0],ndim*kvol*sizeof(Complex));
-			memcpy(u[1],ut[1],ndim*kvol*sizeof(Complex));
 #ifdef __NVCC__
-			Transpose_z(u[0],kvol,ndim);
-			Transpose_z(u[1],kvol,ndim);
+#if(nproc>1) //strided Memcpy
+			for(unsigned short mu=0;mu<ndim;mu++){
+				cudaMemcpyAsync(u[0]+kvol*mu,ut[0]+kvolHalo*mu,kvol*sizeof(Complex),cudaMemcpyDefault,streams[mu]);
+				cudaMemcpyAsync(u[1]+kvol*mu,ut[1]+kvolHalo*mu,kvol*sizeof(Complex),cudaMemcpyDefault,streams[mu]);
+			}
+#else
+			cudaMemcpyAsync(u[0],ut[0],ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[0]);
+			cudaMemcpyAsync(u[1],ut[1],ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[1]);
+#endif
+#else
+			for(unsigned short mu=0;mu<ndim;mu++){
+				memcpy(u[0]+kvol*mu,ut[0]+kvolHalo*mu,kvol*sizeof(Complex));
+				memcpy(u[1]+kvol*mu,ut[1]+kvolHalo*mu,kvol*sizeof(Complex));
+			}
 #endif
 			naccp++;
 			//Divide by gvol since we've summed over all lattice sites
@@ -605,6 +629,7 @@ int main(int argc, char *argv[]){
 #ifdef __NVCC__
 		cublasDnrm2(cublas_handle,kmom, pp, 1,&vel2);
 		vel2*=vel2;
+		cudaDeviceSynchronise();
 #elif defined USE_BLAS
 		vel2 = cblas_dnrm2(kmom, pp, 1);
 		vel2*=vel2;
@@ -622,14 +647,21 @@ int main(int argc, char *argv[]){
 			//If rejected, copy the previously accepted field in for measurements
 			if(!acc){
 #ifdef __NVCC__
+#if(nproc>1) //Strided Memcpy
+				for(unsigned short mu=0;mu<ndim;mu++){
+					cudaMemcpyAsync(ut[0]+kvolHalo*mu, u[0]+kvol*mu, kvol*sizeof(Complex),cudaMemcpyDefault,streams[mu]);
+					cudaMemcpyAsync(ut[1]+kvolHalo*mu, u[1]+kvol*mu, kvol*sizeof(Complex),cudaMemcpyDefault,streams[mu]);
+				}
+#else
 				cudaMemcpyAsync(ut[0], u[0], ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[0]);
 				cudaMemcpyAsync(ut[1], u[1], ndim*kvol*sizeof(Complex),cudaMemcpyDefault,streams[1]);
+#endif
 				cudaDeviceSynchronise();
-				Transpose_z(ut[0],ndim,kvol);
-				Transpose_z(ut[1],ndim,kvol);
 #else
-				memcpy(ut[0], u[0], ndim*kvol*sizeof(Complex));
-				memcpy(ut[1], u[1], ndim*kvol*sizeof(Complex));
+				for(unsigned short mu=0;mu<ndim;mu++){
+					memcpy(ut[0]+kvolHalo*mu, u[0]+kvol*mu, kvol*sizeof(Complex));
+					memcpy(ut[1]+kvolHalo*mu, u[1]+kvol*mu, kvol*sizeof(Complex));
+				}
 #endif
 				Trial_Exchange(ut,ut_f);
 			}
@@ -645,7 +677,7 @@ int main(int argc, char *argv[]){
 			//that trajectory
 			int measure_check=0;
 			measure_check = Measure(&pbp,&endenf,&denf,&qq,&qbqb,respbp,&itercg,ut,ut_f,iu,id,\
-					gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,c_sw,Phi,R1);
+					gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,c_sw,Phi);
 #ifdef _DEBUG
 			if(!rank)
 				printf("Finished measurements\n");
@@ -763,7 +795,7 @@ int main(int argc, char *argv[]){
 	//Free arrays
 #ifdef __NVCC__
 	//Make a routine that does this for us
-	cudaFree(dk[0]); cudaFree(dk[1]); cudaFree(R1); cudaFree(dSdpi); cudaFree(pp);
+	cudaFree(dk[0]); cudaFree(dk[1]); cudaFree(dSdpi); cudaFree(pp);
 	cudaFree(Phi); cudaFree(ut[0]); cudaFree(ut[1]);
 	cudaFree(X0); cudaFree(X1); cudaFree(u[0]); cudaFree(u[1]);
 	cudaFree(id); cudaFree(iu); 
@@ -774,7 +806,7 @@ int main(int argc, char *argv[]){
 	}
 	cublasDestroy(cublas_handle);
 #else
-	free(dk[0]); free(dk[1]); free(R1); free(dSdpi); free(pp);
+	free(dk[0]); free(dk[1]);free(dSdpi); free(pp);
 	free(Phi); free(ut[0]); free(ut[1]);
 	free(X0); free(X1); free(u[0]); free(u[1]);
 	free(id); free(iu);
@@ -783,11 +815,9 @@ int main(int argc, char *argv[]){
 		free(sigval); free(sigval_f); free(sigin);
 	}
 #endif
-	free(hd); free(hu);free(h1u); free(h1d); free(halosize); free(pcoord);
+	free(hd); free(hu);
 #ifdef __RANLUX__
 	gsl_rng_free(ranlux_instd);
-#elif (defined __INTEL_MKL__ &&!defined USE_RAN2)
-	vslDeleteStream(&stream);
 #endif
 #if (defined SA3AT)
 	if(!rank){
