@@ -725,11 +725,11 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 	const float d_prec=1.0f/128.0f;
 
 	//These were evaluated only in the first loop of niterx so we'll just do it outside of the loop.
-	double alphan=1.0;
+	alignas(8) double alphan=1.0;
 	//These alpha and beta terms should be double, but that causes issues with BLAS. Instead we declare
 	//them Complex and work with the real part (especially for \alpha_d)
 	//Give initial values Will be overwritten if niterx>0
-	double betad = 1.0; Complex_f alphad=0; alignas(16)Complex alpha = 1; //Alignment needed for cuBLAS
+	alignas(8) double betad = 1.0; alignas(8) Complex_f alphad=0; alignas(16)Complex alpha = 1; //Alignment needed for cuBLAS
 
 	Complex_f *p_f, *r_f, *x1_f, *x2_f, *xi_f;
 	Complex *p, *r, *x1, *x2, *clover[nc];
@@ -794,8 +794,8 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 			//Update the residue vector, but not on the first call.
 			if(*itercg)
 #pragma omp parallel for simd aligned(xi,xi_f:AVX)
-					for(unsigned int i=0;i<kferm;i++)
-						xi[i]+=(Complex)xi_f[i];
+				for(unsigned int i=0;i<kferm;i++)
+					xi[i]+=(Complex)xi_f[i];
 			memset(xi_f,0,kferm*sizeof(Complex_f));
 #endif
 			///@f$x2 =  (M^\dagger M)p @f$
@@ -863,10 +863,6 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 
 #ifdef	__NVCC__
 			Complex alpha_m=(Complex)(-alpha);
-#ifdef _DEBUG
-			if(!rank)
-				printf("alpha_m = %e + %ei\n", creal(alpha_m), cimag(alpha_m));
-#endif
 			cublasZaxpy(cublas_handle, kferm,(cuDoubleComplex *)&alpha_m,(cuDoubleComplex *)x2,1,(cuDoubleComplex *)r,1);
 			double betan_d;
 			cublasDznrm2(cublas_handle,kferm,(cuDoubleComplex *)r,1,&betan_d);
@@ -959,19 +955,28 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 			//We can't evaluate \alpha on the first niterx because we need to get \beta_n.
 			if(*itercg){
 				//x*.x
-#ifdef USE_BLAS
-				alignas(8) float alphad_f;
-#ifdef __NVCC__
-				cublasScnrm2(cublas_handle,kferm,(cuComplex*) x1_f, 1,(float *)&alphad_f);
-				alphad = alphad_f*alphad_f;
-#else
-				alphad_f = cblas_scnrm2(kferm, x1_f, 1);
-#endif
-				alphad = alphad_f*alphad_f;
-#else
 				alphad=0;
-				for(unsigned int i = 0; i<kferm; i++)
-					alphad+=conj(x1_f[i])*x1_f[i];
+#ifdef __NVCC__
+#if(nproc>1)//strided
+				for(unsigned short j=0;j<nc*ngorkov;j++){
+					alignas(8) Complex_f alpha_t=0;
+					cublasCdotc(cublas_handle,kvol,(cuComplex *)p_f+j*kvolHalo,1,(cuComplex *)x2_f+j*kvol,1,(cuComplex *)&alpha_t);
+					alphad+=alpha_t;
+				}
+#else
+				cublasCdotc(cublas_handle,kferm,(cuComplex *)p_f,1,(cuComplex *)x2_f,1,(cuComplex *)&alphad);
+#endif
+#elifdef USE_BLAS
+				for(unsigned short j=0;j<nc*ngorkov;j++){
+					alignas(8) Complex_f alpha_t=0;
+					cblas_cdotc_sub(kvol,p_f+j*kvolHalo,1,x2_f+j*kvol,1,&alpha_t);
+					alphad+=alpha_t;
+				}
+#else
+#pragma omp parallel for simd collapse(2) aligned(p_f,x2_f:AVX) reduction(+:alphad)
+				for(unsigned short j=0;j<nc*ngorkov;j++)
+					for(unsigned int i = 0; i<kvol; i++)
+						alphad+=conj(p_f[i+j*kvolHalo])*x2_f[i+j*kvol];
 #endif
 #if (nproc>1)
 				Par_fsum((float *)&alphad);
@@ -1093,7 +1098,7 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 #pragma omp parallel for simd aligned(r_f,p_f:AVX)
 			for(unsigned short j=0;j<nc*ngorkov;j++)
 				for(unsigned int i=0; i<kvol; i++)
-					p_f[i+j*kvol]=r_f[i]+beta*p_f[i+j*kvolHalo];
+					p_f[i+j*kvolHalo]=r_f[i+j*kvol]+beta*p_f[i+j*kvolHalo];
 #endif
 		}
 	}
