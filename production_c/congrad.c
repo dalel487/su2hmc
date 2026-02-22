@@ -352,11 +352,11 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			Hdslash(x1,p,ud,iu,id,gamval,gamin,dk,akappa);
 			//Clover contribution
 			if(c_sw)
-				HbyClover(x1,p,clover,sigval,akappa,sigin);
+				HbyClover(x1,p,clover,sigval,akappa,sigin,false);
 			Hdslashd(x2,x1,ud,iu,id,gamval,gamin,dk,akappa);
 			//Clover contribution
 			if(c_sw)
-				HbyClover(x2,x1,clover,sigval,akappa,sigin);
+				HbyClover(x2,x1,clover,sigval,akappa,sigin,true);
 #ifdef	__NVCC__
 			cudaDeviceSynchronise();
 #endif
@@ -521,11 +521,11 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			Hdslash_f(x1_f,p_f,ut,iu,id,gamval_f,gamin,dk_f,akappa);
 			//Clover contribution
 			if(c_sw)
-				HbyClover_f(x1_f,p_f,clover_f,sigval_f,akappa,sigin);
+				HbyClover_f(x1_f,p_f,clover_f,sigval_f,akappa,sigin,false);
 			Hdslashd_f(x2_f,x1_f,ut,iu,id,gamval_f,gamin,dk_f,akappa);
 			//Clover contribution
 			if(c_sw)
-				HbyClover_f(x2_f,x1_f,clover_f,sigval_f,akappa,sigin);
+				HbyClover_f(x2_f,x1_f,clover_f,sigval_f,akappa,sigin,true);
 #ifdef	__NVCC__
 			cudaDeviceSynchronise();
 #endif
@@ -802,10 +802,10 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 			//No need to synchronise here.  The memcpy in Dslash is blocking
 			Dslash(x1,p,ud,iu,id,gamval,gamin,dk,jqq,akappa);
 			if(c_sw)
-				ByClover(x1,p,clover,sigval,akappa,sigin);
+				ByClover(x1,p,clover,sigval,akappa,sigin,false);
 			Dslashd(x2,x1,ud,iu,id,gamval,gamin,dk,jqq,akappa);
 			if(c_sw)
-				ByClover(x2,x1,clover,sigval,akappa,sigin);
+				ByClover(x2,x1,clover,sigval,akappa,sigin,true);
 #ifdef	__NVCC__
 			cudaDeviceSynchronise();
 #endif
@@ -945,10 +945,10 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 			//x2=(M^\dagger)x1=(M^\dagger)Mp
 			Dslash_f(x1_f,p_f,ut,iu,id,gamval_f,gamin,dk_f,jqq,akappa);
 			if(c_sw)
-				ByClover_f(x1_f,p_f,clover_f,sigval_f,akappa,sigin);
+				ByClover_f(x1_f,p_f,clover_f,sigval_f,akappa,sigin,false);
 			Dslashd_f(x2_f,x1_f,ut,iu,id,gamval_f,gamin,dk_f,jqq,akappa);
 			if(c_sw)
-				ByClover_f(x2_f,x1_f,clover_f,sigval_f,akappa,sigin);
+				ByClover_f(x2_f,x1_f,clover_f,sigval_f,akappa,sigin,true);
 #ifdef __NVCC__
 			cudaDeviceSynchronise();
 #endif

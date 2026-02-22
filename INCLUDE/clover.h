@@ -57,7 +57,6 @@ int Half_Clover(Complex_f *clover[nc],	Complex_f *ut[nc], unsigned int *iu, unsi
 int Clover(Complex_f *clover[nc],Complex_f *ut[nc], unsigned int *iu, unsigned int *id);
 /**
  *	@brief Clover analogue of the Dslash operation. This version acts on all flavours simiilar to Dslash and Dslash_d
- *	
  *
  *	@param	phi:		Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
  *	@param	r:			Pseudofermion field before multiplication. The thing we want to multiply by the clover
@@ -65,11 +64,11 @@ int Clover(Complex_f *clover[nc],Complex_f *ut[nc], unsigned int *iu, unsigned i
  *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
  *	@param	akappa:	Hopping Parameter
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param	dag:					Daggered has no MPI halo, but undaggered does.
  */
 int ByClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, const float akappa, unsigned short *sigin);
 /**
  *	@brief Clover analogue of the Dslash operation. This version acts on all flavours simiilar to Dslash and Dslash_d
- *	
  *
  *	@param	phi:		Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
  *	@param	r:			Pseudofermion field before multiplication. The thing we want to multiply by the clover
@@ -77,11 +76,11 @@ int ByClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, con
  *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
  *	@param	akappa:	Hopping Parameter
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param	dag:					Daggered has no MPI halo, but undaggered does.
  */
 int ByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval,const float akappa,  unsigned short *sigin);
 /**
  *	@brief Clover analogue of the Dslash operation. The H in front is for half, as we only act on the fermions of flavour
- *	1
  *
  *	@param	phi:		Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
  *	@param	r:			Pseudofermion field before multiplication. The thing we want to multiply by the clover
@@ -89,11 +88,11 @@ int ByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *s
  *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
  *	@param	akappa:	Hopping Parameter
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param	dag:					Daggered has no MPI halo, but undaggered does.
  */
 int HbyClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, const float akappa, unsigned short *sigin);
 /**
  *	@brief Clover analogue of the Dslashd operation. The H in front is for half, as we only act on the fermions of flavour
- *	1
  *
  *	@param	phi:		Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
  *	@param	r:			Pseudofermion field before multiplication. The thing we want to multiply by the clover
@@ -101,6 +100,7 @@ int HbyClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, co
  *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
  *	@param	akappa:	Hopping Parameter
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param	dag:					Daggered has no MPI halo, but undaggered does.
  */
 int HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval, const float akappa, unsigned short *sigin);
 /**
@@ -178,8 +178,9 @@ int cuClover(Complex_f *clover[nc],Complex_f *ut[nc], unsigned int *iu, unsigned
  *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
  *	@param	akappa:	Hopping Parameter
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param	dag:					Daggered has no MPI halo, but undaggered does.
  */
-void cuByClover(Complex *phi, Complex *r, Complex *clover[nc],Complex *sigval, const float akappa, unsigned short *sigin);
+void cuByClover(Complex *phi, Complex *r, Complex *clover[nc],Complex *sigval, const float akappa, unsigned short *sigin,bool dag);
 /**
  *	@brief CUDA wrapper for HbyClover
  *
@@ -189,8 +190,9 @@ void cuByClover(Complex *phi, Complex *r, Complex *clover[nc],Complex *sigval, c
  *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
  *	@param	akappa:	Hopping Parameter
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param	dag:					Daggered has no MPI halo, but undaggered does.
  */
-void cuHbyClover(Complex *phi, Complex *r, Complex *clover[nc],Complex *sigval, const float akappa, unsigned short *sigin);
+void cuHbyClover(Complex *phi, Complex *r, Complex *clover[nc],Complex *sigval, const float akappa, unsigned short *sigin,bool dag);
 /**
  *	@brief CUDA wrapper for ByClover_f
  *
@@ -199,8 +201,9 @@ void cuHbyClover(Complex *phi, Complex *r, Complex *clover[nc],Complex *sigval, 
  *	@param	clover:	Array of clovers
  *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param	dag:					Daggered has no MPI halo, but undaggered does.
  */
-void cuByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f *sigval, const float akappa,unsigned short *sigin);
+void cuByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f *sigval, const float akappa,unsigned short *sigin,bool dag);
 /**
  *	@brief CUDA wrapper for HbyClover_f
  *
@@ -210,8 +213,9 @@ void cuByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f 
  *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
  *	@param	akappa:	Hopping Parameter
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param	dag:					Daggered has no MPI halo, but undaggered does.
  */
-void cuHbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f *sigval, const float akappa,unsigned short *sigin);
+void cuHbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f *sigval, const float akappa,unsigned short *sigin,bool dag);
 /**
  *	@brief	CUDA wrapper for Clover_Force
  *

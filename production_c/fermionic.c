@@ -70,7 +70,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	Dslashd_f(R1_f,xi_f,ut_f,iu,id,gamval_f,gamin,dk_f,jqq,akappa);
 	if(c_sw){
 		Clover(clover,ut_f,iu,id);
-		ByClover_f(R1_f,xi_f,clover,sigval_f,akappa,sigin);
+		ByClover_f(R1_f,xi_f,clover,sigval_f,akappa,sigin,true);
 	}
 	ComplexConvert(R1_f,R1,kferm,false,1);
 #ifdef __NVCC__

@@ -322,7 +322,7 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 		Hdslash_f(X2_f,X1_f,ut_f,iu,id,gamval_f,gamin,dk_f,akappa);
 		//TODO: Clover product also needed here?
 		if(c_sw)
-			HbyClover_f(X2_f,X1_f,clover,sigval_f,akappa,sigin);
+			HbyClover_f(X2_f,X1_f,clover,sigval_f,akappa,sigin,false);
 		//TODO: Get a single precision force update on CPU. It'll make things easier I' sure
 		alignas(8) const float blasd=2.0;
 #ifdef __NVCC__

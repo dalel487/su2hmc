@@ -89,48 +89,48 @@ __device__ int Half_Leaf(complex<T> Leaves[nc], complex<T> *u11t, complex<T> *u1
 	switch(leaf){
 		case(0):
 			///Both positive is just a standard plaquette
-			a[0]=u11t[i+kvol*mu]; a[1]=u12t[i+kvol*mu];
+			a[0]=u11t[i+kvolHalo*mu]; a[1]=u12t[i+kvolHalo*mu];
 			uidm = iu[mu*kvol+i]; 
 
 			/// @f$U_\mu(x)U_\nu(x+\hat{\mu})@f$
-			Leaves[0]=a[0]*u11t[uidm+kvol*nu]-a[1]*conj(u12t[uidm+kvol*nu]);
-			Leaves[1]=a[0]*u12t[uidm+kvol*nu]+a[1]*conj(u11t[uidm+kvol*nu]);
+			Leaves[0]=a[0]*u11t[uidm+kvolHalo*nu]-a[1]*conj(u12t[uidm+kvolHalo*nu]);
+			Leaves[1]=a[0]*u12t[uidm+kvolHalo*nu]+a[1]*conj(u11t[uidm+kvolHalo*nu]);
 			break;
 		case(1):
 			///Leaf in the forward nu and backwards mu direction
 			//Should really read didm, but I've already declared this 
 			uidm = id[mu*kvol+i];
-			a[0]=u11t[i+kvol*nu]; a[1]=u12t[i+kvol*nu];
+			a[0]=u11t[i+kvolHalo*nu]; a[1]=u12t[i+kvolHalo*nu];
 			//Awkward index...
 			const unsigned int uin_didm=iu[nu*kvol+uidm];
 			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})@f$
-			Leaves[0]=a[0]*conj(u11t[uin_didm+kvol*mu])+a[1]*conj(u12t[uin_didm+kvol*mu]);
-			Leaves[1]=-a[0]*u12t[uin_didm+kvol*mu]+a[1]*u11t[uin_didm+kvol*mu];
+			Leaves[0]=a[0]*conj(u11t[uin_didm+kvolHalo*mu])+a[1]*conj(u12t[uin_didm+kvolHalo*mu]);
+			Leaves[1]=-a[0]*u12t[uin_didm+kvolHalo*mu]+a[1]*u11t[uin_didm+kvolHalo*mu];
 			break;
 		case(2):
 			///Leaf in the backwards nu and forwards mu direction
 			//Should really read didn, but I've already declared this 
 			uidm = id[nu*kvol+i];
 			//Daggered. So Conj what goes into a[0] and negate what goes into a[1]
-			a[0]=conj(u11t[uidm+kvol*nu]); a[1]=-u12t[uidm+kvol*nu];
+			a[0]=conj(u11t[uidm+kvolHalo*nu]); a[1]=-u12t[uidm+kvolHalo*nu];
 
 			/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})@f$
-			Leaves[0]=a[0]*u11t[uidm+kvol*mu]-a[1]*conj(u12t[uidm+kvol*mu]);
+			Leaves[0]=a[0]*u11t[uidm+kvolHalo*mu]-a[1]*conj(u12t[uidm+kvolHalo*mu]);
 			//Don't forget negatiion of second term was handled earlier!
-			Leaves[1]=a[0]*u12t[uidm+kvol*mu]+a[1]*conj(u11t[uidm+kvol*mu]);
+			Leaves[1]=a[0]*u12t[uidm+kvolHalo*mu]+a[1]*conj(u11t[uidm+kvolHalo*mu]);
 			break;
 		case(3):
 			///Leaf in the backwards mu and backwards nu direction
 			//Should really read didm, but I've already declared this 
 			uidm  =  id[i+kvol*mu];
 			//Daggered. So Conj what goes into a[0] and negate what goes into a[1]
-			a[0]=conj(u11t[uidm+kvol*mu]); a[1]=-u12t[uidm+kvol*mu];
+			a[0]=conj(u11t[uidm+kvolHalo*mu]); a[1]=-u12t[uidm+kvolHalo*mu];
 			//Another awkward index
 			const unsigned int din_didm=id[nu*kvol+uidm];
 
 			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})@f$
-			Leaves[0]=a[0]*conj(u11t[din_didm+kvol*nu])+a[1]*u12t[din_didm+kvol*nu];
-			Leaves[1]=-a[0]*conj(u12t[din_didm+kvol*nu])+a[1]*u11t[din_didm+kvol*nu];
+			Leaves[0]=a[0]*conj(u11t[din_didm+kvolHalo*nu])+a[1]*u12t[din_didm+kvolHalo*nu];
+			Leaves[1]=-a[0]*conj(u12t[din_didm+kvolHalo*nu])+a[1]*u11t[din_didm+kvolHalo*nu];
 			break;
 	}
 	return 0;
@@ -157,12 +157,12 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[nc],\
 		case(0):
 			unsigned int uidn = iu[nu*kvol+i]; 
 			/// @f$U_\mu(x)U_\nu(x+\hat{\mu})U^\dagger_\mu(x+\hat{\nu})@f$
-			a[0]=Leaves[0]*conj(u11t[uidn+kvol*mu])+Leaves[1]*conj(u12t[uidn+kvol*mu]);
-			a[1]=-Leaves[0]*u12t[uidn+kvol*mu]+Leaves[1]*u11t[uidn+kvol*mu];
+			a[0]=Leaves[0]*conj(u11t[uidn+kvolHalo*mu])+Leaves[1]*conj(u12t[uidn+kvolHalo*mu]);
+			a[1]=-Leaves[0]*u12t[uidn+kvolHalo*mu]+Leaves[1]*u11t[uidn+kvolHalo*mu];
 
 			/// @f$U_\mu(x)U_\nu(x+\hat{\mu})U^\dagger_\mu(x+\hat{\nu})U^\dagger_\nu(x)@f$
-			Leaves[0]=a[0]*conj(u11t[i+kvol*nu])+a[1]*conj(u12t[i+kvol*nu]);
-			Leaves[1]=-a[0]*u12t[i+kvol*nu]+a[1]*u11t[i+kvol*nu];
+			Leaves[0]=a[0]*conj(u11t[i+kvolHalo*nu])+a[1]*conj(u12t[i+kvolHalo*nu]);
+			Leaves[1]=-a[0]*u12t[i+kvolHalo*nu]+a[1]*u11t[i+kvolHalo*nu];
 
 			//DEBUG
 			//						Leaves[0]=0; Leaves[1]=0;
@@ -171,12 +171,12 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[nc],\
 			didm = id[mu*kvol+i];
 
 			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})U^\dagger_\nu(x-\hat{\mu})@f$
-			a[0]=Leaves[0]*conj(u11t[didm+kvol*nu])+Leaves[1]*conj(u12t[didm+kvol*nu]);
-			a[1]=-Leaves[0]*u12t[didm+kvol*nu]+Leaves[1]*u11t[didm+kvol*nu];
+			a[0]=Leaves[0]*conj(u11t[didm+kvolHalo*nu])+Leaves[1]*conj(u12t[didm+kvolHalo*nu]);
+			a[1]=-Leaves[0]*u12t[didm+kvolHalo*nu]+Leaves[1]*u11t[didm+kvolHalo*nu];
 
 			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})U^\dagger_\nu(x-\hat{\mu})U_\mu(x-\hat{\mu})@f$
-			Leaves[0]=a[0]*u11t[didm+kvol*mu]-a[1]*conj(u12t[didm+kvol*mu]);
-			Leaves[1]=a[0]*u12t[didm+kvol*mu]+a[1]*conj(u11t[didm+kvol*mu]);
+			Leaves[0]=a[0]*u11t[didm+kvolHalo*mu]-a[1]*conj(u12t[didm+kvolHalo*mu]);
+			Leaves[1]=a[0]*u12t[didm+kvolHalo*mu]+a[1]*conj(u11t[didm+kvolHalo*mu]);
 			//DEBUG
 			//			Leaves[0]=0; Leaves[1]=0;
 			break;
@@ -185,12 +185,12 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[nc],\
 			didn = id[nu*kvol+i]; 
 			unsigned int uim_didn=iu[mu*kvol+didn];
 			/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})@f$
-			a[0]=Leaves[0]*u11t[uim_didn+kvol*nu]-Leaves[1]*conj(u12t[uim_didn+kvol*nu]);
-			a[1]=Leaves[0]*u12t[uim_didn+kvol*nu]+Leaves[1]*conj(u11t[uim_didn+kvol*nu]);
+			a[0]=Leaves[0]*u11t[uim_didn+kvolHalo*nu]-Leaves[1]*conj(u12t[uim_didn+kvolHalo*nu]);
+			a[1]=Leaves[0]*u12t[uim_didn+kvolHalo*nu]+Leaves[1]*conj(u11t[uim_didn+kvolHalo*nu]);
 
 			/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})U^\dagger_\mu(x)@f$
-			Leaves[0]=a[0]*conj(u11t[i+kvol*mu])+a[1]*u12t[i+kvol*mu];
-			Leaves[1]=-a[0]*conj(u12t[i+kvol*mu])+a[1]*u11t[i+kvol*mu];
+			Leaves[0]=a[0]*conj(u11t[i+kvolHalo*mu])+a[1]*u12t[i+kvolHalo*mu];
+			Leaves[1]=-a[0]*conj(u12t[i+kvolHalo*mu])+a[1]*u11t[i+kvolHalo*mu];
 
 			//DEBUG
 			//						Leaves[0]=0; Leaves[1]=0;
@@ -201,13 +201,13 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[nc],\
 			unsigned int din_didm=id[mu*kvol+didn];
 
 			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(n-\hat{\nu}-\hat{\mu})@f$
-			a[0]=Leaves[0]*u11t[din_didm+kvol*mu]-Leaves[1]*conj(u12t[din_didm+kvol*mu]);
-			a[1]=Leaves[0]*u12t[din_didm+kvol*mu]+Leaves[1]*conj(u11t[din_didm+kvol*mu]);
+			a[0]=Leaves[0]*u11t[din_didm+kvolHalo*mu]-Leaves[1]*conj(u12t[din_didm+kvolHalo*mu]);
+			a[1]=Leaves[0]*u12t[din_didm+kvolHalo*mu]+Leaves[1]*conj(u11t[din_didm+kvolHalo*mu]);
 
 			didm = id[mu*kvol+i];
 			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(n-\hat{\nu}-\hat{\mu})U_\nu(n-\hat{\nu})@f$
-			Leaves[0]=a[0]*u11t[didn+kvol*nu]-a[1]*conj(u12t[didm+kvol*nu]);
-			Leaves[1]=a[0]*u12t[didn+kvol*nu]+a[1]*conj(u11t[didm+kvol*nu]);
+			Leaves[0]=a[0]*u11t[didn+kvolHalo*nu]-a[1]*conj(u12t[didm+kvolHalo*nu]);
+			Leaves[1]=a[0]*u12t[didn+kvolHalo*nu]+a[1]*conj(u11t[didm+kvolHalo*nu]);
 
 			//DEBUG
 			//						Leaves[0]=0; Leaves[1]=0;
@@ -239,13 +239,13 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 			//If the generator is between the first two links, then we can't use the precomputed half-leaves
 			if(gen_pos==1){
 				///Both positive is just a standard plaquette
-				a[0]=u11t[i+kvol*mu]; a[1]=u12t[i+kvol*mu];
+				a[0]=u11t[i+kvolHalo*mu]; a[1]=u12t[i+kvolHalo*mu];
 				//Multiply first link by generator from the right
 				ByGenRight(a,gen);
 				uidm = iu[mu*kvol+i]; 
 				/// @f$U_\mu(x)U^\nu(x+\hat{\mu})@f$
-				Leaves[0]=a[0]*u11t[uidm+kvol*nu]-a[1]*conj(u12t[uidm+kvol*nu]);
-				Leaves[1]=a[0]*u12t[uidm+kvol*nu]+a[1]*conj(u11t[uidm+kvol*nu]);
+				Leaves[0]=a[0]*u11t[uidm+kvolHalo*nu]-a[1]*conj(u12t[uidm+kvolHalo*nu]);
+				Leaves[1]=a[0]*u12t[uidm+kvolHalo*nu]+a[1]*conj(u11t[uidm+kvolHalo*nu]);
 			}
 			//Multiply by generator from the right after the first two links
 			if(gen_pos==2)
@@ -253,15 +253,15 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 
 			unsigned int uidn = iu[nu*kvol+i]; 
 			/// @f$U_\mu(x)U_\nu(x+\hat{\mu})U^\dagger_\mu(x+\hat{\nu})@f$
-			a[0]=Leaves[0]*conj(u11t[uidn+kvol*mu])+Leaves[1]*conj(u12t[uidn+kvol*mu]);
-			a[1]=-Leaves[0]*u12t[uidn+kvol*mu]+Leaves[1]*u11t[uidn+kvol*mu];
+			a[0]=Leaves[0]*conj(u11t[uidn+kvolHalo*mu])+Leaves[1]*conj(u12t[uidn+kvolHalo*mu]);
+			a[1]=-Leaves[0]*u12t[uidn+kvolHalo*mu]+Leaves[1]*u11t[uidn+kvolHalo*mu];
 			//Multiply by generator from the right after the first three links
 			if(gen_pos==3)
 				ByGenRight(a,gen);
 
 			/// @f$U_\mu(x)U_\nu(x+\hat{\mu})U^\dagger_\mu(x+\hat{\nu})U^\dagger_\nu(x)@f$
-			Leaves[0]=a[0]*conj(u11t[i+kvol*nu])+a[1]*conj(u12t[i+kvol*nu]);
-			Leaves[1]=-a[0]*u12t[i+kvol*nu]+a[1]*u11t[i+kvol*nu];
+			Leaves[0]=a[0]*conj(u11t[i+kvolHalo*nu])+a[1]*conj(u12t[i+kvolHalo*nu]);
+			Leaves[1]=-a[0]*u12t[i+kvolHalo*nu]+a[1]*u11t[i+kvolHalo*nu];
 
 			//DEBUG
 			//					Leaves[0]=0; Leaves[1]=0;
@@ -271,14 +271,14 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 			if(gen_pos==1){
 				//Should really read didm, but I've already declared this 
 				uidm = id[mu*kvol+i];
-				a[0]=u11t[i+kvol*nu]; a[1]=u12t[i+kvol*nu];
+				a[0]=u11t[i+kvolHalo*nu]; a[1]=u12t[i+kvolHalo*nu];
 				//Multiply first link by generator from the right
 				ByGenRight(a,gen);
 				//Awkward index...
 				const unsigned int uin_didm=iu[nu*kvol+uidm];
 				/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})@f$
-				Leaves[0]=a[0]*conj(u11t[uin_didm+kvol*mu])+a[1]*conj(u12t[uin_didm+kvol*mu]);
-				Leaves[1]=-a[0]*u12t[uin_didm+kvol*mu]+a[1]*u11t[uin_didm+kvol*mu];
+				Leaves[0]=a[0]*conj(u11t[uin_didm+kvolHalo*mu])+a[1]*conj(u12t[uin_didm+kvolHalo*mu]);
+				Leaves[1]=-a[0]*u12t[uin_didm+kvolHalo*mu]+a[1]*u11t[uin_didm+kvolHalo*mu];
 			}
 			didm = id[mu*kvol+i];
 			//Multiply by generator from the right after the first two links
@@ -286,15 +286,15 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 				ByGenRight(Leaves,gen);
 
 			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})U^\dagger_\nu(x-\hat{\mu})@f$
-			a[0]=Leaves[0]*conj(u11t[didm+kvol*nu])+Leaves[1]*conj(u12t[didm+kvol*nu]);
-			a[1]=-Leaves[0]*u12t[didm+kvol*nu]+Leaves[1]*u11t[didm+kvol*nu];
+			a[0]=Leaves[0]*conj(u11t[didm+kvolHalo*nu])+Leaves[1]*conj(u12t[didm+kvolHalo*nu]);
+			a[1]=-Leaves[0]*u12t[didm+kvolHalo*nu]+Leaves[1]*u11t[didm+kvolHalo*nu];
 			//Multiply by generator from the right after the first three links
 			if(gen_pos==3)
 				ByGenRight(a,gen);
 
 			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})U^\dagger_\nu(x-\hat{\mu})U_\mu(x-\hat{\mu})@f$
-			Leaves[0]=a[0]*u11t[didm+kvol*mu]-a[1]*conj(u12t[didm+kvol*mu]);
-			Leaves[1]=a[0]*u12t[didm+kvol*mu]+a[1]*conj(u11t[didm+kvol*mu]);
+			Leaves[0]=a[0]*u11t[didm+kvolHalo*mu]-a[1]*conj(u12t[didm+kvolHalo*mu]);
+			Leaves[1]=a[0]*u12t[didm+kvolHalo*mu]+a[1]*conj(u11t[didm+kvolHalo*mu]);
 			//DEBUG
 			//			Leaves[0]=0; Leaves[1]=0;
 			break;
@@ -304,14 +304,14 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 				//Should really read didn, but I've already declared this 
 				uidm = id[nu*kvol+i];
 				//Daggered. So Conj what goes into a[0] and negate what goes into a[1]
-				a[0]=conj(u11t[uidm+kvol*nu]); a[1]=-u12t[uidm+kvol*nu];
+				a[0]=conj(u11t[uidm+kvolHalo*nu]); a[1]=-u12t[uidm+kvolHalo*nu];
 				//Multiply first link by generator from the right
 				ByGenRight(a,gen);
 
 				/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})@f$
-				Leaves[0]=a[0]*u11t[uidm+kvol*mu]-a[1]*conj(u12t[uidm+kvol*mu]);
+				Leaves[0]=a[0]*u11t[uidm+kvolHalo*mu]-a[1]*conj(u12t[uidm+kvolHalo*mu]);
 				//Don't forget negatiion of second term was handled earlier!
-				Leaves[1]=a[0]*u12t[uidm+kvol*mu]+a[1]*conj(u11t[uidm+kvol*mu]);
+				Leaves[1]=a[0]*u12t[uidm+kvolHalo*mu]+a[1]*conj(u11t[uidm+kvolHalo*mu]);
 			}
 			///Leaf in the forwards mu and backwards nu direction
 			didn = id[nu*kvol+i]; 
@@ -320,15 +320,15 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 				ByGenRight(Leaves,gen);
 			unsigned int uim_didn=iu[mu*kvol+didn];
 			/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})@f$
-			a[0]=Leaves[0]*u11t[uim_didn+kvol*nu]-Leaves[1]*conj(u12t[uim_didn+kvol*nu]);
-			a[1]=Leaves[0]*u12t[uim_didn+kvol*nu]+Leaves[1]*conj(u11t[uim_didn+kvol*nu]);
+			a[0]=Leaves[0]*u11t[uim_didn+kvolHalo*nu]-Leaves[1]*conj(u12t[uim_didn+kvolHalo*nu]);
+			a[1]=Leaves[0]*u12t[uim_didn+kvolHalo*nu]+Leaves[1]*conj(u11t[uim_didn+kvolHalo*nu]);
 			//Multiply by generator from the right after the first three links
 			if(gen_pos==3)
 				ByGenRight(a,gen);
 
 			/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})U^\dagger_\mu(x)@f$
-			Leaves[0]=a[0]*conj(u11t[i+kvol*mu])+a[1]*u12t[i+kvol*mu];
-			Leaves[1]=-a[0]*conj(u12t[i+kvol*mu])+a[1]*u11t[i+kvol*mu];
+			Leaves[0]=a[0]*conj(u11t[i+kvolHalo*mu])+a[1]*u12t[i+kvolHalo*mu];
+			Leaves[1]=-a[0]*conj(u12t[i+kvolHalo*mu])+a[1]*u11t[i+kvolHalo*mu];
 
 			//DEBUG
 			//					Leaves[0]=0; Leaves[1]=0;
@@ -339,14 +339,14 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 				//Should really read didm, but I've already declared this 
 				uidm  =  id[i+kvol*mu];
 				//Daggered. So Conj what goes into a[0] and negate what goes into a[1]
-				a[0]=conj(u11t[uidm+kvol*mu]); a[1]=-u12t[uidm+kvol*mu];
+				a[0]=conj(u11t[uidm+kvolHalo*mu]); a[1]=-u12t[uidm+kvolHalo*mu];
 				ByGenRight(a,gen);
 				//Another awkward index
 				const unsigned int din_didm=id[nu*kvol+uidm];
 
 				/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})@f$
-				Leaves[0]=a[0]*conj(u11t[din_didm+kvol*nu])+a[1]*u12t[din_didm+kvol*nu];
-				Leaves[1]=-a[0]*conj(u12t[din_didm+kvol*nu])+a[1]*u11t[din_didm+kvol*nu];
+				Leaves[0]=a[0]*conj(u11t[din_didm+kvolHalo*nu])+a[1]*u12t[din_didm+kvolHalo*nu];
+				Leaves[1]=-a[0]*conj(u12t[din_didm+kvolHalo*nu])+a[1]*u11t[din_didm+kvolHalo*nu];
 
 			}
 			didn = id[nu*kvol+i]; 
@@ -358,15 +358,15 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 
 			didm = id[mu*kvol+i];
 			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(n-\hat{\nu}-\hat{\mu})@f$
-			a[0]=Leaves[0]*u11t[din_didm+kvol*mu]-Leaves[1]*conj(u12t[din_didm+kvol*mu]);
-			a[1]=Leaves[0]*u12t[din_didm+kvol*mu]+Leaves[1]*conj(u11t[din_didm+kvol*mu]);
+			a[0]=Leaves[0]*u11t[din_didm+kvolHalo*mu]-Leaves[1]*conj(u12t[din_didm+kvolHalo*mu]);
+			a[1]=Leaves[0]*u12t[din_didm+kvolHalo*mu]+Leaves[1]*conj(u11t[din_didm+kvolHalo*mu]);
 			//Multiply by generator from the right after the first three links
 			if(gen_pos==3)
 				ByGenRight(a,gen);
 
 			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(n-\hat{\nu}-\hat{\mu})U_\nu(n-\hat{\nu})@f$
-			Leaves[0]=a[0]*u11t[didn+kvol*nu]-a[1]*conj(u12t[didm+kvol*nu]);
-			Leaves[1]=a[0]*u12t[didn+kvol*nu]+a[1]*conj(u11t[didm+kvol*nu]);
+			Leaves[0]=a[0]*u11t[didn+kvolHalo*nu]-a[1]*conj(u12t[didm+kvolHalo*nu]);
+			Leaves[1]=a[0]*u12t[didn+kvolHalo*nu]+a[1]*conj(u11t[didm+kvolHalo*nu]);
 
 			//DEBUG
 			//					Leaves[0]=0; Leaves[1]=0;
@@ -554,14 +554,14 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *u11t, complex<T> *u12t, 
 			for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
 				const unsigned short sind = sigin[clov*ndirac+(idirac>>1)]<<(nc-1);	
 				//Calculate the index. For the next colour we add kvol
-				unsigned int ind = site+kvol*idirac;
+				unsigned int ind = sitei+kvolHalo*idirac;
 				//Prefetching. Might not be needed here though
 				complex<T> X1sc[nc];
 				//X1 is always conjugated. So do it once here instead of twice and be done with it.	
-				X1sc[0]=conj(X1[ind]); X1sc[1]=conj(X1[ind+kvol]);
-				ind = site+kvol*sind;
+				X1sc[0]=conj(X1[ind]); X1sc[1]=conj(X1[indi+kvolHalo]);
+				ind = sitei+kvolHalo*sind;
 				complex<T> X2s[nc];
-				X2s[0]=X2[ind]; X2s[1]=X2[ind+kvol];
+				X2s[0]=X2[ind]; X2s[1]=X2[indi+kvolHalo];
 
 				for(unsigned short gen=0;gen<nadj;gen++){
 					//					complex<T> fleaf1c=conj(fleaf[gen][1]);
@@ -590,9 +590,10 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *u11t, complex<T> *u12t, 
  *	@param	sigval:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
  *	@param	akappa:				Hopping Parameter
  * @param	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param	dag:					Daggered output has no MPI halo, but undaggered does.
  */
 template <typename T>
-__global__ void ByClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, complex<T> *clover2, complex<T> *sigval, const float akappa, unsigned short *sigin){
+__global__ void ByClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, complex<T> *clover2, complex<T> *sigval, const float akappa, unsigned short *sigin, bool dag){
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -618,7 +619,7 @@ __global__ void ByClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, co
 				const unsigned short sind = (igorkov<4) ? sigin[clov*ndirac+idirac] : sigin[clov*ndirac+idirac]+4;
 #pragma unroll
 				for(unsigned short c=0; c<nc; c++)
-					r_s[c]=r[i+kvol*(sind*nc+c)];
+					r_s[c]= r[i+kvolHalo*(sind*nc+c)];
 				///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
 				phi_s[igorkov][0]+=sigval[clov*ndirac+idirac]*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
 				//Clover is in the Lie Algebra, not Lie group. So signs are correct here.
@@ -627,10 +628,14 @@ __global__ void ByClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, co
 		}
 #pragma unroll
 		for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++)
-			for(unsigned short c=0; c<nc; c++)
+			for(unsigned short c=0; c<nc; c++){
 				///Also @f$\sigma_{\mu\nu}F_{\mu\nu}=\sigma_{\nu\mu}F_{\nu\mu}@f$ so we double it to take account of that
 				///But then we multiply by @f$-\frac{1}{2}@f$ so the @f$2@f$ disappears
+				if(dag)
 				phi[i+kvol*(nc*igorkov+c)]-=akappa*phi_s[igorkov][c];
+				else
+				phi[i+kvolHalo*(nc*igorkov+c)]-=akappa*phi_s[igorkov][c];
+				}
 	}
 	return;
 }
@@ -644,9 +649,10 @@ __global__ void ByClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, co
  *	@param	sigval:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
  *	@param	akappa:				Hopping Parameter
  * @param	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param	dag:					Daggered has no MPI halo, but undaggered does.
  */
 template <typename T>
-__global__ void HbyClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, complex<T> *clover2,complex<T> *sigval, const float akappa, unsigned short *sigin){
+__global__ void HbyClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, complex<T> *clover2,complex<T> *sigval, const float akappa, unsigned short *sigin,bool dag){
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -669,7 +675,7 @@ __global__ void HbyClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, c
 				const unsigned short sind = sigin[clov*ndirac+(idirac>>1)] << (nc-1);
 #pragma unroll
 				for(unsigned short c=0; c<nc; c++){
-					r_s[c]=r[i+kvol*(sind+c)];
+					r_s[c]= r[i+kvolHalo*(sind+c)];
 				}
 				///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
 				const complex<T> sig=sigval[clov*ndirac+(idirac>>1)];
@@ -683,7 +689,11 @@ __global__ void HbyClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, c
 			for(unsigned short c=0; c<nc; c++)
 				///@f$\sigma_{\mu\nu}F_{\mu\nu}=\sigma_{\nu\mu}F_{\nu\mu}@f$ so we double it to take account of that
 				///But then we multiply by @f$-\frac{1}{2}@f$ so the @f$2@f$ disappears
+				#if(dag)
 				phi[i+kvol*(c+idirac)]-=akappa*phi_s[idirac+c];
+				#else
+				phi[i+kvolHalo*(c+idirac)]-=akappa*phi_s[idirac+c];
+				#endif
 	}
 	return;
 }
@@ -712,17 +722,17 @@ int cuClover(Complex_f *clover[nc],Complex_f *ut[nc], unsigned int *iu, unsigned
 	cudaDeviceSynchronise();
 	return 0;
 }
-void cuByClover(Complex *phi, Complex *r, Complex *clover[nc],Complex *sigval,const float akappa, unsigned short *sigin){
-	ByClover<<<dimGrid,dimBlock>>>(phi,r,clover[0],clover[1],sigval,akappa,sigin);
+void cuByClover(Complex *phi, Complex *r, Complex *clover[nc],Complex *sigval,const float akappa, unsigned short *sigin, bool dag){
+	ByClover<<<dimGrid,dimBlock>>>(phi,r,clover[0],clover[1],sigval,akappa,sigin,dag);
 }
-void cuHbyClover(Complex *phi, Complex *r, Complex *clover[nc],Complex *sigval, const float akappa, unsigned short *sigin){
-	HbyClover<<<dimGrid,dimBlock>>>(phi,r,clover[0],clover[1],sigval,akappa,sigin);
+void cuHbyClover(Complex *phi, Complex *r, Complex *clover[nc],Complex *sigval, const float akappa, unsigned short *sigin, bool dag){
+	HbyClover<<<dimGrid,dimBlock>>>(phi,r,clover[0],clover[1],sigval,akappa,sigin,dag);
 }	
-void cuByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f *sigval, const float akappa, unsigned short *sigin){
-	ByClover<<<dimGrid,dimBlock>>>(phi,r,clover[0],clover[1],sigval,akappa,sigin);
+void cuByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f *sigval, const float akappa, unsigned short *sigin,bool dag){
+	ByClover<<<dimGrid,dimBlock>>>(phi,r,clover[0],clover[1],sigval,akappa,sigin,dag);
 }
-void cuHbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f *sigval, const float akappa, unsigned short *sigin){
-	HbyClover<<<dimGrid,dimBlock>>>(phi,r,clover[0],clover[1],sigval,akappa,sigin);
+void cuHbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f *sigval, const float akappa, unsigned short *sigin,bool dag){
+	HbyClover<<<dimGrid,dimBlock>>>(phi,r,clover[0],clover[1],sigval,akappa,sigin,dag);
 }
 
 int cuClover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,\
