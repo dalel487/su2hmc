@@ -540,7 +540,7 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 			sprintf(dump_buff,"_d%d",idim);
 			strcat(part_dump,dump_buff);
 			FILE *pdump=fopen(part_dump,"wb");
-			fwrite(u1buff,ndim*kvol*sizeof(Complex),1,pdump);
+			fwrite(u1buff,kvol*sizeof(Complex),1,pdump);
 			fclose(pdump);
 #endif
 			int i=0;
@@ -1198,7 +1198,6 @@ int Trial_Exchange(Complex *ut[2],Complex_f *ut_f[2]){
 #endif
 	cudaDeviceSynchronise();
 #else
-	printf("kvolHalo %d, sizeof(Complex) %d, alloc size %d\n",kvolHalo,sizeof(Complex),kvolHalo*sizeof(Complex));
 	Complex *z = (Complex *)aligned_alloc(AVX,kvolHalo*sizeof(Complex));
 #endif
 	//	ZHalo_swap_all(ut[0],ndim); ZHalo_swap_all(ut[1],ndim);

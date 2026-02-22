@@ -20,9 +20,8 @@ export I_MPI_CC := $(CC)
 endif
 
 ifneq ($(filter icc icx, $(CC)),)
-			#-xSKYLAKE -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE,RAPTORLAKE
 CFLAGS += -qopt-zmm-usage=high -ipo -static-intel -static-libgcc \
-			-xHOST -fsanitize=address\
+			-xHOST -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE,RAPTORLAKE\
 			-D__USE_MKL__  -qopenmp  -inline-level=2 \
 			-qopenmp-simd  -use-intel-optimized-headers -diag-disable=10441
 __USE_MKL__ = 1
