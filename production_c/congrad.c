@@ -805,7 +805,7 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 				ByClover(x1,p,clover,sigval,akappa,sigin);
 			Dslashd(x2,x1,ud,iu,id,gamval,gamin,dk,jqq,akappa);
 			if(c_sw)
-				ByClover(x1,x2,clover,sigval,akappa,sigin);
+				ByClover(x2,x1,clover,sigval,akappa,sigin);
 #ifdef	__NVCC__
 			cudaDeviceSynchronise();
 #endif
@@ -857,7 +857,7 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 #pragma omp parallel for simd collapse(2) aligned(p,xi:AVX)
 				for(unsigned short j=0;j<nc*ngorkov;j++)
 					for(unsigned int i=0; i<kvol; i++)
-						xi[i+j*kvol]+=alpha*p[ij*kvolHalo];
+						xi[i+j*kvol]+=alpha*p[i+j*kvolHalo];
 #endif
 			}
 
@@ -1077,7 +1077,7 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 #ifdef __NVCC__
 #if (nproc>1) //strided
 			for(unsigned short j=0;j<nc*ngorkov;j++){
-				cublasCscal(cublas_handle,kvol,(cuComplex *)&beta_f,(cuComplex *)p_f_j*kvolHalo,1);
+				cublasCscal(cublas_handle,kvol,(cuComplex *)&beta_f,(cuComplex *)p_f+j*kvolHalo,1);
 				cublasCaxpy(cublas_handle,kvol,(cuComplex *)&a,(cuComplex *)r_f+j*kvol,1,(cuComplex *)p_f+j*kvolHalo,1);
 			}
 #else
