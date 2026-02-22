@@ -324,10 +324,8 @@ __global__ void cuHdslashd(complex<T> *phi, const complex<T>* r, const complex<T
 	const unsigned int gthreadId= blockId * bsize+bthreadId;
 
 	//Right. Time to prefetch
-	complex<T> ru[2];  complex<T> rd[2];
-	complex<T> rgu[2];  complex<T> rgd[2];
-	complex<T> phi_s[ndirac*nc];
 	for(unsigned int i=gthreadId;i<kvol;i+=gsize*bsize){
+		complex<T> phi_s[ndirac*nc];
 #pragma unroll
 		for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll
@@ -345,7 +343,9 @@ __global__ void cuHdslashd(complex<T> *phi, const complex<T>* r, const complex<T
 			const complex<T> u11sd=u11t[ind];	const complex<T> u12sd=u12t[ind];
 #pragma unroll
 			for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc){
-				unsigned short igork1 = gamin_d[mu*ndirac+(idirac>>1)] << (nc-1);
+				const unsigned short igork1 = gamin_d[mu*ndirac+(idirac>>1)] << (nc-1);
+				complex<T> ru[2];  complex<T> rd[2];
+				complex<T> rgu[2];  complex<T> rgd[2];
 #pragma unroll
 				for(unsigned short c=0;c<nc;c++){
 					ind =kvolHalo*(idirac+c);
