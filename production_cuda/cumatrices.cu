@@ -7,6 +7,21 @@
 #include <su2hmc.h>
 #include <matrices.h>
 #include	<thrust_complex.h>
+	/**
+	 * @brief Evaluates @f$\Phi=M r@f$
+	 *
+	 * @param	phi:			The product
+	 * @param	r:				The array being acted on by M
+	 * @param	u11t,u12t	Gauge field
+	 *	@param	iu,id:		Upper/lower halo indices
+	 *	@param	gamval:		Gamma matrices rescaled by kappa
+	 *	@param	gamin:		Indices for dirac terms
+	 * @param	dk4m,dk4p:	@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
+	 *	@param	jqq:			Diquark source
+	 *	@param	akappa:		Hopping parameter
+	 *
+	 * @return Zero on success, integer error code otherwise
+	 */
 template <typename T>
 __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, complex<T> *u12t,const unsigned int *iu, const unsigned int *id,\
 		complex<T> gamval_d[20],	const unsigned short gamin_d[16], const T *dk4m, const T *dk4p, const Complex_f jqq, const float akappa){
@@ -118,6 +133,21 @@ __global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, compl
 #endif
 	}
 }
+	/**
+	 * @brief Evaluates @f$\Phi=M^\dagger r@f$
+	 *
+	 * @param	phi:			The product
+	 * @param	r:				The array being acted on by M
+	 * @param	u11t,u12t	Gauge field
+	 *	@param	iu,id:		Upper/lower halo indices
+	 *	@param	gamval:		Gamma matrices rescaled by kappa
+	 *	@param	gamin:		Indices for dirac terms
+	 * @param	dk4m,dk4p:	@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
+	 *	@param	jqq:			Diquark source
+	 *	@param	akappa:		Hopping parameter
+	 *
+	 * @return Zero on success, integer error code otherwise
+	 */
 template <typename T>
 __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T> *u11t, const complex<T> *u12t,const unsigned int *iu, const unsigned int *id,\
 		complex<T> gamval_d[20], const unsigned short gamin_d[16], const T *dk4m, const T *dk4p, const Complex_f jqq, const float akappa){
@@ -230,6 +260,21 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 	}
 }
 
+	/**
+	 * @brief Evaluates @f$\Phi=Mr@f$ using up/down partitioning
+	 *
+	 * @param	phi:			The product
+	 * @param	r:				The array being acted on by M
+	 * @param	u11t,u12t	Gauge field
+	 *	@param	iu,id:		Upper/lower halo indices
+	 *	@param	gamval:		Gamma matrices rescaled by kappa
+	 *	@param	gamin:		Indices for dirac terms
+	 * @param	dk4m,dk4p:	@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
+	 *	@param	jqq:			Diquark source
+	 *	@param	akappa:		Hopping parameter
+	 *
+	 * @return Zero on success, integer error code otherwise
+	 */
 template <typename T>
 __global__ void cuHdslash(complex<T> *phi, const complex<T> *r, const complex<T> *u11t, const complex<T> *u12t,unsigned int *iu, unsigned int *id,\
 		__constant__ complex<T> gamval[20],	const unsigned short gamin_d[16],	const T *dk4m, const T *dk4p, const __grid_constant__ float akappa){
@@ -311,6 +356,21 @@ __global__ void cuHdslash(complex<T> *phi, const complex<T> *r, const complex<T>
 		}
 	}
 }
+	/**
+	 * @brief Evaluates @f$\Phi=M^\dagger r@f$ using up/down partitioning
+	 *
+	 * @param	phi:			The product
+	 * @param	r:				The array being acted on by M
+	 * @param	u11t,u12t	Gauge field
+	 *	@param	iu,id:		Upper/lower halo indices
+	 *	@param	gamval:		Gamma matrices rescaled by kappa
+	 *	@param	gamin:		Indices for dirac terms
+	 * @param	dk4m,dk4p:	@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
+	 *	@param	jqq:			Diquark source
+	 *	@param	akappa:		Hopping parameter
+	 *
+	 * @return Zero on success, integer error code otherwise
+	 */
 template <typename T>
 __global__ void cuHdslashd(complex<T> *phi, const complex<T>* r, const complex<T>* u11t, const complex<T>* u12t,unsigned int* iu, unsigned int* id,\
 		__constant__ complex<T> gamval[20],	const unsigned short gamin_d[16],	const T* dk4m, const T* dk4p, const __grid_constant__ float akappa){
