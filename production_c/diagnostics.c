@@ -90,44 +90,33 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 					{
 						FILE *trial_out = fopen("gauge_t", "w");
 						for(unsigned int i=0;i<(kvol+halo);i++){
-						if(i<kvol)
-							fprintf(trial_out,"Site %d:\n",i);
-						else
-							fprintf(trial_out,"Halo site %d:\n",i);
-								for(unsigned short j=0;j<ndim;j++)
-									fprintf(trial_out,"Dir %d:\t%.5f+%.5fI\t%.5f+%.5fI\n",
-											creal(ut[0][i+j*kvolHalo]),cimag(ut[0][i+j*kvolHalo]),
-											creal(ut[1][i+j*kvolHalo]),cimag(ut[1][i+j*kvolHalo]));
+							if(i<kvol)
+								fprintf(trial_out,"Site %d:\n",i);
+							else
+								fprintf(trial_out,"Halo site %d:\n",i);
+							for(unsigned short j=0;j<ndim;j++)
+								fprintf(trial_out,"Dir %d:\t%.5f+%.5fI\t%.5f+%.5fI\n",
+										creal(ut[0][i+j*kvolHalo]),cimag(ut[0][i+j*kvolHalo]),
+										creal(ut[1][i+j*kvolHalo]),cimag(ut[1][i+j*kvolHalo]));
 							fprintf(trial_out,"\n");
 						}
 						fclose(trial_out);
 					}
 #pragma omp section
 					{
-						FILE *trial_out = fopen("ut1", "w");
-						for(int i=0;i<ndim*(kvol+halo);i+=4)
-							fprintf(trial_out,"%.5f+%.5fI\t%.5f+%.5fI\t%.5f+%.5fI\t%.5f+%.5fI\n",
-									creal(ut[1][i]),cimag(ut[1][i]),creal(ut[1][i+kvolHalo]),cimag(ut[1][i+kvolHalo]),
-									creal(ut[1][i+2*kvolHalo]),cimag(ut[1][i+2*kvolHalo]),creal(ut[1][i+3*kvolHalo]),cimag(ut[1][i+3*kvolHalo]));
-						fclose(trial_out);
-					}
-#pragma omp section
-					{
-						FILE *trial_out = fopen("ut0", "w");
-						for(int i=0;i<(kvol+halo);i+=4)
-							fprintf(trial_out,"%.5f+%.5fI\t%.5f+%.5fI\t%.5f+%.5fI\t%.5f+%.5fI\n",
-									creal(ut_f[0][i]),cimag(ut_f[0][i]),creal(ut_f[0][i+kvolHalo]),cimag(ut_f[0][i+kvolHalo]),
-									creal(ut_f[0][i+2*kvolHalo]),cimag(ut_f[0][i+2*kvolHalo]),creal(ut_f[0][i+3*kvolHalo]),cimag(ut_f[0][i+3*kvolHalo]));
-						fclose(trial_out);
-					}
-#pragma omp section
-					{
-						FILE *trial_out = fopen("ut1", "w");
-						for(int i=0;i<ndim*(kvol+halo);i+=4)
-							fprintf(trial_out,"%.5f+%.5fI\t%.5f+%.5fI\t%.5f+%.5fI\t%.5f+%.5fI\n",
-									creal(ut_f[1][i]),cimag(ut_f[1][i]),creal(ut_f[1][i+kvolHalo]),cimag(ut_f[1][i+kvolHalo]),
-									creal(ut_f[1][i+2*kvolHalo]),cimag(ut_f[1][i+2*kvolHalo]),creal(ut_f[1][i+3*kvolHalo]),cimag(ut_f[1][i+3*kvolHalo]));
-						fclose(trial_out);
+						FILE *trial_out_f = fopen("gauge_t", "w");
+						for(unsigned int i=0;i<(kvol+halo);i++){
+							if(i<kvol)
+								fprintf(trial_out_f,"Site %d:\n",i);
+							else
+								fprintf(trial_out_f,"Halo site %d:\n",i);
+							for(unsigned short j=0;j<ndim;j++)
+								fprintf(trial_out_f,"Dir %d:\t%.5f+%.5fI\t%.5f+%.5fI\n",
+										creal(ut_f[0][i+j*kvolHalo]),cimag(ut_f[0][i+j*kvolHalo]),
+										creal(ut_f[1][i+j*kvolHalo]),cimag(ut_f[1][i+j*kvolHalo]));
+							fprintf(trial_out_f,"\n");
+						}
+						fclose(trial_out_f);
 					}
 				}
 				break;
