@@ -66,7 +66,7 @@ int Clover(Complex_f *clover[nc],Complex_f *ut[nc], unsigned int *iu, unsigned i
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
  * @param	dag:					Daggered has no MPI halo, but undaggered does.
  */
-int ByClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, const float akappa, unsigned short *sigin);
+int ByClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, const float akappa, unsigned short *sigin,bool dag);
 /**
  *	@brief Clover analogue of the Dslash operation. This version acts on all flavours simiilar to Dslash and Dslash_d
  *
@@ -78,7 +78,7 @@ int ByClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, con
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
  * @param	dag:					Daggered has no MPI halo, but undaggered does.
  */
-int ByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval,const float akappa,  unsigned short *sigin);
+int ByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval,const float akappa,  unsigned short *sigin,bool dag);
 /**
  *	@brief Clover analogue of the Dslash operation. The H in front is for half, as we only act on the fermions of flavour
  *
@@ -90,7 +90,7 @@ int ByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *s
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
  * @param	dag:					Daggered has no MPI halo, but undaggered does.
  */
-int HbyClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, const float akappa, unsigned short *sigin);
+int HbyClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, const float akappa, unsigned short *sigin,bool dag);
 /**
  *	@brief Clover analogue of the Dslashd operation. The H in front is for half, as we only act on the fermions of flavour
  *
@@ -102,7 +102,7 @@ int HbyClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, co
  * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
  * @param	dag:					Daggered has no MPI halo, but undaggered does.
  */
-int HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval, const float akappa, unsigned short *sigin);
+int HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval, const float akappa, unsigned short *sigin,bool dag);
 /**
  * @brief	Extracts the leaves required for the clover force term and adds them correctly
  *

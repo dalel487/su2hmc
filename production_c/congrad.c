@@ -321,11 +321,11 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #ifdef _DEBUGCG
 			if(!rank)
 				printf("Going to double precision on iteration %d. betan %e\talpha %e.\n",
-						*itercg,betan,alpha);
+						*itercg,betan,creal(alpha));
 #elifdef _DEBUG
 			if(!rank)
 				printf("\nGoing to double precision on iteration %d. betan %e\talpha %e.\n",
-						*itercg,betan,alpha);
+						*itercg,betan,creal(alpha));
 #endif
 			ComplexConvert(r_f,r,kferm2,false,1);
 			ComplexConvert(p_f,p,kvol,false,nc*ndirac);
@@ -463,7 +463,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			//Update beta_max. Mandatory for double precision.
 			beta_max=betan_d;
 #ifdef _DEBUG
-			if(!rank) printf("DP Iter(CG)=%i\tbeta_n=%e\talpha=%e\n", *itercg, betan, alpha);
+			if(!rank) printf("DP Iter(CG)=%i\tbeta_n=%e\talpha=%e\n", *itercg, betan, creal(alpha));
 			fflush(stdout);
 #endif
 			alignas(16) const Complex beta = (*itercg) ?  betan/betad : 0;
@@ -502,7 +502,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			ComplexConvert(p_f,p,kvol,true,nc*ndirac);
 			ComplexConvert(r_f,r,kferm2,true,1);
 #ifdef _DEBUGCG
-			if(!rank) printf("Double precision. Iter(CG)=%i\tbeta_n=%e\talpha=%e\n", *itercg, betan, alpha);
+			if(!rank) printf("Double precision. Iter(CG)=%i\tbeta_n=%e\talpha=%e\n", *itercg, betan, creal(alpha));
 			fflush(stdout);
 #endif
 			if(betan<resid){ 
@@ -637,7 +637,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			beta_max = (betan_f>beta_max) ?betan_f : beta_max;
 
 #ifdef _DEBUG
-			if(!rank) printf("Iter(CG)=%i\tbeta_n=%e\talpha=%e%s", *itercg, betan, alpha,endline);
+			if(!rank) printf("Iter(CG)=%i\tbeta_n=%e\talpha=%e%s", *itercg, betan, creal(alpha),endline);
 			fflush(stdout);
 #endif
 			if(betan_f<beta_max*d_prec){ 
@@ -773,11 +773,11 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 #ifdef _DEBUGCG
 			if(!rank)
 				printf("Going to double precision on iteration %d.  %sbetan %e\talpha %e.  %s",
-						*itercg,endline,betan,alpha,endline);
+						*itercg,endline,betan,creal(alpha),endline);
 #elifdef _DEBUG
 			if(!rank)
 				printf("\nGoing to double precision on iteration %d. %sbetan %e\talpha %e.\n",
-						*itercg,endline,betan,alpha);
+						*itercg,endline,betan,creal(alpha));
 #endif
 			ComplexConvert(r_f,r,kferm,false,1);
 			//TODO: Banking on converting the halo too being faster than multiple launches
@@ -891,7 +891,7 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 			//Update beta_max.  Mandatory for double precision.
 			beta_max=betan_d;
 #ifdef _DEBUG
-			if(! rank) printf("DP Iter(CG)=%i\tbeta_n=%e\talpha=%e\n", *itercg, betan, alpha);
+			if(! rank) printf("DP Iter(CG)=%i\tbeta_n=%e\talpha=%e\n", *itercg, betan, creal(alpha));
 			fflush(stdout);
 #endif
 			alignas(16) const Complex beta = (*itercg) ?    betan/betad :   0;
@@ -928,7 +928,7 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 			ComplexConvert(p_f,p,kvol,true,nc*ngorkov);
 			ComplexConvert(r_f,r,kferm,true,1);
 #ifdef _DEBUGCG
-			if(! rank) printf("Double precision.  Iter(CG)=%i\tbeta_n=%e\talpha=%e\n", *itercg, betan, alpha);
+			if(! rank) printf("Double precision.  Iter(CG)=%i\tbeta_n=%e\talpha=%e\n", *itercg, betan, creal(alpha));
 			fflush(stdout);
 #endif
 			if(betan<resid){
@@ -1042,7 +1042,7 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 			betan_f=sqrt(betan);
 			beta_max = (betan_f>beta_max) ?betan_f : beta_max;
 #ifdef _DEBUG
-			if(!rank) printf("Iter (CG) = %i beta_n= %e alpha= %e%s", *itercg, betan, alpha,endline);
+			if(!rank) printf("Iter (CG) = %i beta_n= %e alpha= %e%s", *itercg, betan, creal(alpha),endline);
 #endif
 			if(betan_f<beta_max*d_prec){
 #ifdef _DEBUG

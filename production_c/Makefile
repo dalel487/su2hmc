@@ -70,7 +70,7 @@ SRC= \
 	par_mpi.c \
 	su2hmc.c \
 	clover.c \
-	integrate.c\
+	integrate.c
 
 INC= \
 	sizes.h \
@@ -105,6 +105,7 @@ release:	$(EXE)
 
 diagnostic: SRC+= diagnostics.c
 diagnostic: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
+diagnostic: EXE= su2hmc_diagnostics
 diagnostic: debug
 
 debug:	CFLAGS += -g -O0 -D_DEBUG #-D_DEBUG_MPI -Wall #-D_DEBUGCG 
@@ -112,8 +113,9 @@ debug:	$(EXE)
 
 $(EXE):	$(OBJ)
 		$(MPICC) ../main.c -MP $(CFLAGS) -o $@ $(OBJ) $(LFLAGS)  
+
 %.o: %.c
-	$(MPICC) $(CFLAGS) $(IFLAGS) -c $<  
+	$(MPICC) $(CFLAGS) $(IFLAGS) -c $<   -o $@
 
 clean:
 		rm -f $(OBJ) $(TMP) $(DEPS)

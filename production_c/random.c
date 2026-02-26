@@ -128,12 +128,12 @@ int Par_ranset(long *seed,int iread)
 	const char funcname[] = "Par_ranset";
 	//If we're not using the master thread, we need to change the seed
 #ifdef _DEBUG
-	printf("Master seed: %i\t",*seed);
+	printf("Master seed: %lu\t",*seed);
 #endif
 	if(rank)
 		*seed *= 1.0f+8.0f*(float)rank/(float)(size-1);
 #ifdef _DEBUG
-	printf("Rank:  %i\tSeed %i\n",rank, *seed);
+	printf("Rank:  %i\tSeed %lu\n",rank, *seed);
 #endif
 	//Next we set the seed using ranset
 	//This is one of the really weird FORTRAN 66-esque functions with ENTRY points, so good luck!
