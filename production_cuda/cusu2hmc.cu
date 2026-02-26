@@ -91,8 +91,9 @@ __global__ void cuUpDownPart(const unsigned int na, Complex *X0, Complex *R1){
 	//Up/down partitioning (using only pseudofermions of flavour 1)
 	for(unsigned int i = gthreadId; i<kvol;i+=gsize*bsize)
 		for(unsigned short idirac = 0; idirac < ndirac; idirac++){
-			X0[i + kvol * (0 + nc * (idirac + ndirac * na))] = R1[i + kvol * (0 + nc * idirac)];
-			X0[i + kvol * (1 + nc * (idirac + ndirac * na))] = R1[i + kvol * (1 + nc * idirac)];
+		//R1 has ngorkov spinors, but we only want the first four.
+			X0[i+kvol*(0+nc*(idirac+ndirac*na))]=R1[i+kvol*(0+nc*idirac)];
+			X0[i+kvol*(1+nc*(idirac+ndirac*na))]=R1[i+kvol*(1+nc*idirac)];
 		}
 }
 template <typename T>

@@ -2385,9 +2385,9 @@ INCLUDE_FILE_PATTERNS  =
 
 PREDEFINED             = 	__NVCC__ \
 									__RANLUX__ \
-									__INT_OMF2__ \
+									INT_OMF2 \
 									USE_BLAS \
-									"__attribute__(x)=  __INT_OMF2__ "  \
+									"__attribute__(x)=  INT_OMF2 "  \
 									"__attribute__(x)=  __NVCC__ "\
 
 # If the MACRO_EXPANSION and EXPAND_ONLY_PREDEF tags are set to YES then this

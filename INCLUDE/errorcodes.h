@@ -108,7 +108,7 @@
 /// @brief Continuation run on different grid size
 #define	DIFNPROC		12101
 
-//Halo Errors. Leading digits are 13
+/// @section Halo Errors. Leading digits are 13
 //=================================
 //Errors:
 //-------
@@ -117,12 +117,18 @@
 /// @brief Index goes beyond the halo
 #define	HALOLIM		13002
 
-//Physics/Maths Errors. Leading digits are 14
+/// @section Physics/Maths Errors. Leading digits are 14
 //=================================
 //Errors:
 //-------
 /// @brief Division by zero
 #define	DIVZERO		14001
+/// @brief Gauge link reunitarisation failed
+#define	REUNIERR		14002
+/// @brief Failed to convert precision correctly
+#define	CONVERR		14003
+/// @brief Up/down partitioning failed
+#define	UDPERR		14003
 
 //Warnings:
 //--------

@@ -330,7 +330,8 @@ inline int UpDownPart(const unsigned int na, Complex *X0, Complex *R1){
 #else
 #pragma omp parallel for simd collapse(2) aligned(X0,R1:AVX)
 	for(unsigned int i=0; i<kvol; i++)
-		for(unsignedshortidirac=0;idirac<ndirac;idirac++){
+		for(unsigned short idirac=0;idirac<ndirac;idirac++){
+		//R1 has ngorkov spinors, but we only want the first four.
 			X0[i+kvol*(0+nc*(idirac+ndirac*na))]=R1[i+kvol*(0+nc*idirac)];
 			X0[i+kvol*(1+nc*(idirac+ndirac*na))]=R1[i+kvol*(1+nc*idirac)];
 		}

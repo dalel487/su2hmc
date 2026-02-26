@@ -62,7 +62,91 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 	Complex_f *X1_f= aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f)); 
 	double *dSdpi = aligned_alloc(AVX,kmom*sizeof(double));
 #endif
-	//pp is the momentum field
+	//Trial fields shouldn't get modified (except for gauge_update
+	switch(istart){
+		//Got gauge fields from file or random so print them
+		case(1):
+#pragma omp parallel sections
+			{
+#pragma omp section
+				{
+					FILE *trial_out = fopen("gauge_t", "w");
+					for(unsigned int i=0;i<(kvol+halo);i++){
+						if(i<kvol)
+							fprintf(trial_out,"Site %d:\n",i);
+						else
+							fprintf(trial_out,"Halo site %d:\n",i);
+						for(unsigned short j=0;j<ndim;j++)
+							fprintf(trial_out,"Dir %d:\t%.5f+%.5fI\t%.5f+%.5fI\n",
+									creal(ut[0][i+j*kvolHalo]),cimag(ut[0][i+j*kvolHalo]),
+									creal(ut[1][i+j*kvolHalo]),cimag(ut[1][i+j*kvolHalo]));
+						fprintf(trial_out,"\n");
+					}
+					fclose(trial_out);
+				}
+#pragma omp section
+				{
+					FILE *trial_out_f = fopen("gauge_t", "w");
+					for(unsigned int i=0;i<(kvol+halo);i++){
+						if(i<kvol)
+							fprintf(trial_out_f,"Site %d:\n",i);
+						else
+							fprintf(trial_out_f,"Halo site %d:\n",i);
+						for(unsigned short j=0;j<ndim;j++)
+							fprintf(trial_out_f,"Dir %d:\t%.5f+%.5fI\t%.5f+%.5fI\n",
+									creal(ut_f[0][i+j*kvolHalo]),cimag(ut_f[0][i+j*kvolHalo]),
+									creal(ut_f[1][i+j*kvolHalo]),cimag(ut_f[1][i+j*kvolHalo]));
+						fprintf(trial_out_f,"\n");
+					}
+					fclose(trial_out_f);
+				}
+			}
+			break;
+		default:
+			//Cold start as a default. Don't need to print
+#pragma omp parallel for
+			for(unsigned short mu=0;mu<ndim;mu++){
+				memcpy(ut[0]+j*kvolHalo,u[0]+j*kvol,kvol*sizeof(Complex));
+				memcpy(ut[1]+j*kvolHalo,u[1]+j*kvol,kvol*sizeof(Complex));
+			}
+			break;
+	}
+	//Ensure reunitarisation is working
+	Reunitarise(ut[0],ut[1]);
+	for(unsigned short j=0;j<ndim;j++)
+		for(unsigned int i=0;i<kvol;i++){
+			double diff = abs(1-creal(u[0][i+j*kvol]*u[0][i+j*kvol]+u[1][i+j*kvol]*u[1][i+j*kvol]));
+			if(diff >1e-7){
+				fprintf(stderr,"Error %i in %s: Gauge links not correctly reuniterised for site %i and direction %d. Diff %e"\
+						"\nExiting...\n\n",REUNIERR,funcname,i,j,diff);
+				exit(REUNIERR);
+			}
+		}
+	//Check precision change works
+	ComplexConvert(ut_f[0],ut[0],kvol,true,ndim);
+	for(unsigned short j=0;j<ndim;j++)
+		for(unsigned int i=0;i<kvol;i++){
+			Complex diff =ut_f[0]-ut[0];
+			if(abs(creal(diff))>1e-7||abs(cimag(diff))>1e-7){
+				fprintf(stderr,"Error %i in %s: Gauge links not correctly converted to float for site %i and direction %d. Diff %e+I%e"\
+						"\nExiting...\n\n",CONVERROR,funcname,i,j,creal(diff),cimag(diff));
+				exit(CONVERROR);
+			}
+		}
+	//Repeat in the opposite direction. 
+	ComplexConvert(ut_f[0],ut[0],kvol,false,ndim);
+	for(unsigned short j=0;j<ndim;j++)
+		for(unsigned int i=0;i<kvol;i++){
+			Complex diff =ut_f[0]-ut[0];
+			if(abs(creal(diff))>1e-7||abs(cimag(diff))>1e-7){
+				fprintf(stderr,"Error %i in %s: Gauge links not correctly converted to double for site %i and direction %d. Diff %e+I%e"\
+						"\nExiting...\n\n",CONVERROR,funcname,i,j,creal(diff),cimag(diff));
+				exit(CONVERROR);
+			}
+		}
+	//Gauge halo exchange.
+	Trial_Exchange(ut[0],ut[1],ut_f[0],ut_f[1]);
+	//TODO: Figure out a test for this. May require a second lattice to be copied over in full...
 
 #pragma omp parallel sections
 	{
@@ -80,57 +164,6 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 		}
 	}
 	for(int test = 0; test<=9; test++){
-		//Trial fields shouldn't get modified so were previously set up outside
-		switch(istart){
-			//Got gauge fields from file or random so print them
-			case(1):
-#pragma omp parallel sections
-				{
-#pragma omp section
-					{
-						FILE *trial_out = fopen("gauge_t", "w");
-						for(unsigned int i=0;i<(kvol+halo);i++){
-							if(i<kvol)
-								fprintf(trial_out,"Site %d:\n",i);
-							else
-								fprintf(trial_out,"Halo site %d:\n",i);
-							for(unsigned short j=0;j<ndim;j++)
-								fprintf(trial_out,"Dir %d:\t%.5f+%.5fI\t%.5f+%.5fI\n",
-										creal(ut[0][i+j*kvolHalo]),cimag(ut[0][i+j*kvolHalo]),
-										creal(ut[1][i+j*kvolHalo]),cimag(ut[1][i+j*kvolHalo]));
-							fprintf(trial_out,"\n");
-						}
-						fclose(trial_out);
-					}
-#pragma omp section
-					{
-						FILE *trial_out_f = fopen("gauge_t", "w");
-						for(unsigned int i=0;i<(kvol+halo);i++){
-							if(i<kvol)
-								fprintf(trial_out_f,"Site %d:\n",i);
-							else
-								fprintf(trial_out_f,"Halo site %d:\n",i);
-							for(unsigned short j=0;j<ndim;j++)
-								fprintf(trial_out_f,"Dir %d:\t%.5f+%.5fI\t%.5f+%.5fI\n",
-										creal(ut_f[0][i+j*kvolHalo]),cimag(ut_f[0][i+j*kvolHalo]),
-										creal(ut_f[1][i+j*kvolHalo]),cimag(ut_f[1][i+j*kvolHalo]));
-							fprintf(trial_out_f,"\n");
-						}
-						fclose(trial_out_f);
-					}
-				}
-				break;
-			default:
-				//Cold start as a default. Don't need to print
-#pragma omp parallel for
-				for(unsigned short mu=0;mu<ndim;mu++){
-					memcpy(ut[0]+j*kvolHalo,u[0]+j*kvol,kvol*sizeof(Complex));
-					memcpy(ut[1]+j*kvolHalo,u[1]+j*kvol,kvol*sizeof(Complex));
-				}
-				break;
-		}
-		Reunitarise(ut[0],ut[1]);
-		Trial_Exchange(ut[0],ut[1],ut_f[0],ut_f[1]);
 
 		//We reset all the random fields between each test. It's one way of ensuring that errors don't propegate from one
 		//test to another. Since we start from the same seed each time this should give the same results for each test. If
@@ -154,7 +187,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 		FILE *input_f, *output_f;
 		FILE *input_diff, *output_diff;
 		switch(test){
-			case(0):
+			case(0): //UpDownPart
 				int na=0;
 				input = fopen("PreUpDownPart","w");
 				for(int i=0; i<kvol; i++)
@@ -163,308 +196,351 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 					fprintf(input,"%.5e+%.5ei\t", creal(R1[i+j*kvol]),cimag(R1[i+j*kvol]));
 				}
 				fprintf(output,"\n");
-		}
-		UpDownPart(na,X0,R1);
-		fclose(input);
-		output = fopen("UpDownPart","w");
-		for(unsigned int i=0; i<kvol; i++){
-			fprintf(output,"Site %d:\t",i);
-			for(unsigned short j=0;j<nc*ndirac;j++){
-				fprintf(output,"%.5e+%.5ei\t",\
-						creal(X0[i+j*kvol]),cimag(X0[i+j*kvol]))
-			}
-			fprintf(output,"\n");
-		}
-
-		fclose(output);
-		break;
-		case(1):
-		ComplexConvert(R1_f,R1,kvol,false,nc*ngorkov);
-		memset(xi,0,kfermHalo*sizeof(Complex)); memset(xi_f,0,kfermHalo*sizeof(Complex_f));
-		//NOTE: Each line corresponds to one lattice direction, in the form of colour 0, colour 1.
-		//Each block to one lattice site
-		input = fopen("dslash_in", "w"); input_f = fopen("dslash_f_in", "w"); input_diff = fopen("dslash_diff_in", "w");
+				fclose(input);
+				UpDownPart(na,X0,R1);
+				output = fopen("UpDownPart","w");
+				for(unsigned int i=0; i<kvol; i++){
+					fprintf(output,"Site %d:\t",i);
+					for(unsigned short j=0;j<nc*ndirac;j++){
+						fprintf(output,"%.5e+%.5ei\t",\
+								creal(X0[i+j*kvol]),cimag(X0[i+j*kvol]))
+					}
+					fprintf(output,"\n");
+				}
+				fclose(output);
+				for(unsigned short idirac=0;idirac<nc*ndirac;idirac++)
+					for(unsigned short ic=0;ic<nc;ic++)
+						for(unsigned int i=0;i<kvol;i++){
+							if(abs(X0[i+kvol*(ic+nc*(idirac+ndirac*na))]-R1[i+kvol*(ic+nc*idirac)])>1e-7){
+								fprintf(stderr,"Error %i in %s: Up/down partitioning failed for site %d and colour/dirac spinor %d."
+										"\nExiting...\n\n",UDPERR,funcname,i,idirac);
+								exit(UDPERR);
+							}
+						}
+				break;
+			case(1): //Dslash
+				ComplexConvert(R1_f,R1,kvol,false,nc*ngorkov);
+				memset(xi,0,kfermHalo*sizeof(Complex)); memset(xi_f,0,kfermHalo*sizeof(Complex_f));
+				//NOTE: Each line corresponds to one lattice direction, in the form of colour 0, colour 1.
+				//Each block to one lattice site
+				input = fopen("dslash_in", "w"); input_f = fopen("dslash_f_in", "w"); input_diff = fopen("dslash_diff_in", "w");
 #ifdef __NVCC__
-		cudaDeviceSynchronise();
+				cudaDeviceSynchronise();
 #endif
-		for(unsigned int i = 0; i< kvol; i++){
-			fprintf(input, "Site %d:\n",i); fprintf(input_f, "Site %d:\n",i); fprintf(input_diff, "Site %d:\n",i);
-			for(unsigned short j=0;j<nc*ngorkov;j++){
-				fprintf(input, "%.5f+%.5fI\t",creal(R1[i+j*kvolHalo]),cimag(R1[i+j*kvolHalo]));
-				fprintf(input_f, "%.5f+%.5fI\t", creal(R1_f[i+j*kvolHalo]),cimag(R1_f[i+j*kvolHalo]));
-				fprintf(input_diff,"%.5f+%.5fI\t", creal(R1[i+j*kvolHalo]-R1_f[i+j*kvolHalo]),cimag(R1[i+j*kvolHalo]-R1_f[i+j*kvolHalo]));
-			}
-			fprintf(input, "\n\n"); fprintf(input_f,"\n\n"); fprintf(input_diff,"\n\n");
-		}
-		fclose(input); fclose(input_f); fclose(input_diff);
-		Dslash(xi,R1,ut,iu,id,gamval,gamin,dk,jqq,akappa);
-		Dslash_f(xi_f,R1_f,ut_f[0],ut_f[1],iu,id,gamval_f,gamin,dk_f[0],dk_f[1],jqq,akappa);
+				for(unsigned int i = 0; i< kvol; i++){
+					fprintf(input, "Site %d:\n",i); fprintf(input_f, "Site %d:\n",i); fprintf(input_diff, "Site %d:\n",i);
+					for(unsigned short j=0;j<nc*ngorkov;j++){
+						fprintf(input, "%.5f+%.5fI\t",creal(R1[i+j*kvolHalo]),cimag(R1[i+j*kvolHalo]));
+						fprintf(input_f, "%.5f+%.5fI\t", creal(R1_f[i+j*kvolHalo]),cimag(R1_f[i+j*kvolHalo]));
+						fprintf(input_diff,"%.5f+%.5fI\t", creal(R1[i+j*kvolHalo]-R1_f[i+j*kvolHalo]),cimag(R1[i+j*kvolHalo]-R1_f[i+j*kvolHalo]));
+					}
+					fprintf(input, "\n\n"); fprintf(input_f,"\n\n"); fprintf(input_diff,"\n\n");
+				}
+				fclose(input); fclose(input_f); fclose(input_diff);
+				Dslash(xi,R1,ut,iu,id,gamval,gamin,dk,jqq,akappa);
+				Dslash_f(xi_f,R1_f,ut_f[0],ut_f[1],iu,id,gamval_f,gamin,dk_f[0],dk_f[1],jqq,akappa);
 #ifdef __NVCC__
-		cudaDeviceSynchronise();
+				cudaDeviceSynchronise();
 #endif
-		output = fopen("dslash", "w"); output_f = fopen("dslash_f", "w"); output_f = fopen("dslash_diff", "w");
-		for(unsigned int i = 0; i< kvol; i++){
-			fprintf(output, "Site %d:\n",i); fprintf(output_f, "Site %d:\n",i); fprintf(output_diff, "Site %d:\n",i);
-			for(unsigned short j=0;j<nc*ngorkov;j++){
-				fprintf(output, "%.5f+%.5fI\t",creal(xi[i+j*kvolHalo]),cimag(xi[i+j*kvolHalo]));
-				fprintf(output_f, "%.5f+%.5fI\t", creal(xi_f[i+j*kvolHalo]),cimag(xi_f[i+j*kvolHalo]));
-				fprintf(output_diff,"%.5f+%.5fI\t", creal(xi[i+j*kvolHalo]-xi_f[i+j*kvolHalo]),cimag(xi[i+j*kvolHalo]-xi_f[i+j*kvolHalo]));
-			}
-			fprintf(output, "\n\n"); fprintf(output_f,"\n\n"); fprintf(output_diff,"\n\n");
-		}
-		fclose(output); fclose(output_f); fclose(output_diff);
-		break;
-		case(2):
-		ComplexConvert(R1_f,R1,kvol,false,nc*ngorkov);
-		memset(xi,0,kfermHalo*sizeof(Complex)); memset(xi_f,0,kfermHalo*sizeof(Complex_f));
-		//NOTE: Each line corresponds to one lattice direction, in the form of colour 0, colour 1.
-		//Each block to one lattice site
-		input = fopen("dslashd_in", "w"); input_f = fopen("dslashd_f_in", "w"); input_diff = fopen("dslashd_diff_in", "w");
+				output = fopen("dslash", "w"); output_f = fopen("dslash_f", "w"); output_f = fopen("dslash_diff", "w");
+				for(unsigned int i = 0; i< kvol; i++){
+					fprintf(output, "Site %d:\n",i); fprintf(output_f, "Site %d:\n",i); fprintf(output_diff, "Site %d:\n",i);
+					for(unsigned short j=0;j<nc*ngorkov;j++){
+						fprintf(output, "%.5f+%.5fI\t",creal(xi[i+j*kvolHalo]),cimag(xi[i+j*kvolHalo]));
+						fprintf(output_f, "%.5f+%.5fI\t", creal(xi_f[i+j*kvolHalo]),cimag(xi_f[i+j*kvolHalo]));
+						Complex diff = xi[i+j*kvolHalo]-xi_f[i+j*kvolHalo];
+						if(abs(creal(diff))>1e-7 || abs(cimag(diff))>1e-7){
+							fprintf(stderr,"Error %i in %s: Single and double disagree for Dslash site %i and spinor/color %d. Difference %e+%ei"\
+									"\nExiting...\n\n",CONVERROR,funcname,i,j,creal(diff),cimag(diff));
+							fclose(output);fclose(output_f);fclose(output_diff);
+							exit(CONVERROR);
+						}
+						else
+							fprintf(output_diff,"%.5f+%.5fI\t", creal(diff),cimag(diff));
+					}
+					fprintf(output, "\n\n"); fprintf(output_f,"\n\n"); fprintf(output_diff,"\n\n");
+				}
+				fclose(output); fclose(output_f); fclose(output_diff);
+				break;
+			case(2): //Dslashd
+				ComplexConvert(R1_f,R1,kvol,false,nc*ngorkov);
+				memset(xi,0,kfermHalo*sizeof(Complex)); memset(xi_f,0,kfermHalo*sizeof(Complex_f));
+				//NOTE: Each line corresponds to one lattice direction, in the form of colour 0, colour 1.
+				//Each block to one lattice site
+				input = fopen("dslashd_in", "w"); input_f = fopen("dslashd_f_in", "w"); input_diff = fopen("dslashd_diff_in", "w");
 #ifdef __NVCC__
-		cudaDeviceSynchronise();
+				cudaDeviceSynchronise();
 #endif
-		for(unsigned int i = 0; i< kvol; i++){
-			fprintf(input, "Site %d:\n",i); fprintf(input_f, "Site %d:\n",i); fprintf(input_diff, "Site %d:\n",i);
-			for(unsigned short j=0;j<nc*ngorkov;j++){
-				fprintf(input, "%.5f+%.5fI\t",creal(R1[i+j*kvolHalo]),cimag(R1[i+j*kvolHalo]));
-				fprintf(input_f, "%.5f+%.5fI\t", creal(R1_f[i+j*kvolHalo]),cimag(R1_f[i+j*kvolHalo]));
-				fprintf(input_diff,"%.5f+%.5fI\t", creal(R1[i+j*kvolHalo]-R1_f[i+j*kvolHalo]),cimag(R1[i+j*kvolHalo]-R1_f[i+j*kvolHalo]));
-			}
-			fprintf(input, "\n\n"); fprintf(input_f,"\n\n"); fprintf(input_diff,"\n\n");
-		}
-		fclose(input); fclose(input_f);
-		Dslashd(xi,R1,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa);
-		Dslashd_f(xi_f,R1_f,ut_f[0],ut_f[1],iu,id,gamval_f,gamin,dk_f[0],dk_f[1],jqq,akappa);
+				for(unsigned int i = 0; i< kvol; i++){
+					fprintf(input, "Site %d:\n",i); fprintf(input_f, "Site %d:\n",i); fprintf(input_diff, "Site %d:\n",i);
+					for(unsigned short j=0;j<nc*ngorkov;j++){
+						fprintf(input, "%.5f+%.5fI\t",creal(R1[i+j*kvolHalo]),cimag(R1[i+j*kvolHalo]));
+						fprintf(input_f, "%.5f+%.5fI\t", creal(R1_f[i+j*kvolHalo]),cimag(R1_f[i+j*kvolHalo]));
+						fprintf(input_diff,"%.5f+%.5fI\t", creal(R1[i+j*kvolHalo]-R1_f[i+j*kvolHalo]),cimag(R1[i+j*kvolHalo]-R1_f[i+j*kvolHalo]));
+					}
+					fprintf(input, "\n\n"); fprintf(input_f,"\n\n"); fprintf(input_diff,"\n\n");
+				}
+				fclose(input); fclose(input_f);
+				Dslashd(xi,R1,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa);
+				Dslashd_f(xi_f,R1_f,ut_f[0],ut_f[1],iu,id,gamval_f,gamin,dk_f[0],dk_f[1],jqq,akappa);
 #ifdef __NVCC__
-		cudaDeviceSynchronise();
+				cudaDeviceSynchronise();
 #endif
-		output = fopen("dslashd", "w"); output_f = fopen("dslashd_f", "w"); output_f = fopen("dslashd_diff", "w");
-		for(unsigned int i = 0; i< kvol; i++){
-			fprintf(output, "Site %d:\n",i); fprintf(output_f, "Site %d:\n",i); fprintf(output_diff, "Site %d:\n",i);
-			//Note. The output of Dslashd should not have a halo. Whilst xi is defined with one we do not use it here
-			//so stride is kvol, not kvolHalo
-			for(unsigned short j=0;j<nc*ngorkov;j++){
-				fprintf(output, "%.5f+%.5fI\t",creal(xi[i+j*kvol]),cimag(xi[i+j*kvol]));
-				fprintf(output_f, "%.5f+%.5fI\t", creal(xi_f[i+j*kvol]),cimag(xi_f[i+j*kvol]));
-				fprintf(output_diff,"%.5f+%.5fI\t", creal(xi[i+j*kvol]-xi_f[i+j*kvol]),cimag(xi[i+j*kvol]-xi_f[i+j*kvol]));
-			}
-			fprintf(output, "\n\n"); fprintf(output_f,"\n\n"); fprintf(output_diff,"\n\n");
-		}
-		input = fopen("dslashd_in", "w"); input_f = fopen("dslashd_f_in", "w"); input_diff = fopen("dslashd_diff_in", "w");
-		break;
-		case(3):	
-		//NOTE: Each line corresponds to one lattice direction, in the form of colour 0, colour 1.
-		//Each block to one lattice site
-		ComplexConvert(X0_f,X0,kvol,false,nc*ndirac);
-		memset(X1,0,kferm2Halo*sizeof(Complex)); memset(X1_f,0,kferm2Halo*sizeof(Complex_f));
-		input = fopen("hdslash_in", "w"); input_f = fopen("hdslash_f_in", "w"); input_f = fopen("hdslash_diff_in", "w");
-		for(unsigned int i = 0; i< kvol; i++){
-			fprintf(input, "Site %d:\n",i); fprintf(input_f, "Site %d:\n",i); fprintf(input_diff, "Site %d:\n",i);
-			for(unsigned short j=0;j<nc*ndirac;j++){
-				fprintf(input, "%.5f+%.5fI\t",creal(X0[i+j*kvolHalo]),cimag(X0[i+j*kvolHalo]));
-				fprintf(input_f, "%.5f+%.5fI\t", creal(X0_f[i+j*kvolHalo]),cimag(X0_f[i+j*kvolHalo]));
-				fprintf(input_diff,"%.5f+%.5fI\t", creal(X0[i+j*kvolHalo]-X0_f[i+j*kvolHalo]),cimag(X0[i+j*kvolHalo]-X0_f[i+j*kvolHalo]));
-			}
-			fprintf(input, "\n\n"); fprintf(input_f,"\n\n"); fprintf(input_diff,"\n\n");
-		}
-		fclose(input);fclose(input_f);fclose(input_diff);
-		Hdslash(X1,X0,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa);
-		Hdslash_f(X1_f,X0_f,ut_f[0],ut_f[1],iu,id,gamval_f,gamin,dk_f[0],dk_f[1],akappa);
+				output = fopen("dslashd", "w"); output_f = fopen("dslashd_f", "w"); output_f = fopen("dslashd_diff", "w");
+				for(unsigned int i = 0; i< kvol; i++){
+					fprintf(output, "Site %d:\n",i); fprintf(output_f, "Site %d:\n",i); fprintf(output_diff, "Site %d:\n",i);
+					//Note. The output of Dslashd should not have a halo. Whilst xi is defined with one we do not use it here
+					//so stride is kvol, not kvolHalo
+					for(unsigned short j=0;j<nc*ngorkov;j++){
+						fprintf(output, "%.5f+%.5fI\t",creal(xi[i+j*kvol]),cimag(xi[i+j*kvol]));
+						fprintf(output_f, "%.5f+%.5fI\t", creal(xi_f[i+j*kvol]),cimag(xi_f[i+j*kvol]));
+						Complex diff = xi[i+j*kvol]-xi_f[i+j*kvol];
+						if(abs(creal(diff))>1e-7 || abs(cimag(diff))>1e-7){
+							fprintf(stderr,"Error %i in %s: Single and double disagree for Dslashd site %i and spinor/color %d. Difference %e+%ei"\
+									"\nExiting...\n\n",CONVERROR,funcname,i,j,creal(diff),cimag(diff));
+							fclose(output);fclose(output_f);fclose(output_diff);
+							exit(CONVERROR);
+						}
+						else
+							fprintf(output_diff,"%.5f+%.5fI\t", creal(diff),cimag(diff));
+					}
+					fprintf(output, "\n\n"); fprintf(output_f,"\n\n"); fprintf(output_diff,"\n\n");
+				}
+				input = fopen("dslashd_in", "w"); input_f = fopen("dslashd_f_in", "w"); input_diff = fopen("dslashd_diff_in", "w");
+				break;
+			case(3):	//Hdslash
+						//NOTE: Each line corresponds to one lattice direction, in the form of colour 0, colour 1.
+						//Each block to one lattice site
+				ComplexConvert(X0_f,X0,kvol,false,nc*ndirac);
+				memset(X1,0,kferm2Halo*sizeof(Complex)); memset(X1_f,0,kferm2Halo*sizeof(Complex_f));
+				input = fopen("hdslash_in", "w"); input_f = fopen("hdslash_f_in", "w"); input_f = fopen("hdslash_diff_in", "w");
+				for(unsigned int i = 0; i< kvol; i++){
+					fprintf(input, "Site %d:\n",i); fprintf(input_f, "Site %d:\n",i); fprintf(input_diff, "Site %d:\n",i);
+					for(unsigned short j=0;j<nc*ndirac;j++){
+						fprintf(input, "%.5f+%.5fI\t",creal(X0[i+j*kvolHalo]),cimag(X0[i+j*kvolHalo]));
+						fprintf(input_f, "%.5f+%.5fI\t", creal(X0_f[i+j*kvolHalo]),cimag(X0_f[i+j*kvolHalo]));
+						fprintf(input_diff,"%.5f+%.5fI\t", creal(X0[i+j*kvolHalo]-X0_f[i+j*kvolHalo]),cimag(X0[i+j*kvolHalo]-X0_f[i+j*kvolHalo]));
+					}
+					fprintf(input, "\n\n"); fprintf(input_f,"\n\n"); fprintf(input_diff,"\n\n");
+				}
+				fclose(input);fclose(input_f);fclose(input_diff);
+				Hdslash(X1,X0,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa);
+				Hdslash_f(X1_f,X0_f,ut_f[0],ut_f[1],iu,id,gamval_f,gamin,dk_f[0],dk_f[1],akappa);
 #ifdef __NVCC__
-		cudaDeviceSynchronise();
+				cudaDeviceSynchronise();
 #endif
-		output = fopen("hdslash", "w");	output_f = fopen("hdslash_f", "w"); output_diff = fopen("hdslash_diff", "w");
-		for(unsigned int i = 0; i< kvol; i++){
-			fprintf(output, "Site %d:\n",i); fprintf(output_f, "Site %d:\n",i); fprintf(output_diff, "Site %d:\n",i);
-			//Note. The output of Dslashd should not have a halo. Whilst xi is defined with one we do not use it here
-			//so stride is kvol, not kvolHalo
-			for(unsigned short j=0;j<nc*ndirac;j++){
-				fprintf(output, "%.5f+%.5fI\t",creal(X1[i+j*kvolHalo]),cimag(X1[i+j*kvolHalo]));
-				fprintf(output_f, "%.5f+%.5fI\t", creal(X1_f[i+j*kvolHalo]),cimag(X1_f[i+j*kvolHalo]));
-				fprintf(output_diff,"%.5f+%.5fI\t", creal(X1[i+j*kvolHalo]-X1_f[i+j*kvolHalo]),cimag(X1[i+j*kvolHalo]-X1_f[i+j*kvolHalo]));
-			}
-			fprintf(output, "\n\n"); fprintf(output_f,"\n\n"); fprintf(output_diff,"\n\n");
-		}
-		fclose(output);fclose(output_f);fclose(output_diff);
-		break;
-		case(4):	
-		ComplexConvert(X0_f,X0,kvol,false,nc*ndirac);
-		memset(X1,0,kferm2Halo*sizeof(Complex)); memset(X1_f,0,kferm2Halo*sizeof(Complex_f));
-		input = fopen("hdslash_in", "w"); input_f = fopen("hdslash_f_in", "w"); input_f = fopen("hdslash_diff_in", "w");
+				output = fopen("hdslash", "w");	output_f = fopen("hdslash_f", "w"); output_diff = fopen("hdslash_diff", "w");
+				for(unsigned int i = 0; i< kvol; i++){
+					fprintf(output, "Site %d:\n",i); fprintf(output_f, "Site %d:\n",i); fprintf(output_diff, "Site %d:\n",i);
+					//Note. The output of Dslashd should not have a halo. Whilst xi is defined with one we do not use it here
+					//so stride is kvol, not kvolHalo
+					for(unsigned short j=0;j<nc*ndirac;j++){
+						fprintf(output, "%.5f+%.5fI\t",creal(X1[i+j*kvolHalo]),cimag(X1[i+j*kvolHalo]));
+						fprintf(output_f, "%.5f+%.5fI\t", creal(X1_f[i+j*kvolHalo]),cimag(X1_f[i+j*kvolHalo]));
+						Complex diff = X1[i+j*kvolHalo]-X1_f[i+j*kvolHalo];
+						if(abs(creal(diff))>1e-7 || abs(cimag(diff))>1e-7){
+							fprintf(stderr,"Error %i in %s: Single and double disagree for Hdslash site %i and spinor/color %d. Difference %e+%ei"\
+									"\nExiting...\n\n",CONVERROR,funcname,i,j,creal(diff),cimag(diff));
+							fclose(output);fclose(output_f);fclose(output_diff);
+							exit(CONVERROR);
+						}
+						else
+							fprintf(output_diff,"%.5f+%.5fI\t", creal(diff),cimag(diff));
+					}
+					fprintf(output, "\n\n"); fprintf(output_f,"\n\n"); fprintf(output_diff,"\n\n");
+				}
+				fclose(output);fclose(output_f);fclose(output_diff);
+				break;
+			case(4):	//Hdslashd
+				ComplexConvert(X0_f,X0,kvol,false,nc*ndirac);
+				memset(X1,0,kferm2Halo*sizeof(Complex)); memset(X1_f,0,kferm2Halo*sizeof(Complex_f));
+				input = fopen("hdslash_in", "w"); input_f = fopen("hdslash_f_in", "w"); input_f = fopen("hdslash_diff_in", "w");
 #ifdef __NVCC__
-		cudaDeviceSynchronise();
+				cudaDeviceSynchronise();
 #endif
-		for(unsigned int i = 0; i< kvol; i++){
-			fprintf(input, "Site %d:\n",i); fprintf(input_f, "Site %d:\n",i); fprintf(input_diff, "Site %d:\n",i);
-			for(unsigned short j=0;j<nc*ndirac;j++){
-				fprintf(input, "%.5f+%.5fI\t",creal(X0[i+j*kvolHalo]),cimag(X0[i+j*kvolHalo]));
-				fprintf(input_f, "%.5f+%.5fI\t", creal(X0_f[i+j*kvolHalo]),cimag(X0_f[i+j*kvolHalo]));
-				fprintf(input_diff,"%.5f+%.5fI\t", creal(X0[i+j*kvolHalo]-X0_f[i+j*kvolHalo]),cimag(X0[i+j*kvolHalo]-X0_f[i+j*kvolHalo]));
-			}
-			fprintf(input, "\n\n"); fprintf(input_f,"\n\n"); fprintf(input_diff,"\n\n");
-		}
-		fclose(input);fclose(input_f);fclose(input_diff);
-		Hdslashd(X1,X0,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa);
-		Hdslashd_f(X1_f,X0_f,ut_f[0],ut_f[1],iu,id,gamval_f,gamin,dk_f[0],dk_f[1],akappa);
+				for(unsigned int i = 0; i< kvol; i++){
+					fprintf(input, "Site %d:\n",i); fprintf(input_f, "Site %d:\n",i); fprintf(input_diff, "Site %d:\n",i);
+					for(unsigned short j=0;j<nc*ndirac;j++){
+						fprintf(input, "%.5f+%.5fI\t",creal(X0[i+j*kvolHalo]),cimag(X0[i+j*kvolHalo]));
+						fprintf(input_f, "%.5f+%.5fI\t", creal(X0_f[i+j*kvolHalo]),cimag(X0_f[i+j*kvolHalo]));
+						fprintf(input_diff,"%.5f+%.5fI\t", creal(X0[i+j*kvolHalo]-X0_f[i+j*kvolHalo]),cimag(X0[i+j*kvolHalo]-X0_f[i+j*kvolHalo]));
+					}
+					fprintf(input, "\n\n"); fprintf(input_f,"\n\n"); fprintf(input_diff,"\n\n");
+				}
+				fclose(input);fclose(input_f);fclose(input_diff);
+				Hdslashd(X1,X0,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa);
+				Hdslashd_f(X1_f,X0_f,ut_f[0],ut_f[1],iu,id,gamval_f,gamin,dk_f[0],dk_f[1],akappa);
 #ifdef __NVCC__
-		cudaDeviceSynchronise();
+				cudaDeviceSynchronise();
 #endif
-		output = fopen("hdslashd", "w");	output_f = fopen("hdslashd_f", "w"); output_diff = fopen("hdslashd_diff", "w");
-		for(unsigned int i = 0; i< kvol; i++){
-			fprintf(output, "Site %d:\n",i); fprintf(output_f, "Site %d:\n",i); fprintf(output_diff, "Site %d:\n",i);
-			//Note. The output of Dslashd should not have a halo. Whilst xi is defined with one we do not use it here
-			//so stride is kvol, not kvolHalo
-			for(unsigned short j=0;j<nc*ndirac;j++){
-				fprintf(output, "%.5f+%.5fI\t",creal(X1[i+j*kvol]),cimag(X1[i+j*kvol]));
-				fprintf(output_f, "%.5f+%.5fI\t", creal(X1_f[i+j*kvol]),cimag(X1_f[i+j*kvol]));
-				fprintf(output_diff,"%.5f+%.5fI\t", creal(X1[i+j*kvol]-X1_f[i+j*kvol]),cimag(X1[i+j*kvol]-X1_f[i+j*kvol]));
-			}
-			fprintf(output, "\n\n"); fprintf(output_f,"\n\n"); fprintf(output_diff,"\n\n");
-		}
-		fclose(output);fclose(output_f);fclose(output_diff);
-		break;
-		case(5):	
-		input = fopen("hamiltonian_in", "w");
-		for(unsigned int i = 0; i< kvol; i++){
-			fprintf(input, "Site %d:\n",i); 
-			for(unsigned short j=0;j<nc*ndirac;j++){
-				fprintf(input, "%.5f+%.5fI\t",creal(X1[i+j*kvolHalo]),cimag(X1[i+j*kvolHalo]));
-			}
-			fprintf(input, "\n\n"); 
-		}
-		fclose(input);
-		double h,s,ancgh;  h=s=ancgh=0;
-		Hamilton(&h,&s,rescgg,pp,X0,X1,Phi,ut,ut_f,iu,id,gamval_f,gamin,dk_f,jqq,akappa,beta,&ancgh,0);
-		output = fopen("hamiltonian_out", "w");
-		for(unsigned int i = 0; i< kvol; i++){
-			fprintf(output, "Site %d:\n",i); 
-			for(unsigned short j=0;j<nc*ndirac;j++){
-				fprintf(output, "%.5f+%.5fI\t",creal(X1[i+j*kvolHalo]),cimag(X1[i+j*kvolHalo]));
-			}
-			fprintf(output, "\n\n"); 
-		}
-		fclose(output);
-		break;
-		case(6):
-		input = fopen("Gauge_Force_in","w");
-		for(unsigned int i = 0; i< kvol; i++){
-			fprintf(input,"Site %d:\n",i)
-				for(unsigned short gen=0;gen<nadj;gen++){
-					fprintf(input,"Gen %d:\t",gen)
-						for(unsigned int mu=0;j<ndim;mu++){
-							fprintf(input, "%.5f\t%.5f\t%.5f\t%.5f\n", dSdpi[i+kvol*(gen*ndim+mu)]);
+				output = fopen("hdslashd", "w");	output_f = fopen("hdslashd_f", "w"); output_diff = fopen("hdslashd_diff", "w");
+				for(unsigned int i = 0; i< kvol; i++){
+					fprintf(output, "Site %d:\n",i); fprintf(output_f, "Site %d:\n",i); fprintf(output_diff, "Site %d:\n",i);
+					//Note. The output of Dslashd should not have a halo. Whilst xi is defined with one we do not use it here
+					//so stride is kvol, not kvolHalo
+					for(unsigned short j=0;j<nc*ndirac;j++){
+						fprintf(output, "%.5f+%.5fI\t",creal(X1[i+j*kvol]),cimag(X1[i+j*kvol]));
+						fprintf(output_f, "%.5f+%.5fI\t", creal(X1_f[i+j*kvol]),cimag(X1_f[i+j*kvol]));
+						Complex diff = X1[i+j*kvol]-X1_f[i+j*kvol];
+						if(abs(creal(diff))>1e-7 || abs(cimag(diff))>1e-7){
+							fprintf(stderr,"Error %i in %s: Single and double disagree for Hdslashd site %i and spinor/color %d. Difference %e+%ei"\
+									"\nExiting...\n\n",CONVERROR,funcname,i,j,creal(diff),cimag(diff));
+							fclose(output);fclose(output_f);fclose(output_diff);
+							exit(CONVERROR);
+						}
+						else
+							fprintf(output_diff,"%.5f+%.5fI\t", creal(diff),cimag(diff));
+					}
+					fprintf(output, "\n\n"); fprintf(output_f,"\n\n"); fprintf(output_diff,"\n\n");
+				}
+				fclose(output);fclose(output_f);fclose(output_diff);
+				break;
+			case(5): //Congradq
+			case(6):	//Hamilton
+				memset(X1,0,kferm2Halo*sizeof(Complex));
+				input = fopen("hamiltonian_in", "w");
+				for(unsigned int i = 0; i< kvol; i++){
+					fprintf(input, "Site %d:\n",i); 
+					for(unsigned short j=0;j<nc*ndirac;j++){
+						fprintf(input, "%.5f+%.5fI\t",creal(X1[i+j*kvolHalo]),cimag(X1[i+j*kvolHalo]));
+					}
+					fprintf(input, "\n\n"); 
+				}
+				fclose(input);
+				double h,s,ancgh;  h=s=ancgh=0;
+				Hamilton(&h,&s,rescgg,pp,X0,X1,Phi,ut,ut_f,iu,id,gamval_f,gamin,dk_f,jqq,akappa,beta,&ancgh,0);
+				output = fopen("hamiltonian_out", "w");
+				for(unsigned int i = 0; i< kvol; i++){
+					fprintf(output, "Site %d:\n",i); 
+					for(unsigned short j=0;j<nc*ndirac;j++){
+						fprintf(output, "%.5f+%.5fI\t",creal(X1[i+j*kvolHalo]),cimag(X1[i+j*kvolHalo]));
+					}
+					fprintf(output, "\n\n"); 
+				}
+				fclose(output);
+				break;
+			case(7): //Gauge Force
+				memset(dSdpi,0,kmom*sizeof(double));
+				input = fopen("Gauge_Force_in","w");
+				for(unsigned int i = 0; i< kvol; i++){
+					fprintf(input,"Site %d:\n",i)
+						for(unsigned short gen=0;gen<nadj;gen++){
+							fprintf(input,"Gen %d:\t",gen)
+								for(unsigned int mu=0;j<ndim;mu++){
+									fprintf(input, "%.5f\t%.5f\t%.5f\t%.5f\n", dSdpi[i+kvol*(gen*ndim+mu)]);
+								}
+							fprintf(input,"\n");
 						}
 					fprintf(input,"\n");
 				}
-			fprintf(input,"\n");
-		}
-		fclose(input);	
+				fclose(input);	
 #ifdef __NVCC__
-		//cudaMemPrefetchAsync(dSdpi,kmom*sizeof(double),device,NULL);
+				//cudaMemPrefetchAsync(dSdpi,kmom*sizeof(double),device,NULL);
 #endif
-		Gauge_force(dSdpi,ut_f[0],ut_f[1],iu,id,beta);
+				Gauge_force(dSdpi,ut_f[0],ut_f[1],iu,id,beta);
 #ifdef __NVCC__
-		cudaDeviceSynchronise();
+				cudaDeviceSynchronise();
 #endif
-		output = fopen("Gauge_Force_out","w");
-		for(unsigned int i = 0; i< kvol; i++){
-			fprintf(output,"Site %d:\n",i)
-				for(unsigned short gen=0;gen<nadj;gen++){
-					fprintf(output,"Gen %d:\t",gen)
-						for(unsigned int mu=0;j<ndim;mu++){
-							fprintf(output, "%.5f\t%.5f\t%.5f\t%.5f\n", dSdpi[i+kvol*(gen*ndim+mu)]);
+				output = fopen("Gauge_Force_out","w");
+				for(unsigned int i = 0; i< kvol; i++){
+					fprintf(output,"Site %d:\n",i)
+						for(unsigned short gen=0;gen<nadj;gen++){
+							fprintf(output,"Gen %d:\t",gen)
+								for(unsigned int mu=0;j<ndim;mu++){
+									fprintf(output, "%.5f\t%.5f\t%.5f\t%.5f\n", dSdpi[i+kvol*(gen*ndim+mu)]);
+								}
+							fprintf(output,"\n");
 						}
 					fprintf(output,"\n");
 				}
-			fprintf(output,"\n");
-		}
-		fclose(output);	
-		break;
-		//Two force cases because of the flag. This also tests the conjugate gradient works okay
-		case(7):	
-		input = fopen("force_0_in", "w");
-		for(unsigned int i = 0; i< kvol; i++){
-			fprintf(input,"Site %d:\n",i)
-				for(unsigned short gen=0;gen<nadj;gen++){
-					fprintf(input,"Gen %d:\t",gen)
-						for(unsigned int mu=0;j<ndim;mu++){
-							fprintf(input, "%.5f\t%.5f\t%.5f\t%.5f\n", dSdpi[i+kvol*(gen*ndim+mu)]);
+				fclose(output);	
+				break;
+				//Two force cases because of the flag. This also tests the conjugate gradient works okay
+			case(8):	//Force w/ congrad
+				memset(dSdpi,0,kmom*sizeof(double));
+				input = fopen("force_0_in", "w");
+				for(unsigned int i = 0; i< kvol; i++){
+					fprintf(input,"Site %d:\n",i)
+						for(unsigned short gen=0;gen<nadj;gen++){
+							fprintf(input,"Gen %d:\t",gen)
+								for(unsigned int mu=0;j<ndim;mu++){
+									fprintf(input, "%.5f\t%.5f\t%.5f\t%.5f\n", dSdpi[i+kvol*(gen*ndim+mu)]);
+								}
+							fprintf(input,"\n");
 						}
 					fprintf(input,"\n");
 				}
-			fprintf(input,"\n");
-		}
-		fclose(input);
-		Force(dSdpi, 1, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,dk,dk_f,jqq,akappa,beta,&ancg);
-		fprintf(output, "%.5f\t%.5f\t%.5f\t%.5f\n", dSdpi[i], dSdpi[i+1], dSdpi[i+2], dSdpi[i+3]);
-		for(unsigned int i = 0; i< kvol; i++){
-			fprintf(output,"Site %d:\n",i)
-				for(unsigned short gen=0;gen<nadj;gen++){
-					fprintf(output,"Gen %d:\t",gen)
-						for(unsigned int mu=0;j<ndim;mu++){
-							fprintf(output, "%.5f\t%.5f\t%.5f\t%.5f\n", dSdpi[i+kvol*(gen*ndim+mu)]);
+				fclose(input);
+				Force(dSdpi, 1, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,dk,dk_f,jqq,akappa,beta,&ancg);
+				fprintf(output, "%.5f\t%.5f\t%.5f\t%.5f\n", dSdpi[i], dSdpi[i+1], dSdpi[i+2], dSdpi[i+3]);
+				for(unsigned int i = 0; i< kvol; i++){
+					fprintf(output,"Site %d:\n",i)
+						for(unsigned short gen=0;gen<nadj;gen++){
+							fprintf(output,"Gen %d:\t",gen)
+								for(unsigned int mu=0;j<ndim;mu++){
+									fprintf(output, "%.5f\t%.5f\t%.5f\t%.5f\n", dSdpi[i+kvol*(gen*ndim+mu)]);
+								}
+							fprintf(output,"\n");
 						}
 					fprintf(output,"\n");
 				}
-			fprintf(output,"\n");
-		}
-		fclose(output);
-		break;
-		case(8):	
-		input = fopen("force_1_in", "w");
-		for(unsigned int i = 0; i< kvol; i++){
-			fprintf(input,"Site %d:\n",i)
-				for(unsigned short gen=0;gen<nadj;gen++){
-					fprintf(input,"Gen %d:\t",gen)
-						for(unsigned int mu=0;j<ndim;mu++){
-							fprintf(input, "%.5f\t%.5f\t%.5f\t%.5f\n", dSdpi[i+kvol*(gen*ndim+mu)]);
+				fclose(output);
+				break;
+			case(9):	 //Force w/o congrad
+				memset(dSdpi,0,kmom*sizeof(double));
+				input = fopen("force_1_in", "w");
+				for(unsigned int i = 0; i< kvol; i++){
+					fprintf(input,"Site %d:\n",i)
+						for(unsigned short gen=0;gen<nadj;gen++){
+							fprintf(input,"Gen %d:\t",gen)
+								for(unsigned int mu=0;j<ndim;mu++){
+									fprintf(input, "%.5f\t%.5f\t%.5f\t%.5f\n", dSdpi[i+kvol*(gen*ndim+mu)]);
+								}
+							fprintf(input,"\n");
 						}
 					fprintf(input,"\n");
 				}
-			fprintf(input,"\n");
-		}
-		fclose(input);
-		Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,dk,dk_f,jqq,akappa,beta,&ancg);
-
-		output = fopen("force_1", "w");
-		for(unsigned int i = 0; i< kvol; i++){
-			fprintf(output,"Site %d:\n",i)
-				for(unsigned short gen=0;gen<nadj;gen++){
-					fprintf(output,"Gen %d:\t",gen)
-						for(unsigned int mu=0;j<ndim;mu++){
-							fprintf(output, "%.5f\t%.5f\t%.5f\t%.5f\n", dSdpi[i+kvol*(gen*ndim+mu)]);
+				fclose(input);
+				Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,dk,dk_f,jqq,akappa,beta,&ancg);
+				output = fopen("force_1", "w");
+				for(unsigned int i = 0; i< kvol; i++){
+					fprintf(output,"Site %d:\n",i)
+						for(unsigned short gen=0;gen<nadj;gen++){
+							fprintf(output,"Gen %d:\t",gen)
+								for(unsigned int mu=0;j<ndim;mu++){
+									fprintf(output, "%.5f\t%.5f\t%.5f\t%.5f\n", dSdpi[i+kvol*(gen*ndim+mu)]);
+								}
+							fprintf(output,"\n");
 						}
 					fprintf(output,"\n");
 				}
-			fprintf(output,"\n");
-		}
-		fclose(output);	
-		break;
-		case(9):
-		int itercg=0;
-		Congradp(0, respbp, Phi, R1,ut_f[0],ut_f[1],iu,id,gamval_f,gamin,dk_f[0],dk_f[1],jqq,akappa,&itercg);
+				fclose(output);	
+				break; //Congradp
+			case(10):
+				int itercg=0;
+				Congradp(0, respbp, Phi, R1,ut,ut_f,iu,id,gamval_f,gamin,dk,dk_f,jqq,akappa,&itercg);
 
+		}
 	}
-}
-//George Michael's favourite bit of the code
+	//George Michael's favourite bit of the code
 #ifdef __NVCC__
-//Make a routine that does this for us
-cudaFree(dk[0]); cudaFree(dk[1]); cudaFree(R1); cudaFree(dSdpi); cudaFree(pp);
-cudaFree(Phi); cudaFree(ut[0]); cudaFree(ut[1]);
-cudaFree(X0); cudaFree(X1); cudaFree(u[0]); cudaFree(u[1]);
-cudaFree(X0_f); cudaFree(X1_f); cudaFree(ut_f[0]); cudaFree(ut_f[1]);
-cudaFree(id); cudaFree(iu); cudaFree(hd); cudaFree(hu);
+	//Make a routine that does this for us
+	cudaFree(dk[0]); cudaFree(dk[1]); cudaFree(R1); cudaFree(dSdpi); cudaFree(pp);
+	cudaFree(Phi); cudaFree(ut[0]); cudaFree(ut[1]);
+	cudaFree(X0); cudaFree(X1); cudaFree(u[0]); cudaFree(u[1]);
+	cudaFree(X0_f); cudaFree(X1_f); cudaFree(ut_f[0]); cudaFree(ut_f[1]);
+	cudaFree(id); cudaFree(iu); cudaFree(hd); cudaFree(hu);
 #else
-free(dk[0]); free(dk[1]); free(R1); free(dSdpi); free(pp);
-free(Phi); free(ut[0]); free(ut[1]); free(xi);
-free(X0); free(X1); free(u[0]); free(u[1]);
-free(id); free(iu); free(hd); free(hu);
-free(pcoord);
+	free(dk[0]); free(dk[1]); free(R1); free(dSdpi); free(pp);
+	free(Phi); free(ut[0]); free(ut[1]); free(xi);
+	free(X0); free(X1); free(u[0]); free(u[1]);
+	free(id); free(iu); free(hd); free(hu);
+	free(pcoord);
 #endif
 
 #if(nproc>1)
-MPI_Finalise();
+	MPI_Finalise();
 #endif
-exit(0);
+	exit(0);
 }
 #endif
