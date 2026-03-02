@@ -70,7 +70,8 @@ SRC= \
 	par_mpi.c \
 	su2hmc.c \
 	clover.c \
-	integrate.c
+	integrate.c \
+	diagnostics.c
 
 INC= \
 	sizes.h \
@@ -103,9 +104,7 @@ release:	CFLAGS +=  -O3
 						
 release:	$(EXE)
 
-diagnostic: SRC+= diagnostics.c
 diagnostic: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
-diagnostic: EXE= su2hmc_diagnostics
 diagnostic: debug
 
 debug:	CFLAGS += -g -O0 -D_DEBUG #-D_DEBUG_MPI -Wall #-D_DEBUGCG 

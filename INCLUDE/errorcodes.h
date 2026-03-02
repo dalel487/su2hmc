@@ -68,8 +68,8 @@
 /// @brief Undefined stride
 #define	STRDERROR	11006 
 
-									//Warnings:
-									//---------
+//Warnings:
+//---------
 /// @brief Accessing out of bounds element, but not a big enough problem to crash the programme.
 #define	BOUNDWARN	11103	
 /// @brief Order of limits (x_min and x_max for example) is reversed.
@@ -129,6 +129,8 @@
 #define	CONVERR		14003
 /// @brief Up/down partitioning failed
 #define	UDPERR		14003
+/// @brief Up/down partitioning failed
+#define	SPHIERR		14004
 
 //Warnings:
 //--------

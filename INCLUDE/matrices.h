@@ -145,12 +145,6 @@ extern "C"
 	 */
 	int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,unsigned int *id,\
 			Complex_f gamval[20],const unsigned short gamin[16], float *dk[2], float akappa);
-#ifdef DIAGNOSTIC
-	int Diagnostics(int istart, Complex *u11, Complex *u12,Complex *u11t, Complex *u12t, Complex_f *u11t_f, Complex_f *u12t_f,\
-			unsigned int *iu, unsigned int *id, int *hu, int *hd, double *dk4m, double *dk4p,\
-			float *dk4m_f, float *dk4p_f, const unsigned short gamin[16], Complex gamval[20], Complex_f gamval_f[20],\
-			Complex_f jqq, float akappa, float beta, double ancg);
-#endif
 
 	/**
 	 * @brief In place transpose

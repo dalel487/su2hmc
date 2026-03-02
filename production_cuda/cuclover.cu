@@ -554,12 +554,12 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *u11t, complex<T> *u12t, 
 			for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
 				const unsigned short sind = sigin[clov*ndirac+(idirac>>1)]<<(nc-1);	
 				//Calculate the index. For the next colour we add kvol
-				unsigned int ind = sitei+kvolHalo*idirac;
+				unsigned int ind = site+kvolHalo*idirac;
 				//Prefetching. Might not be needed here though
 				complex<T> X1sc[nc];
 				//X1 is always conjugated. So do it once here instead of twice and be done with it.	
 				X1sc[0]=conj(X1[ind]); X1sc[1]=conj(X1[indi+kvolHalo]);
-				ind = sitei+kvolHalo*sind;
+				ind = site+kvolHalo*sind;
 				complex<T> X2s[nc];
 				X2s[0]=X2[ind]; X2s[1]=X2[indi+kvolHalo];
 

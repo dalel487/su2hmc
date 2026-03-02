@@ -94,7 +94,6 @@ int Gauge_force(double *dSdpi, Complex_f *ut[2],unsigned int *iu,unsigned int *i
 	 */
 void Force_s(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, Complex_f gamval[20],\
 		unsigned int *iu, const unsigned short gamin[16],const float akappa, const unsigned short mu){
-
 #pragma omp parallel for simd
 	for(unsigned int i=0;i<kvol;i++){
 		const unsigned int ind=i+kvolHalo*mu;

@@ -4,568 +4,821 @@
  * @author D. Lawlor
  */
 #include <clover.h>
+//Multiplying by generators
+/**
+ * @brief Multiply leaf (or part of one) by generator from left
+ *
+ *	The leaves contributing to each force term need to be scaled by the generator, but the generator appears at
+ *	different points in each leaf.  This routine multiples by the generator from the left side.
+ *
+ *	@param	a:		The leaf or partial leaf
+ *	@param	gen:	What generator are we multiplying by?
+ */
+void ByGenLeft(Complex a[nc],const unsigned short gen){
+	Complex tmp = a[0];
+	switch(gen){
+		///@f$i\sigma_x@f$
+		case(0):
+			a[0] = -cimagf(a[1])-crealf(a[1])*I;
+			a[1] =  cimagf(tmp)+crealf(tmp)*I;
+			break;
+			///@f$i\sigma_y@f$
+		case(1):
+			a[0] = a[1];
+			a[1] = -tmp;
+			break;
+			///@f$i\sigma_z@f$
+		case(2):
+			a[0] = -cimagf(a[0])+crealf(a[0])*I;
+			a[1] = -cimagf(a[1])+crealf(a[1])*I;
+			break;
+	}
+	return;
+}
+/**
+ * @brief Multiply leaf (or part of one) by generator from right
+ *
+ *	The leaves contributing to each force term need to be scaled by the generator, but the generator appears at
+ *	different points in each leaf.  This routine multiples by the generator from the right side.
+ *
+ *	@param	a:		The leaf or partial leaf
+ *	@param	gen:	What generator are we multiplying by?
+ */
+void ByGenRight(Complex a[nc],const unsigned short gen){
+	Complex tmp = a[0];
+	switch(gen){
+		///@f$i\sigma_x@f$
+		case(0):
+			a[0] = -cimagf(a[1])+crealf(a[1])*I;
+			a[1] = -cimagf(tmp)+ crealf(tmp)*I;
+			break;
+			///@f$i\sigma_y@f$
+		case(1):
+			a[0]=-a[1]; a[1]=tmp;
+			break;
+			///@f$i\sigma_z@f$
+		case(2):
+			a[0] = -cimagf(a[0])+crealf(a[0])*I;
+			a[1] =  cimagf(a[1])-crealf(a[1])*I;
+			break;
+	}
+	return;
+}
 
 //Calculating the clover and the leaves
 //=====================================
-#pragma omp declare simd
-inline int Clover_SU2plaq(Complex_f *ut[nc], Complex_f Leaves[nc], unsigned int *iu,  int i, int mu, int nu){
-	const char funcname[] = "SU2plaq";
-	int uidm = iu[mu*kvol+i]; 
-	/***
-	 *	Let's take a quick moment to compare this to the analysis code.
-	 *	The analysis code stores the gauge field as a 4 component real valued vector, whereas the produciton code
-	 *	used two complex numbers.
-	 *
-	 *	Analysis code: u=(Re(u11),Im(u12),Re(u12),Im(u11))
-	 *	Production code: u11=u[0]+I*u[3]	u12=u[2]+I*u[1]
-	 *
-	 *	This applies to the Leavess and a's below too
-	 */
-	Leaves[0]=ut[0][i*ndim+mu]*ut[0][uidm*ndim+nu]-ut[1][i*ndim+mu]*conj(ut[1][uidm*ndim+nu]);
-	Leaves[1]=ut[0][i*ndim+mu]*ut[1][uidm*ndim+nu]+ut[1][i*ndim+mu]*conj(ut[0][uidm*ndim+nu]);
-
-	int uidn = iu[nu*kvol+i]; 
-	Complex_f a11=Leaves[0]*conj(ut[0][uidn*ndim+mu])+Leaves[1]*conj(ut[1][uidn*ndim+mu]);
-	Complex_f a12=-Leaves[0]*ut[1][uidn*ndim+mu]+Leaves[1]*ut[0][uidn*ndim+mu];
-
-	Leaves[0]=a11*conj(ut[0][i*ndim+nu])+a12*conj(ut[1][i*ndim+nu]);
-	Leaves[1]=-a11*ut[1][i*ndim+nu]+a12*ut[0][i*ndim+nu];
-	return 0;
-}
-#pragma omp declare simd
-int Leaf(Complex_f *ut[nc], Complex_f Leaves[nc], unsigned int *iu, unsigned int *id, int i, int mu, int nu, short leaf){
-	char funcname[]="Leaf";
-	Complex_f a[2];
-	unsigned int didm,didn,uidn,uidm;
-	///NOTE: The multiplication order is the opposite of the textbook version. This is to maintain compatability with the
-	///rest of the code which blindly copied the order from the earlier FORTRAN code
+/**
+ *	@brief	Calculates the first half of the leaf for a clover term. We split it so that the force term can reuse the
+ *				first half of the leaf
+ *
+ *	@param	Leaves:	Leaf
+ *	@param	ut:		Gauge fields
+ *	@param	a:			Buffer array
+ *	@param	iu,id:	Upper and lower site indices
+ *	@param	i:			Lattice index of the clover in question
+ *	@param	mu,nu:	Direction in which we're evaluating the leaf
+ *	@param	leaf:		Which leaf of the clover is being calculated
+ *	
+ */
+#pragma omp simd
+int Half_Leaf(Complex_f Leaves[nc], Complex_f *ut[nc], Complex_f a[nc], unsigned int *iu,\
+		unsigned int *id, const unsigned int i, const unsigned short mu, const unsigned short nu, const unsigned short leaf){
+	unsigned int uidm;
 	switch(leaf){
 		case(0):
-			//Both positive is just a standard plaquette
-			Clover_SU2plaq(ut,Leaves,iu,i,mu,nu);
+			///Both positive is just a standard plaquette
+			a[0]=ut[0][i+kvolHalo*mu]; a[1]=ut[1][i+kvolHalo*mu];
+			uidm = iu[mu*kvol+i]; 
+
+			/// @f$U_\mu(x)U_\nu(x+\hat{\mu})@f$
+			Leaves[0]=a[0]*ut[0][uidm+kvolHalo*nu]-a[1]*conj(ut[1][uidm+kvolHalo*nu]);
+			Leaves[1]=a[0]*ut[1][uidm+kvolHalo*nu]+a[1]*conj(ut[0][uidm+kvolHalo*nu]);
 			break;
 		case(1):
-			//\mu<0 and \nu>=0
-			didm = id[mu*kvol+i];
-			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu(x-\hat{\mu})@f$
-			Leaves[0]=conj(ut[0][didm*ndim+mu])*ut[0][didm*ndim+nu]+ut[1][didm*ndim+mu]*conj(ut[1][didm*ndim+nu]);
-			Leaves[1]=conj(ut[0][didm*ndim+mu])*ut[1][didm*ndim+nu]-ut[1][didm*ndim+mu]*conj(ut[0][didm*ndim+nu]);
-
-			int uin_didm=id[nu*kvol+didm];
-			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu(x+\hat{\mu})U_\mu(x-\hat{\mu}+\hat{\nu})@f$
-			//a[0]=Leaves[0][i+kvol*leaf]*conj(ut[0][didm*ndim+nu])+conj(Leaves[1][i+kvol*leaf])*ut[1][didm*ndim+nu];
-			a[0]=Leaves[0]*ut[0][uin_didm*ndim+mu]-Leaves[1]*conj(ut[1][uin_didm*ndim+mu]);
-			//a[1]=Leaves[1][i+kvol*leaf]*conj(ut[0][didm*ndim+nu])-conj(Leaves[0][i+kvol*leaf])*ut[1][didm*ndim+nu];
-			a[1]=Leaves[0]*ut[1][uin_didm*ndim+mu]+Leaves[1]*conj(ut[0][uin_didm*ndim+mu]);
-
-			/// @f$U_\mu^\dagger(x)U_\nu^\dagger(x+\hat{\mu}-\hat{\nu})U_\mu(x+\hat{\mu}-\hat{\nu})U_\nu^\dagger(x-\hat{\nu})@f$
-			//Leaves[0][i+kvol*leaf]=a[0]*ut[0][didm*ndim+mu]-conj(a[1])*ut[1][didm*ndim+mu];
-			Leaves[0]=a[0]*conj(ut[0][i*ndim+nu])+a[1]*conj(ut[1][i*ndim+nu]);
-			Leaves[1]=-a[0]*ut[1][i*ndim+nu]+a[1]*ut[0][i*ndim+nu];
+			///Leaf in the forward nu and backwards mu direction
+			//Should really read didm, but I've already declared this 
+			uidm = id[mu*kvol+i];
+			a[0]=ut[0][i+kvolHalo*nu]; a[1]=ut[1][i+kvolHalo*nu];
+			//Awkward index...
+			const unsigned int uin_didm=iu[nu*kvol+uidm];
+			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})@f$
+			Leaves[0]=a[0]*conj(ut[0][uin_didm+kvolHalo*mu])+a[1]*conj(ut[1][uin_didm+kvolHalo*mu]);
+			Leaves[1]=-a[0]*ut[1][uin_didm+kvolHalo*mu]+a[1]*ut[0][uin_didm+kvolHalo*mu];
 			break;
 		case(2):
-			//\mu>=0 and \nu<0
-			//TODO: Figure out down site index
-			//Another awkward index
-			uidm = iu[mu*kvol+i]; int din_uidm=id[nu*kvol+uidm];
-			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{\mu}-\hat{\nu})@f$
-			Leaves[0]=ut[0][i*ndim+mu]*conj(ut[0][din_uidm*ndim+nu])+ut[1][i*ndim+mu]*conj(ut[1][din_uidm*ndim+nu]);
-			Leaves[1]=-ut[0][i*ndim+mu]*ut[1][din_uidm*ndim+nu]+ut[1][i*ndim+mu]*ut[0][din_uidm*ndim+nu];
+			///Leaf in the backwards nu and forwards mu direction
+			//Should really read didn, but I've already declared this 
+			uidm = id[nu*kvol+i];
+			//Daggered. So Conj what goes into a[0] and negate what goes into a[1]
+			a[0]=conj(ut[0][uidm+kvolHalo*nu]); a[1]=-ut[1][uidm+kvolHalo*nu];
 
-			didn = id[nu*kvol+i]; 
-			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{\mu}-\hat{\nu})U_\mu^\dagger(x-\hat{\nu})@f$
-			a[0]=Leaves[0]*conj(ut[0][didn*ndim+mu])+Leaves[1]*conj(ut[1][didn*ndim+mu]);
-			a[1]=-Leaves[0]*ut[1][didn*ndim+mu]+Leaves[1]*ut[0][didn*ndim+mu];
-
-			/// @f$U_\mu(x)U_\nu^\dagger(x+\hat{\mu}-\hat{\nu})U_\mu^\dagger(x-\hat{\nu})U_\nu(x-\hat{\nu})@f$
-			Leaves[0]=a[0]*ut[0][didn*ndim+nu]-a[1]*conj(ut[1][didn*ndim+nu]);
-			Leaves[1]=a[0]*ut[1][didn*ndim+nu]+a[1]*conj(ut[0][didn*ndim+nu]);
-
+			/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})@f$
+			Leaves[0]=a[0]*ut[0][uidm+kvolHalo*mu]-a[1]*conj(ut[1][uidm+kvolHalo*mu]);
+			//Don't forget negatiion of second term was handled earlier!
+			Leaves[1]=a[0]*ut[1][uidm+kvolHalo*mu]+a[1]*conj(ut[0][uidm+kvolHalo*mu]);
 			break;
 		case(3):
-			//\mu<0 and \nu<0
-			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu})@f$
-			didm = id[mu*kvol+i];int dim_didn=id[nu*kvol+didm];
-			Leaves[0]=conj(ut[0][didm*ndim+mu])*conj(ut[0][dim_didn*ndim+nu])-ut[1][didm*ndim+mu]*conj(ut[1][dim_didn*ndim+nu]);
-			Leaves[1]=-conj(ut[0][didm*ndim+mu])*ut[1][dim_didn*ndim+nu]-ut[1][didm*ndim+mu]*ut[0][dim_didn*ndim+nu];
+			///Leaf in the backwards mu and backwards nu direction
+			//Should really read didm, but I've already declared this 
+			uidm  =  id[i+kvol*mu];
+			//Daggered. So Conj what goes into a[0] and negate what goes into a[1]
+			a[0]=conj(ut[0][uidm+kvolHalo*mu]); a[1]=-ut[1][uidm+kvolHalo*mu];
+			//Another awkward index
+			const unsigned int din_didm=id[nu*kvol+uidm];
 
-			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(x-\hat{\mu}-\hat{\nu})@f$
-			a[0]=Leaves[0]*ut[0][dim_didn*ndim+mu]-Leaves[1]*conj(ut[1][dim_didn*ndim+mu]);
-			a[1]=Leaves[0]*ut[1][dim_didn*ndim+mu]+Leaves[1]*conj(ut[0][dim_didn*ndim+mu]);
-
-			didn = id[nu*kvol+i]; 
-			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(x-\hat{\mu}-\hat{\nu})U_\nu(x-\hat{\nu})@f$
-			Leaves[0]=a[0]*ut[0][didn*ndim+nu]-a[1]*conj(ut[1][didn*ndim+nu]);
-			Leaves[1]=a[0]*ut[1][didn*ndim+nu]+a[1]*conj(ut[0][didn*ndim+nu]);
+			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})@f$
+			Leaves[0]=a[0]*conj(ut[0][din_didm+kvolHalo*nu])+a[1]*ut[1][din_didm+kvolHalo*nu];
+			Leaves[1]=-a[0]*conj(ut[1][din_didm+kvolHalo*nu])+a[1]*ut[0][din_didm+kvolHalo*nu];
 			break;
 	}
-#ifdef _DEBUG
-	if(isnan(creal(Leaves[0]))||isnan(cimag(Leaves[0]))|| \
-			isnan(creal(Leaves[1]))||isnan(cimag(Leaves[1]))){
-		printf("Leaves: Index %d, mu %d, nu %d, leaf %d is NaN\n"\
-				"Leaf 0=%e+i%e\tLeaf 1=%e+i%e\n",i,mu,nu,leaf,\
-				creal(Leaves[0]),cimag(Leaves[0]),\
-				creal(Leaves[1]),cimag(Leaves[1]));
-		abort();
-	}
-	//	Leaves[0][i+kvol*leaf]=(1.0+I)/sqrt(4.0);Leaves[1][i+kvol*leaf]=Leaves[0][i+kvol*leaf];
-	//Leaves[0][i+kvol*leaf]=I;Leaves[1][i+kvol*leaf]=0;
-	float norm=sqrt(creal(conj(Leaves[0])*Leaves[0]+Leaves[1]*conj(Leaves[1])));
-	if(fabs(norm-1.0f)>=1e-6){
-		printf("Leaves: Index %d, mu %d, nu %d, leaf %d is not unitary\n"\
-				"Leaf 0=%e+i%e\tLeaf 1=%e+i%e\tnorm=%e\n",i,mu,nu,leaf,\
-				creal(Leaves[0]),cimag(Leaves[0]),\
-				creal(Leaves[1]),cimag(Leaves[1]),sqrt(norm));
-		abort();
-	}
-#endif
 	return 0;
 }
-inline int Half_Clover(Complex_f *clover[nc],Complex_f *ut[nc], unsigned int *iu, unsigned int *id, int i, int mu, int nu, short clov){
-	const char funcname[] ="Half_Clover";
-	Complex_f Leaves[nc];
-	for(short leaf=0;leaf<ndim;leaf++)
-	{
-		Leaf(ut,Leaves,iu,id,i,mu,nu,leaf);
-		clover[0][clov*kvol+i]+=Leaves[0]; clover[1][clov*kvol+i]+=Leaves[1];
+/**
+ *	@brief	Calculates a leaf for a clover term.
+ *
+ *	@param	Leaves:	Array of leaves
+ *	@param	ut:		Gauge fields
+ *	@param	iu,id:	Upper and lower site indices
+ *	@param	i:			Lattice index of the clover in question
+ *	@param	mu,nu:	Direction in which we're evaluating the leaf
+ *	@param	leaf:		Which leaf of the clover is being calculated
+ *	
+ */
+#pragma omp simd
+int Leaf(Complex_f Leaves[nc],Complex_f *ut[nc], nsigned int *iu, unsigned int *id, unsigned int i,\
+		const unsigned short mu, const unsigned short nu,const unsigned short leaf){
+	Complex_f a[nc];
+	Half_Leaf(Leaves,ut[0],ut[1],a,iu,id,i,mu,nu,leaf);
+	unsigned int didm,didn,uidm;
+	switch(leaf){
+		case(0):
+			unsigned int uidn = iu[nu*kvol+i]; 
+			/// @f$U_\mu(x)U_\nu(x+\hat{\mu})U^\dagger_\mu(x+\hat{\nu})@f$
+			a[0]=Leaves[0]*conj(ut[0][uidn+kvolHalo*mu])+Leaves[1]*conj(ut[1][uidn+kvolHalo*mu]);
+			a[1]=-Leaves[0]*ut[1][uidn+kvolHalo*mu]+Leaves[1]*ut[0][uidn+kvolHalo*mu];
+
+			/// @f$U_\mu(x)U_\nu(x+\hat{\mu})U^\dagger_\mu(x+\hat{\nu})U^\dagger_\nu(x)@f$
+			Leaves[0]=a[0]*conj(ut[0][i+kvolHalo*nu])+a[1]*conj(ut[1][i+kvolHalo*nu]);
+			Leaves[1]=-a[0]*ut[1][i+kvolHalo*nu]+a[1]*ut[0][i+kvolHalo*nu];
+
+			//DEBUG
+			//						Leaves[0]=0; Leaves[1]=0;
+			break;
+		case(1):
+			didm = id[mu*kvol+i];
+
+			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})U^\dagger_\nu(x-\hat{\mu})@f$
+			a[0]=Leaves[0]*conj(ut[0][didm+kvolHalo*nu])+Leaves[1]*conj(ut[1][didm+kvolHalo*nu]);
+			a[1]=-Leaves[0]*ut[1][didm+kvolHalo*nu]+Leaves[1]*ut[0][didm+kvolHalo*nu];
+
+			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})U^\dagger_\nu(x-\hat{\mu})U_\mu(x-\hat{\mu})@f$
+			Leaves[0]=a[0]*ut[0][didm+kvolHalo*mu]-a[1]*conj(ut[1][didm+kvolHalo*mu]);
+			Leaves[1]=a[0]*ut[1][didm+kvolHalo*mu]+a[1]*conj(ut[0][didm+kvolHalo*mu]);
+			//DEBUG
+			//			Leaves[0]=0; Leaves[1]=0;
+			break;
+		case(2):
+			///Leaf in the forwards mu and backwards nu direction
+			didn = id[nu*kvol+i]; 
+			unsigned int uim_didn=iu[mu*kvol+didn];
+			/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})@f$
+			a[0]=Leaves[0]*ut[0][uim_didn+kvolHalo*nu]-Leaves[1]*conj(ut[1][uim_didn+kvolHalo*nu]);
+			a[1]=Leaves[0]*ut[1][uim_didn+kvolHalo*nu]+Leaves[1]*conj(ut[0][uim_didn+kvolHalo*nu]);
+
+			/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})U^\dagger_\mu(x)@f$
+			Leaves[0]=a[0]*conj(ut[0][i+kvolHalo*mu])+a[1]*ut[1][i+kvolHalo*mu];
+			Leaves[1]=-a[0]*conj(ut[1][i+kvolHalo*mu])+a[1]*ut[0][i+kvolHalo*mu];
+
+			//DEBUG
+			//						Leaves[0]=0; Leaves[1]=0;
+			break;
+		case(3):
+			///Leaf in the backwards mu and backwards nu direction
+			didn = id[nu*kvol+i]; 
+			unsigned int din_didm=id[mu*kvol+didn];
+
+			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(n-\hat{\nu}-\hat{\mu})@f$
+			a[0]=Leaves[0]*ut[0][din_didm+kvolHalo*mu]-Leaves[1]*conj(ut[1][din_didm+kvolHalo*mu]);
+			a[1]=Leaves[0]*ut[1][din_didm+kvolHalo*mu]+Leaves[1]*conj(ut[0][din_didm+kvolHalo*mu]);
+
+			didm = id[mu*kvol+i];
+			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(n-\hat{\nu}-\hat{\mu})U_\nu(n-\hat{\nu})@f$
+			Leaves[0]=a[0]*ut[0][didm+kvolHalo*nu]-a[1]*conj(ut[1][didm+kvolHalo*nu]);
+			Leaves[1]=a[0]*ut[1][didm+kvolHalo*nu]+a[1]*conj(ut[0][didm+kvolHalo*nu]);
+
+			//DEBUG
+			//						Leaves[0]=0; Leaves[1]=0;
+			break;
 	}
 	return 0;
 }
-int Clover(Complex_f *clover[nc],Complex_f *ut[nc], unsigned int *iu, unsigned int *id){
-	const char funcname[]="Clover";
+/**
+ *	@brief Calculates the products of the first two links in a plaquette
+ *
+ *	@param	hleaves:		Product of first two links in
+ *	@param	ut:			Gauge fields
+ *	@param	iu,id:		Upper and lower indices
+ *	@param	mu,nu:		Clover direction
+ */
+void Half_Leaves(Complex_f *hLeaves[2],Complex_f *ut[2], unsigned int *iu,unsigned int *id,\
+		const unsigned short mu,const unsigned short nu){
+
+#pragma omp parallel for simd collapse(2)
+	for(unsigned short leaf=0;leaf<ndim;leaf++)
+		for(unsigned int i=0;i<kvol;i++){
+			Complex_f Leaves[nc], a[nc];
+			Half_Leaf(Leaves,ut[0],ut[1],a,iu,id,i,mu,nu,leaf);
+			hLeaves[0][i+kvol*leaf]=Leaves[0]; hLeaves[1][i+kvol*leaf]=Leaves[1];
+		}
+	return;
+}
+/**
+ *	@brief Calculates the clovers in all directions at all sites
+ *	@f$ F_{\mu\nu}(n)=\frac{-i}{8a^2}\left(Q_{\mu\nu}(n)-Q_{\nu\mu}(n)\right)@f$
+ *
+ *	@param	clover:	Array of clovers
+ *	@param	ut:		Gauge fields
+ *	@param	iu,id:	Upper and lower indices
+ *	@param	mu,nu:	Clover direction
+ */
+void Full_Clover(Complex_f *clover[2], Complex_f *ut[2], unsigned int *iu, unsigned int *id){
+	const char funcname[]="Full_Clover";
 #ifdef __NVCC__
 	cuClover(clover,ut,iu,id);
 #else
-	//Six clovers
-	clover[0]=(Complex_f *)aligned_alloc(AVX,6*kvol*sizeof(Complex_f));
-	clover[1]=(Complex_f *)aligned_alloc(AVX,6*kvol*sizeof(Complex_f));
-	for(unsigned int mu=0;mu<ndim-1;mu++)
-		for(unsigned int nu=mu+1;nu<ndim;nu++)
+	for(unsigned short mu=0;mu<ndim-1;mu++)
+		for(unsigned short nu=mu+1;nu<ndim;nu++)
 			if(mu!=nu){
 				//Clover index
 				unsigned short clov = (mu==0) ? nu-1 :mu+nu;
-				//Allocate clover memory
-				//Note that the clover is completely local, so doesn't need a halo for MPI
-#pragma omp parallel for
-				for(unsigned int i=0;i<kvol;i++)
-				{
-					clover[0][clov*kvol+i]=0;clover[1][clov*kvol+i]=0;
-					Half_Clover(clover,ut,iu,id,i,mu,nu,clov);	
-					//creal(clover[0]) drops so we are traceless. And everything else just gets doubled
-					clover[0][clov*kvol+i]-=conj(clover[0][clov*kvol+i]);	clover[1][clov*kvol+i]+=clover[1][clov*kvol+i];
-#ifdef _DEBUG
-					if(isnan(creal(clover[0][clov*kvol+i]))||isnan(cimag(clover[0][clov*kvol+i]))||isnan(creal(clover[1][clov*kvol+i]))|| \
-							isnan(cimag(clover[1][clov*kvol+i]))){
-						printf("Clover: Index %d, mu %d, nu %d, clover %d is NaN\n"\
-								"Clover 0=%e+i%e\tClover 1=%e+i%e\n",i,mu,nu,clov,\
-								creal(clover[0][clov*kvol+i]),cimag(clover[0][clov*kvol+i]),\
-								creal(clover[1][clov*kvol+i]),cimag(clover[1][clov*kvol+i]));
-						abort();
+#pragma omp parallel for simd
+				for(unsigned int i=0;i<kvol;i++){
+					clover[0][i]=0;clover[1][i]=0;
+					Complex_f Leaves[nc];
+					for(unsigned short leaf=0;leaf<ndim;leaf++)
+					{
+						//Pointer arithemetic on the leaves.
+						Leaf(ut[0],ut[1],Leaves,iu,id,i,mu,nu,leaf);
+						clover[0][i+clov*kvol]+=Leaves[0]; clover[1][i+clov*kvol]+=Leaves[1];
 					}
-#endif
-					//Don't forget the factor out front!
-					//Uh Oh. G&L says -i/8 here. But hep-lat/9605038 and other sources say +1/8
-					//It gets worse in the C_sw definition. We have a 1/2. They have +i/4
-					clover[0][clov*kvol+i]*=(-I/8.0);	clover[1][clov*kvol+i]*=(-I/8.0);
-#ifdef _DEBUG
-					if(fabs(cimag(clover[0][clov*kvol+i]))>1e-6){
-						printf("Clover: Index %d, mu %d, nu %d, clover %d is not hermitian\n"\
-								"Clover 0=%e+i%e\tClover 1=%e+i%e\n",i,mu,nu,clov,\
-								creal(clover[0][clov*kvol+i]),cimag(clover[0][clov*kvol+i]),\
-								creal(clover[1][clov*kvol+i]),cimag(clover[1][clov*kvol+i]));
-						abort();
-					}
-#endif
+					///The clover is given by @f$F_{\mu\nu}=\frac{-i}{8}\left(Q_{\mu\nu}-Q_{\nu\mu}\right)@f$. We do that
+					///manually below.
+
+					///The @f$\alpha@f$ component. Only the imaginary part survives. And since it is multiplied by @f$-i@f$ it is real.
+					///Need to be extra cautious here though cimag() returns a real value. So we multiply by I_f manually 
+					///The 8.0f becomes a 4.0f to account for the factor of two
+					clover[0][i+clov*kvol]=cimagf(clover[0][i+clov*kvol]);		clover[0][i+clov*kvol]*=(1.0f/4.0f);
+
+					///The @f$\beta@f$ component. Both real and imaginary components survive. It ends up getting doubled.
+					clover[1][i+clov*kvol]+=clover[1][i+clov*kvol];	clover[1][i+clov*kvol]*=(-I_f/8.0f);
 				}
 			}
 #endif
-	return 0;
+	return;
 }
 
 //Multiplication for Congradq
 //=========================
-// Congradq only acts on flavour 1
-int ByClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, const float akappa, unsigned short *sigin,bool dag){
-	const char funcname[] = "ByClover";
+/**
+ *	@brief Clover analogue of the Dslash operation. This version acts on all flavours simiilar to Dslash and Dslash_d
+ *	
+ *
+ *	@param	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
+ *	@param	r:						Pseudofermion field before multiplication. The thing we want to multiply by the clover
+ *	@param	clover:				Array of clovers
+ *	@param	sigval:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
+ *	@param	akappa:				Hopping Parameter
+ * @param	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param	dag:					Daggered output has no MPI halo, but undaggered does.
+ */
+void ByClover(Complex *phi, Complex *r, Complex *clover[2], Complex *sigval, const float akappa, unsigned short *sigin, bool dag){
 #ifdef __NVCC__
-	cuByClover(phi, r, clover, sigval, akappa,sigin,dag);
+	cuByClover(phi,r,clover,sigval,akappa,sigin,dag);
 #else
-#pragma omp parallel for
-	for(int i=0;i<kvol;i+=AVX){
+#pragma omp parallel for simd
+	for(unsigned int i=0;i<kvol;i++){
 		//Prefetched r and Phi array
-#pragma omp simd
-		for(unsigned short j =0;j<AVX;j++)
+		Complex phi_s[ngorkov][nc];
+#pragma unroll
+		for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++)
+			for(unsigned short c=0; c<nc; c++){
+				phi_s[igorkov][c]=0;
+			}
+		Complex r_s[nc];
+		Complex clov_s[nc];
+#pragma unroll
+		for(unsigned short clov=0;clov<6;clov++){
+			clov_s[0]=clover[0][clov*kvol+i]; clov_s[1]=clover[1][clov*kvol+i];
 			for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
-				Complex phi_s[nc];
-				Complex r_s[nc];
-				Complex clov_s[nc];
-				unsigned short idirac = igorkov%4;
+				//Mod 4 done bitwise. In general n mod 2^m = n & (2^m-1)
+				const unsigned short idirac = igorkov&3;
+				const unsigned short sind = (igorkov<4) ? sigin[clov*ndirac+idirac] : sigin[clov*ndirac+idirac]+4;
 #pragma unroll
 				for(unsigned short c=0; c<nc; c++)
-					phi_s[c]=0;
-
-				for(unsigned short clov=0;clov<6;clov++){
-					const unsigned short igork1 = (igorkov<4) ? sigin[clov*ndirac+idirac] : sigin[clov*ndirac+idirac]+4;
+					r_s[c]= r[i+kvolHalo*(sind*nc+c)];
+				///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
+				phi_s[igorkov][0]+=sigval[clov*ndirac+idirac]*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
+				//Clover is in the Lie Algebra, not Lie group. So signs are correct here.
+				phi_s[igorkov][1]+=sigval[clov*ndirac+idirac]*(conj(clov_s[1])*r_s[0]+creal(clov_s[0])*r_s[1]);
+			}
+		}
 #pragma unroll
-					for(unsigned short c=0; c<nc; c++){
-						r_s[c]=r[((i+j)*ngorkov+igork1)*nc+c];
-						clov_s[c]=clover[c][clov*kvol+i+j];
-
-#ifdef _DEBUG
-						if(isnan(creal(r_s[c]))||isnan(cimag(r_s[c]))){
-							printf("r_s: Index %d, colour %d c and gorkov index %d (idirac %d and igork1 %d) is NaN\n"\
-									"Sigma matrices = %e+%e\n"\
-									"Clover: %e+i%e\\n"\
-									"r_s=%e+i%e\n",i+j,c,igorkov,idirac,igork1,
-									creal(sigval[clov*ndirac+idirac]),cimag(sigval[clov*ndirac+idirac]),
-									creal(clov_s[c]),cimag(clov_s[c]), creal(r_s[c]),cimag(r_s[c]));
-							abort();
-						}
-#endif
-					}
-
-					///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
-					phi_s[0]+=sigval[clov*ndirac+idirac]*(clov_s[0]*r_s[0]+clov_s[1]*r_s[1]);
-					phi_s[1]+=sigval[clov*ndirac+idirac]*(conj(clov_s[1])*r_s[0]+conj(clov_s[0])*r_s[1]);
-#ifdef _DEBUG
-					if(isnan(creal(phi_s[0]))||isnan(cimag(phi_s[0]))||isnan(creal(phi_s[1]))||isnan(cimag(phi_s[1]))){
-						fprintf(stderr, "phi_s: Index %d and gorkov index %d (idirac %d and igork1 %d) is NaN\n"\
-								"Sigma matrices = %e+%e\n"\
-								"Clover 0: %e+i%e\tClover 1:%e+i%e\n"\
-								"r_s 0=%e+i%e\tr_s 1=%e+i%e\n"\
-								"phi_s 0=%e+i%e\tphi_s 1=%e+i%e\n",i+j,igorkov,idirac,igork1,
-								creal(sigval[clov*ndirac+idirac]),cimag(sigval[clov*ndirac+idirac]),
-								creal(clov_s[0]),cimag(clov_s[0]),creal(clov_s[1]),cimag(clov_s[1]),
-								creal(r_s[0]),cimag(r_s[0]),creal(r_s[1]),cimag(r_s[1]),
-								creal(phi_s[0]),cimag(phi_s[0]),creal(phi_s[1]),cimag(phi_s[1]));
-						abort();
-					}
-#endif
-				}
-#pragma unroll
-				for(int c=0; c<nc; c++){
-					phi[((i+j)*ngorkov+igorkov)*nc+c]+=2*phi_s[c];
-				}
+		for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++)
+			for(unsigned short c=0; c<nc; c++){
+				///Also @f$\sigma_{\mu\nu}F_{\mu\nu}=\sigma_{\nu\mu}F_{\nu\mu}@f$ so we double it to take account of that
+				///But then we multiply by @f$-\frac{1}{2}@f$ so the @f$2@f$ disappears
+				if(dag)
+					phi[i+kvol*(nc*igorkov+c)]-=akappa*phi_s[igorkov][c];
+				else
+					phi[i+kvolHalo*(nc*igorkov+c)]-=akappa*phi_s[igorkov][c];
 			}
 	}
 #endif
-	return 0;
+	return;
 }
-int HbyClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, const float akappa, unsigned short *sigin,bool dag){
+/**
+ *	@brief Clover analogue of the Dslash operation. This version acts on all flavours simiilar to Dslash and Dslash_d
+ *	
+ *
+ *	@param	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
+ *	@param	r:						Pseudofermion field before multiplication. The thing we want to multiply by the clover
+ *	@param	clover:				Array of clovers
+ *	@param	sigval:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
+ *	@param	akappa:				Hopping Parameter
+ * @param	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param	dag:					Daggered output has no MPI halo, but undaggered does.
+ */
+void HbyClover(Complex *phi, Complex *r, Complex *clover[2],Complex *sigval, const float akappa, unsigned short *sigin,bool dag){
 	const char funcname[] = "HbyClover";
 #ifdef __NVCC__
-	cuHbyClover(phi, r, clover, sigval, akappa,sigin,dag);
+	cuHbyClover(phi,r,clover,sigval,akappa,sigin,dag);
 #else
-#pragma omp parallel for
-	for(int i=0;i<kvol;i+=AVX){
+#pragma omp parallel for simd
+	for(unsigned int i=0;i<kvol;i++){
 		//Prefetched r and Phi array
-#pragma omp simd
-		for(int j =0;j<AVX;j++)
-			for(int idirac=0; idirac<ndirac; idirac++){
-				alignas(AVX) Complex phi_s[nc][AVX];
-				alignas(AVX) Complex r_s[nc][AVX];
-				alignas(AVX) Complex clov_s[nc][AVX];
+		Complex phi_s[ndirac*nc];
 #pragma unroll
-				for(int c=0; c<nc; c++){
-					phi_s[c][j]=0;
-				}
-				for(unsigned int clov=0;clov<6;clov++){
-					const unsigned short igork1 = sigin[clov*ndirac+idirac];	
-#pragma unroll
-					for(int c=0; c<nc; c++){
-						r_s[c][j]=r[((i+j)*ndirac+igork1)*nc+c];
-						clov_s[c][j]=clover[c][clov*kvol+i+j];
-					}
-					///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
-					///Also note that clov_s[0] is real as the clover is hermitian
-					phi_s[0][j]+=akappa*sigval[clov*ndirac+idirac]*(creal(clov_s[0][j])*r_s[0][j]+clov_s[1][j]*r_s[1][j]);
-					phi_s[1][j]+=akappa*sigval[clov*ndirac+idirac]*(conj(clov_s[1][j])*r_s[0][j]+creal(clov_s[0][j])*r_s[1][j]);
-				}
-#pragma unroll
-				for(int c=0; c<nc; c++)
-					///Also @f$\sigma_{\mu\nu}F_{\mu\nu}=\sigma_{\nu\mu}F_{\nu\mu}@f$ so we double it to take account of that
-					phi[((i+j)*ndirac+idirac)*nc+c]+=2*phi_s[c][j];
+		for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc)
+			for(unsigned short c=0; c<nc; c++){
+				phi_s[idirac+c]=0;
 			}
+		Complex r_s[nc]; Complex clov_s[nc];
+#pragma unroll
+		for(unsigned short clov=0;clov<6;clov++){
+			clov_s[0]=clover[0][clov*kvol+i]; clov_s[1]=clover[1][clov*kvol+i];
+			for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
+				const unsigned short sind = sigin[clov*ndirac+(idirac>>1)] << (nc-1);
+#pragma unroll
+				for(unsigned short c=0; c<nc; c++){
+					r_s[c]= r[i+kvolHalo*(sind+c)];
+				}
+				///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
+				const Complex sig=sigval[clov*ndirac+(idirac>>1)];
+				phi_s[idirac+0]+=sig*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
+				//Clover is in the Lie Algebra, not Lie group. So signs are correct here.
+				phi_s[idirac+1]+=sig*(conj(clov_s[1])*r_s[0]+creal(clov_s[0])*r_s[1]);
+			}
+		}
+#pragma unroll
+		for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc)
+			for(unsigned short c=0; c<nc; c++)
+				///@f$\sigma_{\mu\nu}F_{\mu\nu}=\sigma_{\nu\mu}F_{\nu\mu}@f$ so we double it to take account of that
+				///But then we multiply by @f$-\frac{1}{2}@f$ so the @f$2@f$ disappears
+#if(dag)
+				phi[i+kvol*(c+idirac)]-=akappa*phi_s[idirac+c];
+#else
+		phi[i+kvolHalo*(c+idirac)]-=akappa*phi_s[idirac+c];
+#endif
 	}
 #endif
-	return 0;
+	return;
 }
 //Float versions
-int ByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval,const float akappa, unsigned short *sigin,bool dag){
-	const char funcname[] = "ByClover";
+/**
+ *	@brief Clover analogue of the Dslash operation. This version acts on all flavours simiilar to Dslash and Dslash_d
+ *	
+ *
+ *	@param	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
+ *	@param	r:						Pseudofermion field before multiplication. The thing we want to multiply by the clover
+ *	@param	clover:				Array of clovers
+ *	@param	sigval:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
+ *	@param	akappa:				Hopping Parameter
+ * @param	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param	dag:					Daggered output has no MPI halo, but undaggered does.
+ */
+void ByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2], Complex_f *sigval, const float akappa, unsigned short *sigin, bool dag){
 #ifdef __NVCC__
-	cuByClover_f(phi, r, clover, sigval, akappa,sigin,dag);
+	cuByClover_f(phi,r,clover,sigval,akappa,sigin,dag);
 #else
-#pragma omp parallel for
-	for(int i=0;i<kvol;i+=AVX){
+#pragma omp parallel for simd
+	for(unsigned int i=0;i<kvol;i++){
 		//Prefetched r and Phi array
-#pragma omp simd
-		for(unsigned short j =0;j<AVX;j++)
+		Complex_f phi_s[ngorkov][nc];
+#pragma unroll
+		for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++)
+			for(unsigned short c=0; c<nc; c++){
+				phi_s[igorkov][c]=0;
+			}
+		Complex_f r_s[nc];
+		Complex_f clov_s[nc];
+#pragma unroll
+		for(unsigned short clov=0;clov<6;clov++){
+			clov_s[0]=clover[0][clov*kvol+i]; clov_s[1]=clover[1][clov*kvol+i];
 			for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
-				Complex_f phi_s[nc];
-				Complex_f r_s[nc];
-				Complex_f clov_s[nc];
-				unsigned short idirac = igorkov%4;
+				//Mod 4 done bitwise. In general n mod 2^m = n & (2^m-1)
+				const unsigned short idirac = igorkov&3;
+				const unsigned short sind = (igorkov<4) ? sigin[clov*ndirac+idirac] : sigin[clov*ndirac+idirac]+4;
 #pragma unroll
 				for(unsigned short c=0; c<nc; c++)
-					phi_s[c]=0;
-
-				for(unsigned short clov=0;clov<6;clov++){
-					const unsigned short igork1 = (igorkov<4) ? sigin[clov*ndirac+idirac] : sigin[clov*ndirac+idirac]+4;
+					r_s[c]= r[i+kvolHalo*(sind*nc+c)];
+				///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
+				phi_s[igorkov][0]+=sigval[clov*ndirac+idirac]*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
+				//Clover is in the Lie Algebra, not Lie group. So signs are correct here.
+				phi_s[igorkov][1]+=sigval[clov*ndirac+idirac]*(conj(clov_s[1])*r_s[0]+creal(clov_s[0])*r_s[1]);
+			}
+		}
 #pragma unroll
-					for(unsigned short c=0; c<nc; c++){
-						r_s[c]=r[((i+j)*ngorkov+igork1)*nc+c];
-						clov_s[c]=clover[c][clov*kvol+i+j];
-
-#ifdef _DEBUG
-						if(isnan(creal(r_s[c]))||isnan(cimag(r_s[c]))){
-							printf("r_s: Index %d, colour %d c and gorkov index %d (idirac %d and igork1 %d) is NaN\n"\
-									"Sigma matrices = %e+%e\n"\
-									"Clover: %e+i%e\\n"\
-									"r_s=%e+i%e\n",i+j,c,igorkov,idirac,igork1,
-									creal(sigval[clov*ndirac+idirac]),cimag(sigval[clov*ndirac+idirac]),
-									creal(clov_s[c]),cimag(clov_s[c]), creal(r_s[c]),cimag(r_s[c]));
-							abort();
-						}
-#endif
-					}
-
-					///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
-					phi_s[0]+=sigval[clov*ndirac+idirac]*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
-					phi_s[1]+=sigval[clov*ndirac+idirac]*(conj(clov_s[1])*r_s[0]+creal(clov_s[0])*r_s[1]);
-#ifdef _DEBUG
-					if(isnan(creal(phi_s[0]))||isnan(cimag(phi_s[0]))||isnan(creal(phi_s[1]))||isnan(cimag(phi_s[1]))){
-						fprintf(stderr, "phi_s: Index %d and gorkov index %d (idirac %d and igork1 %d) is NaN\n"\
-								"Sigma matrices = %e+%e\n"\
-								"Clover 0: %e+i%e\tClover 1:%e+i%e\n"\
-								"r_s 0=%e+i%e\tr_s 1=%e+i%e\n"\
-								"phi_s 0=%e+i%e\tphi_s 1=%e+i%e\n",i+j,igorkov,idirac,igork1,
-								creal(sigval[clov*ndirac+idirac]),cimag(sigval[clov*ndirac+idirac]),
-								creal(clov_s[0]),cimag(clov_s[0]),creal(clov_s[1]),cimag(clov_s[1]),
-								creal(r_s[0]),cimag(r_s[0]),creal(r_s[1]),cimag(r_s[1]),
-								creal(phi_s[0]),cimag(phi_s[0]),creal(phi_s[1]),cimag(phi_s[1]));
-						abort();
-					}
-#endif
-				}
-#pragma unroll
-				for(int c=0; c<nc; c++){
-					phi[((i+j)*ngorkov+igorkov)*nc+c]+=2*phi_s[c];
-				}
+		for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++)
+			for(unsigned short c=0; c<nc; c++){
+				///Also @f$\sigma_{\mu\nu}F_{\mu\nu}=\sigma_{\nu\mu}F_{\nu\mu}@f$ so we double it to take account of that
+				///But then we multiply by @f$-\frac{1}{2}@f$ so the @f$2@f$ disappears
+				if(dag)
+					phi[i+kvol*(nc*igorkov+c)]-=akappa*phi_s[igorkov][c];
+				else
+					phi[i+kvolHalo*(nc*igorkov+c)]-=akappa*phi_s[igorkov][c];
 			}
 	}
 #endif
-	return 0;
+	return;
 }
-int HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval, const float akappa, unsigned short *sigin,bool dag){
-	const char funcname[] = "HbyClover";
+/**
+ *	@brief Clover analogue of the Dslash operation. This version acts on all flavours simiilar to Dslash and Dslash_d
+ *	
+ *
+ *	@param	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
+ *	@param	r:						Pseudofermion field before multiplication. The thing we want to multiply by the clover
+ *	@param	clover:				Array of clovers
+ *	@param	sigval:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
+ *	@param	akappa:				Hopping Parameter
+ * @param	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param	dag:					Daggered output has no MPI halo, but undaggered does.
+ */
+void HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2],Complex_f *sigval, const float akappa, unsigned short *sigin,bool dag){
+	const char funcname[] = "HbyClover_f";
 #ifdef __NVCC__
-	cuHbyClover_f(phi, r, clover, sigval, akappa,sigin,dag);
+	cuHbyClover_f(phi,r,clover,sigval,akappa,sigin,dag);
 #else
-#pragma omp parallel for
-	for(int i=0;i<kvol;i+=AVX){
+#pragma omp parallel for simd
+	for(unsigned int i=0;i<kvol;i++){
 		//Prefetched r and Phi array
-#pragma omp simd
-		for(int j =0;j<AVX;j++)
-			for(int idirac=0; idirac<ndirac; idirac++){
-				alignas(AVX) Complex_f phi_s[nc][AVX];
-				alignas(AVX) Complex_f r_s[nc][AVX];
-				alignas(AVX) Complex_f clov_s[nc][AVX];
+		Complex_f phi_s[ndirac*nc];
 #pragma unroll
-				for(int c=0; c<nc; c++){
-					phi_s[c][j]=0;
-				}
-				for(unsigned int clov=0;clov<6;clov++){
-					const unsigned short igork1 = sigin[clov*ndirac+idirac];	
-#pragma unroll
-					for(int c=0; c<nc; c++){
-						r_s[c][j]=r[((i+j)*ndirac+igork1)*nc+c];
-						clov_s[c][j]=clover[c][clov*kvol+i+j];
-					}
-					///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
-					phi_s[0][j]+=akappa*sigval[clov*ndirac+idirac]*(creal(clov_s[0][j])*r_s[0][j]+clov_s[1][j]*r_s[1][j]);
-					phi_s[1][j]+=akappa*sigval[clov*ndirac+idirac]*(conj(clov_s[1][j])*r_s[0][j]+creal(clov_s[0][j])*r_s[1][j]);
-				}
-#pragma unroll
-				for(int c=0; c<nc; c++)
-					///Also @f$\sigma_{\mu\nu}F_{\mu\nu}=\sigma_{\nu\mu}F_{\nu\mu}@f$ so we double it to take account of that
-					phi[((i+j)*ndirac+idirac)*nc+c]+=2*phi_s[c][j];
+		for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc)
+			for(unsigned short c=0; c<nc; c++){
+				phi_s[idirac+c]=0;
 			}
+		Complex_f r_s[nc]; Complex_f clov_s[nc];
+#pragma unroll
+		for(unsigned short clov=0;clov<6;clov++){
+			clov_s[0]=clover[0][clov*kvol+i]; clov_s[1]=clover[1][clov*kvol+i];
+			for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
+				const unsigned short sind = sigin[clov*ndirac+(idirac>>1)] << (nc-1);
+#pragma unroll
+				for(unsigned short c=0; c<nc; c++){
+					r_s[c]= r[i+kvolHalo*(sind+c)];
+				}
+				///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
+				const Complex_f sig=sigval[clov*ndirac+(idirac>>1)];
+				phi_s[idirac+0]+=sig*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
+				//Clover is in the Lie Algebra, not Lie group. So signs are correct here.
+				phi_s[idirac+1]+=sig*(conj(clov_s[1])*r_s[0]+creal(clov_s[0])*r_s[1]);
+			}
+		}
+#pragma unroll
+		for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc)
+			for(unsigned short c=0; c<nc; c++)
+				///@f$\sigma_{\mu\nu}F_{\mu\nu}=\sigma_{\nu\mu}F_{\nu\mu}@f$ so we double it to take account of that
+				///But then we multiply by @f$-\frac{1}{2}@f$ so the @f$2@f$ disappears
+#if(dag)
+				phi[i+kvol*(c+idirac)]-=akappa*phi_s[idirac+c];
+#else
+		phi[i+kvolHalo*(c+idirac)]-=akappa*phi_s[idirac+c];
+#endif
 	}
 #endif
-	return 0;
+	return;
 }
 
-//Clover force terms 144 in total...
-//=================================
-//Get the leaves that contribute to the force
-inline void Fleaf(Complex_f fleaf[nc], Complex_f *Leaves[nc], const unsigned int i){
-	const char funcname[] = "Fleaf";
-	///Fleaf consists of the sum of the @f$\mu\nu@f$ and @f$\mu,-\nu@f$ leaves, minus their hermitian conjugates
-	fleaf[0]=Leaves[0][i]+Leaves[0][i+kvol*2]-conj(Leaves[0][i+kvol])-conj(Leaves[0][i+kvol*2]);
-	fleaf[1]=Leaves[1][i]+Leaves[1][i+kvol*2]-conj(Leaves[1][i+kvol])-conj(Leaves[1][i+kvol*2]);
-	return;
-}
-//Generator by Leaf
-inline void GenLeaf(Complex_f fleaf[nc],const unsigned short adj){
-	const char funcname[] = "GenLeaf";
-	//TODO: Check for factors of a half
-	//Which generator are we multiplying by?
-	//A buffer to store the leaf since we need to swap them
-	Complex_f buffer=fleaf[0];
-	switch(adj){
-		case(0): //Sigma_x
-					//Minus is from @f$-\bar{beta}@f$
-			fleaf[0]=-I*conj(fleaf[1]);
-			fleaf[1]=I*buffer;
-		case(1): //Sigma_y
-					//Minus from Sigma_y and from @f$-\bar{\beta}@f$ gives an overall plus
-			fleaf[0]=conj(fleaf[1]);
-			fleaf[1]=buffer;
-		case(2): //Sigma_z
-					//No buffer here needed here.
-			fleaf[0]=I*fleaf[0];
-			//Minus from Sigma_z and from @f$-\bar{\beta}@f$ gives an overall plus
-			fleaf[1]=I*conj(fleaf[1]);
+//Clover Force
+//===========
+/**
+ *	@brief	Calculates a leaf for a clover term.
+ *
+ *	@param	ut:			Gauge fields
+ *	@param	Leaves:		Array of leaves
+ *	@param	iu,id:		Upper and lower site indices
+ *	@param	i:				Lattice index of the clover in question
+ *	@param	mu,nu:		Direction in which we're evaluating the leaf
+ *	@param	leaf:			Which leaf of the clover is being calculated
+ *	@param	gen:			Which generator do we multiply the leaves by. Used for the force terms
+ *	@param	gen_pos:		Where does the generator appear in the multiplication. Used for the force terms.
+ *	
+ */
+int Force_Leaf(complex<T> *ut[nc], complex<T> Leaves[nc],\
+		unsigned int *iu, unsigned int *id, unsigned int i,const unsigned short mu,const unsigned short nu,\
+		const unsigned short leaf,short gen,short gen_pos){
+	complex<T> a[nc];
+	unsigned int didm,didn,uidm;
+	switch(leaf){
+		case(0):
+			//If the generator is between the first two links, then we can't use the precomputed half-leaves
+			if(gen_pos==1){
+				///Both positive is just a standard plaquette
+				a[0]=ut[0][i+kvolHalo*mu]; a[1]=ut[1][i+kvolHalo*mu];
+				//Multiply first link by generator from the right
+				ByGenRight(a,gen);
+				uidm = iu[mu*kvol+i]; 
+				/// @f$U_\mu(x)U^\nu(x+\hat{\mu})@f$
+				Leaves[0]=a[0]*ut[0][uidm+kvolHalo*nu]-a[1]*conj(ut[1][uidm+kvolHalo*nu]);
+				Leaves[1]=a[0]*ut[1][uidm+kvolHalo*nu]+a[1]*conj(ut[0][uidm+kvolHalo*nu]);
+			}
+			//Multiply by generator from the right after the first two links
+			if(gen_pos==2)
+				ByGenRight(Leaves,gen);
+
+			unsigned int uidn = iu[nu*kvol+i]; 
+			/// @f$U_\mu(x)U_\nu(x+\hat{\mu})U^\dagger_\mu(x+\hat{\nu})@f$
+			a[0]=Leaves[0]*conj(ut[0][uidn+kvolHalo*mu])+Leaves[1]*conj(ut[1][uidn+kvolHalo*mu]);
+			a[1]=-Leaves[0]*ut[1][uidn+kvolHalo*mu]+Leaves[1]*ut[0][uidn+kvolHalo*mu];
+			//Multiply by generator from the right after the first three links
+			if(gen_pos==3)
+				ByGenRight(a,gen);
+
+			/// @f$U_\mu(x)U_\nu(x+\hat{\mu})U^\dagger_\mu(x+\hat{\nu})U^\dagger_\nu(x)@f$
+			Leaves[0]=a[0]*conj(ut[0][i+kvolHalo*nu])+a[1]*conj(ut[1][i+kvolHalo*nu]);
+			Leaves[1]=-a[0]*ut[1][i+kvolHalo*nu]+a[1]*ut[0][i+kvolHalo*nu];
+
+			//DEBUG
+			//					Leaves[0]=0; Leaves[1]=0;
+			break;
+		case(1):
+			//If the generator is between the first two links, then we can't use the precomputed half-leaves
+			if(gen_pos==1){
+				//Should really read didm, but I've already declared this 
+				uidm = id[mu*kvol+i];
+				a[0]=ut[0][i+kvolHalo*nu]; a[1]=ut[1][i+kvolHalo*nu];
+				//Multiply first link by generator from the right
+				ByGenRight(a,gen);
+				//Awkward index...
+				const unsigned int uin_didm=iu[nu*kvol+uidm];
+				/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})@f$
+				Leaves[0]=a[0]*conj(ut[0][uin_didm+kvolHalo*mu])+a[1]*conj(ut[1][uin_didm+kvolHalo*mu]);
+				Leaves[1]=-a[0]*ut[1][uin_didm+kvolHalo*mu]+a[1]*ut[0][uin_didm+kvolHalo*mu];
+			}
+			didm = id[mu*kvol+i];
+			//Multiply by generator from the right after the first two links
+			if(gen_pos==2)
+				ByGenRight(Leaves,gen);
+
+			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})U^\dagger_\nu(x-\hat{\mu})@f$
+			a[0]=Leaves[0]*conj(ut[0][didm+kvolHalo*nu])+Leaves[1]*conj(ut[1][didm+kvolHalo*nu]);
+			a[1]=-Leaves[0]*ut[1][didm+kvolHalo*nu]+Leaves[1]*ut[0][didm+kvolHalo*nu];
+			//Multiply by generator from the right after the first three links
+			if(gen_pos==3)
+				ByGenRight(a,gen);
+
+			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})U^\dagger_\nu(x-\hat{\mu})U_\mu(x-\hat{\mu})@f$
+			Leaves[0]=a[0]*ut[0][didm+kvolHalo*mu]-a[1]*conj(ut[1][didm+kvolHalo*mu]);
+			Leaves[1]=a[0]*ut[1][didm+kvolHalo*mu]+a[1]*conj(ut[0][didm+kvolHalo*mu]);
+			//DEBUG
+			//			Leaves[0]=0; Leaves[1]=0;
+			break;
+		case(2):
+			//If the generator is between the first two links, then we can't use the precomputed half-leaves
+			if(gen_pos==1){
+				//Should really read didn, but I've already declared this 
+				uidm = id[nu*kvol+i];
+				//Daggered. So Conj what goes into a[0] and negate what goes into a[1]
+				a[0]=conj(ut[0][uidm+kvolHalo*nu]); a[1]=-ut[1][uidm+kvolHalo*nu];
+				//Multiply first link by generator from the right
+				ByGenRight(a,gen);
+
+				/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})@f$
+				Leaves[0]=a[0]*ut[0][uidm+kvolHalo*mu]-a[1]*conj(ut[1][uidm+kvolHalo*mu]);
+				//Don't forget negatiion of second term was handled earlier!
+				Leaves[1]=a[0]*ut[1][uidm+kvolHalo*mu]+a[1]*conj(ut[0][uidm+kvolHalo*mu]);
+			}
+			///Leaf in the forwards mu and backwards nu direction
+			didn = id[nu*kvol+i]; 
+			//Multiply by generator from the right after the first two links
+			if(gen_pos==2)
+				ByGenRight(Leaves,gen);
+			unsigned int uim_didn=iu[mu*kvol+didn];
+			/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})@f$
+			a[0]=Leaves[0]*ut[0][uim_didn+kvolHalo*nu]-Leaves[1]*conj(ut[1][uim_didn+kvolHalo*nu]);
+			a[1]=Leaves[0]*ut[1][uim_didn+kvolHalo*nu]+Leaves[1]*conj(ut[0][uim_didn+kvolHalo*nu]);
+			//Multiply by generator from the right after the first three links
+			if(gen_pos==3)
+				ByGenRight(a,gen);
+
+			/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})U^\dagger_\mu(x)@f$
+			Leaves[0]=a[0]*conj(ut[0][i+kvolHalo*mu])+a[1]*ut[1][i+kvolHalo*mu];
+			Leaves[1]=-a[0]*conj(ut[1][i+kvolHalo*mu])+a[1]*ut[0][i+kvolHalo*mu];
+
+			//DEBUG
+			//					Leaves[0]=0; Leaves[1]=0;
+			break;
+		case(3):
+			//If the generator is between the first two links, then we can't use the precomputed half-leaves
+			if(gen_pos==1){
+				//Should really read didm, but I've already declared this 
+				uidm  =  id[i+kvol*mu];
+				//Daggered. So Conj what goes into a[0] and negate what goes into a[1]
+				a[0]=conj(ut[0][uidm+kvolHalo*mu]); a[1]=-ut[1][uidm+kvolHalo*mu];
+				ByGenRight(a,gen);
+				//Another awkward index
+				const unsigned int din_didm=id[nu*kvol+uidm];
+
+				/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})@f$
+				Leaves[0]=a[0]*conj(ut[0][din_didm+kvolHalo*nu])+a[1]*ut[1][din_didm+kvolHalo*nu];
+				Leaves[1]=-a[0]*conj(ut[1][din_didm+kvolHalo*nu])+a[1]*ut[0][din_didm+kvolHalo*nu];
+
+			}
+			didn = id[nu*kvol+i]; 
+			///Leaf in the backwards mu and backwards nu direction
+			unsigned int din_didm=id[mu*kvol+didn];
+			//Multiply by generator from the right after the first two links
+			if(gen_pos==2)
+				ByGenRight(Leaves,gen);
+
+			didm = id[mu*kvol+i];
+			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(n-\hat{\nu}-\hat{\mu})@f$
+			a[0]=Leaves[0]*ut[0][din_didm+kvolHalo*mu]-Leaves[1]*conj(ut[1][din_didm+kvolHalo*mu]);
+			a[1]=Leaves[0]*ut[1][din_didm+kvolHalo*mu]+Leaves[1]*conj(ut[0][din_didm+kvolHalo*mu]);
+			//Multiply by generator from the right after the first three links
+			if(gen_pos==3)
+				ByGenRight(a,gen);
+
+			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(n-\hat{\nu}-\hat{\mu})U_\nu(n-\hat{\nu})@f$
+			Leaves[0]=a[0]*ut[0][didm+kvolHalo*nu]-a[1]*conj(ut[1][didm+kvolHalo*nu]);
+			Leaves[1]=a[0]*ut[1][didm+kvolHalo*nu]+a[1]*conj(ut[0][didm+kvolHalo*nu]);
+
+			//DEBUG
+			//					Leaves[0]=0; Leaves[1]=0;
+			break;
 	}
-	return;
+	///gen_pos 0 is multiply the entire leaf by the generator from the left
+	if(gen_pos==0)
+		ByGenLeft(Leaves,gen);
+	///gen_pos 4 is multiply the entire leaf by the generator from the left
+	if(gen_pos==4)
+		ByGenRight(Leaves,gen);
+	return 0;
 }
-int Clover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,\
-						unsigned short *sigin, unsigned int *iu, unsigned int *id, float kappa){
-	const char funcname[]="Clover_Force";
+/**
+ *	@brief	Clover contribution to the Molecular Dynamics force
+ *
+ *	@param	dSdpi:		Force
+ *	@param	ut:			Gauge fields
+ *	@param	X1:			@f$\left(M^\dagger M\right)^{-1} \Psi@f$
+ *	@param	X2:			@f$M\left(M^\dagger M\right)^{-1} \Psi@f$
+ *	@param	sigval:		@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$c_sw@f$
+ * @param	sigin:		What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param	iu,id:		Up/down indices
+ * @param	clov:			Clover we're intereted in
+ * @param	mu,nu:		Direction of clover we're interested in
+ * @param	akappa:		Hopping parameter
+ */
+void Clover_Force(double *dSdpi, complex<T> *ut[nc], complex<T> *hLeaves[nc], complex<T> *X1, complex<T> *X2,\
+		const complex<T> *sigval, const unsigned short *sigin, unsigned int *iu, unsigned int *id,\
+		const float akappa){
 #ifdef __NVCC__
-	cuClover_Force(dSdpi,ut,X1,X2,sigval,sigin,iu,id,kappa);
-	#endif
-	/*
+	cuClover_Force(dSdpi,ut,X1,X1,sigval,sigin,iu,id,akappa);
 #else
-	//TODO: Make this more CUDA friendly? Or just have a CUDA call above
-	for(unsigned short adj=0;adj>nadj;adj++)
-		for(unsigned short mu=0;mu<ndim;mu++)
+	Complex_f *hLeaves[ndim][nc];
+	//Allocate half-leaf memory. We will have one stream for each direction
+	for(unsigned short mu=0;mu<ndim;mu++){
+		hLeaves[mu][0]=(Complex_f *)aligned_alloc(AVX,ndim*kvol*sizeof(Complex_f));
+		hLeaves[mu][1]=(Complex_f *)aligned_alloc(AVX,ndim*kvol*sizeof(Complex_f));
+	}
+		for(unsigned short mu=0;mu<ndim-1;mu++)
 			for(unsigned short nu=mu+1;nu<ndim;nu++){
-				///Only three clovers @f$\mu\ne\nu@f$ contribute to the force term in each @f$\mu@f$
-				///Out of these clovers only three leaves contribute, with the leaf in the @f$\mu@f$ direction contributing
-				///twice (daggered and not daggered)
+				//Clover index
 				const unsigned short clov = (mu==0) ? nu-1 :mu+nu;
+
+				//Compute half leaves
+				Half_Leaves(hLeaves[mu],ut,iu,id,mu,nu);
+				Half_Leaves(hLeaves[nu],ut,iu,id,nu,mu);
+
+				//Compute force for @f$\mu\nu@f$ and @f$\nu\mu@f$
 #pragma omp parallel for
 				for(unsigned int i=0;i<kvol;i++){
-					Complex_f fleaf[2]={0,0};
-					///Only three clovers @f$\mu\ne\nu@f$ contribute to the force term
-					///Out of these clovers only two leaves contribute (containing @f$U_\mu@f$). Daggered and undaggered
-					///Additionally, @f$\sigma_{\nu\mu}F_{\nu\mu}=\sigma_{\mu\nu}F_{\mu\nu}@f$ so we can double the final answer
-					Fleaf(fleaf,Leaves[clov],i);
+					//Two of these since we have the mu and nu contribut[1]ions
+					float dSdpis[3]={0,0,0}; 
+					const unsigned int ipm=iu[i+kvol*mu];
+					for(unsigned short fclov=0;fclov<(ndim-1)*(ndim-2);fclov++){
+						Complex_f fleaf[nadj][nc];
+						unsigned int site;
+						for(unsigned short gen=0;gen<nadj;gen++){
+							//This stores the half-leaf initially, then the out[1]put[1] from Force_Leaves
+							Complex_f tmp[nc];
+							switch(fclov){
+								case(0): //Clover at site
+									site=i;
+									tmp[0]=hLeaves0[site+0*kvol]; tmp[1]=hLeaves1[site+0*kvol];
+									//Get leaf 0 with the correct generator in the initial position
+									Force_Leaf(ut,tmp,iu,id,site,mu,nu,0,gen,0);
+									fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
 
-					///Multiply by the correct generator
-					GenLeaf(fleaf,adj);
+									//Get leaf 2 with the correct generator in the final position
+									tmp[0]=hLeaves0[site+2*kvol]; tmp[1]=hLeaves1[site+2*kvol];
+									Force_Leaf(ut,tmp,iu,id,site,mu,nu,2,gen,4);
+									//-= here as the contribut[1]ion is from @f$Q_{\nu\mu}@f$!!!
+									//Conjugate too.
+									fleaf[gen][0]-=conjf(tmp[0]); fleaf[gen][1]-=-tmp[1];
+									break;
+								case(1): //Clover at i+mu
+									site=ipm;
+									//Get leaf 1 with the correct generator between links 3 and 4
+									tmp[0]=hLeaves0[site+1*kvol]; tmp[1]=hLeaves1[site+1*kvol];
+									Force_Leaf(ut,tmp,iu,id,site,mu,nu,1,gen,3);
+									fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
+									//Get leaf 3 with the correct generator between links 1 and 2
+									tmp[0]=hLeaves0[site+3*kvol]; tmp[1]=hLeaves1[site+3*kvol];
+									Force_Leaf(ut,tmp,iu,id,site,mu,nu,3,gen,1);
+									//-= here as the contribut[1]ion is from @f$Q_{\nu\mu}@f$!!!
+									//Conjugate too
+									fleaf[gen][0]-=conjf(tmp[0]); fleaf[gen][1]-=-tmp[1];
+									break;
+								case(2): //Clover at i+nu
+									site=iu[i+kvol*nu];
+									//Get leaf 2 with the correct generator between links 1 and 2
+									tmp[0]=hLeaves0[site+2*kvol]; tmp[1]=hLeaves1[site+2*kvol];
+									Force_Leaf(ut,tmp,iu,id,site,mu,nu,2,gen,1);
+									fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
+									break;
+								case(3): //Clover at i-nu
+									site=id[i+kvol*nu];
+									//Get leaf 0 with the correct generator between links 3 and 4
+									tmp[0]=hLeaves0[site+0*kvol]; tmp[1]=hLeaves1[site+0*kvol];
+									Force_Leaf(ut,tmp,iu,id,site,mu,nu,0,gen,3);
+									//- here as the contribut[1]ion is from @f$Q_{\nu\mu}@f$!!!
+									//Conjugate too
+									fleaf[gen][0]=-conjf(tmp[0]); fleaf[gen][1]=tmp[1];
+									break;
+								case(4): //Clover at i+mu+nu
+									site=iu[ipm+kvol*nu];
+									//Get leaf 3 with the correct generator between links 2 and 3
+									tmp[0]=hLeaves0[site+3*kvol]; tmp[1]=hLeaves1[site+3*kvol];
+									Force_Leaf(ut,tmp,iu,id,site,mu,nu,3,gen,2);
+									fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
+									break;
+								case(5): //Clover at i+mu-nu
+									site=id[ipm+kvol*nu];
+									//Get leaf 1 with the correct generator between links 2 and 3
+									tmp[0]=hLeaves0[site+1*kvol]; tmp[1]=hLeaves1[site+1*kvol];
+									Force_Leaf(ut,tmp,iu,id,site,mu,nu,1,gen,2);
+									//- here as the contribut[1]ion is from @f$Q_{\nu\mu}@f$!!!
+									//Conjugate too
+									fleaf[gen][0]=-conjf(tmp[0]); fleaf[gen][1]=tmp[1];
+									break;
+							}
+							//				fleaf[gen][0]=(-I_f/8.0f)*(fleaf[gen][0]+conjf(fleaf[gen][0]));
+							//				fleaf[gen][0]=(-I_f/4.0f)*fleaf[gen][0].real();
+							fleaf[gen][0]=Complex_f(0,-fleaf[gen][0].real()/4);
+							//				fleaf[gen][1]=(-I_f/8.0f)*(fleaf[gen][1]-fleaf[gen][1]);
+							fleaf[gen][1]=0;
+						}
+						for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
+							const unsigned short sind = sigin[clov*ndirac+(idirac>>1)]<<(nc-1);	
+							//Calculate the index. For the next colour we add kvol
+							unsigned int ind = site+kvolHalo*idirac;
+							//Prefetching. Might not be needed here though
+							Complex_f X1sc[nc];
+							//X1 is always conjfugated. So do it once here instead of twice and be done with it.	
+							X1sc[0]=conjf(X1[ind]); X1sc[1]=conjf(X1[indi+kvolHalo]);
+							ind = site+kvolHalo*sind;
+							Complex_f X2s[nc];
+							X2s[0]=X2[ind]; X2s[1]=X2[indi+kvolHalo];
 
-					///NOTE: The clover is scaled by -i/8.0, but the leaves were not. We do that scaling here.
-					///		The 4.0 instead of 8.0 is due to the second contribution from @f$\nu\mu@f$
-					///TODO:	Keep track of the I's. -I from the clover definition, +I from the derivative? 
-					fleaf[0]*=1/4.0f; fleaf[1]*=1/4.0f;
-
-					//Actual force stuff
-					for(unsigned short idirac=0;idirac<ndirac;idirac++){
-						const unsigned short igork1 = sigin[clov*ndirac+idirac];	
-						dSdpi[(i*nadj+adj)*ndim+mu]+=creal(sigval[clov*ndirac+idirac]*(
-									conj(X1[(i*ndirac)*nc])*(fleaf[0]*X2[(i*ndirac+igork1)*nc]+fleaf[1]*X2[(i*ndirac+igork1)*nc+1])+
-									conj(X1[(i*ndirac)*nc+1])*(-conj(fleaf[1])*X2[(i*ndirac+igork1*nc)]+conj(fleaf[0])*X2[(i*ndirac+igork1)*nc+1])));
+							for(unsigned short gen=0;gen<nadj;gen++){
+								//					Complex_f fleaf1c=conjf(fleaf[gen][1]);
+								float force = (sigval[clov*ndirac+idirac]*(X1sc[0]*(fleaf[gen][0]*X2s[0]+fleaf[gen][1]*X2s[1])+\
+											X1sc[1]*(fleaf[gen][0]*X2s[1]-fleaf[gen][1]*X2s[0]))).real();
+								//mu direction contribut[1]ion
+								dSdpis[gen]+=force;
+							}
+						}
+					}
+					for(unsigned short gen=0;gen<nadj;gen++){
+						dSdpi[i+kvol*(gen*ndim+mu)]-=akappa*dSdpis[gen];
 					}
 				}
 			}
-#endif
-	return 0;
-	*/
-}
 
-//Initialisation and freeing
-int Init_clover(Complex **sigval, Complex_f **sigval_f,unsigned short **sigin, float c_sw){
-	const char funcname[] = "Init_clover";
-	unsigned short __attribute__((aligned(AVX))) sigin_t[6][4] =	{{0,1,2,3},{1,0,3,2},{1,0,3,2},{1,0,3,2},{1,0,3,2},{0,1,2,3}};
-	//The sigma matrices are the commutators of the gamma matrices. These are antisymmetric when you swap the indices
-	//0 is sigma_0,1
-	//1 is sigma_0,2
-	//2 is sigma_0,3
-	//3 is sigma_1,2
-	//4 is sigma_1,3
-	//5 is sigma_2,3
-	Complex	__attribute__((aligned(AVX)))	sigval_t[6][4] =	{{-1,1,-1,1},{-I,I,-I,I},{1,1,-1,-1},{-1,-1,-1,-1},{-I,I,I,-I},{1,-1,-1,1}};
-	//Complex	__attribute__((aligned(AVX)))	sigval_t[6][4] =	{{1,1,1,1},{1,1,1,1},{1,1,1,1},{1,1,1,1},{1,1,1,1},{1,1,1,1},{1,1,1,1}};
-	//We mutiply by 1/2 and c_sw here since sigval is never used without them.
-#if defined USE_BLAS
-	cblas_zdscal(6*4, 0.5*c_sw, sigval_t, 1);
-#else
-#pragma omp parallel for simd collapse(2) aligned(sigval,sigval_f:AVX)
-	for(int 0=1;i<6;i++)
-		for(int j=0;j<4;j++)
-			sigval_t[i][j]*=c_sw*0.5;
-#endif
-
-#ifdef __NVCC__
-	int device = -1; 
-	cudaGetDevice(&device);
-
-	cudaMalloc((void **)sigin,6*4*sizeof(short));
-	cudaMalloc((void **)sigval,6*4*sizeof(Complex));
-	cudaMalloc((void **)sigval_f,6*4*sizeof(Complex_f));
-
-	cudaMemcpy(*sigin,sigin_t,6*4*sizeof(short),cudaMemcpyDefault);
-	cudaMemcpy(*sigval,sigval_t,6*4*sizeof(Complex),cudaMemcpyDefault);
-
-	cuComplex_convert(*sigval_f,*sigval,24,true,dimBlockOne,dimGridOne);	
-#else
-	*sigin = (unsigned short *)aligned_alloc(AVX,6*4*sizeof(short));
-	*sigval=(Complex *)aligned_alloc(AVX,6*4*sizeof(Complex));
-	*sigval_f=(Complex_f *)aligned_alloc(AVX,6*4*sizeof(Complex_f));;
-	memcpy(*sigval,sigval_t,6*4*sizeof(Complex));
-	memcpy(*sigin,sigin_t,6*4*sizeof(short));
-	for(int i=0;i<6*4;i++)
-		*sigval_f[i]=(Complex_f)(*sigval[i]);
-#endif
-}
-inline int Clover_free(Complex_f *clover[nc]){
-	for(unsigned short c=0;c<nc;c++){
-#ifdef __NVCC__
-#ifdef _DEBUG
-		cudaFree(clover[c]);
-#else
-		cudaFreeAsync(clover[c],streams[c]);
-#endif
-#else
-		free(clover[c]);
-#endif
+	for(unsigned short mu=0;mu<ndim;mu++){
+		free(hLeaves[mu][0]); free(hLeaves[mu][1]);
 	}
-	return 0;	
+#endif
+	return;
 }
-
-//Stuff that might be removable
-/*
-	inline int GenLeaf(Complex_f Fleaf[nc], Complex_f *Leaves[nc],const unsigned int i,const unsigned short leaf,const unsigned short adj,const bool pm){
-	const char funcname[] = "GenLeaf";
-//Adding or subtracting this term
-const short sign = (pm) ? 1 : -1;
-//Which generator are we multiplying by? Zero indexed so subtract one from your usual index in textbooks
-switch(adj){
-case(0):
-Fleaf[0]+=sign*Leaves[1][i+kvol*leaf];		Fleaf[1]+=sign*Leaves[0][i+kvol*leaf];
-case(1):
-Fleaf[0]+=-sign*I*Leaves[1][i+kvol*leaf];	Fleaf[1]+=sign*I*Leaves[0][i+kvol*leaf];
-case(2):
-Fleaf[0]+=sign*Leaves[0][i+kvol*leaf];		Fleaf[1]+=-sign*Leaves[1][i+kvol*leaf];
-}
-return 0;
-}
-inline int GenLeafd(Complex_f Fleaf[nc], Complex_f *Leaves[nc],const unsigned int i,const unsigned short leaf,const unsigned short adj,const bool pm){
-const char funcname[] = "GenLeafd";
-//Adding or subtracting this term
-const short sign = (pm) ? 1 : -1;
-//Which generator are we multiplying by? Zero indexed so subtract one from your usual index in textbooks
-switch(adj){
-case(0):
-Fleaf[0]+=-sign*Leaves[1][i+kvol*leaf]; 		Fleaf[1]+=sign*conj(Leaves[0][i+kvol*leaf]);
-case(1):
-Fleaf[0]+=sign*I*Leaves[1][i+kvol*leaf];		Fleaf[1]+=sign*I*conj(Leaves[0][i+kvol*leaf]);
-case(2):
-Fleaf[0]+=sign*conj(Leaves[0][i+kvol*leaf]); 	Fleaf[1]+=sign*conj(Leaves[1][i+kvol*leaf]);
-}
-return 0;
-}
-*/

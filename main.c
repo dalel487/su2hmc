@@ -289,8 +289,8 @@ int main(int argc, char *argv[]){
 #endif
 #ifdef DIAGNOSTIC
 	double ancg_diag=0;
-	Diagnostics(istart, u[0], u[1], ut[0], ut[1], ut_f[0], ut_f[1], iu, id, hu, hd, dk[0], dk[1],\
-			dk_f[0], dk_f[1], gamin, gamval, gamval_f, jqq, akappa, beta, ancg_diag);
+	Diagnostics(istart, u, ut, ut_f, iu, id, hu, hd, dk,\
+			dk_f, gamin, gamval, gamval_f, sigval, sigval_f, sigin, jqq, akappa, beta, c_sw,ancg_diag);
 #endif
 
 	//Initial Measurements
