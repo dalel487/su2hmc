@@ -39,6 +39,39 @@ extern "C"
 	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
 	 *	
 	 *	@param	dSdpi:				The force
+	 *	@param	ut:					Float precision colour fields
+	 *	@param	X1:					Holder for the partitioned fermion field, then the inverted dield
+	 *	@param	X2:					Pseudofermion field
+	 *	@param	gamval:				Gamma matrices rescaled by @f$\kappa@f$
+	 *	@param	iu:					Lattice indices
+	 *	@param	gamin:				Gamma indices
+	 *	@param	akappa:				Hopping parameter
+	 *
+	 *	@return 
+	 */
+void Force_s(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, Complex_f gamval[20],\
+		unsigned int *iu, const unsigned short gamin[16],const float akappa, const unsigned short mu);
+	/**
+	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
+	 *	
+	 *	@param	dSdpi:				The force
+	 *	@param	ut:					Float precision colour fields
+	 *	@param	X1:					Holder for the partitioned fermion field, then the inverted dield
+	 *	@param	X2:					Pseudofermion field
+	 *	@param	gamval:				Gamma matrices rescaled by @f$\kappa@f$
+	 * @param	dk:					@f$e^{-\mu}@f$ and @f$e^\mu@f$
+	 *	@param	iu:					Lattice indices
+	 *	@param	gamin:				Gamma indices
+	 *	@param	akappa:				Hopping parameter
+	 *
+	 *	@return 
+	 */
+void Force_t(double *dSdpi, Complex_f *ut[2],Complex_f *X1, Complex_f *X2, Complex_f gamval[20],\
+		float *dk[2], unsigned int *iu, const unsigned short gamin[16],float akappa);
+	/**
+	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
+	 *	
+	 *	@param	dSdpi:				The force
 	 *	@param	iflag:				Invert before evaluating the force. 0 to invert, one not to. Blame FORTRAN...	
 	 *	@param	res1:					Conjugate gradient residue
 	 *	@param	X0:					Up/down partitioned pseudofermion field

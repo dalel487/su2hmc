@@ -1,6 +1,7 @@
 #ifdef DIAGNOSTIC
 #include <assert.h>
 #include <complex.h>
+#include <clover.h>
 #include <matrices.h>
 #include <su2hmc.h>
 #include <string.h>
@@ -30,33 +31,45 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 #include<float.h>
 	printf("FLT_EVAL_METHOD is %i. Check online for what this means\n", FLT_EVAL_METHOD);
 
+	unsigned int itercg=0;
+	Complex_f *clover_f[nc], *hLeaves[ndim][nc]; Complex *clover[nc];
 #ifdef __NVCC__
 	int device=-1;
 	cudaGetDevice(&device);
 	Complex *xi,*R1,*Phi,*X0,*X1, *smallPhi;
-	Complex_f *X0_f, *X1_f, *xi_f, *R1_f, *Phi_f, *clover[nc];
+	Complex_f *X0_f, *X1_f, *xi_f, *R1_f, *Phi_f;
 	double *dSdpi,*pp;
 	//Some of these strictly do not have a halo. To make things easier I'm giving them one anyway and adjusting the
-	//output compared to what might be expected in the main code (kvol vs kvolHalo mainly)
-	cudaMallocManaged(clover+0,6*kvol*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged(clover+1,6*kvol*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged(&R1,kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&xi,kfermHalo*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&R1_f,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged(&xi_f,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged(&Phi,nf*kferm*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&smallPhi,kferm2*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&Phi_f,nf*kferm*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged(&X0,kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&X1,kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
-	cudaMallocManaged(&X0_f,kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged(&X1_f,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged(&pp,kmom*sizeof(double),cudaMemAttachGlobal);
-	cudaMallocManaged(&dSdpi,kmom*sizeof(double),cudaMemAttachGlobal);
+	//output compared to what might be expected in the main code ((void **)kvol vs kvolHalo mainly)
+	cudaMallocManaged((void **)clover+0,6*kvol*sizeof((void **)Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)clover+1,6*kvol*sizeof((void **)Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)clover_f+0,6*kvol*sizeof((void **)Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)clover_f+1,6*kvol*sizeof((void **)Complex_f),cudaMemAttachGlobal);
+	for(unsigned short i=0;i<ndim;i++){
+		cudaMallocManaged((void **)&hLeaves[i][0],ndim*kvol*sizeof(Complex_f),cudaMemAttachGlobal);
+		cudaMallocManaged((void **)&hLeaves[i][1],ndim*kvol*sizeof(Complex_f),cudaMemAttachGlobal);
+	}
+	cudaMallocManaged((void **)&R1,kfermHalo*sizeof((void **)Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&xi,kfermHalo*sizeof((void **)Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&R1_f,kfermHalo*sizeof((void **)Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&xi_f,kfermHalo*sizeof((void **)Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&Phi,nf*kferm*sizeof((void **)Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&smallPhi,kferm2*sizeof((void **)Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&Phi_f,nf*kferm*sizeof((void **)Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&X0,kferm2Halo*sizeof((void **)Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&X1,kferm2Halo*sizeof((void **)Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&X0_f,kferm2Halo*sizeof((void **)Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&X1_f,kfermHalo*sizeof((void **)Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&X2_f,kferm2Halo*sizeof((void **)Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&pp,kmom*sizeof((void **)double),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&dSdpi,kmom*sizeof((void **)double),cudaMemAttachGlobal);
 #else
-	Complex_f *clover[nc];
-	clover[0]=aligned_alloc(AVX,6*kvol*sizeof(Complex_f));
-	clover[1]=aligned_alloc(AVX,6*kvol*sizeof(Complex_f));
+	clover[0]=aligned_alloc(AVX,6*kvol*sizeof(Complex));
+	clover[1]=aligned_alloc(AVX,6*kvol*sizeof(Complex));
+	for(unsigned short mu=0;mu<ndim;mu++){
+		hLeaves[mu][0]=(Complex_f *)aligned_alloc(AVX,ndim*kvol*sizeof(Complex_f));
+		hLeaves[mu][1]=(Complex_f *)aligned_alloc(AVX,ndim*kvol*sizeof(Complex_f));
+	}
 	Complex *R1= aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 	Complex *xi= aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 	Complex_f *R1_f= aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
@@ -69,6 +82,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 	double *pp = aligned_alloc(AVX,kmom*sizeof(double));
 	Complex_f *X0_f= aligned_alloc(AVX,nf*kferm2Halo*sizeof(Complex_f)); 
 	Complex_f *X1_f= aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f)); 
+	Complex_f *X2_f= (Complex_f *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
 	double *dSdpi = aligned_alloc(AVX,kmom*sizeof(double));
 #endif
 	//Trial fields shouldn't get modified (except for gauge_update
@@ -172,7 +186,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				fprintf(dk4p_File,"%f\t%f\t%f\t%f\n",dk[1][i],dk[1][i+1],dk[1][i+2],dk[1][i+3]);
 		}
 	}
-	for(int test = 0; test<=9; test++){
+	for(int test = 0; test<=15; test++){
 
 		//We reset all the random fields between each test. It's one way of ensuring that errors don't propegate from one
 		//test to another. Since we start from the same seed each time this should give the same results for each test. If
@@ -363,7 +377,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 			case(4):	//Hdslashd
 				ComplexConvert(X0_f,X0,kvol,false,nc*ndirac);
 				memset(X1,0,kferm2Halo*sizeof(Complex)); memset(X1_f,0,kferm2Halo*sizeof(Complex_f));
-				input = fopen("hdslash_in", "w"); input_f = fopen("hdslash_f_in", "w"); input_diff = fopen("hdslash_diff_in", "w");
+				input = fopen("hdslashd_in", "w"); input_f = fopen("hdslashd_f_in", "w"); input_diff = fopen("hdslashd_diff_in", "w");
 #ifdef __NVCC__
 				cudaDeviceSynchronise();
 #endif
@@ -404,20 +418,120 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				}
 				fclose(output);fclose(output_f);fclose(output_diff);
 				break;
-			case(5): //Half Leaves
-			break;
-			case(6):	//Clover Leaves
-			break;
-			case(7):	//Full Clover
-			break;
-			case(8): //ByClover
+			case(5): //Clover
+				if(c_sw==0)
+					break;
+				Clover(clover_f,ut_f,iu,id);
+				output=fopen("Clover","w");
+				for(unsigned int i=0;i<kvol;i++)
+					for(unsigned short mu=0;mu<ndim-1;mu++){
+						fprintf(output,"Site %d\n",i);
+						for(unsigned short nu=mu+1;nu<ndim;nu++)
+							if(mu!=nu){
+								unsigned short clov = (mu==0) ? nu-1 :mu+nu;
+								fprintf(output,"mu %d nu %d Clover1 %e+i%e Clover2 %e+i%e\n",mu,nu,\
+										crealf(clover_f[0][i+kvol*clov]), cimagf(clover_f[0][i+kvol*clov]), crealf(clover_f[1][i+kvol*clov]),\
+										cimagf(clover_f[1][i+kvol*clov]));
+							}
+						fprintf(output,"\n");
+					}
+				fclose(output);
+				//Clover correct, Convert works so get it in double here for everywhere else
+				ComplexConvert(clover_f[0],clover[0],6*kvol,false,1);
+				ComplexConvert(clover_f[1],clover[1],6*kvol,false,1);
+			case(6): //ByClover
+				if(c_sw==0)
+					break;
+				ComplexConvert(R1_f,R1,kvol,false,nc*ngorkov);
+				memset(xi,0,kfermHalo*sizeof(Complex)); memset(xi_f,0,kfermHalo*sizeof(Complex_f));
+				//NOTE: Each line corresponds to one lattice direction, in the form of colour 0, colour 1.
+				//Each block to one lattice site
+				input = fopen("byclover_in", "w"); input_f = fopen("byclover_f_in", "w"); input_diff = fopen("byclover_diff_in", "w");
+#ifdef __NVCC__
+				cudaDeviceSynchronise();
+#endif
+				for(unsigned int i = 0; i< kvol; i++){
+					fprintf(input, "Site %d:\n",i); fprintf(input_f, "Site %d:\n",i); fprintf(input_diff, "Site %d:\n",i);
+					for(unsigned short j=0;j<nc*ngorkov;j++){
+						fprintf(input, "%.5f+%.5fI\t",creal(R1[i+j*kvolHalo]),cimag(R1[i+j*kvolHalo]));
+						fprintf(input_f, "%.5f+%.5fI\t", creal(R1_f[i+j*kvolHalo]),cimag(R1_f[i+j*kvolHalo]));
+						fprintf(input_diff,"%.5f+%.5fI\t", creal(R1[i+j*kvolHalo]-R1_f[i+j*kvolHalo]),cimag(R1[i+j*kvolHalo]-R1_f[i+j*kvolHalo]));
+					}
+					fprintf(input, "\n\n"); fprintf(input_f,"\n\n"); fprintf(input_diff,"\n\n");
+				}
+				fclose(input); fclose(input_f); fclose(input_diff);
+				ByClover(xi,R1,clover,sigval,akappa,sigin,false);
+				ByClover_f(xi_f,R1_f,clover_f,sigval_f,akappa,sigin,false);
+#ifdef __NVCC__
+				cudaDeviceSynchronise();
+#endif
+				output = fopen("byclover", "w"); output_f = fopen("byclover_f", "w"); output_diff = fopen("byclover_diff", "w");
+				for(unsigned int i = 0; i< kvol; i++){
+					fprintf(output, "Site %d:\n",i); fprintf(output_f, "Site %d:\n",i); fprintf(output_diff, "Site %d:\n",i);
+					for(unsigned short j=0;j<nc*ngorkov;j++){
+						fprintf(output, "%.5f+%.5fI\t",creal(xi[i+j*kvolHalo]),cimag(xi[i+j*kvolHalo]));
+						fprintf(output_f, "%.5f+%.5fI\t", creal(xi_f[i+j*kvolHalo]),cimag(xi_f[i+j*kvolHalo]));
+						Complex diff = xi[i+j*kvolHalo]-xi_f[i+j*kvolHalo];
+						if(fabs(creal(diff))>1e-6 || fabs(cimag(diff))>1e-6){
+							fprintf(stderr,"Error %i in %s: Single and double disagree for ByClover site %i and spinor/color %d. Difference %e+%ei"\
+									"\nExiting...\n\n",CONVERR,funcname,i,j,creal(diff),cimag(diff));
+							fclose(output);fclose(output_f);fclose(output_diff);
+							exit(CONVERR);
+						}
+						else
+							fprintf(output_diff,"%.5f+%.5fI\t", creal(diff),cimag(diff));
+					}
+					fprintf(output, "\n\n"); fprintf(output_f,"\n\n"); fprintf(output_diff,"\n\n");
+				}
+				fclose(output); fclose(output_f); fclose(output_diff);
+				break;
+			case(7):	//HbyClover
+				if(c_sw==0)
+					break;
+				ComplexConvert(X0_f,X0,kvol,false,nc*ndirac);
 				memset(X1,0,kferm2Halo*sizeof(Complex)); memset(X1_f,0,kferm2Halo*sizeof(Complex_f));
-			break;
-			case(9):	//Hbyclover
-				memset(X1,0,kferm2Halo*sizeof(Complex)); memset(X1_f,0,kferm2Halo*sizeof(Complex_f));
-			break;
-			case(10): //Filling smallPhi
-				short na=0;
+				input = fopen("hbyclover_in", "w"); input_f = fopen("hbyclover_f_in", "w"); input_diff = fopen("hbyclover_diff_in", "w");
+#ifdef __NVCC__
+				cudaDeviceSynchronise();
+#endif
+				for(unsigned int i = 0; i< kvol; i++){
+					fprintf(input, "Site %d:\n",i); fprintf(input_f, "Site %d:\n",i); fprintf(input_diff, "Site %d:\n",i);
+					for(unsigned short j=0;j<nc*ndirac;j++){
+						fprintf(input, "%.5f+%.5fI\t",creal(X0[i+j*kvolHalo]),cimag(X0[i+j*kvolHalo]));
+						fprintf(input_f, "%.5f+%.5fI\t", creal(X0_f[i+j*kvolHalo]),cimag(X0_f[i+j*kvolHalo]));
+						fprintf(input_diff,"%.5f+%.5fI\t", creal(X0[i+j*kvolHalo]-X0_f[i+j*kvolHalo]),cimag(X0[i+j*kvolHalo]-X0_f[i+j*kvolHalo]));
+					}
+					fprintf(input, "\n\n"); fprintf(input_f,"\n\n"); fprintf(input_diff,"\n\n");
+				}
+				fclose(input);fclose(input_f);fclose(input_diff);
+				HbyClover(X1,X0,clover,sigval,akappa,sigin,false);
+				HbyClover_f(X1_f,X0_f,clover_f,sigval_f,akappa,sigin,false);
+#ifdef __NVCC__
+				cudaDeviceSynchronise();
+#endif
+				output = fopen("hbyclover", "w");	output_f = fopen("hbyclover_f", "w"); output_diff = fopen("hbyclover_diff", "w");
+				for(unsigned int i = 0; i< kvol; i++){
+					fprintf(output, "Site %d:\n",i); fprintf(output_f, "Site %d:\n",i); fprintf(output_diff, "Site %d:\n",i);
+					//Note. The output of Dslashd should not have a halo. Whilst xi is defined with one we do not use it here
+					//so stride is kvol, not kvolHalo
+					for(unsigned short j=0;j<nc*ndirac;j++){
+						fprintf(output, "%.5f+%.5fI\t",creal(X1[i+j*kvol]),cimag(X1[i+j*kvol]));
+						fprintf(output_f, "%.5f+%.5fI\t", creal(X1_f[i+j*kvol]),cimag(X1_f[i+j*kvol]));
+						Complex diff = X1[i+j*kvol]-X1_f[i+j*kvol];
+						if(fabs(creal(diff))>1e-6 || fabs(cimag(diff))>1e-6){
+							fprintf(stderr,"Error %i in %s: Single and double disagree for HbyClover site %i and spinor/color %d. Difference %e+%ei"\
+									"\nExiting...\n\n",CONVERR,funcname,i,j,creal(diff),cimag(diff));
+							fclose(output);fclose(output_f);fclose(output_diff);
+							exit(CONVERR);
+						}
+						else
+							fprintf(output_diff,"%.5f+%.5fI\t", creal(diff),cimag(diff));
+					}
+					fprintf(output, "\n\n"); fprintf(output_f,"\n\n"); fprintf(output_diff,"\n\n");
+				}
+				fclose(output);fclose(output_f);fclose(output_diff);
+
+			case(8): //Filling smallPhi
 				memset(smallPhi,0,kferm2*sizeof(Complex));
 				Fill_Small_Phi(na,smallPhi,Phi);
 				for(unsigned int i = 0; i<kvol;i++)
@@ -425,17 +539,18 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 						for(unsigned short ic= 0; ic<nc; ic++)
 							//	  PHI_index=i*16+j*2+k;
 							if(cabs(smallPhi[i+kvol*(ic+nc*idirac)]-Phi[i+kvol*(ic+nc*(idirac+ngorkov*na))])>1e-6){
-								fprintf("Error %i in %s: Failed to fill small phi correctly.\nExiting\n\n.",SPHIERR,funcname);
+								fprintf(stderr,"Error %i in %s: Failed to fill small phi correctly.\nExiting\n\n.",SPHIERR,funcname);
 								exit(SPHIERR);
 							}
-							break;
-			case(11): //Congradq
+				break;
+			case(9): //Congradq
 				memset(X1,0,kferm2Halo*sizeof(Complex));
-				if(Congradq(0,rescga,X1,smallPhi,ut,ut_f,clover,iu,id,gamval,gamval_f,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,c_sw,&itercg)){
+				itercg=0;
+				if(Congradq(0,rescga,X1,smallPhi,ut,ut_f,clover_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,c_sw,&itercg)){
 					fprintf(stderr,"Error %i in %s: Congradq failed to converge.\nExiting\n\n",ITERLIM,funcname);
 					exit(ITERLIM);
 				}
-			case(12):	//Hamilton
+			case(10):	//Hamilton
 				memset(X1,0,kferm2Halo*sizeof(Complex));
 				input = fopen("hamiltonian_in", "w");
 				for(unsigned int i = 0; i< kvol; i++){
@@ -459,7 +574,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				}
 				fclose(output);
 				break;
-			case(13): //Gauge Force
+			case(11): //Gauge Force
 				memset(dSdpi,0,kmom*sizeof(double));
 				input = fopen("Gauge_Force_in","w");
 				for(unsigned int i = 0; i< kvol; i++){
@@ -496,28 +611,25 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				fclose(output);	
 				break;
 				//Two force cases because of the flag. This also tests the conjugate gradient works okay
-			case(14):	//Spatial Force
-				memset(dSdpi,0,kmom*sizeof(double));
-				input = fopen("force_0_in", "w");
-				for(unsigned int i = 0; i< kvol; i++){
-					fprintf(input,"Site %d:\n",i);
-					for(unsigned short gen=0;gen<nadj;gen++){
-						fprintf(input,"Gen %d:\t",gen);
-						for(unsigned int mu=0;mu<ndim;mu++){
-							fprintf(input, "%.5f\t", dSdpi[i+kvol*(gen*ndim+mu)]);
-						}
-						fprintf(input,"\n");
-					}
-					fprintf(input,"\n");
+			case(12):	//Wilson Force
+				if(nproc>1){
+					fprintf(stderr,"Error %i in %s: MPI force diagnostic not implemented yet.\n\n"\
+							"Breaking and moving to next test",NOIMPL,funcname);
+					break;
 				}
-				fclose(input);
-				Force(dSdpi, 1, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,\
-						jqq,akappa,beta,c_sw,&ancg);
+				memset(dSdpi,0,kmom*sizeof(double));
+				ComplexConvert(X1_f,X1,kvol,true,nc*ndirac);
+				Hdslash_f(X2_f,X1_f,ut_f,iu,id,gamval_f,gamin,dk_f,akappa);
+
+				for(unsigned short mu=0;mu<ndim-1;mu++)
+					Force_s(dSdpi,ut_f,X1_f,X2_f,gamval_f,iu,gamin,akappa,mu);
+				Force_t(dSdpi,ut_f,X1_f,X2_f,gamval_f,dk_f,iu,gamin,akappa);
+				output = fopen("Wilson_Force","w");
 				for(unsigned int i = 0; i< kvol; i++){
 					fprintf(output,"Site %d:\n",i);
 					for(unsigned short gen=0;gen<nadj;gen++){
 						fprintf(output,"Gen %d:\t",gen);
-						for(unsigned int mu=0;mu<ndim;mu++){
+						for(unsigned int short mu=0;mu<ndim;mu++){
 							fprintf(output, "%.5f\t", dSdpi[i+kvol*(gen*ndim+mu)]);
 						}
 						fprintf(output,"\n");
@@ -526,40 +638,46 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				}
 				fclose(output);
 				break;
-			case(15):	 //Force w/o congrad
-				memset(dSdpi,0,kmom*sizeof(double));
-				input = fopen("force_1_in", "w");
-				for(unsigned int i = 0; i< kvol; i++){
-					fprintf(input,"Site %d:\n",i);
-					for(unsigned short gen=0;gen<nadj;gen++){
-						fprintf(input,"Gen %d:\t",gen);
-						for(unsigned int mu=0;mu<ndim;mu++){
-							fprintf(input, "%.5f\t", dSdpi[i+kvol*(gen*ndim+mu)]);
-						}
-						fprintf(input,"\n");
-					}
-					fprintf(input,"\n");
+			case(13): //Clover Half Leaves
+				if(c_sw==0)
+					break;
+				output=fopen("Half_leaves","w");
+				unsigned short mu=0; unsigned short nu=1;
+				Half_Leaves(hLeaves[mu],ut_f,iu,id,mu,nu);
+				Half_Leaves(hLeaves[nu],ut_f,iu,id,nu,mu);
+				fclose(output);
+				break;
+			case(14): //Clover Force
+				if(nproc>1){
+					fprintf(stderr,"Error %i in %s: MPI clover force not implemented yet.\n\n"\
+							"Breaking and moving to next test",NOIMPL,funcname);
+					break;
 				}
-				fclose(input);
-				Force(dSdpi, 0, rescgg,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,\
-						jqq,akappa,beta,c_sw,&ancg);
-				output = fopen("force_1", "w");
+				//Don't test if no clover.
+				if(c_sw==0)
+					break;
+				memset(dSdpi,0,kmom*sizeof(double));
+				Clover_Force(dSdpi,ut_f,X1_f,X2_f,sigval_f,sigin,iu,id,akappa);
+				output = fopen("Clover_Force","w");
 				for(unsigned int i = 0; i< kvol; i++){
 					fprintf(output,"Site %d:\n",i);
 					for(unsigned short gen=0;gen<nadj;gen++){
 						fprintf(output,"Gen %d:\t",gen);
-						for(unsigned int mu=0;mu<ndim;mu++){
+						for(unsigned short mu=0;mu<ndim;mu++){
 							fprintf(output, "%.5f\t", dSdpi[i+kvol*(gen*ndim+mu)]);
 						}
 						fprintf(output,"\n");
 					}
 					fprintf(output,"\n");
 				}
-				fclose(output);	
-				break; //Congradp
-			case(16):
-				int itercg=0;
-				Congradp(0, respbp, Phi, R1,ut,ut_f,clover,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,c_sw,&itercg);
+				fclose(output);
+			case(15):
+				itercg=0;
+				if(Congradp(0, respbp, Phi, R1,ut,ut_f,clover_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,c_sw,&itercg)){
+					fprintf(stderr,"Error %i in %s: Congradp failed to converge.\nExiting\n\n",ITERLIM,funcname);
+					exit(ITERLIM);
+				}
+				break;
 
 		}
 	}
@@ -569,14 +687,24 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 	cudaFree(dk[0]); cudaFree(dk[1]); cudaFree(R1); cudaFree(dSdpi); cudaFree(pp);
 	cudaFree(Phi); cudaFree(ut[0]); cudaFree(ut[1]);
 	cudaFree(clover[0]); cudaFree(clover[1]);
+	cudaFree(clover_f[0]); cudaFree(clover_f[1]);
 	cudaFree(X0); cudaFree(X1); cudaFree(u[0]); cudaFree(u[1]);
 	cudaFree(X0_f); cudaFree(X1_f); cudaFree(ut_f[0]); cudaFree(ut_f[1]);
+	cudaFree(X2_f);
+	for(unsigned short i=0;i<ndim;i++){
+		cudaFree(hLeaves[i][0]); cudaFree(hLeaves[i][1]);
+	}
 	cudaFree(id); cudaFree(iu); cudaFree(hd); cudaFree(hu);
 #else
 	free(dk[0]); free(dk[1]); free(R1); free(dSdpi); free(pp);
 	free(Phi); free(ut[0]); free(ut[1]); free(xi);
 	free(clover[0]); free(clover[1]);
+	free(clover_f[0]); free(clover_f[1]);
+	for(unsigned short i=0;i<ndim;i++){
+		free(hLeaves[i][0]); free(hLeaves[i][1]);
+	}
 	free(X0); free(X1); free(u[0]); free(u[1]);
+	free(X2_f);
 	free(id); free(iu); free(hd); free(hu);
 	free(pcoord);
 #endif

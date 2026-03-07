@@ -14,7 +14,7 @@ ifeq ($(CXX),icpx)
 # this) compatibility issues on AVX10.2+ CPUs (e.g., Granite Rapids)
 # If compilation fails with AVX10.2 intrinsic errors, replace -march=native with -march=skylake-avx512
 # or use an older Intel compiler version that doesn't include AVX10.2 intrinsics.
-    $(error As of 20251101, the NVCC compiler fails with Intel OneAPI as it cannot parse the AVX10.2 intrinsics. And it will keep trying to parse them even if the target is not AVX512. Use GCC and G++ instead (echo CC=gcc; echo CXX=g++))
+    $(error As of 20251101, the libstdc++ headers break when compiling with Intel OneAPI. This is due to NVCC not supporting noexcept(true) in the header for rsqrt(), and Intel OneAPI (clang) being stricter than GCC. You may have more luck with a version of nvcc greater than 13.0 or an older libstdc++ library)
 CFLAGS+=  -qopt-zmm-usage=high -MD -ipo -static-intel -static-libgcc \
 			-march=native -DMKL_DIRECT_CALL -D__USE_MKL__  -qopenmp \
 			-qopenmp-simd  -use-intel-optimized-headers -diag-disable=10441
@@ -120,7 +120,7 @@ profiler:	CFLAGS += -g #-D_DEBUGCG
 profiler:	NVCCFLAGS += -Xptxas -O3,-v -lineinfo #-D_DEBUGCG #-keep
 profiler:	release
 
-release:	CFLAGS +=  -Ofast  #-fprofile-use=./gcc_pgo
+release:	CFLAGS +=  -O3  #-fprofile-use=./gcc_pgo
 release:	NVCCFLAGS +=  #--maxrregcount=64 -G -dopt=on
 release:	$(EXE)
 

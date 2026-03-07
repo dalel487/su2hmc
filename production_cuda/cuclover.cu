@@ -18,7 +18,7 @@
  *	@param	gen:	What generator are we multiplying by?
  */
 template <typename T>
-__device__ void ByGenLeft(T a[nc],const unsigned short gen){
+__device__ void cuByGenLeft(T a[nc],const unsigned short gen){
 	T tmp = a[0];
 	switch(gen){
 		///@f$i\sigma_x@f$
@@ -49,7 +49,7 @@ __device__ void ByGenLeft(T a[nc],const unsigned short gen){
  *	@param	gen:	What generator are we multiplying by?
  */
 template <typename T>
-__device__ void ByGenRight(T a[nc],const unsigned short gen){
+__device__ void cuByGenRight(T a[nc],const unsigned short gen){
 	T tmp = a[0];
 	switch(gen){
 		///@f$i\sigma_x@f$
@@ -241,7 +241,7 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 				///Both positive is just a standard plaquette
 				a[0]=u11t[i+kvolHalo*mu]; a[1]=u12t[i+kvolHalo*mu];
 				//Multiply first link by generator from the right
-				ByGenRight(a,gen);
+				cuByGenRight(a,gen);
 				uidm = iu[mu*kvol+i]; 
 				/// @f$U_\mu(x)U^\nu(x+\hat{\mu})@f$
 				Leaves[0]=a[0]*u11t[uidm+kvolHalo*nu]-a[1]*conj(u12t[uidm+kvolHalo*nu]);
@@ -249,7 +249,7 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 			}
 			//Multiply by generator from the right after the first two links
 			if(gen_pos==2)
-				ByGenRight(Leaves,gen);
+				cuByGenRight(Leaves,gen);
 
 			unsigned int uidn = iu[nu*kvol+i]; 
 			/// @f$U_\mu(x)U_\nu(x+\hat{\mu})U^\dagger_\mu(x+\hat{\nu})@f$
@@ -257,7 +257,7 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 			a[1]=-Leaves[0]*u12t[uidn+kvolHalo*mu]+Leaves[1]*u11t[uidn+kvolHalo*mu];
 			//Multiply by generator from the right after the first three links
 			if(gen_pos==3)
-				ByGenRight(a,gen);
+				cuByGenRight(a,gen);
 
 			/// @f$U_\mu(x)U_\nu(x+\hat{\mu})U^\dagger_\mu(x+\hat{\nu})U^\dagger_\nu(x)@f$
 			Leaves[0]=a[0]*conj(u11t[i+kvolHalo*nu])+a[1]*conj(u12t[i+kvolHalo*nu]);
@@ -273,7 +273,7 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 				uidm = id[mu*kvol+i];
 				a[0]=u11t[i+kvolHalo*nu]; a[1]=u12t[i+kvolHalo*nu];
 				//Multiply first link by generator from the right
-				ByGenRight(a,gen);
+				cuByGenRight(a,gen);
 				//Awkward index...
 				const unsigned int uin_didm=iu[nu*kvol+uidm];
 				/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})@f$
@@ -283,14 +283,14 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 			didm = id[mu*kvol+i];
 			//Multiply by generator from the right after the first two links
 			if(gen_pos==2)
-				ByGenRight(Leaves,gen);
+				cuByGenRight(Leaves,gen);
 
 			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})U^\dagger_\nu(x-\hat{\mu})@f$
 			a[0]=Leaves[0]*conj(u11t[didm+kvolHalo*nu])+Leaves[1]*conj(u12t[didm+kvolHalo*nu]);
 			a[1]=-Leaves[0]*u12t[didm+kvolHalo*nu]+Leaves[1]*u11t[didm+kvolHalo*nu];
 			//Multiply by generator from the right after the first three links
 			if(gen_pos==3)
-				ByGenRight(a,gen);
+				cuByGenRight(a,gen);
 
 			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})U^\dagger_\nu(x-\hat{\mu})U_\mu(x-\hat{\mu})@f$
 			Leaves[0]=a[0]*u11t[didm+kvolHalo*mu]-a[1]*conj(u12t[didm+kvolHalo*mu]);
@@ -306,7 +306,7 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 				//Daggered. So Conj what goes into a[0] and negate what goes into a[1]
 				a[0]=conj(u11t[uidm+kvolHalo*nu]); a[1]=-u12t[uidm+kvolHalo*nu];
 				//Multiply first link by generator from the right
-				ByGenRight(a,gen);
+				cuByGenRight(a,gen);
 
 				/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})@f$
 				Leaves[0]=a[0]*u11t[uidm+kvolHalo*mu]-a[1]*conj(u12t[uidm+kvolHalo*mu]);
@@ -317,14 +317,14 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 			didn = id[nu*kvol+i]; 
 			//Multiply by generator from the right after the first two links
 			if(gen_pos==2)
-				ByGenRight(Leaves,gen);
+				cuByGenRight(Leaves,gen);
 			unsigned int uim_didn=iu[mu*kvol+didn];
 			/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})@f$
 			a[0]=Leaves[0]*u11t[uim_didn+kvolHalo*nu]-Leaves[1]*conj(u12t[uim_didn+kvolHalo*nu]);
 			a[1]=Leaves[0]*u12t[uim_didn+kvolHalo*nu]+Leaves[1]*conj(u11t[uim_didn+kvolHalo*nu]);
 			//Multiply by generator from the right after the first three links
 			if(gen_pos==3)
-				ByGenRight(a,gen);
+				cuByGenRight(a,gen);
 
 			/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})U^\dagger_\mu(x)@f$
 			Leaves[0]=a[0]*conj(u11t[i+kvolHalo*mu])+a[1]*u12t[i+kvolHalo*mu];
@@ -340,7 +340,7 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 				uidm  =  id[i+kvol*mu];
 				//Daggered. So Conj what goes into a[0] and negate what goes into a[1]
 				a[0]=conj(u11t[uidm+kvolHalo*mu]); a[1]=-u12t[uidm+kvolHalo*mu];
-				ByGenRight(a,gen);
+				cuByGenRight(a,gen);
 				//Another awkward index
 				const unsigned int din_didm=id[nu*kvol+uidm];
 
@@ -354,7 +354,7 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 			unsigned int din_didm=id[mu*kvol+didn];
 			//Multiply by generator from the right after the first two links
 			if(gen_pos==2)
-				ByGenRight(Leaves,gen);
+				cuByGenRight(Leaves,gen);
 
 			didm = id[mu*kvol+i];
 			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(n-\hat{\nu}-\hat{\mu})@f$
@@ -362,7 +362,7 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 			a[1]=Leaves[0]*u12t[din_didm+kvolHalo*mu]+Leaves[1]*conj(u11t[din_didm+kvolHalo*mu]);
 			//Multiply by generator from the right after the first three links
 			if(gen_pos==3)
-				ByGenRight(a,gen);
+				cuByGenRight(a,gen);
 
 			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(n-\hat{\nu}-\hat{\mu})U_\nu(n-\hat{\nu})@f$
 			Leaves[0]=a[0]*u11t[didm+kvolHalo*nu]-a[1]*conj(u12t[didm+kvolHalo*nu]);
@@ -374,10 +374,10 @@ __device__ int Force_Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[
 	}
 	///gen_pos 0 is multiply the entire leaf by the generator from the left
 	if(gen_pos==0)
-		ByGenLeft(Leaves,gen);
+		cuByGenLeft(Leaves,gen);
 	///gen_pos 4 is multiply the entire leaf by the generator from the left
 	if(gen_pos==4)
-		ByGenRight(Leaves,gen);
+		cuByGenRight(Leaves,gen);
 	return 0;
 }
 
@@ -558,10 +558,10 @@ __global__ void Clover_Force(double *dSdpi, complex<T> *u11t, complex<T> *u12t, 
 				//Prefetching. Might not be needed here though
 				complex<T> X1sc[nc];
 				//X1 is always conjugated. So do it once here instead of twice and be done with it.	
-				X1sc[0]=conj(X1[ind]); X1sc[1]=conj(X1[indi+kvolHalo]);
+				X1sc[0]=conj(X1[ind]); X1sc[1]=conj(X1[ind+kvolHalo]);
 				ind = site+kvolHalo*sind;
 				complex<T> X2s[nc];
-				X2s[0]=X2[ind]; X2s[1]=X2[indi+kvolHalo];
+				X2s[0]=X2[ind]; X2s[1]=X2[ind+kvolHalo];
 
 				for(unsigned short gen=0;gen<nadj;gen++){
 					//					complex<T> fleaf1c=conj(fleaf[gen][1]);
@@ -755,8 +755,6 @@ int cuClover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X
 	complex<float> *hLeaves[ndim][nc];
 	//Allocate half-leaf memory. We will have one stream for each direction
 	for(unsigned short i=0;i<ndim;i++){
-		//cudaMallocAsync((void **)&hLeaves[i][0],ndim*kvol*sizeof(Complex_f),streams[i]);
-		//cudaMallocAsync((void **)&hLeaves[i][1],ndim*kvol*sizeof(Complex_f),streams[i]);
 		cudaMallocAsync((void **)&hLeaves[i][0],ndim*kvol*sizeof(complex<float>),streams[i]);
 		cudaMallocAsync((void **)&hLeaves[i][1],ndim*kvol*sizeof(complex<float>),streams[i]);
 	}

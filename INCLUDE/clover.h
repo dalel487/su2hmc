@@ -10,6 +10,27 @@
 
 
 /**
+ * @brief Multiply leaf (or part of one) by generator from left
+ *
+ *	The leaves contributing to each force term need to be scaled by the generator, but the generator appears at
+ *	different points in each leaf.  This routine multiples by the generator from the left side.
+ *
+ *	@param	a:		The leaf or partial leaf
+ *	@param	gen:	What generator are we multiplying by?
+ */
+void ByGenLeft(Complex_f a[nc],const unsigned short gen);
+/**
+ * @brief Multiply leaf (or part of one) by generator from right
+ *
+ *	The leaves contributing to each force term need to be scaled by the generator, but the generator appears at
+ *	different points in each leaf.  This routine multiples by the generator from the right side.
+ *
+ *	@param	a:		The leaf or partial leaf
+ *	@param	gen:	What generator are we multiplying by?
+ */
+void ByGenRight(Complex_f a[nc],const unsigned short gen);
+
+/**
  * @brief Calculates the SU2 plaquette at site i in the @f$\mu--\nu@f$ direction
  *
  * @param ut:		Trial fields
@@ -24,15 +45,26 @@ int Clover_SU2plaq(Complex_f *ut[nc], Complex_f Leaves[nc], unsigned int *iu,  i
 /**
  *	@brief	Calculates a leaf for a clover term.
  *
- *	@param	ut:		Gauge fields
  *	@param	Leaves:	Array of leaves
+ *	@param	ut:		Gauge fields
  *	@param	iu,id:	Upper and lower site indices
  *	@param	i:			Lattice index of the clover in question
  *	@param	mu,nu:	Direction in which we're evaluating the leaf
  *	@param	leaf:		Which leaf of the clover is being calculated
  *	
  */
-int Leaf(Complex_f *ut[nc], Complex_f Leaves[nc], unsigned int *iu, unsigned int *id, int i, int mu, int nu, short leaf);
+/**
+ *	@brief Calculates the products of the first two links in a plaquette
+ *
+ *	@param	hleaves:		Product of first two links in
+ *	@param	ut:			Gauge fields
+ *	@param	iu,id:		Upper and lower indices
+ *	@param	mu,nu:		Clover direction
+ */
+void Half_Leaves(Complex_f *hLeaves[2],Complex_f *ut[2], unsigned int *iu,unsigned int *id,\
+		const unsigned short mu,const unsigned short nu);
+int Leaf(Complex_f Leaves[nc],Complex_f *ut[nc], unsigned int *iu, unsigned int *id, unsigned int i,\
+		const unsigned short mu, const unsigned short nu,const unsigned short leaf);
 /**
  *	@brief	Calculates the clover in the forward direction and the leaves. Subtracting the conjugate of this yields the
  *	full clover
@@ -54,90 +86,92 @@ int Half_Clover(Complex_f *clover[nc],	Complex_f *ut[nc], unsigned int *iu, unsi
  *	@param	ut:		Gauge fields
  *	@param	iu,id:	Upper and lower indices
  */
-int Clover(Complex_f *clover[nc],Complex_f *ut[nc], unsigned int *iu, unsigned int *id);
+void Clover(Complex_f *clover[2], Complex_f *ut[2], unsigned int *iu, unsigned int *id);
 /**
  *	@brief Clover analogue of the Dslash operation. This version acts on all flavours simiilar to Dslash and Dslash_d
+ *	
  *
- *	@param	phi:		Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
- *	@param	r:			Pseudofermion field before multiplication. The thing we want to multiply by the clover
- *	@param	clover:	Array of clovers
- *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
- *	@param	akappa:	Hopping Parameter
- * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
- * @param	dag:					Daggered has no MPI halo, but undaggered does.
+ *	@param	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
+ *	@param	r:						Pseudofermion field before multiplication. The thing we want to multiply by the clover
+ *	@param	clover:				Array of clovers
+ *	@param	sigval:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
+ *	@param	akappa:				Hopping Parameter
+ * @param	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param	dag:					Daggered output has no MPI halo, but undaggered does.
  */
-int ByClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, const float akappa, unsigned short *sigin,bool dag);
+void ByClover(Complex *phi, Complex *r, Complex *clover[2], Complex *sigval, const float akappa, unsigned short *sigin, bool dag);
 /**
  *	@brief Clover analogue of the Dslash operation. This version acts on all flavours simiilar to Dslash and Dslash_d
+ *	
  *
- *	@param	phi:		Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
- *	@param	r:			Pseudofermion field before multiplication. The thing we want to multiply by the clover
- *	@param	clover:	Array of clovers
- *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
- *	@param	akappa:	Hopping Parameter
- * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
- * @param	dag:					Daggered has no MPI halo, but undaggered does.
+ *	@param	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
+ *	@param	r:						Pseudofermion field before multiplication. The thing we want to multiply by the clover
+ *	@param	clover:				Array of clovers
+ *	@param	sigval:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
+ *	@param	akappa:				Hopping Parameter
+ * @param	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param	dag:					Daggered output has no MPI halo, but undaggered does.
  */
-int ByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval,const float akappa,  unsigned short *sigin,bool dag);
+void ByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2], Complex_f *sigval, const float akappa, unsigned short *sigin, bool dag);
 /**
- *	@brief Clover analogue of the Dslash operation. The H in front is for half, as we only act on the fermions of flavour
+ *	@brief Clover analogue of the Dslash operation. This version acts on all flavours simiilar to Dslash and Dslash_d
+ *	
  *
- *	@param	phi:		Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
- *	@param	r:			Pseudofermion field before multiplication. The thing we want to multiply by the clover
- *	@param	clover:	Array of clovers
- *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
- *	@param	akappa:	Hopping Parameter
- * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
- * @param	dag:					Daggered has no MPI halo, but undaggered does.
+ *	@param	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
+ *	@param	r:						Pseudofermion field before multiplication. The thing we want to multiply by the clover
+ *	@param	clover:				Array of clovers
+ *	@param	sigval:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
+ *	@param	akappa:				Hopping Parameter
+ * @param	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param	dag:					Daggered output has no MPI halo, but undaggered does.
  */
-int HbyClover(Complex *phi, Complex *r, Complex *clover[nc], Complex *sigval, const float akappa, unsigned short *sigin,bool dag);
+void HbyClover(Complex *phi, Complex *r, Complex *clover[2],Complex *sigval, const float akappa, unsigned short *sigin,bool dag);
 /**
- *	@brief Clover analogue of the Dslashd operation. The H in front is for half, as we only act on the fermions of flavour
+ *	@brief Clover analogue of the Dslash operation. This version acts on all flavours simiilar to Dslash and Dslash_d
+ *	
  *
- *	@param	phi:		Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
- *	@param	r:			Pseudofermion field before multiplication. The thing we want to multiply by the clover
- *	@param	clover:	Array of clovers
- *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
- *	@param	akappa:	Hopping Parameter
- * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
- * @param	dag:					Daggered has no MPI halo, but undaggered does.
+ *	@param	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
+ *	@param	r:						Pseudofermion field before multiplication. The thing we want to multiply by the clover
+ *	@param	clover:				Array of clovers
+ *	@param	sigval:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
+ *	@param	akappa:				Hopping Parameter
+ * @param	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param	dag:					Daggered output has no MPI halo, but undaggered does.
  */
-int HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc], Complex_f *sigval, const float akappa, unsigned short *sigin,bool dag);
+void HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2],Complex_f *sigval, const float akappa, unsigned short *sigin,bool dag);
 /**
- * @brief	Extracts the leaves required for the clover force term and adds them correctly
+ *	@brief	Calculates a leaf for a clover term.
  *
- * @param	fleaf:	The summed leaves
- * @param	Leaves:	The individual leaves of a particular clover. The clover itself is chosen in Clover_Force
- * @param	i:			Lattice site index
+ *	@param	ut:			Gauge fields
+ *	@param	Leaves:		Array of leaves
+ *	@param	iu,id:		Upper and lower site indices
+ *	@param	i:				Lattice index of the clover in question
+ *	@param	mu,nu:		Direction in which we're evaluating the leaf
+ *	@param	leaf:			Which leaf of the clover is being calculated
+ *	@param	gen:			Which generator do we multiply the leaves by. Used for the force terms
+ *	@param	gen_pos:		Where does the generator appear in the multiplication. Used for the force terms.
+ *	
  */
-void Fleaf(Complex_f fleaf[nc], Complex_f *Leaves[nc], const unsigned int i);
+int Force_Leaf(Complex_f *ut[nc], Complex_f Leaves[nc],\
+		unsigned int *iu, unsigned int *id, unsigned int i,const unsigned short mu,const unsigned short nu,\
+		const unsigned short leaf,short gen,short gen_pos);
 /**
- *	@brief	CUDA wrapper for Clover_Force
+ *	@brief	Clover contribution to the Molecular Dynamics force
  *
  *	@param	dSdpi:		Force
- *	@param	ut:		Gauge fields
+ *	@param	ut:			Gauge fields
  *	@param	X1:			@f$\left(M^\dagger M\right)^{-1} \Psi@f$
  *	@param	X2:			@f$M\left(M^\dagger M\right)^{-1} \Psi@f$
  *	@param	sigval:		@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$c_sw@f$
  * @param	sigin:		What element of the spinor is multiplied by row idirac each sigma matrix?
- * @param	iu:			Up indices
- * @param	id:			Down indices
- * @param	kappa:		Hopping parameter
+ * @param	iu,id:		Up/down indices
+ * @param	clov:			Clover we're intereted in
+ * @param	mu,nu:		Direction of clover we're interested in
+ * @param	akappa:		Hopping parameter
  */
-int Clover_Force(double *dSdpi, Complex_f *ut[nc],Complex_f *X1, Complex_f *X2, Complex_f *sigval,\
-		unsigned short *sigin, unsigned int *iu, unsigned int *id, const float kappa);
-/**
- *	@brief	Scales a clover leaf by the relevant SU(2) generator
- *
- *	@param	Fleaf:	Array of scaled leaves. Name comes from Force-leaf as thats where we use them
- *	@param	Leaves:	Array of clover leaves being scaled
- *	@param	i:			Site index
- *	@param	leaf:		Which leaf are we scaling
- *	@param	adj:		Which generator. Since we're zero indexed subtract one from the usual textbook label
- *	@param	pm:		Are we adding or subtracting this contribution from Fleaf? The force only needs the sum of the
- *							Fleaf terms so I've done it here.
- */
-void GenLeaf(Complex_f Fleaf[nc],const unsigned short adj);
+void Clover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2,\
+		const Complex_f *sigval, const unsigned short *sigin, unsigned int *iu, unsigned int *id,\
+		const float akappa);
 /**
  *	@brief	Initialise values needed for the clover terms
  *

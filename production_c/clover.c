@@ -5,17 +5,9 @@
  */
 #include <clover.h>
 //Multiplying by generators
-/**
- * @brief Multiply leaf (or part of one) by generator from left
- *
- *	The leaves contributing to each force term need to be scaled by the generator, but the generator appears at
- *	different points in each leaf.  This routine multiples by the generator from the left side.
- *
- *	@param	a:		The leaf or partial leaf
- *	@param	gen:	What generator are we multiplying by?
- */
-void ByGenLeft(Complex a[nc],const unsigned short gen){
-	Complex tmp = a[0];
+#pragma omp declare simd
+void ByGenLeft(Complex_f a[nc],const unsigned short gen){
+	Complex_f tmp = a[0];
 	switch(gen){
 		///@f$i\sigma_x@f$
 		case(0):
@@ -35,17 +27,9 @@ void ByGenLeft(Complex a[nc],const unsigned short gen){
 	}
 	return;
 }
-/**
- * @brief Multiply leaf (or part of one) by generator from right
- *
- *	The leaves contributing to each force term need to be scaled by the generator, but the generator appears at
- *	different points in each leaf.  This routine multiples by the generator from the right side.
- *
- *	@param	a:		The leaf or partial leaf
- *	@param	gen:	What generator are we multiplying by?
- */
-void ByGenRight(Complex a[nc],const unsigned short gen){
-	Complex tmp = a[0];
+#pragma omp declare simd
+void ByGenRight(Complex_f a[nc],const unsigned short gen){
+	Complex_f tmp = a[0];
 	switch(gen){
 		///@f$i\sigma_x@f$
 		case(0):
@@ -80,7 +64,7 @@ void ByGenRight(Complex a[nc],const unsigned short gen){
  *	@param	leaf:		Which leaf of the clover is being calculated
  *	
  */
-#pragma omp simd
+#pragma omp declare simd
 int Half_Leaf(Complex_f Leaves[nc], Complex_f *ut[nc], Complex_f a[nc], unsigned int *iu,\
 		unsigned int *id, const unsigned int i, const unsigned short mu, const unsigned short nu, const unsigned short leaf){
 	unsigned int uidm;
@@ -133,22 +117,23 @@ int Half_Leaf(Complex_f Leaves[nc], Complex_f *ut[nc], Complex_f a[nc], unsigned
 	}
 	return 0;
 }
-/**
- *	@brief	Calculates a leaf for a clover term.
- *
- *	@param	Leaves:	Array of leaves
- *	@param	ut:		Gauge fields
- *	@param	iu,id:	Upper and lower site indices
- *	@param	i:			Lattice index of the clover in question
- *	@param	mu,nu:	Direction in which we're evaluating the leaf
- *	@param	leaf:		Which leaf of the clover is being calculated
- *	
- */
-#pragma omp simd
-int Leaf(Complex_f Leaves[nc],Complex_f *ut[nc], nsigned int *iu, unsigned int *id, unsigned int i,\
+void Half_Leaves(Complex_f *hLeaves[2],Complex_f *ut[2], unsigned int *iu,unsigned int *id,\
+		const unsigned short mu,const unsigned short nu){
+
+#pragma omp parallel for simd collapse(2)
+	for(unsigned short leaf=0;leaf<ndim;leaf++)
+		for(unsigned int i=0;i<kvol;i++){
+			Complex_f Leaves[nc], a[nc];
+			Half_Leaf(Leaves,ut,a,iu,id,i,mu,nu,leaf);
+			hLeaves[0][i+kvol*leaf]=Leaves[0]; hLeaves[1][i+kvol*leaf]=Leaves[1];
+		}
+	return;
+}
+#pragma omp declare simd
+int Leaf(Complex_f Leaves[nc],Complex_f *ut[nc], unsigned int *iu, unsigned int *id, unsigned int i,\
 		const unsigned short mu, const unsigned short nu,const unsigned short leaf){
 	Complex_f a[nc];
-	Half_Leaf(Leaves,ut[0],ut[1],a,iu,id,i,mu,nu,leaf);
+	Half_Leaf(Leaves,ut,a,iu,id,i,mu,nu,leaf);
 	unsigned int didm,didn,uidm;
 	switch(leaf){
 		case(0):
@@ -212,65 +197,39 @@ int Leaf(Complex_f Leaves[nc],Complex_f *ut[nc], nsigned int *iu, unsigned int *
 	}
 	return 0;
 }
-/**
- *	@brief Calculates the products of the first two links in a plaquette
- *
- *	@param	hleaves:		Product of first two links in
- *	@param	ut:			Gauge fields
- *	@param	iu,id:		Upper and lower indices
- *	@param	mu,nu:		Clover direction
- */
-void Half_Leaves(Complex_f *hLeaves[2],Complex_f *ut[2], unsigned int *iu,unsigned int *id,\
-		const unsigned short mu,const unsigned short nu){
-
-#pragma omp parallel for simd collapse(2)
-	for(unsigned short leaf=0;leaf<ndim;leaf++)
-		for(unsigned int i=0;i<kvol;i++){
-			Complex_f Leaves[nc], a[nc];
-			Half_Leaf(Leaves,ut[0],ut[1],a,iu,id,i,mu,nu,leaf);
-			hLeaves[0][i+kvol*leaf]=Leaves[0]; hLeaves[1][i+kvol*leaf]=Leaves[1];
-		}
-	return;
-}
-/**
- *	@brief Calculates the clovers in all directions at all sites
- *	@f$ F_{\mu\nu}(n)=\frac{-i}{8a^2}\left(Q_{\mu\nu}(n)-Q_{\nu\mu}(n)\right)@f$
- *
- *	@param	clover:	Array of clovers
- *	@param	ut:		Gauge fields
- *	@param	iu,id:	Upper and lower indices
- *	@param	mu,nu:	Clover direction
- */
-void Full_Clover(Complex_f *clover[2], Complex_f *ut[2], unsigned int *iu, unsigned int *id){
+void Clover(Complex_f *clover[2], Complex_f *ut[2], unsigned int *iu, unsigned int *id){
 	const char funcname[]="Full_Clover";
 #ifdef __NVCC__
 	cuClover(clover,ut,iu,id);
 #else
+	clover[0]=aligned_alloc(AVX,6*kvol*sizeof(Complex_f));
+	clover[1]=aligned_alloc(AVX,6*kvol*sizeof(Complex_f));
 	for(unsigned short mu=0;mu<ndim-1;mu++)
 		for(unsigned short nu=mu+1;nu<ndim;nu++)
 			if(mu!=nu){
 				//Clover index
 				unsigned short clov = (mu==0) ? nu-1 :mu+nu;
-#pragma omp parallel for simd
+#pragma omp parallel for 
 				for(unsigned int i=0;i<kvol;i++){
-					clover[0][i]=0;clover[1][i]=0;
+					clover[0][i+clov*kvol]=0;
+					clover[1][i+clov*kvol]=0;
 					Complex_f Leaves[nc];
 					for(unsigned short leaf=0;leaf<ndim;leaf++)
 					{
 						//Pointer arithemetic on the leaves.
-						Leaf(ut[0],ut[1],Leaves,iu,id,i,mu,nu,leaf);
+						Leaf(Leaves,ut,iu,id,i,mu,nu,leaf);
 						clover[0][i+clov*kvol]+=Leaves[0]; clover[1][i+clov*kvol]+=Leaves[1];
 					}
 					///The clover is given by @f$F_{\mu\nu}=\frac{-i}{8}\left(Q_{\mu\nu}-Q_{\nu\mu}\right)@f$. We do that
 					///manually below.
 
 					///The @f$\alpha@f$ component. Only the imaginary part survives. And since it is multiplied by @f$-i@f$ it is real.
-					///Need to be extra cautious here though cimag() returns a real value. So we multiply by I_f manually 
+					///Need to be extra cautious here though cimag() returns a real value. So we multiply by I manually 
 					///The 8.0f becomes a 4.0f to account for the factor of two
 					clover[0][i+clov*kvol]=cimagf(clover[0][i+clov*kvol]);		clover[0][i+clov*kvol]*=(1.0f/4.0f);
 
 					///The @f$\beta@f$ component. Both real and imaginary components survive. It ends up getting doubled.
-					clover[1][i+clov*kvol]+=clover[1][i+clov*kvol];	clover[1][i+clov*kvol]*=(-I_f/8.0f);
+					clover[1][i+clov*kvol]+=clover[1][i+clov*kvol];	clover[1][i+clov*kvol]*=(-I/8.0f);
 				}
 			}
 #endif
@@ -279,18 +238,6 @@ void Full_Clover(Complex_f *clover[2], Complex_f *ut[2], unsigned int *iu, unsig
 
 //Multiplication for Congradq
 //=========================
-/**
- *	@brief Clover analogue of the Dslash operation. This version acts on all flavours simiilar to Dslash and Dslash_d
- *	
- *
- *	@param	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
- *	@param	r:						Pseudofermion field before multiplication. The thing we want to multiply by the clover
- *	@param	clover:				Array of clovers
- *	@param	sigval:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
- *	@param	akappa:				Hopping Parameter
- * @param	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
- * @param	dag:					Daggered output has no MPI halo, but undaggered does.
- */
 void ByClover(Complex *phi, Complex *r, Complex *clover[2], Complex *sigval, const float akappa, unsigned short *sigin, bool dag){
 #ifdef __NVCC__
 	cuByClover(phi,r,clover,sigval,akappa,sigin,dag);
@@ -336,18 +283,6 @@ void ByClover(Complex *phi, Complex *r, Complex *clover[2], Complex *sigval, con
 #endif
 	return;
 }
-/**
- *	@brief Clover analogue of the Dslash operation. This version acts on all flavours simiilar to Dslash and Dslash_d
- *	
- *
- *	@param	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
- *	@param	r:						Pseudofermion field before multiplication. The thing we want to multiply by the clover
- *	@param	clover:				Array of clovers
- *	@param	sigval:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
- *	@param	akappa:				Hopping Parameter
- * @param	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
- * @param	dag:					Daggered output has no MPI halo, but undaggered does.
- */
 void HbyClover(Complex *phi, Complex *r, Complex *clover[2],Complex *sigval, const float akappa, unsigned short *sigin,bool dag){
 	const char funcname[] = "HbyClover";
 #ifdef __NVCC__
@@ -394,18 +329,6 @@ void HbyClover(Complex *phi, Complex *r, Complex *clover[2],Complex *sigval, con
 	return;
 }
 //Float versions
-/**
- *	@brief Clover analogue of the Dslash operation. This version acts on all flavours simiilar to Dslash and Dslash_d
- *	
- *
- *	@param	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
- *	@param	r:						Pseudofermion field before multiplication. The thing we want to multiply by the clover
- *	@param	clover:				Array of clovers
- *	@param	sigval:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
- *	@param	akappa:				Hopping Parameter
- * @param	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
- * @param	dag:					Daggered output has no MPI halo, but undaggered does.
- */
 void ByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2], Complex_f *sigval, const float akappa, unsigned short *sigin, bool dag){
 #ifdef __NVCC__
 	cuByClover_f(phi,r,clover,sigval,akappa,sigin,dag);
@@ -451,18 +374,6 @@ void ByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2], Complex_f *s
 #endif
 	return;
 }
-/**
- *	@brief Clover analogue of the Dslash operation. This version acts on all flavours simiilar to Dslash and Dslash_d
- *	
- *
- *	@param	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
- *	@param	r:						Pseudofermion field before multiplication. The thing we want to multiply by the clover
- *	@param	clover:				Array of clovers
- *	@param	sigval:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
- *	@param	akappa:				Hopping Parameter
- * @param	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
- * @param	dag:					Daggered output has no MPI halo, but undaggered does.
- */
 void HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2],Complex_f *sigval, const float akappa, unsigned short *sigin,bool dag){
 	const char funcname[] = "HbyClover_f";
 #ifdef __NVCC__
@@ -511,23 +422,11 @@ void HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2],Complex_f *s
 
 //Clover Force
 //===========
-/**
- *	@brief	Calculates a leaf for a clover term.
- *
- *	@param	ut:			Gauge fields
- *	@param	Leaves:		Array of leaves
- *	@param	iu,id:		Upper and lower site indices
- *	@param	i:				Lattice index of the clover in question
- *	@param	mu,nu:		Direction in which we're evaluating the leaf
- *	@param	leaf:			Which leaf of the clover is being calculated
- *	@param	gen:			Which generator do we multiply the leaves by. Used for the force terms
- *	@param	gen_pos:		Where does the generator appear in the multiplication. Used for the force terms.
- *	
- */
-int Force_Leaf(complex<T> *ut[nc], complex<T> Leaves[nc],\
+int Force_Leaf(Complex_f *ut[nc], Complex_f Leaves[nc],\
 		unsigned int *iu, unsigned int *id, unsigned int i,const unsigned short mu,const unsigned short nu,\
 		const unsigned short leaf,short gen,short gen_pos){
-	complex<T> a[nc];
+		const char funcname[] = "Force_Leaf";
+	Complex_f a[nc];
 	unsigned int didm,didn,uidm;
 	switch(leaf){
 		case(0):
@@ -675,22 +574,8 @@ int Force_Leaf(complex<T> *ut[nc], complex<T> Leaves[nc],\
 		ByGenRight(Leaves,gen);
 	return 0;
 }
-/**
- *	@brief	Clover contribution to the Molecular Dynamics force
- *
- *	@param	dSdpi:		Force
- *	@param	ut:			Gauge fields
- *	@param	X1:			@f$\left(M^\dagger M\right)^{-1} \Psi@f$
- *	@param	X2:			@f$M\left(M^\dagger M\right)^{-1} \Psi@f$
- *	@param	sigval:		@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$c_sw@f$
- * @param	sigin:		What element of the spinor is multiplied by row idirac each sigma matrix?
- * @param	iu,id:		Up/down indices
- * @param	clov:			Clover we're intereted in
- * @param	mu,nu:		Direction of clover we're interested in
- * @param	akappa:		Hopping parameter
- */
-void Clover_Force(double *dSdpi, complex<T> *ut[nc], complex<T> *hLeaves[nc], complex<T> *X1, complex<T> *X2,\
-		const complex<T> *sigval, const unsigned short *sigin, unsigned int *iu, unsigned int *id,\
+void Clover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2,\
+		const Complex_f *sigval, const unsigned short *sigin, unsigned int *iu, unsigned int *id,\
 		const float akappa){
 #ifdef __NVCC__
 	cuClover_Force(dSdpi,ut,X1,X1,sigval,sigin,iu,id,akappa);
@@ -725,13 +610,13 @@ void Clover_Force(double *dSdpi, complex<T> *ut[nc], complex<T> *hLeaves[nc], co
 							switch(fclov){
 								case(0): //Clover at site
 									site=i;
-									tmp[0]=hLeaves0[site+0*kvol]; tmp[1]=hLeaves1[site+0*kvol];
+									tmp[0]=hLeaves[mu][0][site+0*kvol]; tmp[1]=hLeaves[mu][1][site+0*kvol];
 									//Get leaf 0 with the correct generator in the initial position
 									Force_Leaf(ut,tmp,iu,id,site,mu,nu,0,gen,0);
 									fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
 
 									//Get leaf 2 with the correct generator in the final position
-									tmp[0]=hLeaves0[site+2*kvol]; tmp[1]=hLeaves1[site+2*kvol];
+									tmp[0]=hLeaves[mu][0][site+2*kvol]; tmp[1]=hLeaves[mu][1][site+2*kvol];
 									Force_Leaf(ut,tmp,iu,id,site,mu,nu,2,gen,4);
 									//-= here as the contribut[1]ion is from @f$Q_{\nu\mu}@f$!!!
 									//Conjugate too.
@@ -740,11 +625,11 @@ void Clover_Force(double *dSdpi, complex<T> *ut[nc], complex<T> *hLeaves[nc], co
 								case(1): //Clover at i+mu
 									site=ipm;
 									//Get leaf 1 with the correct generator between links 3 and 4
-									tmp[0]=hLeaves0[site+1*kvol]; tmp[1]=hLeaves1[site+1*kvol];
+									tmp[0]=hLeaves[mu][0][site+1*kvol]; tmp[1]=hLeaves[mu][1][site+1*kvol];
 									Force_Leaf(ut,tmp,iu,id,site,mu,nu,1,gen,3);
 									fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
 									//Get leaf 3 with the correct generator between links 1 and 2
-									tmp[0]=hLeaves0[site+3*kvol]; tmp[1]=hLeaves1[site+3*kvol];
+									tmp[0]=hLeaves[mu][0][site+3*kvol]; tmp[1]=hLeaves[mu][1][site+3*kvol];
 									Force_Leaf(ut,tmp,iu,id,site,mu,nu,3,gen,1);
 									//-= here as the contribut[1]ion is from @f$Q_{\nu\mu}@f$!!!
 									//Conjugate too
@@ -753,14 +638,14 @@ void Clover_Force(double *dSdpi, complex<T> *ut[nc], complex<T> *hLeaves[nc], co
 								case(2): //Clover at i+nu
 									site=iu[i+kvol*nu];
 									//Get leaf 2 with the correct generator between links 1 and 2
-									tmp[0]=hLeaves0[site+2*kvol]; tmp[1]=hLeaves1[site+2*kvol];
+									tmp[0]=hLeaves[mu][0][site+2*kvol]; tmp[1]=hLeaves[mu][1][site+2*kvol];
 									Force_Leaf(ut,tmp,iu,id,site,mu,nu,2,gen,1);
 									fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
 									break;
 								case(3): //Clover at i-nu
 									site=id[i+kvol*nu];
 									//Get leaf 0 with the correct generator between links 3 and 4
-									tmp[0]=hLeaves0[site+0*kvol]; tmp[1]=hLeaves1[site+0*kvol];
+									tmp[0]=hLeaves[mu][0][site+0*kvol]; tmp[1]=hLeaves[mu][1][site+0*kvol];
 									Force_Leaf(ut,tmp,iu,id,site,mu,nu,0,gen,3);
 									//- here as the contribut[1]ion is from @f$Q_{\nu\mu}@f$!!!
 									//Conjugate too
@@ -769,24 +654,24 @@ void Clover_Force(double *dSdpi, complex<T> *ut[nc], complex<T> *hLeaves[nc], co
 								case(4): //Clover at i+mu+nu
 									site=iu[ipm+kvol*nu];
 									//Get leaf 3 with the correct generator between links 2 and 3
-									tmp[0]=hLeaves0[site+3*kvol]; tmp[1]=hLeaves1[site+3*kvol];
+									tmp[0]=hLeaves[mu][0][site+3*kvol]; tmp[1]=hLeaves[mu][1][site+3*kvol];
 									Force_Leaf(ut,tmp,iu,id,site,mu,nu,3,gen,2);
 									fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
 									break;
 								case(5): //Clover at i+mu-nu
 									site=id[ipm+kvol*nu];
 									//Get leaf 1 with the correct generator between links 2 and 3
-									tmp[0]=hLeaves0[site+1*kvol]; tmp[1]=hLeaves1[site+1*kvol];
+									tmp[0]=hLeaves[mu][0][site+1*kvol]; tmp[1]=hLeaves[mu][1][site+1*kvol];
 									Force_Leaf(ut,tmp,iu,id,site,mu,nu,1,gen,2);
 									//- here as the contribut[1]ion is from @f$Q_{\nu\mu}@f$!!!
 									//Conjugate too
 									fleaf[gen][0]=-conjf(tmp[0]); fleaf[gen][1]=tmp[1];
 									break;
 							}
-							//				fleaf[gen][0]=(-I_f/8.0f)*(fleaf[gen][0]+conjf(fleaf[gen][0]));
-							//				fleaf[gen][0]=(-I_f/4.0f)*fleaf[gen][0].real();
-							fleaf[gen][0]=Complex_f(0,-fleaf[gen][0].real()/4);
-							//				fleaf[gen][1]=(-I_f/8.0f)*(fleaf[gen][1]-fleaf[gen][1]);
+							//				fleaf[gen][0]=(-I/8.0f)*(fleaf[gen][0]+conjf(fleaf[gen][0]));
+							//				fleaf[gen][0]=(-I/4.0f)*fleaf[gen][0].real();
+							fleaf[gen][0]=-I*crealf(fleaf[gen][0])/4;
+							//				fleaf[gen][1]=(-I/8.0f)*(fleaf[gen][1]-fleaf[gen][1]);
 							fleaf[gen][1]=0;
 						}
 						for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
@@ -796,15 +681,15 @@ void Clover_Force(double *dSdpi, complex<T> *ut[nc], complex<T> *hLeaves[nc], co
 							//Prefetching. Might not be needed here though
 							Complex_f X1sc[nc];
 							//X1 is always conjfugated. So do it once here instead of twice and be done with it.	
-							X1sc[0]=conjf(X1[ind]); X1sc[1]=conjf(X1[indi+kvolHalo]);
+							X1sc[0]=conjf(X1[ind]); X1sc[1]=conjf(X1[ind+kvolHalo]);
 							ind = site+kvolHalo*sind;
 							Complex_f X2s[nc];
-							X2s[0]=X2[ind]; X2s[1]=X2[indi+kvolHalo];
+							X2s[0]=X2[ind]; X2s[1]=X2[ind+kvolHalo];
 
 							for(unsigned short gen=0;gen<nadj;gen++){
 								//					Complex_f fleaf1c=conjf(fleaf[gen][1]);
-								float force = (sigval[clov*ndirac+idirac]*(X1sc[0]*(fleaf[gen][0]*X2s[0]+fleaf[gen][1]*X2s[1])+\
-											X1sc[1]*(fleaf[gen][0]*X2s[1]-fleaf[gen][1]*X2s[0]))).real();
+								float force = crealf(sigval[clov*ndirac+idirac]*(X1sc[0]*(fleaf[gen][0]*X2s[0]+fleaf[gen][1]*X2s[1])+\
+											X1sc[1]*(fleaf[gen][0]*X2s[1]-fleaf[gen][1]*X2s[0])));
 								//mu direction contribut[1]ion
 								dSdpis[gen]+=force;
 							}
@@ -821,4 +706,64 @@ void Clover_Force(double *dSdpi, complex<T> *ut[nc], complex<T> *hLeaves[nc], co
 	}
 #endif
 	return;
+}
+
+//Initialisation and freeing
+int Init_clover(Complex **sigval, Complex_f **sigval_f,unsigned short **sigin, float c_sw){
+	const char funcname[] = "Init_clover";
+	unsigned short __attribute__((aligned(AVX))) sigin_t[6][4] =	{{0,1,2,3},{1,0,3,2},{1,0,3,2},{1,0,3,2},{1,0,3,2},{0,1,2,3}};
+	//The sigma matrices are the commutators of the gamma matrices. These are antisymmetric when you swap the indices
+	//0 is sigma_0,1
+	//1 is sigma_0,2
+	//2 is sigma_0,3
+	//3 is sigma_1,2
+	//4 is sigma_1,3
+	//5 is sigma_2,3
+	Complex	__attribute__((aligned(AVX)))	sigval_t[6][4] =	{{-1,1,-1,1},{-I,I,-I,I},{1,1,-1,-1},{-1,-1,-1,-1},{-I,I,I,-I},{1,-1,-1,1}};
+	//Complex	__attribute__((aligned(AVX)))	sigval_t[6][4] =	{{1,1,1,1},{1,1,1,1},{1,1,1,1},{1,1,1,1},{1,1,1,1},{1,1,1,1},{1,1,1,1}};
+	//We mutiply by 1/2 and c_sw here since sigval is never used without them.
+#if defined USE_BLAS
+	cblas_zdscal(6*4, 0.5*c_sw, sigval_t, 1);
+#else
+#pragma omp parallel for simd collapse(2) aligned(sigval,sigval_f:AVX)
+	for(int 0=1;i<6;i++)
+		for(int j=0;j<4;j++)
+			sigval_t[i][j]*=c_sw*0.5;
+#endif
+
+#ifdef __NVCC__
+	int device = -1; 
+	cudaGetDevice(&device);
+
+	cudaMalloc((void **)sigin,6*4*sizeof(short));
+	cudaMalloc((void **)sigval,6*4*sizeof(Complex));
+	cudaMalloc((void **)sigval_f,6*4*sizeof(Complex_f));
+
+	cudaMemcpy(*sigin,sigin_t,6*4*sizeof(short),cudaMemcpyDefault);
+	cudaMemcpy(*sigval,sigval_t,6*4*sizeof(Complex),cudaMemcpyDefault);
+
+	cuComplex_convert(*sigval_f,*sigval,24,true,dimBlockOne,dimGridOne);	
+#else
+	*sigin = (unsigned short *)malloc(6*4*sizeof(short));
+	*sigval=(Complex *)malloc(6*4*sizeof(Complex));
+	*sigval_f=(Complex_f *)malloc(6*4*sizeof(Complex_f));;
+	memcpy(*sigval,sigval_t,6*4*sizeof(Complex));
+	memcpy(*sigin,sigin_t,6*4*sizeof(short));
+	for(int i=0;i<6*4;i++)
+		*(*sigval_f+i)=(Complex_f)*(*sigval+i);
+#endif
+}
+inline int Clover_free(Complex_f *clover[nc]){
+	for(unsigned short c=0;c<nc;c++){
+#ifdef __NVCC__
+#ifdef _DEBUG
+		cudaFree(clover[c]);
+#else
+		cudaFreeAsync(clover[c],streams[c]);
+#endif
+#else
+		free(clover[c]);
+#endif
+	}
+	return 0;	
 }

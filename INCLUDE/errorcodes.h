@@ -48,8 +48,7 @@
 ///@brief	Minor argument issue
 #define	ARGWARN		10104
 
-/**
- *	@section memerr Memory Errors.
+/** @section memerr Memory Errors.
  *	Leading digits are 11
  */
 //======================================
@@ -160,4 +159,8 @@
 //------
 /// @brief Alert with block size
 #define	BLOCKALERT	15201
+
+/// @section Other errors. Leading digits are 16
+/// @brief Not implemented
+#define	NOIMPL	16001
 #endif
