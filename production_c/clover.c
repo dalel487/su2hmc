@@ -226,7 +226,8 @@ void Clover(Complex_f *clover[2], Complex_f *ut[2], unsigned int *iu, unsigned i
 					///manually below.
 
 					///The @f$\alpha@f$ component. Only the imaginary part survives. And since it is multiplied by @f$-i@f$ it is real.
-					///Need to be extra cautious here though cimag() returns a real value. So we multiply by I manually 
+					///Need to be extra cautious here though cimag() returns a real value. So we multiply by I manually (by
+					///using (cimagf) and the minuses cancel.
 					///The 8.0f becomes a 4.0f to account for the factor of two
 					clover[0][i+clov*kvol]=cimagf(clover[0][i+clov*kvol]);		clover[0][i+clov*kvol]*=(1.0f/4.0f);
 
@@ -268,7 +269,7 @@ void ByClover(Complex *phi, Complex *r, Complex *clover[2], Complex *sigval, con
 				///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
 				phi_s[igorkov][0]+=sigval[clov*ndirac+idirac]*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
 				//Clover is in the Lie Algebra, not Lie group. So signs are correct here.
-				phi_s[igorkov][1]+=sigval[clov*ndirac+idirac]*(conj(clov_s[1])*r_s[0]+creal(clov_s[0])*r_s[1]);
+				phi_s[igorkov][1]+=sigval[clov*ndirac+idirac]*(conj(clov_s[1])*r_s[0]-creal(clov_s[0])*r_s[1]);
 			}
 		}
 #pragma unroll
@@ -313,7 +314,7 @@ void HbyClover(Complex *phi, Complex *r, Complex *clover[2],Complex *sigval, con
 				const Complex sig=sigval[clov*ndirac+(idirac>>1)];
 				phi_s[idirac+0]+=sig*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
 				//Clover is in the Lie Algebra, not Lie group. So signs are correct here.
-				phi_s[idirac+1]+=sig*(conj(clov_s[1])*r_s[0]+creal(clov_s[0])*r_s[1]);
+				phi_s[idirac+1]+=sig*(conj(clov_s[1])*r_s[0]-creal(clov_s[0])*r_s[1]);
 			}
 		}
 #pragma unroll
@@ -357,9 +358,9 @@ void ByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2], Complex_f *s
 				for(unsigned short c=0; c<nc; c++)
 					r_s[c]= r[i+kvolHalo*(sind*nc+c)];
 				///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
-				phi_s[igorkov][0]+=sigval[clov*ndirac+idirac]*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
+				phi_s[igorkov][0]+=sigval[clov*ndirac+idirac]*(crealf(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
 				//Clover is in the Lie Algebra, not Lie group. So signs are correct here.
-				phi_s[igorkov][1]+=sigval[clov*ndirac+idirac]*(conj(clov_s[1])*r_s[0]+creal(clov_s[0])*r_s[1]);
+				phi_s[igorkov][1]+=sigval[clov*ndirac+idirac]*(conj(clov_s[1])*r_s[0]-crealf(clov_s[0])*r_s[1]);
 			}
 		}
 #pragma unroll
@@ -402,9 +403,9 @@ void HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2],Complex_f *s
 				}
 				///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
 				const Complex_f sig=sigval[clov*ndirac+(idirac>>1)];
-				phi_s[idirac+0]+=sig*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
+				phi_s[idirac+0]+=sig*(crealf(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
 				//Clover is in the Lie Algebra, not Lie group. So signs are correct here.
-				phi_s[idirac+1]+=sig*(conj(clov_s[1])*r_s[0]+creal(clov_s[0])*r_s[1]);
+				phi_s[idirac+1]+=sig*(conj(clov_s[1])*r_s[0]-crealf(clov_s[0])*r_s[1]);
 			}
 		}
 #pragma unroll
@@ -581,7 +582,7 @@ void Clover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2
 		const Complex_f *sigval, const unsigned short *sigin, unsigned int *iu, unsigned int *id,\
 		const float akappa){
 #ifdef __NVCC__
-	cuClover_Force(dSdpi,ut,X1,X1,sigval,sigin,iu,id,akappa);
+	cuClover_Force(dSdpi,ut,X1,X2,sigval,sigin,iu,id,akappa);
 #else
 	Complex_f *hLeaves[ndim][nc];
 	//Allocate half-leaf memory. We will have one stream for each direction
@@ -601,7 +602,7 @@ void Clover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2
 				//Compute force for @f$\mu\nu@f$ and @f$\nu\mu@f$
 #pragma omp parallel for
 				for(unsigned int i=0;i<kvol;i++){
-					//Two of these since we have the mu and nu contribut[1]ions
+					//Two of these since we have the mu and nu contributions
 					float dSdpis[2][3]={0,0,0}; 
 					const unsigned int ipm=iu[i+kvol*mu];
 					for(unsigned short fclov=0;fclov<(ndim-1)*(ndim-2);fclov++){
@@ -621,9 +622,9 @@ void Clover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2
 									//Get leaf 2 with the correct generator in the final position
 									tmp[0]=hLeaves[mu][0][site+2*kvol]; tmp[1]=hLeaves[mu][1][site+2*kvol];
 									Force_Leaf(ut,tmp,iu,id,site,mu,nu,2,gen,4);
-									//-= here as the contribut[1]ion is from @f$Q_{\nu\mu}@f$!!!
+									//-= here as the contribution is from @f$Q_{\nu\mu}@f$!!!
 									//Conjugate too.
-									fleaf[gen][0]-=conjf(tmp[0]); fleaf[gen][1]-=-tmp[1];
+									fleaf[gen][0]-=conjf(tmp[0]); fleaf[gen][1]-=tmp[1];
 									break;
 								case(1): //Clover at i+mu
 									site=ipm;
@@ -634,9 +635,9 @@ void Clover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2
 									//Get leaf 3 with the correct generator between links 1 and 2
 									tmp[0]=hLeaves[mu][0][site+3*kvol]; tmp[1]=hLeaves[mu][1][site+3*kvol];
 									Force_Leaf(ut,tmp,iu,id,site,mu,nu,3,gen,1);
-									//-= here as the contribut[1]ion is from @f$Q_{\nu\mu}@f$!!!
+									//-= here as the contribution is from @f$Q_{\nu\mu}@f$!!!
 									//Conjugate too
-									fleaf[gen][0]-=conjf(tmp[0]); fleaf[gen][1]-=-tmp[1];
+									fleaf[gen][0]-=conjf(tmp[0]); fleaf[gen][1]=-tmp[1];
 									break;
 								case(2): //Clover at i+nu
 									site=iu[i+kvol*nu];
@@ -650,7 +651,7 @@ void Clover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2
 									//Get leaf 0 with the correct generator between links 3 and 4
 									tmp[0]=hLeaves[mu][0][site+0*kvol]; tmp[1]=hLeaves[mu][1][site+0*kvol];
 									Force_Leaf(ut,tmp,iu,id,site,mu,nu,0,gen,3);
-									//- here as the contribut[1]ion is from @f$Q_{\nu\mu}@f$!!!
+									//- here as the contribution is from @f$Q_{\nu\mu}@f$!!!
 									//Conjugate too
 									fleaf[gen][0]=-conjf(tmp[0]); fleaf[gen][1]=tmp[1];
 									break;
@@ -666,7 +667,7 @@ void Clover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2
 									//Get leaf 1 with the correct generator between links 2 and 3
 									tmp[0]=hLeaves[mu][0][site+1*kvol]; tmp[1]=hLeaves[mu][1][site+1*kvol];
 									Force_Leaf(ut,tmp,iu,id,site,mu,nu,1,gen,2);
-									//- here as the contribut[1]ion is from @f$Q_{\nu\mu}@f$!!!
+									//- here as the contribution is from @f$Q_{\nu\mu}@f$!!!
 									//Conjugate too
 									fleaf[gen][0]=-conjf(tmp[0]); fleaf[gen][1]=tmp[1];
 									break;
@@ -731,7 +732,7 @@ int Init_clover(Complex **sigval, Complex_f **sigval_f,unsigned short **sigin, f
 	cblas_zdscal(6*4, 0.5*c_sw, sigval_t, 1);
 #else
 #pragma omp parallel for simd collapse(2) aligned(sigval,sigval_f:AVX)
-	for(int 0=1;i<6;i++)
+	for(int i=1;i<6;i++)
 		for(int j=0;j<4;j++)
 			sigval_t[i][j]*=c_sw*0.5;
 #endif

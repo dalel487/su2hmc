@@ -19,27 +19,15 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #ifdef _DEBUG
 	cudaMallocManaged((void **)&R1,kferm*sizeof(Complex), cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&R1_f,kferm*sizeof(Complex_f), cudaMemAttachGlobal);
-	if(c_sw){
-		cudaMallocManaged((void **)&clover[0], 6*kvol*sizeof(Complex),cudaMemAttachGlobal);
-		cudaMallocManaged((void **)&clover[1], 6*kvol*sizeof(Complex),cudaMemAttachGlobal);
-	}
 #else
 	cudaMallocAsync((void **)&R1,kferm*sizeof(Complex),streams[0]);
 	cudaMallocAsync((void **)&R1_f,kferm*sizeof(Complex_f),streams[0]);
-	if(c_sw){
-		cudaMallocAsync((void **)&clover[0], 6*kvol*sizeof(Complex),streams[1]);
-		cudaMallocAsync((void **)&clover[1], 6*kvol*sizeof(Complex),streams[2]);
-	}
 #endif
 	cudaMallocManaged((void **)&x,kfermHalo*sizeof(Complex), cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&xi,kferm*sizeof(Complex), cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&xi_f,kfermHalo*sizeof(Complex_f), cudaMemAttachGlobal);
 #else
 	Complex_f *clover[nc];
-	if(c_sw){
-		clover[0]=(Complex_f *)aligned_alloc(AVX,6*kvol*sizeof(Complex_f));
-		clover[1]=(Complex_f *)aligned_alloc(AVX,6*kvol*sizeof(Complex_f));
-	}
 	Complex *x =(Complex *)aligned_alloc(AVX,kfermHalo*sizeof(Complex));
 	Complex *xi =(Complex *)aligned_alloc(AVX,kferm*sizeof(Complex));
 	Complex_f *xi_f =(Complex_f *)aligned_alloc(AVX,kfermHalo*sizeof(Complex_f));
@@ -88,8 +76,29 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	memcpy(Phi, R1, kferm*sizeof(Complex));
 #endif
 	///Evaluate xi = (M^† M)^-1 R_1 
-	if(Congradp(0, res, Phi,R1,ut,ut_f,clover,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,c_sw,itercg)==ITERLIM)
+	if(Congradp(0, res, Phi,R1,ut,ut_f,clover,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,c_sw,itercg)==ITERLIM){
+		//Clean exit
+#ifdef __NVCC__
+#ifdef _DEBUG
+		if(c_sw){
+			cudaFree(clover[0]); cudaFree(clover[1]);
+		}
+		cudaFree(R1);
+#else
+		if(c_sw){
+			cudaFreeAsync(clover[0],streams[1]); cudaFreeAsync(clover[1],streams[2]);
+		}
+		cudaFreeAsync(R1,streams[0]);
+#endif
+		cudaFree(x); cudaFree(xi);
+#else
+		if(c_sw){
+			free(clover[0]); free(clover[1]);
+		}
+		free(x); free(xi); free(R1);
 		return ITERLIM;
+#endif
+	}
 #ifdef __NVCC__
 	cudaMemcpyAsync(xi,R1,kferm*sizeof(Complex),cudaMemcpyDefault,streams[0]);
 #ifdef _DEBUG
