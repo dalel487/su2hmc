@@ -100,7 +100,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 						else
 							fprintf(trial_out,"Halo site %d:\n",i);
 						for(unsigned short mu=0;mu<ndim;mu++)
-							fprintf(trial_out,"Dir %d:\t%.5f+%.5fI\t%.5f+%.5fI\n", mu,\
+							fprintf(trial_out,"Dir %d:\t%.3f+%.3fI\t%.3f+%.3fI\n", mu,\
 									creal(ut[0][i+mu*kvolHalo]),cimag(ut[0][i+mu*kvolHalo]),\
 									creal(ut[1][i+mu*kvolHalo]),cimag(ut[1][i+mu*kvolHalo]));
 						fprintf(trial_out,"\n");
@@ -116,7 +116,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 						else
 							fprintf(trial_out_f,"Halo site %d:\n",i);
 						for(unsigned short mu=0;mu<ndim;mu++)
-							fprintf(trial_out_f,"Dir %d:\t%.5f+%.5fI\t%.5f+%.5fI\n", mu,\
+							fprintf(trial_out_f,"Dir %d:\t%.3f+%.3fI\t%.3f+%.3fI\n", mu,\
 									creal(ut_f[0][i+mu*kvolHalo]),cimag(ut_f[0][i+mu*kvolHalo]),\
 									creal(ut_f[1][i+mu*kvolHalo]),cimag(ut_f[1][i+mu*kvolHalo]));
 						fprintf(trial_out_f,"\n");
@@ -253,9 +253,9 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				for(unsigned int i = 0; i< kvol; i++){
 					fprintf(input, "Site %d:\n",i); fprintf(input_f, "Site %d:\n",i); fprintf(input_diff, "Site %d:\n",i);
 					for(unsigned short j=0;j<nc*ngorkov;j++){
-						fprintf(input, "%.5f+%.5fI\t",creal(R1[i+j*kvolHalo]),cimag(R1[i+j*kvolHalo]));
-						fprintf(input_f, "%.5f+%.5fI\t", creal(R1_f[i+j*kvolHalo]),cimag(R1_f[i+j*kvolHalo]));
-						fprintf(input_diff,"%.5f+%.5fI\t", creal(R1[i+j*kvolHalo]-R1_f[i+j*kvolHalo]),cimag(R1[i+j*kvolHalo]-R1_f[i+j*kvolHalo]));
+						fprintf(input, "%.3f+%.3fI\t",creal(R1[i+j*kvolHalo]),cimag(R1[i+j*kvolHalo]));
+						fprintf(input_f, "%.3f+%.3fI\t", creal(R1_f[i+j*kvolHalo]),cimag(R1_f[i+j*kvolHalo]));
+						fprintf(input_diff,"%.3f+%.3fI\t", creal(R1[i+j*kvolHalo]-R1_f[i+j*kvolHalo]),cimag(R1[i+j*kvolHalo]-R1_f[i+j*kvolHalo]));
 					}
 					fprintf(input, "\n\n"); fprintf(input_f,"\n\n"); fprintf(input_diff,"\n\n");
 				}
@@ -269,8 +269,8 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				for(unsigned int i = 0; i< kvol; i++){
 					fprintf(output, "Site %d:\n",i); fprintf(output_f, "Site %d:\n",i); fprintf(output_diff, "Site %d:\n",i);
 					for(unsigned short j=0;j<nc*ngorkov;j++){
-						fprintf(output, "%.5f+%.5fI\t",creal(xi[i+j*kvolHalo]),cimag(xi[i+j*kvolHalo]));
-						fprintf(output_f, "%.5f+%.5fI\t", creal(xi_f[i+j*kvolHalo]),cimag(xi_f[i+j*kvolHalo]));
+						fprintf(output, "%.3f+%.3fI\t",creal(xi[i+j*kvolHalo]),cimag(xi[i+j*kvolHalo]));
+						fprintf(output_f, "%.3f+%.3fI\t", creal(xi_f[i+j*kvolHalo]),cimag(xi_f[i+j*kvolHalo]));
 						Complex diff = xi[i+j*kvolHalo]-xi_f[i+j*kvolHalo];
 						if(fabs(creal(diff))>1e-6 || fabs(cimag(diff))>1e-6){
 							fprintf(stderr,"Error %i in %s: Single and double disagree for Dslash site %i and spinor/color %d. Difference %e+%ei"\
@@ -279,7 +279,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 							exit(CONVERR);
 						}
 						else
-							fprintf(output_diff,"%.5f+%.5fI\t", creal(diff),cimag(diff));
+							fprintf(output_diff,"%.3f+%.3fI\t", creal(diff),cimag(diff));
 					}
 					fprintf(output, "\n\n"); fprintf(output_f,"\n\n"); fprintf(output_diff,"\n\n");
 				}
@@ -297,9 +297,9 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				for(unsigned int i = 0; i< kvol; i++){
 					fprintf(input, "Site %d:\n",i); fprintf(input_f, "Site %d:\n",i); fprintf(input_diff, "Site %d:\n",i);
 					for(unsigned short j=0;j<nc*ngorkov;j++){
-						fprintf(input, "%.5f+%.5fI\t",creal(R1[i+j*kvolHalo]),cimag(R1[i+j*kvolHalo]));
-						fprintf(input_f, "%.5f+%.5fI\t", creal(R1_f[i+j*kvolHalo]),cimag(R1_f[i+j*kvolHalo]));
-						fprintf(input_diff,"%.5f+%.5fI\t", creal(R1[i+j*kvolHalo]-R1_f[i+j*kvolHalo]),cimag(R1[i+j*kvolHalo]-R1_f[i+j*kvolHalo]));
+						fprintf(input, "%.3f+%.3fI\t",creal(R1[i+j*kvolHalo]),cimag(R1[i+j*kvolHalo]));
+						fprintf(input_f, "%.3f+%.3fI\t", creal(R1_f[i+j*kvolHalo]),cimag(R1_f[i+j*kvolHalo]));
+						fprintf(input_diff,"%.3f+%.3fI\t", creal(R1[i+j*kvolHalo]-R1_f[i+j*kvolHalo]),cimag(R1[i+j*kvolHalo]-R1_f[i+j*kvolHalo]));
 					}
 					fprintf(input, "\n\n"); fprintf(input_f,"\n\n"); fprintf(input_diff,"\n\n");
 				}
@@ -315,8 +315,8 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 					//Note. The output of Dslashd should not have a halo. Whilst xi is defined with one we do not use it here
 					//so stride is kvol, not kvolHalo
 					for(unsigned short j=0;j<nc*ngorkov;j++){
-						fprintf(output, "%.5f+%.5fI\t",creal(xi[i+j*kvol]),cimag(xi[i+j*kvol]));
-						fprintf(output_f, "%.5f+%.5fI\t", creal(xi_f[i+j*kvol]),cimag(xi_f[i+j*kvol]));
+						fprintf(output, "%.3f+%.3fI\t",creal(xi[i+j*kvol]),cimag(xi[i+j*kvol]));
+						fprintf(output_f, "%.3f+%.3fI\t", creal(xi_f[i+j*kvol]),cimag(xi_f[i+j*kvol]));
 						Complex diff = xi[i+j*kvol]-xi_f[i+j*kvol];
 						if(fabs(creal(diff))>1e-6 || fabs(cimag(diff))>1e-6){
 							fprintf(stderr,"Error %i in %s: Single and double disagree for Dslashd site %i and spinor/color %d. Difference %e+%ei"\
@@ -325,7 +325,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 							exit(CONVERR);
 						}
 						else
-							fprintf(output_diff,"%.5f+%.5fI\t", creal(diff),cimag(diff));
+							fprintf(output_diff,"%.3f+%.3fI\t", creal(diff),cimag(diff));
 					}
 					fprintf(output, "\n\n"); fprintf(output_f,"\n\n"); fprintf(output_diff,"\n\n");
 				}
@@ -340,9 +340,9 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				for(unsigned int i = 0; i< kvol; i++){
 					fprintf(input, "Site %d:\n",i); fprintf(input_f, "Site %d:\n",i); fprintf(input_diff, "Site %d:\n",i);
 					for(unsigned short j=0;j<nc*ndirac;j++){
-						fprintf(input, "%.5f+%.5fI\t",creal(X0[i+j*kvolHalo]),cimag(X0[i+j*kvolHalo]));
-						fprintf(input_f, "%.5f+%.5fI\t", creal(X0_f[i+j*kvolHalo]),cimag(X0_f[i+j*kvolHalo]));
-						fprintf(input_diff,"%.5f+%.5fI\t", creal(X0[i+j*kvolHalo]-X0_f[i+j*kvolHalo]),cimag(X0[i+j*kvolHalo]-X0_f[i+j*kvolHalo]));
+						fprintf(input, "%.3f+%.3fI\t",creal(X0[i+j*kvolHalo]),cimag(X0[i+j*kvolHalo]));
+						fprintf(input_f, "%.3f+%.3fI\t", creal(X0_f[i+j*kvolHalo]),cimag(X0_f[i+j*kvolHalo]));
+						fprintf(input_diff,"%.3f+%.3fI\t", creal(X0[i+j*kvolHalo]-X0_f[i+j*kvolHalo]),cimag(X0[i+j*kvolHalo]-X0_f[i+j*kvolHalo]));
 					}
 					fprintf(input, "\n\n"); fprintf(input_f,"\n\n"); fprintf(input_diff,"\n\n");
 				}
@@ -358,8 +358,8 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 					//Note. The output of Dslashd should not have a halo. Whilst xi is defined with one we do not use it here
 					//so stride is kvol, not kvolHalo
 					for(unsigned short j=0;j<nc*ndirac;j++){
-						fprintf(output, "%.5f+%.5fI\t",creal(X1[i+j*kvolHalo]),cimag(X1[i+j*kvolHalo]));
-						fprintf(output_f, "%.5f+%.5fI\t", creal(X1_f[i+j*kvolHalo]),cimag(X1_f[i+j*kvolHalo]));
+						fprintf(output, "%.3f+%.3fI\t",creal(X1[i+j*kvolHalo]),cimag(X1[i+j*kvolHalo]));
+						fprintf(output_f, "%.3f+%.3fI\t", creal(X1_f[i+j*kvolHalo]),cimag(X1_f[i+j*kvolHalo]));
 						Complex diff = X1[i+j*kvolHalo]-X1_f[i+j*kvolHalo];
 						if(fabs(creal(diff))>1e-6 || fabs(cimag(diff))>1e-6){
 							fprintf(stderr,"Error %i in %s: Single and double disagree for Hdslash site %i and spinor/color %d. Difference %e+%ei"\
@@ -368,7 +368,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 							exit(CONVERR);
 						}
 						else
-							fprintf(output_diff,"%.5f+%.5fI\t", creal(diff),cimag(diff));
+							fprintf(output_diff,"%.3f+%.3fI\t", creal(diff),cimag(diff));
 					}
 					fprintf(output, "\n\n"); fprintf(output_f,"\n\n"); fprintf(output_diff,"\n\n");
 				}
@@ -384,9 +384,9 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				for(unsigned int i = 0; i< kvol; i++){
 					fprintf(input, "Site %d:\n",i); fprintf(input_f, "Site %d:\n",i); fprintf(input_diff, "Site %d:\n",i);
 					for(unsigned short j=0;j<nc*ndirac;j++){
-						fprintf(input, "%.5f+%.5fI\t",creal(X0[i+j*kvolHalo]),cimag(X0[i+j*kvolHalo]));
-						fprintf(input_f, "%.5f+%.5fI\t", creal(X0_f[i+j*kvolHalo]),cimag(X0_f[i+j*kvolHalo]));
-						fprintf(input_diff,"%.5f+%.5fI\t", creal(X0[i+j*kvolHalo]-X0_f[i+j*kvolHalo]),cimag(X0[i+j*kvolHalo]-X0_f[i+j*kvolHalo]));
+						fprintf(input, "%.3f+%.3fI\t",creal(X0[i+j*kvolHalo]),cimag(X0[i+j*kvolHalo]));
+						fprintf(input_f, "%.3f+%.3fI\t", creal(X0_f[i+j*kvolHalo]),cimag(X0_f[i+j*kvolHalo]));
+						fprintf(input_diff,"%.3f+%.3fI\t", creal(X0[i+j*kvolHalo]-X0_f[i+j*kvolHalo]),cimag(X0[i+j*kvolHalo]-X0_f[i+j*kvolHalo]));
 					}
 					fprintf(input, "\n\n"); fprintf(input_f,"\n\n"); fprintf(input_diff,"\n\n");
 				}
@@ -402,8 +402,8 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 					//Note. The output of Dslashd should not have a halo. Whilst xi is defined with one we do not use it here
 					//so stride is kvol, not kvolHalo
 					for(unsigned short j=0;j<nc*ndirac;j++){
-						fprintf(output, "%.5f+%.5fI\t",creal(X1[i+j*kvol]),cimag(X1[i+j*kvol]));
-						fprintf(output_f, "%.5f+%.5fI\t", creal(X1_f[i+j*kvol]),cimag(X1_f[i+j*kvol]));
+						fprintf(output, "%.3f+%.3fI\t",creal(X1[i+j*kvol]),cimag(X1[i+j*kvol]));
+						fprintf(output_f, "%.3f+%.3fI\t", creal(X1_f[i+j*kvol]),cimag(X1_f[i+j*kvol]));
 						Complex diff = X1[i+j*kvol]-X1_f[i+j*kvol];
 						if(fabs(creal(diff))>1e-6 || fabs(cimag(diff))>1e-6){
 							fprintf(stderr,"Error %i in %s: Single and double disagree for Hdslashd site %i and spinor/color %d. Difference %e+%ei"\
@@ -412,7 +412,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 							exit(CONVERR);
 						}
 						else
-							fprintf(output_diff,"%.5f+%.5fI\t", creal(diff),cimag(diff));
+							fprintf(output_diff,"%.3f+%.3fI\t", creal(diff),cimag(diff));
 					}
 					fprintf(output, "\n\n"); fprintf(output_f,"\n\n"); fprintf(output_diff,"\n\n");
 				}
@@ -421,11 +421,30 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 			case(5): //Clover
 				if(c_sw==0)
 					break;
+				//Should really make Leaves a seperate case. But too much effort for now
+				output = fopen("Leaves","w");
+				for(unsigned int i=0;i<kvol;i++){
+					fprintf(output,"Site %d\n",i);
+					for(unsigned short mu=0;mu<ndim-1;mu++)
+						for(unsigned short nu=mu+1;nu<ndim;nu++)
+							if(mu!=nu){
+								unsigned short clov = (mu==0) ? nu-1 :mu+nu;
+								fprintf(output,"Clover %d\n",clov);
+								Complex_f Leaves[nc];
+								for(unsigned short leaf =0;leaf<ndim;leaf++){
+									Leaf(Leaves,ut_f,iu,id,i,mu,nu,leaf);
+									fprintf(output,"Leaf %d: Leaf0 = %e+I%e Leaf1=%e+I%e\n",leaf,\
+											crealf(Leaves[0]),cimagf(Leaves[0]),crealf(Leaves[1]),cimagf(Leaves[1]));
+								}
+							}
+					fprintf(output,"\n");
+				}
+				fclose(output);
 				Clover(clover_f,ut_f,iu,id);
 				output=fopen("Clover","w");
-				for(unsigned int i=0;i<kvol;i++)
-					for(unsigned short mu=0;mu<ndim-1;mu++){
-						fprintf(output,"Site %d\n",i);
+				for(unsigned int i=0;i<kvol;i++){
+					fprintf(output,"Site %d\n",i);
+					for(unsigned short mu=0;mu<ndim-1;mu++)
 						for(unsigned short nu=mu+1;nu<ndim;nu++)
 							if(mu!=nu){
 								unsigned short clov = (mu==0) ? nu-1 :mu+nu;
@@ -433,8 +452,8 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 										crealf(clover_f[0][i+kvol*clov]), cimagf(clover_f[0][i+kvol*clov]), crealf(clover_f[1][i+kvol*clov]),\
 										cimagf(clover_f[1][i+kvol*clov]));
 							}
-						fprintf(output,"\n");
-					}
+					fprintf(output,"\n");
+				}
 				fclose(output);
 				//Clover correct, Convert works so get it in double here for everywhere else
 				ComplexConvert(clover_f[0],clover[0],6*kvol,false,1);
@@ -453,9 +472,9 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				for(unsigned int i = 0; i< kvol; i++){
 					fprintf(input, "Site %d:\n",i); fprintf(input_f, "Site %d:\n",i); fprintf(input_diff, "Site %d:\n",i);
 					for(unsigned short j=0;j<nc*ngorkov;j++){
-						fprintf(input, "%.5f+%.5fI\t",creal(R1[i+j*kvolHalo]),cimag(R1[i+j*kvolHalo]));
-						fprintf(input_f, "%.5f+%.5fI\t", creal(R1_f[i+j*kvolHalo]),cimag(R1_f[i+j*kvolHalo]));
-						fprintf(input_diff,"%.5f+%.5fI\t", creal(R1[i+j*kvolHalo]-R1_f[i+j*kvolHalo]),cimag(R1[i+j*kvolHalo]-R1_f[i+j*kvolHalo]));
+						fprintf(input, "%.3f+%.3fI\t",creal(R1[i+j*kvolHalo]),cimag(R1[i+j*kvolHalo]));
+						fprintf(input_f, "%.3f+%.3fI\t", creal(R1_f[i+j*kvolHalo]),cimag(R1_f[i+j*kvolHalo]));
+						fprintf(input_diff,"%.3f+%.3fI\t", creal(R1[i+j*kvolHalo]-R1_f[i+j*kvolHalo]),cimag(R1[i+j*kvolHalo]-R1_f[i+j*kvolHalo]));
 					}
 					fprintf(input, "\n\n"); fprintf(input_f,"\n\n"); fprintf(input_diff,"\n\n");
 				}
@@ -469,8 +488,8 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				for(unsigned int i = 0; i< kvol; i++){
 					fprintf(output, "Site %d:\n",i); fprintf(output_f, "Site %d:\n",i); fprintf(output_diff, "Site %d:\n",i);
 					for(unsigned short j=0;j<nc*ngorkov;j++){
-						fprintf(output, "%.5f+%.5fI\t",creal(xi[i+j*kvolHalo]),cimag(xi[i+j*kvolHalo]));
-						fprintf(output_f, "%.5f+%.5fI\t", creal(xi_f[i+j*kvolHalo]),cimag(xi_f[i+j*kvolHalo]));
+						fprintf(output, "%.3f+%.3fI\t",creal(xi[i+j*kvolHalo]),cimag(xi[i+j*kvolHalo]));
+						fprintf(output_f, "%.3f+%.3fI\t", creal(xi_f[i+j*kvolHalo]),cimag(xi_f[i+j*kvolHalo]));
 						Complex diff = xi[i+j*kvolHalo]-xi_f[i+j*kvolHalo];
 						if(fabs(creal(diff))>1e-6 || fabs(cimag(diff))>1e-6){
 							fprintf(stderr,"Error %i in %s: Single and double disagree for ByClover site %i and spinor/color %d. Difference %e+%ei"\
@@ -479,7 +498,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 							exit(CONVERR);
 						}
 						else
-							fprintf(output_diff,"%.5f+%.5fI\t", creal(diff),cimag(diff));
+							fprintf(output_diff,"%.3f+%.3fI\t", creal(diff),cimag(diff));
 					}
 					fprintf(output, "\n\n"); fprintf(output_f,"\n\n"); fprintf(output_diff,"\n\n");
 				}
@@ -497,9 +516,9 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				for(unsigned int i = 0; i< kvol; i++){
 					fprintf(input, "Site %d:\n",i); fprintf(input_f, "Site %d:\n",i); fprintf(input_diff, "Site %d:\n",i);
 					for(unsigned short j=0;j<nc*ndirac;j++){
-						fprintf(input, "%.5f+%.5fI\t",creal(X0[i+j*kvolHalo]),cimag(X0[i+j*kvolHalo]));
-						fprintf(input_f, "%.5f+%.5fI\t", creal(X0_f[i+j*kvolHalo]),cimag(X0_f[i+j*kvolHalo]));
-						fprintf(input_diff,"%.5f+%.5fI\t", creal(X0[i+j*kvolHalo]-X0_f[i+j*kvolHalo]),cimag(X0[i+j*kvolHalo]-X0_f[i+j*kvolHalo]));
+						fprintf(input, "%.3f+%.3fI\t",creal(X0[i+j*kvolHalo]),cimag(X0[i+j*kvolHalo]));
+						fprintf(input_f, "%.3f+%.3fI\t", creal(X0_f[i+j*kvolHalo]),cimag(X0_f[i+j*kvolHalo]));
+						fprintf(input_diff,"%.3f+%.3fI\t", creal(X0[i+j*kvolHalo]-X0_f[i+j*kvolHalo]),cimag(X0[i+j*kvolHalo]-X0_f[i+j*kvolHalo]));
 					}
 					fprintf(input, "\n\n"); fprintf(input_f,"\n\n"); fprintf(input_diff,"\n\n");
 				}
@@ -515,8 +534,8 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 					//Note. The output of Dslashd should not have a halo. Whilst xi is defined with one we do not use it here
 					//so stride is kvol, not kvolHalo
 					for(unsigned short j=0;j<nc*ndirac;j++){
-						fprintf(output, "%.5f+%.5fI\t",creal(X1[i+j*kvol]),cimag(X1[i+j*kvol]));
-						fprintf(output_f, "%.5f+%.5fI\t", creal(X1_f[i+j*kvol]),cimag(X1_f[i+j*kvol]));
+						fprintf(output, "%.3f+%.3fI\t",creal(X1[i+j*kvol]),cimag(X1[i+j*kvol]));
+						fprintf(output_f, "%.3f+%.3fI\t", creal(X1_f[i+j*kvol]),cimag(X1_f[i+j*kvol]));
 						Complex diff = X1[i+j*kvol]-X1_f[i+j*kvol];
 						if(fabs(creal(diff))>1e-6 || fabs(cimag(diff))>1e-6){
 							fprintf(stderr,"Error %i in %s: Single and double disagree for HbyClover site %i and spinor/color %d. Difference %e+%ei"\
@@ -525,7 +544,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 							exit(CONVERR);
 						}
 						else
-							fprintf(output_diff,"%.5f+%.5fI\t", creal(diff),cimag(diff));
+							fprintf(output_diff,"%.3f+%.3fI\t", creal(diff),cimag(diff));
 					}
 					fprintf(output, "\n\n"); fprintf(output_f,"\n\n"); fprintf(output_diff,"\n\n");
 				}
@@ -556,7 +575,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				for(unsigned int i = 0; i< kvol; i++){
 					fprintf(input, "Site %d:\n",i); 
 					for(unsigned short j=0;j<nc*ndirac;j++){
-						fprintf(input, "%.5f+%.5fI\t",creal(X1[i+j*kvolHalo]),cimag(X1[i+j*kvolHalo]));
+						fprintf(input, "%.3f+%.3fI\t",creal(X1[i+j*kvolHalo]),cimag(X1[i+j*kvolHalo]));
 					}
 					fprintf(input, "\n\n"); 
 				}
@@ -568,7 +587,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				for(unsigned int i = 0; i< kvol; i++){
 					fprintf(output, "Site %d:\n",i); 
 					for(unsigned short j=0;j<nc*ndirac;j++){
-						fprintf(output, "%.5f+%.5fI\t",creal(X1[i+j*kvolHalo]),cimag(X1[i+j*kvolHalo]));
+						fprintf(output, "%.3f+%.3fI\t",creal(X1[i+j*kvolHalo]),cimag(X1[i+j*kvolHalo]));
 					}
 					fprintf(output, "\n\n"); 
 				}
@@ -580,9 +599,9 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				for(unsigned int i = 0; i< kvol; i++){
 					fprintf(input,"Site %d:\n",i);
 					for(unsigned short gen=0;gen<nadj;gen++){
-						fprintf(input,"Gen %d:\t",gen);
+						fprintf(input,"Gen %d:\n",gen);
 						for(unsigned int mu=0;mu<ndim;mu++){
-							fprintf(input, "%.5f\t%.5f\t%.5f\t%.5f\n", dSdpi[i+kvol*(gen*ndim+mu)]);
+							fprintf(input, "%.3f\t%.3f\t%.3f\t%.3f\n", dSdpi[i+kvol*(gen*ndim+mu)]);
 						}
 						fprintf(input,"\n");
 					}
@@ -600,9 +619,9 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				for(unsigned int i = 0; i< kvol; i++){
 					fprintf(output,"Site %d:\n",i);
 					for(unsigned short gen=0;gen<nadj;gen++){
-						fprintf(output,"Gen %d:\t",gen);
+						fprintf(output,"Gen %d:\n",gen);
 						for(unsigned int mu=0;mu<ndim;mu++){
-							fprintf(output, "%.5f\t", dSdpi[i+kvol*(gen*ndim+mu)]);
+							fprintf(output, "%.3f\t", dSdpi[i+kvol*(gen*ndim+mu)]);
 						}
 						fprintf(output,"\n");
 					}
@@ -628,9 +647,9 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				for(unsigned int i = 0; i< kvol; i++){
 					fprintf(output,"Site %d:\n",i);
 					for(unsigned short gen=0;gen<nadj;gen++){
-						fprintf(output,"Gen %d:\t",gen);
+						fprintf(output,"Gen %d:\n",gen);
 						for(unsigned int short mu=0;mu<ndim;mu++){
-							fprintf(output, "%.5f\t", dSdpi[i+kvol*(gen*ndim+mu)]);
+							fprintf(output, "%.3f\t", dSdpi[i+kvol*(gen*ndim+mu)]);
 						}
 						fprintf(output,"\n");
 					}
@@ -641,10 +660,21 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 			case(13): //Clover Half Leaves
 				if(c_sw==0)
 					break;
-				output=fopen("Half_leaves","w");
 				unsigned short mu=0; unsigned short nu=1;
 				Half_Leaves(hLeaves[mu],ut_f,iu,id,mu,nu);
 				Half_Leaves(hLeaves[nu],ut_f,iu,id,nu,mu);
+				output=fopen("Half_leaves","w");
+				for(unsigned int i=0;i<kvol;i++){
+					fprintf(output,"Site %d\n",i);
+					fprintf(output,"mu %d nu %d\n",mu,nu);
+					unsigned short clov = (mu==0) ? nu-1 :mu+nu;
+					fprintf(output,"mu-nu: hLeaf1 %e+i%e hLeaf2 %e+i%e\nnu-mu: hLeaf1 %e+i%e hLeaf2 %e+i%e\n",\
+							crealf(hLeaves[mu][0][i+kvol*clov]), cimagf(hLeaves[mu][0][i+kvol*clov]),\
+							crealf(hLeaves[mu][1][i+kvol*clov]), cimagf(hLeaves[mu][1][i+kvol*clov]),\
+							crealf(hLeaves[nu][0][i+kvol*clov]), cimagf(hLeaves[nu][0][i+kvol*clov]),\
+							crealf(hLeaves[nu][1][i+kvol*clov]), cimagf(hLeaves[nu][1][i+kvol*clov]));
+					fprintf(output,"\n");
+				}
 				fclose(output);
 				break;
 			case(14): //Clover Force
@@ -662,9 +692,9 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				for(unsigned int i = 0; i< kvol; i++){
 					fprintf(output,"Site %d:\n",i);
 					for(unsigned short gen=0;gen<nadj;gen++){
-						fprintf(output,"Gen %d:\t",gen);
+						fprintf(output,"Gen %d:\n",gen);
 						for(unsigned short mu=0;mu<ndim;mu++){
-							fprintf(output, "%.5f\t", dSdpi[i+kvol*(gen*ndim+mu)]);
+							fprintf(output, "%.3f\t", dSdpi[i+kvol*(gen*ndim+mu)]);
 						}
 						fprintf(output,"\n");
 					}

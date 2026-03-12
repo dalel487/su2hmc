@@ -110,7 +110,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 										//Leave it to the GPU?
 			for(unsigned int i=0; i<kvol;i++)
 				for(unsigned short mu=0;mu<ndim;mu++){
-					ut[0][i+kvolHalo*mu]=1;	ut[1][i+kvolHalo*mu]=0;
+					ut[0][i+kvolHalo*mu]=1+0*I;	ut[1][i+kvolHalo*mu]=0+0*I;
 				}
 		}
 		else if(istart>0){

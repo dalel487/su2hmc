@@ -75,8 +75,8 @@ int Half_Leaf(Complex_f Leaves[nc], Complex_f *ut[nc], Complex_f a[nc], unsigned
 			uidm = iu[mu*kvol+i]; 
 
 			/// @f$U_\mu(x)U_\nu(x+\hat{\mu})@f$
-			Leaves[0]=a[0]*ut[0][uidm+kvolHalo*nu]-a[1]*conj(ut[1][uidm+kvolHalo*nu]);
-			Leaves[1]=a[0]*ut[1][uidm+kvolHalo*nu]+a[1]*conj(ut[0][uidm+kvolHalo*nu]);
+			Leaves[0]=a[0]*ut[0][uidm+kvolHalo*nu]-a[1]*conjf(ut[1][uidm+kvolHalo*nu]);
+			Leaves[1]=a[0]*ut[1][uidm+kvolHalo*nu]+a[1]*conjf(ut[0][uidm+kvolHalo*nu]);
 			break;
 		case(1):
 			///Leaf in the forward nu and backwards mu direction
@@ -86,7 +86,7 @@ int Half_Leaf(Complex_f Leaves[nc], Complex_f *ut[nc], Complex_f a[nc], unsigned
 			//Awkward index...
 			const unsigned int uin_didm=iu[nu*kvol+uidm];
 			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})@f$
-			Leaves[0]=a[0]*conj(ut[0][uin_didm+kvolHalo*mu])+a[1]*conj(ut[1][uin_didm+kvolHalo*mu]);
+			Leaves[0]=a[0]*conjf(ut[0][uin_didm+kvolHalo*mu])+a[1]*conjf(ut[1][uin_didm+kvolHalo*mu]);
 			Leaves[1]=-a[0]*ut[1][uin_didm+kvolHalo*mu]+a[1]*ut[0][uin_didm+kvolHalo*mu];
 			break;
 		case(2):
@@ -94,25 +94,26 @@ int Half_Leaf(Complex_f Leaves[nc], Complex_f *ut[nc], Complex_f a[nc], unsigned
 			//Should really read didn, but I've already declared this 
 			uidm = id[nu*kvol+i];
 			//Daggered. So Conj what goes into a[0] and negate what goes into a[1]
-			a[0]=conj(ut[0][uidm+kvolHalo*nu]); a[1]=-ut[1][uidm+kvolHalo*nu];
+			a[0]=conjf(ut[0][uidm+kvolHalo*nu]); a[1]=-ut[1][uidm+kvolHalo*nu];
 
 			/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})@f$
-			Leaves[0]=a[0]*ut[0][uidm+kvolHalo*mu]-a[1]*conj(ut[1][uidm+kvolHalo*mu]);
+			Leaves[0]=a[0]*ut[0][uidm+kvolHalo*mu]-a[1]*conjf(ut[1][uidm+kvolHalo*mu]);
 			//Don't forget negatiion of second term was handled earlier!
-			Leaves[1]=a[0]*ut[1][uidm+kvolHalo*mu]+a[1]*conj(ut[0][uidm+kvolHalo*mu]);
+			Leaves[1]=a[0]*ut[1][uidm+kvolHalo*mu]+a[1]*conjf(ut[0][uidm+kvolHalo*mu]);
 			break;
 		case(3):
 			///Leaf in the backwards mu and backwards nu direction
 			//Should really read didm, but I've already declared this 
 			uidm  =  id[i+kvol*mu];
 			//Daggered. So Conj what goes into a[0] and negate what goes into a[1]
-			a[0]=conj(ut[0][uidm+kvolHalo*mu]); a[1]=-ut[1][uidm+kvolHalo*mu];
+			a[0]=conjf(ut[0][uidm+kvolHalo*mu]); a[1]=-ut[1][uidm+kvolHalo*mu];
 			//Another awkward index
 			const unsigned int din_didm=id[nu*kvol+uidm];
 
 			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})@f$
-			Leaves[0]=a[0]*conj(ut[0][din_didm+kvolHalo*nu])+a[1]*ut[1][din_didm+kvolHalo*nu];
-			Leaves[1]=-a[0]*conj(ut[1][din_didm+kvolHalo*nu])+a[1]*ut[0][din_didm+kvolHalo*nu];
+			/// TODO: Copy to CUDA if working
+			Leaves[0]=a[0]*conjf(ut[0][din_didm+kvolHalo*nu])+a[1]*conjf(ut[1][din_didm+kvolHalo*nu]);
+			Leaves[1]=-a[0]*ut[1][din_didm+kvolHalo*nu]+a[1]*conjf(ut[0][din_didm+kvolHalo*nu]);
 			break;
 	}
 	return 0;
@@ -139,11 +140,11 @@ int Leaf(Complex_f Leaves[nc],Complex_f *ut[nc], unsigned int *iu, unsigned int 
 		case(0):
 			unsigned int uidn = iu[nu*kvol+i]; 
 			/// @f$U_\mu(x)U_\nu(x+\hat{\mu})U^\dagger_\mu(x+\hat{\nu})@f$
-			a[0]=Leaves[0]*conj(ut[0][uidn+kvolHalo*mu])+Leaves[1]*conj(ut[1][uidn+kvolHalo*mu]);
+			a[0]=Leaves[0]*conjf(ut[0][uidn+kvolHalo*mu])+Leaves[1]*conjf(ut[1][uidn+kvolHalo*mu]);
 			a[1]=-Leaves[0]*ut[1][uidn+kvolHalo*mu]+Leaves[1]*ut[0][uidn+kvolHalo*mu];
 
 			/// @f$U_\mu(x)U_\nu(x+\hat{\mu})U^\dagger_\mu(x+\hat{\nu})U^\dagger_\nu(x)@f$
-			Leaves[0]=a[0]*conj(ut[0][i+kvolHalo*nu])+a[1]*conj(ut[1][i+kvolHalo*nu]);
+			Leaves[0]=a[0]*conjf(ut[0][i+kvolHalo*nu])+a[1]*conjf(ut[1][i+kvolHalo*nu]);
 			Leaves[1]=-a[0]*ut[1][i+kvolHalo*nu]+a[1]*ut[0][i+kvolHalo*nu];
 
 			//DEBUG
@@ -153,12 +154,12 @@ int Leaf(Complex_f Leaves[nc],Complex_f *ut[nc], unsigned int *iu, unsigned int 
 			didm = id[mu*kvol+i];
 
 			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})U^\dagger_\nu(x-\hat{\mu})@f$
-			a[0]=Leaves[0]*conj(ut[0][didm+kvolHalo*nu])+Leaves[1]*conj(ut[1][didm+kvolHalo*nu]);
+			a[0]=Leaves[0]*conjf(ut[0][didm+kvolHalo*nu])+Leaves[1]*conjf(ut[1][didm+kvolHalo*nu]);
 			a[1]=-Leaves[0]*ut[1][didm+kvolHalo*nu]+Leaves[1]*ut[0][didm+kvolHalo*nu];
 
 			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})U^\dagger_\nu(x-\hat{\mu})U_\mu(x-\hat{\mu})@f$
-			Leaves[0]=a[0]*ut[0][didm+kvolHalo*mu]-a[1]*conj(ut[1][didm+kvolHalo*mu]);
-			Leaves[1]=a[0]*ut[1][didm+kvolHalo*mu]+a[1]*conj(ut[0][didm+kvolHalo*mu]);
+			Leaves[0]=a[0]*ut[0][didm+kvolHalo*mu]-a[1]*conjf(ut[1][didm+kvolHalo*mu]);
+			Leaves[1]=a[0]*ut[1][didm+kvolHalo*mu]+a[1]*conjf(ut[0][didm+kvolHalo*mu]);
 			//DEBUG
 			//			Leaves[0]=0; Leaves[1]=0;
 			break;
@@ -167,12 +168,13 @@ int Leaf(Complex_f Leaves[nc],Complex_f *ut[nc], unsigned int *iu, unsigned int 
 			didn = id[nu*kvol+i]; 
 			unsigned int uim_didn=iu[mu*kvol+didn];
 			/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})@f$
-			a[0]=Leaves[0]*ut[0][uim_didn+kvolHalo*nu]-Leaves[1]*conj(ut[1][uim_didn+kvolHalo*nu]);
-			a[1]=Leaves[0]*ut[1][uim_didn+kvolHalo*nu]+Leaves[1]*conj(ut[0][uim_didn+kvolHalo*nu]);
+			a[0]=Leaves[0]*ut[0][uim_didn+kvolHalo*nu]-Leaves[1]*conjf(ut[1][uim_didn+kvolHalo*nu]);
+			a[1]=Leaves[0]*ut[1][uim_didn+kvolHalo*nu]+Leaves[1]*conjf(ut[0][uim_didn+kvolHalo*nu]);
 
 			/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})U^\dagger_\mu(x)@f$
-			Leaves[0]=a[0]*conj(ut[0][i+kvolHalo*mu])+a[1]*ut[1][i+kvolHalo*mu];
-			Leaves[1]=-a[0]*conj(ut[1][i+kvolHalo*mu])+a[1]*ut[0][i+kvolHalo*mu];
+			/// TODO: If works, copy to CUDA
+			Leaves[0]=a[0]*conjf(ut[0][i+kvolHalo*mu])+a[1]*conjf(ut[1][i+kvolHalo*mu]);
+			Leaves[1]=-a[0]*ut[1][i+kvolHalo*mu]+a[1]*ut[0][i+kvolHalo*mu];
 
 			//DEBUG
 			//						Leaves[0]=0; Leaves[1]=0;
@@ -183,13 +185,13 @@ int Leaf(Complex_f Leaves[nc],Complex_f *ut[nc], unsigned int *iu, unsigned int 
 			unsigned int din_didm=id[mu*kvol+didn];
 
 			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(n-\hat{\nu}-\hat{\mu})@f$
-			a[0]=Leaves[0]*ut[0][din_didm+kvolHalo*mu]-Leaves[1]*conj(ut[1][din_didm+kvolHalo*mu]);
-			a[1]=Leaves[0]*ut[1][din_didm+kvolHalo*mu]+Leaves[1]*conj(ut[0][din_didm+kvolHalo*mu]);
+			a[0]=Leaves[0]*ut[0][din_didm+kvolHalo*mu]-Leaves[1]*conjf(ut[1][din_didm+kvolHalo*mu]);
+			a[1]=Leaves[0]*ut[1][din_didm+kvolHalo*mu]+Leaves[1]*conjf(ut[0][din_didm+kvolHalo*mu]);
 
 			didm = id[mu*kvol+i];
 			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(n-\hat{\nu}-\hat{\mu})U_\nu(n-\hat{\nu})@f$
-			Leaves[0]=a[0]*ut[0][didm+kvolHalo*nu]-a[1]*conj(ut[1][didm+kvolHalo*nu]);
-			Leaves[1]=a[0]*ut[1][didm+kvolHalo*nu]+a[1]*conj(ut[0][didm+kvolHalo*nu]);
+			Leaves[0]=a[0]*ut[0][didm+kvolHalo*nu]-a[1]*conjf(ut[1][didm+kvolHalo*nu]);
+			Leaves[1]=a[0]*ut[1][didm+kvolHalo*nu]+a[1]*conjf(ut[0][didm+kvolHalo*nu]);
 
 			//DEBUG
 			//						Leaves[0]=0; Leaves[1]=0;
@@ -438,8 +440,8 @@ int Force_Leaf(Complex_f *ut[nc], Complex_f Leaves[nc],\
 				ByGenRight(a,gen);
 				uidm = iu[mu*kvol+i]; 
 				/// @f$U_\mu(x)U^\nu(x+\hat{\mu})@f$
-				Leaves[0]=a[0]*ut[0][uidm+kvolHalo*nu]-a[1]*conj(ut[1][uidm+kvolHalo*nu]);
-				Leaves[1]=a[0]*ut[1][uidm+kvolHalo*nu]+a[1]*conj(ut[0][uidm+kvolHalo*nu]);
+				Leaves[0]=a[0]*ut[0][uidm+kvolHalo*nu]-a[1]*conjf(ut[1][uidm+kvolHalo*nu]);
+				Leaves[1]=a[0]*ut[1][uidm+kvolHalo*nu]+a[1]*conjf(ut[0][uidm+kvolHalo*nu]);
 			}
 			//Multiply by generator from the right after the first two links
 			if(gen_pos==2)
@@ -447,14 +449,14 @@ int Force_Leaf(Complex_f *ut[nc], Complex_f Leaves[nc],\
 
 			unsigned int uidn = iu[nu*kvol+i]; 
 			/// @f$U_\mu(x)U_\nu(x+\hat{\mu})U^\dagger_\mu(x+\hat{\nu})@f$
-			a[0]=Leaves[0]*conj(ut[0][uidn+kvolHalo*mu])+Leaves[1]*conj(ut[1][uidn+kvolHalo*mu]);
+			a[0]=Leaves[0]*conjf(ut[0][uidn+kvolHalo*mu])+Leaves[1]*conjf(ut[1][uidn+kvolHalo*mu]);
 			a[1]=-Leaves[0]*ut[1][uidn+kvolHalo*mu]+Leaves[1]*ut[0][uidn+kvolHalo*mu];
 			//Multiply by generator from the right after the first three links
 			if(gen_pos==3)
 				ByGenRight(a,gen);
 
 			/// @f$U_\mu(x)U_\nu(x+\hat{\mu})U^\dagger_\mu(x+\hat{\nu})U^\dagger_\nu(x)@f$
-			Leaves[0]=a[0]*conj(ut[0][i+kvolHalo*nu])+a[1]*conj(ut[1][i+kvolHalo*nu]);
+			Leaves[0]=a[0]*conjf(ut[0][i+kvolHalo*nu])+a[1]*conjf(ut[1][i+kvolHalo*nu]);
 			Leaves[1]=-a[0]*ut[1][i+kvolHalo*nu]+a[1]*ut[0][i+kvolHalo*nu];
 
 			//DEBUG
@@ -471,7 +473,7 @@ int Force_Leaf(Complex_f *ut[nc], Complex_f Leaves[nc],\
 				//Awkward index...
 				const unsigned int uin_didm=iu[nu*kvol+uidm];
 				/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})@f$
-				Leaves[0]=a[0]*conj(ut[0][uin_didm+kvolHalo*mu])+a[1]*conj(ut[1][uin_didm+kvolHalo*mu]);
+				Leaves[0]=a[0]*conjf(ut[0][uin_didm+kvolHalo*mu])+a[1]*conjf(ut[1][uin_didm+kvolHalo*mu]);
 				Leaves[1]=-a[0]*ut[1][uin_didm+kvolHalo*mu]+a[1]*ut[0][uin_didm+kvolHalo*mu];
 			}
 			didm = id[mu*kvol+i];
@@ -480,15 +482,15 @@ int Force_Leaf(Complex_f *ut[nc], Complex_f Leaves[nc],\
 				ByGenRight(Leaves,gen);
 
 			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})U^\dagger_\nu(x-\hat{\mu})@f$
-			a[0]=Leaves[0]*conj(ut[0][didm+kvolHalo*nu])+Leaves[1]*conj(ut[1][didm+kvolHalo*nu]);
+			a[0]=Leaves[0]*conjf(ut[0][didm+kvolHalo*nu])+Leaves[1]*conjf(ut[1][didm+kvolHalo*nu]);
 			a[1]=-Leaves[0]*ut[1][didm+kvolHalo*nu]+Leaves[1]*ut[0][didm+kvolHalo*nu];
 			//Multiply by generator from the right after the first three links
 			if(gen_pos==3)
 				ByGenRight(a,gen);
 
 			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})U^\dagger_\nu(x-\hat{\mu})U_\mu(x-\hat{\mu})@f$
-			Leaves[0]=a[0]*ut[0][didm+kvolHalo*mu]-a[1]*conj(ut[1][didm+kvolHalo*mu]);
-			Leaves[1]=a[0]*ut[1][didm+kvolHalo*mu]+a[1]*conj(ut[0][didm+kvolHalo*mu]);
+			Leaves[0]=a[0]*ut[0][didm+kvolHalo*mu]-a[1]*conjf(ut[1][didm+kvolHalo*mu]);
+			Leaves[1]=a[0]*ut[1][didm+kvolHalo*mu]+a[1]*conjf(ut[0][didm+kvolHalo*mu]);
 			//DEBUG
 			//			Leaves[0]=0; Leaves[1]=0;
 			break;
@@ -498,14 +500,14 @@ int Force_Leaf(Complex_f *ut[nc], Complex_f Leaves[nc],\
 				//Should really read didn, but I've already declared this 
 				uidm = id[nu*kvol+i];
 				//Daggered. So Conj what goes into a[0] and negate what goes into a[1]
-				a[0]=conj(ut[0][uidm+kvolHalo*nu]); a[1]=-ut[1][uidm+kvolHalo*nu];
+				a[0]=conjf(ut[0][uidm+kvolHalo*nu]); a[1]=-ut[1][uidm+kvolHalo*nu];
 				//Multiply first link by generator from the right
 				ByGenRight(a,gen);
 
 				/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})@f$
-				Leaves[0]=a[0]*ut[0][uidm+kvolHalo*mu]-a[1]*conj(ut[1][uidm+kvolHalo*mu]);
+				Leaves[0]=a[0]*ut[0][uidm+kvolHalo*mu]-a[1]*conjf(ut[1][uidm+kvolHalo*mu]);
 				//Don't forget negatiion of second term was handled earlier!
-				Leaves[1]=a[0]*ut[1][uidm+kvolHalo*mu]+a[1]*conj(ut[0][uidm+kvolHalo*mu]);
+				Leaves[1]=a[0]*ut[1][uidm+kvolHalo*mu]+a[1]*conjf(ut[0][uidm+kvolHalo*mu]);
 			}
 			///Leaf in the forwards mu and backwards nu direction
 			didn = id[nu*kvol+i]; 
@@ -514,15 +516,15 @@ int Force_Leaf(Complex_f *ut[nc], Complex_f Leaves[nc],\
 				ByGenRight(Leaves,gen);
 			unsigned int uim_didn=iu[mu*kvol+didn];
 			/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})@f$
-			a[0]=Leaves[0]*ut[0][uim_didn+kvolHalo*nu]-Leaves[1]*conj(ut[1][uim_didn+kvolHalo*nu]);
-			a[1]=Leaves[0]*ut[1][uim_didn+kvolHalo*nu]+Leaves[1]*conj(ut[0][uim_didn+kvolHalo*nu]);
+			a[0]=Leaves[0]*ut[0][uim_didn+kvolHalo*nu]-Leaves[1]*conjf(ut[1][uim_didn+kvolHalo*nu]);
+			a[1]=Leaves[0]*ut[1][uim_didn+kvolHalo*nu]+Leaves[1]*conjf(ut[0][uim_didn+kvolHalo*nu]);
 			//Multiply by generator from the right after the first three links
 			if(gen_pos==3)
 				ByGenRight(a,gen);
 
 			/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})U^\dagger_\mu(x)@f$
-			Leaves[0]=a[0]*conj(ut[0][i+kvolHalo*mu])+a[1]*ut[1][i+kvolHalo*mu];
-			Leaves[1]=-a[0]*conj(ut[1][i+kvolHalo*mu])+a[1]*ut[0][i+kvolHalo*mu];
+			Leaves[0]=a[0]*conjf(ut[0][i+kvolHalo*mu])+a[1]*conjf(ut[1][i+kvolHalo*mu]);
+			Leaves[1]=-a[0]*ut[1][i+kvolHalo*mu]+a[1]*ut[0][i+kvolHalo*mu];
 
 			//DEBUG
 			//					Leaves[0]=0; Leaves[1]=0;
@@ -533,14 +535,15 @@ int Force_Leaf(Complex_f *ut[nc], Complex_f Leaves[nc],\
 				//Should really read didm, but I've already declared this 
 				uidm  =  id[i+kvol*mu];
 				//Daggered. So Conj what goes into a[0] and negate what goes into a[1]
-				a[0]=conj(ut[0][uidm+kvolHalo*mu]); a[1]=-ut[1][uidm+kvolHalo*mu];
+				a[0]=conjf(ut[0][uidm+kvolHalo*mu]); a[1]=-ut[1][uidm+kvolHalo*mu];
 				ByGenRight(a,gen);
 				//Another awkward index
 				const unsigned int din_didm=id[nu*kvol+uidm];
 
 				/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})@f$
-				Leaves[0]=a[0]*conj(ut[0][din_didm+kvolHalo*nu])+a[1]*ut[1][din_didm+kvolHalo*nu];
-				Leaves[1]=-a[0]*conj(ut[1][din_didm+kvolHalo*nu])+a[1]*ut[0][din_didm+kvolHalo*nu];
+				/// TODO: Copy to CUDA if working
+				Leaves[0]=a[0]*conjf(ut[0][din_didm+kvolHalo*nu])+a[1]*conjf(ut[1][din_didm+kvolHalo*nu]);
+				Leaves[1]=-a[0]*ut[1][din_didm+kvolHalo*nu]+a[1]*conjf(ut[0][din_didm+kvolHalo*nu]);
 
 			}
 			didn = id[nu*kvol+i]; 
@@ -552,15 +555,15 @@ int Force_Leaf(Complex_f *ut[nc], Complex_f Leaves[nc],\
 
 			didm = id[mu*kvol+i];
 			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(n-\hat{\nu}-\hat{\mu})@f$
-			a[0]=Leaves[0]*ut[0][din_didm+kvolHalo*mu]-Leaves[1]*conj(ut[1][din_didm+kvolHalo*mu]);
-			a[1]=Leaves[0]*ut[1][din_didm+kvolHalo*mu]+Leaves[1]*conj(ut[0][din_didm+kvolHalo*mu]);
+			a[0]=Leaves[0]*ut[0][din_didm+kvolHalo*mu]-Leaves[1]*conjf(ut[1][din_didm+kvolHalo*mu]);
+			a[1]=Leaves[0]*ut[1][din_didm+kvolHalo*mu]+Leaves[1]*conjf(ut[0][din_didm+kvolHalo*mu]);
 			//Multiply by generator from the right after the first three links
 			if(gen_pos==3)
 				ByGenRight(a,gen);
 
 			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(n-\hat{\nu}-\hat{\mu})U_\nu(n-\hat{\nu})@f$
-			Leaves[0]=a[0]*ut[0][didm+kvolHalo*nu]-a[1]*conj(ut[1][didm+kvolHalo*nu]);
-			Leaves[1]=a[0]*ut[1][didm+kvolHalo*nu]+a[1]*conj(ut[0][didm+kvolHalo*nu]);
+			Leaves[0]=a[0]*ut[0][didm+kvolHalo*nu]-a[1]*conjf(ut[1][didm+kvolHalo*nu]);
+			Leaves[1]=a[0]*ut[1][didm+kvolHalo*nu]+a[1]*conjf(ut[0][didm+kvolHalo*nu]);
 
 			//DEBUG
 			//					Leaves[0]=0; Leaves[1]=0;
@@ -599,7 +602,7 @@ void Clover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2
 #pragma omp parallel for
 				for(unsigned int i=0;i<kvol;i++){
 					//Two of these since we have the mu and nu contribut[1]ions
-					float dSdpis[3]={0,0,0}; 
+					float dSdpis[2][3]={0,0,0}; 
 					const unsigned int ipm=iu[i+kvol*mu];
 					for(unsigned short fclov=0;fclov<(ndim-1)*(ndim-2);fclov++){
 						Complex_f fleaf[nadj][nc];
@@ -690,13 +693,15 @@ void Clover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2
 								//					Complex_f fleaf1c=conjf(fleaf[gen][1]);
 								float force = crealf(sigval[clov*ndirac+idirac]*(X1sc[0]*(fleaf[gen][0]*X2s[0]+fleaf[gen][1]*X2s[1])+\
 											X1sc[1]*(fleaf[gen][0]*X2s[1]-fleaf[gen][1]*X2s[0])));
-								//mu direction contribut[1]ion
-								dSdpis[gen]+=force;
+								//mu direction contribution
+								dSdpis[0][gen]+=force;
+								dSdpis[1][gen]-=force;
 							}
 						}
 					}
 					for(unsigned short gen=0;gen<nadj;gen++){
-						dSdpi[i+kvol*(gen*ndim+mu)]-=akappa*dSdpis[gen];
+						dSdpi[i+kvol*(gen*ndim+mu)]-=akappa*dSdpis[0][gen];
+						dSdpi[i+kvol*(gen*ndim+nu)]-=akappa*dSdpis[1][gen];
 					}
 				}
 			}
