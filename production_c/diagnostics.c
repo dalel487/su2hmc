@@ -1,6 +1,7 @@
 #ifdef DIAGNOSTIC
 #include <assert.h>
 #include <complex.h>
+#include <float.h>
 #include <clover.h>
 #include <matrices.h>
 #include <su2hmc.h>
@@ -28,7 +29,6 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 	//used here will also assert the number of flavours for now to avoid issues
 	//later
 	assert(nf==1);
-#include<float.h>
 	printf("FLT_EVAL_METHOD is %i. Check online for what this means\n", FLT_EVAL_METHOD);
 
 	unsigned int itercg=0;
@@ -59,7 +59,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 	cudaMallocManaged((void **)&X0,kferm2Halo*sizeof((void **)Complex),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&X1,kferm2Halo*sizeof((void **)Complex),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&X0_f,kferm2Halo*sizeof((void **)Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&X1_f,kfermHalo*sizeof((void **)Complex_f),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&X1_f,kferm2Halo*sizeof((void **)Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&X2_f,kferm2Halo*sizeof((void **)Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&pp,kmom*sizeof((void **)double),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&dSdpi,kmom*sizeof((void **)double),cudaMemAttachGlobal);
@@ -109,7 +109,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				}
 #pragma omp section
 				{
-					FILE *trial_out_f = fopen("gauge_t", "w");
+					FILE *trial_out_f = fopen("gauge_t_f", "w");
 					for(unsigned int i=0;i<(kvol+halo);i++){
 						if(i<kvol)
 							fprintf(trial_out_f,"Site %d:\n",i);
@@ -127,6 +127,11 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 			break;
 		default:
 			//Cold start as a default. Don't need to print
+			//NOTE: Single link set non unity
+			if(!rank)
+				printf("Cold Start\n");
+			u[0][0]=1+0*I; u[1][0]=0+9*I;
+			u[0][1+kvolHalo]=0+0*I; u[1][1+kvolHalo]=0+1*I;
 #pragma omp parallel for
 			for(unsigned short mu=0;mu<ndim;mu++){
 				memcpy(ut[0]+mu*kvolHalo,u[0]+mu*kvol,kvol*sizeof(Complex));
@@ -138,7 +143,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 	Reunitarise(ut);
 	for(unsigned short mu=0;mu<ndim;mu++)
 		for(unsigned int i=0;i<kvol;i++){
-			double diff = 1-fabs(creal(ut[0][i+mu*kvol]*conj(ut[0][i+mu*kvol])+ut[1][i+mu*kvol]*conj(ut[1][i+mu*kvol])));
+			double diff = 1-fabs(creal(ut[0][i+mu*kvolHalo]*conj(ut[0][i+mu*kvolHalo])+ut[1][i+mu*kvolHalo]*conj(ut[1][i+mu*kvolHalo])));
 			if(diff >1e-6){
 				fprintf(stderr,"Error %i in %s: Gauge links not correctly reuniterised for site %i and direction %d. Diff %e"\
 						"\nExiting...\n\n",REUNIERR,funcname,i,mu,diff);
@@ -209,9 +214,9 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 		FILE *input, *output;
 		FILE *input_f, *output_f;
 		FILE *input_diff, *output_diff;
+		int na=0;
 		switch(test){
 			case(0): //UpDownPart
-				int na=0;
 				input = fopen("PreUpDownPart","w");
 				for(int i=0; i<kvol; i++){
 					fprintf(input,"Site %d:\t",i);
@@ -458,6 +463,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				//Clover correct, Convert works so get it in double here for everywhere else
 				ComplexConvert(clover_f[0],clover[0],6*kvol,false,1);
 				ComplexConvert(clover_f[1],clover[1],6*kvol,false,1);
+				break;
 			case(6): //ByClover
 				if(c_sw==0)
 					break;
@@ -549,7 +555,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 					fprintf(output, "\n\n"); fprintf(output_f,"\n\n"); fprintf(output_diff,"\n\n");
 				}
 				fclose(output);fclose(output_f);fclose(output_diff);
-
+			break;
 			case(8): //Filling smallPhi
 				memset(smallPhi,0,kferm2*sizeof(Complex));
 				Fill_Small_Phi(na,smallPhi,Phi);
@@ -569,6 +575,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 					fprintf(stderr,"Error %i in %s: Congradq failed to converge.\nExiting\n\n",ITERLIM,funcname);
 					exit(ITERLIM);
 				}
+				break;
 			case(10):	//Hamilton
 				memset(X1,0,kferm2Halo*sizeof(Complex));
 				input = fopen("hamiltonian_in", "w");
@@ -601,7 +608,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 					for(unsigned short gen=0;gen<nadj;gen++){
 						fprintf(input,"Gen %d:\n",gen);
 						for(unsigned int mu=0;mu<ndim;mu++){
-							fprintf(input, "%.3f\t%.3f\t%.3f\t%.3f\n", dSdpi[i+kvol*(gen*ndim+mu)]);
+							fprintf(input, "%.3f\t", dSdpi[i+kvol*(gen*ndim+mu)]);
 						}
 						fprintf(input,"\n");
 					}
@@ -687,6 +694,11 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				if(c_sw==0)
 					break;
 				memset(dSdpi,0,kmom*sizeof(double));
+				//Make it easier to keep track of the force. Set pseudeofermion fields to one.
+				#pragma omp parallel for simd aligned(X1_f,X2_f:AVX)
+				for(unsigned int i=0;i<kferm2Halo;i++){
+					X1_f[i]=1; X2_f[i]=1;
+				}
 				Clover_Force(dSdpi,ut_f,X1_f,X2_f,sigval_f,sigin,iu,id,akappa);
 				output = fopen("Clover_Force","w");
 				for(unsigned int i = 0; i< kvol; i++){
@@ -701,6 +713,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 					fprintf(output,"\n");
 				}
 				fclose(output);
+				break;
 			case(15):
 				itercg=0;
 				if(Congradp(0, respbp, Phi, R1,ut,ut_f,clover_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,c_sw,&itercg)){
