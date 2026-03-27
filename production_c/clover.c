@@ -16,7 +16,7 @@ void ByGenLeft(Complex_f a[nc],const unsigned short gen){
 			break;
 			///@f$i\sigma_y@f$
 		case(1):
-			a[0] = conjf(a[1]);
+			a[0] = -conjf(a[1]);
 			a[1] = conjf(tmp);
 			break;
 			///@f$i\sigma_z@f$
@@ -541,7 +541,7 @@ int Force_Leaf(Complex_f *ut[nc], Complex_f Leaves[nc],\
 				/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})@f$
 				/// TODO: Copy to CUDA if working
 				Leaves[0]=a[0]*conjf(ut[0][din_didm+kvolHalo*nu])+a[1]*conjf(ut[1][din_didm+kvolHalo*nu]);
-				Leaves[1]=-a[0]*ut[1][din_didm+kvolHalo*nu]+a[1]*conjf(ut[0][din_didm+kvolHalo*nu]);
+				Leaves[1]=-a[0]*ut[1][din_didm+kvolHalo*nu]+a[1]*ut[0][din_didm+kvolHalo*nu];
 
 			}
 			didn = id[nu*kvol+i]; 
@@ -729,7 +729,7 @@ int Init_clover(Complex **sigval, Complex_f **sigval_f,unsigned short **sigin, f
 	cblas_zdscal(6*4, 0.5*c_sw, sigval_t, 1);
 #else
 #pragma omp parallel for simd collapse(2) aligned(sigval,sigval_f:AVX)
-	for(int i=1;i<6;i++)
+	for(int i=0;i<6;i++)
 		for(int j=0;j<4;j++)
 			sigval_t[i][j]*=c_sw*0.5;
 #endif
