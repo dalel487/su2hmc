@@ -583,6 +583,7 @@ void Clover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2
 #else
 	Complex_f *hLeaves[ndim][nc];
 	//Allocate half-leaf memory. We will have one stream for each direction
+	//This is excessive on CPU, but with GPU we can use multiple streams
 	for(unsigned short mu=0;mu<ndim;mu++){
 		hLeaves[mu][0]=(Complex_f *)aligned_alloc(AVX,ndim*kvol*sizeof(Complex_f));
 		hLeaves[mu][1]=(Complex_f *)aligned_alloc(AVX,ndim*kvol*sizeof(Complex_f));
@@ -603,7 +604,7 @@ void Clover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2
 				float dSdpis[2][3]={0,0,0}; 
 				const unsigned int ipm=iu[i+kvol*mu];
 				for(unsigned short fclov=0;fclov<(ndim-1)*(ndim-2);fclov++){
-					Complex_f fleaf[nadj][nc];
+					Complex_f fleaf[2][nadj][nc];
 					unsigned int site;
 					for(unsigned short gen=0;gen<nadj;gen++){
 						//This stores the half-leaf initially, then the out[1]put[1] from Force_Leaves
@@ -614,34 +615,63 @@ void Clover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2
 								tmp[0]=hLeaves[mu][0][site+0*kvol]; tmp[1]=hLeaves[mu][1][site+0*kvol];
 								//Get leaf 0 with the correct generator in the initial position
 								Force_Leaf(ut,tmp,iu,id,site,mu,nu,0,gen,0);
-								fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
+								fleaf[0][gen][0]=tmp[0]; fleaf[0][gen][1]=tmp[1];
 
 								//Get leaf 2 with the correct generator in the final position
 								tmp[0]=hLeaves[mu][0][site+2*kvol]; tmp[1]=hLeaves[mu][1][site+2*kvol];
 								Force_Leaf(ut,tmp,iu,id,site,mu,nu,2,gen,4);
 								//-= here as the contribution is from @f$Q_{\nu\mu}@f$!!!
 								//Conjugate too.
-								fleaf[gen][0]-=conjf(tmp[0]); fleaf[gen][1]-=tmp[1];
+								fleaf[0][gen][0]-=conjf(tmp[0]); fleaf[0][gen][1]+=tmp[1];
+
+								//And repeat for nu
+								tmp[0]=hLeaves[nu][0][site+0*kvol]; tmp[1]=hLeaves[nu][1][site+0*kvol];
+								//Get leaf 0 with the correct generator in the initial position
+								Force_Leaf(ut,tmp,iu,id,site,nu,mu,0,gen,0);
+								fleaf[1][gen][0]=tmp[0]; fleaf[1][gen][1]=tmp[1];
+
+								//Get leaf 2 with the correct generator in the final position
+								tmp[0]=hLeaves[nu][0][site+2*kvol]; tmp[1]=hLeaves[nu][1][site+2*kvol];
+								Force_Leaf(ut,tmp,iu,id,site,nu,mu,2,gen,4);
+								//-= here as the contribution is from @f$Q_{\nu\mu}@f$!!!
+								//Conjugate too.
+								fleaf[1][gen][0]-=conjf(tmp[0]); fleaf[1][gen][1]+=tmp[1];
 								break;
 							case(1): //Clover at i+mu
 								site=ipm;
 								//Get leaf 1 with the correct generator between links 3 and 4
 								tmp[0]=hLeaves[mu][0][site+1*kvol]; tmp[1]=hLeaves[mu][1][site+1*kvol];
 								Force_Leaf(ut,tmp,iu,id,site,mu,nu,1,gen,3);
-								fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
+								fleaf[0][gen][0]=tmp[0]; fleaf[0][gen][1]=tmp[1];
 								//Get leaf 3 with the correct generator between links 1 and 2
 								tmp[0]=hLeaves[mu][0][site+3*kvol]; tmp[1]=hLeaves[mu][1][site+3*kvol];
 								Force_Leaf(ut,tmp,iu,id,site,mu,nu,3,gen,1);
 								//-= here as the contribution is from @f$Q_{\nu\mu}@f$!!!
 								//Conjugate too
-								fleaf[gen][0]-=conjf(tmp[0]); fleaf[gen][1]=-tmp[1];
+								fleaf[0][gen][0]-=conjf(tmp[0]); fleaf[0][gen][1]+=tmp[1];
+								
+								//And repeat for nu
+								//Get leaf 1 with the correct generator between links 3 and 4
+								tmp[0]=hLeaves[nu][0][site+1*kvol]; tmp[1]=hLeaves[nu][1][site+1*kvol];
+								Force_Leaf(ut,tmp,iu,id,site,nu,mu,1,gen,3);
+								fleaf[1][gen][0]=tmp[0]; fleaf[1][gen][1]=tmp[1];
+								//Get leaf 3 with the correct generator between links 1 and 2
+								tmp[0]=hLeaves[nu][0][site+3*kvol]; tmp[1]=hLeaves[nu][1][site+3*kvol];
+								Force_Leaf(ut,tmp,iu,id,site,nu,mu,3,gen,1);
+								//-= here as the contribution is from @f$Q_{\nu\mu}@f$!!!
+								//Conjugate too
+								fleaf[1][gen][0]-=conjf(tmp[0]); fleaf[1][gen][1]+=tmp[1];
 								break;
 							case(2): //Clover at i+nu
 								site=iu[i+kvol*nu];
 								//Get leaf 2 with the correct generator between links 1 and 2
 								tmp[0]=hLeaves[mu][0][site+2*kvol]; tmp[1]=hLeaves[mu][1][site+2*kvol];
 								Force_Leaf(ut,tmp,iu,id,site,mu,nu,2,gen,1);
-								fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
+								fleaf[0][gen][0]=tmp[0]; fleaf[0][gen][1]=tmp[1];
+								//Repeat for nu
+								tmp[0]=hLeaves[nu][0][site+2*kvol]; tmp[1]=hLeaves[nu][1][site+2*kvol];
+								Force_Leaf(ut,tmp,iu,id,site,nu,mu,2,gen,1);
+								fleaf[1][gen][0]=tmp[0]; fleaf[1][gen][1]=tmp[1];
 								break;
 							case(3): //Clover at i-nu
 								site=id[i+kvol*nu];
@@ -650,14 +680,27 @@ void Clover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2
 								Force_Leaf(ut,tmp,iu,id,site,mu,nu,0,gen,3);
 								//- here as the contribution is from @f$Q_{\nu\mu}@f$!!!
 								//Conjugate too
-								fleaf[gen][0]=-conjf(tmp[0]); fleaf[gen][1]=tmp[1];
+								fleaf[0][gen][0]=-conjf(tmp[0]); fleaf[0][gen][1]=tmp[1];
+
+								//Repeat for nu
+								tmp[0]=hLeaves[nu][0][site+0*kvol]; tmp[1]=hLeaves[nu][1][site+0*kvol];
+								Force_Leaf(ut,tmp,iu,id,site,nu,mu,0,gen,3);
+								//- here as the contribution is from @f$Q_{\nu\mu}@f$!!!
+								//Conjugate too
+								fleaf[1][gen][0]=-conjf(tmp[0]); fleaf[1][gen][1]=tmp[1];
 								break;
 							case(4): //Clover at i+mu+nu
 								site=iu[ipm+kvol*nu];
 								//Get leaf 3 with the correct generator between links 2 and 3
 								tmp[0]=hLeaves[mu][0][site+3*kvol]; tmp[1]=hLeaves[mu][1][site+3*kvol];
 								Force_Leaf(ut,tmp,iu,id,site,mu,nu,3,gen,2);
-								fleaf[gen][0]=tmp[0]; fleaf[gen][1]=tmp[1];
+								fleaf[0][gen][0]=tmp[0]; fleaf[0][gen][1]=tmp[1];
+
+								//Repeat for nu
+								//Get leaf 3 with the correct generator between links 2 and 3
+								tmp[0]=hLeaves[nu][0][site+3*kvol]; tmp[1]=hLeaves[nu][1][site+3*kvol];
+								Force_Leaf(ut,tmp,iu,id,site,nu,mu,3,gen,2);
+								fleaf[1][gen][0]=tmp[0]; fleaf[1][gen][1]=tmp[1];
 								break;
 							case(5): //Clover at i+mu-nu
 								site=id[ipm+kvol*nu];
@@ -666,14 +709,24 @@ void Clover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2
 								Force_Leaf(ut,tmp,iu,id,site,mu,nu,1,gen,2);
 								//- here as the contribution is from @f$Q_{\nu\mu}@f$!!!
 								//Conjugate too
-								fleaf[gen][0]=-conjf(tmp[0]); fleaf[gen][1]=tmp[1];
+								fleaf[0][gen][0]=-conjf(tmp[0]); fleaf[0][gen][1]=tmp[1];
+
+								//Repeat for nu
+								tmp[0]=hLeaves[nu][0][site+1*kvol]; tmp[1]=hLeaves[nu][1][site+1*kvol];
+								Force_Leaf(ut,tmp,iu,id,site,nu,mu,1,gen,2);
+								//- here as the contribution is from @f$Q_{\nu\mu}@f$!!!
+								//Conjugate too
+								fleaf[1][gen][0]=-conjf(tmp[0]); fleaf[1][gen][1]=tmp[1];
+								break;
 								break;
 						}
-						//				fleaf[gen][0]=(-I/8.0f)*(fleaf[gen][0]+conjf(fleaf[gen][0]));
-						//				fleaf[gen][0]=(-I/4.0f)*fleaf[gen][0].real();
-						fleaf[gen][0]=-I*crealf(fleaf[gen][0])/4;
-						//				fleaf[gen][1]=(-I/8.0f)*(fleaf[gen][1]-fleaf[gen][1]);
-						fleaf[gen][1]=0;
+						//				fleaf[0][gen][0]=(-I/8.0f)*(fleaf[0][gen][0]+conjf(fleaf[0][gen][0]));
+						//				fleaf[0][gen][0]=(-I/4.0f)*fleaf[0][gen][0].real();
+						//				fleaf[0][gen][1]=(-I/8.0f)*(fleaf[0][gen][1]-fleaf[0][gen][1]);
+						fleaf[0][gen][0]=-I*crealf(fleaf[0][gen][0])/4;
+						fleaf[0][gen][1]=0;
+						fleaf[1][gen][0]=-I*crealf(fleaf[1][gen][0])/4;
+						fleaf[1][gen][1]=0;
 					}
 					for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
 						const unsigned short sind = sigin[clov*ndirac+(idirac>>1)]<<(nc-1);	
@@ -688,11 +741,13 @@ void Clover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2
 						X2s[0]=X2[ind]; X2s[1]=X2[ind+kvolHalo];
 
 						for(unsigned short gen=0;gen<nadj;gen++){
-							//					Complex_f fleaf1c=conjf(fleaf[gen][1]);
-							float force = crealf(sigval[clov*ndirac+idirac]*(X1sc[0]*(fleaf[gen][0]*X2s[0]+fleaf[gen][1]*X2s[1])+\
-										X1sc[1]*(fleaf[gen][0]*X2s[1]-fleaf[gen][1]*X2s[0])));
+							//					Complex_f fleaf1c=conjf(fleaf[0][gen][1]);
+							float force = crealf(sigval[clov*ndirac+idirac]*(X1sc[0]*(fleaf[0][gen][0]*X2s[0]+fleaf[0][gen][1]*X2s[1])+\
+										X1sc[1]*(fleaf[0][gen][0]*X2s[1]-fleaf[0][gen][1]*X2s[0])));
 							//mu direction contribution
 							dSdpis[0][gen]+=force;
+							force = crealf(sigval[clov*ndirac+idirac]*(X1sc[0]*(fleaf[1][gen][0]*X2s[0]+fleaf[1][gen][1]*X2s[1])+\
+										X1sc[1]*(fleaf[1][gen][0]*X2s[1]-fleaf[1][gen][1]*X2s[0])));
 							dSdpis[1][gen]-=force;
 						}
 					}
