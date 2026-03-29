@@ -131,7 +131,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 			if(!rank)
 				printf("Cold Start\n");
 			u[0][0]=1+0*I; u[1][0]=0+0*I;
-			u[0][1+kvolHalo]=0+1*I; u[1][1+kvolHalo]=0+0*I;
+			u[0][1+kvolHalo]=0+0*I; u[1][1+kvolHalo]=0+1*I;
 #pragma omp parallel for
 			for(unsigned short mu=0;mu<ndim;mu++){
 				memcpy(ut[0]+mu*kvolHalo,u[0]+mu*kvol,kvol*sizeof(Complex));

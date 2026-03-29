@@ -734,6 +734,7 @@ void Clover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2
 						fleaf[1][gen][0]=-I*crealf(fleaf[1][gen][0])/4;
 						fleaf[1][gen][1]=0;
 					}
+					site=i;
 					for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
 						const unsigned short sind = sigin[clov*ndirac+(idirac>>1)]<<(nc-1);	
 						//Calculate the index. For the next colour we add kvol
