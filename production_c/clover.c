@@ -753,7 +753,8 @@ void Clover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2
 										X1sc[1]*(fleaf[0][gen][0]*X2s[1]-fleaf[0][gen][1]*X2s[0])));
 							//mu direction contribution
 							dSdpis[0][gen]+=force;
-							force = crealf(sigval[clov*ndirac+(idirac>>1)]*(X1sc[0]*(fleaf[1][gen][0]*X2s[0]+fleaf[1][gen][1]*X2s[1])+\
+							//Minus for @f$\sigma_{\nu\mu}@f$
+							force = crealf(-sigval[clov*ndirac+(idirac>>1)]*(X1sc[0]*(fleaf[1][gen][0]*X2s[0]+fleaf[1][gen][1]*X2s[1])+\
 										X1sc[1]*(fleaf[1][gen][0]*X2s[1]-fleaf[1][gen][1]*X2s[0])));
 							dSdpis[1][gen]-=force;
 						}
