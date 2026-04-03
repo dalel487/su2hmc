@@ -130,8 +130,8 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 			//NOTE: Single link set non unity
 			if(!rank)
 				printf("Cold Start\n");
-			u[0][0]=1+0*I; u[1][0]=0+0*I;
-			u[0][1+kvolHalo]=0+0*I; u[1][1+kvolHalo]=0+1*I;
+			u[0][0]=0+0*I; u[1][0]=0+1*I;
+			u[0][1+kvolHalo]=1+0*I; u[1][1+kvolHalo]=0+0*I;
 #pragma omp parallel for
 			for(unsigned short mu=0;mu<ndim;mu++){
 				memcpy(ut[0]+mu*kvolHalo,u[0]+mu*kvol,kvol*sizeof(Complex));
@@ -191,30 +191,48 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				fprintf(dk4p_File,"%f\t%f\t%f\t%f\n",dk[1][i],dk[1][i+1],dk[1][i+2],dk[1][i+3]);
 		}
 	}
-	for(int test = 0; test<=15; test++){
 
-		//We reset all the random fields between each test. It's one way of ensuring that errors don't propegate from one
-		//test to another. Since we start from the same seed each time this should give the same results for each test. If
-		//it does not, there's a bug
-		Gauss_d(pp,kmom,0,1); Gauss_z(R1, kfermHalo, 0, 1/sqrt(2));
-		Gauss_z(Phi, kferm, 0, 1/sqrt(2)); Gauss_z(xi, kferm, 0, 1/sqrt(2));
-		Gauss_c(R1_f, kferm, 0, 1/sqrt(2)); Gauss_c(Phi_f, kferm, 0, 1/sqrt(2));
-		Gauss_c(xi_f, kferm, 0, 1/sqrt(2));
+	const int na=0;
+	/*
+	Gauss_d(pp,kmom,0,1);
+	Gauss_c(R1_f, kferm, 0, 1/sqrt(2)); Gauss_c(Phi_f, kferm, 0, 1/sqrt(2));
+	Gauss_c(xi_f, kferm, 0, 1/sqrt(2));
+	*/
+	#pragma omp parallel for simd aligned(Phi,xi,R1:AVX)
+	for(unsigned int i=0;i<kvol;i++)
+	for(unsigned short j=0;j<ngorkov;j++){
+		Phi_f[i+j*kvol]=1; xi_f[i+j*kvolHalo]=1; R1_f[i+j*kvolHalo]=1;
+	}
 
-		Gauss_z(X0, kferm2, 0, 1/sqrt(2)); Gauss_z(X1, kferm2, 0, 1/sqrt(2));
-		Gauss_c(X0_f, kferm2, 0, 1/sqrt(2)); Gauss_c(X1_f, kferm2, 0, 1/sqrt(2));
+	ComplexConvert(Phi_f,Phi,kferm,false,1);
+	ComplexConvert(xi_f,xi,kvol,false,ngorkov);
+	ComplexConvert(R1_f,R1,kvol,false,ngorkov);
 
-		//Random nomalised momentum field
-		Gauss_d(dSdpi,kmom,0,1/sqrt(2));
+	//Gauss_c(X0_f, kferm2, 0, 1/sqrt(2)); Gauss_c(X1_f, kferm2, 0, 1/sqrt(2));
+	#pragma omp parallel for simd aligned(X0,X1:AVX)
+	for(unsigned int i=0;i<kvol;i++)
+	for(unsigned short j=0;j<ndirac;j++)
+	{
+		X0_f[i+j*kvolHalo]=1; xi_f[i+j*kvolHalo]=1;
+	}
+	
+	ComplexConvert(X0_f,X0,kvol,false,ndirac);
+	ComplexConvert(X1_f,X1,kvol,false,ndirac);
+	#pragma omp parallel for simd aligned(pp:AVX)
+	for(unsigned int i=0;i<kmom;i++)
+		pp[i]=0;
+
+	//Random nomalised momentum field
+	Gauss_d(dSdpi,kmom,0,1/sqrt(2));
 #pragma omp for simd aligned(dSdpi:AVX) nowait
-		for(int i=0; i<kmom; i+=4){
-			double norm = sqrt(dSdpi[i]*dSdpi[i]+dSdpi[i+1]*dSdpi[i+1]+dSdpi[i+2]*dSdpi[i+2]+dSdpi[i+3]*dSdpi[i+3]);
-			dSdpi[i]/=norm; dSdpi[i+1]/=norm; dSdpi[i+2]/=norm;dSdpi[i+3]/=norm;
-		}
-		FILE *input, *output;
-		FILE *input_f, *output_f;
-		FILE *input_diff, *output_diff;
-		int na=0;
+	for(int i=0; i<kmom; i+=4){
+		double norm = sqrt(dSdpi[i]*dSdpi[i]+dSdpi[i+1]*dSdpi[i+1]+dSdpi[i+2]*dSdpi[i+2]+dSdpi[i+3]*dSdpi[i+3]);
+		dSdpi[i]/=norm; dSdpi[i+1]/=norm; dSdpi[i+2]/=norm;dSdpi[i+3]/=norm;
+	}
+	FILE *input, *output;
+	FILE *input_f, *output_f;
+	FILE *input_diff, *output_diff;
+	for(int test = 0; test<=15; test++){
 		switch(test){
 			case(0): //UpDownPart
 				input = fopen("PreUpDownPart","w");
@@ -555,7 +573,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 					fprintf(output, "\n\n"); fprintf(output_f,"\n\n"); fprintf(output_diff,"\n\n");
 				}
 				fclose(output);fclose(output_f);fclose(output_diff);
-			break;
+				break;
 			case(8): //Filling smallPhi
 				memset(smallPhi,0,kferm2*sizeof(Complex));
 				Fill_Small_Phi(na,smallPhi,Phi);
@@ -608,7 +626,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 					for(unsigned short gen=0;gen<nadj;gen++){
 						fprintf(input,"Gen %d:\n",gen);
 						for(unsigned int mu=0;mu<ndim;mu++){
-							fprintf(input, "%.3f\t", dSdpi[i+kvol*(gen*ndim+mu)]);
+							fprintf(input, "%.3e\t", dSdpi[i+kvol*(gen*ndim+mu)]);
 						}
 						fprintf(input,"\n");
 					}
@@ -618,6 +636,8 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 #ifdef __NVCC__
 				//cudaMemPrefetchAsync(dSdpi,kmom*sizeof(double),device,NULL);
 #endif
+				//Isolate Gauge force contribution
+				memset(dSdpi,0,kmom*sizeof(double));
 				Gauge_force(dSdpi,ut_f,iu,id,beta);
 #ifdef __NVCC__
 				cudaDeviceSynchronise();
@@ -628,7 +648,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 					for(unsigned short gen=0;gen<nadj;gen++){
 						fprintf(output,"Gen %d:\n",gen);
 						for(unsigned int mu=0;mu<ndim;mu++){
-							fprintf(output, "%.3f\t", dSdpi[i+kvol*(gen*ndim+mu)]);
+							fprintf(output, "%.3e\t", dSdpi[i+kvol*(gen*ndim+mu)]);
 						}
 						fprintf(output,"\n");
 					}
@@ -645,8 +665,12 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				}
 				memset(dSdpi,0,kmom*sizeof(double));
 				ComplexConvert(X1_f,X1,kvol,true,nc*ndirac);
+				//Make it easier to keep track of the force. Set pseudeofermion fields to one.
 				Hdslash_f(X2_f,X1_f,ut_f,iu,id,gamval_f,gamin,dk_f,akappa);
-
+				if(c_sw)
+					HbyClover_f(X2_f,X1_f,clover_f,sigval_f,akappa,sigin,false);
+				//Isolate wilson force contribution
+				memset(dSdpi,0,kmom*sizeof(double));
 				for(unsigned short mu=0;mu<ndim-1;mu++)
 					Force_s(dSdpi,ut_f,X1_f,X2_f,gamval_f,iu,gamin,akappa,mu);
 				Force_t(dSdpi,ut_f,X1_f,X2_f,gamval_f,dk_f,iu,gamin,akappa);
@@ -656,7 +680,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 					for(unsigned short gen=0;gen<nadj;gen++){
 						fprintf(output,"Gen %d:\n",gen);
 						for(unsigned int short mu=0;mu<ndim;mu++){
-							fprintf(output, "%.3f\t", dSdpi[i+kvol*(gen*ndim+mu)]);
+							fprintf(output, "%.3e\t", dSdpi[i+kvol*(gen*ndim+mu)]);
 						}
 						fprintf(output,"\n");
 					}
@@ -695,9 +719,9 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 					break;
 				memset(dSdpi,0,kmom*sizeof(double));
 				//Make it easier to keep track of the force. Set pseudeofermion fields to one.
-				#pragma omp parallel for simd aligned(X1_f,X2_f:AVX)
+#pragma omp parallel for simd aligned(X1_f,X2_f:AVX)
 				for(unsigned int i=0;i<kferm2Halo;i++){
-					X1_f[i]=1; X2_f[i]=1;
+					X1_f[i]=1+i; X2_f[i]=1-i;
 				}
 				Clover_Force(dSdpi,ut_f,X1_f,X2_f,sigval_f,sigin,iu,id,akappa);
 				output = fopen("Clover_Force","w");
@@ -706,7 +730,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 					for(unsigned short gen=0;gen<nadj;gen++){
 						fprintf(output,"Gen %d:\n",gen);
 						for(unsigned short mu=0;mu<ndim;mu++){
-							fprintf(output, "%.3f\t", dSdpi[i+kvol*(gen*ndim+mu)]);
+							fprintf(output, "%.3e\t", dSdpi[i+kvol*(gen*ndim+mu)]);
 						}
 						fprintf(output,"\n");
 					}
