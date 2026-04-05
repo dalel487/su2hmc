@@ -431,41 +431,38 @@ void HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2],Complex_f *s
  *	@param	sigval:	@f$\sigma_{\mu\nu}@f$ scaled by @f$\frac{c_\text{SW}}{2}@f$
  *	@param	sigin:	Dirac index of @f$\sigma_{\mu\nu}@f$
  */
-void CalcXmunu(Complex_f **Xmunu, const Complex_f *X1, const Complex_f *X2, const Complex_f *sigval, const short *sigin){
+void CalcXmunu(Complex_f **Xmunu, const Complex_f *X1, const Complex_f *X2, const Complex_f *sigval, const short *sigin,const short mu, const short nu){
 	const char funcname[] = "Xmunu";
 #ifdef __NVCC__
-	cuXmunu(Xmunu,X1,X2,sigval,sigin);
+	cuXmunu(Xmunu,X1,X2,sigval,sigin,mu,nu);
 #else
-	for(unsigned short mu=0;mu<ndim-1;mu++)
-		for(unsigned short nu=mu+1;nu<ndim;nu++){
-			const unsigned short clov = (mu==0) ? nu-1 :mu+nu;
-			//Buffer. Eight registers...
+	const unsigned short clov = (mu==0) ? nu-1 :mu+nu;
+	//Buffer. Eight registers...
 #pragma omp parallel for
-			for(unsigned int i=0;i<kvol;i++){
-				Complex_f Xmn[4]={0,0,0,0};
-				for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
-					const unsigned short sind = sigin[clov*ndirac+(idirac>>1)]<<1;
-					const Complex_f sig = sigval[clov*ndirac+(idirac>>1)];
+	for(unsigned int i=0;i<kvol;i++){
+		Complex_f Xmn[4]={0,0,0,0};
+		for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
+			const unsigned short sind = sigin[clov*ndirac+(idirac>>1)]<<1;
+			const Complex_f sig = sigval[clov*ndirac+(idirac>>1)];
 #pragma unroll
-					for(unsigned short c1=0;c1<nc;c1++){
-						//Spinors (rows) So we only load from memory once.
-						const Complex_f X1s = X1[i+kvolHalo*(sind+c1)];
-						const Complex_f X2s = X2[i+kvolHalo*(sind+c1)];
+			for(unsigned short c1=0;c1<nc;c1++){
+				//Spinors (rows) So we only load from memory once.
+				const Complex_f X1s = X1[i+kvolHalo*(sind+c1)];
+				const Complex_f X2s = X2[i+kvolHalo*(sind+c1)];
 #pragma unroll
-						for(unsigned short c2=0;c2<nc;c2++){
-							//Conjugated spinor (columns).
-							const Complex_f X1c = conjf(X1[i+kvolHalo*(idirac+c2)]);
-							const Complex_f X2c = conjf(X2[i+kvolHalo*(idirac+c2)]);
-							Xmn[(c1*nc+c2)]+=sig*(X2s*X1c+X1s*X2c);
-						}
-					}
+				for(unsigned short c2=0;c2<nc;c2++){
+					//Conjugated spinor (columns).
+					const Complex_f X1c = conjf(X1[i+kvolHalo*(idirac+c2)]);
+					const Complex_f X2c = conjf(X2[i+kvolHalo*(idirac+c2)]);
+					Xmn[(c1*nc+c2)]+=sig*(X2s*X1c+X1s*X2c);
 				}
-				//And write back to global memory.
-#pragma unroll
-				for(unsigned short c=0;c<nc*nc;c++)
-					Xmunu[clov][i+kvol*c]=Xmn[c];
 			}
 		}
+		//And write back to global memory.
+#pragma unroll
+		for(unsigned short c=0;c<nc*nc;c++)
+			Xmunu[i+kvol*c]=Xmn[c];
+	}
 	return;
 #endif
 }
@@ -479,9 +476,9 @@ void CalcXmunu(Complex_f **Xmunu, const Complex_f *X1, const Complex_f *X2, cons
  */
 inline void GLeft(Complex_f out[4],const Complex_f G[2], const Complex_f X[4]){
 	out[0]=G[0]*X[0]+G[1]*X[2];
-	out[1]=G[0]*X[3]+G[1]*X[3];
+	out[1]=G[0]*X[1]+G[1]*X[3];
 	out[2]=-conj(G[1])*X[0]+conj(G[1])*X[2];
-	out[3]=-conj(G[1])*X[3]+conj(G[1])*X[3];
+	out[3]=-conj(G[1])*X[1]+conj(G[1])*X[3];
 	return;
 }
 /**
@@ -494,8 +491,8 @@ inline void GLeft(Complex_f out[4],const Complex_f G[2], const Complex_f X[4]){
 inline void GRight(Complex_f out[4],const Complex_f G[2], const Complex_f X[4]){
 	out[0]=G[0]*X[0]-conj(G[1])*X[1];
 	out[1]=G[1]*X[0]+conj(G[0])*X[1];
-	out[0]=G[0]*X[2]-conj(G[1])*X[3];
-	out[1]=G[1]*X[2]+conj(G[0])*X[3];
+	out[2]=G[0]*X[2]-conj(G[1])*X[3];
+	out[3]=G[1]*X[2]+conj(G[0])*X[3];
 	return;
 }
 /**
@@ -525,15 +522,13 @@ void Clov_Force(float *dSdpi[3], const Complex_f *ut[2], Complex_f *X1, Complex_
 	const char funcname[] = "Clov_Force";
 	//Allocate the @f$X_{\mu\nu}@f$ array
 	short nclov=6;
-	Complex_f *Xmn[nclov];
-	for(unsigned short i=0;i<nclov;i++)
-		Xmn[i]=(Complex_f *)aligned_alloc(AVX,kvol*nc*nc*sizeof(Complex_f));
+	Complex_f *Xmn=(Complex_f *)aligned_alloc(AVX,kvol*nc*nc*sizeof(Complex_f));
 	//And get the @f$X_{\mu\nu}@f$ values
-	CalcXmunu(Xmn,X1,X2,sigval,sigin);
 	//Loop over @f$\mu@f$ and @f$\nu@f$, using symmetries to get the final result
 	for(unsigned short mu=0;mu<ndim-1;mu++)
 		for(unsigned short nu=mu+1;nu<ndim;nu++){
 			const unsigned short clov = (mu==0) ? nu-1 :mu+nu;
+			CalcXmunu(Xmn,X1,X2,sigval,sigin,mu,nu);
 #pragma omp parallel for
 			for(unsigned int i=0;i<kvol;i++){
 				//Buffer for intermediate force calculation. One for each generator.
@@ -543,28 +538,28 @@ void Clov_Force(float *dSdpi[3], const Complex_f *ut[2], Complex_f *X1, Complex_
 				//First up, W0, W1 and W6 match their Documentation values
 				Complex_f W0[2], W1[2], W6[2];	
 				//Gauge field @f$U_\nu\left(i-\hat{\nu}\right)
-				unsigned int did = id[i+kvol*mu];
-				Complex_f W1[0]=ut[0][did+kvol*nu]; Complex_f W1[1]=ut[1][did+kvol*nu];
+				unsigned int did = id[i+kvol*nu];
+				Complex_f W1[0]=ut[0][did+kvolHalo*nu]; Complex_f W1[1]=ut[1][did+kvolHalo*nu];
 
 				//@f$Z_2=X_{\mu\nu}\left(i-\hat{\nu}\right)@f$
 				Complex_f Z[nc*nc];
-				#pragma unroll
+#pragma unroll
 				for(unsigned short c=0;c<nc*nc;c++)
 					Z[c]=Xmn[did+kvol*c];
 
 				//W0 is @f$U^\dagger_\mu@f(x-\hat{nu}\right)@f$
-				Complex_f W0[0]=conjf(ut[1][did+kvol*mu]); Complex_f W0[1]=-ut[1][did+kvol*mu];
+				Complex_f W0[0]=conjf(ut[1][did+kvolHalo*mu]); Complex_f W0[1]=-ut[1][did+kvolHalo*mu];
 
 				//Need a temporary Z buffer for the intermediate result
 				Complex_f Zbuff1[nc*nc];
 				GSandwich(Zbuff1,W0,Z,W1);
-				
+
 				//@f$W_6=W_0 W_1@f$
 				W6[0]=W0[0]*W1[0]r-W0[1]*conjf(W1[1]); W6[1]=W0[0]*W1[1]r+W0[1]*conjf(W1[0]);
 
 				//Z3 is the @f$X_{\mu\nu}\left(x+\hat{\mu}-\hat{\nu}\right)@f$. Store in Z
 				unsigned int uid=iu[did+kvol*mu];
-				#pragma unroll
+#pragma unroll
 				for(unsigned short c=0;c<nc*nc;c++)
 					Z[c]=Xmn[uid+kvol*c];
 
@@ -572,32 +567,32 @@ void Clov_Force(float *dSdpi[3], const Complex_f *ut[2], Complex_f *X1, Complex_
 				Complex_f Zbuff2[nc*nc];
 				GRight(Zbuff2,W6,Z);
 				//Sum the two results into Zbuff1. Then scale by -W5
-				#pragma unroll
+#pragma unroll
 				for(unsigned short c=0;c<nc*nc;c++)
 					Zbuff1[c]+=Zbuff2[c];
 				//W5 is @f$U^\dagger_\nu\left(x+\hat{\mu}-\hat{\nu}\right)@f$
 				Complex_f W5[2];
-				W5[0]=conjf(ut[0][uid+kvol*nu]); W5[1]=-ut[1][uid+kvol*nu];
+				W5[0]=conjf(ut[0][uid+kvolHalo*nu]); W5[1]=-ut[1][uid+kvolHalo*nu];
 				//Now multiply by @f$W_5@f$ from the left into Zbuff2
 				GLeft(Zbuff2,W5,Zbuff1);
 
 				//Intermediate results from the four parts of the sum.
 				Complex_f F_int[4];
-				#pragma unroll
+#pragma unroll
 				for(unsigned short c=0;c<nc*nc;c++)
-				//Negative as it is @f$-W_5@f$
+					//Negative as it is @f$-W_5@f$
 					F_int[c]=-Zbuff2[c];
 
 				//Now we repeat for the last term in the sum. Recycling along the way.
 				//First store @f$W_2=U_\nu\left(x+\hat{\mu}\right)@f$ into W0.
 				uid=iu[i+kvol*mu];
-				W0[0]=ut[0][uid+kvol*nu]; W0[1]=ut[1][uid+kvol*nu];
+				W0[0]=ut[0][uid+kvolHalo*nu]; W0[1]=ut[1][uid+kvolHalo*nu];
 				//@f$W_3=U^\dagger_\mu\left(x+\hat{\nu}\right). Storing it in W1
 				uid=iu[i+kvol*nu];
-				W1[0]=conjf(ut[0][uid+kvol*mu]); W1[1]=-ut[1][uid+kvol*nu];
+				W1[0]=conjf(ut[0][uid+kvolHalo*mu]); W1[1]=-ut[1][uid+kvolHalo*mu];
 				//@f$Z_4=X_{\mu\nu}\left(x+\hat{\mu}+\hat{\nu}\right)@f$. Storing in Z
 				uid=iu[uid+kvol*mu];
-				#pragma unroll
+#pragma unroll
 				for(unsigned short c=0;c<nc*nc;c++)
 					Z[c]=Xmn[uid+kvol*c];
 				//Calculate and write into Zbuff1
@@ -605,57 +600,57 @@ void Clov_Force(float *dSdpi[3], const Complex_f *ut[2], Complex_f *X1, Complex_
 
 				//@f$W_7=W_0 W_1@f$
 				Complex_f W7[2];
-				W6[0]=W0[0]*W1[0]r-W0[1]*conjf(W1[1]); W6[1]=W0[0]*W1[1]r+W0[1]*conjf(W1[0]);
-				//@f$Z_5=X_{\mu\nu}\left(x+\hat{\nu}-\hat{\mu}\right)@f$
-				uid=iu[i+kvol*nu]; did=iu[uid+kvol*mu];
-				#pragma unroll
+				W7[0]=W0[0]*W1[0]r-W0[1]*conjf(W1[1]); W7[1]=W0[0]*W1[1]r+W0[1]*conjf(W1[0]);
+				//@f$Z_5=X_{\mu\nu}\left(x+\hat{\nu}\right)@f$
+				uid=iu[i+kvol*nu]; 
+#pragma unroll
 				for(unsigned short c=0;c<nc*nc;c++)
-					Z[c]=Xmn[did+kvol*c];
+					Z[c]=Xmn[uid+kvol*c];
 				//And calculate the second term
 				GLeft(Zbuff2,W7,Z);
 				//Sum the two results into Zbuff1.
-				#pragma unroll
+#pragma unroll
 				for(unsigned short c=0;c<nc*nc;c++)
 					Zbuff1[c]+=Zbuff2[c];
 				//W4 is @f$U^\dagger_\nu\left(x\right)@f$
 				Complex_f W4[2];
-				W4[0]=conjf(ut[0][i+kvol*nu]); W4[1]=-ut[1][i+kvol*nu];
+				W4[0]=conjf(ut[0][i+kvolHalo*nu]); W4[1]=-ut[1][i+kvolHalo*nu];
 				//Now multiply by @f$W_4@f$ from the right into Zbuff2
 				GRight(Zbuff2,W4,Zbuff1);
 
 				//Intermediate results from the four parts of the sum.
-				#pragma unroll
+#pragma unroll
 				for(unsigned short c=0;c<nc*nc;c++)
 					F_int[c]+=Zbuff2[c];
 				//The last thing we need is @f$W_8=W_7W_4-W_5W_6@f$. Do it in parts and store intermediates in W0 and W1
 				W0[0]=W7[0]*W4[0]-W7[1]*conjf(W4[1]); W0[1]=W7[0]*W4[1]+W7[1]*conjf(W4[0]);
-				W1[0]=W5[0]*W6[0]-W5[1]*conjf(W6[1]); W0[1]=W5[0]*W6[1]+W5[1]*conjf(W6[0]);
+				W1[0]=W5[0]*W6[0]-W5[1]*conjf(W6[1]); W1[1]=W5[0]*W6[1]+W5[1]*conjf(W6[0]);
 				//Store W8 in W0
 				W0[0]-=W1[0]; W0[1]-=W1[1];
-				
+
 				//Now load @f$@Z_0=X_{\mu\nu}(x)@f$
-				#pragma unroll
+#pragma unroll
 				for(unsigned short c=0;c<nc*nc;c++)
 					Z[c]=Xmn[i+kvol*c];
 				GLeft(Zbuff1,W0,Z);
 				//And sum intermediate
-				#pragma unroll
+#pragma unroll
 				for(unsigned short c=0;c<nc*nc;c++)
 					F_int[c]+=Zbuff1[c];
-					
+
 				//Now load @f$@Z_1=X_{\mu\nu}(x)@f$
 				uid=iu[i+kvol*mu];
-				#pragma unroll
+#pragma unroll
 				for(unsigned short c=0;c<nc*nc;c++)
 					Z[c]=Xmn[uid+kvol*c];
 				GRight(Zbuff1,W0,Z);
 				//And sum intermediate
-				#pragma unroll
+#pragma unroll
 				for(unsigned short c=0;c<nc*nc;c++)
 					F_int[c]+=Zbuff1[c];
 
 				//Excellent. Now we just need to multiply by the derivative term
-				W[0]=ut[0][i+kvol*mu]; W[1]=ut[1][i+kvol*mu];
+				W[0]=ut[0][i+kvolHalo*mu]; W[1]=ut[1][i+kvolHalo*mu];
 				for(unsigned short gen=0;gen<nadj;gen++){
 					W1[0]=W0[0]; W1[1]=W0[1];
 					ByGenLeft(W1,gen);
@@ -668,7 +663,7 @@ void Clov_Force(float *dSdpi[3], const Complex_f *ut[2], Complex_f *X1, Complex_
 				}
 			}
 		}
-		return;
+	return;
 }
 int Force_Leaf(Complex_f *ut[nc], Complex_f Leaves[nc],\
 		unsigned int *iu, unsigned int *id, unsigned int i,const unsigned short mu,const unsigned short nu,\
