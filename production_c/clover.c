@@ -436,15 +436,12 @@ void CalcXmunu(Complex_f *Xmunu, const Complex_f *X1, const Complex_f *X2, const
 #ifdef __NVCC__
 	cuXmunu(Xmunu,X1,X2,sigval,sigin,mu,nu);
 #else
-	short sign =1;
 	unsigned short clov;
 	//Get sign and index of @f$\sigma_{\mu\nu}@f correct
-	if(mu>nu)
+	if(mu<nu)
 		clov = (mu==0) ? nu-1 : mu+nu;
-	else{
+	else
 		clov = (nu==0) ? mu-1 : nu+mu;
-		sign=-1;
-	}
 	//Buffer. Eight registers...
 #pragma omp parallel for
 	for(unsigned int i=0;i<kvol;i++){
@@ -462,7 +459,7 @@ void CalcXmunu(Complex_f *Xmunu, const Complex_f *X1, const Complex_f *X2, const
 					//Conjugated spinor (columns).
 					const Complex_f X1c = conjf(X1[i+kvolHalo*(idirac+c2)]);
 					const Complex_f X2c = conjf(X2[i+kvolHalo*(idirac+c2)]);
-					Xmn[(c1*nc+c2)]+=sign*sig*(X2s*X1c+X1s*X2c);
+					Xmn[(c1*nc+c2)]+=sig*(X2s*X1c+X1s*X2c);
 				}
 			}
 		}
@@ -518,7 +515,7 @@ void GSandwich(Complex_f out[4],Complex_f tmp[4], const Complex_f Gl[2], const C
 }
 
 void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, const Complex_f *sigval, const short *sigin,\
-						const unsigned int *iu, const unsigned int *id, const float akappa){
+		const unsigned int *iu, const unsigned int *id, const float akappa){
 	const char funcname[] = "Clov_Force";
 	//Allocate the @f$X_{\mu\nu}@f$ array
 	short nclov=6;
@@ -658,7 +655,7 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 						GLeft(Zbuff1,W1,F_int);
 						//Sum of the real part of the trace.
 						dSdpis[gen]=crealf(Zbuff1[0])+crealf(Zbuff1[3]);
-						if(mu>nu)
+						if(mu<nu)
 							dSdpi[i+kvol*(gen*ndim+mu)]-=akappa*dSdpis[gen]/8.0f;
 						else
 							dSdpi[i+kvol*(gen*ndim+mu)]+=akappa*dSdpis[gen]/8.0f;
