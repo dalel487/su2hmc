@@ -436,7 +436,7 @@ void CalcXmunu(Complex_f *Xmunu, const Complex_f *X1, const Complex_f *X2, const
 #ifdef __NVCC__
 	cuXmunu(Xmunu,X1,X2,sigval,sigin,mu,nu);
 #else
-	unsigned short sign =1;
+	short sign =1;
 	unsigned short clov;
 	//Get sign and index of @f$\sigma_{\mu\nu}@f correct
 	if(mu>nu)
@@ -550,7 +550,7 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 						Z[c]=Xmn[uid+kvol*c];
 
 					//W0 is @f$U^\dagger_\mu@f(x-\hat{nu}\right)@f$
-					W0[0]=conjf(ut[1][uid+kvolHalo*mu]); W0[1]=-ut[1][uid+kvolHalo*mu];
+					W0[0]=conjf(ut[0][uid+kvolHalo*mu]); W0[1]=-ut[1][uid+kvolHalo*mu];
 
 					//Need a temporary Z buffers for the intermediate result
 					Complex_f Zbuff1[nc*nc], Zbuff2[nc*nc];
@@ -659,9 +659,9 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 						//Sum of the real part of the trace.
 						dSdpis[gen]=crealf(Zbuff1[0])+crealf(Zbuff1[3]);
 						if(mu>nu)
-							dSdpi[i+kvol*(gen*ndim+mu)]-=akappa*dSdpis[gen];
+							dSdpi[i+kvol*(gen*ndim+mu)]-=akappa*dSdpis[gen]/8.0f;
 						else
-							dSdpi[i+kvol*(gen*ndim+mu)]+=akappa*dSdpis[gen];
+							dSdpi[i+kvol*(gen*ndim+mu)]+=akappa*dSdpis[gen]/8.0f;
 					}
 				}
 			}
