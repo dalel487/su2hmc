@@ -378,7 +378,8 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 		Force_t(dSdpi,ut_f,X1_f,X2_f,gamval_f,dk_f,iu,gamin,akappa);
 #endif
 		if(c_sw){
-			Clover_Force(dSdpi,ut_f,X1_f,X2_f,sigval_f,sigin,iu,id,akappa);
+			//Clover_Force(dSdpi,ut_f,X1_f,X2_f,sigval_f,sigin,iu,id,akappa);
+			Clov_Force(dSdpi,ut_f,X1_f,X2_f,sigval_f,sigin,iu,id,akappa);
 		}
 	}
 	if(c_sw)

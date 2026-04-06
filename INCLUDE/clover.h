@@ -173,6 +173,19 @@ void Clover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2
 		const Complex_f *sigval, const unsigned short *sigin, unsigned int *iu, unsigned int *id,\
 		const float akappa);
 /**
+ *	@brief Gets the clover contribution to the force
+ *
+ *	@param	dSdpi:	Force
+ *	@param	ut:		Gauge fields
+ *	@param	X1:		Congrad output @f$\left(M^\dagger M\right)\Phi@f$
+ *	@param	X2:		@f$M\left(M^\dagger M\right)^{-1}\Phi@f$
+ *	@param	sigval:	@f$\sigma_{\mu\nu}@f$ scaled by @f$\frac{c_\text{SW}}{2}@f$
+ *	@param	sigin:	Dirac index of @f$\sigma_{\mu\nu}@f$
+ *	@param	iu,id:	Neighbouring sites
+ */
+void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, const Complex_f *sigval, const short *sigin,\
+						const unsigned int *iu, const unsigned int *id, const float akappa);
+/**
  *	@brief	Initialise values needed for the clover terms
  *
  *	@param	sigval,sigval_f:	@f$ \sigma_{\mu\nu}=\frac{1}{2i}[\gamma_\mu,\gamma_\nu]@f$ in double and single precision	scaled by @f$c_{sw}@f$
