@@ -194,31 +194,31 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 
 	const int na=0;
 	/*
-	Gauss_d(pp,kmom,0,1);
-	Gauss_c(R1_f, kferm, 0, 1/sqrt(2)); Gauss_c(Phi_f, kferm, 0, 1/sqrt(2));
-	Gauss_c(xi_f, kferm, 0, 1/sqrt(2));
-	*/
-	#pragma omp parallel for simd aligned(Phi,xi,R1:AVX)
+		Gauss_d(pp,kmom,0,1);
+		Gauss_c(R1_f, kferm, 0, 1/sqrt(2)); Gauss_c(Phi_f, kferm, 0, 1/sqrt(2));
+		Gauss_c(xi_f, kferm, 0, 1/sqrt(2));
+		*/
+#pragma omp parallel for simd aligned(Phi,xi,R1:AVX)
 	for(unsigned int i=0;i<kvol;i++)
-	for(unsigned short j=0;j<ngorkov;j++){
-		Phi_f[i+j*kvol]=1; xi_f[i+j*kvolHalo]=1; R1_f[i+j*kvolHalo]=1;
-	}
+		for(unsigned short j=0;j<ngorkov;j++){
+			Phi_f[i+j*kvol]=1; xi_f[i+j*kvolHalo]=1; R1_f[i+j*kvolHalo]=1;
+		}
 
 	ComplexConvert(Phi_f,Phi,kferm,false,1);
 	ComplexConvert(xi_f,xi,kvol,false,ngorkov);
 	ComplexConvert(R1_f,R1,kvol,false,ngorkov);
 
 	//Gauss_c(X0_f, kferm2, 0, 1/sqrt(2)); Gauss_c(X1_f, kferm2, 0, 1/sqrt(2));
-	#pragma omp parallel for simd aligned(X0,X1:AVX)
+#pragma omp parallel for simd aligned(X0,X1:AVX)
 	for(unsigned int i=0;i<kvol;i++)
-	for(unsigned short j=0;j<ndirac;j++)
-	{
-		X0_f[i+j*kvolHalo]=1; xi_f[i+j*kvolHalo]=1;
-	}
-	
+		for(unsigned short j=0;j<ndirac;j++)
+		{
+			X0_f[i+j*kvolHalo]=1; xi_f[i+j*kvolHalo]=1;
+		}
+
 	ComplexConvert(X0_f,X0,kvol,false,ndirac);
 	ComplexConvert(X1_f,X1,kvol,false,ndirac);
-	#pragma omp parallel for simd aligned(pp:AVX)
+#pragma omp parallel for simd aligned(pp:AVX)
 	for(unsigned int i=0;i<kmom;i++)
 		pp[i]=0;
 
@@ -708,7 +708,44 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				}
 				fclose(output);
 				break;
-			case(14): //Clover Force
+			case(14): //Xmunu
+				if(nproc>1){
+					fprintf(stderr,"Error %i in %s: MPI clover force not implemented yet.\n\n"\
+							"Breaking and moving to next test",NOIMPL,funcname);
+					break;
+				}
+				//Don't test if no clover.
+			if(c_sw==0)
+				break;
+				Complex_f *Xmn[6];
+#pragma omp parallel for simd aligned(X1_f,X2_f:AVX)
+				for(unsigned int i=0;i<kferm2Halo;i++){
+					X1_f[i]=1; X2_f[i]=1;
+				}
+				for(unsigned short mu=0;mu<ndim;mu++)
+					for(unsigned short nu=mu+1;nu<ndim;nu++){
+						unsigned short clov = (mu==0) ? nu-1 :mu+nu;
+						Xmn[clov]=aligned_alloc(AVX,kvol*nc*nc*sizeof(Complex_f));
+						CalcXmunu(Xmn[clov],X1_f,X2_f,sigval_f,sigin,mu,nu);
+					}
+				output = fopen("Xmunu","w");
+				for(unsigned int i=0;i<kvol;i++)	{
+					fprintf(output,"Site %d\n",i);
+					for(unsigned short mu=0;mu<ndim;mu++)
+						for(unsigned short nu=mu+1;nu<ndim;nu++){
+							unsigned short clov = (mu==0) ? nu-1 :mu+nu;
+							fprintf(output,"mu %d nu%d:",mu,nu);
+							for(unsigned short c=0;c<nc*nc;c++)
+								fprintf(output,"\t%.3e",Xmn[clov][i+kvol*c]);
+							fprintf(output,"\n");
+						}
+					fprintf(output,"\n");
+				}
+				fclose(output);
+				for(unsigned short clov=0;clov<6;clov++)
+				free(Xmn[clov]);
+				break;
+			case(15): //Clover Force
 				if(nproc>1){
 					fprintf(stderr,"Error %i in %s: MPI clover force not implemented yet.\n\n"\
 							"Breaking and moving to next test",NOIMPL,funcname);
@@ -721,7 +758,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				//Make it easier to keep track of the force. Set pseudeofermion fields to one.
 #pragma omp parallel for simd aligned(X1_f,X2_f:AVX)
 				for(unsigned int i=0;i<kferm2Halo;i++){
-					X1_f[i]=1+i; X2_f[i]=1-i;
+					X1_f[i]=1; X2_f[i]=1;
 				}
 				Clov_Force(dSdpi,ut_f,X1_f,X2_f,sigval_f,sigin,iu,id,akappa);
 				output = fopen("Clover_Force","w");
@@ -738,7 +775,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				}
 				fclose(output);
 				break;
-			case(15):
+			case(16):
 				itercg=0;
 				if(Congradp(0, respbp, Phi, R1,ut,ut_f,clover_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,c_sw,&itercg)){
 					fprintf(stderr,"Error %i in %s: Congradp failed to converge.\nExiting\n\n",ITERLIM,funcname);

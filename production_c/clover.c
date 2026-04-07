@@ -422,15 +422,6 @@ void HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2],Complex_f *s
 
 //Clover Force
 //===========
-/**
- *	@brief	Gets @f$X_munu@f$ for the clover force
- *
- *	@param	Xmunu:	All Xmunu values
- *	@param	X1:		Congrad output @f$\left(M^\dagger M\right)\Phi@f$
- *	@param	X2:		@f$M\left(M^\dagger M\right)^{-1}\Phi@f$
- *	@param	sigval:	@f$\sigma_{\mu\nu}@f$ scaled by @f$\frac{c_\text{SW}}{2}@f$
- *	@param	sigin:	Dirac index of @f$\sigma_{\mu\nu}@f$
- */
 void CalcXmunu(Complex_f *Xmunu, const Complex_f *X1, const Complex_f *X2, const Complex_f *sigval, const short *sigin,const short mu, const short nu){
 	const char funcname[] = "Xmunu";
 #ifdef __NVCC__
@@ -479,7 +470,7 @@ void CalcXmunu(Complex_f *Xmunu, const Complex_f *X1, const Complex_f *X2, const
  *	@param	X:		@f$X_{\mu\nu}(x)@f$
  *	@param	G:		Gauge field
  */
-void GLeft(Complex_f out[4],const Complex_f G[2], const Complex_f X[4]){
+static inline void GLeft(Complex_f out[4],const Complex_f G[2], const Complex_f X[4]){
 	out[0]=G[0]*X[0]+G[1]*X[2];
 	out[1]=G[0]*X[1]+G[1]*X[3];
 	out[2]=-conj(G[1])*X[0]+conj(G[0])*X[2];
@@ -493,7 +484,7 @@ void GLeft(Complex_f out[4],const Complex_f G[2], const Complex_f X[4]){
  *	@param	X:		@f$X_{\mu\nu}(x)@f$
  *	@param	G:		Gauge field
  */
-void GRight(Complex_f out[4],const Complex_f G[2], const Complex_f X[4]){
+static inline void GRight(Complex_f out[4],const Complex_f G[2], const Complex_f X[4]){
 	out[0]=G[0]*X[0]-conj(G[1])*X[1];
 	out[1]=G[1]*X[0]+conj(G[0])*X[1];
 	out[2]=G[0]*X[2]-conj(G[1])*X[3];
@@ -508,7 +499,7 @@ void GRight(Complex_f out[4],const Complex_f G[2], const Complex_f X[4]){
  *	@param	X:			@f$X_{\mu\nu}(x)@f$
  *	@param	Gl,Gr:	Left/Right Gauge fields
  */
-void GSandwich(Complex_f out[4],Complex_f tmp[4], const Complex_f Gl[2], const Complex_f X[4],const Complex_f Gr[2]){
+static inline void GSandwich(Complex_f out[4],Complex_f tmp[4], const Complex_f Gl[2], const Complex_f X[4],const Complex_f Gr[2]){
 	GRight(tmp,Gr,X);
 	GLeft(out,Gl,tmp);
 	return;

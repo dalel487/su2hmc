@@ -173,6 +173,16 @@ void Clover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2
 		const Complex_f *sigval, const unsigned short *sigin, unsigned int *iu, unsigned int *id,\
 		const float akappa);
 /**
+ *	@brief	Gets @f$X_munu@f$ for the clover force
+ *
+ *	@param	Xmunu:	All Xmunu values
+ *	@param	X1:		Congrad output @f$\left(M^\dagger M\right)\Phi@f$
+ *	@param	X2:		@f$M\left(M^\dagger M\right)^{-1}\Phi@f$
+ *	@param	sigval:	@f$\sigma_{\mu\nu}@f$ scaled by @f$\frac{c_\text{SW}}{2}@f$
+ *	@param	sigin:	Dirac index of @f$\sigma_{\mu\nu}@f$
+ */
+void CalcXmunu(Complex_f *Xmunu, const Complex_f *X1, const Complex_f *X2, const Complex_f *sigval, const short *sigin,const short mu, const short nu);
+/**
  *	@brief Gets the clover contribution to the force
  *
  *	@param	dSdpi:	Force
