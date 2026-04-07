@@ -130,7 +130,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 			//NOTE: Single link set non unity
 			if(!rank)
 				printf("Cold Start\n");
-			u[0][0]=0+0*I; u[1][0]=0+1*I;
+			u[0][0]=1+0*I; u[1][0]=0+0*I;
 			u[0][1+kvolHalo]=1+0*I; u[1][1+kvolHalo]=0+0*I;
 #pragma omp parallel for
 			for(unsigned short mu=0;mu<ndim;mu++){
@@ -201,7 +201,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 #pragma omp parallel for simd aligned(Phi,xi,R1:AVX)
 	for(unsigned int i=0;i<kvol;i++)
 		for(unsigned short j=0;j<ngorkov;j++){
-			Phi_f[i+j*kvol]=1; xi_f[i+j*kvolHalo]=1; R1_f[i+j*kvolHalo]=1;
+			Phi_f[i+j*kvol]=0.5f; xi_f[i+j*kvolHalo]=0.5f; R1_f[i+j*kvolHalo]=0.5f;
 		}
 
 	ComplexConvert(Phi_f,Phi,kferm,false,1);
@@ -593,6 +593,21 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 					fprintf(stderr,"Error %i in %s: Congradq failed to converge.\nExiting\n\n",ITERLIM,funcname);
 					exit(ITERLIM);
 				}
+				//Not part of the Congrad test. But we need to know X1_f and X2_f later.
+				ComplexConvert(X1_f,X1,kvol,true,nc*ndirac);
+				Hdslash_f(X2_f,X1_f,ut_f,iu,id,gamval_f,gamin,dk_f,akappa);
+				if(c_sw)
+					HbyClover_f(X2_f,X1_f,clover_f,sigval_f,akappa,sigin,false);
+				output=fopen("X1_f","w"); output_f=fopen("X2_f","w");
+				for(unsigned int i = 0; i< kvol; i++){
+					fprintf(output, "Site %d:\n",i); 
+					for(unsigned short j=0;j<nc*ndirac;j++){
+						fprintf(output, "%.3f+%.3fI\t",creal(X1_f[i+j*kvolHalo]),cimag(X1_f[i+j*kvolHalo]));
+						fprintf(output_f, "%.3f+%.3fI\t",creal(X2_f[i+j*kvolHalo]),cimag(X2_f[i+j*kvolHalo]));
+					}
+					fprintf(output, "\n\n"); fprintf(output_f, "\n\n"); 
+				}
+				fclose(output); fclose(output_f);
 				break;
 			case(10):	//Hamilton
 				memset(X1,0,kferm2Halo*sizeof(Complex));
@@ -663,12 +678,6 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 							"Breaking and moving to next test",NOIMPL,funcname);
 					break;
 				}
-				memset(dSdpi,0,kmom*sizeof(double));
-				ComplexConvert(X1_f,X1,kvol,true,nc*ndirac);
-				//Make it easier to keep track of the force. Set pseudeofermion fields to one.
-				Hdslash_f(X2_f,X1_f,ut_f,iu,id,gamval_f,gamin,dk_f,akappa);
-				if(c_sw)
-					HbyClover_f(X2_f,X1_f,clover_f,sigval_f,akappa,sigin,false);
 				//Isolate wilson force contribution
 				memset(dSdpi,0,kmom*sizeof(double));
 				for(unsigned short mu=0;mu<ndim-1;mu++)
@@ -718,10 +727,12 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 			if(c_sw==0)
 				break;
 				Complex_f *Xmn[6];
+				/*
 #pragma omp parallel for simd aligned(X1_f,X2_f:AVX)
 				for(unsigned int i=0;i<kferm2Halo;i++){
-					X1_f[i]=1; X2_f[i]=1;
+					X1_f[i]=1; X2_f[i]=I;
 				}
+				*/
 				for(unsigned short mu=0;mu<ndim;mu++)
 					for(unsigned short nu=mu+1;nu<ndim;nu++){
 						unsigned short clov = (mu==0) ? nu-1 :mu+nu;
@@ -736,7 +747,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 							unsigned short clov = (mu==0) ? nu-1 :mu+nu;
 							fprintf(output,"mu %d nu%d:",mu,nu);
 							for(unsigned short c=0;c<nc*nc;c++)
-								fprintf(output,"\t%.3e",Xmn[clov][i+kvol*c]);
+								fprintf(output,"\t%.3e+i%.3e",crealf(Xmn[clov][i+kvol*c]),cimagf(Xmn[clov][i+kvol*c]));
 							fprintf(output,"\n");
 						}
 					fprintf(output,"\n");
@@ -756,10 +767,12 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 					break;
 				memset(dSdpi,0,kmom*sizeof(double));
 				//Make it easier to keep track of the force. Set pseudeofermion fields to one.
+				/*
 #pragma omp parallel for simd aligned(X1_f,X2_f:AVX)
 				for(unsigned int i=0;i<kferm2Halo;i++){
-					X1_f[i]=1; X2_f[i]=1;
+					X1_f[i]=1; X2_f[i]=I;
 				}
+				*/
 				Clov_Force(dSdpi,ut_f,X1_f,X2_f,sigval_f,sigin,iu,id,akappa);
 				output = fopen("Clover_Force","w");
 				for(unsigned int i = 0; i< kvol; i++){
