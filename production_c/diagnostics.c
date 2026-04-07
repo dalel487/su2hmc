@@ -723,7 +723,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				for(unsigned int i=0;i<kferm2Halo;i++){
 					X1_f[i]=1+i; X2_f[i]=1-i;
 				}
-				Clover_Force(dSdpi,ut_f,X1_f,X2_f,sigval_f,sigin,iu,id,akappa);
+				Clov_Force(dSdpi,ut_f,X1_f,X2_f,sigval_f,sigin,iu,id,akappa);
 				output = fopen("Clover_Force","w");
 				for(unsigned int i = 0; i< kvol; i++){
 					fprintf(output,"Site %d:\n",i);
