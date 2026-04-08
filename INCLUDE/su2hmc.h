@@ -369,7 +369,7 @@ void Force_t(double *dSdpi, Complex_f *ut[2],Complex_f *X1, Complex_f *X2, Compl
 int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 		unsigned int *iu, unsigned int *id, int *hu, int *hd, double *dk[2], float *dk_f[2],\
 		const unsigned short gamin[16], const Complex gamval[20], const Complex_f gamval_f[20],\
-		const Complex *sigval, const Complex_f *sigval_f, const short *sigin,
+		const Complex *sigval, const Complex_f *sigval_f, const unsigned short *sigin,
 		Complex_f jqq,float akappa,float beta, float c_sw, double ancg);
 #endif
 	//CUDA Declarations:

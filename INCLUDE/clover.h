@@ -139,39 +139,7 @@ void HbyClover(Complex *phi, Complex *r, Complex *clover[2],Complex *sigval, con
  * @param	dag:					Daggered output has no MPI halo, but undaggered does.
  */
 void HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2],Complex_f *sigval, const float akappa, unsigned short *sigin,bool dag);
-/**
- *	@brief	Calculates a leaf for a clover term.
- *
- *	@param	ut:			Gauge fields
- *	@param	Leaves:		Array of leaves
- *	@param	iu,id:		Upper and lower site indices
- *	@param	i:				Lattice index of the clover in question
- *	@param	mu,nu:		Direction in which we're evaluating the leaf
- *	@param	leaf:			Which leaf of the clover is being calculated
- *	@param	gen:			Which generator do we multiply the leaves by. Used for the force terms
- *	@param	gen_pos:		Where does the generator appear in the multiplication. Used for the force terms.
- *	
- */
-int Force_Leaf(Complex_f *ut[nc], Complex_f Leaves[nc],\
-		unsigned int *iu, unsigned int *id, unsigned int i,const unsigned short mu,const unsigned short nu,\
-		const unsigned short leaf,short gen,short gen_pos);
-/**
- *	@brief	Clover contribution to the Molecular Dynamics force
- *
- *	@param	dSdpi:		Force
- *	@param	ut:			Gauge fields
- *	@param	X1:			@f$\left(M^\dagger M\right)^{-1} \Psi@f$
- *	@param	X2:			@f$M\left(M^\dagger M\right)^{-1} \Psi@f$
- *	@param	sigval:		@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$c_sw@f$
- * @param	sigin:		What element of the spinor is multiplied by row idirac each sigma matrix?
- * @param	iu,id:		Up/down indices
- * @param	clov:			Clover we're intereted in
- * @param	mu,nu:		Direction of clover we're interested in
- * @param	akappa:		Hopping parameter
- */
-void Clover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2,\
-		const Complex_f *sigval, const unsigned short *sigin, unsigned int *iu, unsigned int *id,\
-		const float akappa);
+
 /**
  *	@brief	Gets @f$X_munu@f$ for the clover force
  *
@@ -180,8 +148,10 @@ void Clover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2
  *	@param	X2:		@f$M\left(M^\dagger M\right)^{-1}\Phi@f$
  *	@param	sigval:	@f$\sigma_{\mu\nu}@f$ scaled by @f$\frac{c_\text{SW}}{2}@f$
  *	@param	sigin:	Dirac index of @f$\sigma_{\mu\nu}@f$
+ *	@param	mu,nu:	Lattice directions
  */
-void CalcXmunu(Complex_f *Xmunu, const Complex_f *X1, const Complex_f *X2, const Complex_f *sigval, const short *sigin,const short mu, const short nu);
+void CalcXmunu(Complex_f *Xmunu, Complex_f *X1, Complex_f *X2, const Complex_f *sigval,\
+					const short *sigin,const short mu, const short nu);
 /**
  *	@brief Gets the clover contribution to the force
  *
@@ -194,7 +164,7 @@ void CalcXmunu(Complex_f *Xmunu, const Complex_f *X1, const Complex_f *X2, const
  *	@param	iu,id:	Neighbouring sites
  */
 void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, const Complex_f *sigval, const short *sigin,\
-						const unsigned int *iu, const unsigned int *id, const float akappa);
+						unsigned int *iu, unsigned int *id, const float akappa);
 /**
  *	@brief	Initialise values needed for the clover terms
  *
@@ -274,6 +244,17 @@ void cuByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f 
  */
 void cuHbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f *sigval, const float akappa,unsigned short *sigin,bool dag);
 /**
+ *	@brief	CUDA wrapper for CalcXmunu. Only called during testing to be honest
+ *
+ *	@param	Xmunu:	All Xmunu values
+ *	@param	X1:		Congrad output @f$\left(M^\dagger M\right)\Phi@f$
+ *	@param	X2:		@f$M\left(M^\dagger M\right)^{-1}\Phi@f$
+ *	@param	sigval:	@f$\sigma_{\mu\nu}@f$ scaled by @f$\frac{c_\text{SW}}{2}@f$
+ *	@param	sigin:	Dirac index of @f$\sigma_{\mu\nu}@f$
+ *	@param	mu,nu:	Lattice directions
+ */
+void cuCalcXmunu(Complex_f *Xmunu, Complex_f *X1, Complex_f *X2, const Complex_f *sigval, const short *sigin,const short mu, const short nu);
+/**
  *	@brief	CUDA wrapper for Clover_Force
  *
  *	@param	dSdpi:		Force
@@ -282,12 +263,11 @@ void cuHbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f
  *	@param	X2:			@f$M\left(M^\dagger M\right)^{-1} \Psi@f$
  *	@param	sigval:		@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$c_sw@f$
  * @param	sigin:		What element of the spinor is multiplied by row idirac each sigma matrix?
- * @param	iu:			Up indices
- * @param	id:			Down indices
+ * @param	iu,id:		Up/down indices
  * @param	kappa:		Hopping parameter
  */
-int cuClover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2, Complex_f *sigval,\
-		unsigned short *sigin, unsigned int *iu, unsigned int *id, const float kappa);
+int cuClov_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2, const Complex_f *sigval,\
+		const unsigned short *sigin, const unsigned int *iu, const unsigned int *id, const float akappa);
 #ifdef __cplusplus
 }
 #endif

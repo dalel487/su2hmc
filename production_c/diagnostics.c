@@ -10,7 +10,7 @@
 int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 		unsigned int *iu, unsigned int *id, int *hu, int *hd, double *dk[2], float *dk_f[2],\
 		const unsigned short gamin[16], const Complex gamval[20], const Complex_f gamval_f[20],\
-		const Complex *sigval, const Complex_f *sigval_f, const short *sigin,
+		const Complex *sigval, const Complex_f *sigval_f, const unsigned short *sigin,
 		Complex_f jqq,float akappa,float beta, float c_sw, double ancg){
 	/*
 	 * Routine to check if the multiplication routines are working or not
@@ -32,7 +32,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 	printf("FLT_EVAL_METHOD is %i. Check online for what this means\n", FLT_EVAL_METHOD);
 
 	unsigned int itercg=0;
-	Complex_f *clover_f[nc], *hLeaves[ndim][nc]; Complex *clover[nc];
+	Complex_f *clover_f[nc], *hLeaves[ndim][nc], *Xmn[ndim][ndim]; Complex *clover[nc];
 #ifdef __NVCC__
 	int device=-1;
 	cudaGetDevice(&device);
@@ -45,10 +45,6 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 	cudaMallocManaged((void **)clover+1,6*kvol*sizeof((void **)Complex),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)clover_f+0,6*kvol*sizeof((void **)Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)clover_f+1,6*kvol*sizeof((void **)Complex_f),cudaMemAttachGlobal);
-	for(unsigned short i=0;i<ndim;i++){
-		cudaMallocManaged((void **)&hLeaves[i][0],ndim*kvol*sizeof(Complex_f),cudaMemAttachGlobal);
-		cudaMallocManaged((void **)&hLeaves[i][1],ndim*kvol*sizeof(Complex_f),cudaMemAttachGlobal);
-	}
 	cudaMallocManaged((void **)&R1,kfermHalo*sizeof((void **)Complex),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&xi,kfermHalo*sizeof((void **)Complex),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&R1_f,kfermHalo*sizeof((void **)Complex_f),cudaMemAttachGlobal);
@@ -63,6 +59,14 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 	cudaMallocManaged((void **)&X2_f,kferm2Halo*sizeof((void **)Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&pp,kmom*sizeof((void **)double),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&dSdpi,kmom*sizeof((void **)double),cudaMemAttachGlobal);
+	for(unsigned short i=0;i<ndim;i++){
+		cudaMallocManaged((void **)hLeaves[i]+0,kvol*ndim*sizeof(Complex_f),cudaMemAttachGlobal);
+		cudaMallocManaged((void **)hLeaves[i]+1,kvol*ndim*sizeof(Complex_f),cudaMemAttachGlobal);
+	}
+	for(unsigned short mu=0;mu<ndim;mu++)
+		for(unsigned short nu=0;nu<ndim;nu++){
+			cudaMallocManaged((void**)(Xmn[mu]+nu),kvol*nc*nc*sizeof(Complex_f),cudaMemAttachGlobal);
+		}
 #else
 	clover[0]=aligned_alloc(AVX,6*kvol*sizeof(Complex));
 	clover[1]=aligned_alloc(AVX,6*kvol*sizeof(Complex));
@@ -84,6 +88,15 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 	Complex_f *X1_f= aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f)); 
 	Complex_f *X2_f= (Complex_f *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
 	double *dSdpi = aligned_alloc(AVX,kmom*sizeof(double));
+	for(unsigned short i=0;i<ndim;i++){
+		&hLeaves[i][0]=aligned_alloc(AVX,kvol*ndim*sizeof(Complex_f));
+		&hLeaves[i][1]=aligned_alloc(AVX,kvol*ndim*sizeof(Complex_f));
+	}
+	for(unsigned short mu=0;mu<ndim;mu++)
+		for(unsigned short nu=0;nu<ndim;nu++){
+			unsigned short clov = (mu==0) ? nu-1 :mu+nu;
+			Xmn[mu][nu]=(Complex_f *)aligned_alloc(AVX,kvol*nc*nc*sizeof(Complex_f));
+		}
 #endif
 	//Trial fields shouldn't get modified (except for gauge_update
 	switch(istart){
@@ -201,7 +214,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 #pragma omp parallel for simd aligned(Phi,xi,R1:AVX)
 	for(unsigned int i=0;i<kvol;i++)
 		for(unsigned short j=0;j<ngorkov;j++){
-			Phi_f[i+j*kvol]=0.5f; xi_f[i+j*kvolHalo]=0.5f; R1_f[i+j*kvolHalo]=0.5f;
+			Phi_f[i+j*kvol]=1.0f+0.0*I; xi_f[i+j*kvolHalo]=1.0f+0.0*I; R1_f[i+j*kvolHalo]=1.0f+0.0*I;
 		}
 
 	ComplexConvert(Phi_f,Phi,kferm,false,1);
@@ -600,10 +613,15 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 					HbyClover_f(X2_f,X1_f,clover_f,sigval_f,akappa,sigin,false);
 				output=fopen("X1_f","w"); output_f=fopen("X2_f","w");
 				for(unsigned int i = 0; i< kvol; i++){
-					fprintf(output, "Site %d:\n",i); 
-					for(unsigned short j=0;j<nc*ndirac;j++){
-						fprintf(output, "%.3f+%.3fI\t",creal(X1_f[i+j*kvolHalo]),cimag(X1_f[i+j*kvolHalo]));
-						fprintf(output_f, "%.3f+%.3fI\t",creal(X2_f[i+j*kvolHalo]),cimag(X2_f[i+j*kvolHalo]));
+					fprintf(output, "Site %d:\n",i); fprintf(output_f, "Site %d:\n",i); 
+					for(unsigned short c=0;c<nc;c++){
+						fprintf(output,"c %d",c);
+						fprintf(output_f,"c %d",c);
+						for(unsigned short j=0;j<ndirac;j++){
+							fprintf(output, "\t%.3f+%.3fI",creal(X1_f[i+kvolHalo*(c+nc*j)]),cimag(X1_f[i+kvolHalo*(c+nc*j)]));
+							fprintf(output_f, "\t%.3f+%.3fI",creal(X2_f[i+kvolHalo*(c+nc*j)]),cimag(X2_f[i+kvolHalo*(c+nc*j)]));
+						}
+						fprintf(output,"\n"); fprintf(output_f,"\n");
 					}
 					fprintf(output, "\n\n"); fprintf(output_f, "\n\n"); 
 				}
@@ -635,19 +653,6 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				break;
 			case(11): //Gauge Force
 				memset(dSdpi,0,kmom*sizeof(double));
-				input = fopen("Gauge_Force_in","w");
-				for(unsigned int i = 0; i< kvol; i++){
-					fprintf(input,"Site %d:\n",i);
-					for(unsigned short gen=0;gen<nadj;gen++){
-						fprintf(input,"Gen %d:\n",gen);
-						for(unsigned int mu=0;mu<ndim;mu++){
-							fprintf(input, "%.3e\t", dSdpi[i+kvol*(gen*ndim+mu)]);
-						}
-						fprintf(input,"\n");
-					}
-					fprintf(input,"\n");
-				}
-				fclose(input);	
 #ifdef __NVCC__
 				//cudaMemPrefetchAsync(dSdpi,kmom*sizeof(double),device,NULL);
 #endif
@@ -657,7 +662,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 #ifdef __NVCC__
 				cudaDeviceSynchronise();
 #endif
-				output = fopen("Gauge_Force_out","w");
+				output = fopen("Gauge_Force","w");
 				for(unsigned int i = 0; i< kvol; i++){
 					fprintf(output,"Site %d:\n",i);
 					for(unsigned short gen=0;gen<nadj;gen++){
@@ -724,37 +729,27 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 					break;
 				}
 				//Don't test if no clover.
-			if(c_sw==0)
-				break;
-				Complex_f *Xmn[6];
-				/*
-#pragma omp parallel for simd aligned(X1_f,X2_f:AVX)
-				for(unsigned int i=0;i<kferm2Halo;i++){
-					X1_f[i]=1; X2_f[i]=I;
-				}
-				*/
+				if(c_sw==0)
+					break;
 				for(unsigned short mu=0;mu<ndim;mu++)
-					for(unsigned short nu=mu+1;nu<ndim;nu++){
-						unsigned short clov = (mu==0) ? nu-1 :mu+nu;
-						Xmn[clov]=aligned_alloc(AVX,kvol*nc*nc*sizeof(Complex_f));
-						CalcXmunu(Xmn[clov],X1_f,X2_f,sigval_f,sigin,mu,nu);
+					for(unsigned short nu=0;nu<ndim;nu++){
+						if(mu!=nu)
+						CalcXmunu(Xmn[mu][nu],X1_f,X2_f,sigval_f,sigin,mu,nu);
 					}
 				output = fopen("Xmunu","w");
 				for(unsigned int i=0;i<kvol;i++)	{
 					fprintf(output,"Site %d\n",i);
 					for(unsigned short mu=0;mu<ndim;mu++)
-						for(unsigned short nu=mu+1;nu<ndim;nu++){
-							unsigned short clov = (mu==0) ? nu-1 :mu+nu;
-							fprintf(output,"mu %d nu%d:",mu,nu);
+						for(unsigned short nu=mu+1;nu<ndim;nu++)
+						if(mu!=nu){
+							fprintf(output,"mu %d nu %d:",mu,nu);
 							for(unsigned short c=0;c<nc*nc;c++)
-								fprintf(output,"\t%.3e+i%.3e",crealf(Xmn[clov][i+kvol*c]),cimagf(Xmn[clov][i+kvol*c]));
+								fprintf(output,"\t%.3e+i%.3e",crealf(Xmn[mu][nu][i+kvol*c]),cimagf(Xmn[mu][nu][i+kvol*c]));
 							fprintf(output,"\n");
 						}
 					fprintf(output,"\n");
 				}
 				fclose(output);
-				for(unsigned short clov=0;clov<6;clov++)
-				free(Xmn[clov]);
 				break;
 			case(15): //Clover Force
 				if(nproc>1){
@@ -766,13 +761,6 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				if(c_sw==0)
 					break;
 				memset(dSdpi,0,kmom*sizeof(double));
-				//Make it easier to keep track of the force. Set pseudeofermion fields to one.
-				/*
-#pragma omp parallel for simd aligned(X1_f,X2_f:AVX)
-				for(unsigned int i=0;i<kferm2Halo;i++){
-					X1_f[i]=1; X2_f[i]=I;
-				}
-				*/
 				Clov_Force(dSdpi,ut_f,X1_f,X2_f,sigval_f,sigin,iu,id,akappa);
 				output = fopen("Clover_Force","w");
 				for(unsigned int i = 0; i< kvol; i++){
@@ -788,7 +776,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				}
 				fclose(output);
 				break;
-			case(16):
+			case(16): //Congradp
 				itercg=0;
 				if(Congradp(0, respbp, Phi, R1,ut,ut_f,clover_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,c_sw,&itercg)){
 					fprintf(stderr,"Error %i in %s: Congradp failed to converge.\nExiting\n\n",ITERLIM,funcname);
@@ -803,6 +791,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 	//Make a routine that does this for us
 	cudaFree(dk[0]); cudaFree(dk[1]); cudaFree(R1); cudaFree(dSdpi); cudaFree(pp);
 	cudaFree(Phi); cudaFree(ut[0]); cudaFree(ut[1]);
+	cudaFree(Phi_f); cudaFree(xi_f); cudaFree(R1_f);
 	cudaFree(clover[0]); cudaFree(clover[1]);
 	cudaFree(clover_f[0]); cudaFree(clover_f[1]);
 	cudaFree(X0); cudaFree(X1); cudaFree(u[0]); cudaFree(u[1]);
@@ -811,15 +800,22 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 	for(unsigned short i=0;i<ndim;i++){
 		cudaFree(hLeaves[i][0]); cudaFree(hLeaves[i][1]);
 	}
+	for(unsigned short mu=0;mu<6;mu++)
+		for(unsigned short nu=0;nu<6;nu++)
+			cudaFree(Xmn[mu][nu]);
 	cudaFree(id); cudaFree(iu); cudaFree(hd); cudaFree(hu);
 #else
 	free(dk[0]); free(dk[1]); free(R1); free(dSdpi); free(pp);
 	free(Phi); free(ut[0]); free(ut[1]); free(xi);
+	free(Phi_f); free(xi_f); free(R1_f);
 	free(clover[0]); free(clover[1]);
 	free(clover_f[0]); free(clover_f[1]);
 	for(unsigned short i=0;i<ndim;i++){
 		free(hLeaves[i][0]); free(hLeaves[i][1]);
 	}
+	for(unsigned short mu=0;mu<ndim;mu++)
+		for(unsigned short nu=0;nu<ndim;mu++)
+			free(Xmn[mu][nu]);
 	free(X0); free(X1); free(u[0]); free(u[1]);
 	free(X2_f);
 	free(id); free(iu); free(hd); free(hu);

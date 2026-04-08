@@ -422,10 +422,10 @@ void HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2],Complex_f *s
 
 //Clover Force
 //===========
-void CalcXmunu(Complex_f *Xmunu, const Complex_f *X1, const Complex_f *X2, const Complex_f *sigval, const short *sigin,const short mu, const short nu){
+void CalcXmunu(Complex_f *Xmunu, Complex_f *X1, Complex_f *X2, const Complex_f *sigval, const short *sigin,const short mu, const short nu){
 	const char funcname[] = "Xmunu";
 #ifdef __NVCC__
-	cuXmunu(Xmunu,X1,X2,sigval,sigin,mu,nu);
+	cuCalcXmunu(Xmunu,X1,X2,sigval,sigin,mu,nu);
 #else
 	unsigned short clov;
 	//Get sign and index of @f$\sigma_{\mu\nu}@f correct
@@ -433,9 +433,9 @@ void CalcXmunu(Complex_f *Xmunu, const Complex_f *X1, const Complex_f *X2, const
 		clov = (mu==0) ? nu-1 : mu+nu;
 	else
 		clov = (nu==0) ? mu-1 : nu+mu;
-	//Buffer. Eight registers...
-#pragma omp parallel for
+#pragma omp parallel for simd aligned(X1,X2,Xmunu:AVX)
 	for(unsigned int i=0;i<kvol;i++){
+		//Buffer. Eight registers...
 		Complex_f Xmn[4]={0,0,0,0};
 		for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
 			const unsigned short sind = sigin[clov*ndirac+(idirac>>1)]<<1;
@@ -459,8 +459,8 @@ void CalcXmunu(Complex_f *Xmunu, const Complex_f *X1, const Complex_f *X2, const
 		for(unsigned short c=0;c<nc*nc;c++)
 			Xmunu[i+kvol*c]=Xmn[c];
 	}
-	return;
 #endif
+	return;
 }
 
 /**
@@ -505,9 +505,12 @@ static inline void GSandwich(Complex_f out[4],Complex_f tmp[4], const Complex_f 
 	return;
 }
 
-void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, const Complex_f *sigval, const short *sigin,\
-		const unsigned int *iu, const unsigned int *id, const float akappa){
+void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, const Complex_f *sigval,\
+		const short *sigin, unsigned int *iu, unsigned int *id, const float akappa){
 	const char funcname[] = "Clov_Force";
+#ifdef __NVCC__
+	cuClov_Force(dSdpi,ut,X1,X2,sigval,sigin,iu,id,akappa);
+#else
 	//Allocate the @f$X_{\mu\nu}@f$ array
 	short nclov=6;
 	Complex_f *Xmn=(Complex_f *)aligned_alloc(AVX,kvol*nc*nc*sizeof(Complex_f));
@@ -654,367 +657,6 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 				}
 			}
 	free(Xmn);
-	return;
-}
-int Force_Leaf(Complex_f *ut[nc], Complex_f Leaves[nc],\
-		unsigned int *iu, unsigned int *id, unsigned int i,const unsigned short mu,const unsigned short nu,\
-		const unsigned short leaf,short gen,short gen_pos){
-	const char funcname[] = "Force_Leaf";
-	Complex_f a[nc];
-	unsigned int didm,didn,uidm;
-	switch(leaf){
-		case(0):
-			//If the generator is between the first two links, then we can't use the precomputed half-leaves
-			if(gen_pos==1){
-				///Both positive is just a standard plaquette
-				a[0]=ut[0][i+kvolHalo*mu]; a[1]=ut[1][i+kvolHalo*mu];
-				//Multiply first link by generator from the right
-				ByGenRight(a,gen);
-				uidm = iu[mu*kvol+i]; 
-				/// @f$U_\mu(x)U^\nu(x+\hat{\mu})@f$
-				Leaves[0]=a[0]*ut[0][uidm+kvolHalo*nu]-a[1]*conjf(ut[1][uidm+kvolHalo*nu]);
-				Leaves[1]=a[0]*ut[1][uidm+kvolHalo*nu]+a[1]*conjf(ut[0][uidm+kvolHalo*nu]);
-			}
-			//Multiply by generator from the right after the first two links
-			if(gen_pos==2)
-				ByGenRight(Leaves,gen);
-
-			unsigned int uidn = iu[nu*kvol+i]; 
-			/// @f$U_\mu(x)U_\nu(x+\hat{\mu})U^\dagger_\mu(x+\hat{\nu})@f$
-			a[0]=Leaves[0]*conjf(ut[0][uidn+kvolHalo*mu])+Leaves[1]*conjf(ut[1][uidn+kvolHalo*mu]);
-			a[1]=-Leaves[0]*ut[1][uidn+kvolHalo*mu]+Leaves[1]*ut[0][uidn+kvolHalo*mu];
-			//Multiply by generator from the right after the first three links
-			if(gen_pos==3)
-				ByGenRight(a,gen);
-
-			/// @f$U_\mu(x)U_\nu(x+\hat{\mu})U^\dagger_\mu(x+\hat{\nu})U^\dagger_\nu(x)@f$
-			Leaves[0]=a[0]*conjf(ut[0][i+kvolHalo*nu])+a[1]*conjf(ut[1][i+kvolHalo*nu]);
-			Leaves[1]=-a[0]*ut[1][i+kvolHalo*nu]+a[1]*ut[0][i+kvolHalo*nu];
-
-			//DEBUG
-			//					Leaves[0]=0; Leaves[1]=0;
-			break;
-		case(1):
-			//If the generator is between the first two links, then we can't use the precomputed half-leaves
-			if(gen_pos==1){
-				//Should really read didm, but I've already declared this 
-				uidm = id[mu*kvol+i];
-				a[0]=ut[0][i+kvolHalo*nu]; a[1]=ut[1][i+kvolHalo*nu];
-				//Multiply first link by generator from the right
-				ByGenRight(a,gen);
-				//Awkward index...
-				const unsigned int uin_didm=iu[nu*kvol+uidm];
-				/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})@f$
-				Leaves[0]=a[0]*conjf(ut[0][uin_didm+kvolHalo*mu])+a[1]*conjf(ut[1][uin_didm+kvolHalo*mu]);
-				Leaves[1]=-a[0]*ut[1][uin_didm+kvolHalo*mu]+a[1]*ut[0][uin_didm+kvolHalo*mu];
-			}
-			didm = id[mu*kvol+i];
-			//Multiply by generator from the right after the first two links
-			if(gen_pos==2)
-				ByGenRight(Leaves,gen);
-
-			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})U^\dagger_\nu(x-\hat{\mu})@f$
-			a[0]=Leaves[0]*conjf(ut[0][didm+kvolHalo*nu])+Leaves[1]*conjf(ut[1][didm+kvolHalo*nu]);
-			a[1]=-Leaves[0]*ut[1][didm+kvolHalo*nu]+Leaves[1]*ut[0][didm+kvolHalo*nu];
-			//Multiply by generator from the right after the first three links
-			if(gen_pos==3)
-				ByGenRight(a,gen);
-
-			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})U^\dagger_\nu(x-\hat{\mu})U_\mu(x-\hat{\mu})@f$
-			Leaves[0]=a[0]*ut[0][didm+kvolHalo*mu]-a[1]*conjf(ut[1][didm+kvolHalo*mu]);
-			Leaves[1]=a[0]*ut[1][didm+kvolHalo*mu]+a[1]*conjf(ut[0][didm+kvolHalo*mu]);
-			//DEBUG
-			//			Leaves[0]=0; Leaves[1]=0;
-			break;
-		case(2):
-			//If the generator is between the first two links, then we can't use the precomputed half-leaves
-			if(gen_pos==1){
-				//Should really read didn, but I've already declared this 
-				uidm = id[nu*kvol+i];
-				//Daggered. So Conj what goes into a[0] and negate what goes into a[1]
-				a[0]=conjf(ut[0][uidm+kvolHalo*nu]); a[1]=-ut[1][uidm+kvolHalo*nu];
-				//Multiply first link by generator from the right
-				ByGenRight(a,gen);
-
-				/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})@f$
-				Leaves[0]=a[0]*ut[0][uidm+kvolHalo*mu]-a[1]*conjf(ut[1][uidm+kvolHalo*mu]);
-				//Don't forget negatiion of second term was handled earlier!
-				Leaves[1]=a[0]*ut[1][uidm+kvolHalo*mu]+a[1]*conjf(ut[0][uidm+kvolHalo*mu]);
-			}
-			///Leaf in the forwards mu and backwards nu direction
-			didn = id[nu*kvol+i]; 
-			//Multiply by generator from the right after the first two links
-			if(gen_pos==2)
-				ByGenRight(Leaves,gen);
-			unsigned int uim_didn=iu[mu*kvol+didn];
-			/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})@f$
-			a[0]=Leaves[0]*ut[0][uim_didn+kvolHalo*nu]-Leaves[1]*conjf(ut[1][uim_didn+kvolHalo*nu]);
-			a[1]=Leaves[0]*ut[1][uim_didn+kvolHalo*nu]+Leaves[1]*conjf(ut[0][uim_didn+kvolHalo*nu]);
-			//Multiply by generator from the right after the first three links
-			if(gen_pos==3)
-				ByGenRight(a,gen);
-
-			/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})U^\dagger_\mu(x)@f$
-			Leaves[0]=a[0]*conjf(ut[0][i+kvolHalo*mu])+a[1]*conjf(ut[1][i+kvolHalo*mu]);
-			Leaves[1]=-a[0]*ut[1][i+kvolHalo*mu]+a[1]*ut[0][i+kvolHalo*mu];
-
-			//DEBUG
-			//					Leaves[0]=0; Leaves[1]=0;
-			break;
-		case(3):
-			//If the generator is between the first two links, then we can't use the precomputed half-leaves
-			if(gen_pos==1){
-				//Should really read didm, but I've already declared this 
-				uidm  =  id[i+kvol*mu];
-				//Daggered. So Conj what goes into a[0] and negate what goes into a[1]
-				a[0]=conjf(ut[0][uidm+kvolHalo*mu]); a[1]=-ut[1][uidm+kvolHalo*mu];
-				ByGenRight(a,gen);
-				//Another awkward index
-				const unsigned int din_didm=id[nu*kvol+uidm];
-
-				/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})@f$
-				/// TODO: Copy to CUDA if working
-				Leaves[0]=a[0]*conjf(ut[0][din_didm+kvolHalo*nu])+a[1]*conjf(ut[1][din_didm+kvolHalo*nu]);
-				Leaves[1]=-a[0]*ut[1][din_didm+kvolHalo*nu]+a[1]*ut[0][din_didm+kvolHalo*nu];
-
-			}
-			didn = id[nu*kvol+i]; 
-			///Leaf in the backwards mu and backwards nu direction
-			unsigned int din_didm=id[mu*kvol+didn];
-			//Multiply by generator from the right after the first two links
-			if(gen_pos==2)
-				ByGenRight(Leaves,gen);
-
-			didm = id[mu*kvol+i];
-			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(n-\hat{\nu}-\hat{\mu})@f$
-			a[0]=Leaves[0]*ut[0][din_didm+kvolHalo*mu]-Leaves[1]*conjf(ut[1][din_didm+kvolHalo*mu]);
-			a[1]=Leaves[0]*ut[1][din_didm+kvolHalo*mu]+Leaves[1]*conjf(ut[0][din_didm+kvolHalo*mu]);
-			//Multiply by generator from the right after the first three links
-			if(gen_pos==3)
-				ByGenRight(a,gen);
-
-			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(n-\hat{\nu}-\hat{\mu})U_\nu(n-\hat{\nu})@f$
-			Leaves[0]=a[0]*ut[0][didn+kvolHalo*nu]-a[1]*conjf(ut[1][didn+kvolHalo*nu]);
-			Leaves[1]=a[0]*ut[1][didn+kvolHalo*nu]+a[1]*conjf(ut[0][didn+kvolHalo*nu]);
-
-			//DEBUG
-			//					Leaves[0]=0; Leaves[1]=0;
-			break;
-	}
-	///gen_pos 0 is multiply the entire leaf by the generator from the left
-	if(gen_pos==0)
-		ByGenLeft(Leaves,gen);
-	///gen_pos 4 is multiply the entire leaf by the generator from the left
-	if(gen_pos==4)
-		ByGenRight(Leaves,gen);
-	return 0;
-}
-void Clover_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2,\
-		const Complex_f *sigval, const unsigned short *sigin, unsigned int *iu, unsigned int *id,\
-		const float akappa){
-#ifdef __NVCC__
-	cuClover_Force(dSdpi,ut,X1,X2,sigval,sigin,iu,id,akappa);
-#else
-	Complex_f *hLeaves[ndim][nc];
-	//Allocate half-leaf memory. We will have one stream for each direction
-	//This is excessive on CPU, but with GPU we can use multiple streams
-	for(unsigned short mu=0;mu<ndim;mu++){
-		hLeaves[mu][0]=(Complex_f *)aligned_alloc(AVX,ndim*kvol*sizeof(Complex_f));
-		hLeaves[mu][1]=(Complex_f *)aligned_alloc(AVX,ndim*kvol*sizeof(Complex_f));
-	}
-	for(unsigned short mu=0;mu<ndim-1;mu++)
-		for(unsigned short nu=mu+1;nu<ndim;nu++){
-			//Clover index
-			const unsigned short clov = (mu==0) ? nu-1 :mu+nu;
-
-			//Compute half leaves
-			Half_Leaves(hLeaves[mu],ut,iu,id,mu,nu);
-			Half_Leaves(hLeaves[nu],ut,iu,id,nu,mu);
-
-			//Compute force for @f$\mu\nu@f$ and @f$\nu\mu@f$
-#pragma omp parallel for
-			for(unsigned int i=0;i<kvol;i++){
-				//Two of these since we have the mu and nu contributions
-				float dSdpis[2][3]={0,0,0}; 
-				const unsigned int ipm=iu[i+kvol*mu];
-				const unsigned int ipn=iu[i+kvol*nu];
-				for(unsigned short fclov=0;fclov<(ndim-1)*(ndim-2);fclov++){
-					Complex_f fleaf[2][nadj][nc];
-					unsigned int site;
-					for(unsigned short gen=0;gen<nadj;gen++){
-						//This stores the half-leaf initially, then the out[1]put[1] from Force_Leaves
-						Complex_f tmp[nc];
-						switch(fclov){
-							case(0): //Clover at site
-								site=i;
-								tmp[0]=hLeaves[mu][0][site+0*kvol]; tmp[1]=hLeaves[mu][1][site+0*kvol];
-								//Get leaf 0 with the correct generator in the initial position
-								Force_Leaf(ut,tmp,iu,id,site,mu,nu,0,gen,0);
-								fleaf[0][gen][0]=tmp[0]; fleaf[0][gen][1]=tmp[1];
-
-								//Get leaf 2 with the correct generator in the final position
-								tmp[0]=hLeaves[mu][0][site+2*kvol]; tmp[1]=hLeaves[mu][1][site+2*kvol];
-								Force_Leaf(ut,tmp,iu,id,site,mu,nu,2,gen,4);
-								//-= here as the contribution is from @f$Q_{\nu\mu}@f$!!!
-								//Conjugate too.
-								fleaf[0][gen][0]-=conjf(tmp[0]); fleaf[0][gen][1]+=tmp[1];
-
-								/*
-								//And repeat for nu
-								tmp[0]=hLeaves[nu][0][site+0*kvol]; tmp[1]=hLeaves[nu][1][site+0*kvol];
-								//Get leaf 0 with the correct generator in the initial position
-								Force_Leaf(ut,tmp,iu,id,site,nu,mu,0,gen,0);
-								fleaf[1][gen][0]=tmp[0]; fleaf[1][gen][1]=tmp[1];
-
-								//Get leaf 2 with the correct generator in the final position
-								tmp[0]=hLeaves[nu][0][site+2*kvol]; tmp[1]=hLeaves[nu][1][site+2*kvol];
-								Force_Leaf(ut,tmp,iu,id,site,nu,mu,2,gen,4);
-								//-= here as the contribution is from @f$Q_{\nu\mu}@f$!!!
-								//Conjugate too.
-								fleaf[1][gen][0]-=conjf(tmp[0]); fleaf[1][gen][1]+=tmp[1];
-								*/
-								break;
-							case(1): //Clover at i+mu
-								site=ipm;
-								//Get leaf 1 with the correct generator between links 3 and 4
-								tmp[0]=hLeaves[mu][0][site+1*kvol]; tmp[1]=hLeaves[mu][1][site+1*kvol];
-								Force_Leaf(ut,tmp,iu,id,site,mu,nu,1,gen,3);
-								fleaf[0][gen][0]=tmp[0]; fleaf[0][gen][1]=tmp[1];
-								//Get leaf 3 with the correct generator between links 1 and 2
-								tmp[0]=hLeaves[mu][0][site+3*kvol]; tmp[1]=hLeaves[mu][1][site+3*kvol];
-								Force_Leaf(ut,tmp,iu,id,site,mu,nu,3,gen,1);
-								//-= here as the contribution is from @f$Q_{\nu\mu}@f$!!!
-								//Conjugate too
-								fleaf[0][gen][0]-=conjf(tmp[0]); fleaf[0][gen][1]+=tmp[1];
-
-								/*
-								//And repeat for nu
-								site=ipn;
-								//Get leaf 1 with the correct generator between links 3 and 4
-								tmp[0]=hLeaves[nu][0][site+1*kvol]; tmp[1]=hLeaves[nu][1][site+1*kvol];
-								Force_Leaf(ut,tmp,iu,id,site,nu,mu,1,gen,3);
-								fleaf[1][gen][0]=tmp[0]; fleaf[1][gen][1]=tmp[1];
-								//Get leaf 3 with the correct generator between links 1 and 2
-								tmp[0]=hLeaves[nu][0][site+3*kvol]; tmp[1]=hLeaves[nu][1][site+3*kvol];
-								Force_Leaf(ut,tmp,iu,id,site,nu,mu,3,gen,1);
-								//-= here as the contribution is from @f$Q_{\nu\mu}@f$!!!
-								//Conjugate too
-								fleaf[1][gen][0]-=conjf(tmp[0]); fleaf[1][gen][1]+=tmp[1];
-								*/
-								break;
-							case(2): //Clover at i+nu
-								site=iu[i+kvol*nu];
-								//Get leaf 2 with the correct generator between links 1 and 2
-								tmp[0]=hLeaves[mu][0][site+2*kvol]; tmp[1]=hLeaves[mu][1][site+2*kvol];
-								Force_Leaf(ut,tmp,iu,id,site,mu,nu,2,gen,1);
-								fleaf[0][gen][0]=tmp[0]; fleaf[0][gen][1]=tmp[1];
-								/*
-								//Repeat for nu
-								site=iu[i+kvol*mu];
-								tmp[0]=hLeaves[nu][0][site+2*kvol]; tmp[1]=hLeaves[nu][1][site+2*kvol];
-								Force_Leaf(ut,tmp,iu,id,site,nu,mu,2,gen,1);
-								fleaf[1][gen][0]=tmp[0]; fleaf[1][gen][1]=tmp[1];
-								*/
-								break;
-							case(3): //Clover at i-nu
-								site=id[i+kvol*nu];
-								//Get leaf 0 with the correct generator between links 3 and 4
-								tmp[0]=hLeaves[mu][0][site+0*kvol]; tmp[1]=hLeaves[mu][1][site+0*kvol];
-								Force_Leaf(ut,tmp,iu,id,site,mu,nu,0,gen,3);
-								//- here as the contribution is from @f$Q_{\nu\mu}@f$!!!
-								//Conjugate too
-								fleaf[0][gen][0]=-conjf(tmp[0]); fleaf[0][gen][1]=tmp[1];
-
-								/*
-								//Repeat for nu
-								site=id[i+kvol*mu];
-								tmp[0]=hLeaves[nu][0][site+0*kvol]; tmp[1]=hLeaves[nu][1][site+0*kvol];
-								Force_Leaf(ut,tmp,iu,id,site,nu,mu,0,gen,3);
-								//- here as the contribution is from @f$Q_{\nu\mu}@f$!!!
-								//Conjugate too
-								fleaf[1][gen][0]=-conjf(tmp[0]); fleaf[1][gen][1]=tmp[1];
-								*/
-								break;
-							case(4): //Clover at i+mu+nu
-								site=iu[ipm+kvol*nu];
-								//Get leaf 3 with the correct generator between links 2 and 3
-								tmp[0]=hLeaves[mu][0][site+3*kvol]; tmp[1]=hLeaves[mu][1][site+3*kvol];
-								Force_Leaf(ut,tmp,iu,id,site,mu,nu,3,gen,2);
-								fleaf[0][gen][0]=tmp[0]; fleaf[0][gen][1]=tmp[1];
-
-								/*
-								//Repeat for nu
-								site=iu[ipn+kvol*mu];
-								//Get leaf 3 with the correct generator between links 2 and 3
-								tmp[0]=hLeaves[nu][0][site+3*kvol]; tmp[1]=hLeaves[nu][1][site+3*kvol];
-								Force_Leaf(ut,tmp,iu,id,site,nu,mu,3,gen,2);
-								fleaf[1][gen][0]=tmp[0]; fleaf[1][gen][1]=tmp[1];
-								*/
-								break;
-							case(5): //Clover at i+mu-nu
-								site=id[ipm+kvol*nu];
-								//Get leaf 1 with the correct generator between links 2 and 3
-								tmp[0]=hLeaves[mu][0][site+1*kvol]; tmp[1]=hLeaves[mu][1][site+1*kvol];
-								Force_Leaf(ut,tmp,iu,id,site,mu,nu,1,gen,2);
-								//- here as the contribution is from @f$Q_{\nu\mu}@f$!!!
-								//Conjugate too
-								fleaf[0][gen][0]=-conjf(tmp[0]); fleaf[0][gen][1]=tmp[1];
-
-								//Repeat for nu
-								/*
-									site=id[ipn+kvol*mu];
-									tmp[0]=hLeaves[nu][0][site+1*kvol]; tmp[1]=hLeaves[nu][1][site+1*kvol];
-									Force_Leaf(ut,tmp,iu,id,site,nu,mu,1,gen,2);
-								//- here as the contribution is from @f$Q_{\nu\mu}@f$!!!
-								//Conjugate too
-								fleaf[1][gen][0]=-conjf(tmp[0]); fleaf[1][gen][1]=tmp[1];
-								*/
-								break;
-								break;
-						}
-						//				fleaf[0][gen][0]=(-I/8.0f)*(fleaf[0][gen][0]+conjf(fleaf[0][gen][0]));
-						//				fleaf[0][gen][0]=(-I/4.0f)*fleaf[0][gen][0].real();
-						//				fleaf[0][gen][1]=(-I/8.0f)*(fleaf[0][gen][1]-fleaf[0][gen][1]);
-						fleaf[0][gen][0]=-I*crealf(fleaf[0][gen][0])/4;
-						fleaf[0][gen][1]=0;
-						//						fleaf[1][gen][0]=-I*crealf(fleaf[1][gen][0])/4;
-						//						fleaf[1][gen][1]=0;
-					}
-					for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
-						const unsigned short sind = sigin[clov*ndirac+(idirac>>1)]<<(nc-1);	
-						//Calculate the index. For the next colour we add kvol
-						unsigned int ind = site+kvolHalo*idirac;
-						//Prefetching. Might not be needed here though
-						Complex_f X1sc[nc];
-						//X1 is always conjugated. So do it once here instead of twice and be done with it.	
-						X1sc[0]=conjf(X1[ind]); X1sc[1]=conjf(X1[ind+kvolHalo]);
-						ind = site+kvolHalo*sind;
-						Complex_f X2s[nc];
-						X2s[0]=X2[ind]; X2s[1]=X2[ind+kvolHalo];
-
-						for(unsigned short gen=0;gen<nadj;gen++){
-							//					Complex_f fleaf1c=conjf(fleaf[0][gen][1]);
-							float force = crealf(sigval[clov*ndirac+(idirac>>1)]*(X1sc[0]*(fleaf[0][gen][0]*X2s[0]+fleaf[0][gen][1]*X2s[1])+\
-										X1sc[1]*(fleaf[0][gen][0]*X2s[1]-fleaf[0][gen][1]*X2s[0])));
-							//mu direction contribution
-							dSdpis[0][gen]+=force;
-							//Minus for @f$\sigma_{\nu\mu}@f$ and a second one for @f$ F_{\nu\mu}@f$
-							force = crealf(sigval[clov*ndirac+(idirac>>1)]*(X1sc[0]*(fleaf[0][gen][0]*X2s[0]+fleaf[0][gen][1]*X2s[1])+\
-										X1sc[1]*(fleaf[0][gen][0]*X2s[1]-fleaf[0][gen][1]*X2s[0])));
-							dSdpis[1][gen]-=force;
-						}
-					}
-				}
-				for(unsigned short gen=0;gen<nadj;gen++){
-					dSdpi[i+kvol*(gen*ndim+mu)]-=akappa*dSdpis[0][gen];
-					dSdpi[i+kvol*(gen*ndim+nu)]-=akappa*dSdpis[1][gen];
-				}
-			}
-		}
-
-	for(unsigned short mu=0;mu<ndim;mu++){
-		free(hLeaves[mu][0]); free(hLeaves[mu][1]);
-	}
 #endif
 	return;
 }
