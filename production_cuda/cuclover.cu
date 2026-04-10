@@ -28,8 +28,8 @@ __device__ void cuByGenLeft(T a[nc],const unsigned short gen){
 			break;
 			///@f$i\sigma_y@f$
 		case(1):
-			a[0] = a[1];
-			a[1] = -tmp;
+			a[0] = -conj(a[1]);
+			a[1] = conj(tmp);
 			break;
 			///@f$i\sigma_z@f$
 		case(2):
@@ -519,7 +519,7 @@ __global__ void Clov_Force(double *dSdpi, const complex<T> *u11t, const complex<
 			//Sum of the real part of the trace.
 			dSdpis[gen]=creal(Zbuff1[0])+creal(Zbuff1[3]);
 			//tmp lets us control the number of registers explictly
-			T tmp = dSdpi[i+kvol*(gen*ndim+mu)];
+			double tmp = dSdpi[i+kvol*(gen*ndim+mu)];
 			tmp-=akappa*dSdpis[gen]/8.0f;
 			dSdpi[i+kvol*(gen*ndim+mu)]=tmp;
 
