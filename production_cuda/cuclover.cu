@@ -129,8 +129,8 @@ __device__ int Half_Leaf(complex<T> Leaves[nc], complex<T> *u11t, complex<T> *u1
 			const unsigned int din_didm=id[nu*kvol+uidm];
 
 			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})@f$
-			Leaves[0]=a[0]*conj(u11t[din_didm+kvolHalo*nu])+a[1]*u12t[din_didm+kvolHalo*nu];
-			Leaves[1]=-a[0]*conj(u12t[din_didm+kvolHalo*nu])+a[1]*u11t[din_didm+kvolHalo*nu];
+			Leaves[0]=a[0]*conj(u11t[din_didm+kvolHalo*nu])+a[1]*conj(u12t[din_didm+kvolHalo*nu]);
+			Leaves[1]=-a[0]*u12t[din_didm+kvolHalo*nu]+a[1]*u11t[din_didm+kvolHalo*nu];
 			break;
 	}
 	return 0;
@@ -189,8 +189,8 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[nc],\
 			a[1]=Leaves[0]*u12t[uim_didn+kvolHalo*nu]+Leaves[1]*conj(u11t[uim_didn+kvolHalo*nu]);
 
 			/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})U^\dagger_\mu(x)@f$
-			Leaves[0]=a[0]*conj(u11t[i+kvolHalo*mu])+a[1]*u12t[i+kvolHalo*mu];
-			Leaves[1]=-a[0]*conj(u12t[i+kvolHalo*mu])+a[1]*u11t[i+kvolHalo*mu];
+			Leaves[0]=a[0]*conj(u11t[i+kvolHalo*mu])+a[1]*conj(u12t[i+kvolHalo*mu]);
+			Leaves[1]=-a[0]*u12t[i+kvolHalo*mu]+a[1]*u11t[i+kvolHalo*mu];
 
 			//DEBUG
 			//						Leaves[0]=0; Leaves[1]=0;
@@ -204,10 +204,9 @@ __device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[nc],\
 			a[0]=Leaves[0]*u11t[din_didm+kvolHalo*mu]-Leaves[1]*conj(u12t[din_didm+kvolHalo*mu]);
 			a[1]=Leaves[0]*u12t[din_didm+kvolHalo*mu]+Leaves[1]*conj(u11t[din_didm+kvolHalo*mu]);
 
-			didm = id[mu*kvol+i];
 			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(n-\hat{\nu}-\hat{\mu})U_\nu(n-\hat{\nu})@f$
-			Leaves[0]=a[0]*u11t[didm+kvolHalo*nu]-a[1]*conj(u12t[didm+kvolHalo*nu]);
-			Leaves[1]=a[0]*u12t[didm+kvolHalo*nu]+a[1]*conj(u11t[didm+kvolHalo*nu]);
+			Leaves[0]=a[0]*u11t[didn+kvolHalo*nu]-a[1]*conj(u12t[didn+kvolHalo*nu]);
+			Leaves[1]=a[0]*u12t[didn+kvolHalo*nu]+a[1]*conj(u11t[didn+kvolHalo*nu]);
 
 			//DEBUG
 			//						Leaves[0]=0; Leaves[1]=0;
@@ -526,7 +525,7 @@ __global__ void Clov_Force(double *dSdpi, const complex<T> *u11t, const complex<
 
 			tmp = dSdpi[i+kvol*(gen*ndim+nu)];
 			tmp-=akappa*dSdpis[gen]/8.0f;
-			dSdpi[i+kvol*(gen*ndim+nu)]-=tmp;
+			dSdpi[i+kvol*(gen*ndim+nu)]=tmp;
 		}
 	}
 	return;
@@ -576,7 +575,7 @@ __global__ void ByClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, co
 				///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
 				phi_s[igorkov][0]+=sigval[clov*ndirac+idirac]*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
 				//Clover is in the Lie Algebra, not Lie group. So signs are correct here.
-				phi_s[igorkov][1]+=sigval[clov*ndirac+idirac]*(conj(clov_s[1])*r_s[0]+creal(clov_s[0])*r_s[1]);
+				phi_s[igorkov][1]+=sigval[clov*ndirac+idirac]*(conj(clov_s[1])*r_s[0]-creal(clov_s[0])*r_s[1]);
 			}
 		}
 #pragma unroll
@@ -635,7 +634,7 @@ __global__ void HbyClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, c
 				const complex<T> sig=sigval[clov*ndirac+(idirac>>1)];
 				phi_s[idirac+0]+=sig*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
 				//Clover is in the Lie Algebra, not Lie group. So signs are correct here.
-				phi_s[idirac+1]+=sig*(conj(clov_s[1])*r_s[0]+creal(clov_s[0])*r_s[1]);
+				phi_s[idirac+1]+=sig*(conj(clov_s[1])*r_s[0]-creal(clov_s[0])*r_s[1]);
 			}
 		}
 #pragma unroll
