@@ -88,10 +88,6 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 	Complex_f *X1_f= aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f)); 
 	Complex_f *X2_f= (Complex_f *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
 	double *dSdpi = aligned_alloc(AVX,kmom*sizeof(double));
-	for(unsigned short i=0;i<ndim;i++){
-		&hLeaves[i][0]=aligned_alloc(AVX,kvol*ndim*sizeof(Complex_f));
-		&hLeaves[i][1]=aligned_alloc(AVX,kvol*ndim*sizeof(Complex_f));
-	}
 	for(unsigned short mu=0;mu<ndim;mu++)
 		for(unsigned short nu=0;nu<ndim;nu++){
 			unsigned short clov = (mu==0) ? nu-1 :mu+nu;
@@ -740,7 +736,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				for(unsigned int i=0;i<kvol;i++)	{
 					fprintf(output,"Site %d\n",i);
 					for(unsigned short mu=0;mu<ndim;mu++)
-						for(unsigned short nu=mu+1;nu<ndim;nu++)
+						for(unsigned short nu=0;nu<ndim;nu++)
 						if(mu!=nu){
 							fprintf(output,"mu %d nu %d:",mu,nu);
 							for(unsigned short c=0;c<nc*nc;c++)
@@ -814,7 +810,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 		free(hLeaves[i][0]); free(hLeaves[i][1]);
 	}
 	for(unsigned short mu=0;mu<ndim;mu++)
-		for(unsigned short nu=0;nu<ndim;mu++)
+		for(unsigned short nu=0;nu<ndim;nu++)
 			free(Xmn[mu][nu]);
 	free(X0); free(X1); free(u[0]); free(u[1]);
 	free(X2_f);

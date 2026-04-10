@@ -151,7 +151,7 @@ void HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2],Complex_f *s
  *	@param	mu,nu:	Lattice directions
  */
 void CalcXmunu(Complex_f *Xmunu, Complex_f *X1, Complex_f *X2, const Complex_f *sigval,\
-					const short *sigin,const short mu, const short nu);
+					const unsigned short *sigin,const unsigned short mu, const unsigned short nu);
 /**
  *	@brief Gets the clover contribution to the force
  *
@@ -253,7 +253,8 @@ void cuHbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f
  *	@param	sigin:	Dirac index of @f$\sigma_{\mu\nu}@f$
  *	@param	mu,nu:	Lattice directions
  */
-void cuCalcXmunu(Complex_f *Xmunu, Complex_f *X1, Complex_f *X2, const Complex_f *sigval, const short *sigin,const short mu, const short nu);
+void cuCalcXmunu(Complex_f *Xmunu, Complex_f *X1, Complex_f *X2, const Complex_f *sigval,\
+		const unsigned short *sigin,const unsigned short mu, const unsigned short nu);
 /**
  *	@brief	CUDA wrapper for Clover_Force
  *

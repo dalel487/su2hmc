@@ -107,7 +107,7 @@ release:	$(EXE)
 diagnostic: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 diagnostic: debug
 
-debug:	CFLAGS += -g -O0 -D_DEBUG #-fsanitize=address #-D_DEBUG_MPI -Wall #-D_DEBUGCG 
+debug:	CFLAGS += -g -O0 -D_DEBUG -fsanitize=leak #-D_DEBUG_MPI -Wall #-D_DEBUGCG 
 debug:	$(EXE)
 
 $(EXE):	$(OBJ)
