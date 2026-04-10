@@ -131,7 +131,8 @@ __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 			X2s[0]=X2[i+kvolHalo*(idirac)]; X2s[1]=X2[i+kvolHalo*(1+idirac)];
 			X2su[0]=X2[uid+kvolHalo*(idirac)]; X2su[1]=X2[uid+kvolHalo*(1+idirac)];
 
-			float dSdpis[3];
+		//			Need to be double to avoid accumulation errors
+			double dSdpis[3];
 			//Careful!! cant use ind here as dSdpi has no halo!
 			dSdpis[0]=dSdpi[i+kvol*mu];
 			//Multiplying by i and taking the real component is the same as taking the negative imaginary component
@@ -201,9 +202,6 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t,Comple
 	for(unsigned int i=gthreadId;i<kvol;i+=gsize*bsize){
 		const unsigned int ind=i+kvolHalo*mu;
 		const Complex_f u11s=u11t[ind];	const Complex_f u12s=u12t[ind];
-		//TODO: The only diffrence with these is that the sign flips for the temporal components
-		//			Can we figure out a way of doing this without having to read in a large array. 
-		//			Will result in a conditional inside a CUDA loop. If i>kvol3
 		const float dk4ms=dk4m[i];	const float dk4ps=dk4p[i];
 		//Up indices
 		const unsigned int uid = iu[i+kvol*mu];
@@ -217,7 +215,8 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t,Comple
 			X2s[0]=X2[i+kvolHalo*(idirac)]; X2s[1]=X2[i+kvolHalo*(1+idirac)];
 			X2su[0]=X2[uid+kvolHalo*(idirac)]; X2su[1]=X2[uid+kvolHalo*(1+idirac)];
 
-			float dSdpis[3];
+		//			Need to be double to avoid accumulation errors
+			double dSdpis[3];
 			dSdpis[0]=dSdpi[i+kvol*mu];
 			//Multiplying by i and taking the real component is the same as taking the negative imaginary component
 			//The positions of u11 and u12 might look a bit funky here. That's just because we've multiplied by the
