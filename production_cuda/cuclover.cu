@@ -392,7 +392,6 @@ __global__ void Clov_Force(double *dSdpi, const complex<T> *u11t, const complex<
 	//Loop over @f$\mu@f$ and @f$\nu@f$,
 	for(unsigned int i=gthreadId;i<kvol;i+=gsize*bsize){
 		//Buffer for intermediate force calculation. One for each generator.
-		float dSdpis[3] = {0,0,0};
 		//This is where it gets messy. Using HiRep/OpenQCD labelling for different intermediate values
 		//But recycling to reduce register pressure on GPU
 		//First up, W0, W1 and W6 match their Documentation values
@@ -517,15 +516,10 @@ __global__ void Clov_Force(double *dSdpi, const complex<T> *u11t, const complex<
 			cuByGenLeft(W1,gen);
 			cuGLeft(Zbuff1,W1,F_int);
 			//Sum of the real part of the trace.
-			dSdpis[gen]=creal(Zbuff1[0])+creal(Zbuff1[3]);
+			float dSdpis=creal(Zbuff1[0])+creal(Zbuff1[3]);
 			//tmp lets us control the number of registers explictly
-			double tmp = dSdpi[i+kvol*(gen*ndim+mu)];
-			tmp-=akappa*dSdpis[gen]/8.0f;
-			dSdpi[i+kvol*(gen*ndim+mu)]=tmp;
+			dSdpi[i+kvol*(gen*ndim+mu)]=dSdpis;
 
-			tmp = dSdpi[i+kvol*(gen*ndim+nu)];
-			tmp-=akappa*dSdpis[gen]/8.0f;
-			dSdpi[i+kvol*(gen*ndim+nu)]=tmp;
 		}
 	}
 	return;
@@ -643,10 +637,10 @@ __global__ void HbyClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, c
 				///@f$\sigma_{\mu\nu}F_{\mu\nu}=\sigma_{\nu\mu}F_{\nu\mu}@f$ so we double it to take account of that
 				///But then we multiply by @f$-\frac{1}{2}@f$ so the @f$2@f$ disappears
 				//dag is just to do with the output layout and if it has a halo
-if(dag)
-				phi[i+kvol*(c+idirac)]-=akappa*phi_s[idirac+c];
-else
-		phi[i+kvolHalo*(c+idirac)]-=akappa*phi_s[idirac+c];
+				if(dag)
+					phi[i+kvol*(c+idirac)]-=akappa*phi_s[idirac+c];
+				else
+					phi[i+kvolHalo*(c+idirac)]-=akappa*phi_s[idirac+c];
 	}
 	return;
 }
@@ -689,7 +683,7 @@ void cuHbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f
 }
 
 void cuCalcXmunu(Complex_f *Xmunu, Complex_f *X1, Complex_f *X2, const Complex_f *sigval, const unsigned short *sigin,\
-						const unsigned short mu, const unsigned short nu){
+		const unsigned short mu, const unsigned short nu){
 	//Get sign and index of @f$\sigma_{\mu\nu}@f correct
 	unsigned short clov = (mu==0) ? nu-1 : mu+nu;
 	cuCalcXmunu<<<dimGrid,dimBlock,0,streams[clov]>>>(Xmunu,X1,X2,sigval,sigin,clov);
@@ -716,14 +710,20 @@ int cuClov_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2,
 	for(unsigned short mu=0;mu<ndim-1;mu++)
 		for(unsigned short nu=mu;nu<ndim;nu++)
 			if(mu!=nu){
-				unsigned short clov = (mu==0) ? nu-1 : mu+nu;
+				unsigned short clov=0;
+				if(mu<nu)
+					clov = (mu==0) ? nu-1 : mu+nu;
+				else
+					clov = (nu==0) ? mu-1 : mu+nu;
 				//Compute force for @f$\mu\nu@f$ and @f$\nu\mu@f$
-				Clov_Force<<<dimGrid,dimBlock,0,NULL>>>(dSdpi,ut[0],ut[1],Xmn[clov],\
+				Clov_Force<<<dimGrid,dimBlock,0,streams[mu]>>>(dSdpi,ut[0],ut[1],Xmn[clov],\
 						sigval,sigin,iu,id,akappa,mu,nu);
 
-				//Free @f$X_{\mu\nu}@f$ terms
-				cudaFreeAsync(Xmn[clov],NULL);
 			}
+	cudaDeviceSynchronise();
+	for(unsigned short clov=0;clov<6;clov++)
+		//Free @f$X_{\mu\nu}@f$ terms
+		cudaFreeAsync(Xmn[clov],NULL);
 	cudaDeviceSynchronise();
 	return 0;
 }

@@ -514,18 +514,26 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 	cuClov_Force(dSdpi,ut,X1,X2,sigval,sigin,iu,id,akappa);
 #else
 	//Allocate the @f$X_{\mu\nu}@f$ array
-	short nclov=6;
-	Complex_f *Xmn=(Complex_f *)aligned_alloc(AVX,kvol*nc*nc*sizeof(Complex_f));
+	unsigned short nclov=6; unsigned short clov=0;
+	Complex_f *Xmn[nclov];
 	//And get the @f$X_{\mu\nu}@f$ values
 	//Loop over @f$\mu@f$ and @f$\nu@f$. Symmetry means we actually only need half the terms
 	for(unsigned short mu=0;mu<ndim-1;mu++)
 		for(unsigned short nu=mu;nu<ndim;nu++)
 			if(mu!=nu){
-				CalcXmunu(Xmn,X1,X2,sigval,sigin,mu,nu);
+					clov = (mu==0) ? nu-1 : mu+nu;
+	Xmn[clov]=(Complex_f *)aligned_alloc(AVX,kvol*nc*nc*sizeof(Complex_f));
+				CalcXmunu(Xmn[clov],X1,X2,sigval,sigin,mu,nu);
+	}
+	for(unsigned short mu=0;mu<ndim-1;mu++)
+		for(unsigned short nu=mu;nu<ndim;nu++)
+			if(mu!=nu){
+				if(mu<nu)
+					clov = (mu==0) ? nu-1 : mu+nu;
+				else
+					clov = (nu==0) ? mu-1 : mu+nu;
 #pragma omp parallel for
 				for(unsigned int i=0;i<kvol;i++){
-					//Buffer for intermediate force calculation. One for each generator.
-					float dSdpis[3] = {0,0,0};
 					//This is where it gets messy. Using HiRep/OpenQCD labelling for different intermediate values
 					//But recycling to reduce register pressure on GPU
 					//First up, W0, W1 and W6 match their Documentation values
@@ -540,7 +548,7 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					Complex_f Z[nc*nc];
 #pragma unroll
 					for(unsigned short c=0;c<nc*nc;c++)
-						Z[c]=Xmn[uid+kvol*c];
+						Z[c]=Xmn[clov][uid+kvol*c];
 
 					//W0 is @f$U^\dagger_\mu@f(x-\hat{nu}\right)@f$
 					W0[0]=conjf(ut[0][uid+kvolHalo*mu]); W0[1]=-ut[1][uid+kvolHalo*mu];
@@ -556,7 +564,7 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					uid=iu[uid+kvol*mu];
 #pragma unroll
 					for(unsigned short c=0;c<nc*nc;c++)
-						Z[c]=Xmn[uid+kvol*c];
+						Z[c]=Xmn[clov][uid+kvol*c];
 
 					//Need a second Zbuffer for another intermediate result.
 					GRight(Zbuff2,W6,Z);
@@ -588,7 +596,7 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					uid=iu[uid+kvol*mu];
 #pragma unroll
 					for(unsigned short c=0;c<nc*nc;c++)
-						Z[c]=Xmn[uid+kvol*c];
+						Z[c]=Xmn[clov][uid+kvol*c];
 					//Calculate and write into Zbuff1
 					GSandwich(Zbuff1,Zbuff2,W0,Z,W1);
 
@@ -599,7 +607,7 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					uid=iu[i+kvol*nu]; 
 #pragma unroll
 					for(unsigned short c=0;c<nc*nc;c++)
-						Z[c]=Xmn[uid+kvol*c];
+						Z[c]=Xmn[clov][uid+kvol*c];
 					//And calculate the second term
 					GLeft(Zbuff2,W7,Z);
 					//Sum the two results into Zbuff1.
@@ -625,7 +633,7 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					//Now load @f$@Z_0=X_{\mu\nu}(x)@f$
 #pragma unroll
 					for(unsigned short c=0;c<nc*nc;c++)
-						Z[c]=Xmn[i+kvol*c];
+						Z[c]=Xmn[clov][i+kvol*c];
 					GLeft(Zbuff1,W0,Z);
 					//And sum intermediate
 #pragma unroll
@@ -636,7 +644,7 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					uid=iu[i+kvol*mu];
 #pragma unroll
 					for(unsigned short c=0;c<nc*nc;c++)
-						Z[c]=Xmn[uid+kvol*c];
+						Z[c]=Xmn[clov][uid+kvol*c];
 					GRight(Zbuff1,W0,Z);
 					//And sum intermediate
 #pragma unroll
@@ -650,14 +658,13 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 						ByGenLeft(W1,gen);
 						GLeft(Zbuff1,W1,F_int);
 						//Sum of the real part of the trace.
-						dSdpis[gen]=crealf(Zbuff1[0])+crealf(Zbuff1[3]);
-						dSdpi[i+kvol*(gen*ndim+mu)]-=akappa*dSdpis[gen]/8.0f;
-						//There's a minus sign from @f$\sigma_{\nu\mu}@f$ and from @f$F_{\mu\nu}@f$ which cancel
-						dSdpi[i+kvol*(gen*ndim+nu)]-=akappa*dSdpis[gen]/8.0f;
+						float dSdpis=crealf(Zbuff1[0])+crealf(Zbuff1[3]);
+						dSdpi[i+kvol*(gen*ndim+mu)]-=akappa*dSdpis/8.0f;
 					}
 				}
 			}
-	free(Xmn);
+	for(clov=0;clov<nclov;clov++)
+	free(Xmn[clov]);
 #endif
 	return;
 }
