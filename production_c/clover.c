@@ -525,8 +525,8 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 	Xmn[clov]=(Complex_f *)aligned_alloc(AVX,kvol*nc*nc*sizeof(Complex_f));
 				CalcXmunu(Xmn[clov],X1,X2,sigval,sigin,mu,nu);
 	}
-	for(unsigned short mu=0;mu<ndim-1;mu++)
-		for(unsigned short nu=mu;nu<ndim;nu++)
+	for(unsigned short mu=0;mu<ndim;mu++)
+		for(unsigned short nu=0;nu<ndim;nu++)
 			if(mu!=nu){
 				if(mu<nu)
 					clov = (mu==0) ? nu-1 : mu+nu;
