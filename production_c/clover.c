@@ -659,7 +659,10 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 						GLeft(Zbuff1,W1,F_int);
 						//Sum of the real part of the trace.
 						float dSdpis=crealf(Zbuff1[0])+crealf(Zbuff1[3]);
-						dSdpi[i+kvol*(gen*ndim+mu)]-=akappa*dSdpis/8.0f;
+						if(mu<nu)
+						dSdpi[i+kvol*(gen*ndim+mu)] -=akappa*dSdpis/8.0f;
+						else
+						dSdpi[i+kvol*(gen*ndim+mu)] +=akappa*dSdpis/8.0f;
 					}
 				}
 			}
