@@ -14,6 +14,7 @@ int Force_debug(double ave_dSdpi[3],double *dSdpi){
 	ave_dSdpi[2]=cureduce_sum_d(dSdpi+2*kvol*ndim,kvol*ndim,2);
 	cudaDeviceSynchronise();
 #else
+	ave_dSdpi[0]=0; ave_dSdpi[1]=0; ave_dSdpi[2]=0;
 	for(unsigned int i=0;i<kvol*ndim;i++){
 		ave_dSdpi[0]+=dSdpi[i];
 		ave_dSdpi[1]+=dSdpi[i+kvol*ndim];
