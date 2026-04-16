@@ -625,19 +625,11 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				break;
 			case(10):	//Hamilton
 				memset(X1,0,kferm2Halo*sizeof(Complex));
-				input = fopen("hamiltonian_in", "w");
-				for(unsigned int i = 0; i< kvol; i++){
-					fprintf(input, "Site %d:\n",i); 
-					for(unsigned short j=0;j<nc*ndirac;j++){
-						fprintf(input, "%.3f+%.3fI\t",creal(X1[i+j*kvolHalo]),cimag(X1[i+j*kvolHalo]));
-					}
-					fprintf(input, "\n\n"); 
-				}
-				fclose(input);
 				double h,s,ancgh;  h=s=ancgh=0;
 				Hamilton(&h,&s,rescgg,pp,X0,X1,Phi,ut,ut_f,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,\
 						jqq,akappa,beta,c_sw,&ancgh,0);
-				output = fopen("hamiltonian_out", "w");
+				output = fopen("Hamiltonian", "w");
+				fprintf(output,"h=%e\ts=%e Congrad Iterations %.4e\n\n",h,s,ancgh);
 				for(unsigned int i = 0; i< kvol; i++){
 					fprintf(output, "Site %d:\n",i); 
 					for(unsigned short j=0;j<nc*ndirac;j++){

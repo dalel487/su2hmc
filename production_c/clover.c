@@ -278,9 +278,9 @@ void ByClover(Complex *phi, Complex *r, Complex *clover[2], Complex *sigval, con
 				///But then we multiply by @f$-\frac{1}{2}@f$ so the @f$2@f$ disappears
 				//dag is just to do with the output layout and if it has a halo
 				if(dag)
-					phi[i+kvol*(nc*igorkov+c)]-=akappa*phi_s[igorkov][c];
+					phi[i+kvol*(nc*igorkov+c)]+=akappa*phi_s[igorkov][c];
 				else
-					phi[i+kvolHalo*(nc*igorkov+c)]-=akappa*phi_s[igorkov][c];
+					phi[i+kvolHalo*(nc*igorkov+c)]+=akappa*phi_s[igorkov][c];
 			}
 	}
 #endif
@@ -324,9 +324,9 @@ void HbyClover(Complex *phi, Complex *r, Complex *clover[2],Complex *sigval, con
 				///But then we multiply by @f$-\frac{1}{2}@f$ so the @f$2@f$ disappears
 				//dag is just to do with the output layout and if it has a halo
 				if(dag)
-					phi[i+kvol*(c+idirac)]-=akappa*phi_s[idirac+c];
+					phi[i+kvol*(c+idirac)]+=akappa*phi_s[idirac+c];
 				else
-					phi[i+kvolHalo*(c+idirac)]-=akappa*phi_s[idirac+c];
+					phi[i+kvolHalo*(c+idirac)]+=akappa*phi_s[idirac+c];
 	}
 #endif
 	return;
@@ -370,9 +370,9 @@ void ByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2], Complex_f *s
 				///But then we multiply by @f$-\frac{1}{2}@f$ so the @f$2@f$ disappears
 				//dag is just to do with the output layout and if it has a halo
 				if(dag)
-					phi[i+kvol*(nc*igorkov+c)]-=akappa*phi_s[igorkov][c];
+					phi[i+kvol*(nc*igorkov+c)]+=akappa*phi_s[igorkov][c];
 				else
-					phi[i+kvolHalo*(nc*igorkov+c)]-=akappa*phi_s[igorkov][c];
+					phi[i+kvolHalo*(nc*igorkov+c)]+=akappa*phi_s[igorkov][c];
 			}
 	}
 #endif
@@ -416,9 +416,9 @@ void HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2],Complex_f *s
 				///But then we multiply by @f$-\frac{1}{2}@f$ so the @f$2@f$ disappears
 				//dag is just to do with the output layout and if it has a halo
 				if(dag)
-					phi[i+kvol*(c+idirac)]-=akappa*phi_s[idirac+c];
+					phi[i+kvol*(c+idirac)]+=akappa*phi_s[idirac+c];
 				else
-					phi[i+kvolHalo*(c+idirac)]-=akappa*phi_s[idirac+c];
+					phi[i+kvolHalo*(c+idirac)]+=akappa*phi_s[idirac+c];
 	}
 #endif
 	return;
@@ -445,13 +445,13 @@ void CalcXmunu(Complex_f *Xmunu, Complex_f *X1, Complex_f *X2, const Complex_f *
 #pragma unroll
 			for(unsigned short c1=0;c1<nc;c1++){
 				//Spinors (rows) So we only load from memory once.
-				const Complex_f X1s = X1[i+kvolHalo*(sind+c1)];
-				const Complex_f X2s = X2[i+kvolHalo*(sind+c1)];
+				const Complex_f X1s = X1[i+kvolHalo*(idirac+c1)];
+				const Complex_f X2s = X2[i+kvolHalo*(idirac+c1)];
 #pragma unroll
 				for(unsigned short c2=0;c2<nc;c2++){
 					//Conjugated spinor (columns).
-					const Complex_f X1c = conjf(X1[i+kvolHalo*(idirac+c2)]);
-					const Complex_f X2c = conjf(X2[i+kvolHalo*(idirac+c2)]);
+					const Complex_f X1c = conjf(X1[i+kvolHalo*(sind+c2)]);
+					const Complex_f X2c = conjf(X2[i+kvolHalo*(sind+c2)]);
 					Xmn[(c1*nc+c2)]+=sig*(X2s*X1c+X1s*X2c);
 				}
 			}
@@ -683,7 +683,7 @@ int Init_clover(Complex **sigval, Complex_f **sigval_f,unsigned short **sigin, f
 	//3 is sigma_1,2
 	//4 is sigma_1,3
 	//5 is sigma_2,3
-	Complex	__attribute__((aligned(AVX)))	sigval_t[6][4] =	{{-1,1,-1,1},{-I,I,-I,I},{1,1,-1,-1},{-1,-1,-1,-1},{-I,I,I,-I},{1,-1,-1,1}};
+	Complex	__attribute__((aligned(AVX)))	sigval_t[6][4] =	{{1,-1,1,-1},{I,-I,I,-I},{-1,-1,1,1},{1,1,1,1},{I,-I,-I,I},{-1,1,1,-1}};
 	//Complex	__attribute__((aligned(AVX)))	sigval_t[6][4] =	{{1,1,1,1},{1,1,1,1},{1,1,1,1},{1,1,1,1},{1,1,1,1},{1,1,1,1},{1,1,1,1}};
 	//We mutiply by 1/2 and c_sw here since sigval is never used without them.
 #if defined USE_BLAS

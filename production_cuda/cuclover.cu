@@ -579,9 +579,9 @@ __global__ void ByClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, co
 				///But then we multiply by @f$-\frac{1}{2}@f$ so the @f$2@f$ disappears
 				//dag is just to do with the output layout and if it has a halo
 				if(dag)
-					phi[i+kvol*(nc*igorkov+c)]-=akappa*phi_s[igorkov][c];
+					phi[i+kvol*(nc*igorkov+c)]+=akappa*phi_s[igorkov][c];
 				else
-					phi[i+kvolHalo*(nc*igorkov+c)]-=akappa*phi_s[igorkov][c];
+					phi[i+kvolHalo*(nc*igorkov+c)]+=akappa*phi_s[igorkov][c];
 			}
 	}
 	return;
@@ -638,9 +638,9 @@ __global__ void HbyClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, c
 				///But then we multiply by @f$-\frac{1}{2}@f$ so the @f$2@f$ disappears
 				//dag is just to do with the output layout and if it has a halo
 				if(dag)
-					phi[i+kvol*(c+idirac)]-=akappa*phi_s[idirac+c];
+					phi[i+kvol*(c+idirac)]+=akappa*phi_s[idirac+c];
 				else
-					phi[i+kvolHalo*(c+idirac)]-=akappa*phi_s[idirac+c];
+					phi[i+kvolHalo*(c+idirac)]+=akappa*phi_s[idirac+c];
 	}
 	return;
 }
