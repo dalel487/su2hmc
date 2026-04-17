@@ -92,8 +92,8 @@ void Force_s(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, Comp
 
 			X1s[0]=X1[i+kvolHalo*(idirac)]; X1s[1]=X1[i+kvolHalo*(1+idirac)];
 			X1su[0]=X1[uid+kvolHalo*(idirac)]; X1su[1]=X1[uid+kvolHalo*(1+idirac)];
-			X2s[0]=X2[i+kvolHalo*(idirac)]; X2s[1]=X2[i+kvolHalo*(1+idirac)];
-			X2su[0]=X2[uid+kvolHalo*(idirac)]; X2su[1]=X2[uid+kvolHalo*(1+idirac)];
+			X2s[0]=2*X2[i+kvolHalo*(idirac)]; X2s[1]=2*X2[i+kvolHalo*(1+idirac)];
+			X2su[0]=2*X2[uid+kvolHalo*(idirac)]; X2su[1]=2*X2[uid+kvolHalo*(1+idirac)];
 
 			float dSdpis[3];
 			dSdpis[0]=dSdpi[i+kvol*mu];
@@ -124,8 +124,8 @@ void Force_s(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, Comp
 			const Complex_f gamval_c=gamval[gindex];
 			//Rescaling gind by nc
 			const unsigned short gind = gamin[gindex]<<1;	
-			X2s[0]=X2[i+kvolHalo*(gind)]; X2s[1]=X2[i+kvolHalo*(1+gind)];
-			X2su[0]=X2[uid+kvolHalo*(gind)]; X2su[1]=X2[uid+kvolHalo*(1+gind)];
+			X2s[0]=2*X2[i+kvolHalo*(gind)]; X2s[1]=2*X2[i+kvolHalo*(1+gind)];
+			X2su[0]=2*X2[uid+kvolHalo*(gind)]; X2su[1]=2*X2[uid+kvolHalo*(1+gind)];
 
 			//If you are asked to rederive the force from Montvay and Munster you'll notice that it should be kappa*gamma
 			//but below is only gamma. We rescaled gamma by kappa already when we defined it so that's where it has gone
@@ -174,8 +174,8 @@ void Force_t(double *dSdpi, Complex_f *ut[2],Complex_f *X1, Complex_f *X2, Compl
 
 			X1s[0]=X1[i+kvolHalo*(idirac)]; X1s[1]=X1[i+kvolHalo*(1+idirac)];
 			X1su[0]=X1[uid+kvolHalo*(idirac)]; X1su[1]=X1[uid+kvolHalo*(1+idirac)];
-			X2s[0]=X2[i+kvolHalo*(idirac)]; X2s[1]=X2[i+kvolHalo*(1+idirac)];
-			X2su[0]=X2[uid+kvolHalo*(idirac)]; X2su[1]=X2[uid+kvolHalo*(1+idirac)];
+			X2s[0]=2*X2[i+kvolHalo*(idirac)]; X2s[1]=2*X2[i+kvolHalo*(1+idirac)];
+			X2su[0]=2*X2[uid+kvolHalo*(idirac)]; X2su[1]=2*X2[uid+kvolHalo*(1+idirac)];
 
 			float dSdpis[3];
 			dSdpis[0]=dSdpi[i+kvol*mu];
@@ -202,8 +202,8 @@ void Force_t(double *dSdpi, Complex_f *ut[2],Complex_f *X1, Complex_f *X2, Compl
 			const unsigned short gindex=mu*ndirac+(idirac>>1);
 			//Rescaling gind by nc
 			const unsigned short gind = gamin[gindex]<<1;	
-			X2s[0]=X2[i+kvolHalo*(gind)]; X2s[1]=X2[i+kvolHalo*(1+gind)];
-			X2su[0]=X2[uid+kvolHalo*(gind)]; X2su[1]=X2[uid+kvolHalo*(1+gind)];
+			X2s[0]=2*X2[i+kvolHalo*(gind)]; X2s[1]=2*X2[i+kvolHalo*(1+gind)];
+			X2su[0]=2*X2[uid+kvolHalo*(gind)]; X2su[1]=2*X2[uid+kvolHalo*(1+gind)];
 
 			dSdpis[0]+=-cimag(dks[0]*(conj(X1s[0])*(-conj(u12s)*X2su[0]+conj(u11s)*X2su[1])
 						+conj(X1s[1])*(u11s *X2su[0]+u12s *X2su[1]))
@@ -321,7 +321,7 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 		Hdslash_f(X2_f,X1_f,ut_f,iu,id,gamval_f,gamin,dk_f,akappa);
 		if(c_sw)
 			HbyClover_f(X2_f,X1_f,clover,sigval_f,akappa,sigin,false);
-		alignas(8) const float blasd=2.0;
+		alignas(8) const float blasd=1.0;
 #ifdef __NVCC__
 		cudaDeviceSynchronise();
 #if(nproc>1)
@@ -338,7 +338,7 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 #pragma omp parallel for simd collapse(2) aligned(X2_f:AVX)
 		for(unsigned short j=0;j<nc*ndirac;j++)
 			for(unsigned int i=0;i<kvol;i++)
-				X2_f[i+j*kvolHalo]*=2;
+				X2_f[i+j*kvolHalo]*=1;
 #endif
 #if(npx>1)
 		CHalo_swap_dir(X1_f,nc*ndirac,0,DOWN);
