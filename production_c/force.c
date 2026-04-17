@@ -313,17 +313,14 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 			}
 #endif
 		}
-		//Convert X1 to single precision
 #ifdef __NVCC__
 		cudaDeviceSynchronise();
 #endif
 		//Since it has to be stridded in MPI, we have to pass kvol and nc*ndirac instead of kferm2
 		ComplexConvert(X1_f,X1,kvol,true,nc*ndirac);
 		Hdslash_f(X2_f,X1_f,ut_f,iu,id,gamval_f,gamin,dk_f,akappa);
-		//TODO: Clover product also needed here?
 		if(c_sw)
 			HbyClover_f(X2_f,X1_f,clover,sigval_f,akappa,sigin,false);
-		//TODO: Get a single precision force update on CPU. It'll make things easier I' sure
 		alignas(8) const float blasd=2.0;
 #ifdef __NVCC__
 		cudaDeviceSynchronise();

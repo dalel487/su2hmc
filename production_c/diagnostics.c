@@ -33,6 +33,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 
 	unsigned int itercg=0;
 	Complex_f *clover_f[nc], *hLeaves[ndim][nc], *Xmn[ndim][ndim]; Complex *clover[nc];
+				Complex *ut_save[2];
 #ifdef __NVCC__
 	int device=-1;
 	cudaGetDevice(&device);
@@ -59,6 +60,8 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 	cudaMallocManaged((void **)&X2_f,kferm2Halo*sizeof((void **)Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&pp,kmom*sizeof((void **)double),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&dSdpi,kmom*sizeof((void **)double),cudaMemAttachGlobal);
+				cudaMallocManaged((void **)&ut_save[0],ndim*kvolHalo*sizeof(Complex),cudaMemAttachGlobal);
+				cudaMallocManaged((void **)&ut_save[1],ndim*kvolHalo*sizeof(Complex),cudaMemAttachGlobal);
 	for(unsigned short i=0;i<ndim;i++){
 		cudaMallocManaged((void **)hLeaves[i]+0,kvol*ndim*sizeof(Complex_f),cudaMemAttachGlobal);
 		cudaMallocManaged((void **)hLeaves[i]+1,kvol*ndim*sizeof(Complex_f),cudaMemAttachGlobal);
@@ -88,6 +91,8 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 	Complex_f *X1_f= aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f)); 
 	Complex_f *X2_f= (Complex_f *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
 	double *dSdpi = aligned_alloc(AVX,kmom*sizeof(double));
+				ut_save[0] = aligned_alloc(AVX, ndim*kvolHalo*sizeof(Complex));
+				ut_save[1] = aligned_alloc(AVX, ndim*kvolHalo*sizeof(Complex));
 	for(unsigned short mu=0;mu<ndim;mu++)
 		for(unsigned short nu=0;nu<ndim;nu++){
 			unsigned short clov = (mu==0) ? nu-1 :mu+nu;
@@ -241,7 +246,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 	FILE *input, *output;
 	FILE *input_f, *output_f;
 	FILE *input_diff, *output_diff;
-	for(int test = 0; test<=15; test++){
+	for(int test = 0; test<=17; test++){
 		switch(test){
 			case(0): //UpDownPart
 				input = fopen("PreUpDownPart","w");
@@ -722,19 +727,19 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				for(unsigned short mu=0;mu<ndim;mu++)
 					for(unsigned short nu=0;nu<ndim;nu++){
 						if(mu!=nu)
-						CalcXmunu(Xmn[mu][nu],X1_f,X2_f,sigval_f,sigin,mu,nu);
+							CalcXmunu(Xmn[mu][nu],X1_f,X2_f,sigval_f,sigin,mu,nu);
 					}
 				output = fopen("Xmunu","w");
 				for(unsigned int i=0;i<kvol;i++)	{
 					fprintf(output,"Site %d\n",i);
 					for(unsigned short mu=0;mu<ndim;mu++)
 						for(unsigned short nu=0;nu<ndim;nu++)
-						if(mu!=nu){
-							fprintf(output,"mu %d nu %d:",mu,nu);
-							for(unsigned short c=0;c<nc*nc;c++)
-								fprintf(output,"\t%.3e+i%.3e",crealf(Xmn[mu][nu][i+kvol*c]),cimagf(Xmn[mu][nu][i+kvol*c]));
-							fprintf(output,"\n");
-						}
+							if(mu!=nu){
+								fprintf(output,"mu %d nu %d:",mu,nu);
+								for(unsigned short c=0;c<nc*nc;c++)
+									fprintf(output,"\t%.3e+i%.3e",crealf(Xmn[mu][nu][i+kvol*c]),cimagf(Xmn[mu][nu][i+kvol*c]));
+								fprintf(output,"\n");
+							}
 					fprintf(output,"\n");
 				}
 				fclose(output);
@@ -771,6 +776,79 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 					exit(ITERLIM);
 				}
 				break;
+			case(17): //Finite difference check. Produced by Claude Code Opus 4.7
+						 //Build clover
+				if(c_sw)
+					Clover(clover_f, ut_f, iu, id);
+				//Gaussian @f$\xi@f$ → R  (ngorkov, with halo stride)
+				for(unsigned short j=0;j<nc*ngorkov;j++)
+					Gauss_c(xi_f+j*kvolHalo, kvol, 0, 1/sqrt(2));
+				//@f$\Phi=M^\dagger\xi@f$
+				Dslashd_f(R1_f, xi_f, ut_f, iu, id, gamval_f, gamin, dk_f, jqq, akappa);
+				if(c_sw)
+					ByClover_f(R1_f, xi_f, clover_f, sigval_f, akappa, sigin, true);
+				//Convert and store @f$\Phi$, populate X0 with upper half
+				for(int i=0;i<kferm;i++) R1[i] = (Complex)R1_f[i];
+				memcpy(Phi, R1, kferm*sizeof(Complex));
+				UpDownPart(0, X0, R1);
+
+				//Save original gauge fields
+				memcpy(ut_save[0], ut[0], ndim*kvolHalo*sizeof(Complex));
+				memcpy(ut_save[1], ut[1], ndim*kvolHalo*sizeof(Complex));
+
+				double h0, s0, h1, s1, ancgt=0;
+
+				//(1) Baseline: S(U_0). Use res=rescgg for tight CG.
+				memset(pp, 0, kmom*sizeof(double));  //hp=0 so s = S
+				memset(X1, 0, kferm2Halo*sizeof(Complex));
+				Hamilton(&h0, &s0, rescgg, pp, X0, X1, Phi, ut, ut_f, iu, id,
+						gamval, gamval_f, gamin, sigval, sigval_f, sigin,
+						dk, dk_f, jqq, akappa, beta, c_sw, &ancgt, 0);
+				//Hamilton wrote the CG solution to X0 → first Force call can use iflag=1
+
+				//(2) Force at U_0 (same X0, same Phi → same action functional)
+				memset(dSdpi, 0, kmom*sizeof(double));
+				Force(dSdpi, 1, rescgg, X0, X1, Phi, ut, ut_f, iu, id,
+						gamval, gamval_f, gamin, sigval, sigval_f, sigin,
+						dk, dk_f, jqq, akappa, beta, c_sw, &ancgt);
+
+				//(3) |dSdpi|^2
+				double fnorm2 = 0;
+				for(int i=0; i<kmom; i++) fnorm2 += dSdpi[i]*dSdpi[i];
+				if(nproc>1) Par_dsum(&fnorm2);
+
+				//(4) Sweep \varepsilon: take the force as the momentum direction
+				output = fopen("Force_Action_Check","w");
+				fprintf(output,"|dSdpi|^2 = %.10e\n", fnorm2);
+				fprintf(output,"eps\tdS_num\tdS_ana\tratio\t(num-ana)/eps^2\n");
+
+				for(int k=0; k<8; k++){
+					double eps = 1e-2 / (1<<k);           // 1e-2, 5e-3, 2.5e-3, ...
+					memcpy(pp, dSdpi, kmom*sizeof(double)); // pp = force direction
+
+					//Restore U and move U by @f$\varepsilon@f$ along pp
+					memcpy(ut[0], ut_save[0], ndim*kvolHalo*sizeof(Complex));
+					memcpy(ut[1], ut_save[1], ndim*kvolHalo*sizeof(Complex));
+					Gauge_Update(eps, pp, ut, ut_f);      // U ← exp(i \varepsilon pp T)U
+
+					//@f$S(U_\varepsilon)@f$. Fresh X0 copy so the CG initial guess is deterministic.
+					//Use Phi unchanged — same pseudofermion functional.
+					memset(X1, 0, kferm2Halo*sizeof(Complex));
+					Hamilton(&h1, &s1, rescgg, pp, X0, X1, Phi, ut, ut_f, iu, id,
+							gamval, gamval_f, gamin, sigval, sigval_f, sigin,
+							dk, dk_f, jqq, akappa, beta, c_sw, &ancgt, 0);
+					// d pp was overwritten by Hamilton? No — Hamilton doesn't modify pp.
+					// But hp = |pp|^2/2 is nonzero now. Use s1, not h1.
+
+					double dS_num = s1 - s0;
+					double dS_ana = eps * fnorm2;
+					fprintf(output,"%.3e\t%.10e\t%.10e\t%.6f\t%.3e\n",
+							eps, dS_num, dS_ana, dS_num/dS_ana,
+							(dS_num - dS_ana)/(eps*eps));
+				}
+				fclose(output);
+
+				break;
 
 		}
 	}
@@ -792,6 +870,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 		for(unsigned short nu=0;nu<6;nu++)
 			cudaFree(Xmn[mu][nu]);
 	cudaFree(id); cudaFree(iu); cudaFree(hd); cudaFree(hu);
+				cudaFree(ut_save[0]); cudaFree(ut_save[1]);
 #else
 	free(dk[0]); free(dk[1]); free(R1); free(dSdpi); free(pp);
 	free(Phi); free(ut[0]); free(ut[1]); free(xi);
@@ -807,6 +886,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 	free(X0); free(X1); free(u[0]); free(u[1]);
 	free(X2_f);
 	free(id); free(iu); free(hd); free(hu);
+				free(ut_save[0]); free(ut_save[1]);
 	free(pcoord);
 #endif
 
