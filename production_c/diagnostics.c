@@ -822,7 +822,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				fprintf(output,"|dSdpi|^2 = %.10e\n", fnorm2);
 				fprintf(output,"eps\tdS_num\tdS_ana\tratio\t(num-ana)/eps^2\n");
 
-				for(int k=0; k<8; k++){
+				for(int k=0; k<11; k++){
 					double eps = 1e-2 / (1<<k);           // 1e-2, 5e-3, 2.5e-3, ...
 					memcpy(pp, dSdpi, kmom*sizeof(double)); // pp = force direction
 

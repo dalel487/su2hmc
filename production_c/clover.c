@@ -445,13 +445,13 @@ void CalcXmunu(Complex_f *Xmunu, Complex_f *X1, Complex_f *X2, const Complex_f *
 #pragma unroll
 			for(unsigned short c1=0;c1<nc;c1++){
 				//Spinors (rows) So we only load from memory once.
-				const Complex_f X1s = X1[i+kvolHalo*(idirac+c1)];
-				const Complex_f X2s = X2[i+kvolHalo*(idirac+c1)];
+				const Complex_f X1s = X1[i+kvolHalo*(sind+c1)];
+				const Complex_f X2s = X2[i+kvolHalo*(sind+c1)];
 #pragma unroll
 				for(unsigned short c2=0;c2<nc;c2++){
 					//Conjugated spinor (columns).
-					const Complex_f X1c = conjf(X1[i+kvolHalo*(sind+c2)]);
-					const Complex_f X2c = conjf(X2[i+kvolHalo*(sind+c2)]);
+					const Complex_f X1c = conjf(X1[i+kvolHalo*(idirac+c2)]);
+					const Complex_f X2c = conjf(X2[i+kvolHalo*(idirac+c2)]);
 					Xmn[(c1*nc+c2)]+=sig*(X2s*X1c+X1s*X2c);
 				}
 			}

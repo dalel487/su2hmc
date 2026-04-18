@@ -321,6 +321,8 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 		Hdslash_f(X2_f,X1_f,ut_f,iu,id,gamval_f,gamin,dk_f,akappa);
 		if(c_sw)
 			HbyClover_f(X2_f,X1_f,clover,sigval_f,akappa,sigin,false);
+		//NOTE: This was orginally two. But was changed as a test for Claude so the two appears inside Force_s and Force_t
+		//It may need to be reverted back later
 		alignas(8) const float blasd=1.0;
 #ifdef __NVCC__
 		cudaDeviceSynchronise();
