@@ -818,12 +818,14 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				if(nproc>1) Par_dsum(&fnorm2);
 
 				//(4) Sweep \varepsilon: take the force as the momentum direction
-				output = fopen("Force_Action_Check","w");
+				char output_name[64];
+				sprintf(output_name,"Force_Action_Check_%1.2f",c_sw);
+				output = fopen(output_name,"w");
 				fprintf(output,"|dSdpi|^2 = %.10e\n", fnorm2);
-				fprintf(output,"eps\tdS_num\tdS_ana\tratio\t(num-ana)/eps^2\n");
+				fprintf(output,"eps\tdS_num\tdS_ana\tratio\t(num-ana)\n");
 
-				for(int k=0; k<11; k++){
-					double eps = 1e-2 / (1<<k);           // 1e-2, 5e-3, 2.5e-3, ...
+				for(int k=0; k<126; k++){
+					double eps = 1e-2 - k*(1.0f/12800.0f);           // 1e-2, 5e-3, 2.5e-3, ...
 					memcpy(pp, dSdpi, kmom*sizeof(double)); // pp = force direction
 
 					//Restore U and move U by @f$\varepsilon@f$ along pp
@@ -842,7 +844,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 
 					double dS_num = s1 - s0;
 					double dS_ana = eps * fnorm2;
-					fprintf(output,"%.3e\t%.10e\t%.10e\t%.6f\t%.3e\n",
+					fprintf(output,"%.5e\t%.10e\t%.10e\t%.6f\t%.3e\n",
 							eps, dS_num, dS_ana, dS_num/dS_ana,
 							(dS_num - dS_ana)/(eps*eps));
 				}
