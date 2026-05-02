@@ -778,8 +778,10 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				break;
 			case(17): //Finite difference check. Produced by Claude Code Opus 4.7
 						 //Build clover
-				if(c_sw)
+				if(c_sw){
+	free(clover_f[0]); free(clover_f[1]);
 					Clover(clover_f, ut_f, iu, id);
+					}
 				//Gaussian @f$\xi@f$ → R  (ngorkov, with halo stride)
 				for(unsigned short j=0;j<nc*ngorkov;j++)
 					Gauss_c(xi_f+j*kvolHalo, kvol, 0, 1/sqrt(2));
@@ -825,7 +827,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				fprintf(output,"eps\tdS_num\tdS_ana\tratio\t(num-ana)\n");
 
 				for(int k=0; k<126; k++){
-					double eps = 1e-2 - k*(1.0f/12800.0f);           // 1e-2, 5e-3, 2.5e-3, ...
+					double eps = 1e-2 - k*(1.0/12800.0);           // 1e-2, 5e-3, 2.5e-3, ...
 					memcpy(pp, dSdpi, kmom*sizeof(double)); // pp = force direction
 
 					//Restore U and move U by @f$\varepsilon@f$ along pp

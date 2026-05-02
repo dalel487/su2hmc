@@ -427,14 +427,14 @@ void HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2],Complex_f *s
 //Clover Force
 //===========
 void CalcXmunu(Complex_f *Xmunu, Complex_f *X1, Complex_f *X2, const Complex_f *sigval, const unsigned short *sigin,\
-					const unsigned short mu, const unsigned short nu){
+		const unsigned short mu, const unsigned short nu){
 	const char funcname[] = "Xmunu";
 #ifdef __NVCC__
 	cuCalcXmunu(Xmunu,X1,X2,sigval,sigin,mu,nu);
 #else
 	unsigned short clov;
 	//Get sign and index of @f$\sigma_{\mu\nu}@f correct
-		clov = (mu==0) ? nu-1 : mu+nu;
+	clov = (mu==0) ? nu-1 : mu+nu;
 #pragma omp parallel for simd aligned(X1,X2,Xmunu:AVX)
 	for(unsigned int i=0;i<kvol;i++){
 		//Buffer. Eight registers...
@@ -519,12 +519,12 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 	//And get the @f$X_{\mu\nu}@f$ values
 	//Loop over @f$\mu@f$ and @f$\nu@f$. Symmetry means we actually only need half the terms
 	for(unsigned short mu=0;mu<ndim-1;mu++)
-		for(unsigned short nu=mu;nu<ndim;nu++)
+		for(unsigned short nu=mu+1;nu<ndim;nu++)
 			if(mu!=nu){
-					clov = (mu==0) ? nu-1 : mu+nu;
-	Xmn[clov]=(Complex_f *)aligned_alloc(AVX,kvol*nc*nc*sizeof(Complex_f));
+				clov = (mu==0) ? nu-1 : mu+nu;
+				Xmn[clov]=(Complex_f *)aligned_alloc(AVX,kvol*nc*nc*sizeof(Complex_f));
 				CalcXmunu(Xmn[clov],X1,X2,sigval,sigin,mu,nu);
-	}
+			}
 	for(unsigned short mu=0;mu<ndim;mu++)
 		for(unsigned short nu=0;nu<ndim;nu++)
 			if(mu!=nu){
@@ -660,14 +660,14 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 						//Sum of the real part of the trace.
 						float dSdpis=crealf(Zbuff1[0])+crealf(Zbuff1[3]);
 						if(mu<nu)
-						dSdpi[i+kvol*(gen*ndim+mu)] -=akappa*dSdpis/8.0f;
+							dSdpi[i+kvol*(gen*ndim+mu)] -=akappa*dSdpis/8.0f;
 						else
-						dSdpi[i+kvol*(gen*ndim+mu)] +=akappa*dSdpis/8.0f;
+							dSdpi[i+kvol*(gen*ndim+mu)] +=akappa*dSdpis/8.0f;
 					}
 				}
 			}
 	for(clov=0;clov<nclov;clov++)
-	free(Xmn[clov]);
+		free(Xmn[clov]);
 #endif
 	return;
 }
