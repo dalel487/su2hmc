@@ -256,9 +256,8 @@ int main(int argc, char *argv[]){
 	 * istart > 0: Random/Hot Start
 	 */
 	Init(istart,ibound,iread,beta,fmu,akappa,ajq,u,ut,ut_f,gamval,gamval_f,gamin,dk,dk_f,iu,id);
-	if(c_sw){
+	if(c_sw)
 		Init_clover(&sigval,&sigval_f,&sigin,c_sw);
-	}
 
 	/// @f$\sigma_{\mu\nu}@f$ if we're using clover fermions
 #ifdef __NVCC__

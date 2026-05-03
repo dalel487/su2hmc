@@ -33,7 +33,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 
 	unsigned int itercg=0;
 	Complex_f *clover_f[nc], *hLeaves[ndim][nc], *Xmn[ndim][ndim]; Complex *clover[nc];
-				Complex *ut_save[2];
+	Complex *ut_save[2];
 #ifdef __NVCC__
 	int device=-1;
 	cudaGetDevice(&device);
@@ -60,8 +60,8 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 	cudaMallocManaged((void **)&X2_f,kferm2Halo*sizeof((void **)Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&pp,kmom*sizeof((void **)double),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&dSdpi,kmom*sizeof((void **)double),cudaMemAttachGlobal);
-				cudaMallocManaged((void **)&ut_save[0],ndim*kvolHalo*sizeof(Complex),cudaMemAttachGlobal);
-				cudaMallocManaged((void **)&ut_save[1],ndim*kvolHalo*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&ut_save[0],ndim*kvolHalo*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&ut_save[1],ndim*kvolHalo*sizeof(Complex),cudaMemAttachGlobal);
 	for(unsigned short i=0;i<ndim;i++){
 		cudaMallocManaged((void **)hLeaves[i]+0,kvol*ndim*sizeof(Complex_f),cudaMemAttachGlobal);
 		cudaMallocManaged((void **)hLeaves[i]+1,kvol*ndim*sizeof(Complex_f),cudaMemAttachGlobal);
@@ -91,8 +91,8 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 	Complex_f *X1_f= aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f)); 
 	Complex_f *X2_f= (Complex_f *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
 	double *dSdpi = aligned_alloc(AVX,kmom*sizeof(double));
-				ut_save[0] = aligned_alloc(AVX, ndim*kvolHalo*sizeof(Complex));
-				ut_save[1] = aligned_alloc(AVX, ndim*kvolHalo*sizeof(Complex));
+	ut_save[0] = aligned_alloc(AVX, ndim*kvolHalo*sizeof(Complex));
+	ut_save[1] = aligned_alloc(AVX, ndim*kvolHalo*sizeof(Complex));
 	for(unsigned short mu=0;mu<ndim;mu++)
 		for(unsigned short nu=0;nu<ndim;nu++){
 			unsigned short clov = (mu==0) ? nu-1 :mu+nu;
@@ -779,9 +779,9 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 			case(17): //Finite difference check. Produced by Claude Code Opus 4.7
 						 //Build clover
 				if(c_sw){
-	free(clover_f[0]); free(clover_f[1]);
+					free(clover_f[0]); free(clover_f[1]);
 					Clover(clover_f, ut_f, iu, id);
-					}
+				}
 				//Gaussian @f$\xi@f$ → R  (ngorkov, with halo stride)
 				for(unsigned short j=0;j<nc*ngorkov;j++)
 					Gauss_c(xi_f+j*kvolHalo, kvol, 0, 1/sqrt(2));
@@ -874,7 +874,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 		for(unsigned short nu=0;nu<6;nu++)
 			cudaFree(Xmn[mu][nu]);
 	cudaFree(id); cudaFree(iu); cudaFree(hd); cudaFree(hu);
-				cudaFree(ut_save[0]); cudaFree(ut_save[1]);
+	cudaFree(ut_save[0]); cudaFree(ut_save[1]);
 #else
 	free(dk[0]); free(dk[1]); free(R1); free(dSdpi); free(pp);
 	free(Phi); free(ut[0]); free(ut[1]); free(xi);
@@ -890,7 +890,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 	free(X0); free(X1); free(u[0]); free(u[1]);
 	free(X2_f);
 	free(id); free(iu); free(hd); free(hu);
-				free(ut_save[0]); free(ut_save[1]);
+	free(ut_save[0]); free(ut_save[1]);
 	free(pcoord);
 #endif
 

@@ -251,7 +251,7 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 	Complex_f *X2_f= (Complex_f *)aligned_alloc(AVX,kferm2Halo*sizeof(Complex_f));
 #endif
 	if(c_sw)
-		Clover(clover,ut_f,iu,id);
+	Clover(clover,ut_f,iu,id);
 
 	for(int na = 0; na<nf; na++){
 #ifdef __NVCC__
@@ -320,7 +320,7 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 		ComplexConvert(X1_f,X1,kvol,true,nc*ndirac);
 		Hdslash_f(X2_f,X1_f,ut_f,iu,id,gamval_f,gamin,dk_f,akappa);
 		if(c_sw)
-			HbyClover_f(X2_f,X1_f,clover,sigval_f,akappa,sigin,false);
+		HbyClover_f(X2_f,X1_f,clover,sigval_f,akappa,sigin,false);
 		//NOTE: This was orginally two. But was changed as a test for Claude so the two appears inside Force_s and Force_t
 		//It may need to be reverted back later
 		alignas(8) const float blasd=1.0;
@@ -376,13 +376,12 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 			Force_s(dSdpi,ut_f,X1_f,X2_f,gamval_f,iu,gamin,akappa,mu);
 		Force_t(dSdpi,ut_f,X1_f,X2_f,gamval_f,dk_f,iu,gamin,akappa);
 #endif
-		if(c_sw){
-			//Clover_Force(dSdpi,ut_f,X1_f,X2_f,sigval_f,sigin,iu,id,akappa);
-			Clov_Force(dSdpi,ut_f,X1_f,X2_f,sigval_f,sigin,iu,id,akappa);
+			if(c_sw){
+		//Clover_Force(dSdpi,ut_f,X1_f,X2_f,sigval_f,sigin,iu,id,akappa);
+		Clov_Force(dSdpi,ut_f,X1_f,X2_f,sigval_f,sigin,iu,id,akappa);
+		Clover_free(clover);
 		}
 	}
-	if(c_sw)
-		Clover_free(clover);
 #ifdef __NVCC__
 	cudaFreeAsync(X1_f,streams[0]); cudaFreeAsync(X2_f,streams[1]);
 #else
