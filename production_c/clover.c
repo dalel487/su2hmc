@@ -538,20 +538,19 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					//But recycling to reduce register pressure on GPU
 					//First up, W0, W1 and W6 match their Documentation values
 					Complex_f W0[2], W1[2], W6[2];	
-					//Get the correct site. Originally uid and did stood for up and down. Then I realised only one was needed
-					//at a time and am too lazy to change it everywhere.
-					unsigned int uid = id[i+kvol*nu];
+					//Get the correct site. 
+					unsigned int ind = id[i+kvol*nu];
 					//Gauge field @f$U_\nu\left(i-\hat{\nu}\right)
-					W1[0]=ut[0][uid+kvolHalo*nu]; W1[1]=ut[1][uid+kvolHalo*nu];
+					W1[0]=ut[0][ind+kvolHalo*nu]; W1[1]=ut[1][ind+kvolHalo*nu];
 
 					//@f$Z_2=X_{\mu\nu}\left(i-\hat{\nu}\right)@f$
 					Complex_f Z[nc*nc];
 #pragma unroll
 					for(unsigned short c=0;c<nc*nc;c++)
-						Z[c]=Xmn[clov][uid+kvol*c];
+						Z[c]=Xmn[clov][ind+kvol*c];
 
 					//W0 is @f$U^\dagger_\mu@f(x-\hat{nu}\right)@f$
-					W0[0]=conjf(ut[0][uid+kvolHalo*mu]); W0[1]=-ut[1][uid+kvolHalo*mu];
+					W0[0]=conjf(ut[0][ind+kvolHalo*mu]); W0[1]=-ut[1][ind+kvolHalo*mu];
 
 					//Need a temporary Z buffers for the intermediate result
 					Complex_f Zbuff1[nc*nc], Zbuff2[nc*nc];
@@ -561,10 +560,10 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					W6[0]=W0[0]*W1[0]-W0[1]*conjf(W1[1]); W6[1]=W0[0]*W1[1]+W0[1]*conjf(W1[0]);
 
 					//Z3 is the @f$X_{\mu\nu}\left(x+\hat{\mu}-\hat{\nu}\right)@f$. Store in Z
-					uid=iu[uid+kvol*mu];
+					ind=iu[ind+kvol*mu];
 #pragma unroll
 					for(unsigned short c=0;c<nc*nc;c++)
-						Z[c]=Xmn[clov][uid+kvol*c];
+						Z[c]=Xmn[clov][ind+kvol*c];
 
 					//Need a second Zbuffer for another intermediate result.
 					GRight(Zbuff2,W6,Z);
@@ -574,7 +573,7 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 						Zbuff1[c]+=Zbuff2[c];
 					//W5 is @f$U^\dagger_\nu\left(x+\hat{\mu}-\hat{\nu}\right)@f$
 					Complex_f W5[2];
-					W5[0]=conjf(ut[0][uid+kvolHalo*nu]); W5[1]=-ut[1][uid+kvolHalo*nu];
+					W5[0]=conjf(ut[0][ind+kvolHalo*nu]); W5[1]=-ut[1][ind+kvolHalo*nu];
 					//Now multiply by @f$W_5@f$ from the left into Zbuff2
 					GLeft(Zbuff2,W5,Zbuff1);
 
@@ -587,16 +586,16 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 
 					//Now we repeat for the last term in the sum. Recycling along the way.
 					//First store @f$W_2=U_\nu\left(x+\hat{\mu}\right)@f$ into W0.
-					uid=iu[i+kvol*mu];
-					W0[0]=ut[0][uid+kvolHalo*nu]; W0[1]=ut[1][uid+kvolHalo*nu];
+					ind=iu[i+kvol*mu];
+					W0[0]=ut[0][ind+kvolHalo*nu]; W0[1]=ut[1][ind+kvolHalo*nu];
 					//@f$W_3=U^\dagger_\mu\left(x+\hat{\nu}\right). Storing it in W1
-					uid=iu[i+kvol*nu];
-					W1[0]=conjf(ut[0][uid+kvolHalo*mu]); W1[1]=-ut[1][uid+kvolHalo*mu];
+					ind=iu[i+kvol*nu];
+					W1[0]=conjf(ut[0][ind+kvolHalo*mu]); W1[1]=-ut[1][ind+kvolHalo*mu];
 					//@f$Z_4=X_{\mu\nu}\left(x+\hat{\mu}+\hat{\nu}\right)@f$. Storing in Z
-					uid=iu[uid+kvol*mu];
+					ind=iu[ind+kvol*mu];
 #pragma unroll
 					for(unsigned short c=0;c<nc*nc;c++)
-						Z[c]=Xmn[clov][uid+kvol*c];
+						Z[c]=Xmn[clov][ind+kvol*c];
 					//Calculate and write into Zbuff1
 					GSandwich(Zbuff1,Zbuff2,W0,Z,W1);
 
@@ -604,16 +603,17 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					Complex_f W7[2];
 					W7[0]=W0[0]*W1[0]-W0[1]*conjf(W1[1]); W7[1]=W0[0]*W1[1]+W0[1]*conjf(W1[0]);
 					//@f$Z_5=X_{\mu\nu}\left(x+\hat{\nu}\right)@f$
-					uid=iu[i+kvol*nu]; 
+					ind=iu[i+kvol*nu]; 
 #pragma unroll
 					for(unsigned short c=0;c<nc*nc;c++)
-						Z[c]=Xmn[clov][uid+kvol*c];
+						Z[c]=Xmn[clov][ind+kvol*c];
 					//And calculate the second term
 					GLeft(Zbuff2,W7,Z);
 					//Sum the two results into Zbuff1.
 #pragma unroll
 					for(unsigned short c=0;c<nc*nc;c++)
 						Zbuff1[c]+=Zbuff2[c];
+
 					//W4 is @f$U^\dagger_\nu\left(x\right)@f$
 					Complex_f W4[2];
 					W4[0]=conjf(ut[0][i+kvolHalo*nu]); W4[1]=-ut[1][i+kvolHalo*nu];
@@ -641,10 +641,10 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 						F_int[c]+=Zbuff1[c];
 
 					//Now load @f$@Z_1=X_{\mu\nu}(x)@f$
-					uid=iu[i+kvol*mu];
+					ind=iu[i+kvol*mu];
 #pragma unroll
 					for(unsigned short c=0;c<nc*nc;c++)
-						Z[c]=Xmn[clov][uid+kvol*c];
+						Z[c]=Xmn[clov][ind+kvol*c];
 					GRight(Zbuff1,W0,Z);
 					//And sum intermediate
 #pragma unroll
