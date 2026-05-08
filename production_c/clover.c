@@ -97,8 +97,8 @@ int Half_Leaf(Complex_f Leaves[nc], Complex_f *ut[nc], Complex_f a[nc], unsigned
 			a[0]=conjf(ut[0][uidm+kvolHalo*nu]); a[1]=-ut[1][uidm+kvolHalo*nu];
 
 			/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})@f$
-			Leaves[0]=a[0]*ut[0][uidm+kvolHalo*mu]-a[1]*conjf(ut[1][uidm+kvolHalo*mu]);
 			//Don't forget negatiion of second term was handled earlier!
+			Leaves[0]=a[0]*ut[0][uidm+kvolHalo*mu]-a[1]*conjf(ut[1][uidm+kvolHalo*mu]);
 			Leaves[1]=a[0]*ut[1][uidm+kvolHalo*mu]+a[1]*conjf(ut[0][uidm+kvolHalo*mu]);
 			break;
 		case(3):
@@ -138,6 +138,7 @@ int Leaf(Complex_f Leaves[nc],Complex_f *ut[nc], unsigned int *iu, unsigned int 
 	unsigned int didm,didn,uidm;
 	switch(leaf){
 		case(0):
+			///Plaquette
 			unsigned int uidn = iu[nu*kvol+i]; 
 			/// @f$U_\mu(x)U_\nu(x+\hat{\mu})U^\dagger_\mu(x+\hat{\nu})@f$
 			a[0]=Leaves[0]*conjf(ut[0][uidn+kvolHalo*mu])+Leaves[1]*conjf(ut[1][uidn+kvolHalo*mu]);
@@ -151,6 +152,7 @@ int Leaf(Complex_f Leaves[nc],Complex_f *ut[nc], unsigned int *iu, unsigned int 
 			//						Leaves[0]=0; Leaves[1]=0;
 			break;
 		case(1):
+			///Leaf in the forwards nu and backwards mu direction
 			didm = id[mu*kvol+i];
 
 			/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})U^\dagger_\nu(x-\hat{\mu})@f$
@@ -217,7 +219,6 @@ void Clover(Complex_f *clover[2], Complex_f *ut[2], unsigned int *iu, unsigned i
 					Complex_f Leaves[nc];
 					for(unsigned short leaf=0;leaf<ndim;leaf++)
 					{
-						//Pointer arithemetic on the leaves.
 						Leaf(Leaves,ut,iu,id,i,mu,nu,leaf);
 						clover[0][i+clov*kvol]+=Leaves[0]; clover[1][i+clov*kvol]+=Leaves[1];
 					}
