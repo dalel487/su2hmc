@@ -97,7 +97,7 @@ int Half_Leaf(Complex_f Leaves[nc], Complex_f *ut[nc], Complex_f a[nc], unsigned
 			a[0]=conjf(ut[0][uidm+kvolHalo*nu]); a[1]=-ut[1][uidm+kvolHalo*nu];
 
 			/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})@f$
-			//Don't forget negatiion of second term was handled earlier!
+			//Don't forget negation of second term was handled earlier!
 			Leaves[0]=a[0]*ut[0][uidm+kvolHalo*mu]-a[1]*conjf(ut[1][uidm+kvolHalo*mu]);
 			Leaves[1]=a[0]*ut[1][uidm+kvolHalo*mu]+a[1]*conjf(ut[0][uidm+kvolHalo*mu]);
 			break;
@@ -434,7 +434,7 @@ void CalcXmunu(Complex_f *Xmunu, Complex_f *X1, Complex_f *X2, const Complex_f *
 	cuCalcXmunu(Xmunu,X1,X2,sigval,sigin,mu,nu);
 #else
 	unsigned short clov;
-	//Get sign and index of @f$\sigma_{\mu\nu}@f correct
+	//Get sign and index of @f$\sigma_{\mu\nu}@f$ correct
 	clov = (mu==0) ? nu-1 : mu+nu;
 #pragma omp parallel for simd aligned(X1,X2,Xmunu:AVX)
 	for(unsigned int i=0;i<kvol;i++){
@@ -544,13 +544,13 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					//Gauge field @f$U_\nu\left(i-\hat{\nu}\right)
 					W1[0]=ut[0][ind+kvolHalo*nu]; W1[1]=ut[1][ind+kvolHalo*nu];
 
-					//@f$Z_2=X_{\mu\nu}\left(i-\hat{\nu}\right)@f$
+					//@f$Z_2=X_{\mu\nu}\left(x-\hat{\nu}\right)@f$
 					Complex_f Z[nc*nc];
 #pragma unroll
 					for(unsigned short c=0;c<nc*nc;c++)
 						Z[c]=Xmn[clov][ind+kvol*c];
 
-					//W0 is @f$U^\dagger_\mu@f(x-\hat{nu}\right)@f$
+					//W0 is @f$U^\dagger_\mu\left(x-\hat{nu}\right)@f$
 					W0[0]=conjf(ut[0][ind+kvolHalo*mu]); W0[1]=-ut[1][ind+kvolHalo*mu];
 
 					//Need a temporary Z buffers for the intermediate result
@@ -560,7 +560,7 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					//@f$W_6=W_0 W_1@f$
 					W6[0]=W0[0]*W1[0]-W0[1]*conjf(W1[1]); W6[1]=W0[0]*W1[1]+W0[1]*conjf(W1[0]);
 
-					//Z3 is the @f$X_{\mu\nu}\left(x+\hat{\mu}-\hat{\nu}\right)@f$. Store in Z
+					//Z_3 is the @f$X_{\mu\nu}\left(x+\hat{\mu}-\hat{\nu}\right)@f$. Store in Z
 					ind=iu[ind+kvol*mu];
 #pragma unroll
 					for(unsigned short c=0;c<nc*nc;c++)
@@ -589,7 +589,7 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					//First store @f$W_2=U_\nu\left(x+\hat{\mu}\right)@f$ into W0.
 					ind=iu[i+kvol*mu];
 					W0[0]=ut[0][ind+kvolHalo*nu]; W0[1]=ut[1][ind+kvolHalo*nu];
-					//@f$W_3=U^\dagger_\mu\left(x+\hat{\nu}\right). Storing it in W1
+					//@f$W_3=U^\dagger_\mu\left(x+\hat{\nu}\right)@f$. Storing it in W1
 					ind=iu[i+kvol*nu];
 					W1[0]=conjf(ut[0][ind+kvolHalo*mu]); W1[1]=-ut[1][ind+kvolHalo*mu];
 					//@f$Z_4=X_{\mu\nu}\left(x+\hat{\mu}+\hat{\nu}\right)@f$. Storing in Z
@@ -631,7 +631,7 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					//Store W8 in W0
 					W0[0]-=W1[0]; W0[1]-=W1[1];
 
-					//Now load @f$@Z_0=X_{\mu\nu}(x)@f$
+					//Now load @f$Z_0=X_{\mu\nu}(x)@f$
 #pragma unroll
 					for(unsigned short c=0;c<nc*nc;c++)
 						Z[c]=Xmn[clov][i+kvol*c];
@@ -641,7 +641,7 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					for(unsigned short c=0;c<nc*nc;c++)
 						F_int[c]+=Zbuff1[c];
 
-					//Now load @f$@Z_1=X_{\mu\nu}(x)@f$
+					//Now load @f$Z_1=X_{\mu\nu}\left(x+\hat{mu})@f$
 					ind=iu[i+kvol*mu];
 #pragma unroll
 					for(unsigned short c=0;c<nc*nc;c++)
@@ -717,6 +717,7 @@ int Init_clover(Complex **sigval, Complex_f **sigval_f,unsigned short **sigin, f
 	for(int i=0;i<6*4;i++)
 		*(*sigval_f+i)=(Complex_f)*(*sigval+i);
 #endif
+	return 0;
 }
 inline int Clover_free(Complex_f *clover[nc]){
 	for(unsigned short c=0;c<nc;c++){

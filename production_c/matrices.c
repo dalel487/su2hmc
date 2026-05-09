@@ -3,9 +3,9 @@
  *
  * @brief Matrix multiplication and related routines
  *
- * There are two four matrix mutiplication routines, and each had a double and single (_f) version
+ * There are four matrix mutiplication routines, and each had a double and single (_f) version
  * The Hdslash? routines are called when acting on half of the fermions (up/down flavour partitioning)
- * The Dslash routines act on everything
+ * The Dslash? routines act on everything
  *
  * Any routine ending in a d is the daggered multiplication
  */
@@ -114,12 +114,11 @@ int Dslash(Complex *phi, Complex *r, Complex *ut[nc], unsigned int *iu,unsigned 
 			const unsigned short igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
 																		//the FORTRAN code did it.
 			igork1 += 4;
-			//And the gorkov terms. Note that dk4p and dk4m swap positions compared to the above				
+			//And the Gor'kov terms. Note that dk4p and dk4m swap positions compared to the above				
 			for(unsigned short c=0;c<nc;c++){
 				ru[c]=r[uid+kvolHalo*(igorkovPP*nc+c)]; rd[c]=r[did+kvolHalo*(igorkovPP*nc+c)];
 				rgu[c]=r[uid+kvolHalo*(igork1*nc+c)]; rgd[c]=r[did+kvolHalo*(igork1*nc+c)];
 			}
-			//And the Gor'kov terms. Note that dk4p and dk4m swap positions compared to the above				
 			phi_s[igorkovPP*nc]+=-dk4ms*(u11s*(ru[0]-rgu[0])+ u12s*(ru[1]-rgu[1]))-
 				dk4psd*(conj(u11sd)*(rd[0]+rgd[0])- u12sd*(rd[1]+rgd[1]));
 			phi[i+kvolHalo*(igorkovPP*nc)]=phi_s[igorkovPP*nc];
@@ -275,7 +274,7 @@ int Hdslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned  int *iu,unsigned
 		for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll
 			for(unsigned short c=0; c<nc; c++)
-				//NOTE: idirac is increasing by nc each time. So should be read as idirac*nc 
+				//NOTE: idirac is increasing by nc each time. So should be read as idirac*nc in a Dirac-counted loop
 				phi_s[idirac+c]=phi[i+kvolHalo*(c+idirac)];
 
 		//#pragma unroll
@@ -339,9 +338,7 @@ int Hdslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned  int *iu,unsigned
 int Hdslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned  int *iu,unsigned  int *id,\
 		Complex gamval[20], const unsigned short gamin[16], double *dk[nc], float akappa){
 	const char funcname[] = "Hdslashd";
-	//Get the halos in order. Because C is row major, we need to extract the correct
-	//terms for each halo first. Changing the indices was considered but that caused
-	//issues with the BLAS routines.
+	//Get the halos in order. 
 #if(nproc>1)
 	ZHalo_swap_all(r, 8);
 #endif
@@ -362,7 +359,7 @@ int Hdslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned  int *iu,unsigne
 		for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll
 			for(unsigned short c=0; c<nc; c++)
-				//NOTE: idirac is increasing by nc each time. So should be read as idirac*nc 
+				//NOTE: idirac is increasing by nc each time. So should be read as idirac*nc in a Dirac-counted loop
 				phi_s[idirac+c]=phi[i+kvol*(c+idirac)];
 
 		//#pragma unroll
@@ -526,12 +523,11 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu, u
 			const unsigned short igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
 																		//the FORTRAN code did it.
 			igork1 += 4;
-			//And the gorkov terms. Note that dk4p and dk4m swap positions compared to the above				
+			//And the Gor'kov terms. Note that dk4p and dk4m swap positions compared to the above				
 			for(unsigned short c=0;c<nc;c++){
 				ru[c]=r[uid+kvolHalo*(igorkovPP*nc+c)]; rd[c]=r[did+kvolHalo*(igorkovPP*nc+c)];
 				rgu[c]=r[uid+kvolHalo*(igork1*nc+c)]; rgd[c]=r[did+kvolHalo*(igork1*nc+c)];
 			}
-			//And the Gor'kov terms. Note that dk4p and dk4m swap positions compared to the above				
 			phi_s[igorkovPP*nc]+=-dk4ms*(u11s*(ru[0]-rgu[0])+ u12s*(ru[1]-rgu[1]))-
 				dk4psd*(conjf(u11sd)*(rd[0]+rgd[0])- u12sd*(rd[1]+rgd[1]));
 			phi[i+kvolHalo*(igorkovPP*nc)]=phi_s[igorkovPP*nc];
@@ -685,7 +681,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned  int *iu,
 		for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll
 			for(unsigned short c=0; c<nc; c++)
-				//NOTE: idirac is increasing by nc each time. So should be read as idirac*nc 
+				//NOTE: idirac is increasing by nc each time. So should be read as idirac*nc in a Dirac-counted loop
 				phi_s[idirac+c]=phi[i+kvolHalo*(c+idirac)];
 
 		//#pragma unroll
@@ -773,7 +769,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,
 		for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll
 			for(unsigned short c=0; c<nc; c++)
-				//NOTE: idirac is increasing by nc each time. So should be read as idirac*nc 
+				//NOTE: idirac is increasing by nc each time. So should be read as idirac*nc in a Dirac counted loop 
 				phi_s[idirac+c]=phi[i+kvol*(c+idirac)];
 
 		//#pragma unroll
