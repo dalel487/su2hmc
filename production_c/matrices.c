@@ -681,7 +681,8 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned  int *iu,
 		for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll
 			for(unsigned short c=0; c<nc; c++)
-				//NOTE: idirac is increasing by nc each time. So should be read as idirac*nc in a Dirac-counted loop
+				//NOTE: idirac is increasing by nc each time.
+				//So should be read as idirac*nc in a Dirac-counted loop
 				phi_s[idirac+c]=phi[i+kvolHalo*(c+idirac)];
 
 		//#pragma unroll

@@ -313,6 +313,7 @@ void HbyClover(Complex *phi, Complex *r, Complex *clover[2],Complex *sigval, con
 				}
 				///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
 				const Complex sig=sigval[clov*ndirac+(idirac>>1)];
+				//creal just an optimisation. Compiler can't optimise out the zero imag.
 				phi_s[idirac+0]+=sig*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
 				//Clover is in the Lie Algebra, not Lie group. So signs are correct here.
 				phi_s[idirac+1]+=sig*(conj(clov_s[1])*r_s[0]-creal(clov_s[0])*r_s[1]);

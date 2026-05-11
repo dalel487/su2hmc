@@ -214,10 +214,12 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 		*/
 #pragma omp parallel for simd aligned(Phi,xi,R1:AVX)
 	for(unsigned int i=0;i<kvol;i++)
-		for(unsigned short j=0;j<ngorkov;j++){
-			Phi_f[i+j*kvol]=1.0f+0.0*I; xi_f[i+j*kvolHalo]=1.0f+0.0*I; R1_f[i+j*kvolHalo]=1.0f+0.0*I;
+		for(unsigned short j=0;j<nc*ngorkov;j++){
+			Phi_f[i+j*kvol]=0.0f+0.0*I; xi_f[i+j*kvolHalo]=0.0f+0.0*I; R1_f[i+j*kvolHalo]=0.0f+0.0*I;
 		}
 
+			Phi_f[0+(0*nc+0)*kvol]=1.0f+0.0*I; xi_f[0+(0*nc+0)*kvolHalo]=1.0f+0.0*I; R1_f[0+(0*nc+0)*kvolHalo]=1.0f+0.0*I;
+			//Phi_f[0+(1*nc+0)*kvol]=1.0f+0.0*I; xi_f[0+(1*nc+0)*kvolHalo]=1.0f+0.0*I; R1_f[0+(1*nc+0)*kvolHalo]=1.0f+0.0*I;
 	ComplexConvert(Phi_f,Phi,kferm,false,1);
 	ComplexConvert(xi_f,xi,kvol,false,ngorkov);
 	ComplexConvert(R1_f,R1,kvol,false,ngorkov);
@@ -509,12 +511,15 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 #endif
 				for(unsigned int i = 0; i< kvol; i++){
 					fprintf(input, "Site %d:\n",i); fprintf(input_f, "Site %d:\n",i); fprintf(input_diff, "Site %d:\n",i);
-					for(unsigned short j=0;j<nc*ngorkov;j++){
-						fprintf(input, "%.3f+%.3fI\t",creal(R1[i+j*kvolHalo]),cimag(R1[i+j*kvolHalo]));
-						fprintf(input_f, "%.3f+%.3fI\t", creal(R1_f[i+j*kvolHalo]),cimag(R1_f[i+j*kvolHalo]));
-						fprintf(input_diff,"%.3f+%.3fI\t", creal(R1[i+j*kvolHalo]-R1_f[i+j*kvolHalo]),cimag(R1[i+j*kvolHalo]-R1_f[i+j*kvolHalo]));
+					for(unsigned short j=0;j<ngorkov;j++){
+					for(unsigned short c=0;c<nc;c++){
+						fprintf(input, "%.3f+%.3fI\t",creal(R1[i+(j*nc+c)*kvolHalo]),cimag(R1[i+(j*nc+c)*kvolHalo]));
+						fprintf(input_f, "%.3f+%.3fI\t", creal(R1_f[i+(j*nc+c)*kvolHalo]),cimag(R1_f[i+(j*nc+c)*kvolHalo]));
+						fprintf(input_diff,"%.3f+%.3fI\t", creal(R1[i+(j*nc+c)*kvolHalo]-R1_f[i+(j*nc+c)*kvolHalo]),cimag(R1[i+(j*nc+c)*kvolHalo]-R1_f[i+(j*nc+c)*kvolHalo]));
 					}
-					fprintf(input, "\n\n"); fprintf(input_f,"\n\n"); fprintf(input_diff,"\n\n");
+					fprintf(input, "\n"); fprintf(input_f,"\n"); fprintf(input_diff,"\n");
+					}
+					fprintf(input, "\n"); fprintf(input_f,"\n"); fprintf(input_diff,"\n");
 				}
 				fclose(input); fclose(input_f); fclose(input_diff);
 				ByClover(xi,R1,clover,sigval,akappa,sigin,false);
@@ -525,10 +530,11 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				output = fopen("byclover", "w"); output_f = fopen("byclover_f", "w"); output_diff = fopen("byclover_diff", "w");
 				for(unsigned int i = 0; i< kvol; i++){
 					fprintf(output, "Site %d:\n",i); fprintf(output_f, "Site %d:\n",i); fprintf(output_diff, "Site %d:\n",i);
-					for(unsigned short j=0;j<nc*ngorkov;j++){
-						fprintf(output, "%.3f+%.3fI\t",creal(xi[i+j*kvolHalo]),cimag(xi[i+j*kvolHalo]));
-						fprintf(output_f, "%.3f+%.3fI\t", creal(xi_f[i+j*kvolHalo]),cimag(xi_f[i+j*kvolHalo]));
-						Complex diff = xi[i+j*kvolHalo]-xi_f[i+j*kvolHalo];
+					for(unsigned short j=0;j<ngorkov;j++){
+					for(unsigned short c=0;c<nc;c++){
+						fprintf(output, "%.3f+%.3fI\t",creal(xi[i+(j*nc+c)*kvolHalo]),cimag(xi[i+(j*nc+c)*kvolHalo]));
+						fprintf(output_f, "%.3f+%.3fI\t", creal(xi_f[i+(j*nc+c)*kvolHalo]),cimag(xi_f[i+(j*nc+c)*kvolHalo]));
+						Complex diff = xi[i+(j*nc+c)*kvolHalo]-xi_f[i+(j*nc+c)*kvolHalo];
 						if(fabs(creal(diff))>1e-6 || fabs(cimag(diff))>1e-6){
 							fprintf(stderr,"Error %i in %s: Single and double disagree for ByClover site %i and spinor/color %d. Difference %e+%ei"\
 									"\nExiting...\n\n",CONVERR,funcname,i,j,creal(diff),cimag(diff));
@@ -538,7 +544,9 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 						else
 							fprintf(output_diff,"%.3f+%.3fI\t", creal(diff),cimag(diff));
 					}
-					fprintf(output, "\n\n"); fprintf(output_f,"\n\n"); fprintf(output_diff,"\n\n");
+					fprintf(output, "\n"); fprintf(output_f,"\n"); fprintf(output_diff,"\n");
+					}
+					fprintf(output, "\n"); fprintf(output_f,"\n"); fprintf(output_diff,"\n");
 				}
 				fclose(output); fclose(output_f); fclose(output_diff);
 				break;
