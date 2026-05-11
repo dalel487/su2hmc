@@ -64,12 +64,12 @@ Some adaptions from the original are:
 -	`#pragma omp simd` instructions
 -	GSL ranlux support
 -	CUDA implementation. 
+-   Higher order integrators. 
 
 Other works in progress include:
 -	Improved action
 -   yaml input file
 -   Set lattice volume and CPU grid at runtime
--   Higher order integrators. 11 stage 4th order non-gradient integrator implimented but no speedup yet
   
 ## Getting started
 This code is written for MPI on Linux, thus has a few caveats to get up and running
@@ -79,7 +79,7 @@ This code is written for MPI on Linux, thus has a few caveats to get up and runn
 	``` c
 	npx npy npz npt
 	```
-	These **MUST**  be divisors of 
+	These **MUST** be divisors of 
 	``` c
 	nx ny nz nt
 	```
