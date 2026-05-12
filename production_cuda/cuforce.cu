@@ -128,8 +128,8 @@ __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 
 			X1s[0]=X1[i+kvolHalo*(idirac)]; X1s[1]=X1[i+kvolHalo*(1+idirac)];
 			X1su[0]=X1[uid+kvolHalo*(idirac)]; X1su[1]=X1[uid+kvolHalo*(1+idirac)];
-			X2s[0]=X2[i+kvolHalo*(idirac)]; X2s[1]=X2[i+kvolHalo*(1+idirac)];
-			X2su[0]=X2[uid+kvolHalo*(idirac)]; X2su[1]=X2[uid+kvolHalo*(1+idirac)];
+			X2s[0]=2*X2[i+kvolHalo*(idirac)]; X2s[1]=2*X2[i+kvolHalo*(1+idirac)];
+			X2su[0]=2*X2[uid+kvolHalo*(idirac)]; X2su[1]=2*X2[uid+kvolHalo*(1+idirac)];
 
 		//			Need to be double to avoid accumulation errors
 			double dSdpis[3];
@@ -162,8 +162,8 @@ __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 			const Complex_f gamval_c=gamval[gindex];
 			//Rescaling gind by nc
 			const unsigned short gind = gamin[gindex]<<1;	
-			X2s[0]=X2[i+kvolHalo*(gind)]; X2s[1]=X2[i+kvolHalo*(1+gind)];
-			X2su[0]=X2[uid+kvolHalo*(gind)]; X2su[1]=X2[uid+kvolHalo*(1+gind)];
+			X2s[0]=2*X2[i+kvolHalo*(gind)]; X2s[1]=2*X2[i+kvolHalo*(1+gind)];
+			X2su[0]=2*X2[uid+kvolHalo*(gind)]; X2su[1]=2*X2[uid+kvolHalo*(1+gind)];
 
 			//If you are asked to rederive the force from Montvay and Munster you'll notice that it should be kappa*gamma
 			//but below is only gamma. We rescaled gamma by kappa already when we defined it so that's where it has gone
@@ -212,8 +212,8 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t,Comple
 
 			X1s[0]=X1[i+kvolHalo*(idirac)]; X1s[1]=X1[i+kvolHalo*(1+idirac)];
 			X1su[0]=X1[uid+kvolHalo*(idirac)]; X1su[1]=X1[uid+kvolHalo*(1+idirac)];
-			X2s[0]=X2[i+kvolHalo*(idirac)]; X2s[1]=X2[i+kvolHalo*(1+idirac)];
-			X2su[0]=X2[uid+kvolHalo*(idirac)]; X2su[1]=X2[uid+kvolHalo*(1+idirac)];
+			X2s[0]=2*X2[i+kvolHalo*(idirac)]; X2s[1]=2*X2[i+kvolHalo*(1+idirac)];
+			X2su[0]=2*X2[uid+kvolHalo*(idirac)]; X2su[1]=2*X2[uid+kvolHalo*(1+idirac)];
 
 		//			Need to be double to avoid accumulation errors
 			double dSdpis[3];
@@ -241,8 +241,8 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t,Comple
 			const unsigned short gindex=mu*ndirac+(idirac>>1);
 			//Rescaling gind by nc
 			const unsigned short gind = gamin[gindex]<<1;	
-			X2s[0]=X2[i+kvolHalo*(gind)]; X2s[1]=X2[i+kvolHalo*(1+gind)];
-			X2su[0]=X2[uid+kvolHalo*(gind)]; X2su[1]=X2[uid+kvolHalo*(1+gind)];
+			X2s[0]=2*X2[i+kvolHalo*(gind)]; X2s[1]=2*X2[i+kvolHalo*(1+gind)];
+			X2su[0]=2*X2[uid+kvolHalo*(gind)]; X2su[1]=2*X2[uid+kvolHalo*(1+gind)];
 
 			dSdpis[0]+=-(dk4ms*(conj(X1s[0])*(-conj(u12s)*X2su[0]+conj(u11s)*X2su[1])
 						+conj(X1s[1])*(u11s *X2su[0]+u12s *X2su[1]))

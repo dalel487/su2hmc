@@ -166,10 +166,10 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 			unsigned int ind_d =4*ndirac+(idirac>>1);
 			complex<T> a_1=-conj(jqq)*gamval_d[ind_d];
 			complex<T> a_2=jqq*gamval_d[ind_d];
-			ind_d=i+kvolHalo*(idirac); unsigned int ind_g=i+kvolHalo*(igork);
+			ind_d=i+kvol*(idirac); unsigned int ind_g=i+kvol*(igork);
 			phi_s[idirac]=phi[ind_d]+a_1*r[ind_g];
 			phi_s[igork]=phi[ind_g]+a_2*r[ind_d];
-			ind_d+=kvolHalo; ind_g+=kvolHalo;
+			ind_d+=kvol; ind_g+=kvol;
 			phi_s[idirac+1]=phi[ind_d]+a_1*r[ind_g];
 			phi_s[igork+1]=phi[ind_g]+a_2*r[ind_d];
 		}
@@ -234,12 +234,12 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 			phi_s[igorkov*nc]+=
 				-dk4ms*(u11s*(ru[0]+rgu[0]) +u12s*(ru[1]+rgu[1]))
 				-dk4psd*(conj(u11sd)*(rd[0]-rgd[0]) -u12sd *(rd[1]-rgd[1]));
-			phi[i+kvolHalo*(igorkov*nc)]=phi_s[igorkov*nc];
+			phi[i+kvol*(igorkov*nc)]=phi_s[igorkov*nc];
 
 			phi_s[igorkov*nc+1]+=
 				-dk4ms*(-conj(u12s)*(ru[0]+rgu[0]) +conj(u11s)*(ru[1]+rgu[1]))
 				-dk4psd*(conj(u12sd)*(rd[0]-rgd[0]) +u11sd *(rd[1]-rgd[1]));
-			phi[i+kvolHalo*(igorkov*nc+1)]=phi_s[igorkov*nc+1];
+			phi[i+kvol*(igorkov*nc+1)]=phi_s[igorkov*nc+1];
 			const unsigned short igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
 																		//the FORTRAN code did it.
 			igork1 += 4;
@@ -250,11 +250,11 @@ __global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T>
 			//And the Gor'kov terms. Note that dk4p and dk4m swap positions compared to the above				
 			phi_s[igorkovPP*nc]+=-dk4ps*(u11s*(ru[0]+rgu[0]) +u12s*(ru[1]+rgu[1]))
 				-dk4msd*(conj(u11sd)*(rd[0]-rgd[0]) -u12sd*(rd[1]-rgd[1]));
-			phi[i+kvolHalo*(igorkovPP*nc)]=phi_s[igorkovPP*nc];
+			phi[i+kvol*(igorkovPP*nc)]=phi_s[igorkovPP*nc];
 
 			phi_s[igorkovPP*nc+1]+=dk4ps*(conj(u12s)*(ru[0]+rgu[0]) -conj(u11s)*(ru[1]+rgu[1]))
 				-dk4msd*(conj(u12sd)*(rd[0]-rgd[0]) +u11sd*(rd[1]-rgd[1]));
-			phi[i+kvolHalo*(igorkovPP*nc+1)]=phi_s[igorkovPP*nc+1];
+			phi[i+kvol*(igorkovPP*nc+1)]=phi_s[igorkovPP*nc+1];
 		}
 #endif
 	}
@@ -391,7 +391,7 @@ __global__ void cuHdslashd(complex<T> *phi, const complex<T>* r, const complex<T
 #pragma unroll
 			for(unsigned short c=0; c<nc; c++)
 				//NOTE: idirac is increasing by nc each time. So should be read as idirac*nc 
-				phi_s[idirac+c]=phi[i+kvolHalo*(c+idirac)];
+				phi_s[idirac+c]=phi[i+kvol*(c+idirac)];
 
 		//#pragma unroll
 		for(unsigned short mu = 0; mu <ndim; mu++){
@@ -440,13 +440,13 @@ __global__ void cuHdslashd(complex<T> *phi, const complex<T>* r, const complex<T
 							+u12s*(ru[1]+rgu[1]));
 					phi_s[idirac]+= -dk4ps*(conj(u11sd)*(rd[0]-rgd[0])
 							-u12sd *(rd[1]-rgd[1]));
-					phi[i+kvolHalo*(0+idirac)]=phi_s[idirac+0];
+					phi[i+kvol*(0+idirac)]=phi_s[idirac+0];
 
 					phi_s[idirac+1]-= dk4ms*(-conj(u12s)*(ru[0]+rgu[0])
 							+conj(u11s)*(ru[1]+rgu[1]));
 					phi_s[idirac+1]-= +dk4ps*(conj(u12sd)*(rd[0]-rgd[0])
 							+u11sd *(rd[1]-rgd[1]));
-					phi[i+kvolHalo*(1+idirac)]=phi_s[idirac+1];
+					phi[i+kvol*(1+idirac)]=phi_s[idirac+1];
 				}
 			}
 		}
