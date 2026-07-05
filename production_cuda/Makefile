@@ -16,14 +16,14 @@ ifeq ($(CXX),icpx)
 # or use an older Intel compiler version that doesn't include AVX10.2 intrinsics.
     $(error As of 20251101, the libstdc++ headers break when compiling with Intel OneAPI. This is due to NVCC not supporting noexcept(true) in the header for rsqrt(), and Intel OneAPI (clang) being stricter than GCC. You may have more luck with a version of nvcc greater than 13.0 or an older libstdc++ library)
 CFLAGS+=  -qopt-zmm-usage=high -MD -ipo -static-intel -static-libgcc \
-			-march=native -DMKL_DIRECT_CALL -D__USE_MKL__  -qopenmp \
+			-xHOST -DMKL_DIRECT_CALL -D__USE_MKL__  -qopenmp \
 			-qopenmp-simd  -use-intel-optimized-headers -diag-disable=10441
-else ifeq ($(CXX),g++)
+else ifneq (,$(filter g++%,$(CXX)))
 CFLAGS+=		-march=native -fcommon -fopenmp -fopenmp-simd -static-libgcc -foffload=disable
 else ifeq ($(CXX),nvc++)
     $(warning As of 20251101, the nvc/nvc++ compiler segfaults during the conjugate gradient. We recommend you use GNU instead. (echo CC+gcc, echo CXX=g++))
 CFLAGS+=		-tp=native -mp
-else ifeq ($(CXX),clang++)
+else ifneq (,$(filter clang++%,$(CXX)))
     $(error As of 20251101, the libstdc++ headers break when compiling with clang. This is due to NVCC not supporting noexcept(true) in the header for rsqrt(), and clang being stricter than GCC. You may have more luck with a version of nvcc greater than 13.0 or an older libstdc++ library)
 CFLAGS+=		-fveclib=AMDLIBM -march=native -fcommon -flto -fopenmp=libomp -fopenmp-simd -static-libgcc -Wno-exception-spec 
 #NVCCFLAGS+= -D_GLIBCXX_USE_CXX11_ABI=0
@@ -31,10 +31,10 @@ else
     $(error Unknown compiler: $(CXX))
 endif
 
-ifdef __USE_MKL__
-#TODO: Currently only configured for use with an Intel Compiler
+ifeq ($(CXX),icpx)
+#TODO: Currently only configured for using MKL with an Intel Compiler
 CFLAGS+=	-qmkl -DMKL_DIRECT_CALL 
-LFLAGS=	-L${MKLROOT}/lib/intel64 -limf #-DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
+LFLAGS=	-L${MKLROOT}/lib/intel64 -limf -DUSE_MKL -DMKL_DIRECT_CALL #-DMKL_ILP64
 else ifdef AOCL_ROOT
 CFLAGS += -DAMD_BLAS -I ${AOCL_ROOT}/include
 LFLAGS = -L${AOCL_ROOT}/lib/ -lblis  -lalm
@@ -52,14 +52,9 @@ CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/latest/cuda/lib64/ \
 				-L/opt/nvidia/hpc_sdk/Linux_x86_64/latest/math_libs/lib64/ \
 				-lcuda -lcudart -lcublas 
 
-LFLAGS +=		-lstdc++ -lpthread -ldl #${CULFLAGS}
+LFLAGS += -lpthread -ldl #${CULFLAGS}
 
-NVCCFLAGS+=	${IFLAGS} --resource-usage -err-no -w -arch=native --allow-unsupported-compiler #-expt-relaxed-constexpr 
-			#Last flag is an experimental one used to call host functions in device code. Not sure
-			#if it does what we want because the error message suggesting it came up when declaring
-			#a11 and a12 in the Dslash routine
-#Replace first line of NVCCFLAGS with below when done. Targets every platform since 2016
-#NVCCFLAGS=	${IFLAGS}  -arch=compute_60 -code=sm_60,sm_61,sm_70,sm_75,sm_80,sm_86,sm_90 -err-no -w \
+NVCCFLAGS+=	${IFLAGS} -err-no -w -arch=native --allow-unsupported-compiler #-expt-relaxed-constexpr 
 
 EXE=	su2hmc_CUDA
 
@@ -117,7 +112,7 @@ CUEDT=	$(CUSRC:.cu=.cu~)
 TMP=	$(MOD) $(CEDT) $(CUEDT) core
 
 profiler:	CFLAGS += -g #-D_DEBUGCG
-profiler:	NVCCFLAGS += -Xptxas -O3,-v -lineinfo #-D_DEBUGCG #-keep
+profiler:	NVCCFLAGS += --resource-usage -Xptxas -O3,-v -lineinfo #-D_DEBUGCG #-keep
 profiler:	release
 
 release:	CFLAGS +=  -O3  #-fprofile-use=./gcc_pgo
@@ -130,7 +125,7 @@ diagnostic: NVCCFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 diagnostic: debug
 
 debug:		CFLAGS += -g -O0 -D_DEBUG #-D_DEBUGCG #-DNO_TIME -DNO_SPACE
-debug:		NVCCFLAGS += -Xptxas -O0,-v -G -g -D_DEBUG  -keep 
+debug:		NVCCFLAGS += --resource-usage -Xptxas -O0,-v -G -g -D_DEBUG  -keep 
 debug:		$(EXE)
 		 
 $(EXE): $(OBJ) ../main.c

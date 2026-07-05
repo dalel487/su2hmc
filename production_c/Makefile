@@ -22,15 +22,15 @@ endif
 ifneq ($(filter icc icx, $(CC)),)
 CFLAGS += -qopt-zmm-usage=high -ipo -static-intel -static-libgcc \
 			-xHOST -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE,RAPTORLAKE\
-			-D__USE_MKL__  -qopenmp  -inline-level=2 \
-			-qopenmp-simd  -use-intel-optimized-headers -diag-disable=10441
+			-D__USE_MKL__  -inline-level=2 \
+			-qopenmp-simd  -use-intel-optimized-headers -diag-disable=10441 -qopenmp  
 __USE_MKL__ = 1
-else ifeq ($(CC),gcc)
-CFLAGS += -march=native -fcommon -fopenmp -fopenmp-simd -static-libgcc -foffload=disable
+else ifneq (,$(filter gcc%,$(CC)))
+CFLAGS += -march=native -mavx512f -fcommon -fopenmp -fopenmp-simd -static-libgcc -foffload=disable
 else ifeq ($(CC),nvc)
 #    $(warning As of 20251101, the nvc/nvc++ compiler segfaults during the conjugate gradient. We recommend you use GNU instead. (echo CC+gcc, echo CC=g++))
 CFLAGS += -tp=native -mp -mp=multicore 
-else ifeq ($(CC),clang)
+else ifneq (,$(filter clang%,$(CC)))
     #$(error As of 20251101, the libstdc++ headers break when compiling with clang. This is due to NVCC not supporting noexcept(true) in the header for rsqrt(), and clang being stricter than GCC. You may have more luck with a version of nvcc greater than 13.0 or an older libstdc++ library)
 CFLAGS += -fveclib=AMDLIBM -march=native -fcommon -flto -fopenmp -fopenmp-simd -static-libgcc -Wno-exception
 LFLAGS += -latomic
@@ -39,9 +39,9 @@ else
     $(error Unknown compiler: $(CC))
 endif
 
-ifdef __USE_MKL__
+ifeq ($(CXX),icpx)
 #TODO: Currently only configured for use with an Intel Compiler
-CFLAGS +=	-qmkl -DMKL_DIRECT_CALL -DMKL_ILP64  -I"${MKLROOT}/include"
+CFLAGS +=	-qmkl -DMKL_DIRECT_CALL -I"${MKLROOT}/include"
 LFLAGS +=	-L${MKLROOT}/lib/intel64 -limf #-DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
 else ifdef AOCL_ROOT
 CFLAGS += -DAMD_BLAS -I ${AOCL_ROOT}/include
@@ -104,7 +104,7 @@ release:	CFLAGS +=  -O3
 						
 release:	$(EXE)
 
-diagnostic: CFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
+diagnostic: CFLAGS+=-DDIAGNOSTIC -DLOAD_HIREP_PF #-DNO_TIME -DNO_SPACE
 diagnostic: debug
 
 debug:	CFLAGS += -g -O0 -D_DEBUG -fsanitize=leak #-D_DEBUG_MPI -Wall #-D_DEBUGCG 
