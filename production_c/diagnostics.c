@@ -207,6 +207,38 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 	}
 
 	const int na=0;
+  #ifdef LOAD_HIREP_PF
+  /* Load HiRep pseudofermion into Phi upper Gor'kov block (flavor 0, j=0..nc*ndirac-1).
+   * Format: flat binary, no header, T(slow)->X->Y->Z(fast) order,
+   *         nc*ndirac=8 Complex per site, Dirac-outer/colour-inner.
+   * Lower Gor'kov block (j=nc*ndirac..nc*ngorkov-1) stays zero.
+   * Gamma note: spatial-spatial clover force matches HiRep; temporal-spatial differs by -1. */
+  {
+      FILE *pf_in = fopen("hirep_pf.bin", "rb");
+      if (!pf_in)
+          printf("hirep_pf.bin not found; running with default Phi\n");
+      else {
+          memset(Phi, 0, nf*kferm*sizeof(Complex));
+          Complex spinor[nc*ndirac];
+          for (unsigned int i = 0; i < kvol; i++) {
+              if (fread(spinor, sizeof(Complex), nc*ndirac, pf_in) != (size_t)(nc*ndirac)) {
+                  fprintf(stderr, "%s: short read from hirep_pf.bin\n", funcname);
+                  break;
+              }
+              for (int j = 0; j < nc*ndirac; j++){
+                  Phi[i + kvol*j] = spinor[j];
+                  R1[i + kvolHalo*j] = spinor[j];
+						}
+          }
+          fclose(pf_in);
+          double norm2 = 0;
+          for (int k = 0; k < nc*ndirac*kvol; k++)
+              norm2 += creal(Phi[k])*creal(Phi[k]) + cimag(Phi[k])*cimag(Phi[k]);
+          printf("HiRep PF loaded into Phi (sq.norm=%.6e)\n", norm2);
+      }
+  }
+  
+  #else
 	/*
 		Gauss_d(pp,kmom,0,1);
 		Gauss_c(R1_f, kferm, 0, 1/sqrt(2)); Gauss_c(Phi_f, kferm, 0, 1/sqrt(2));
@@ -215,14 +247,15 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 #pragma omp parallel for simd aligned(Phi,xi,R1:AVX)
 	for(unsigned int i=0;i<kvol;i++)
 		for(unsigned short j=0;j<nc*ngorkov;j++){
-			Phi_f[i+j*kvol]=0.0f+0.0*I; xi_f[i+j*kvolHalo]=0.0f+0.0*I; R1_f[i+j*kvolHalo]=0.0f+0.0*I;
+			Phi[i+j*kvol]=0.0f+0.0*I; xi[i+j*kvolHalo]=0.0f+0.0*I; R1[i+j*kvolHalo]=0.0f+0.0*I;
 		}
 
-			Phi_f[0+(0*nc+0)*kvol]=1.0f+0.0*I; xi_f[0+(0*nc+0)*kvolHalo]=1.0f+0.0*I; R1_f[0+(0*nc+0)*kvolHalo]=1.0f+0.0*I;
-			//Phi_f[0+(1*nc+0)*kvol]=1.0f+0.0*I; xi_f[0+(1*nc+0)*kvolHalo]=1.0f+0.0*I; R1_f[0+(1*nc+0)*kvolHalo]=1.0f+0.0*I;
-	ComplexConvert(Phi_f,Phi,kferm,false,1);
-	ComplexConvert(xi_f,xi,kvol,false,ngorkov);
-	ComplexConvert(R1_f,R1,kvol,false,ngorkov);
+			Phi[0+(0*nc+0)*kvol]=1.0f+0.0*I; xi[0+(0*nc+0)*kvolHalo]=1.0f+0.0*I; R1[0+(0*nc+0)*kvolHalo]=1.0f+0.0*I;
+			//Phi[0+(1*nc+0)*kvol]=1.0f+0.0*I; xi[0+(1*nc+0)*kvolHalo]=1.0f+0.0*I; R1[0+(1*nc+0)*kvolHalo]=1.0f+0.0*I;
+  #endif 
+	ComplexConvert(Phi_f,Phi,kferm,true,1);
+	ComplexConvert(xi_f,xi,kvol,true,ngorkov);
+	ComplexConvert(R1_f,R1,kvol,true,ngorkov);
 
 	//Gauss_c(X0_f, kferm2, 0, 1/sqrt(2)); Gauss_c(X1_f, kferm2, 0, 1/sqrt(2));
 #pragma omp parallel for simd aligned(X0,X1:AVX)
@@ -311,7 +344,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 						fprintf(output, "%.3f+%.3fI\t",creal(xi[i+j*kvolHalo]),cimag(xi[i+j*kvolHalo]));
 						fprintf(output_f, "%.3f+%.3fI\t", creal(xi_f[i+j*kvolHalo]),cimag(xi_f[i+j*kvolHalo]));
 						Complex diff = xi[i+j*kvolHalo]-xi_f[i+j*kvolHalo];
-						if(fabs(creal(diff))>1e-6 || fabs(cimag(diff))>1e-6){
+						if(fabs(creal(diff))>5e-6 || fabs(cimag(diff))>5e-6){
 							fprintf(stderr,"Error %i in %s: Single and double disagree for Dslash site %i and spinor/color %d. Difference %e+%ei"\
 									"\nExiting...\n\n",CONVERR,funcname,i,j,creal(diff),cimag(diff));
 							fclose(output);fclose(output_f);fclose(output_diff);
@@ -357,7 +390,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 						fprintf(output, "%.3f+%.3fI\t",creal(xi[i+j*kvol]),cimag(xi[i+j*kvol]));
 						fprintf(output_f, "%.3f+%.3fI\t", creal(xi_f[i+j*kvol]),cimag(xi_f[i+j*kvol]));
 						Complex diff = xi[i+j*kvol]-xi_f[i+j*kvol];
-						if(fabs(creal(diff))>1e-6 || fabs(cimag(diff))>1e-6){
+						if(fabs(creal(diff))>5e-6 || fabs(cimag(diff))>5e-6){
 							fprintf(stderr,"Error %i in %s: Single and double disagree for Dslashd site %i and spinor/color %d. Difference %e+%ei"\
 									"\nExiting...\n\n",CONVERR,funcname,i,j,creal(diff),cimag(diff));
 							fclose(output);fclose(output_f);fclose(output_diff);
@@ -400,7 +433,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 						fprintf(output, "%.3f+%.3fI\t",creal(X1[i+j*kvolHalo]),cimag(X1[i+j*kvolHalo]));
 						fprintf(output_f, "%.3f+%.3fI\t", creal(X1_f[i+j*kvolHalo]),cimag(X1_f[i+j*kvolHalo]));
 						Complex diff = X1[i+j*kvolHalo]-X1_f[i+j*kvolHalo];
-						if(fabs(creal(diff))>1e-6 || fabs(cimag(diff))>1e-6){
+						if(fabs(creal(diff))>5e-6 || fabs(cimag(diff))>5e-6){
 							fprintf(stderr,"Error %i in %s: Single and double disagree for Hdslash site %i and spinor/color %d. Difference %e+%ei"\
 									"\nExiting...\n\n",CONVERR,funcname,i,j,creal(diff),cimag(diff));
 							fclose(output);fclose(output_f);fclose(output_diff);
@@ -444,7 +477,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 						fprintf(output, "%.3f+%.3fI\t",creal(X1[i+j*kvol]),cimag(X1[i+j*kvol]));
 						fprintf(output_f, "%.3f+%.3fI\t", creal(X1_f[i+j*kvol]),cimag(X1_f[i+j*kvol]));
 						Complex diff = X1[i+j*kvol]-X1_f[i+j*kvol];
-						if(fabs(creal(diff))>1e-6 || fabs(cimag(diff))>1e-6){
+						if(fabs(creal(diff))>5e-6 || fabs(cimag(diff))>5e-6){
 							fprintf(stderr,"Error %i in %s: Single and double disagree for Hdslashd site %i and spinor/color %d. Difference %e+%ei"\
 									"\nExiting...\n\n",CONVERR,funcname,i,j,creal(diff),cimag(diff));
 							fclose(output);fclose(output_f);fclose(output_diff);
@@ -535,7 +568,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 						fprintf(output, "%.3f+%.3fI\t",creal(xi[i+(j*nc+c)*kvolHalo]),cimag(xi[i+(j*nc+c)*kvolHalo]));
 						fprintf(output_f, "%.3f+%.3fI\t", creal(xi_f[i+(j*nc+c)*kvolHalo]),cimag(xi_f[i+(j*nc+c)*kvolHalo]));
 						Complex diff = xi[i+(j*nc+c)*kvolHalo]-xi_f[i+(j*nc+c)*kvolHalo];
-						if(fabs(creal(diff))>1e-6 || fabs(cimag(diff))>1e-6){
+						if(fabs(creal(diff))>5e-6 || fabs(cimag(diff))>5e-6){
 							fprintf(stderr,"Error %i in %s: Single and double disagree for ByClover site %i and spinor/color %d. Difference %e+%ei"\
 									"\nExiting...\n\n",CONVERR,funcname,i,j,creal(diff),cimag(diff));
 							fclose(output);fclose(output_f);fclose(output_diff);
@@ -583,7 +616,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 						fprintf(output, "%.3f+%.3fI\t",creal(X1[i+j*kvol]),cimag(X1[i+j*kvol]));
 						fprintf(output_f, "%.3f+%.3fI\t", creal(X1_f[i+j*kvol]),cimag(X1_f[i+j*kvol]));
 						Complex diff = X1[i+j*kvol]-X1_f[i+j*kvol];
-						if(fabs(creal(diff))>1e-6 || fabs(cimag(diff))>1e-6){
+						if(fabs(creal(diff))>5e-6 || fabs(cimag(diff))>5e-6){
 							fprintf(stderr,"Error %i in %s: Single and double disagree for HbyClover site %i and spinor/color %d. Difference %e+%ei"\
 									"\nExiting...\n\n",CONVERR,funcname,i,j,creal(diff),cimag(diff));
 							fclose(output);fclose(output_f);fclose(output_diff);

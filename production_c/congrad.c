@@ -481,7 +481,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			cublasZdscal(cublas_handle,kferm2,(double *)&beta,(cuDoubleComplex *)p,1);
 			cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&alpha_m,(cuDoubleComplex *)r,1,(cuDoubleComplex *)p,1);
 #endif
-#elifdef __USE_MKL__
+#elif (defined __USE_MKL__||defined OPENBLAS||defined AMD_BLAS)
 			const Complex a = 1.0;
 			//There is cblas_?axpby in the MKL and AMD though, set a = 1 and b = \beta.
 			//If we get a small enough \beta_n before hitting the iteration cap we break
@@ -679,7 +679,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			cublasCscal(cublas_handle,kferm2,(cuComplex *)&beta_f,(cuComplex *)p_f,1);
 			cublasCaxpy(cublas_handle,kferm2,(cuComplex *)&alpha_m,(cuComplex *)r_f,1,(cuComplex *)p_f,1);
 #endif
-#elif (defined __USE_MKL__)
+#elif (defined __USE_MKL__||defined OPENBLAS||defined AMD_BLAS)
 			Complex_f a = 1.0;
 			Complex_f beta_f=(Complex_f)beta;
 			//There is cblas_?axpby in the MKL and AMD though, set a = 1 and b = \beta.
@@ -907,7 +907,7 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 			cublasZdscal(cublas_handle,kferm,(double *)&beta,(cuDoubleComplex *)p,1);
 			cublasZaxpy(cublas_handle,kferm,(cuDoubleComplex *)&alpha_m,(cuDoubleComplex *)r,1,(cuDoubleComplex *)p,1);
 #endif
-#elifdef __USE_MKL__
+#elif (defined __USE_MKL__||defined OPENBLAS||defined AMD_BLAS)
 			const Complex a = 1.0;
 			//There is cblas_? axpby in the MKL and AMD though, set a = 1 and b = \beta.
 			//If we get a small enough \beta_n before hitting the iteration cap we break
@@ -1085,7 +1085,7 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 			cublasCaxpy(cublas_handle,kferm,(cuComplex *)&a,(cuComplex *)r_f,1,(cuComplex *)p_f,1);
 #endif
 			cudaDeviceSynchronise();
-#elif (defined __USE_MKL__ || defined AMD_BLAS)
+#elif (defined __USE_MKL__||defined OPENBLAS||defined AMD_BLAS)
 			for(unsigned short j=0;j<nc*ngorkov;j++)
 				cblas_caxpby(kvol, &a, r_f+j*kvol, 1, &beta_f,  p_f+j*kvolHalo, 1);
 #else

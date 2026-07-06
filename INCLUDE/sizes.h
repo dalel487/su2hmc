@@ -28,12 +28,12 @@
 #ifdef	__USE_MKL__
 #define	USE_BLAS
 #include	<mkl.h>
+#elif (defined AMD_BLAS||defined OPENBLAS)
+#define	USE_BLAS
+#include	<cblas.h>
 #elif defined GSL_BLAS
 #define	USE_BLAS
 #include <gsl/gsl_cblas.h>
-#elif defined AMD_BLAS
-#define	USE_BLAS
-#include	<cblas.h>
 #endif
 #ifdef	__NVCC__
 #include	<cuda.h>
@@ -137,7 +137,7 @@ extern cudaMemPool_t mempool;
 #endif
 
 ///	@brief Number of threads for OpenMP, which can be overwritten at runtime
-#define	nthreads	8
+#define	nthreads	1
 
 //    Existing parameter definitions.
 ///	@brief Sublattice x extent

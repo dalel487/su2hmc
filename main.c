@@ -1,44 +1,43 @@
 /** 
  * 	@file main.c
  *
- *   @brief Hybrid Monte Carlo algorithm for Two Colour QCD with Wilson-Gor'kov fermions
+ *		@brief Hybrid Monte Carlo algorithm for Two Colour QCD with Wilson-Gor'kov fermions
  *				based on the algorithm of Duane et al. Phys. Lett. B195 (1987) 216. 
  *
- *    There is "up/down partitioning": each update requires
- *    one operation of Congradq() on complex*16 vectors to determine
- *    @f$(M^{\dagger} M)^{-1}  \Phi@f$ where @f$\Phi@f$ has dimension 4*kvol*nc*Nf - 
- *    The matrix M is the Wilson matrix for a single flavor
- *    there is no extra species doubling as a result
- *
- *    Matrix multiplies done using routines Hdslash() and Hdslashd()
- *
- *    Hence, the number of lattice flavors Nf is related to the
- *    number of continuum flavors @f$N_f@f$ by
- *                 @f$ \text{Nf} = 2 N_f@f$
- *
- *    Fermion expectation values are measured using a noisy estimator.
- *    on the Wilson-Gor'kov matrix, which has dimension 8*kvol*nc*Nf
- *    inversions done using Congradp(), and matrix multiplies with Dslash(),
- *    Dslashd()
- *
- *    Trajectory length is random with mean dt*stepl
- *    The code runs for a fixed number ntraj of trajectories.
- *
- *    @f$\Phi@f$: pseudofermion field <br>
- *    bmass: bare fermion mass  <br>
- *    @f$\mu@f$: chemical potential  <br>
- *    actiona: running average of total action <br>
- *
- *    Fermion expectation values are measured using a noisy estimator.
- *
- *    outputs: <br>
- *    fermi		psibarpsi, energy density, baryon density <br>
- *    bose	   spatial plaquette, temporal plaquette, Polyakov line <br>
- *    diq	   real<qq>
- *
- *     @author SJH			(Original Code, March 2005)
- *     @author P.Giudice	(Hybrid Code, May 2013)
- *     @author D. Lawlor	(Fortran to C Conversion, March 2021. Mixed Precision. GPU, March 2024)
+ *		There is "up/down partitioning": each update requires
+ *		one operation of Congradq() on complex*16 vectors to determine
+ *		@f$(M^{\dagger} M)^{-1}  \Phi@f$ where @f$\Phi@f$ has dimension 4*kvol*nc*Nf - 
+ *		The matrix M is the Wilson matrix for a single flavor
+ *		there is no extra species doubling as a result
+ *		
+ *		Matrix multiplies done using routines Hdslash() and Hdslashd()
+ *		
+ *		Hence, the number of lattice flavors Nf is related to the
+ *		number of continuum flavors @f$N_f@f$ by @f$ \text{Nf} = 2 N_f@f$
+ *		
+ *		Fermion expectation values are measured using a noisy estimator.
+ *		on the Wilson-Gor'kov matrix, which has dimension 8*kvol*nc*Nf
+ *		inversions done using Congradp(), and matrix multiplies with Dslash(),
+ *		Dslashd()
+ *		
+ *		Trajectory length is random with mean dt*stepl
+ *		The code runs for a fixed number ntraj of trajectories.
+ *		
+ *		@f$\Phi@f$: pseudofermion field <br>
+ *		bmass: bare fermion mass  <br>
+ *		@f$\mu@f$: chemical potential  <br>
+ *		actiona: running average of total action <br>
+ *		
+ *		Fermion expectation values are measured using a noisy estimator.
+ *		
+ *		outputs: <br>
+ *		@arg @c fermi	psibarpsi, energy density, baryon density <br>
+ *		@arg @c bose	spatial plaquette, temporal plaquette, Polyakov line <br>
+ *		@arg @c diq	   real<qq>
+ *		
+ *		@author SJH			(Original Code, March 2005)
+ *		@author P.Giudice	(Hybrid Code, May 2013)
+ *		@author D. Lawlor	(Fortran to C Conversion, March 2021. Mixed Precision. GPU, March 2024)
  ******************************************************************/
 #include	<assert.h>
 #include	<clover.h>
@@ -71,7 +70,7 @@ cudaMemPool_t mempool;
  */
 int main(int argc, char *argv[]){
 	//Instead of hard coding the function name so the error messages are easier to implement
-	const char *funcname = "main";
+	const char funcname[] = "main";
 
 	Par_begin(argc, argv);
 	//Add error catching code...
@@ -81,27 +80,27 @@ int main(int argc, char *argv[]){
 #endif
 
 	/**
-	 * @subsection Input Parameters.
+	 * @subsection Input Parameters:
 	 * The input file format is like the table below, with values sepearated by whitespace
 	 *
 	 * 0.0100|1.7|0.1780|0.00|0.000|0.0|0.0|100|4|1|5|1|
 	 * ------|---|------|----|-----|---|---|---|-|-|-|-|
-	 * dt	|beta|akappa|jqq|thetaq|fmu|aNf|stepl|ntraj|istart|icheck|iread|
+	 * @p dt	|@p beta|@p akappa|@p jqq|@p c_sw|@p fmu|@p aNf|@p stepl|@p ntraj|@p istart|@p icheck|@p iread| 
 	 *
 	 *	The default values here are straight from the FORTRAN. Note that the bottom line labelling each input is ignored
 	 *
-	 *	@param dt		Step length for HMC	
-	 *	@param beta 	Inverse Gauge Coupling
-	 *	@param akappa	Hopping Parameter
-	 *	@param jqq		Diquark Source
-	 *	@param thetaq	Depericiated/Legacy.
-	 *	@param fmu		Chemical Potential
-	 *	@param aNf		Depreciated/Legacy
-	 *	@param stepl	Mean number of steps per HMC trajectory
-	 *	@param istart 	If 0, start from cold start. If one, start from hot start
-	 *	@param iprint	How often are measurements made (every iprint trajectories)
-	 *	@param icheck	How often are configurations saved (every icheck trajectories)
-	 *	@param iread  	Config to read in. If zero, the start based on value of istart
+	 *	@arg	@p dt			Step length for HMC	
+	 *	@arg	@p beta 		Inverse Gauge Coupling
+	 *	@arg	@p akappa	Hopping Parameter
+	 *	@arg	@p jqq		Diquark Source
+	 *	@arg	@p c_sw		Clover coefficient
+	 *	@arg	@p fmu		Chemical Potential
+	 *	@arg	@p aNf		Depreciated/Legacy
+	 *	@arg	@p stepl		Mean number of steps per HMC trajectory
+	 *	@arg	@p istart 	If 0, start from cold start. If one, start from hot start
+	 *	@arg	@p iprint	How often are measurements made (every iprint trajectories)
+	 *	@arg	@p icheck	How often are configurations saved (every icheck trajectories)
+	 *	@arg	@p iread  	Config to read in. If zero, the start based on value of istart
 	 */
 	float beta = 1.7f;
 	float akappa = 0.1780f;
@@ -814,7 +813,7 @@ int main(int argc, char *argv[]){
 		free(sigval); free(sigval_f); free(sigin);
 	}
 #endif
-	free(hd); free(hu);
+	free(hd); free(hu); free(pcoord);
 #ifdef __RANLUX__
 	gsl_rng_free(ranlux_instd);
 #endif

@@ -292,7 +292,7 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 #else
 			cublasZaxpy(cublas_handle,kferm2,(cuDoubleComplex *)&blasa,(cuDoubleComplex *)X1,1,(cuDoubleComplex *)(X0+na*kferm2),1);
 #endif
-#elifdef __USE_MKL__
+#elif (defined __USE_MKL__||defined OPENBLAS||defined AMD_BLAS)
 			const Complex blasa=2.0; const Complex blasb=-1.0;
 			//This is not a general BLAS Routine. BLIS and MKl support it
 			//CUDA and GSL does not support it

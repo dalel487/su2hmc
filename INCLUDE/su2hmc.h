@@ -6,16 +6,6 @@
 //ARM Based machines. BLAS routines should work with other libraries, so we can set a compiler
 //flag to sort them out. But the PRNG routines etc. are MKL exclusive
 #include <integrate.h>
-#ifdef	__USE_MKL__
-#define	USE_BLAS
-#include	<mkl.h>
-#elif defined GSL_BLAS
-#define	USE_BLAS
-#include <gsl/gsl_cblas.h>
-#elif defined AMD_BLAS
-#define	USE_BLAS
-#include	<cblas.h>
-#endif
 #ifdef __cplusplus
 #include	<cstdio>
 #include	<cstdlib>

@@ -42,6 +42,9 @@ else ifdef LIBSCI_BASE_DIR
 CFLAGS += -DUSE_BLAS
 #Automatic on LUMI?
 #LFLAGS = ‐L${LIBSCI_BASE_DIR}/gnu/91/x86_64/lib/ -lsci_comp
+else ifeq ($(shell pkg-config --exists openblas && echo yes),yes)
+CFLAGS += -DUSE_BLAS $(shell pkg-config --cflags openblas)
+LFLAGS += $(shell pkg-config --libs openblas)
 else
 CFLAGS += -DGSL_BLAS
 LFLAGS	=	-lm $(shell gsl-config --libs)

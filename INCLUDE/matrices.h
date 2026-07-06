@@ -15,183 +15,203 @@ extern "C"
 	/**
 	 * @brief Evaluates @f$\Phi=M r@f$ in double precision.
 	 *
-	 * @param	phi:			The product
-	 * @param	r:				The array being acted on by M
-	 * @param	ut:			Gauge field
-	 *	@param	iu,id:		Upper/lower halo indices
-	 *	@param	gamval:		Gamma matrices rescaled by kappa
-	 *	@param	gamin:		Indices for dirac terms
-	 * @param	dk:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
-	 *	@param	jqq:			Diquark source
-	 *	@param	akappa:		Hopping parameter
+	 * @param[out]	phi:			The product
+	 * @param[in]	r:				The array being acted on by M
+	 * @param[in]	ut:			Gauge field
+	 *	@param[in]	iu,id:		Upper/lower halo indices
+	 *	@param[in]	gamval:		Gamma matrices rescaled by kappa
+	 *	@param[in]	gamin:		Indices for dirac terms
+	 * @param[in]	dk:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
+	 *	@param[in]	jqq:			Diquark source
+	 *	@param[in]	akappa:		Hopping parameter
 	 *
-	 * @return Zero on success, integer error code otherwise
+	 * @post		Result written to @p phi
+	 * @return	Zero on success, integer error code otherwise
 	 */
-	int Dslash(Complex *phi, Complex *r, Complex *ut[2],unsigned int *iu,unsigned  int *id,\
-			Complex gamval[20], const unsigned short gamin[16], double *dk[2], Complex_f jqq, float akappa);
+	int Dslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned  int *id,\
+			Complex gamval[20], const unsigned short gamin[16], double *dk[nc], Complex_f jqq, float akappa);
 	/**
 	 * @brief Evaluates @f$\Phi=M^\dagger r@f$ in double precision.
 	 *
-	 * @param	phi:			The product
-	 * @param	r:				The array being acted on by M
-	 * @param	ut:			Gauge field
-	 *	@param	iu,id:		Upper/lower halo indices
-	 *	@param	gamval:		Gamma matrices rescaled by kappa
-	 *	@param	gamin:		Indices for dirac terms
-	 * @param	dk:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
-	 *	@param	jqq:			Diquark source
-	 *	@param	akappa:		Hopping parameter
+	 * @param[out]	phi:			The product
+	 * @param[in]	r:				The array being acted on by M
+	 * @param[in]	ut:			Gauge field
+	 *	@param[in]	iu,id:		Upper/lower halo indices
+	 *	@param[in]	gamval:		Gamma matrices rescaled by kappa
+	 *	@param[in]	gamin:		Indices for dirac terms
+	 * @param[in]	dk:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
+	 *	@param[in]	jqq:			Diquark source
+	 *	@param[in]	akappa:		Hopping parameter
 	 *
-	 * @return Zero on success, integer error code otherwise
+	 * @post		Result written to @p phi
+	 * @return	Zero on success, integer error code otherwise
 	 */
-	int Dslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned int *iu,unsigned int *id,\
-			Complex gamval[20], const unsigned short gamin[16], double *dk[2], Complex_f jqq, float akappa);
+	int Dslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned int *id,\
+			Complex gamval[20], const unsigned short gamin[16], double *dk[nc], Complex_f jqq, float akappa);
 	/**
 	 * @brief Evaluates @f$\Phi=M r@f$ in double precision
 	 *
-	 * @param	phi:		The product
-	 * @param	r:			The array being acted on by M
-	 * @param	ut:		Gauge trial field
-	 *	@param	iu,id:	Upper/lower halo indices
-	 *	@param	gamval:	Gamma matrices rescaled by kappa
-	 *	@param	gamin:	Indices for dirac terms
-	 * @param	dk:		@f$\left(1+\gamma_0\right)e^{-\mu}@f$
-	 *	@param	akappa:	Hopping parameter
+	 * @param[out]	phi:		The product
+	 * @param[in]		r:			The array being acted on by M
+	 * @param[in]		ut:		Gauge trial field
+	 *	@param[in]		iu,id:	Upper/lower halo indices
+	 *	@param[in]		gamval:	Gamma matrices rescaled by kappa
+	 *	@param[in]		gamin:	Indices for dirac terms
+	 * @param[in]		dk:		@f$\left(1+\gamma_0\right)e^{-\mu}@f$
+	 *	@param[in]		akappa:	Hopping parameter
 	 *
-	 * @return Zero on success, integer error code otherwise
+	 * @post		Result written to @p phi
+	 * @return	Zero on success, integer error code otherwise
 	 */
-	int Hdslash(Complex *phi, Complex *r, Complex *ut[2],unsigned int *iu,unsigned  int *id,\
-			Complex gamval[20], const unsigned short gamin[16], double *dk[2], float akappa);
+	int Hdslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned  int *id,\
+			Complex gamval[20], const unsigned short gamin[16], double *dk[nc], float akappa);
 	/**
 	 * @brief Evaluates @f$\Phi=M^\dagger r@f$ in double precision
 	 *
-	 * @param	phi:		The product
-	 * @param	r:			The array being acted on by M
-	 * @param	ut:		Gauge field
-	 *	@param	iu,id:	Upper/lower halo indices
-	 *	@param	gamval:	Gamma matrices rescaled by kappa
-	 *	@param	gamin:	Indices for dirac terms
-	 * @param	dk:		@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
-	 *	@param	akappa:	Hopping parameter
+	 * @param[out]	phi:		The product
+	 * @param[in]	r:			The array being acted on by M
+	 * @param[in]	ut:		Gauge field
+	 *	@param[in]	iu,id:	Upper/lower halo indices
+	 *	@param[in]	gamval:	Gamma matrices rescaled by kappa
+	 *	@param[in]	gamin:	Indices for dirac terms
+	 * @param[in]	dk:		@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
+	 *	@param[in]	akappa:	Hopping parameter
 	 *
-	 * @return Zero on success, integer error code otherwise
+	 * @post		Result written to @p phi
+	 * @return	Zero on success, integer error code otherwise
 	 */
-	int Hdslashd(Complex *phi, Complex *r, Complex *ut[2],unsigned int *iu,unsigned  int *id,\
-			Complex gamval[20], const unsigned short gamin[16], double *dk[2], float akappa);
+	int Hdslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned  int *id,\
+			Complex gamval[20], const unsigned short gamin[16], double *dk[nc], float akappa);
 	//Float version
 	/**
 	 * @brief Evaluates @f$\Phi=M r@f$ in single precision.
 	 *
-	 * @param	phi:			The product
-	 * @param	r:				The array being acted on by M
-	 * @param	ut:			Gauge field
-	 *	@param	iu,id:		Upper/lower halo indices
-	 *	@param	gamval:		Gamma matrices rescaled by kappa
-	 *	@param	gamin:		Indices for dirac terms
-	 * @param	dk:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
-	 *	@param	jqq:			Diquark source
-	 *	@param	akappa:		Hopping parameter
+	 * @param[out]	phi:			The product
+	 * @param[in]	r:				The array being acted on by M
+	 * @param[in]	ut:			Gauge field
+	 *	@param[in]	iu,id:		Upper/lower halo indices
+	 *	@param[in]	gamval:		Gamma matrices rescaled by kappa
+	 *	@param[in]	gamin:		Indices for dirac terms
+	 * @param[in]	dk:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
+	 *	@param[in]	jqq:			Diquark source
+	 *	@param[in]	akappa:		Hopping parameter
 	 *
-	 * @return Zero on success, integer error code otherwise
+	 * @post		Result written to @p phi
+	 * @return	Zero on success, integer error code otherwise
 	 */
-	int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,unsigned int *id,\
-			Complex_f gamval[20],const unsigned short gamin[16], float *dk[2], Complex_f jqq, float akappa);
+	int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,unsigned int *id,\
+			Complex_f gamval[20],const unsigned short gamin[16], float *dk[nc], Complex_f jqq, float akappa);
 	/**
 	 * @brief Evaluates @f$\Phi=M^\dagger r@f$ in single precision.
 	 *
-	 * @param	phi:			The product
-	 * @param	r:				The array being acted on by M
-	 * @param	ut:			Gauge field
-	 *	@param	iu,id:		Upper/lower halo indices
-	 *	@param	gamval:		Gamma matrices rescaled by kappa
-	 *	@param	gamin:		Indices for dirac terms
-	 * @param	dk:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
-	 *	@param	jqq:			Diquark source
-	 *	@param	akappa:		Hopping parameter
+	 * @param[out]	phi:			The product
+	 * @param[in]	r:				The array being acted on by M
+	 * @param[in]	ut:			Gauge field
+	 *	@param[in]	iu,id:		Upper/lower halo indices
+	 *	@param[in]	gamval:		Gamma matrices rescaled by kappa
+	 *	@param[in]	gamin:		Indices for dirac terms
+	 * @param[in]	dk:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
+	 *	@param[in]	jqq:			Diquark source
+	 *	@param[in]	akappa:		Hopping parameter
 	 *
-	 * @return Zero on success, integer error code otherwise
+	 * @post		Result written to @p phi
+	 * @return	Zero on success, integer error code otherwise
 	 */
-	int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,unsigned int *id,\
-			Complex_f gamval[20],const unsigned short gamin[16], float *dk[2], Complex_f jqq, float akappa);
+	int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,unsigned int *id,\
+			Complex_f gamval[20],const unsigned short gamin[16], float *dk[nc], Complex_f jqq, float akappa);
 	/**
 	 * @brief Evaluates @f$\Phi=M r@f$ in single precision
 	 *
-	 * @param	phi:		The product
-	 * @param	r:			The array being acted on by M
-	 * @param	ut:		Gauge field
-	 *	@param	iu,id:	Upper/lower halo indices
-	 *	@param	gamval:	Gamma matrices rescaled by kappa
-	 *	@param	gamin:	Indices for dirac terms
-	 * @param	dk:		@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
-	 *	@param	akappa:	Hopping parameter
+	 * @param[out]	phi:		The product
+	 * @param[in]	r:			The array being acted on by M
+	 * @param[in]	ut:		Gauge field
+	 *	@param[in]	iu,id:	Upper/lower halo indices
+	 *	@param[in]	gamval:	Gamma matrices rescaled by kappa
+	 *	@param[in]	gamin:	Indices for dirac terms
+	 * @param[in]	dk:		@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
+	 *	@param[in]	akappa:	Hopping parameter
 	 *
-	 * @return Zero on success, integer error code otherwise
+	 * @post		Result written to @p phi
+	 * @return	Zero on success, integer error code otherwise
 	 */
-	int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,unsigned int *id,\
-			Complex_f gamval[20], const unsigned short gamin[16], float *dk[2], float akappa);
+	int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,unsigned int *id,\
+			Complex_f gamval[20], const unsigned short gamin[16], float *dk[nc], float akappa);
 	/**
 	 * @brief Evaluates @f$\Phi=M^\dagger r@f$ in single precision
 	 *
-	 * @param	phi:		The product
-	 * @param	r:			The array being acted on by M
-	 * @param	ut:		Gauge field
-	 *	@param	iu,id:	Upper/lower halo indices
-	 *	@param	gamval:	Gamma matrices rescaled by kappa
-	 *	@param	gamin:	Indices for dirac terms
-	 * @param	dk:		@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
-	 *	@param	akappa:	Hopping parameter
+	 * @param[out]	phi:		The product
+	 * @param[in]	r:			The array being acted on by M
+	 * @param[in]	ut:		Gauge field
+	 *	@param[in]	iu,id:	Upper/lower halo indices
+	 *	@param[in]	gamval:	Gamma matrices rescaled by kappa
+	 *	@param[in]	gamin:	Indices for dirac terms
+	 * @param[in]	dk:		@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
+	 *	@param[in]	akappa:	Hopping parameter
 	 *
-	 * @return Zero on success, integer error code otherwise
+	 * @post		Result written to @p phi
+	 * @return 	Zero on success, integer error code otherwise
 	 */
-	int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,unsigned int *id,\
-			Complex_f gamval[20],const unsigned short gamin[16], float *dk[2], float akappa);
+	int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,unsigned int *id,\
+			Complex_f gamval[20],const unsigned short gamin[16], float *dk[nc], float akappa);
 
 	/**
-	 * @brief In place transpose
+	 * @brief In place transpose used to convert from AoS to SoA memory layout
 	 *
-	 * @param out: The array being transposed
-	 * @param fast_in:	The old outermost/fastest index
-	 * @param fast_out:	The new outermost/fastest index
+	 * @param[in,out] out: 			The array being transposed
+	 * @param[in]		fast_in:		The old outermost/fastest index
+	 * @param[in]		fast_out:	The new outermost/fastest index
+	 *
+	 * @post	Result overwrites existing @p out with transposed array
 	 */
 	void Transpose_z(Complex *out, const int, const int);
 	/**
-	 * @brief In place transpose
+	 * @brief In place transpose used to convert from AoS to SoA memory layout
 	 *
-	 * @param out: The array being transposed
-	 * @param fast_in:	The old outermost/fastest index
-	 * @param fast_out:	The new outermost/fastest index
+	 * @param[in,out] out: 			The array being transposed
+	 * @param[in]		fast_in:		The old outermost/fastest index
+	 * @param[in]		fast_out:	The new outermost/fastest index
+	 *
+	 * @post	Result overwrites existing @p out with transposed array
 	 */
 	void Transpose_c(Complex_f *out, const int, const int);
 	/**
-	 * @brief In place transpose
+	 * @brief In place transpose used to convert from AoS to SoA memory layout
 	 *
-	 * @param out: The array being transposed
-	 * @param fast_in:	The old outermost/fastest index
-	 * @param fast_out:	The new outermost/fastest index
+	 * @param[in,out] out: 			The array being transposed
+	 * @param[in]		fast_in:		The old outermost/fastest index
+	 * @param[in]		fast_out:	The new outermost/fastest index
+	 *
+	 * @post	Result overwrites existing @p out with transposed array
 	 */
 	void Transpose_d(double *out, const int, const int);
 	/**
-	 * @brief In place transpose
+	 * @brief In place transpose used to convert from AoS to SoA memory layout
 	 *
-	 * @param out: The array being transposed
-	 * @param fast_in:	The old outermost/fastest index
-	 * @param fast_out:	The new outermost/fastest index
+	 * @param[in,out] out: 			The array being transposed
+	 * @param[in]		fast_in:		The old outermost/fastest index
+	 * @param[in]		fast_out:	The new outermost/fastest index
+	 *
+	 * @post	Result overwrites existing @p out with transposed array
 	 */
 	void Transpose_f(float *out, const int, const int);
 	/**
-	 * @brief In place transpose
+	 * @brief In place transpose used to convert from AoS to SoA memory layout
 	 *
-	 * @param out: The array being transposed
-	 * @param fast_in:	The old outermost/fastest index
-	 * @param fast_out:	The new outermost/fastest index
+	 * @param[in,out] out: 			The array being transposed
+	 * @param[in]		fast_in:		The old outermost/fastest index
+	 * @param[in]		fast_out:	The new outermost/fastest index
+	 *
+	 * @post	Result overwrites existing @p out with transposed array
 	 */
 	void Transpose_I(int *out, const int, const int);
 	/**
-	 * @brief In place transpose
+	 * @brief In place transpose used to convert from AoS to SoA memory layout
 	 *
-	 * @param out: The array being transposed
-	 * @param fast_in:	The old outermost/fastest index
-	 * @param fast_out:	The new outermost/fastest index
+	 * @param[in,out] out: 			The array being transposed
+	 * @param[in]		fast_in:		The old outermost/fastest index
+	 * @param[in]		fast_out:	The new outermost/fastest index
+	 *
+	 * @post	Result overwrites existing @p out with transposed array
 	 */
 	void Transpose_U(unsigned int *out, const int, const int);
 
@@ -246,63 +266,84 @@ extern "C"
 	 */
 	float cureduce_sum_f(float *input, const unsigned int n,const unsigned short stream);
 	/**
-	 * @brief In place transpose
+	 * @brief In place transpose used to convert from AoS to SoA memory layout
 	 *
-	 * @param out: The array being transposed
-	 * @param fast_in:	The old outermost/fastest index
-	 * @param fast_out:	The new outermost/fastest index
-	 * @param dimGrid:	CUDA grid
-	 * @param dimBlock:	CUDA block
+	 * @param[in,out] out: 			The array being transposed
+	 * @param[in]		fast_in:		The old outermost/fastest index
+	 * @param[in]		fast_out:	The new outermost/fastest index
+	 * @param[in]		dimGrid:		CUDA grid layout
+	 * @param[in]		dimBlock:	CUDA block layout
+	 *
+	 * @post	Result overwrites existing @p out with transposed array
 	 */
 	void cuTranspose_z(Complex *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
 	/**
 	 * @brief In place transpose
 	 *
-	 * @param out: The array being transposed
-	 * @param fast_in:	The old outermost/fastest index
-	 * @param fast_out:	The new outermost/fastest index
+	 * @param[out]	out: The array being transposed
+	 * @param[in]	fast_in:	The old outermost/fastest index
+	 * @param[in]	fast_out:	The new outermost/fastest index
 	 * @param dimGrid:	CUDA grid
 	 * @param dimBlock:	CUDA block
+	 */
+	/**
+	 * @brief In place transpose used to convert from AoS to SoA memory layout
+	 *
+	 * @param[in,out] out: 			The array being transposed
+	 * @param[in]		fast_in:		The old outermost/fastest index
+	 * @param[in]		fast_out:	The new outermost/fastest index
+	 * @param[in]		dimGrid:		CUDA grid layout
+	 * @param[in]		dimBlock:	CUDA block layout
+	 *
+	 * @post	Result overwrites existing @p out with transposed array
 	 */
 	void cuTranspose_c(Complex_f *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
 	/**
-	 * @brief In place transpose
+	 * @brief In place transpose used to convert from AoS to SoA memory layout
 	 *
-	 * @param out: The array being transposed
-	 * @param fast_in:	The old outermost/fastest index
-	 * @param fast_out:	The new outermost/fastest index
-	 * @param dimGrid:	CUDA grid
-	 * @param dimBlock:	CUDA block
+	 * @param[in,out] out: 			The array being transposed
+	 * @param[in]		fast_in:		The old outermost/fastest index
+	 * @param[in]		fast_out:	The new outermost/fastest index
+	 * @param[in]		dimGrid:		CUDA grid layout
+	 * @param[in]		dimBlock:	CUDA block layout
+	 *
+	 * @post	Result overwrites existing @p out with transposed array
 	 */
 	void cuTranspose_d(double *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
 	/**
-	 * @brief In place transpose
+	 * @brief In place transpose used to convert from AoS to SoA memory layout
 	 *
-	 * @param out: The array being transposed
-	 * @param fast_in:	The old outermost/fastest index
-	 * @param fast_out:	The new outermost/fastest index
-	 * @param dimGrid:	CUDA grid
-	 * @param dimBlock:	CUDA block
+	 * @param[in,out] out: 			The array being transposed
+	 * @param[in]		fast_in:		The old outermost/fastest index
+	 * @param[in]		fast_out:	The new outermost/fastest index
+	 * @param[in]		dimGrid:		CUDA grid layout
+	 * @param[in]		dimBlock:	CUDA block layout
+	 *
+	 * @post	Result overwrites existing @p out with transposed array
 	 */
 	void cuTranspose_f(float *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
 	/**
-	 * @brief In place transpose
+	 * @brief In place transpose used to convert from AoS to SoA memory layout
 	 *
-	 * @param out: The array being transposed
-	 * @param fast_in:	The old outermost/fastest index
-	 * @param fast_out:	The new outermost/fastest index
-	 * @param dimGrid:	CUDA grid
-	 * @param dimBlock:	CUDA block
+	 * @param[in,out] out: 			The array being transposed
+	 * @param[in]		fast_in:		The old outermost/fastest index
+	 * @param[in]		fast_out:	The new outermost/fastest index
+	 * @param[in]		dimGrid:		CUDA grid layout
+	 * @param[in]		dimBlock:	CUDA block layout
+	 *
+	 * @post	Result overwrites existing @p out with transposed array
 	 */
 	void cuTranspose_I(int *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
 	/**
-	 * @brief In place transpose
+	 * @brief In place transpose used to convert from AoS to SoA memory layout
 	 *
-	 * @param out: The array being transposed
-	 * @param fast_in:	The old outermost/fastest index
-	 * @param fast_out:	The new outermost/fastest index
-	 * @param dimGrid:	CUDA grid
-	 * @param dimBlock:	CUDA block
+	 * @param[in,out] out: 			The array being transposed
+	 * @param[in]		fast_in:		The old outermost/fastest index
+	 * @param[in]		fast_out:	The new outermost/fastest index
+	 * @param[in]		dimGrid:		CUDA grid layout
+	 * @param[in]		dimBlock:	CUDA block layout
+	 *
+	 * @post	Result overwrites existing @p out with transposed array
 	 */
 	void cuTranspose_U(unsigned int *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
 	/**
@@ -310,11 +351,12 @@ extern "C"
 	 *			For complex valued arrays, one may cast the complex<double> and complex<float> arrays to double and float
 	 *			arrays, and use 2N for the array length instead.
 	 *	
-	 *	@param	d:					Double array
-	 *	@param	f:					float array
-	 *	@param	n:					Array lengths
-	 *	@param dimGrid,dimBloc:	CUDA grid/block
+	 *	@param[in,out]	d:						Double array
+	 *	@param[in]		f:						float array
+	 *	@param[in]		n:						Array lengths
+	 *	@param[in]	 	dimGrid,dimBlock:	CUDA grid/block
 	 *
+	 * @post	@p d now contains the sum. (i.e. result is stored in place)
 	 */
 	void cuMixed_Sumto(double *d, float *f,const unsigned int n,const dim3 dimGrid,const dim3 dimBlock);
 #endif

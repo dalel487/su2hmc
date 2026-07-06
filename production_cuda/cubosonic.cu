@@ -9,7 +9,8 @@
 #include <thrust/reduce.h>
 //#include <thrust/execution_policy.h>
 
-//CUDA Device code
+///CUDA Device code
+namespace Device{
 /**
  * @brief	Calculates the SU2 plaquette
  *
@@ -38,7 +39,10 @@ __device__  void cuSU2plaq(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11,
 	*Sigma12=-a11*u12t[ind]+a12*u11t[ind];
 	return;
 }
-//CUDA Kernels
+}
+///CUDA Kernels
+namespace Kernels{
+using namespace Device;
 	/** 
 	 * @brief	Calculates the gauge action using new (how new?) lookup table
 	 * @brief	Follows a routine called qedplaq in some QED3 code
@@ -104,9 +108,10 @@ __global__ void Polyakov(Complex_f *Sigma11, Complex_f * Sigma12, Complex_f * u1
 		Sigma11[i]=Sig[0]; Sigma12[i]=Sig[1];
 	}
 }
+}
 
-//Calling wrappers
-
+using namespace Kernels;
+///Calling wrappers
 __host__ void cuAverage_Plaquette(double *hgs, double *hgt, Complex_f *u11t, Complex_f *u12t, unsigned int *iu,dim3 dimGrid, dim3 dimBlock){
 	//	float *hgs_d, *hgt_d;
 	int device=-1;
@@ -118,7 +123,7 @@ __host__ void cuAverage_Plaquette(double *hgs, double *hgt, Complex_f *u11t, Com
 	cudaMallocAsync((void **)&hgt_d,kvol*sizeof(float),NULL);
 	thrust::device_ptr<float> hgt_T = thrust::device_pointer_cast(hgt_d);
 
-	Average_Plaquette<<<dimGrid,dimBlock,0,NULL>>>(hgs_d, hgt_d, u11t, u12t, iu);
+	Kernels::Average_Plaquette<<<dimGrid,dimBlock,0,NULL>>>(hgs_d, hgt_d, u11t, u12t, iu);
 	cudaDeviceSynchronise();
 
 	*hgs= (double)thrust::reduce(hgs_T,hgs_T+kvol,(float)0);
@@ -141,7 +146,7 @@ void cuPolyakov(Complex_f *Sigma[2], Complex_f *ut[2], dim3 dimGrid, dim3 dimBlo
 	cublasCcopy(cublas_handle,kvol3, (cuComplex *)(ut[1])+3*kvolHalo, 1, (cuComplex *)Sigma[1], 1);
 
 	cudaDeviceSynchronise();
-	Polyakov<<<dimGrid,dimBlock>>>(Sigma[0],Sigma[1],ut[0],ut[1]);
+	Kernels::Polyakov<<<dimGrid,dimBlock>>>(Sigma[0],Sigma[1],ut[0],ut[1]);
 	//cudaMemPrefetchAsync(Sigma[0],kvol3*sizeof(Complex_f),cudaCpuDeviceId,streams[0]);
 #ifdef _DEBUG
 	cudaFree(Sigma[1]);

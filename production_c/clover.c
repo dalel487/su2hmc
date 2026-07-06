@@ -534,7 +534,7 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					clov = (mu==0) ? nu-1 : mu+nu;
 				else
 					clov = (nu==0) ? mu-1 : mu+nu;
-#pragma omp parallel for
+//#pragma omp parallel for
 				for(unsigned int i=0;i<kvol;i++){
 					//This is where it gets messy. Using HiRep/OpenQCD labelling for different intermediate values
 					//But recycling to reduce register pressure on GPU

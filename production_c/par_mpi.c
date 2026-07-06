@@ -150,7 +150,7 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 		//Containers for input. Only needed by the master rank
 		Complex *u11Read = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
 		Complex *u12Read = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
-		static char gauge_file[FILELEN]="config.";
+		char gauge_file[FILELEN]="config.";
 		int buffer; char buff2[7];
 		//Add script for extracting correct mu, j etc.
 		buffer = (int)round(100*beta);
