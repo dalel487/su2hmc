@@ -650,8 +650,11 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					GRight(Zbuff1,W0,Z);
 					//And sum intermediate
 #pragma unroll
-					for(unsigned short c=0;c<nc*nc;c++)
+					for(unsigned short c=0;c<nc*nc;c++){
 						F_int[c]+=Zbuff1[c];
+						//See if this works...
+						F_int[c]*=I;
+						}
 
 					//Excellent. Now we just need to multiply by the derivative term
 					W0[0]=ut[0][i+kvolHalo*mu]; W0[1]=ut[1][i+kvolHalo*mu];

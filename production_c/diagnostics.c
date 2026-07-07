@@ -782,10 +782,9 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 					for(unsigned short mu=0;mu<ndim;mu++)
 						for(unsigned short nu=0;nu<ndim;nu++)
 							if(mu!=nu){
-								fprintf(output,"mu %d nu %d:",mu,nu);
-								for(unsigned short c=0;c<nc*nc;c++)
-									fprintf(output,"\t%.3e+i%.3e",crealf(Xmn[mu][nu][i+kvol*c]),cimagf(Xmn[mu][nu][i+kvol*c]));
-								fprintf(output,"\n");
+								fprintf(output,"mu %d nu %d:\n",mu,nu);
+								for(unsigned short c=0;c<nc;c++)
+									fprintf(output,"%.3e+i%.3e\t%.3e+i%.3e\n",crealf(Xmn[mu][nu][i+kvol*(nc*c)]),cimagf(Xmn[mu][nu][i+kvol*(nc*c)]),crealf(Xmn[mu][nu][i+kvol*(nc*c+1)]),cimagf(Xmn[mu][nu][i+kvol*(nc*c+1)]));
 							}
 					fprintf(output,"\n");
 				}
@@ -917,8 +916,8 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 	for(unsigned short i=0;i<ndim;i++){
 		cudaFree(hLeaves[i][0]); cudaFree(hLeaves[i][1]);
 	}
-	for(unsigned short mu=0;mu<6;mu++)
-		for(unsigned short nu=0;nu<6;nu++)
+	for(unsigned short mu=0;mu<ndim;mu++)
+		for(unsigned short nu=0;nu<ndim;nu++)
 			cudaFree(Xmn[mu][nu]);
 	cudaFree(id); cudaFree(iu); cudaFree(hd); cudaFree(hu);
 	cudaFree(ut_save[0]); cudaFree(ut_save[1]);
