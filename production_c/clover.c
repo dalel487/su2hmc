@@ -461,7 +461,7 @@ void CalcXmunu(Complex_f *Xmunu, Complex_f *X1, Complex_f *X2, const Complex_f *
 		//And write back to global memory.
 #pragma unroll
 		for(unsigned short c=0;c<nc*nc;c++)
-			Xmunu[i+kvol*c]=Xmn[c];
+			Xmunu[i+kvolHalo*c]=Xmn[c];
 	}
 #endif
 	return;
@@ -524,8 +524,11 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 		for(unsigned short nu=mu+1;nu<ndim;nu++)
 			if(mu!=nu){
 				clov = (mu==0) ? nu-1 : mu+nu;
-				Xmn[clov]=(Complex_f *)aligned_alloc(AVX,kvol*nc*nc*sizeof(Complex_f));
+				Xmn[clov]=(Complex_f *)aligned_alloc(AVX,kvolHalo*nc*nc*sizeof(Complex_f));
 				CalcXmunu(Xmn[clov],X1,X2,sigval,sigin,mu,nu);
+				#if(nproc>1)
+				CHalo_swap_all(Xmn[clov],nc*nc);
+				#endif
 			}
 	for(unsigned short mu=0;mu<ndim;mu++)
 		for(unsigned short nu=0;nu<ndim;nu++)
@@ -549,7 +552,7 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					Complex_f Z[nc*nc];
 #pragma unroll
 					for(unsigned short c=0;c<nc*nc;c++)
-						Z[c]=Xmn[clov][ind+kvol*c];
+						Z[c]=Xmn[clov][ind+kvolHalo*c];
 
 					//W0 is @f$U^\dagger_\mu\left(x-\hat{nu}\right)@f$
 					W0[0]=conjf(ut[0][ind+kvolHalo*mu]); W0[1]=-ut[1][ind+kvolHalo*mu];
@@ -565,7 +568,7 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					ind=iu[ind+kvol*mu];
 #pragma unroll
 					for(unsigned short c=0;c<nc*nc;c++)
-						Z[c]=Xmn[clov][ind+kvol*c];
+						Z[c]=Xmn[clov][ind+kvolHalo*c];
 
 					//Need a second Zbuffer for another intermediate result.
 					GRight(Zbuff2,W6,Z);
@@ -597,7 +600,7 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					ind=iu[ind+kvol*mu];
 #pragma unroll
 					for(unsigned short c=0;c<nc*nc;c++)
-						Z[c]=Xmn[clov][ind+kvol*c];
+						Z[c]=Xmn[clov][ind+kvolHalo*c];
 					//Calculate and write into Zbuff1
 					GSandwich(Zbuff1,Zbuff2,W0,Z,W1);
 
@@ -608,7 +611,7 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					ind=iu[i+kvol*nu]; 
 #pragma unroll
 					for(unsigned short c=0;c<nc*nc;c++)
-						Z[c]=Xmn[clov][ind+kvol*c];
+						Z[c]=Xmn[clov][ind+kvolHalo*c];
 					//And calculate the second term
 					GLeft(Zbuff2,W7,Z);
 					//Sum the two results into Zbuff1.
@@ -635,7 +638,7 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					//Now load @f$Z_0=X_{\mu\nu}(x)@f$
 #pragma unroll
 					for(unsigned short c=0;c<nc*nc;c++)
-						Z[c]=Xmn[clov][i+kvol*c];
+						Z[c]=Xmn[clov][i+kvolHalo*c];
 					GLeft(Zbuff1,W0,Z);
 					//And sum intermediate
 #pragma unroll
@@ -646,14 +649,14 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					ind=iu[i+kvol*mu];
 #pragma unroll
 					for(unsigned short c=0;c<nc*nc;c++)
-						Z[c]=Xmn[clov][ind+kvol*c];
+						Z[c]=Xmn[clov][ind+kvolHalo*c];
 					GRight(Zbuff1,W0,Z);
 					//And sum intermediate
 #pragma unroll
 					for(unsigned short c=0;c<nc*nc;c++){
 						F_int[c]+=Zbuff1[c];
 						//See if this works...
-						F_int[c]*=I;
+						F_int[c]*=-I;
 						}
 
 					//Excellent. Now we just need to multiply by the derivative term
