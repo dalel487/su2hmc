@@ -8,6 +8,26 @@
 #pragma once
 #include <su2hmc.h>
 
+/**
+ * @brief	Structure of arrays for Hermitian bilinear @f$X_{\mu\nu}@f$ in memory.
+ *
+ * @param	diag: Real valued diagonal terms.
+ * @param	offd:	Complex valued off-diagonal terms. We only need to store one of these to get the other in @f$SU(2)@f$.
+ */
+typedef struct{
+	float *diag;
+	Complex_f *offd;
+}Bilinear_a;
+/**
+ * @brief	Hermitian bilinear @f$X_{\mu\nu}@f$ on the local stack.
+ *
+ * @param	diag: Real valued diagonal terms.
+ * @param	offd:	Complex valued off-diagonal terms. We only need to store one of these to get the other in @f$SU(2)@f$.
+ */
+typedef struct{
+	float diag[2];
+	Complex_f offd;
+}Bilinear;
 
 /**
  * @brief Multiply leaf (or part of one) by generator from left
@@ -170,7 +190,7 @@ void HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2],Complex_f *s
  *
  *	@post	Bilinears written to @p Xmunu
  */
-void CalcXmunu(Complex_f *Xmunu, Complex_f *X1, Complex_f *X2, const Complex_f *sigval,\
+void CalcXmunu(Bilinear_a Xmunu, Complex_f *X1, Complex_f *X2, const Complex_f *sigval,\
 					const unsigned short *sigin,const unsigned short mu, const unsigned short nu);
 /**
  *	@brief Gets the clover contribution to the force

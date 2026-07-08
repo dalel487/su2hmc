@@ -427,7 +427,21 @@ void HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2],Complex_f *s
 
 //Clover Force
 //===========
-void CalcXmunu(Complex_f *Xmunu, Complex_f *X1, Complex_f *X2, const Complex_f *sigval, const unsigned short *sigin,\
+/**
+ * @brief Loads the compacted bilinear form into a @f$2\times2@f$ complex valued matrix
+ *
+ * @param[out]	Z:		Complex matrix on stack
+ * @param[in]	Xmn:	Hermitian form of @f$X_{\mu\nu}@f$ in memory
+ * @param[in]	ind:	Index of @f$X_{\mu\nu}@f$ we're interested in
+ *
+ * @post	Contents of @p Z are replaced by bilinear from memory
+ */
+static inline void GetBilinear(Complex_f Z[nc*nc], Bilinear_a Xmn,unsigned int ind){
+	Z[0]=Xmn.diag[ind]; Z[3]=Xmn.diag[ind+kvolHalo];
+	Z[1]=Xmn.offd[ind]; Z[2]=conjf(Z[1]);
+	return;
+}
+void CalcXmunu(Bilinear_a Xmunu, Complex_f *X1, Complex_f *X2, const Complex_f *sigval, const unsigned short *sigin,\
 		const unsigned short mu, const unsigned short nu){
 	const char funcname[] = "Xmunu";
 #ifdef __NVCC__
@@ -436,10 +450,11 @@ void CalcXmunu(Complex_f *Xmunu, Complex_f *X1, Complex_f *X2, const Complex_f *
 	unsigned short clov;
 	//Get sign and index of @f$\sigma_{\mu\nu}@f$ correct
 	clov = (mu==0) ? nu-1 : mu+nu;
-#pragma omp parallel for simd aligned(X1,X2,Xmunu:AVX)
+#pragma omp parallel for simd aligned(X1,X2:AVX)
 	for(unsigned int i=0;i<kvol;i++){
-		//Buffer. Eight registers...
-		Complex_f Xmn[4]={0,0,0,0};
+		//Buffer. Four registers
+		Bilinear Xmn; 
+		Xmn.diag[0]=Xmn.diag[1]=0;Xmn.offd=0;
 		for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
 			const unsigned short sind = sigin[clov*ndirac+(idirac>>1)]<<1;
 			const Complex_f sig = sigval[clov*ndirac+(idirac>>1)];
@@ -450,17 +465,27 @@ void CalcXmunu(Complex_f *Xmunu, Complex_f *X1, Complex_f *X2, const Complex_f *
 				const Complex_f X2s = X2[i+kvolHalo*(sind+c1)];
 #pragma unroll
 				for(unsigned short c2=0;c2<nc;c2++){
+					//The second off diagonal term is the conjugate of the first
+					if(c1==1&&c2==0)
+						continue;
 					//Conjugated spinor (columns).
 					const Complex_f X1c = conjf(X1[i+kvolHalo*(idirac+c2)]);
 					const Complex_f X2c = conjf(X2[i+kvolHalo*(idirac+c2)]);
-					Xmn[(c1*nc+c2)]+=sig*(X2s*X1c+X1s*X2c);
+					if(c1==c2)
+						Xmn.diag[c1]+=creal(sig*(X2s*X1c+X1s*X2c));
+					else
+						Xmn.offd+=sig*(X2s*X1c+X1s*X2c);
+
 				}
 			}
 		}
 		//And write back to global memory.
 #pragma unroll
-		for(unsigned short c=0;c<nc*nc;c++)
-			Xmunu[i+kvolHalo*c]=Xmn[c];
+		//Write the diagonals
+		for(unsigned short c=0;c<nc;c++)
+			Xmunu.diag[i+kvolHalo*c]=Xmn.diag[c];
+		//And the off diagonal terms
+		Xmunu.offd[i]=Xmn.offd;
 	}
 #endif
 	return;
@@ -516,18 +541,20 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 #else
 	//Allocate the @f$X_{\mu\nu}@f$ array
 	unsigned short nclov=6; unsigned short clov=0;
-	Complex_f *Xmn[nclov];
+	Bilinear_a Xmn[nclov];
 	//And get the @f$X_{\mu\nu}@f$ values
 	//Loop over @f$\mu@f$ and @f$\nu@f$. Symmetry means we actually only need half the terms
 	for(unsigned short mu=0;mu<ndim-1;mu++)
 		for(unsigned short nu=mu+1;nu<ndim;nu++)
 			if(mu!=nu){
 				clov = (mu==0) ? nu-1 : mu+nu;
-				Xmn[clov]=(Complex_f *)aligned_alloc(AVX,kvolHalo*nc*nc*sizeof(Complex_f));
+				Xmn[clov].diag=(float *)aligned_alloc(AVX,2*kvolHalo*sizeof(float));
+				Xmn[clov].offd=(Complex_f *)aligned_alloc(AVX,kvolHalo*sizeof(Complex_f));
 				CalcXmunu(Xmn[clov],X1,X2,sigval,sigin,mu,nu);
-				#if(nproc>1)
-				CHalo_swap_all(Xmn[clov],nc*nc);
-				#endif
+#if(nproc>1)
+				CHalo_swap_all(Xmn[clov].diag,2);
+				CHalo_swap_all(Xmn[clov].offd,1);
+#endif
 			}
 	for(unsigned short mu=0;mu<ndim;mu++)
 		for(unsigned short nu=0;nu<ndim;nu++)
@@ -536,7 +563,7 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					clov = (mu==0) ? nu-1 : mu+nu;
 				else
 					clov = (nu==0) ? mu-1 : mu+nu;
-//#pragma omp parallel for
+				//#pragma omp parallel for
 				for(unsigned int i=0;i<kvol;i++){
 					//This is where it gets messy. Using HiRep/OpenQCD labelling for different intermediate values
 					//But recycling to reduce register pressure on GPU
@@ -550,11 +577,10 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					//@f$Z_2=X_{\mu\nu}\left(x-\hat{\nu}\right)@f$
 					Complex_f Z[nc*nc];
 #pragma unroll
-					for(unsigned short c=0;c<nc*nc;c++)
-						Z[c]=Xmn[clov][ind+kvolHalo*c];
+					GetBilinear(Z,Xmn[clov],ind);
 
-					//W0 is @f$U^\dagger_\mu\left(x-\hat{nu}\right)@f$
-					W0[0]=conjf(ut[0][ind+kvolHalo*mu]); W0[1]=-ut[1][ind+kvolHalo*mu];
+						//W0 is @f$U^\dagger_\mu\left(x-\hat{nu}\right)@f$
+						W0[0]=conjf(ut[0][ind+kvolHalo*mu]); W0[1]=-ut[1][ind+kvolHalo*mu];
 
 					//Need a temporary Z buffers for the intermediate result
 					Complex_f Zbuff1[nc*nc], Zbuff2[nc*nc];
@@ -566,11 +592,10 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					//Z_3 is the @f$X_{\mu\nu}\left(x+\hat{\mu}-\hat{\nu}\right)@f$. Store in Z
 					ind=iu[ind+kvol*mu];
 #pragma unroll
-					for(unsigned short c=0;c<nc*nc;c++)
-						Z[c]=Xmn[clov][ind+kvolHalo*c];
+					GetBilinear(Z,Xmn[clov],ind);
 
-					//Need a second Zbuffer for another intermediate result.
-					GRight(Zbuff2,W6,Z);
+						//Need a second Zbuffer for another intermediate result.
+						GRight(Zbuff2,W6,Z);
 					//Sum the two results into Zbuff1. Then scale by -W5
 #pragma unroll
 					for(unsigned short c=0;c<nc*nc;c++)
@@ -598,10 +623,9 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					//@f$Z_4=X_{\mu\nu}\left(x+\hat{\mu}+\hat{\nu}\right)@f$. Storing in Z
 					ind=iu[ind+kvol*mu];
 #pragma unroll
-					for(unsigned short c=0;c<nc*nc;c++)
-						Z[c]=Xmn[clov][ind+kvolHalo*c];
-					//Calculate and write into Zbuff1
-					GSandwich(Zbuff1,Zbuff2,W0,Z,W1);
+					GetBilinear(Z,Xmn[clov],ind);
+						//Calculate and write into Zbuff1
+						GSandwich(Zbuff1,Zbuff2,W0,Z,W1);
 
 					//@f$W_7=W_0 W_1@f$
 					Complex_f W7[2];
@@ -609,10 +633,9 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					//@f$Z_5=X_{\mu\nu}\left(x+\hat{\nu}\right)@f$
 					ind=iu[i+kvol*nu]; 
 #pragma unroll
-					for(unsigned short c=0;c<nc*nc;c++)
-						Z[c]=Xmn[clov][ind+kvolHalo*c];
-					//And calculate the second term
-					GLeft(Zbuff2,W7,Z);
+					GetBilinear(Z,Xmn[clov],ind);
+						//And calculate the second term
+						GLeft(Zbuff2,W7,Z);
 					//Sum the two results into Zbuff1.
 #pragma unroll
 					for(unsigned short c=0;c<nc*nc;c++)
@@ -636,9 +659,8 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 
 					//Now load @f$Z_0=X_{\mu\nu}(x)@f$
 #pragma unroll
-					for(unsigned short c=0;c<nc*nc;c++)
-						Z[c]=Xmn[clov][i+kvolHalo*c];
-					GLeft(Zbuff1,W0,Z);
+					GetBilinear(Z,Xmn[clov],i);
+						GLeft(Zbuff1,W0,Z);
 					//And sum intermediate
 #pragma unroll
 					for(unsigned short c=0;c<nc*nc;c++)
@@ -647,16 +669,15 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					//Now load @f$Z_1=X_{\mu\nu}\left(x+\hat{mu})@f$
 					ind=iu[i+kvol*mu];
 #pragma unroll
-					for(unsigned short c=0;c<nc*nc;c++)
-						Z[c]=Xmn[clov][ind+kvolHalo*c];
-					GRight(Zbuff1,W0,Z);
+					GetBilinear(Z,Xmn[clov],ind);
+						GRight(Zbuff1,W0,Z);
 					//And sum intermediate
 #pragma unroll
 					for(unsigned short c=0;c<nc*nc;c++){
 						F_int[c]+=Zbuff1[c];
 						//See if this works...
 						F_int[c]*=-I;
-						}
+					}
 
 					//Excellent. Now we just need to multiply by the derivative term
 					W0[0]=ut[0][i+kvolHalo*mu]; W0[1]=ut[1][i+kvolHalo*mu];
@@ -673,8 +694,9 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					}
 				}
 			}
-	for(clov=0;clov<nclov;clov++)
-		free(Xmn[clov]);
+	for(clov=0;clov<nclov;clov++){
+		free(Xmn[clov].diag); free(Xmn[clov].offd);
+	}
 #endif
 	return;
 }
