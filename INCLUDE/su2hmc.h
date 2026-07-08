@@ -421,11 +421,11 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 	/**
 	 * @brief  Initialise CUDA cuInit was taken already by CUDA (unsurprisingly)
 	 * 
-	 * @param:	u11t,u12t:			Trial gauge fields
-	 * @param:	gamval,gamval_f:	Double/float precision gamma matrices rescaled by kappa
-	 * @param:	gamin:				Gamma matrix indices
-	 * @param:	dk4m,dk4p:			@f$e^{-\mu}@f$ and @f$e^\mu@f$
-	 * @param:	iu,id:				Up/lower halo indices
+	 * @param	u11t,u12t:			Trial gauge fields
+	 * @param	gamval,gamval_f:	Double/float precision gamma matrices rescaled by kappa
+	 * @param	gamin:				Gamma matrix indices
+	 * @param	dk4m,dk4p:			@f$e^{-\mu}@f$ and @f$e^\mu@f$
+	 * @param	iu,id:				Up/lower halo indices
 	 *
 	 * @todo CUDA 13 changed how setting devices work, so it's not just an integer any more. Those lines are commented out for now.
 	 * 		They are not critical. Only hints for unified memory management.

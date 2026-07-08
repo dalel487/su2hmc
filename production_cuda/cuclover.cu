@@ -403,13 +403,14 @@ namespace Kernels{
 	/**
 	 *	@brief cuGets the clover contribution to the force
 	 *
-	 *	@param[out]	dSdpi:	Force.
-	 *	@param[in]	ut:		Gauge fields
-	 *	@param[in]	X1:		Congrad output @f$\left(M^\dagger M\right)\Phi@f$
-	 *	@param[in]	X2:		@f$M\left(M^\dagger M\right)^{-1}\Phi@f$
-	 *	@param[in]	sigval:	@f$\sigma_{\mu\nu}@f$ scaled by @f$\frac{c_\text{SW}}{2}@f$
-	 *	@param[in]	sigin:	Dirac index of @f$\sigma_{\mu\nu}@f$
-	 *	@param[in]	iu,id:	Neighbouring sites
+	 *	@param[out]	dSdpi:			Force.
+	 *	@param[in]	u11t,u12t:		Gauge fields
+	 *	@param[in]	Xmn:				Pseudofermion bilinear contraction
+	 *	@param[in]	sigval:			@f$\sigma_{\mu\nu}@f$ scaled by @f$\frac{c_\text{SW}}{2}@f$
+	 *	@param[in]	sigin:			Dirac index of @f$\sigma_{\mu\nu}@f$
+	 *	@param[in]	iu,id:			Neighbouring sites
+	 *	@param[in]	akappa:			Hopping Parameter
+	 *	@param[in]	mu,nu:			Clover direction
 	 *
 	 *	@post	Clover force is added to @p dSdpi
 	 */

@@ -32,20 +32,25 @@ else
 endif
 
 ifeq ($(CXX),icpx)
+$(info Using MKL)
 #TODO: Currently only configured for using MKL with an Intel Compiler
 CFLAGS+=	-qmkl -DMKL_DIRECT_CALL 
 LFLAGS=	-L${MKLROOT}/lib/intel64 -limf -DUSE_MKL -DMKL_DIRECT_CALL #-DMKL_ILP64
 else ifdef AOCL_ROOT
+$(info Using AMD BLIS)
 CFLAGS += -DAMD_BLAS -I ${AOCL_ROOT}/include
 LFLAGS = -L${AOCL_ROOT}/lib/ -lblis  -lalm
 else ifdef LIBSCI_BASE_DIR
+$(info Using Cray BLAS)
 CFLAGS += -DUSE_BLAS
 #Automatic on LUMI?
 #LFLAGS = ‐L${LIBSCI_BASE_DIR}/gnu/91/x86_64/lib/ -lsci_comp
 else ifeq ($(shell pkg-config --exists openblas && echo yes),yes)
-CFLAGS += -DUSE_BLAS $(shell pkg-config --cflags openblas)
+$(info Using OpenBLAS)
+CFLAGS += -DOPENBLAS $(shell pkg-config --cflags openblas)
 LFLAGS += $(shell pkg-config --libs openblas)
 else
+$(info Using GSL BLAS)
 CFLAGS += -DGSL_BLAS
 LFLAGS	=	-lm $(shell gsl-config --libs)
 endif
