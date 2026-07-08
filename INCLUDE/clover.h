@@ -185,7 +185,7 @@ void CalcXmunu(Complex_f *Xmunu, Complex_f *X1, Complex_f *X2, const Complex_f *
  *	
  *	@post		Force contribution added to @p dSdpi
  */
-void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, const Complex_f *sigval, const short *sigin,\
+void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, const Complex_f *sigval, const unsigned short *sigin,\
 						unsigned int *iu, unsigned int *id, const float akappa);
 /**
  *	@brief	Initialise values needed for the clover terms

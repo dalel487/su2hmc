@@ -417,7 +417,7 @@ namespace Kernels{
 				complex<T> Z[nc*nc];
 #pragma unroll
 				for(unsigned short c=0;c<nc*nc;c++)
-					Z[c]=Xmn[uid+kvol*c];
+					Z[c]=Xmn[uid+kvolHalo*c];
 
 				//W0 is @f$U^\dagger_\mu@f(x-\hat{nu}\right)@f$
 				W0[0]=conj(u11t[uid+kvolHalo*mu]); W0[1]=-u12t[uid+kvolHalo*mu];
@@ -433,7 +433,7 @@ namespace Kernels{
 				uid=iu[uid+kvol*mu];
 #pragma unroll
 				for(unsigned short c=0;c<nc*nc;c++)
-					Z[c]=Xmn[uid+kvol*c];
+					Z[c]=Xmn[uid+kvolHalo*c];
 
 				//Need a second Zbuffer for another intermediate result.
 				cuGRight(Zbuff2,W6,Z);
@@ -465,7 +465,7 @@ namespace Kernels{
 				uid=iu[uid+kvol*mu];
 #pragma unroll
 				for(unsigned short c=0;c<nc*nc;c++)
-					Z[c]=Xmn[uid+kvol*c];
+					Z[c]=Xmn[uid+kvolHalo*c];
 				//Calculate and write into Zbuff1
 				cuGSandwich(Zbuff1,Zbuff2,W0,Z,W1);
 
@@ -476,7 +476,7 @@ namespace Kernels{
 				uid=iu[i+kvol*nu]; 
 #pragma unroll
 				for(unsigned short c=0;c<nc*nc;c++)
-					Z[c]=Xmn[uid+kvol*c];
+					Z[c]=Xmn[uid+kvolHalo*c];
 				//And calculate the second term
 				cuGLeft(Zbuff2,W7,Z);
 				//Sum the two results into Zbuff1.
@@ -502,7 +502,7 @@ namespace Kernels{
 				//Now load @f$@Z_0=X_{\mu\nu}(x)@f$
 #pragma unroll
 				for(unsigned short c=0;c<nc*nc;c++)
-					Z[c]=Xmn[i+kvol*c];
+					Z[c]=Xmn[i+kvolHalo*c];
 				cuGLeft(Zbuff1,W0,Z);
 				//And sum intermediate
 #pragma unroll
@@ -513,12 +513,14 @@ namespace Kernels{
 				uid=iu[i+kvol*mu];
 #pragma unroll
 				for(unsigned short c=0;c<nc*nc;c++)
-					Z[c]=Xmn[uid+kvol*c];
+					Z[c]=Xmn[uid+kvolHalo*c];
 				cuGRight(Zbuff1,W0,Z);
 				//And sum intermediate
 #pragma unroll
-				for(unsigned short c=0;c<nc*nc;c++)
+				for(unsigned short c=0;c<nc*nc;c++){
 					F_int[c]+=Zbuff1[c];
+						F_int[c]*=-I_f;
+					}
 
 				//Excellent. Now we just need to multiply by the derivative term
 				W0[0]=u11t[i+kvolHalo*mu]; W0[1]=u12t[i+kvolHalo*mu];
@@ -529,7 +531,10 @@ namespace Kernels{
 					//Sum of the real part of the trace.
 					float dSdpis=creal(Zbuff1[0])+creal(Zbuff1[3]);
 					//tmp lets us control the number of registers explictly
-					dSdpi[i+kvol*(gen*ndim+mu)]=dSdpis;
+						if(mu<nu)
+							dSdpi[i+kvol*(gen*ndim+mu)] -=akappa*dSdpis/4.0f;
+						else
+							dSdpi[i+kvol*(gen*ndim+mu)] +=akappa*dSdpis/4.0f;
 
 				}
 			}
@@ -724,8 +729,8 @@ int cuClov_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2,
 			}
 	cudaDeviceSynchronise();
 
-	for(unsigned short mu=0;mu<ndim-1;mu++)
-		for(unsigned short nu=mu;nu<ndim;nu++)
+	for(unsigned short mu=0;mu<ndim;mu++)
+		for(unsigned short nu=0;nu<ndim;nu++)
 			if(mu!=nu){
 				unsigned short clov=0;
 				if(mu<nu)

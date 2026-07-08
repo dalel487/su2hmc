@@ -230,7 +230,6 @@ void Clover(Complex_f *clover[2], Complex_f *ut[2], unsigned int *iu, unsigned i
 					///using (cimagf) and the minuses cancel.
 					///The 8.0f becomes a 4.0f to account for the factor of two
 					clover[0][i+clov*kvol]=cimagf(clover[0][i+clov*kvol]);		clover[0][i+clov*kvol]*=(1.0f/4.0f);
-
 					///The @f$\beta@f$ component. Both real and imaginary components survive. It ends up getting doubled.
 					clover[1][i+clov*kvol]+=clover[1][i+clov*kvol];	clover[1][i+clov*kvol]*=(-I/8.0f);
 				}
@@ -510,7 +509,7 @@ static inline void GSandwich(Complex_f out[4],Complex_f tmp[4], const Complex_f 
 }
 
 void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, const Complex_f *sigval,\
-		const short *sigin, unsigned int *iu, unsigned int *id, const float akappa){
+		const unsigned short *sigin, unsigned int *iu, unsigned int *id, const float akappa){
 	const char funcname[] = "Clov_Force";
 #ifdef __NVCC__
 	cuClov_Force(dSdpi,ut,X1,X2,sigval,sigin,iu,id,akappa);
