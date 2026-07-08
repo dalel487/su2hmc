@@ -312,7 +312,7 @@ void cuHbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f
  *
  *	@post	Bilinears written to @p Xmunu
  */
-void cuCalcXmunu(Complex_f *Xmunu, Complex_f *X1, Complex_f *X2, const Complex_f *sigval,\
+void cuCalcXmunu(Bilinear_a Xmunu, Complex_f *X1, Complex_f *X2, const Complex_f *sigval,\
 		const unsigned short *sigin,const unsigned short mu, const unsigned short nu);
 /**
  *	@brief	CUDA wrapper for Clover_Force

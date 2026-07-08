@@ -31,9 +31,11 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 	assert(nf==1);
 	printf("FLT_EVAL_METHOD is %i. Check online for what this means\n", FLT_EVAL_METHOD);
 
+	const unsigned short nclov=6;
 	unsigned int itercg=0;
-	Complex_f *clover_f[nc], *hLeaves[ndim][nc], *Xmn[ndim][ndim]; Complex *clover[nc];
-	Complex *ut_save[2];
+	Complex_f *clover_f[nc], *hLeaves[ndim][nc]; Complex *clover[nc];
+	Bilinear_a Xmn[nclov];
+	Complex *ut_save[nc];
 #ifdef __NVCC__
 	int device=-1;
 	cudaGetDevice(&device);
@@ -66,10 +68,10 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 		cudaMallocManaged((void **)hLeaves[i]+0,kvol*ndim*sizeof(Complex_f),cudaMemAttachGlobal);
 		cudaMallocManaged((void **)hLeaves[i]+1,kvol*ndim*sizeof(Complex_f),cudaMemAttachGlobal);
 	}
-	for(unsigned short mu=0;mu<ndim;mu++)
-		for(unsigned short nu=0;nu<ndim;nu++){
-			cudaMallocManaged((void**)(Xmn[mu]+nu),kvol*nc*nc*sizeof(Complex_f),cudaMemAttachGlobal);
-		}
+	for(unsigned short clov=0;clov<nclov;clov++){
+		cudaMallocManaged((void**)(Xmn[clov.diag]),2*kvolHalo*sizeof(float),cudaMemAttachGlobal);
+		cudaMallocManaged((void**)(Xmn[clov.offd]),kvolHalo*sizeof(Complex_f),cudaMemAttachGlobal);
+	}
 #else
 	clover[0]=aligned_alloc(AVX,6*kvol*sizeof(Complex));
 	clover[1]=aligned_alloc(AVX,6*kvol*sizeof(Complex));
@@ -93,11 +95,10 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 	double *dSdpi = aligned_alloc(AVX,kmom*sizeof(double));
 	ut_save[0] = aligned_alloc(AVX, ndim*kvolHalo*sizeof(Complex));
 	ut_save[1] = aligned_alloc(AVX, ndim*kvolHalo*sizeof(Complex));
-	for(unsigned short mu=0;mu<ndim;mu++)
-		for(unsigned short nu=0;nu<ndim;nu++){
-			unsigned short clov = (mu==0) ? nu-1 :mu+nu;
-			Xmn[mu][nu]=(Complex_f *)aligned_alloc(AVX,kvol*nc*nc*sizeof(Complex_f));
-		}
+	for(unsigned short clov=0;clov<nclov;clov++){
+		Xmn[clov].diag=(float *)aligned_alloc(AVX,2*kvolHalo*sizeof(float));
+		Xmn[clov].offd=(Complex_f *)aligned_alloc(AVX,kvolHalo*sizeof(Complex_f));
+	}
 #endif
 	//Trial fields shouldn't get modified (except for gauge_update
 	switch(istart){
@@ -207,38 +208,38 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 	}
 
 	const int na=0;
-  #ifdef LOAD_HIREP_PF
-  /* Load HiRep pseudofermion into Phi upper Gor'kov block (flavor 0, j=0..nc*ndirac-1).
-   * Format: flat binary, no header, T(slow)->X->Y->Z(fast) order,
-   *         nc*ndirac=8 Complex per site, Dirac-outer/colour-inner.
-   * Lower Gor'kov block (j=nc*ndirac..nc*ngorkov-1) stays zero.
-   * Gamma note: spatial-spatial clover force matches HiRep; temporal-spatial differs by -1. */
-  {
-      FILE *pf_in = fopen("hirep_pf.bin", "rb");
-      if (!pf_in)
-          printf("hirep_pf.bin not found; running with default Phi\n");
-      else {
-          memset(Phi, 0, nf*kferm*sizeof(Complex));
-          Complex spinor[nc*ndirac];
-          for (unsigned int i = 0; i < kvol; i++) {
-              if (fread(spinor, sizeof(Complex), nc*ndirac, pf_in) != (size_t)(nc*ndirac)) {
-                  fprintf(stderr, "%s: short read from hirep_pf.bin\n", funcname);
-                  break;
-              }
-              for (int j = 0; j < nc*ndirac; j++){
-                  Phi[i + kvol*j] = spinor[j];
-                  R1[i + kvolHalo*j] = spinor[j];
-						}
-          }
-          fclose(pf_in);
-          double norm2 = 0;
-          for (int k = 0; k < nc*ndirac*kvol; k++)
-              norm2 += creal(Phi[k])*creal(Phi[k]) + cimag(Phi[k])*cimag(Phi[k]);
-          printf("HiRep PF loaded into Phi (sq.norm=%.6e)\n", norm2);
-      }
-  }
-  
-  #else
+#ifdef LOAD_HIREP_PF
+	/* Load HiRep pseudofermion into Phi upper Gor'kov block (flavor 0, j=0..nc*ndirac-1).
+	 * Format: flat binary, no header, T(slow)->X->Y->Z(fast) order,
+	 *         nc*ndirac=8 Complex per site, Dirac-outer/colour-inner.
+	 * Lower Gor'kov block (j=nc*ndirac..nc*ngorkov-1) stays zero.
+	 * Gamma note: spatial-spatial clover force matches HiRep; temporal-spatial differs by -1. */
+	{
+		FILE *pf_in = fopen("hirep_pf.bin", "rb");
+		if (!pf_in)
+			printf("hirep_pf.bin not found; running with default Phi\n");
+		else {
+			memset(Phi, 0, nf*kferm*sizeof(Complex));
+			Complex spinor[nc*ndirac];
+			for (unsigned int i = 0; i < kvol; i++) {
+				if (fread(spinor, sizeof(Complex), nc*ndirac, pf_in) != (size_t)(nc*ndirac)) {
+					fprintf(stderr, "%s: short read from hirep_pf.bin\n", funcname);
+					break;
+				}
+				for (int j = 0; j < nc*ndirac; j++){
+					Phi[i + kvol*j] = spinor[j];
+					R1[i + kvolHalo*j] = spinor[j];
+				}
+			}
+			fclose(pf_in);
+			double norm2 = 0;
+			for (int k = 0; k < nc*ndirac*kvol; k++)
+				norm2 += creal(Phi[k])*creal(Phi[k]) + cimag(Phi[k])*cimag(Phi[k]);
+			printf("HiRep PF loaded into Phi (sq.norm=%.6e)\n", norm2);
+		}
+	}
+
+#else
 	/*
 		Gauss_d(pp,kmom,0,1);
 		Gauss_c(R1_f, kferm, 0, 1/sqrt(2)); Gauss_c(Phi_f, kferm, 0, 1/sqrt(2));
@@ -250,9 +251,9 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 			Phi[i+j*kvol]=0.0f+0.0*I; xi[i+j*kvolHalo]=0.0f+0.0*I; R1[i+j*kvolHalo]=0.0f+0.0*I;
 		}
 
-			Phi[0+(0*nc+0)*kvol]=1.0f+0.0*I; xi[0+(0*nc+0)*kvolHalo]=1.0f+0.0*I; R1[0+(0*nc+0)*kvolHalo]=1.0f+0.0*I;
-			//Phi[0+(1*nc+0)*kvol]=1.0f+0.0*I; xi[0+(1*nc+0)*kvolHalo]=1.0f+0.0*I; R1[0+(1*nc+0)*kvolHalo]=1.0f+0.0*I;
-  #endif 
+	Phi[0+(0*nc+0)*kvol]=1.0f+0.0*I; xi[0+(0*nc+0)*kvolHalo]=1.0f+0.0*I; R1[0+(0*nc+0)*kvolHalo]=1.0f+0.0*I;
+	//Phi[0+(1*nc+0)*kvol]=1.0f+0.0*I; xi[0+(1*nc+0)*kvolHalo]=1.0f+0.0*I; R1[0+(1*nc+0)*kvolHalo]=1.0f+0.0*I;
+#endif 
 	ComplexConvert(Phi_f,Phi,kferm,true,1);
 	ComplexConvert(xi_f,xi,kvol,true,ngorkov);
 	ComplexConvert(R1_f,R1,kvol,true,ngorkov);
@@ -545,12 +546,12 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				for(unsigned int i = 0; i< kvol; i++){
 					fprintf(input, "Site %d:\n",i); fprintf(input_f, "Site %d:\n",i); fprintf(input_diff, "Site %d:\n",i);
 					for(unsigned short j=0;j<ngorkov;j++){
-					for(unsigned short c=0;c<nc;c++){
-						fprintf(input, "%.3f+%.3fI\t",creal(R1[i+(j*nc+c)*kvolHalo]),cimag(R1[i+(j*nc+c)*kvolHalo]));
-						fprintf(input_f, "%.3f+%.3fI\t", creal(R1_f[i+(j*nc+c)*kvolHalo]),cimag(R1_f[i+(j*nc+c)*kvolHalo]));
-						fprintf(input_diff,"%.3f+%.3fI\t", creal(R1[i+(j*nc+c)*kvolHalo]-R1_f[i+(j*nc+c)*kvolHalo]),cimag(R1[i+(j*nc+c)*kvolHalo]-R1_f[i+(j*nc+c)*kvolHalo]));
-					}
-					fprintf(input, "\n"); fprintf(input_f,"\n"); fprintf(input_diff,"\n");
+						for(unsigned short c=0;c<nc;c++){
+							fprintf(input, "%.3f+%.3fI\t",creal(R1[i+(j*nc+c)*kvolHalo]),cimag(R1[i+(j*nc+c)*kvolHalo]));
+							fprintf(input_f, "%.3f+%.3fI\t", creal(R1_f[i+(j*nc+c)*kvolHalo]),cimag(R1_f[i+(j*nc+c)*kvolHalo]));
+							fprintf(input_diff,"%.3f+%.3fI\t", creal(R1[i+(j*nc+c)*kvolHalo]-R1_f[i+(j*nc+c)*kvolHalo]),cimag(R1[i+(j*nc+c)*kvolHalo]-R1_f[i+(j*nc+c)*kvolHalo]));
+						}
+						fprintf(input, "\n"); fprintf(input_f,"\n"); fprintf(input_diff,"\n");
 					}
 					fprintf(input, "\n"); fprintf(input_f,"\n"); fprintf(input_diff,"\n");
 				}
@@ -564,20 +565,20 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				for(unsigned int i = 0; i< kvol; i++){
 					fprintf(output, "Site %d:\n",i); fprintf(output_f, "Site %d:\n",i); fprintf(output_diff, "Site %d:\n",i);
 					for(unsigned short j=0;j<ngorkov;j++){
-					for(unsigned short c=0;c<nc;c++){
-						fprintf(output, "%.3f+%.3fI\t",creal(xi[i+(j*nc+c)*kvolHalo]),cimag(xi[i+(j*nc+c)*kvolHalo]));
-						fprintf(output_f, "%.3f+%.3fI\t", creal(xi_f[i+(j*nc+c)*kvolHalo]),cimag(xi_f[i+(j*nc+c)*kvolHalo]));
-						Complex diff = xi[i+(j*nc+c)*kvolHalo]-xi_f[i+(j*nc+c)*kvolHalo];
-						if(fabs(creal(diff))>5e-6 || fabs(cimag(diff))>5e-6){
-							fprintf(stderr,"Error %i in %s: Single and double disagree for ByClover site %i and spinor/color %d. Difference %e+%ei"\
-									"\nExiting...\n\n",CONVERR,funcname,i,j,creal(diff),cimag(diff));
-							fclose(output);fclose(output_f);fclose(output_diff);
-							exit(CONVERR);
+						for(unsigned short c=0;c<nc;c++){
+							fprintf(output, "%.3f+%.3fI\t",creal(xi[i+(j*nc+c)*kvolHalo]),cimag(xi[i+(j*nc+c)*kvolHalo]));
+							fprintf(output_f, "%.3f+%.3fI\t", creal(xi_f[i+(j*nc+c)*kvolHalo]),cimag(xi_f[i+(j*nc+c)*kvolHalo]));
+							Complex diff = xi[i+(j*nc+c)*kvolHalo]-xi_f[i+(j*nc+c)*kvolHalo];
+							if(fabs(creal(diff))>5e-6 || fabs(cimag(diff))>5e-6){
+								fprintf(stderr,"Error %i in %s: Single and double disagree for ByClover site %i and spinor/color %d. Difference %e+%ei"\
+										"\nExiting...\n\n",CONVERR,funcname,i,j,creal(diff),cimag(diff));
+								fclose(output);fclose(output_f);fclose(output_diff);
+								exit(CONVERR);
+							}
+							else
+								fprintf(output_diff,"%.3f+%.3fI\t", creal(diff),cimag(diff));
 						}
-						else
-							fprintf(output_diff,"%.3f+%.3fI\t", creal(diff),cimag(diff));
-					}
-					fprintf(output, "\n"); fprintf(output_f,"\n"); fprintf(output_diff,"\n");
+						fprintf(output, "\n"); fprintf(output_f,"\n"); fprintf(output_diff,"\n");
 					}
 					fprintf(output, "\n"); fprintf(output_f,"\n"); fprintf(output_diff,"\n");
 				}
@@ -772,20 +773,23 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				if(c_sw==0)
 					break;
 				for(unsigned short mu=0;mu<ndim;mu++)
-					for(unsigned short nu=0;nu<ndim;nu++){
-						if(mu!=nu)
-							CalcXmunu(Xmn[mu][nu],X1_f,X2_f,sigval_f,sigin,mu,nu);
-					}
+					for(unsigned short nu=0;nu<ndim;nu++)
+						if(mu!=nu){
+							unsigned short clov = (mu==0) ? nu-1 : mu+nu;
+							CalcXmunu(Xmn[clov],X1_f,X2_f,sigval_f,sigin,mu,nu);
+						}
 				output = fopen("Xmunu","w");
 				for(unsigned int i=0;i<kvol;i++)	{
 					fprintf(output,"Site %d\n",i);
 					for(unsigned short mu=0;mu<ndim;mu++)
-						for(unsigned short nu=0;nu<ndim;nu++)
+						for(unsigned short nu=0;nu<ndim;nu++){
+							unsigned short clov = (mu==0) ? nu-1 : mu+nu;
 							if(mu!=nu){
 								fprintf(output,"mu %d nu %d:\n",mu,nu);
-								for(unsigned short c=0;c<nc;c++)
-									fprintf(output,"%.3e+i%.3e\t%.3e+i%.3e\n",crealf(Xmn[mu][nu][i+kvol*(nc*c)]),cimagf(Xmn[mu][nu][i+kvol*(nc*c)]),crealf(Xmn[mu][nu][i+kvol*(nc*c+1)]),cimagf(Xmn[mu][nu][i+kvol*(nc*c+1)]));
+								fprintf(output,"%.3e\t%.3e+i%.3e\n",Xmn[clov].diag[i],creal(Xmn[clov].offd[i]),cimag(Xmn[clov].offd[i]));
+								fprintf(output,"%.3e+i%.3e\t%.3e\n",creal(conjf(Xmn[clov].offd[i])),cimag(conjf(Xmn[clov].offd[i])),Xmn[clov].diag[i+kvolHalo]);
 							}
+						}
 					fprintf(output,"\n");
 				}
 				fclose(output);
@@ -916,9 +920,9 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 	for(unsigned short i=0;i<ndim;i++){
 		cudaFree(hLeaves[i][0]); cudaFree(hLeaves[i][1]);
 	}
-	for(unsigned short mu=0;mu<ndim;mu++)
-		for(unsigned short nu=0;nu<ndim;nu++)
-			cudaFree(Xmn[mu][nu]);
+	for(unsigned short clov=0;clov<nclov;clov++){
+		cudaFree(Xmn[clov].diag); cudaFree(Xmn[clov].offd);
+	}
 	cudaFree(id); cudaFree(iu); cudaFree(hd); cudaFree(hu);
 	cudaFree(ut_save[0]); cudaFree(ut_save[1]);
 #else
@@ -930,9 +934,9 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 	for(unsigned short i=0;i<ndim;i++){
 		free(hLeaves[i][0]); free(hLeaves[i][1]);
 	}
-	for(unsigned short mu=0;mu<ndim;mu++)
-		for(unsigned short nu=0;nu<ndim;nu++)
-			free(Xmn[mu][nu]);
+	for(unsigned short clov=0;clov<nclov;clov++){
+		free(Xmn[clov].diag); free(Xmn[clov].offd);
+	}
 	free(X0); free(X1); free(u[0]); free(u[1]);
 	free(X2_f);
 	free(id); free(iu); free(hd); free(hu);

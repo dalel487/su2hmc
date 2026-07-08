@@ -225,13 +225,13 @@ namespace Device{
 	 *	@param[in]	G:		Gauge field
 	 */
 	template <typename T>
-	__device__ void cuGLeft(T out[4],const T G[2], const T X[4]){
-		out[0]=G[0]*X[0]+G[1]*X[2];
-		out[1]=G[0]*X[1]+G[1]*X[3];
-		out[2]=-conj(G[1])*X[0]+conj(G[0])*X[2];
-		out[3]=-conj(G[1])*X[1]+conj(G[0])*X[3];
-		return;
-	}
+		__device__ void cuGLeft(T out[4],const T G[2], const T X[4]){
+			out[0]=G[0]*X[0]+G[1]*X[2];
+			out[1]=G[0]*X[1]+G[1]*X[3];
+			out[2]=-conj(G[1])*X[0]+conj(G[0])*X[2];
+			out[3]=-conj(G[1])*X[1]+conj(G[0])*X[3];
+			return;
+		}
 	/**
 	 *	@brief	Multiplies @f$ X_{\mu\nu}@f$ by a gauge field from the right
 	 *
@@ -240,13 +240,13 @@ namespace Device{
 	 *	@param[in]	G:		Gauge field
 	 */
 	template <typename T>
-	__device__ void cuGRight(T out[4],const T G[2], const T X[4]){
-		out[0]=G[0]*X[0]-conj(G[1])*X[1];
-		out[1]=G[1]*X[0]+conj(G[0])*X[1];
-		out[2]=G[0]*X[2]-conj(G[1])*X[3];
-		out[3]=G[1]*X[2]+conj(G[0])*X[3];
-		return;
-	}
+		__device__ void cuGRight(T out[4],const T G[2], const T X[4]){
+			out[0]=G[0]*X[0]-conj(G[1])*X[1];
+			out[1]=G[1]*X[0]+conj(G[0])*X[1];
+			out[2]=G[0]*X[2]-conj(G[1])*X[3];
+			out[3]=G[1]*X[2]+conj(G[0])*X[3];
+			return;
+		}
 	/**
 	 *	@brief	Multiplies @f$ X_{\mu\nu}@f$ by a gauge field from the left and the right
 	 *
@@ -256,9 +256,23 @@ namespace Device{
 	 *	@param[in]	Gl,Gr:	Left/Right Gauge fields
 	 */
 	template <typename T>
-	__device__ void cuGSandwich(T out[4],T tmp[4], const T Gl[2], const T X[4],const T Gr[2]){
-		cuGRight(tmp,Gr,X);
-		cuGLeft(out,Gl,tmp);
+		__device__ void cuGSandwich(T out[4],T tmp[4], const T Gl[2], const T X[4],const T Gr[2]){
+			cuGRight(tmp,Gr,X);
+			cuGLeft(out,Gl,tmp);
+			return;
+		}
+	/**
+	 * @brief Loads the compacted bilinear form into a @f$2\times2@f$ complex valued matrix
+	 *
+	 * @param[out]	Z:		Complex matrix on stack
+	 * @param[in]	Xmn:	Hermitian form of @f$X_{\mu\nu}@f$ in memory
+	 * @param[in]	ind:	Index of @f$X_{\mu\nu}@f$ we're interested in
+	 *
+	 * @post	Contents of @p Z are replaced by bilinear from memory
+	 */
+	__device__ void GetBilinear(Complex_f Z[nc*nc], Bilinear_a Xmn,unsigned int ind){
+		Z[0]=Xmn.diag[ind]; Z[3]=Xmn.diag[ind+kvolHalo];
+		Z[1]=Xmn.offd[ind]; Z[2]=conj(Z[1]);
 		return;
 	}
 }
@@ -345,7 +359,7 @@ namespace Kernels{
 	 *	@param[in]	clov:		Index of clover being used
 	 */
 	template <typename T>
-		__global__ void cuCalcXmunu(T *Xmunu, const T *X1, const T *X2, const T *sigval, const unsigned short *sigin,const unsigned short clov){
+		__global__ void cuCalcXmunu(Bilinear_a Xmunu, const complex<T> *X1, const complex<T> *X2, const complex<T> *sigval, const unsigned short *sigin,const unsigned short clov){
 			const char funcname[] = "Xmunu";
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -354,26 +368,35 @@ namespace Kernels{
 			const unsigned int gthreadId= blockId * bsize+bthreadId;
 			//Get sign and index of @f$\sigma_{\mu\nu}@f correct
 			for(unsigned int i=gthreadId;i<kvol;i+=gsize*bsize){
-				//Buffer. Eight registers...
-				T Xmn[4]={0,0,0,0};
+				//Buffer. Four registers
+				Bilinear Xmn; 
+				Xmn.diag[0]=Xmn.diag[1]=0;Xmn.offd=0;
 				for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
 					const unsigned short sind = sigin[clov*ndirac+(idirac>>1)]<<1;
-					const T sig = sigval[clov*ndirac+(idirac>>1)];
+					const complex<T> sig = sigval[clov*ndirac+(idirac>>1)];
 					for(unsigned short c1=0;c1<nc;c1++){
 						//Spinors (rows) So we only load from memory once.
-						const T X1s = X1[i+kvolHalo*(sind+c1)];
-						const T X2s = X2[i+kvolHalo*(sind+c1)];
+						const complex<T> X1s = X1[i+kvolHalo*(sind+c1)];
+						const complex<T> X2s = X2[i+kvolHalo*(sind+c1)];
 						for(unsigned short c2=0;c2<nc;c2++){
+							//The second off diagonal term is the conjugate of the first
+							if(c1==1&&c2==0)
+								continue;
 							//Conjugated spinor (columns).
-							const T X1c = conj(X1[i+kvolHalo*(idirac+c2)]);
-							const T X2c = conj(X2[i+kvolHalo*(idirac+c2)]);
-							Xmn[(c1*nc+c2)]+=sig*(X2s*X1c+X1s*X2c);
+							const complex<T> X1c = conj(X1[i+kvolHalo*(idirac+c2)]);
+							const complex<T> X2c = conj(X2[i+kvolHalo*(idirac+c2)]);
+							if(c1==c2)
+								Xmn.diag[c1]+=(T)(sig*(X2s*X1c+X1s*X2c)).real();
+							else
+								Xmn.offd+=sig*(X2s*X1c+X1s*X2c);
 						}
 					}
 				}
-				//And write back to global memory.
-				for(unsigned short c=0;c<nc*nc;c++)
-					Xmunu[i+kvol*c]=Xmn[c];
+				//Write the diagonals
+				for(unsigned short c=0;c<nc;c++)
+					Xmunu.diag[i+kvolHalo*c]=Xmn.diag[c];
+				//And the off diagonal terms
+				Xmunu.offd[i]=Xmn.offd;
 			}
 			return;
 		}
@@ -391,7 +414,7 @@ namespace Kernels{
 	 *	@post	Clover force is added to @p dSdpi
 	 */
 	template <typename T>
-		__global__ void Clov_Force(double *dSdpi, const complex<T> *u11t, const complex<T> *u12t, const complex<T> *Xmn,\
+		__global__ void Clov_Force(double *dSdpi, const complex<T> *u11t, const complex<T> *u12t, Bilinear_a Xmn,\
 				const complex<T> *sigval, const unsigned short *sigin, const unsigned int *iu,\
 				const unsigned int *id, const float akappa,const unsigned short mu, const unsigned short nu){
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
@@ -407,45 +430,43 @@ namespace Kernels{
 				//But recycling to reduce register pressure on GPU
 				//First up, W0, W1 and W6 match their Documentation values
 				complex<T> W0[2]; complex<T> W1[2]; complex<T> W6[2];	
-				//Get the correct site. Originally uid and did stood for up and down. Then I realised only one was needed
+				//Get the correct site. Originally ind and  stood for up and down. Then I realised only one was needed
 				//at a time and am too lazy to change it everywhere.
-				unsigned int uid = id[i+kvol*nu];
+				unsigned int ind = id[i+kvol*nu];
 				//Gauge field @f$U_\nu\left(i-\hat{\nu}\right)
-				W1[0]=u11t[uid+kvolHalo*nu]; W1[1]=u12t[uid+kvolHalo*nu];
+				W1[0]=u11t[ind+kvolHalo*nu]; W1[1]=u12t[ind+kvolHalo*nu];
 
 				//@f$Z_2=X_{\mu\nu}\left(i-\hat{\nu}\right)@f$
 				complex<T> Z[nc*nc];
 #pragma unroll
-				for(unsigned short c=0;c<nc*nc;c++)
-					Z[c]=Xmn[uid+kvolHalo*c];
+				Device::GetBilinear(Z,Xmn,ind);
 
 				//W0 is @f$U^\dagger_\mu@f(x-\hat{nu}\right)@f$
-				W0[0]=conj(u11t[uid+kvolHalo*mu]); W0[1]=-u12t[uid+kvolHalo*mu];
+				W0[0]=conj(u11t[ind+kvolHalo*mu]); W0[1]=-u12t[ind+kvolHalo*mu];
 
 				//Need a temporary Z buffers for the intermediate result
 				complex<T> Zbuff1[nc*nc];complex<T> Zbuff2[nc*nc];
-				cuGSandwich(Zbuff1,Zbuff2,W0,Z,W1);
+				Device::cuGSandwich(Zbuff1,Zbuff2,W0,Z,W1);
 
 				//@f$W_6=W_0 W_1@f$
 				W6[0]=W0[0]*W1[0]-W0[1]*conj(W1[1]); W6[1]=W0[0]*W1[1]+W0[1]*conj(W1[0]);
 
 				//Z3 is the @f$X_{\mu\nu}\left(x+\hat{\mu}-\hat{\nu}\right)@f$. Store in Z
-				uid=iu[uid+kvol*mu];
+				ind=iu[ind+kvol*mu];
 #pragma unroll
-				for(unsigned short c=0;c<nc*nc;c++)
-					Z[c]=Xmn[uid+kvolHalo*c];
+				Device::GetBilinear(Z,Xmn,ind);
 
 				//Need a second Zbuffer for another intermediate result.
-				cuGRight(Zbuff2,W6,Z);
+				Device::cuGRight(Zbuff2,W6,Z);
 				//Sum the two results into Zbuff1. Then scale by -W5
 #pragma unroll
 				for(unsigned short c=0;c<nc*nc;c++)
 					Zbuff1[c]+=Zbuff2[c];
 				//W5 is @f$U^\dagger_\nu\left(x+\hat{\mu}-\hat{\nu}\right)@f$
 				complex<T> W5[2];
-				W5[0]=conj(u11t[uid+kvolHalo*nu]); W5[1]=-u12t[uid+kvolHalo*nu];
+				W5[0]=conj(u11t[ind+kvolHalo*nu]); W5[1]=-u12t[ind+kvolHalo*nu];
 				//Now multiply by @f$W_5@f$ from the left into Zbuff2
-				cuGLeft(Zbuff2,W5,Zbuff1);
+				Device::cuGLeft(Zbuff2,W5,Zbuff1);
 
 				//Intermediate results from the four parts of the sum.
 				complex<T> F_int[4];
@@ -456,29 +477,27 @@ namespace Kernels{
 
 				//Now we repeat for the last term in the sum. Recycling along the way.
 				//First store @f$W_2=U_\nu\left(x+\hat{\mu}\right)@f$ into W0.
-				uid=iu[i+kvol*mu];
-				W0[0]=u11t[uid+kvolHalo*nu]; W0[1]=u12t[uid+kvolHalo*nu];
+				ind=iu[i+kvol*mu];
+				W0[0]=u11t[ind+kvolHalo*nu]; W0[1]=u12t[ind+kvolHalo*nu];
 				//@f$W_3=U^\dagger_\mu\left(x+\hat{\nu}\right). Storing it in W1
-				uid=iu[i+kvol*nu];
-				W1[0]=conj(u11t[uid+kvolHalo*mu]); W1[1]=-u12t[uid+kvolHalo*mu];
+				ind=iu[i+kvol*nu];
+				W1[0]=conj(u11t[ind+kvolHalo*mu]); W1[1]=-u12t[ind+kvolHalo*mu];
 				//@f$Z_4=X_{\mu\nu}\left(x+\hat{\mu}+\hat{\nu}\right)@f$. Storing in Z
-				uid=iu[uid+kvol*mu];
+				ind=iu[ind+kvol*mu];
 #pragma unroll
-				for(unsigned short c=0;c<nc*nc;c++)
-					Z[c]=Xmn[uid+kvolHalo*c];
+				Device::GetBilinear(Z,Xmn,ind);
 				//Calculate and write into Zbuff1
-				cuGSandwich(Zbuff1,Zbuff2,W0,Z,W1);
+				Device::cuGSandwich(Zbuff1,Zbuff2,W0,Z,W1);
 
 				//@f$W_7=W_0 W_1@f$
 				complex<T> W7[2];
 				W7[0]=W0[0]*W1[0]-W0[1]*conj(W1[1]); W7[1]=W0[0]*W1[1]+W0[1]*conj(W1[0]);
 				//@f$Z_5=X_{\mu\nu}\left(x+\hat{\nu}\right)@f$
-				uid=iu[i+kvol*nu]; 
+				ind=iu[i+kvol*nu]; 
 #pragma unroll
-				for(unsigned short c=0;c<nc*nc;c++)
-					Z[c]=Xmn[uid+kvolHalo*c];
+				Device::GetBilinear(Z,Xmn,ind);
 				//And calculate the second term
-				cuGLeft(Zbuff2,W7,Z);
+				Device::cuGLeft(Zbuff2,W7,Z);
 				//Sum the two results into Zbuff1.
 #pragma unroll
 				for(unsigned short c=0;c<nc*nc;c++)
@@ -487,7 +506,7 @@ namespace Kernels{
 				complex<T> W4[2];
 				W4[0]=conj(u11t[i+kvolHalo*nu]); W4[1]=-u12t[i+kvolHalo*nu];
 				//Now multiply by @f$W_4@f$ from the right into Zbuff2
-				cuGRight(Zbuff2,W4,Zbuff1);
+				Device::cuGRight(Zbuff2,W4,Zbuff1);
 
 				//Intermediate results from the four parts of the sum.
 #pragma unroll
@@ -501,40 +520,38 @@ namespace Kernels{
 
 				//Now load @f$@Z_0=X_{\mu\nu}(x)@f$
 #pragma unroll
-				for(unsigned short c=0;c<nc*nc;c++)
-					Z[c]=Xmn[i+kvolHalo*c];
-				cuGLeft(Zbuff1,W0,Z);
+				Device::GetBilinear(Z,Xmn,i);
+				Device::cuGLeft(Zbuff1,W0,Z);
 				//And sum intermediate
 #pragma unroll
 				for(unsigned short c=0;c<nc*nc;c++)
 					F_int[c]+=Zbuff1[c];
 
 				//Now load @f$@Z_1=X_{\mu\nu}(x)@f$
-				uid=iu[i+kvol*mu];
+				ind=iu[i+kvol*mu];
 #pragma unroll
-				for(unsigned short c=0;c<nc*nc;c++)
-					Z[c]=Xmn[uid+kvolHalo*c];
-				cuGRight(Zbuff1,W0,Z);
+				Device::GetBilinear(Z,Xmn,ind);
+				Device::cuGRight(Zbuff1,W0,Z);
 				//And sum intermediate
 #pragma unroll
 				for(unsigned short c=0;c<nc*nc;c++){
 					F_int[c]+=Zbuff1[c];
-						F_int[c]*=-I_f;
-					}
+					F_int[c]*=-I_f;
+				}
 
 				//Excellent. Now we just need to multiply by the derivative term
 				W0[0]=u11t[i+kvolHalo*mu]; W0[1]=u12t[i+kvolHalo*mu];
 				for(unsigned short gen=0;gen<nadj;gen++){
 					W1[0]=W0[0]; W1[1]=W0[1];
 					cuByGenLeft(W1,gen);
-					cuGLeft(Zbuff1,W1,F_int);
+					Device::cuGLeft(Zbuff1,W1,F_int);
 					//Sum of the real part of the trace.
 					float dSdpis=creal(Zbuff1[0])+creal(Zbuff1[3]);
 					//tmp lets us control the number of registers explictly
-						if(mu<nu)
-							dSdpi[i+kvol*(gen*ndim+mu)] -=akappa*dSdpis/4.0f;
-						else
-							dSdpi[i+kvol*(gen*ndim+mu)] +=akappa*dSdpis/4.0f;
+					if(mu<nu)
+						dSdpi[i+kvol*(gen*ndim+mu)] -=akappa*dSdpis/4.0f;
+					else
+						dSdpi[i+kvol*(gen*ndim+mu)] +=akappa*dSdpis/4.0f;
 
 				}
 			}
@@ -704,7 +721,7 @@ void cuHbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f
 	Kernels::HbyClover<<<dimGrid,dimBlock>>>(phi,r,clover[0],clover[1],sigval,akappa,sigin,dag);
 }
 
-void cuCalcXmunu(Complex_f *Xmunu, Complex_f *X1, Complex_f *X2, const Complex_f *sigval, const unsigned short *sigin,\
+void cuCalcXmunu(Bilinear_a Xmunu, Complex_f *X1, Complex_f *X2, const Complex_f *sigval, const unsigned short *sigin,\
 		const unsigned short mu, const unsigned short nu){
 	//Get sign and index of @f$\sigma_{\mu\nu}@f correct
 	unsigned short clov = (mu==0) ? nu-1 : mu+nu;
@@ -715,8 +732,9 @@ int cuClov_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2,
 		const unsigned short *sigin, const unsigned int *iu, const unsigned int *id, const float akappa){
 	const char funcname[]="Clov_Force";
 
+	const unsigned short nclov = (ndim-1)*(ndim-2);
 	//Too many pointers here but not bothered doing it correctly. Overhead is basically zero.
-	complex<float> *Xmn[ndim*(ndim-1)];
+	Bilinear_a Xmn[nclov];
 	//Allocate half-leaf memory. We will have one stream for each direction
 	for(unsigned short mu=0;mu<ndim-1;mu++)
 		for(unsigned short nu=mu;nu<ndim;nu++)
@@ -724,7 +742,8 @@ int cuClov_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2,
 				//Get sign and index of @f$\sigma_{\mu\nu}@f correct
 				unsigned short clov = (mu==0) ? nu-1 : mu+nu;
 				//Allocate and evaluate @f$X_{\mu\nu}@f$ terms
-				cudaMallocAsync((void **)&Xmn[clov],ndim*kvol*sizeof(complex<float>),streams[clov]);
+				cudaMallocAsync((void **)&Xmn[clov].diag,nc*kvol*sizeof(float),streams[clov]);
+				cudaMallocAsync((void **)&Xmn[clov].offd,nc*kvol*sizeof(complex<float>),streams[clov]);
 				Kernels::cuCalcXmunu<<<dimGrid,dimBlock,0,streams[clov]>>>(Xmn[clov],X1,X2,sigval,sigin,clov);
 			}
 	cudaDeviceSynchronise();
@@ -743,9 +762,9 @@ int cuClov_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2,
 
 			}
 	cudaDeviceSynchronise();
-	for(unsigned short clov=0;clov<6;clov++)
-		//Free @f$X_{\mu\nu}@f$ terms
-		cudaFreeAsync(Xmn[clov],NULL);
+	for(unsigned short clov=0;clov<nclov;clov++){
+		cudaFreeAsync(Xmn[clov].diag,NULL); cudaFreeAsync(Xmn[clov].offd,NULL);
+	}
 	cudaDeviceSynchronise();
 	return 0;
 }
