@@ -15,16 +15,20 @@ ifeq ($(CXX),icpx)
 # If compilation fails with AVX10.2 intrinsic errors, replace -march=native with -march=skylake-avx512
 # or use an older Intel compiler version that doesn't include AVX10.2 intrinsics.
     $(error As of 20251101, the libstdc++ headers break when compiling with Intel OneAPI. This is due to NVCC not supporting noexcept(true) in the header for rsqrt(), and Intel OneAPI (clang) being stricter than GCC. You may have more luck with a version of nvcc greater than 13.0 or an older libstdc++ library)
+$(info Host compiling with Intel Compiler)
 CFLAGS+=  -qopt-zmm-usage=high -MD -ipo -static-intel -static-libgcc \
 			-xHOST -DMKL_DIRECT_CALL -D__USE_MKL__  -qopenmp \
 			-qopenmp-simd  -use-intel-optimized-headers -diag-disable=10441
 else ifneq (,$(filter g++%,$(CXX)))
+$(info Host compiling with GCC)
 CFLAGS+=		-march=native -fcommon -fopenmp -fopenmp-simd -static-libgcc -foffload=disable
 else ifeq ($(CXX),nvc++)
     $(warning As of 20251101, the nvc/nvc++ compiler segfaults during the conjugate gradient. We recommend you use GNU instead. (echo CC+gcc, echo CXX=g++))
+$(info Host compiling with NVIDIA C Compiler)
 CFLAGS+=		-tp=native -mp
 else ifneq (,$(filter clang++%,$(CXX)))
     $(error As of 20251101, the libstdc++ headers break when compiling with clang. This is due to NVCC not supporting noexcept(true) in the header for rsqrt(), and clang being stricter than GCC. You may have more luck with a version of nvcc greater than 13.0 or an older libstdc++ library)
+$(info Host compiling with Clang)
 CFLAGS+=		-fveclib=AMDLIBM -march=native -fcommon -flto -fopenmp=libomp -fopenmp-simd -static-libgcc -Wno-exception-spec 
 #NVCCFLAGS+= -D_GLIBCXX_USE_CXX11_ABI=0
 else

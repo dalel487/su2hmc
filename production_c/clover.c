@@ -563,7 +563,7 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					clov = (mu==0) ? nu-1 : mu+nu;
 				else
 					clov = (nu==0) ? mu-1 : mu+nu;
-				//#pragma omp parallel for
+#pragma omp parallel for
 				for(unsigned int i=0;i<kvol;i++){
 					//This is where it gets messy. Using HiRep/OpenQCD labelling for different intermediate values
 					//But recycling to reduce register pressure on GPU
@@ -576,11 +576,10 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 
 					//@f$Z_2=X_{\mu\nu}\left(x-\hat{\nu}\right)@f$
 					Complex_f Z[nc*nc];
-#pragma unroll
 					GetBilinear(Z,Xmn[clov],ind);
 
-						//W0 is @f$U^\dagger_\mu\left(x-\hat{nu}\right)@f$
-						W0[0]=conjf(ut[0][ind+kvolHalo*mu]); W0[1]=-ut[1][ind+kvolHalo*mu];
+					//W0 is @f$U^\dagger_\mu\left(x-\hat{nu}\right)@f$
+					W0[0]=conjf(ut[0][ind+kvolHalo*mu]); W0[1]=-ut[1][ind+kvolHalo*mu];
 
 					//Need a temporary Z buffers for the intermediate result
 					Complex_f Zbuff1[nc*nc], Zbuff2[nc*nc];
@@ -591,11 +590,10 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 
 					//Z_3 is the @f$X_{\mu\nu}\left(x+\hat{\mu}-\hat{\nu}\right)@f$. Store in Z
 					ind=iu[ind+kvol*mu];
-#pragma unroll
 					GetBilinear(Z,Xmn[clov],ind);
 
-						//Need a second Zbuffer for another intermediate result.
-						GRight(Zbuff2,W6,Z);
+					//Need a second Zbuffer for another intermediate result.
+					GRight(Zbuff2,W6,Z);
 					//Sum the two results into Zbuff1. Then scale by -W5
 #pragma unroll
 					for(unsigned short c=0;c<nc*nc;c++)
@@ -622,20 +620,18 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					W1[0]=conjf(ut[0][ind+kvolHalo*mu]); W1[1]=-ut[1][ind+kvolHalo*mu];
 					//@f$Z_4=X_{\mu\nu}\left(x+\hat{\mu}+\hat{\nu}\right)@f$. Storing in Z
 					ind=iu[ind+kvol*mu];
-#pragma unroll
 					GetBilinear(Z,Xmn[clov],ind);
-						//Calculate and write into Zbuff1
-						GSandwich(Zbuff1,Zbuff2,W0,Z,W1);
+					//Calculate and write into Zbuff1
+					GSandwich(Zbuff1,Zbuff2,W0,Z,W1);
 
 					//@f$W_7=W_0 W_1@f$
 					Complex_f W7[2];
 					W7[0]=W0[0]*W1[0]-W0[1]*conjf(W1[1]); W7[1]=W0[0]*W1[1]+W0[1]*conjf(W1[0]);
 					//@f$Z_5=X_{\mu\nu}\left(x+\hat{\nu}\right)@f$
 					ind=iu[i+kvol*nu]; 
-#pragma unroll
 					GetBilinear(Z,Xmn[clov],ind);
-						//And calculate the second term
-						GLeft(Zbuff2,W7,Z);
+					//And calculate the second term
+					GLeft(Zbuff2,W7,Z);
 					//Sum the two results into Zbuff1.
 #pragma unroll
 					for(unsigned short c=0;c<nc*nc;c++)
@@ -658,9 +654,8 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 					W0[0]-=W1[0]; W0[1]-=W1[1];
 
 					//Now load @f$Z_0=X_{\mu\nu}(x)@f$
-#pragma unroll
 					GetBilinear(Z,Xmn[clov],i);
-						GLeft(Zbuff1,W0,Z);
+					GLeft(Zbuff1,W0,Z);
 					//And sum intermediate
 #pragma unroll
 					for(unsigned short c=0;c<nc*nc;c++)
@@ -668,9 +663,8 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 
 					//Now load @f$Z_1=X_{\mu\nu}\left(x+\hat{mu})@f$
 					ind=iu[i+kvol*mu];
-#pragma unroll
 					GetBilinear(Z,Xmn[clov],ind);
-						GRight(Zbuff1,W0,Z);
+					GRight(Zbuff1,W0,Z);
 					//And sum intermediate
 #pragma unroll
 					for(unsigned short c=0;c<nc*nc;c++){

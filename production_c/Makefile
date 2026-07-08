@@ -20,17 +20,21 @@ export I_MPI_CC := $(CC)
 endif
 
 ifneq ($(filter icc icx, $(CC)),)
+$(info Compiling with Intel Compiler)
 CFLAGS += -qopt-zmm-usage=high -ipo -static-intel -static-libgcc \
 			-xHOST -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE,RAPTORLAKE\
 			-D__USE_MKL__  -inline-level=2 \
 			-qopenmp-simd  -use-intel-optimized-headers -diag-disable=10441 -qopenmp  
 __USE_MKL__ = 1
 else ifneq (,$(filter gcc%,$(CC)))
-CFLAGS += -march=native -mavx512f -fcommon -fopenmp -fopenmp-simd -static-libgcc -foffload=disable
+$(info Compiling with GCC)
+CFLAGS += -march=native -fcommon -fopenmp -fopenmp-simd -static-libgcc -foffload=disable
 else ifeq ($(CC),nvc)
+$(info Compiling with NVIDIA C Compiler)
 #    $(warning As of 20251101, the nvc/nvc++ compiler segfaults during the conjugate gradient. We recommend you use GNU instead. (echo CC+gcc, echo CC=g++))
 CFLAGS += -tp=native -mp -mp=multicore 
 else ifneq (,$(filter clang%,$(CC)))
+$(info Compiling with Clang)
     #$(error As of 20251101, the libstdc++ headers break when compiling with clang. This is due to NVCC not supporting noexcept(true) in the header for rsqrt(), and clang being stricter than GCC. You may have more luck with a version of nvcc greater than 13.0 or an older libstdc++ library)
 CFLAGS += -fveclib=AMDLIBM -march=native -fcommon -flto -fopenmp -fopenmp-simd -static-libgcc -Wno-exception
 LFLAGS += -latomic
@@ -40,20 +44,25 @@ else
 endif
 
 ifeq ($(CXX),icpx)
+$(info Using MKL)
 #TODO: Currently only configured for use with an Intel Compiler
 CFLAGS +=	-qmkl -DMKL_DIRECT_CALL -I"${MKLROOT}/include"
 LFLAGS +=	-L${MKLROOT}/lib/intel64 -limf #-DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
 else ifdef AOCL_ROOT
+$(info Using AMD BLIS)
 CFLAGS += -DAMD_BLAS -I ${AOCL_ROOT}/include
 LFLAGS += -L${AOCL_ROOT}/lib/ -lblis  -lalm
 else ifdef LIBSCI_BASE_DIR
+$(info Using Cray BLAS)
 CFLAGS += -DUSE_BLAS
 #Automatic on LUMI?
 #LFLAGS = ‐L${LIBSCI_BASE_DIR}/gnu/91/x86_64/lib/ -lsci_comp
 else ifeq ($(shell pkg-config --exists openblas && echo yes),yes)
+$(info Using OpenBLAS)
 CFLAGS += -DOPENBLAS $(shell pkg-config --cflags openblas)
 LFLAGS += $(shell pkg-config --libs openblas)
 else
+$(info Using GSL BLAS)
 CFLAGS += -DGSL_BLAS
 LFLAGS +=	-lm $(shell gsl-config --libs)
 endif
