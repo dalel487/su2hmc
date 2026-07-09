@@ -137,6 +137,14 @@ int main(int argc, char *argv[]){
 	}
 	//Send inputs to other ranks
 #if(nproc>1)
+		if(c_sw!=0){
+			fprintf(stderr,"Error %i in %s: Multiple MPI Ranks are not currently supported for the clover action.\n"\
+					"This is due to the corner halo terms needed to compute the clover force not being implemented.\n"\
+					"Please recompile for a single MPI rank or run with c_sw=0.\n"\
+					"\nExiting...\n\n",NOIMPL,funcname);
+			MPI_Abort(comm,NOIMPL);
+			exit(NOIMPL);
+		}
 	Par_fcopy(&dt); Par_fcopy(&beta); Par_fcopy(&akappa); Par_fcopy(&ajq);
 	Par_fcopy(&c_sw); Par_fcopy(&fmu); Par_fcopy(&delb); //Not used?
 	Par_icopy(&stepl); Par_icopy(&ntraj); Par_icopy(&istart); Par_icopy(&icheck);
