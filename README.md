@@ -6,17 +6,12 @@ Duane et al. Phys. Lett. B195 (1987) 216.
 
 There is "up/down partitioning": each update requires one operation of congradq on complex vectors to determine
 $$\left(M^\dagger M\right)^{-1}\Phi$$ where $$\Phi$$ has dimension `4 * kvol * nc * Nf` - The matrix M is the fermion
-matrix for a single flavor there is no extra species doubling as a result
-
-matrix multiplies done using routines `hdslash` and `hdslashd`
-
-Hence, the number of lattice flavors Nf is related to the number of continuum flavors N_f by
-              $$N_f = 2  \text{Nf}$$
+matrix for a single flavor there is no extra species doubling as a result.  Hence, the number of lattice flavors Nf is
+related to the number of continuum flavors N_f by $$N_f = 2  \text{Nf}\text{.}$$
 
 Fermion expectation values are measured using a noisy estimator.  on the Wilson-Gor'kov matrix, which has dimension
 `8 * kvol * nc * Nf` inversions done using `congradp`, and matrix multiplies with `dslash`, `dslashd`
 
-trajectory length is random with mean dt * stepl
 The code runs for a fixed number ntraj of trajectories.
 
 | | |
@@ -26,7 +21,6 @@ The code runs for a fixed number ntraj of trajectories.
 |fmu| chemical potential|
 |actiona| running average of total action|
 
-Fermion expectation values are measured using a noisy estimator.
 The code produces the following outputs:
 |File Name| Data type|
 |---------|:---------|
@@ -38,11 +32,11 @@ The code produces the following outputs:
 |fermi.bβββkκκκmuμμμμjJJJcCCCsNXtNT|	$\langle\bar{\psi}\psi\rangle$, Energy density, Quark number density|
 |diq.bβββkκκκmuμμμμjJJJcCCCsNXtNT|		Diquark Condensate|
 
-SJH March 2005\
-Hybrid code, P.Giudice, May 2013\
-Converted from Fortran to C by D. Lawlor March 2021\
-CUDA Implementation by D. Lawlor April 2024\
-Clover Action Implementation by D. Lawlor July 2026
+- SJH March 2005
+- Hybrid code, P.Giudice, May 2013
+- Converted from Fortran to C by D. Lawlor March 2021
+- CUDA Implementation by D. Lawlor April 2024
+- Clover Action Implementation by D. Lawlor July 2026
 	
 ### Conversion notes
 This two colour implementation was originally written in FORTRAN for:
@@ -54,23 +48,26 @@ It has since been rewritten in C and has been adapted for CUDA on a single GPU. 
 cores, as well as Nvidia GPUs.
 
 Some adaptions from the original are:
--	Mixed precision conjugate gradient
--	Implementation of BLAS routines for vector operations
--	Removal of excess halo exchanges
--	`#pragma omp simd` instructions
--	GSL ranlux support
+-	Mixed precision conjugate gradient.
+-	Implementation of BLAS routines for vector operations.
+-	Removal of excess halo exchanges.
+-	`#pragma omp simd` instructions.
+-	GSL ranlux support.
 -	CUDA implementation. 
 -   Higher order integrators. 
 -	Clover Improved Wilson Fermion Action.
 
 Other works in progress include:
--   yaml input file
--   Set lattice volume and CPU grid at runtime
+-   yaml input file.
+-   Set lattice volume and CPU grid at runtime.
+
+And possible future directions
+- Hasenbusch preconditioning.
   
 ## Getting started
 This code is written for MPI on Linux, thus has a few caveats to get up and running
 1.	In sizes.h, set the lattice size. By default we assume the spatial components
-	to be equal
+	to be equal.
 2.	Also in sizes.h set the processor grid size by setting the values of
 	``` c
 	npx npy npz npt
@@ -89,31 +86,31 @@ This code is written for MPI on Linux, thus has a few caveats to get up and runn
 	mpirun -n<nproc> ./su2hmc <input_file>
 	```
 
--	`nproc` is the number of processors, given by the product of `npx npy npz npt`
+-	`nproc` is the number of processors, given by the product of `npx npy npz npt`.
 -	If no input file is given, the programme defaults to midout. The default name is a historical one which goes back
     generations to the early days of Lattice QCD.
 
 ### Input parameters
 A sample input file looks like
 ```
-0.00200	1.7	0.1780	0.00	0.000	0.0	0.0	500	20	1	1	100
-dt	beta	akappa	jqq	c_sw	fmu	aNf	stepl	ntraj	istart	icheck	iread
+0.002   1.7	0.1780	0.00	0.000	0.0	0.0	500	20	   1        1       100
+dt	    beta	akappa	jqq	c_sw	fmu	aNf	stepl	ntraj	istart	icheck  iread
 ```
 where
-- `dt` is the step size for the update
-- `beta` is the inverse gauge coupling, given up to three significant figures
-- `akappa` is hopping parameter, given up to four significant figures
-- `jqq` is the diquark source, given up to three significant figures
-- `c_sw` is the clover coefficient. Leave as zero for an unimproved action
-- `fmu` is the chemical potential
+- `dt` is the step size for the update.
+- `beta` is the inverse gauge coupling, given up to three significant figures.
+- `akappa` is hopping parameter, given up to four significant figures.
+- `jqq` is the diquark source, given up to three significant figures.
+- `c_sw` is the clover coefficient. Leave as zero for an unimproved action.
+- `fmu` is the chemical potential.
 - `aNf` is ignored but remains for legacy reasons. Originating in the Cornell group when Ken Wilson was still there,
         that molecular dynamics time-discretisation artifacts can be absorbed into renormalisation of the bare
-        parameters of the lattice action
-- `stepl` is the average number of steps per trajectory. For a single trajectory it times dt should equal 1
-- `ntraj` is the number of trajectories
-- `istart` signals a hot start (>=1) or cold start (<=0)
-- `icheck` is how often to print out a configuration. We typically use 5 and tune for 80% acceptance rate
-- `iread` is the starting configuration for continuation runs. If zero, start without reading
+        parameters of the lattice action.
+- `stepl` is the average number of steps per trajectory. For a single trajectory it times dt should equal 1.
+- `ntraj` is the number of trajectories.
+- `istart` signals a hot start (>=1) or cold start (<=0).
+- `icheck` is how often to print out a configuration. We typically use 5 and tune for 80% acceptance rate.
+- `iread` is the starting configuration for continuation runs. If zero, start without reading.
 
 The bottom line of the input is ignored by the programme and is just there to make your life easier.
 Blank space does not matter, so long as there is some gap between the input parameters in the file and they are all
