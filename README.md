@@ -1,27 +1,20 @@
-
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7164406.svg)](https://doi.org/10.5281/zenodo.7164406)
-# su2hmc: Two Colour Hybrid Monte Carlo with Wilson Fermions
+# su2hmc: Two Colour Hybrid Monte Carlo with Clover Improved Wilson Fermions
 ## Introduction
-Hybrid Monte Carlo algorithm for Two Color QCD with Wilson-Gor'kov fermions
-based on the algorithm of Duane et al. Phys. Lett. B195 (1987) 216. 
+Hybrid Monte Carlo algorithm for Two Color QCD with Clover Improved Wilson-Gor'kov fermions based on the algorithm of
+Duane et al. Phys. Lett. B195 (1987) 216. 
 
-There is "up/down partitioning": each update requires
-one operation of congradq on complex vectors to determine
-$$\left(M^\dagger M\right)^{-1}\Phi$$ 
-where $\Phi$ has dimension `4 * kvol * nc * Nf` -
-The matrix M is the Wilson matrix for a single flavor
-there is no extra species doubling as a result
+There is "up/down partitioning": each update requires one operation of congradq on complex vectors to determine
+$$\left(M^\dagger M\right)^{-1}\Phi$$ where $$\Phi$$ has dimension `4 * kvol * nc * Nf` - The matrix M is the fermion
+matrix for a single flavor there is no extra species doubling as a result
 
 matrix multiplies done using routines `hdslash` and `hdslashd`
 
-Hence, the number of lattice flavors Nf is related to the
-number of continuum flavors N_f by
+Hence, the number of lattice flavors Nf is related to the number of continuum flavors N_f by
               $$N_f = 2  \text{Nf}$$
 
-Fermion expectation values are measured using a noisy estimator.
-on the Wilson-Gor'kov matrix, which has dimension `8 * kvol * nc * Nf`
-inversions done using `congradp`, and matrix multiplies with `dslash`,
-`dslashd`
+Fermion expectation values are measured using a noisy estimator.  on the Wilson-Gor'kov matrix, which has dimension
+`8 * kvol * nc * Nf` inversions done using `congradp`, and matrix multiplies with `dslash`, `dslashd`
 
 trajectory length is random with mean dt * stepl
 The code runs for a fixed number ntraj of trajectories.
@@ -37,16 +30,19 @@ Fermion expectation values are measured using a noisy estimator.
 The code produces the following outputs:
 |File Name| Data type|
 |---------|:---------|
-|config.bβββkκκκmuμμμμjJJJsNXtNT.XXXXXX| Lattice configuration for given parameters. Last digits are the trajectory number|
-|Output.bβββkκκκmuμμμμjJJJsNXtNT|	Number of conjugate gradient steps for each trajectory. Also contains general simulation details upon completion|
-|bose.bβββkκκκmuμμμμjJJJsNXtNT|		Average spatial plaquette, Average temporal plaquette, Average Polyakov line|
-|fermi.bβββkκκκmuμμμμjJJJsNXtNT|				$\langle\bar{\psi}\psi\rangle$, Energy density, Quark number density|
-|diq.bβββkκκκmuμμμμjJJJsNXtNT|					Diquark Condensate|
+|config.bβββkκκκmuμμμμjJJJcCCCsNXtNT.XXXXXX|    Lattice configuration for given parameters.
+                                                Last digits are the trajectory number|
+|Output.bβββkκκκmuμμμμjJJJcCCCsNXtNT|	Number of conjugate gradient steps for each trajectory. Also contains general
+                                        simulation details upon completion|
+|bose.bβββkκκκmuμμμμjJJJcCCCsNXtNT|		Average spatial plaquette, Average temporal plaquette, Average Polyakov line|
+|fermi.bβββkκκκmuμμμμjJJJcCCCsNXtNT|	$\langle\bar{\psi}\psi\rangle$, Energy density, Quark number density|
+|diq.bβββkκκκmuμμμμjJJJcCCCsNXtNT|		Diquark Condensate|
 
 SJH March 2005\
 Hybrid code, P.Giudice, May 2013\
 Converted from Fortran to C by D. Lawlor March 2021\
-CUDA Implementation by D. Lawlor April 2024
+CUDA Implementation by D. Lawlor April 2024\
+Clover Action Implementation by D. Lawlor July 2026
 	
 ### Conversion notes
 This two colour implementation was originally written in FORTRAN for:
@@ -55,7 +51,7 @@ dense 2-color QCD, Eur. Phys. J. C48, 193 (2006), hep-
 lat/0604004](https://arxiv.org/abs/hep-lat/0604004)
 
 It has since been rewritten in C and has been adapted for CUDA on a single GPU. We have sucessfully run on 7000+ Zen 2
-cores, as well as A100 GPUs
+cores, as well as Nvidia GPUs.
 
 Some adaptions from the original are:
 -	Mixed precision conjugate gradient
@@ -65,9 +61,9 @@ Some adaptions from the original are:
 -	GSL ranlux support
 -	CUDA implementation. 
 -   Higher order integrators. 
+-	Clover Improved Wilson Fermion Action.
 
 Other works in progress include:
--	Improved action
 -   yaml input file
 -   Set lattice volume and CPU grid at runtime
   
@@ -94,7 +90,8 @@ This code is written for MPI on Linux, thus has a few caveats to get up and runn
 	```
 
 -	`nproc` is the number of processors, given by the product of `npx npy npz npt`
--	If no input file is given, the programme defaults to midout. The default name is a historical one which goes back generations to the early days of Lattice QCD.
+-	If no input file is given, the programme defaults to midout. The default name is a historical one which goes back
+    generations to the early days of Lattice QCD.
 
 ### Input parameters
 A sample input file looks like
@@ -109,7 +106,9 @@ where
 - `jqq` is the diquark source, given up to three significant figures
 - `c_sw` is the clover coefficient. Leave as zero for an unimproved action
 - `fmu` is the chemical potential
-- `aNf` is ignored but remains for legacy reasons. Originating in the Cornell group when Ken Wilson was still there, that molecular dynamics time-discretisation artifacts can be absorbed into renormalisation of the bare parameters of the lattice action
+- `aNf` is ignored but remains for legacy reasons. Originating in the Cornell group when Ken Wilson was still there,
+        that molecular dynamics time-discretisation artifacts can be absorbed into renormalisation of the bare
+        parameters of the lattice action
 - `stepl` is the average number of steps per trajectory. For a single trajectory it times dt should equal 1
 - `ntraj` is the number of trajectories
 - `istart` signals a hot start (>=1) or cold start (<=0)
