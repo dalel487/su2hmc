@@ -28,8 +28,9 @@ using thrust::complex;
 #define	I	Complex(0.0,1.0)	
 ///@brief 	Define I in single precision
 #define	I_f	Complex_f(0.0f,1.0f)	
-/**@brief	Complex Conjugation
- * @param	z: Number to be conjugated
+/**
+ * @brief	Complex Conjugation
+ * @param	z Number to be conjugated
  */
 template <typename T> __device__ __forceinline__ T conj(const T& z);
 #endif

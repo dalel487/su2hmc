@@ -26,6 +26,7 @@
  ******************************************************************/
 #pragma once
 #ifdef	__USE_MKL__
+///@brief Flag to choose BLAS path
 #define	USE_BLAS
 #include	<mkl.h>
 #elif (defined AMD_BLAS||defined OPENBLAS)
@@ -85,7 +86,7 @@ extern cudaMemPool_t mempool;
 #endif
 
 ///	@brief	Lattice temporal extent. This also corresponds to the inverse temperature
-#define	nt	32
+#define	nt	24
 #if(nt<1)
 #error "nt is expected it to be greater than or equal to 1"
 #endif

@@ -24,7 +24,7 @@ int Dslash(Complex *phi, Complex *r, Complex *ut[nc], unsigned int *iu,unsigned 
 	//Mass term
 	//Diquark Term (antihermitian)
 #ifdef __NVCC__
-	cuDslash(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa,dimGrid,dimBlock);
+	cuDslash(phi,r,ut,iu,id,gamval,gamin,dk,jqq,akappa,dimGrid,dimBlock);
 #else
 	for(unsigned short j=0;j<nc*ngorkov;j++)
 		memcpy(phi+j*kvolHalo, r+j*kvolHalo, kvol*sizeof(Complex));
@@ -142,7 +142,7 @@ int Dslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned 
 
 	//Mass term
 #ifdef __NVCC__
-	cuDslashd(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa,dimGrid,dimBlock);
+	cuDslashd(phi,r,ut,iu,id,gamval,gamin,dk,jqq,akappa,dimGrid,dimBlock);
 #else
 	for(unsigned short j=0;j<nc*ngorkov;j++)
 		memcpy(phi+j*kvol, r+j*kvolHalo, kvol*sizeof(Complex));
@@ -262,7 +262,7 @@ int Hdslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned  int *iu,unsigned
 	//Mass term
 	//Spacelike term
 #ifdef __NVCC__
-	cuHdslash(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa,dimGrid,dimBlock);
+	cuHdslash(phi,r,ut,iu,id,gamval,gamin,dk,akappa,dimGrid,dimBlock);
 #else
 	for(unsigned short j=0;j<nc*ndirac;j++)
 		memcpy(phi+j*kvolHalo, r+j*kvolHalo, kvol*sizeof(Complex));
@@ -345,7 +345,7 @@ int Hdslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned  int *iu,unsigne
 
 	//Mass term
 #ifdef __NVCC__
-	cuHdslashd(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa,dimGrid,dimBlock);
+	cuHdslashd(phi,r,ut,iu,id,gamval,gamin,dk,akappa,dimGrid,dimBlock);
 #else
 	for(unsigned short j=0;j<nc*ndirac;j++)
 		memcpy(phi+j*kvol, r+j*kvolHalo, kvol*sizeof(Complex));
@@ -433,7 +433,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu, u
 	//Mass term
 	//Diquark Term (antihermitian)
 #ifdef __NVCC__
-	cuDslash_f(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa,dimGrid,dimBlock);
+	cuDslash_f(phi,r,ut,iu,id,gamval,gamin,dk,jqq,akappa,dimGrid,dimBlock);
 #else
 	for(unsigned short j=0;j<nc*ngorkov;j++)
 		memcpy(phi+j*kvolHalo, r+j*kvolHalo, kvol*sizeof(Complex_f));
@@ -551,7 +551,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,u
 
 	//Mass term
 #ifdef __NVCC__
-	cuDslashd_f(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa,dimGrid,dimBlock);
+	cuDslashd_f(phi,r,ut,iu,id,gamval,gamin,dk,jqq,akappa,dimGrid,dimBlock);
 #else
 	for(unsigned short j=0;j<nc*ngorkov;j++)
 		memcpy(phi+j*kvol, r+j*kvolHalo, kvol*sizeof(Complex_f));

@@ -22,15 +22,13 @@ The code runs for a fixed number ntraj of trajectories.
 |actiona| running average of total action|
 
 The code produces the following outputs:
-|File Name| Data type|
+|File Name|Data type|
 |---------|:---------|
-|config.bβββkκκκmuμμμμjJJJcCCCsNXtNT.XXXXXX|    Lattice configuration for given parameters.
-                                                Last digits are the trajectory number|
-|Output.bβββkκκκmuμμμμjJJJcCCCsNXtNT|	Number of conjugate gradient steps for each trajectory. Also contains general
-                                        simulation details upon completion|
-|bose.bβββkκκκmuμμμμjJJJcCCCsNXtNT|		Average spatial plaquette, Average temporal plaquette, Average Polyakov line|
-|fermi.bβββkκκκmuμμμμjJJJcCCCsNXtNT|	$\langle\bar{\psi}\psi\rangle$, Energy density, Quark number density|
-|diq.bβββkκκκmuμμμμjJJJcCCCsNXtNT|		Diquark Condensate|
+|config.bβββkκκκmuμμμμjJJJcCCCsNXtNT.XXXXXX|Lattice configuration for given parameters.  Last digits are the trajectory number|
+|Output.bβββkκκκmuμμμμjJJJcCCCsNXtNT|Number of conjugate gradient steps for each trajectory. Also contains general simulation details upon completion|
+|bose.bβββkκκκmuμμμμjJJJcCCCsNXtNT|Average spatial plaquette, Average temporal plaquette, Average Polyakov line|
+|fermi.bβββkκκκmuμμμμjJJJcCCCsNXtNT|$\langle\bar{\psi}\psi\rangle$, Energy density, Quark number density|
+|diq.bβββkκκκmuμμμμjJJJcCCCsNXtNT|Diquark Condensate|
 
 - SJH March 2005
 - Hybrid code, P.Giudice, May 2013
@@ -115,3 +113,7 @@ where
 The bottom line of the input is ignored by the programme and is just there to make your life easier.
 Blank space does not matter, so long as there is some gap between the input parameters in the file and they are all
 on a single line.
+
+### Known issues
+- Cannot currently run the clover improved action with MPI. This is due to the $$x\pm\hat{\mu}\pm\hat{\nu}$$ terms not
+  being storted in the halo at present. Single rank or GPU runs do work.

@@ -7,7 +7,15 @@
  */
 #include <su2hmc.h>
 #include <matrices.h>
-int Force_debug(double ave_dSdpi[3],double *dSdpi){
+/**
+ * @brief Gets average for each generator of the Lie algebra
+ *
+ * @param[out]	ave_dSdpi: The average
+ * @param[in]	dSdpi:	What's being averaged. Can be the momentum either
+ *
+ * @post	@p ave_dSdpi overwritten with the averages.
+ */
+void Force_debug(double ave_dSdpi[3],double *dSdpi){
 #ifdef __NVCC__
 	ave_dSdpi[0]=cureduce_sum_d(dSdpi,kvol*ndim,0);
 	ave_dSdpi[1]=cureduce_sum_d(dSdpi+kvol*ndim,kvol*ndim,1);
@@ -22,6 +30,7 @@ int Force_debug(double ave_dSdpi[3],double *dSdpi){
 	}
 #endif
 	ave_dSdpi[0]/=(ndim*kvol); ave_dSdpi[1]/=(ndim*kvol); ave_dSdpi[2]/=(ndim*kvol);
+	return;
 }
 
 int Gauge_Update(const double d, double *pp, Complex *ut[2],Complex_f *ut_f[2]){

@@ -28,59 +28,61 @@ extern "C"
 	/**
 	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
 	 *	
-	 *	@param	dSdpi:				The force
-	 *	@param	ut:					Float precision colour fields
-	 *	@param	X1:					Holder for the partitioned fermion field, then the inverted dield
-	 *	@param	X2:					Pseudofermion field
-	 *	@param	gamval:				Gamma matrices rescaled by @f$\kappa@f$
-	 *	@param	iu:					Lattice indices
-	 *	@param	gamin:				Gamma indices
-	 *	@param	akappa:				Hopping parameter
+	 *	@param[in,out]	dSdpi:				The force
+	 *	@param[in]	ut:					Float precision colour fields
+	 *	@param[in]	X1:					Holder for the partitioned fermion field, then the inverted dield
+	 *	@param[in]	X2:					Pseudofermion field
+	 *	@param[in]	gamval:				Gamma matrices rescaled by @f$\kappa@f$
+	 *	@param[in]	iu:					Lattice indices
+	 *	@param[in]	gamin:				Gamma indices
+	 *	@param[in]	akappa:				Hopping parameter
+	 *	@param[in]	mu:					Force direction
 	 *
-	 *	@return 
+	 *	@post	Force added to @p dSdpi 
 	 */
 void Force_s(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, Complex_f gamval[20],\
 		unsigned int *iu, const unsigned short gamin[16],const float akappa, const unsigned short mu);
 	/**
 	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
 	 *	
-	 *	@param	dSdpi:				The force
-	 *	@param	ut:					Float precision colour fields
-	 *	@param	X1:					Holder for the partitioned fermion field, then the inverted dield
-	 *	@param	X2:					Pseudofermion field
-	 *	@param	gamval:				Gamma matrices rescaled by @f$\kappa@f$
-	 * @param	dk:					@f$e^{-\mu}@f$ and @f$e^\mu@f$
-	 *	@param	iu:					Lattice indices
-	 *	@param	gamin:				Gamma indices
-	 *	@param	akappa:				Hopping parameter
+	 *	@param[in,out]	dSdpi:				The force
+	 *	@param[in]	ut:					Float precision colour fields
+	 *	@param[in]	X1:					Holder for the partitioned fermion field, then the inverted dield
+	 *	@param[in]	X2:					Pseudofermion field
+	 *	@param[in]	gamval:				Gamma matrices rescaled by @f$\kappa@f$
+	 * @param[in]	dk:					@f$e^{-\mu}@f$ and @f$e^\mu@f$
+	 *	@param[in]	iu:					Lattice indices
+	 *	@param[in]	gamin:				Gamma indices
+	 *	@param[in]	akappa:				Hopping parameter
 	 *
-	 *	@return 
+	 *	@post	Force added to @p dSdpi 
 	 */
 void Force_t(double *dSdpi, Complex_f *ut[2],Complex_f *X1, Complex_f *X2, Complex_f gamval[20],\
 		float *dk[2], unsigned int *iu, const unsigned short gamin[16],float akappa);
 	/**
 	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
 	 *	
-	 *	@param	dSdpi:				The force
-	 *	@param	iflag:				Invert before evaluating the force. 0 to invert, one not to. Blame FORTRAN...	
-	 *	@param	res1:					Conjugate gradient residue
-	 *	@param	X0:					Up/down partitioned pseudofermion field
-	 *	@param	X1:					Holder for the partitioned fermion field, then the inverted dield
-	 *	@param	Phi:					Pseudofermion field
-	 *	@param	ut,ut_f:				Double/float precision colour fields
-	 *	@param	iu,id:				Lattice indices
-	 *	@param	gamval,gamval_f:	Double/float precision gamma matrices rescaled by @f$\kappa@f$
-	 *	@param	gamin:				Gamma indices
-	 *	@param	sigval,sigval_f:	Double/float Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/2@f$
-	 * @param	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
-	 * @param	dk,dk_f:				Double/float @f$e^{-\mu}@f$ and @f$e^\mu@f$
-	 * @param 	jqq:					Diquark source
-	 *	@param	akappa:				Hopping parameter
-	 *	@param	beta:					Inverse gauge coupling
-	 *	@param	c_sw:					Clover coefficient. If non-zero calculate the clover contribution
-	 *	@param	ancg:					Counter for conjugate gradient iterations
+	 *	@param[in,out]	dSdpi:				The force
+	 *	@param[in]	iflag:				Invert before evaluating the force. 0 to invert, one not to. Blame FORTRAN...	
+	 *	@param[in]	res1:					Conjugate gradient residue
+	 *	@param[in]	X0:					Up/down partitioned pseudofermion field
+	 *	@param[in]	X1:					Holder for the partitioned fermion field, then the inverted dield
+	 *	@param[in]	Phi:					Pseudofermion field
+	 *	@param[in]	ut,ut_f:				Double/float precision colour fields
+	 *	@param[in]	iu,id:				Lattice indices
+	 *	@param[in]	gamval,gamval_f:	Double/float precision gamma matrices rescaled by @f$\kappa@f$
+	 *	@param[in]	gamin:				Gamma indices
+	 *	@param[in]	sigval,sigval_f:	Double/float Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/2@f$
+	 * @param[in]	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
+	 * @param[in]	dk,dk_f:				Double/float @f$e^{-\mu}@f$ and @f$e^\mu@f$
+	 * @param[in] 	jqq:					Diquark source
+	 *	@param[in]	akappa:				Hopping parameter
+	 *	@param[in]	beta:					Inverse gauge coupling
+	 *	@param[in]	c_sw:					Clover coefficient. If non-zero calculate the clover contribution
+	 *	@param[in]	ancg:					Counter for conjugate gradient iterations
 	 *
 	 *	@return Zero on success, integer error code otherwise
+	 *	@post	Force added to @p dSdpi 
 	 */
 	int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1, Complex *Phi,\
 			Complex *ut[2], Complex_f *ut_f[2],unsigned int *iu,unsigned int *id,\

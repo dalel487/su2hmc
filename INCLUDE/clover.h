@@ -70,7 +70,7 @@ int Clover_SU2plaq(Complex_f *ut[nc], Complex_f Leaves[nc], unsigned int *iu,  i
 /**
  *	@brief Calculates the products of the first two links in a plaquette
  *
- *	@param	hleaves:		Product of first two links
+ *	@param	hLeaves:		Product of first two links
  *	@param	ut:			Gauge fields
  *	@param	iu,id:		Upper and lower indices
  *	@param	mu,nu:		Clover direction
@@ -195,13 +195,14 @@ void CalcXmunu(Bilinear_a Xmunu, Complex_f *X1, Complex_f *X2, const Complex_f *
 /**
  *	@brief Gets the clover contribution to the force
  *
- *	@param	dSdpi:	Force
- *	@param	ut:		Gauge fields
- *	@param	X1:		Congrad output @f$\left(M^\dagger M\right)\Phi@f$
- *	@param	X2:		@f$M\left(M^\dagger M\right)^{-1}\Phi@f$
- *	@param	sigval:	@f$\sigma_{\mu\nu}@f$ scaled by @f$\frac{c_\text{SW}}{2}@f$
- *	@param	sigin:	Dirac index of @f$\sigma_{\mu\nu}@f$
- *	@param	iu,id:	Neighbouring sites
+ *	@param[in,out]	dSdpi:	Force
+ *	@param[in]	ut:		Gauge fields
+ *	@param[in]	X1:		Congrad output @f$\left(M^\dagger M\right)\Phi@f$
+ *	@param[in]	X2:		@f$M\left(M^\dagger M\right)^{-1}\Phi@f$
+ *	@param[in]	sigval:	@f$\sigma_{\mu\nu}@f$ scaled by @f$\frac{c_\text{SW}}{2}@f$
+ *	@param[in]	sigin:	Dirac index of @f$\sigma_{\mu\nu}@f$
+ *	@param[in]	iu,id:	Neighbouring sites
+ *	@param[in]	akappa:	Hopping parameter
  *	
  *	@post		Force contribution added to @p dSdpi
  */
@@ -248,13 +249,13 @@ int cuClover(Complex_f *clover[nc],Complex_f *ut[nc], unsigned int *iu, unsigned
 /**
  *	@brief CUDA wrapper for ByClover
  *
- *	@param	phi:		Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
- *	@param	r:			Pseudofermion field before multiplication. The thing we want to multiply by the clover
- *	@param	clover:	Array of clovers
- *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
- *	@param	akappa:	Hopping Parameter
- * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
- * @param	dag:		Daggered has no MPI halo, but undaggered does.
+ *	@param[in,out]	phi:		Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
+ *	@param[in]	r:			Pseudofermion field before multiplication. The thing we want to multiply by the clover
+ *	@param[in]	clover:	Array of clovers
+ *	@param[in]	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
+ *	@param[in]	akappa:	Hopping Parameter
+ * @param[in]	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param[in]	dag:		Daggered has no MPI halo, but undaggered does.
  *
  * @post		Result added to @p phi
  */
@@ -262,13 +263,13 @@ void cuByClover(Complex *phi, Complex *r, Complex *clover[nc],Complex *sigval, c
 /**
  *	@brief CUDA wrapper for HbyClover
  *
- *	@param	phi:		Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
- *	@param	r:			Pseudofermion field before multiplication. The thing we want to multiply by the clover
- *	@param	clover:	Array of clovers
- *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
- *	@param	akappa:	Hopping Parameter
- * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
- * @param	dag:		Daggered has no MPI halo, but undaggered does.
+ *	@param[in,out]	phi:		Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
+ *	@param[in]	r:			Pseudofermion field before multiplication. The thing we want to multiply by the clover
+ *	@param[in]	clover:	Array of clovers
+ *	@param[in]	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
+ *	@param[in]	akappa:	Hopping Parameter
+ * @param[in]	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param[in]	dag:		Daggered has no MPI halo, but undaggered does.
  *
  * @post		Result added to @p phi
  */
@@ -276,12 +277,13 @@ void cuHbyClover(Complex *phi, Complex *r, Complex *clover[nc],Complex *sigval, 
 /**
  *	@brief CUDA wrapper for ByClover_f
  *
- *	@param	phi:		Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
- *	@param	r:			Pseudofermion field before multiplication. The thing we want to multiply by the clover
- *	@param	clover:	Array of clovers
- *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
- * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
- * @param	dag:		Daggered has no MPI halo, but undaggered does.
+ *	@param[in,out]	phi:		Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
+ *	@param[in]	r:			Pseudofermion field before multiplication. The thing we want to multiply by the clover
+ *	@param[in]	clover:	Array of clovers
+ *	@param[in]	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
+ *	@param[in]	akappa:	Hopping Parameter
+ * @param[in]	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param[in]	dag:		Daggered has no MPI halo, but undaggered does.
  *
  * @post		Result added to @p phi
  */
@@ -289,13 +291,13 @@ void cuByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f 
 /**
  *	@brief CUDA wrapper for HbyClover_f
  *
- *	@param	phi:		Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
- *	@param	r:			Pseudofermion field before multiplication. The thing we want to multiply by the clover
- *	@param	clover:	Array of clovers
- *	@param	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
- *	@param	akappa:	Hopping Parameter
- * @param	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
- * @param	dag:		Daggered has no MPI halo, but undaggered does.
+ *	@param[in,out]	phi:		Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
+ *	@param[in]	r:			Pseudofermion field before multiplication. The thing we want to multiply by the clover
+ *	@param[in]	clover:	Array of clovers
+ *	@param[in]	sigval:	@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
+ *	@param[in]	akappa:	Hopping Parameter
+ * @param[in]	sigin:	What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param[in]	dag:		Daggered has no MPI halo, but undaggered does.
  *
  * @post		Result added to @p phi
  */
@@ -303,12 +305,12 @@ void cuHbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f
 /**
  *	@brief	CUDA wrapper for CalcXmunu. Only called during testing to be honest
  *
- *	@param	Xmunu:	All Xmunu values
- *	@param	X1:		Congrad output @f$\left(M^\dagger M\right)\Phi@f$
- *	@param	X2:		@f$M\left(M^\dagger M\right)^{-1}\Phi@f$
- *	@param	sigval:	@f$\sigma_{\mu\nu}@f$ scaled by @f$\frac{c_\text{SW}}{2}@f$
- *	@param	sigin:	Dirac index of @f$\sigma_{\mu\nu}@f$
- *	@param	mu,nu:	Lattice directions
+ *	@param[out]	Xmunu:	All Xmunu values
+ *	@param[in]	X1:		Congrad output @f$\left(M^\dagger M\right)\Phi@f$
+ *	@param[in]	X2:		@f$M\left(M^\dagger M\right)^{-1}\Phi@f$
+ *	@param[in]	sigval:	@f$\sigma_{\mu\nu}@f$ scaled by @f$\frac{c_\text{SW}}{2}@f$
+ *	@param[in]	sigin:	Dirac index of @f$\sigma_{\mu\nu}@f$
+ *	@param[in]	mu,nu:	Lattice directions
  *
  *	@post	Bilinears written to @p Xmunu
  */
@@ -317,14 +319,14 @@ void cuCalcXmunu(Bilinear_a Xmunu, Complex_f *X1, Complex_f *X2, const Complex_f
 /**
  *	@brief	CUDA wrapper for Clover_Force
  *
- *	@param	dSdpi:		Force
- *	@param	u11t,u12t:	Gauge fields
- *	@param	X1:			@f$\left(M^\dagger M\right)^{-1} \Psi@f$
- *	@param	X2:			@f$M\left(M^\dagger M\right)^{-1} \Psi@f$
- *	@param	sigval:		@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$c_sw@f$
- * @param	sigin:		What element of the spinor is multiplied by row idirac each sigma matrix?
- * @param	iu,id:		Up/down indices
- * @param	kappa:		Hopping parameter
+ *	@param[in,out]	dSdpi:		Force
+ *	@param[in]	u11t,u12t:	Gauge fields
+ *	@param[in]	X1:			@f$\left(M^\dagger M\right)^{-1} \Psi@f$
+ *	@param[in]	X2:			@f$M\left(M^\dagger M\right)^{-1} \Psi@f$
+ *	@param[in]	sigval:		@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$c_sw@f$
+ * @param[in]	sigin:		What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param[in]	iu,id:		Up/down indices
+ * @param[in]	kappa:		Hopping parameter
  *	
  *	@post		Force contribution added to @p dSdpi
  */

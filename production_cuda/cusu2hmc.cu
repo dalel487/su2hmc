@@ -17,11 +17,6 @@ dim3 dimGrid= dim3(1,1,1);
 cudaStream_t streams[ndirac*ndim*nadj];
 
 //Device function
-/**
- * @brief 		Complex conjugation
- * @param z:	Complex number to be conjugated
- * @return: 	Conjugated complex number
- */
 template <typename T>
 __device__ __forceinline__ T conj(const T& z){
 	return T(z.real(),-z.imag());

@@ -217,36 +217,152 @@ extern "C"
 
 #ifdef __NVCC__
 	//Calling Functions
-	void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
-			Complex gamval[20], const unsigned short gamin[16], double *dk4m, double *dk4p, Complex_f jqq, float akappa,\
+	/**
+	 * @brief GPU calling wrapper for @f$\Phi=M r@f$ in double precision.
+	 *
+	 * @param[out]	phi:			The product
+	 * @param[in]	r:				The array being acted on by M
+	 * @param[in]	ut:			Gauge field
+	 *	@param[in]	iu,id:		Upper/lower halo indices
+	 *	@param[in]	gamval:		Gamma matrices rescaled by kappa
+	 *	@param[in]	gamin:		Indices for dirac terms
+	 * @param[in]	dk:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
+	 *	@param[in]	jqq:			Diquark source
+	 *	@param[in]	akappa:		Hopping parameter
+	 *	@param[in]	dimGrid,dimBlock:	CUDA grid/block
+	 *
+	 * @post		Result written to @p phi
+	 */
+	void cuDslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned int *id,\
+			Complex gamval[20], const unsigned short gamin[16], double *dk[nc], Complex_f jqq, float akappa,\
 			dim3 dimGrid, dim3 dimBlock);
-	void cuDslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
-			Complex gamval[20], const unsigned short gamin[16], double *dk4m, double *dk4p, Complex_f jqq, float akappa,\
+	/**
+	 * @brief GPU calling wrapper for @f$\Phi=M^\dagger r@f$ in double precision.
+	 *
+	 * @param[out]	phi:			The product
+	 * @param[in]	r:				The array being acted on by M
+	 * @param[in]	ut:			Gauge field
+	 *	@param[in]	iu,id:		Upper/lower halo indices
+	 *	@param[in]	gamval:		Gamma matrices rescaled by kappa
+	 *	@param[in]	gamin:		Indices for dirac terms
+	 * @param[in]	dk:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
+	 *	@param[in]	jqq:			Diquark source
+	 *	@param[in]	akappa:		Hopping parameter
+	 *	@param[in]	dimGrid,dimBlock:	CUDA grid/block
+	 *
+	 * @post		Result written to @p phi
+	 */
+	void cuDslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned int *id,\
+			Complex gamval[20], const unsigned short gamin[16], double *dk[nc], Complex_f jqq, float akappa,\
 			dim3 dimGrid, dim3 dimBlock);
-	void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
-			Complex gamval[20], const unsigned short gamin[16], double *dk4m, double *dk4p, float akappa,dim3 dimGrid, dim3 dimBlock);
-	void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
-			Complex gamval[20], const unsigned short gamin[16], double *dk4m, double *dk4p, float akappa, dim3 dimGrid, dim3 dimBlock);
+	/**
+	 * @brief GPU calling wrapper for @f$\Phi=M^\dagger r@f$ in double precision.
+	 *
+	 * @param[out]	phi:			The product
+	 * @param[in]	r:				The array being acted on by M
+	 * @param[in]	ut:			Gauge field
+	 *	@param[in]	iu,id:		Upper/lower halo indices
+	 *	@param[in]	gamval:		Gamma matrices rescaled by kappa
+	 *	@param[in]	gamin:		Indices for dirac terms
+	 * @param[in]	dk:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
+	 *	@param[in]	akappa:		Hopping parameter
+	 *	@param[in]	dimGrid,dimBlock:	CUDA grid/block
+	 *
+	 * @post		Result written to @p phi
+	 */
+	void cuHdslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned int *id,\
+			Complex gamval[20], const unsigned short gamin[16], double *dk[nc], float akappa,dim3 dimGrid, dim3 dimBlock);
+	/**
+	 * @brief GPU calling wrapper for @f$\Phi=M^\dagger r@f$ in double precision.
+	 *
+	 * @param[out]	phi:			The product
+	 * @param[in]	r:				The array being acted on by M
+	 * @param[in]	ut:			Gauge field
+	 *	@param[in]	iu,id:		Upper/lower halo indices
+	 *	@param[in]	gamval:		Gamma matrices rescaled by kappa
+	 *	@param[in]	gamin:		Indices for dirac terms
+	 * @param[in]	dk:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
+	 *	@param[in]	akappa:		Hopping parameter
+	 *	@param[in]	dimGrid,dimBlock:	CUDA grid/block
+	 *
+	 * @post		Result written to @p phi
+	 */
+	void cuHdslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned int *id,\
+			Complex gamval[20], const unsigned short gamin[16], double *dk[nc], float akappa, dim3 dimGrid, dim3 dimBlock);
 	//Float version
-	void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
-			Complex_f gamval_f[20], const unsigned short gamin[16], float *dk4m_f, float *dk4p_f, Complex_f jqq_f, float akappa_f,\
+	/**
+	 * @brief GPU calling wrapper for @f$\Phi=M^\dagger r@f$ in double precision.
+	 *
+	 * @param[out]	phi:			The product
+	 * @param[in]	r:				The array being acted on by M
+	 * @param[in]	ut:			Gauge field
+	 *	@param[in]	iu,id:		Upper/lower halo indices
+	 *	@param[in]	gamval:		Gamma matrices rescaled by kappa
+	 *	@param[in]	gamin:		Indices for dirac terms
+	 * @param[in]	dk:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
+	 *	@param[in]	jqq:			Diquark source
+	 *	@param[in]	akappa:		Hopping parameter
+	 *	@param[in]	dimGrid,dimBlock:	CUDA grid/block
+	 *
+	 * @post		Result written to @p phi
+	 */
+	void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,unsigned int *id,\
+			Complex_f gamval[20], const unsigned short gamin[16], float *dk[nc], Complex_f jqq, float akappa,\
 			dim3 dimGrid, dim3 dimBlock);
-	void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t_f, Complex_f *u12t_f,unsigned int *iu,unsigned int *id,\
-			Complex_f gamval_f[20],const unsigned short gamin[16], float *dk4m_f, float *dk4p_f, Complex_f jqq_f, float akappa_f,\
+	/**
+	 * @brief GPU calling wrapper for @f$\Phi=M^\dagger r@f$ in double precision.
+	 *
+	 * @param[out]	phi:			The product
+	 * @param[in]	r:				The array being acted on by M
+	 * @param[in]	ut:			Gauge field
+	 *	@param[in]	iu,id:		Upper/lower halo indices
+	 *	@param[in]	gamval:		Gamma matrices rescaled by kappa
+	 *	@param[in]	gamin:		Indices for dirac terms
+	 * @param[in]	dk:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
+	 *	@param[in]	jqq:			Diquark source
+	 *	@param[in]	akappa:		Hopping parameter
+	 *	@param[in]	dimGrid,dimBlock:	CUDA grid/block
+	 *
+	 * @post		Result written to @p phi
+	 */
+	void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,unsigned int *id,\
+			Complex_f gamval[20],const unsigned short gamin[16], float *dk[nc], Complex_f jqq, float akappa,\
 			dim3 dimGrid, dim3 dimBlock);
-	void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut_f[2],unsigned int *iu,unsigned int *id,\
-			Complex_f gamval_f[20],const unsigned short gamin[16], float *dk_f[2], float akappa_f,dim3 dimGrid, dim3 dimBlock);
-	void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut_f[2],unsigned int *iu,unsigned int *id,\
-			Complex_f gamval_f[20],const unsigned short gamin[16], float *dk_f[2], float akappa_f, dim3 dimGrid, dim3 dimBlock);
+	/**
+	 * @brief GPU calling wrapper for @f$\Phi=M r@f$ in single precision
+	 *
+	 * @param[out]	phi:		The product
+	 * @param[in]	r:			The array being acted on by M
+	 * @param[in]	ut:		Gauge field
+	 *	@param[in]	iu,id:	Upper/lower halo indices
+	 *	@param[in]	gamval:	Gamma matrices rescaled by kappa
+	 *	@param[in]	gamin:	Indices for dirac terms
+	 * @param[in]	dk:		@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
+	 *	@param[in]	akappa:	Hopping parameter
+	 *	@param[in]	dimGrid,dimBlock:	CUDA grid/block
+	 *
+	 * @post		Result written to @p phi
+	 */
+	void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,unsigned int *id,\
+			Complex_f gamval[20],const unsigned short gamin[16], float *dk[nc], float akappa,dim3 dimGrid, dim3 dimBlock);
+	/**
+	 * @brief GPU calling wrapper for @f$\Phi=M^\dagger r@f$ in single precision
+	 *
+	 * @param[out]	phi:		The product
+	 * @param[in]	r:			The array being acted on by M
+	 * @param[in]	ut:		Gauge field
+	 *	@param[in]	iu,id:	Upper/lower halo indices
+	 *	@param[in]	gamval:	Gamma matrices rescaled by kappa
+	 *	@param[in]	gamin:	Indices for dirac terms
+	 * @param[in]	dk:		@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
+	 *	@param[in]	akappa:	Hopping parameter
+	 *	@param[in]	dimGrid,dimBlock:	CUDA grid/block
+	 *
+	 * @post		Result written to @p phi
+	 */
+	void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,unsigned int *id,\
+			Complex_f gamval[20],const unsigned short gamin[16], float *dk[nc], float akappa, dim3 dimGrid, dim3 dimBlock);
 
-/**
- * @brief Performs a block reduction for sum
- *
- * @param g_in_data:		The input global data array
- * @param g_out_data:	The output global data array
- * @param n:				The size of the input array
- *
- */
 	/**
 	 * @brief	Sum all terms in an array of doubles
 	 * @param	input:	Input array
@@ -277,15 +393,6 @@ extern "C"
 	 * @post	Result overwrites existing @p out with transposed array
 	 */
 	void cuTranspose_z(Complex *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
-	/**
-	 * @brief In place transpose
-	 *
-	 * @param[out]	out: The array being transposed
-	 * @param[in]	fast_in:	The old outermost/fastest index
-	 * @param[in]	fast_out:	The new outermost/fastest index
-	 * @param dimGrid:	CUDA grid
-	 * @param dimBlock:	CUDA block
-	 */
 	/**
 	 * @brief In place transpose used to convert from AoS to SoA memory layout
 	 *

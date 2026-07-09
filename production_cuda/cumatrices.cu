@@ -598,8 +598,8 @@ double cureduce_sum_d(double *input, const unsigned int n,const unsigned short s
 	cudaFreeAsync(cacheout,streams[stream]);
 	return output;
 }
-void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
-		Complex gamval[20], const unsigned short gamin[16],	double *dk4m, double *dk4p, Complex_f jqq, float akappa,\
+void cuDslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned int *id,\
+		Complex gamval[20], const unsigned short gamin[16], double *dk[nc], Complex_f jqq, float akappa,\
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslash";
 	int cuCpyStat=0;
@@ -609,10 +609,11 @@ void cuDslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned in
 					CPYERROR,funcname,cuCpyStat);
 			exit(cuCpyStat);
 		}
-	Kernels::cuDslash<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
+	Kernels::cuDslash<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa);
+	return;
 }
-void cuDslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
-		Complex gamval[20], const unsigned short gamin[16],	double *dk4m, double *dk4p, Complex_f jqq, float akappa,\ 
+void cuDslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned int *id,\
+		Complex gamval[20], const unsigned short gamin[16], double *dk[nc], Complex_f jqq, float akappa,\ 
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslashd";
 	int cuCpyStat=0;
@@ -622,10 +623,11 @@ void cuDslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned i
 					CPYERROR,funcname,cuCpyStat);
 			exit(cuCpyStat);
 		}
-	Kernels::cuDslashd<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
+	Kernels::cuDslashd<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa);
+	return;
 }
-void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
-		Complex gamval[20], const unsigned short gamin[16],	double *dk4m, double *dk4p, float akappa,\ 
+void cuHdslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned int *id,\
+		Complex gamval[20], const unsigned short gamin[16], double *dk[nc], float akappa,\ 
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Hdslash";
 	int cuCpyStat=0;
@@ -635,10 +637,11 @@ void cuHdslash(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned i
 					CPYERROR,funcname,cuCpyStat);
 			exit(cuCpyStat);
 		}
-	Kernels::cuHdslash<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
+	Kernels::cuHdslash<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa);
+	return;
 }
-void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned int *iu,unsigned int *id,\
-		Complex gamval[20], const unsigned short gamin[16],double *dk4m, double *dk4p, float akappa,\ 
+void cuHdslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned int *id,\
+		Complex gamval[20], const unsigned short gamin[16],double *dk[nc], float akappa,\ 
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Hdslashd";
 	//Spacelike term
@@ -649,12 +652,13 @@ void cuHdslashd(Complex *phi, Complex *r, Complex *u11t, Complex *u12t,unsigned 
 					CPYERROR,funcname,cuCpyStat);
 			exit(cuCpyStat);
 		}
-	Kernels::cuHdslashd<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,akappa);
+	Kernels::cuHdslashd<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa);
+	return;
 }
 
 //Float editions
-void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
-		Complex_f gamval[20],const unsigned short gamin[16],	float *dk4m, float *dk4p, Complex_f jqq, float akappa,\ 
+void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,unsigned int *id,\
+		Complex_f gamval[20],const unsigned short gamin[16],	float *dk[nc], Complex_f jqq, float akappa,\ 
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslash_f";
 	int cuCpyStat=0;
@@ -664,10 +668,11 @@ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,u
 					CPYERROR,funcname,cuCpyStat);
 			exit(cuCpyStat);
 		}
-	Kernels::cuDslash<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
+	Kernels::cuDslash<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa);
+	return;
 }
-void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,unsigned int *iu,unsigned int *id,\
-		Complex_f gamval[20],const unsigned short gamin[16],	float *dk4m, float *dk4p, Complex_f jqq, float akappa,\ 
+void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,unsigned int *id,\
+		Complex_f gamval[20],const unsigned short gamin[16],	float *dk[nc], Complex_f jqq, float akappa,\ 
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslashd_f";
 	int cuCpyStat=0;
@@ -677,10 +682,11 @@ void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *u11t, Complex_f *u12t,
 					CPYERROR,funcname,cuCpyStat);
 			exit(cuCpyStat);
 		}
-	Kernels::cuDslashd<<<dimGrid,dimBlock>>>(phi,r,u11t,u12t,iu,id,gamval,gamin,dk4m,dk4p,jqq,akappa);
+	Kernels::cuDslashd<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa);
+	return;
 }
-void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,unsigned int *id, Complex_f gamval[20],
-		const unsigned short gamin[16],	float *dk[2], float akappa, dim3 dimGrid, dim3 dimBlock){
+void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,unsigned int *id, Complex_f gamval[20],
+		const unsigned short gamin[16],	float *dk[nc], float akappa, dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Hdslash_f";
 	int cuCpyStat=0;
 	for(unsigned short j=0;j<nc*ndirac;j++)
@@ -692,9 +698,10 @@ void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu
 	const int bsize=dimGrid.x*dimGrid.y*dimGrid.z;
 	const int shareSize= ndim*bsize*nc*sizeof(Complex_f);
 	Kernels::cuHdslash<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa);
+	return;
 }
-void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *iu,unsigned int *id,
-		Complex_f gamval[20],const unsigned short gamin[16],float *dk[2], float akappa,dim3 dimGrid, dim3 dimBlock){
+void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,unsigned int *id,
+		Complex_f gamval[20],const unsigned short gamin[16],float *dk[nc], float akappa,dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Hdslashd_f";
 	int cuCpyStat=0;
 	for(unsigned short j=0;j<nc*ndirac;j++)
@@ -704,6 +711,7 @@ void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[2],unsigned int *i
 			exit(cuCpyStat);
 		}
 	Kernels::cuHdslashd<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa);
+	return;
 }
 
 void cuTranspose_z(Complex *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock){
