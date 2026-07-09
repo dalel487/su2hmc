@@ -107,6 +107,7 @@ void Force_t(double *dSdpi, Complex_f *ut[2],Complex_f *X1, Complex_f *X2, Compl
 	 * @param	fmu:					Chemical potential
 	 * @param	akappa:				Hopping parameter
 	 * @param	ajq:					Diquark source
+	 * @param	c_sw:					Clover coefficient
 	 * @param	u:						Gauge fields
 	 * @param	ut,ut_f:				Double/float Trial gauge field
 	 * @param	dk,dk_f:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)^\mu@f$
@@ -119,9 +120,10 @@ void Force_t(double *dSdpi, Complex_f *ut[2],Complex_f *X1, Complex_f *X2, Compl
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
-	int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa, Complex_f ajq,\
-			Complex *u[2], Complex *ut[2], Complex_f *ut_f[2], Complex gamval[20], Complex_f gamval_f[20],unsigned short gamin[16], 
-			double *dk[2], float *dk_f[2], unsigned int *iu, unsigned int *id);
+int Init(const int istart, const int ibound, const int iread, const float beta, const float fmu, const float akappa,\
+			const Complex_f ajq, const float c_sw, Complex *u[2], Complex *ut[2], Complex_f *ut_f[2], Complex gamval[20],\
+			Complex_f gamval_f[20], unsigned short gamin[16], double *dk[2], float *dk_f[2],\
+			unsigned int *iu, unsigned int *id);
 	/**
 	 * @brief Calculate the Hamiltonian
 	 *

@@ -262,7 +262,7 @@ int main(int argc, char *argv[]){
 	 *
 	 * istart > 0: Random/Hot Start
 	 */
-	Init(istart,ibound,iread,beta,fmu,akappa,ajq,u,ut,ut_f,gamval,gamval_f,gamin,dk,dk_f,iu,id);
+	Init(istart,ibound,iread,beta,fmu,akappa,ajq,c_sw,u,ut,ut_f,gamval,gamval_f,gamin,dk,dk_f,iu,id);
 	if(c_sw)
 		Init_clover(&sigval,&sigval_f,&sigin,c_sw);
 
@@ -782,7 +782,7 @@ int main(int argc, char *argv[]){
 						}
 		}
 		if(itraj%icheck==0){
-			Par_swrite(itraj,icheck,beta,fmu,akappa,ajq,u[0],u[1]);
+			Par_swrite(itraj,icheck,beta,fmu,akappa,ajq,c_sw,u[0],u[1]);
 		}
 		if(!rank)
 			fflush(output);

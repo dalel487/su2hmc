@@ -20,19 +20,8 @@ int pstop [ndim][nproc] __attribute__((aligned(AVX)));
 int rank, size;
 int pu[ndim] __attribute__((aligned(AVX)));
 int pd[ndim] __attribute__((aligned(AVX))); 
-int Par_begin(int argc, char *argv[]){
-	/* Initialises the MPI configuration
-	 *
-	 * Parameters:
-	 * ---------
-	 * int argc	Number of arguments given to the programme
-	 * char *argv[]	Array of arguments
-	 *
-	 * Returns:
-	 * -------
-	 * Zero on success, integer error code otherwise.
-	 */
 
+int Par_begin(int argc, char *argv[]){
 	//TODO: Remove as much non-MPI stuff from here as possible
 	const char funcname[] = "Par_begin";
 	int size;
@@ -123,20 +112,7 @@ int Par_begin(int argc, char *argv[]){
 	return 0;
 }	
 int Par_sread(const int iread, const float beta, const float fmu, const float akappa, const Complex_f ajq,\
-		Complex *u11, Complex *u12, Complex *u11t, Complex *u12t){
-	/*
-	 * @brief Reads and assigns the gauges from file
-	 *	
-	 *	@param	iread:		Configuration to read in
-	 *	@param	beta:			Inverse gauge coupling
-	 *	@param   fmu:			Chemical potential
-	 *	@param	akappa:		Hopping parameter
-	 *	@param	ajq:			Diquark source
-	 *	@param	u11,u12:		Gauge fields
-	 *	@param	u11t,u12t:	Trial fields
-	 * 
-	 * @return	Zero on success, integer error code otherwise
-	 */
+		const float c_sw, Complex *u11, Complex *u12, Complex *u11t, Complex *u12t){
 	const char funcname[] = "Par_sread";
 #if(nproc>1)
 	MPI_Status status;
@@ -168,6 +144,12 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 		buffer = (int)round(1000*creal(ajq));
 		sprintf(buff2,"j%03d",buffer);
 		strcat(gauge_file,buff2);
+		//c_sw
+		if(c_sw!=0){
+			buffer = (int)round(100*c_sw);
+			sprintf(buff2,"c%02d",buffer);
+			strcat(gauge_file,buff2);
+		}
 		//nx
 		sprintf(buff2,"s%02d",nx);
 		strcat(gauge_file,buff2);
@@ -340,22 +322,7 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 	return 0;
 }
 int Par_swrite(const int itraj, const int icheck, const float beta, const float fmu, const float akappa, 
-		const Complex_f ajq, Complex *u11, Complex *u12){
-	/*
-	 * @brief	Copies u11 and u12 into arrays without halos which then get written to output
-	 *
-	 * Modified from an original version of swrite in FORTRAN
-	 *	
-	 *	@param	itraj:		Trajectory to write
-	 *	@param	icheck:		Not currently used but haven't gotten around to removing it
-	 *	@param	beta:			Inverse gauge coupling
-	 *	@param   fmu:			Chemical potential
-	 *	@param	akappa:		Hopping parameter
-	 *	@param	ajq:			Diquark source
-	 *	@param	u11,u12:		Gauge fields
-	 * 
-	 * @return	Zero on success, integer error code otherwise
-	 */
+		const float c_sw, const Complex_f ajq, Complex *u11, Complex *u12){
 	const char funcname[] = "par_swrite";
 #if (nproc>1)
 	MPI_Status status;
@@ -479,6 +446,12 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 		buffer = (int)round(1000*creal(ajq));
 		sprintf(buff2,"j%03d",buffer);
 		strcat(gauge_title,buff2);
+		//c_sw
+		if(c_sw!=0){
+			buffer = (int)round(100*c_sw);
+			sprintf(buff2,"c%02d",buffer);
+			strcat(gauge_title,buff2);
+		}
 		//nx
 		sprintf(buff2,"s%02d",nx);
 		strcat(gauge_title,buff2);

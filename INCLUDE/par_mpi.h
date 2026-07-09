@@ -99,13 +99,14 @@ extern "C"
 	 *	@param   fmu:			Chemical potential
 	 *	@param	akappa:		Hopping parameter
 	 *	@param	ajq:			Diquark source
+	 *	@param	c_sw:			Clover coefficient
 	 *	@param	u11,u12:		Gauge fields
 	 *	@param	u11t,u12t:	Trial fields
 	 * 
 	 * @return	Zero on success, integer error code otherwise
 	 */
 	int Par_sread(const int iread, const float beta, const float fmu, const float akappa, const Complex_f ajq,\
-			Complex *u11, Complex *u12, Complex *u11t, Complex *u12t);
+			const float c_sw, Complex *u11, Complex *u12, Complex *u11t, Complex *u12t);
 	/**
 	 * @brief	Copies u11 and u12 into arrays without halos which then get written to output
 	 *
@@ -117,12 +118,13 @@ extern "C"
 	 *	@param   fmu:			Chemical potential
 	 *	@param	akappa:		Hopping parameter
 	 *	@param	ajq:			Diquark source
+	 *	@param	c_sw:			Clover coefficient
 	 *	@param	u11,u12:		Gauge fields
 	 * 
 	 * @return	Zero on success, integer error code otherwise
 	 */
 	int Par_swrite(const int itraj, const int icheck, const float beta, const float fmu, const float akappa,\
-			const Complex_f ajq,	Complex *u11, Complex *u12);
+			const float c_sw, const Complex_f ajq,	Complex *u11, Complex *u12);
 	//Shortcuts for reductions and broadcasts. These should be inlined
 	/**
 	 * @brief	Performs a reduction on an integer ival to get a sum which is

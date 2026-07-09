@@ -7,9 +7,10 @@
 #include <clover.h>
 #include	<matrices.h>
 
-int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa, Complex_f ajq,\
-		Complex *u[2], Complex *ut[2], Complex_f *ut_f[2], Complex gamval[20], Complex_f gamval_f[20],
-		unsigned short gamin[16], double *dk[2], float *dk_f[2], unsigned int *iu, unsigned int *id){
+int Init(const int istart, const int ibound, const int iread, const float beta, const float fmu, const float akappa,\
+			const Complex_f ajq, const float c_sw, Complex *u[2], Complex *ut[2], Complex_f *ut_f[2], Complex gamval[20],\
+			Complex_f gamval_f[20], unsigned short gamin[16], double *dk[2], float *dk_f[2],\
+			unsigned int *iu, unsigned int *id){
 	const char funcname[] = "Init";
 
 #ifdef _OPENMP
@@ -98,7 +99,7 @@ int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa,
 
 	if(iread){
 		if(!rank) printf("Calling Par_sread() for configuration: %i\n", iread);
-		Par_sread(iread, beta, fmu, akappa, ajq,u[0],u[1],ut[0],ut[1]);
+		Par_sread(iread, beta, fmu, akappa, ajq,c_sw,u[0],u[1],ut[0],ut[1]);
 		Par_ranset(&seed,iread);
 	}
 	else{
