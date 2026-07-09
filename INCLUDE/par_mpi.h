@@ -284,6 +284,27 @@ extern "C"
 	 */
 	int DHalo_swap_dir(double *d, int ncpt, int idir, int layer);
 	/**
+	 * @brief Calls the functions to send data to both the up and down halos
+	 *
+	 * @param	d:		The data being sent
+	 * @param	ncpt:	Number of components being sent
+	 *
+	 * @return	Zero on success, integer error code otherwise
+	 */
+	int SHalo_swap_all(float *d, int ncpt);
+	/**
+	 * @brief	Swaps the halos along the axis given by idir in the direction
+	 * given by layer
+	 *
+	 *  @param	d:			The data being moved about. It should be an array of dimension [kvol+halo][something else]
+	 *  @param	ncpt: 	Number of components being sent
+	 *  @param	idir:		The axis being moved along in C Indexing
+	 *  @param	layer:	Either DOWN (0) or UP (1)
+	 *
+	 *  @return Zero on success, Integer Error code otherwise
+	 */
+	int SHalo_swap_dir(float *d, int ncpt, int idir, int layer);
+	/**
 	 *	@brief Exchanges the trial fields.
 	 *
 	 *	I noticed that this halo exchange was happening

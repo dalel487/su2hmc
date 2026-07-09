@@ -1176,6 +1176,129 @@ int DHalo_swap_dir(double *d, int ncpt, int idir, int layer){
 	}	
 	return 0;
 }
+inline int SHalo_swap_all(float *d, int ncpt){
+	/*
+	 * Calls the functions to send data to both the up and down halos
+	 *
+	 * Parameters:
+	 * -----------
+	 * Complex z:	The data being sent
+	 * int	ncpt:	Number of components being sent
+	 *
+	 * Returns:
+	 * -------
+	 * Zero on success, integer error code otherwise
+	 */
+	const char funcname[] = "SHalo_swap_all";
+
+	//FORTRAN called zdnhaloswapall and zuphaloswapall here
+	//Those functions looped over the directions and called zXXhaloswapdir
+	//As the only place they are called in the FORTRAN code is right here,
+	//I'm going to omit them entirely and just put the direction loop here
+	//instead
+	//Unrolling the loop so we can have pre-processor directives for each dimension
+#if(npx>1)
+	SHalo_swap_dir(d, ncpt, 0, DOWN);
+	SHalo_swap_dir(d, ncpt, 0, UP);			
+#endif
+#if(npy>1)
+	SHalo_swap_dir(d, ncpt, 1, DOWN);
+	SHalo_swap_dir(d, ncpt, 1, UP);			
+#endif
+#if(npz>1)
+	SHalo_swap_dir(d, ncpt, 2, DOWN);
+	SHalo_swap_dir(d, ncpt, 2, UP);			
+#endif
+#if(npt>1)
+	SHalo_swap_dir(d, ncpt, 3, DOWN);
+	SHalo_swap_dir(d, ncpt, 3, UP);			
+#endif
+	return 0;
+}
+int SHalo_swap_dir(float *d, int ncpt, int idir, int layer){
+	/*
+	 * Swaps the halos along the axis given by idir in the direction
+	 * given by layer
+	 *
+	 * Parameters:
+	 * -----------
+	 *  float	*d:	The data being moved about
+	 *  int		ncpt:	Number of components being sent
+	 *  int		idir:	The axis being moved along
+	 *  int		layer:	Either DOWN (0) or UP (1)
+	 *
+	 *  Returns:
+	 *  -------
+	 *  Zero on success, Integer Error code otherwise
+	 */
+	const char funcname[] = "SHalo_swap_dir";
+	//How big is the data being sent and received
+	if(layer!=DOWN && layer!=UP){
+		fprintf(stderr, "Error %i in %s: Cannot swap in the direction given by %i.\nExiting...\n\n",
+				LAYERROR, funcname, layer);
+		MPI_Abort(comm,LAYERROR);
+	}
+	//#pragma omp parallel for
+	for(unsigned short icpt=0;icpt<ncpt;icpt++){
+#ifdef _DEBUG_MPI
+		printf("Rank %d: Function %s: dir: %d icpt= %d of %d\n",rank, funcname, idir, icpt,ncpt);
+#endif
+		//Implement the switch. The code is taken from the end of the dedicated functions in the FORTRAN code.
+		MPI_Request req; MPI_Status stat;
+		float *sendbuff = (float *)aligned_alloc(AVX,halosize[idir]*sizeof(float));
+		switch(layer){
+			case(DOWN):
+				if(halosize[idir]+h1u[idir]>kvol+halo){
+					fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
+							"a memory leak on rank %i.\nExiting...\n\n"
+							,BOUNDERROR, funcname, halosize[idir], ncpt*h1u[idir], rank);
+					MPI_Abort(comm,BOUNDERROR);
+				}
+				//In each case we set up the data being sent then do the exchange
+#pragma omp simd aligned(sendbuff,d:AVX)
+				for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
+					sendbuff[ihalo]=d[hd[ndim*ihalo+idir]+kvolHalo*icpt];
+				//For the sdnhaloswapdir we send off the down halo and receive into the up halo
+				if(MPI_Isend(sendbuff, halosize[idir], MPI_FLOAT, pd[idir], icpt, comm, &req)){
+					fprintf(stderr, "Error %i in %s: Failed to send off the down halo from rank %i to rank %i.\nExiting...\n\n",
+							CANTSEND, funcname, rank, pd[idir]);
+					MPI_Abort(comm,CANTSEND);
+				}
+				if(MPI_Recv(d+h1u[idir]+kvolHalo*icpt, halosize[idir], MPI_FLOAT, pu[idir], icpt, comm, &stat)){
+					fprintf(stderr, "Error %i in %s: Rank %i failed to receive into up halo from rank %i.\nExiting...\n\n",
+							CANTRECV, funcname, rank, pu[idir]);
+					MPI_Abort(comm,CANTRECV);
+				}
+				break;
+			case(UP):
+				if(halosize[idir]+h1d[idir]>kvol+halo){
+					fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
+							"a memory leak on rank %i.\nExiting...\n\n"
+							,BOUNDERROR, funcname, halosize[idir], ncpt*h1d[idir], rank);
+					MPI_Abort(comm,BOUNDERROR);
+				}
+#pragma omp simd aligned(sendbuff,d:AVX)
+				//In each case we set up the data being sent then do the exchange
+				for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
+					sendbuff[ihalo]=d[hu[ndim*ihalo+idir]+kvolHalo*icpt];
+				//For the suphaloswapdir we send off the up halo and receive into the down halo
+				if(MPI_Isend(sendbuff, halosize[idir], MPI_FLOAT, pu[idir], icpt, comm, &req)){
+					fprintf(stderr,"Error %i in %s: Failed to send off the up halo from rank %i to rank %i.\nExiting...\n\n",
+							CANTSEND, funcname, rank, pu[idir]);
+					MPI_Abort(comm,CANTSEND);
+				}
+				if(MPI_Recv(d+h1d[idir]+kvolHalo*icpt, halosize[idir], MPI_FLOAT, pd[idir], icpt, comm, &stat)){
+					fprintf(stderr, "Error %i in %s: Rank %i failed to receive into doww halo from rank %i.\nExiting...\n\n",
+							CANTRECV, funcname, rank, pd[idir]);
+					MPI_Abort(comm,CANTRECV);
+				}
+				break;
+		}
+		MPI_Wait(&req, &stat);
+		free(sendbuff);
+	}	
+	return 0;
+}
 #endif
 int Trial_Exchange(Complex *ut[2],Complex_f *ut_f[2]){
 	/*

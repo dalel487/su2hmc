@@ -552,7 +552,7 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 				Xmn[clov].offd=(Complex_f *)aligned_alloc(AVX,kvolHalo*sizeof(Complex_f));
 				CalcXmunu(Xmn[clov],X1,X2,sigval,sigin,mu,nu);
 #if(nproc>1)
-				CHalo_swap_all(Xmn[clov].diag,2);
+				SHalo_swap_all(Xmn[clov].diag,2);
 				CHalo_swap_all(Xmn[clov].offd,1);
 #endif
 			}
