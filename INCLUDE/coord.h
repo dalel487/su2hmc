@@ -66,7 +66,7 @@ extern "C"
 	 * @todo	Future... Switch for Row and column major, and zero or one indexing
 	 */
 	int ia(int x,int y,int z, int t);
-	/** Checks that the addresses are within bounds before an update
+	/** @brief Checks that the addresses are within bounds before an update
 	 *
 	 * @param[in]	table:	Pointer to the table in question
 	 * @param[in]	lns:		Size of each spacial dimension

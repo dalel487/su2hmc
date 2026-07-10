@@ -137,9 +137,9 @@ extern "C"
 	 * @param[in]	Phi:			Pseudofermion field
 	 * @param[in]	ut,ud:		Gauge fields (single/double precision)
 	 * @param[in]	iu,id:		Lattice indices
-	 *	@param[in]	gamval/gamval_f:	Gamma matrices rescaled by kappa
+	 *	@param[in]	gamval,gamval_f:	Gamma matrices rescaled by kappa
 	 * @param[in]	gamin:		Gamma indices
-	 *	@param[in]	sigval/sigval_f:	Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/3@f$
+	 *	@param[in]	sigval,sigval_f:	Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/3@f$
 	 * @param[in]	sigin:		What element of the spinor is multiplied by row idirac each sigma matrix?
 	 * @param[in]	dk,dk_f:		@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$ float
 	 * @param[in]	jqq:			Diquark source
@@ -233,7 +233,7 @@ extern "C"
 	 *	@param[in]	itercg:						Iterations of Conjugate Gradient
 	 * @param[in]	ut,ut_f:						Double/float precision gauge field
 	 *	@param[in]	iu,id							Up/down Lattice indices
-	 *	@param[in]	gamval/gamval_f:			Double/float precision gamma matrices rescaled by kappa
+	 *	@param[in]	gamval,gamval_f:			Double/float precision gamma matrices rescaled by kappa
 	 *	@param[in]	gamin:						Indices for Dirac terms
 	 *	@param[in]	sigval,sigval_f:			Double/float Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/2@f$
 	 * @param[in]	sigin:						What element of the spinor is multiplied by row idirac each sigma matrix?
@@ -319,7 +319,7 @@ extern "C"
 	 */
 	int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu);
 	/**
-	 * Copies necessary (2*4*kvol) elements of Phi into a vector variable
+	 * @brief Copies necessary (2*4*kvol) elements of Phi into a vector variable
 	 *
 	 * @param[in]	na: 				flavour index
 	 * @param[out]	smallPhi:		The partitioned output
@@ -439,11 +439,11 @@ extern "C"
 	/**
 	 * @brief  Initialise CUDA cuInit was taken already by CUDA (unsurprisingly)
 	 * 
-	 * @param	u11t,u12t:			Trial gauge fields
-	 * @param	gamval,gamval_f:	Double/float precision gamma matrices rescaled by kappa
-	 * @param	gamin:				Gamma matrix indices
-	 * @param	dk4m,dk4p:			@f$e^{-\mu}@f$ and @f$e^\mu@f$
-	 * @param	iu,id:				Up/lower halo indices
+	 * @param[in]	u11t,u12t:			Trial gauge fields
+	 * @param[in]	gamval,gamval_f:	Double/float precision gamma matrices rescaled by kappa
+	 * @param[in]	gamin:				Gamma matrix indices
+	 * @param[in]	dk4m,dk4p:			@f$e^{-\mu}@f$ and @f$e^\mu@f$
+	 * @param[in]	iu,id:				Up/lower halo indices
 	 *
 	 * @todo CUDA 13 changed how setting devices work, so it's not just an integer any more. Those lines are commented out for now.
 	 * 		They are not critical. Only hints for unified memory management.
@@ -451,7 +451,7 @@ extern "C"
 	void Init_CUDA(Complex *u11t, Complex *u12t,Complex gamval[20], Complex_f gamval_f[20], unsigned short gamin[16], double*dk4m,\
 			double *dk4p, unsigned int *iu, unsigned int *id);
 	/**
-	 * Copies necessary (2*4*kvol) elements of Phi into a vector variable
+	 * @brief Copies necessary (2*4*kvol) elements of Phi into a vector variable
 	 *
 	 * @param[in]	na:					flavour index
 	 * @param[out]	smallPhi:			The partitioned output

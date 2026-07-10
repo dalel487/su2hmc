@@ -38,7 +38,7 @@ __global__ void Plus_staple(const int mu, const int nu,unsigned int *iu, Complex
 	}
 }
 /**
- * @brief Calculates the staple in the positive @f$\mu@f$ direction
+ * @brief Calculates the staple in the negative @f$\mu@f$ direction
  *
  * @param[in] mu:						@f$\mu@f$ direction
  * @param[in] nu:						@f$\nu@f$ direction

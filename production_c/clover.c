@@ -493,9 +493,9 @@ void CalcXmunu(Bilinear_a Xmunu, Complex_f *X1, Complex_f *X2, const Complex_f *
 /**
  *	@brief	Multiplies @f$ X_{\mu\nu}@f$ by a gauge field from the left
  *
- *	@param	out:	Result
- *	@param	X:		@f$X_{\mu\nu}(x)@f$
- *	@param	G:		Gauge field
+ *	@param[out]	out:	Result
+ *	@param[in]	X:		@f$X_{\mu\nu}(x)@f$
+ *	@param[in]	G:		Gauge field
  */
 static inline void GLeft(Complex_f out[4],const Complex_f G[2], const Complex_f X[4]){
 	out[0]=G[0]*X[0]+G[1]*X[2];
@@ -507,9 +507,9 @@ static inline void GLeft(Complex_f out[4],const Complex_f G[2], const Complex_f 
 /**
  *	@brief	Multiplies @f$ X_{\mu\nu}@f$ by a gauge field from the right
  *
- *	@param	out:	Result
- *	@param	X:		@f$X_{\mu\nu}(x)@f$
- *	@param	G:		Gauge field
+ *	@param[out]	out:	Result
+ *	@param[in]	X:		@f$X_{\mu\nu}(x)@f$
+ *	@param[in]	G:		Gauge field
  */
 static inline void GRight(Complex_f out[4],const Complex_f G[2], const Complex_f X[4]){
 	out[0]=G[0]*X[0]-conj(G[1])*X[1];
@@ -521,10 +521,12 @@ static inline void GRight(Complex_f out[4],const Complex_f G[2], const Complex_f
 /**
  *	@brief	Multiplies @f$ X_{\mu\nu}@f$ by a gauge field from the left and the right
  *
- *	@param	out:		Result
- *	@param	tmp:		Buffer for intermediate result. Passing as an argument to reduce register pressure.
- *	@param	X:			@f$X_{\mu\nu}(x)@f$
- *	@param	Gl,Gr:	Left/Right Gauge fields
+ *	@param[out]	out:		Result
+ *	@param[in,out]	tmp:		Buffer for intermediate result. Passing as an argument to reduce register pressure.
+ *	@param[in]	X:			@f$X_{\mu\nu}(x)@f$
+ *	@param[in]	Gl,Gr:	Left/Right Gauge fields
+ *
+ *	@post Contents of @p tmp will be changed during the call
  */
 static inline void GSandwich(Complex_f out[4],Complex_f tmp[4], const Complex_f Gl[2], const Complex_f X[4],const Complex_f Gr[2]){
 	GRight(tmp,Gr,X);

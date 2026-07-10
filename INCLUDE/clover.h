@@ -35,8 +35,8 @@ typedef struct{
  *	The leaves contributing to each force term need to be scaled by the generator, but the generator appears at
  *	different points in each leaf.  This routine multiples by the generator from the left side.
  *
- *	@param	a:		The leaf or partial leaf
- *	@param	gen:	What generator are we multiplying by?
+ *	@param[in,out]	a:		The leaf or partial leaf
+ *	@param[in]	gen:	What generator are we multiplying by?
  *
  *	@post		Product stored in @p a
  */
@@ -47,8 +47,8 @@ void ByGenLeft(Complex_f a[nc],const unsigned short gen);
  *	The leaves contributing to each force term need to be scaled by the generator, but the generator appears at
  *	different points in each leaf.  This routine multiples by the generator from the right side.
  *
- *	@param	a:		The leaf or partial leaf
- *	@param	gen:	What generator are we multiplying by?
+ *	@param[in,out]	a:		The leaf or partial leaf
+ *	@param[in]	gen:	What generator are we multiplying by?
  *
  *	@post		Product stored in @p a
  */

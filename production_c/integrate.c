@@ -34,18 +34,6 @@ void Force_debug(double ave_dSdpi[3],double *dSdpi){
 }
 
 int Gauge_Update(const double d, double *pp, Complex *ut[2],Complex_f *ut_f[2]){
-	/*
-	 * @brief Generates new trial fields
-	 *
-	 * @see cuGauge_Update (CUDA Wrapper)
-	 * 
-	 * @param	d:		Half lattice spacing
-	 * @param	pp:		Momentum field
-	 * @param	ut[0]:		First colour field
-	 * @param	ut[1]:		Second colour field
-	 *
-	 * @returns	Zero on success, integer error code otherwise
-	 */
 	char funcname[] = "Gauge_Update"; 
 #ifdef __NVCC__
 	cuGauge_Update(d,pp,ut,dimGrid,dimBlock);

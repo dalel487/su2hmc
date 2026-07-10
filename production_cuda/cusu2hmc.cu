@@ -8,13 +8,13 @@
 /**
  *	@brief Return the max of two values
  *
- *	@param x,y	values being checked
+ *	@param[in] x,y	values being checked
  */
 #define MIN(x,y) (x<y?x:y)
 /**
  *	@brief Return the min of two values
  *
- *	@param x,y	values being checked
+ *	@param[in]	 x,y	values being checked
  */
 #define MAX(x,y) (x>y?x:y)
 dim3 dimBlockOne = dim3(1,1,1);
@@ -36,10 +36,13 @@ namespace::Kernels{
 	/**
 	 * @brief takes an array of real float and double precision numbers and converts the precision
 	 *
-	 * @param	a:						Float array
-	 * @param	b:						Double array
-	 * @param	len:					Number of elements to convert
-	 * @param	dtof:					If true, convert double to float. Otherwise convert float to double
+	 * @param[in,out]	a:						Float array
+	 * @param[in,out]	b:						Double array
+	 * @param[in]	len:					Number of elements to convert
+	 * @param[in]	dtof:					If true, convert double to float. Otherwise convert float to double
+	 *
+	 * @post Depending on the value of @p dtof, either the contents of @p a or @p b are overwritten with those of the
+	 * other array in the opposite precision.
 	 */
 __global__ void Real_convert(float *a, double *b, const unsigned int len, const bool dtof){
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
