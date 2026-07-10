@@ -322,7 +322,7 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 	return 0;
 }
 int Par_swrite(const int itraj, const int icheck, const float beta, const float fmu, const float akappa, 
-		const float c_sw, const Complex_f ajq, Complex *u11, Complex *u12){
+		const Complex_f ajq, const float c_sw, Complex *u11, Complex *u12){
 	const char funcname[] = "par_swrite";
 #if (nproc>1)
 	MPI_Status status;

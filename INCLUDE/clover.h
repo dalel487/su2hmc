@@ -4,8 +4,11 @@
  *	@brief	Routines needed for Clover improved wilson fermions
  *
  *	@author 	D. Lawlor
+ *	@todo	We can make the clover a little quicker by storing it as a struct with a real and imaginary part. This gets a
+ *			little complex as we need it in both single and double precision, and C doesn't do templating
+ *
  *	@todo	Multiple MPI Ranks are not currently supported for the clover action. This is due to the corner halo terms
- *				needed to compute the clover force not being implemented.
+ *			needed to compute the clover force not being implemented.
  *				
  *	@defgroup Clover Clover
  *

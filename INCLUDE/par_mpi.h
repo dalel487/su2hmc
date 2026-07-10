@@ -3,8 +3,7 @@
  *
  * @brief MPI headers
  * @author D. Lawlor
- * @defgroup MPI
- * MPI functions
+ * @defgroup MPI  MPI functions
  */
 #ifndef	PAR_MPI
 #define	PAR_MPI
@@ -133,7 +132,7 @@ extern "C"
 	 * @post	Gauge fields saved to file
 	 */
 	int Par_swrite(const int itraj, const int icheck, const float beta, const float fmu, const float akappa,\
-			const float c_sw, const Complex_f ajq,	Complex *u11, Complex *u12);
+		const Complex_f ajq,	const float c_sw, Complex *u11, Complex *u12);
 	//Shortcuts for reductions and broadcasts. These should be inlined
 	/**
 	 * @brief	Performs a reduction on an integer ival to get a sum which is
@@ -370,7 +369,7 @@ extern "C"
 #if(npt>1)
 	/**
 	 * @brief	Multiplication along the time extent for the polyakov loop
-	 * @ingroup Bosonic
+	 * @ingroup Bose
 	 *
 	 * @param[in,out]	z11,z12	The inputs and the products
 	 *
