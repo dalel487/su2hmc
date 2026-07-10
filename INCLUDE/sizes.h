@@ -23,25 +23,31 @@
  *
  *    @author D. Lawlor September 2020
  *
+ * 	@defgroup Diagnostics Debugging Functions
  ******************************************************************/
-#ifndef	SIZES
-#define	SIZES
-#ifdef	__INTEL_MKL__
+#pragma once
+#ifdef	__USE_MKL__
+///@brief Flag to choose BLAS path
 #define	USE_BLAS
 #include	<mkl.h>
-#elif defined GSL_BLAS
-#define	USE_BLAS
-#include <gsl/gsl_cblas.h>
-#elif defined AMD_BLAS
+#elif (defined AMD_BLAS||defined OPENBLAS)
+///@brief Flag to choose BLAS path
 #define	USE_BLAS
 #include	<cblas.h>
+#elif defined GSL_BLAS
+///@brief Flag to choose BLAS path
+#define	USE_BLAS
+#include <gsl/gsl_cblas.h>
 #endif
 #ifdef	__NVCC__
 #include	<cuda.h>
 #include	<cuda_runtime_api.h>
 #include	<cublas_v2.h>
+///@brief	Handle for cuBLAS
 extern cublasHandle_t cublas_handle;
+///@brief	Status of cuBLAS for error reporting
 extern cublasStatus_t cublas_status;
+///@brief	Memory pool for Async allocations
 extern cudaMemPool_t mempool;
 ///@brief	Get rid of that bastardised yankee English
 #define cudaDeviceSynchronise() cudaDeviceSynchronize()
@@ -63,7 +69,7 @@ extern cudaMemPool_t mempool;
 // Common block definition for parallel variables
 
 ///	@brief Lattice x extent
-#define	nx 16
+#define	nx 24
 #if(nx<1)
 #error "nx is expected it to be greater than or equal to 1"
 #endif
@@ -83,7 +89,7 @@ extern cudaMemPool_t mempool;
 #endif
 
 ///	@brief	Lattice temporal extent. This also corresponds to the inverse temperature
-#define	nt	32
+#define	nt	24
 #if(nt<1)
 #error "nt is expected it to be greater than or equal to 1"
 #endif
@@ -130,9 +136,12 @@ extern cudaMemPool_t mempool;
 
 ///	@brief	Number of processors for MPI
 #define	nproc	(npx*npy*npz*npt)
+#if (defined __NVCC__ && nproc>1)
+#error	"Multi-GPU is not yet supported"
+#endif
 
 ///	@brief Number of threads for OpenMP, which can be overwritten at runtime
-#define	nthreads	16
+#define	nthreads	8
 
 //    Existing parameter definitions.
 ///	@brief Sublattice x extent
@@ -187,7 +196,7 @@ extern cudaMemPool_t mempool;
 ///		@brief	sublattice size including Dirac indices
 #define	kferm2	(nc*ndirac*kvol)
 /**
- * 	@subsection halo MPI Halos 
+ * 	@section halo MPI Halos 
  *
  *    For those who may not have used MPI Before, halos are just a bit 
  *    of padding we put outside of the sublattices we're using in MPI
@@ -221,20 +230,22 @@ extern cudaMemPool_t mempool;
 ///	@brief	Total Halo size
 #define	halo	(2*(halox+haloy+haloz+halot))
 
+///	@brief	Subvolume + halo size
+#define	kvolHalo		(kvol+halo)
 ///	@brief	Gor'kov lattice and halo
-#define	kfermHalo	(nc*ngorkov*(kvol+halo))
+#define	kfermHalo	(nc*ngorkov*kvolHalo)
 ///	@brief	Dirac lattice and halo
-#define	kferm2Halo	(nc*ndirac*(kvol+halo))
+#define	kferm2Halo	(nc*ndirac*kvolHalo)
 ///	@brief	Momentum lattice and halo
-#define	kmomHalo	(ndim*nadj*(kvol+halo))
+#define	kmomHalo	(ndim*nadj*kvolHalo)
 
-///	@brief Conjugate gradient residue for @f$\langle\bar{\Psi}\Psi\rangle@f$
 //		These all used to be multipled by kferm or kferm2 at the start of Congradq or Congradp
 //		On 20240516 in Room 2.19 of the Lloyd building of Trinity we copped that doing so means that the residue is larger
 //		if running on a smaller number of cores. In the extreme GPU case the subvolume is the entire volume so the residue
 //		can be several orders of magnitude larger than in the smallest sublattice case.
 //		Instead, we rescale all the default residues here by sqrt(kferm) or sqrt(kferm2). No matter what size sublattice
 //		we use now, the residue will match that of a 2^3X4 sublattice used in the earlier FORTRAN runs
+///	@brief Conjugate gradient residue for @f$\langle\bar{\Psi}\Psi\rangle@f$
 #define	respbp	3.2E-5
 ///	@brief Conjugate gradient residue for update
 #define	rescgg	2.26E-5 
@@ -269,20 +280,25 @@ extern cudaMemPool_t mempool;
 #endif
 
 #ifdef	__NVCC__
-/*
+/**
  * @section gridblock Grids and Blocks
  *
  * Threads are grouped together to form warps of 32 threads
  * best to keep the block dimension (ksizex*ksizey) multiples of 32,
  * usually between 128 and 256
  * Note that from Volta/Turing  each SM (group of processors)
- * is smaller than on previous generations of GPUs
+ * is smaller than on previous and subsequent generations of GPUs. This means less threads accessing the same number of
+ * registers which can increase occupancy for register heavy kernels.
  */
-extern dim3	dimBlock;//	=dim3(nx,ny,nz);
-extern dim3	dimGrid;//	=dim3(nt,1,1);
-						  //For copying over gamval
-extern dim3	dimBlockOne;//	=dim3(nx,ny,nz);
-extern dim3	dimGridOne;//	=dim3(nt,1,1);
+/// @brief	Default block size. Usually 128
+extern dim3	dimBlock;
+///@brief	Default grid size. First component is normally nt. Second and third depend whatever is needed to get the
+///			block size to 128
+extern dim3	dimGrid;
+///@brief block size of one
+extern dim3	dimBlockOne;
+///@brief Grid size of one
+extern dim3	dimGridOne;
+///@brief Flag to choose BLAS path
 #define	USE_BLAS
-#endif
 #endif

@@ -1,15 +1,16 @@
-/*
+/**
  * @file thrust_complex.h
  *
  * @brief Complex Header for CUDA. Sets macros for C compatability
  *
- * We are also adding dding the macros for extracting the real, imaginary parts.
- * This way they match the C standard library calles
+ * We are also adding the macros for extracting the real, imaginary parts.
+ * This way they match the C standard library calls
  */
 #ifndef TCMPLX
 #define TCMPLX
 #include <thrust/complex.h>
 using thrust::complex;
+#undef conj
 //#undef	complex
 ///@brief Single precision complex number 
 #define	Complex_f	 complex<float>
@@ -17,15 +18,22 @@ using thrust::complex;
 #define	Complex	 complex<double>
 
 
-///@brief	Exponentiate
+///@brief	Exponentiate using C standard notation
 #define	cexp(z)	thrust::exp(z)
-///@brief	Extract Imaginary Component
+///@brief	Extract Imaginary Component using C standard notation
 #define	cimag(z)	z.imag()
-///@brief	Extract Real Component
+///@brief	Extract Real Component using C standard notation
 #define	creal(z)	z.real()
-///@brief 	Define I
+///@brief 	Define I in double precision using C standard notation
 #define	I	Complex(0.0,1.0)	
-#define	I_f	Complex_f(0.0,1.0f)	
-///@brief	Complex Conjugation
-#define	conj(z)	thrust::conj(z)
+///@brief 	Define I in single precision
+#define	I_f	Complex_f(0.0f,1.0f)	
+/**
+ * @brief	Complex Conjugation
+ * @ingroup	Helper
+ *
+ * @param	z Number to be conjugated
+ * @return	Conjugate of @p z
+ */
+template <typename T> __device__ __forceinline__ T conj(const T& z);
 #endif

@@ -3,8 +3,6 @@
  *
  * @brief MPI routines
  */
-#include <par_mpi.h>
-#include <random.h>
 #include <su2hmc.h>
 
 //NOTE: In FORTRAN code everything was capitalised (despite being case insensitive)
@@ -22,21 +20,10 @@ int pstop [ndim][nproc] __attribute__((aligned(AVX)));
 int rank, size;
 int pu[ndim] __attribute__((aligned(AVX)));
 int pd[ndim] __attribute__((aligned(AVX))); 
-int Par_begin(int argc, char *argv[]){
-	/* Initialises the MPI configuration
-	 *
-	 * Parameters:
-	 * ---------
-	 * int argc	Number of arguments given to the programme
-	 * char *argv[]	Array of arguments
-	 *
-	 * Returns:
-	 * -------
-	 * Zero on success, integer error code otherwise.
-	 */
 
+int Par_begin(int argc, char *argv[]){
 	//TODO: Remove as much non-MPI stuff from here as possible
-	const char *funcname = "Par_begin";
+	const char funcname[] = "Par_begin";
 	int size;
 #if(nproc>1)
 	if(MPI_Init(&argc, &argv)){
@@ -97,7 +84,7 @@ int Par_begin(int argc, char *argv[]){
 		MPI_Cart_shift(commcart, i, 1, &pd[i], &pu[i]);
 #endif
 	//Get coordinates of processors in the grid
-	pcoord = (int*)aligned_alloc(AVX,ndim*nproc*sizeof(int));
+	pcoord = (int*)malloc(ndim*nproc*sizeof(int));
 	memset(pcoord,0,sizeof(int)*ndim*nproc);
 #if(nproc>1)
 	for(int iproc = 0; iproc<nproc; iproc++){
@@ -125,21 +112,8 @@ int Par_begin(int argc, char *argv[]){
 	return 0;
 }	
 int Par_sread(const int iread, const float beta, const float fmu, const float akappa, const Complex_f ajq,\
-		Complex *u11, Complex *u12, Complex *u11t, Complex *u12t){
-	/*
-	 * @brief Reads and assigns the gauges from file
-	 *	
-	 *	@param	iread:		Configuration to read in
-	 *	@param	beta:			Inverse gauge coupling
-	 *	@param   fmu:			Chemical potential
-	 *	@param	akappa:		Hopping parameter
-	 *	@param	ajq:			Diquark source
-	 *	@param	u11,u12:		Gauge fields
-	 *	@param	u11t,u12t:	Trial fields
-	 * 
-	 * @return	Zero on success, integer error code otherwise
-	 */
-	const char *funcname = "Par_sread";
+		const float c_sw, Complex *u11, Complex *u12, Complex *u11t, Complex *u12t){
+	const char funcname[] = "Par_sread";
 #if(nproc>1)
 	MPI_Status status;
 	//For sending the seeds later
@@ -152,7 +126,7 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 		//Containers for input. Only needed by the master rank
 		Complex *u11Read = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
 		Complex *u12Read = (Complex *)aligned_alloc(AVX,ndim*gvol*sizeof(Complex));
-		static char gauge_file[FILELEN]="config.";
+		char gauge_file[FILELEN]="config.";
 		int buffer; char buff2[7];
 		//Add script for extracting correct mu, j etc.
 		buffer = (int)round(100*beta);
@@ -170,6 +144,12 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 		buffer = (int)round(1000*creal(ajq));
 		sprintf(buff2,"j%03d",buffer);
 		strcat(gauge_file,buff2);
+		//c_sw
+		if(c_sw!=0){
+			buffer = (int)round(100*c_sw);
+			sprintf(buff2,"c%02d",buffer);
+			strcat(gauge_file,buff2);
+		}
 		//nx
 		sprintf(buff2,"s%02d",nx);
 		strcat(gauge_file,buff2);
@@ -207,7 +187,7 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 		//If more processors are used then we use the first seed to generate the rest as in Par_ranset
 #ifdef __RANLUX__
 		unsigned long *seed_array=(unsigned long*)calloc(nproc,sizeof(seed));
-#elif defined __INTEL_MKL__ && !defined USE_RAN2
+#elif defined __USE_MKL__ && !defined USE_RAN2
 		int *seed_array=(int *)calloc(nproc,sizeof(seed));
 #else
 		long *seed_array=(long*)calloc(nproc,sizeof(seed));
@@ -243,6 +223,8 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 							for(int ix=pstart[0][iproc]; ix<pstop[0][iproc]; ix++){
 								//j is the relative memory index of icoord
 								int j = Coord2gindex(ix,iy,iz,it);
+								//TODO: Don't change this for SoA. We can use this to flip the memory layout without calling a
+								//transpose
 								u1buff[i]=u11Read[idim*gvol+j];
 								u2buff[i]=u12Read[idim*gvol+j];
 								//C starts counting from zero, not 1 so increment afterwards or start at int i=-1
@@ -258,15 +240,12 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 #endif
 				}
 				if(!iproc){
-#if defined USE_BLAS
-					cblas_zcopy(kvol,u1buff,1,u11+idim,ndim);
-					cblas_zcopy(kvol,u2buff,1,u12+idim,ndim);
+#ifdef __NVCC__
+					cudaMemcpy(u11+idim*kvol,u1buff,kvol*sizeof(Complex),cudaMemcpyDefault);
+					cudaMemcpy(u12+idim*kvol,u2buff,kvol*sizeof(Complex),cudaMemcpyDefault);
 #else
-#pragma omp simd aligned(u11,u12,u1buff,u2buff:AVX)
-					for(i=0;i<kvol;i++){
-						u11[i*ndim+idim]=u1buff[i];
-						u12[i*ndim+idim]=u2buff[i];
-					}
+					memcpy(u11+idim*kvol,u1buff,kvol*sizeof(Complex));
+					memcpy(u12+idim*kvol,u2buff,kvol*sizeof(Complex));
 #endif
 				}		
 #if(nproc>1)
@@ -320,47 +299,36 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 						CANTRECV, funcname, rank);
 				MPI_Abort(comm,CANTRECV);
 			}
-#if defined USE_BLAS
-			cblas_zcopy(kvol,u1buff,1,u11+idim,ndim);
-			cblas_zcopy(kvol,u2buff,1,u12+idim,ndim);
+#ifdef __NVCC__
+			cudaMemcpy(u11+idim*kvol,u1buff,kvol*sizeof(Complex),cudaMemcpyDefault);
+			cudaMemcpy(u12+idim*kvol,u2buff,kvol*sizeof(Complex),cudaMemcpyDefault);
 #else
-#pragma omp parallel for simd aligned(u11,u12,u1buff,u2buff:AVX)
-			for(int i=0;i<kvol;i++){
-				u11[i*ndim+idim]=u1buff[i];
-				u12[i*ndim+idim]=u2buff[i];
-			}
+			memcpy(u11+idim*kvol,u1buff,kvol*sizeof(Complex));
+			memcpy(u12+idim*kvol,u2buff,kvol*sizeof(Complex));
 #endif
 		}
 	}
 #endif
 	free(u1buff); free(u2buff);
-	memcpy(u11t, u11, ndim*kvol*sizeof(Complex));
-	memcpy(u12t, u12, ndim*kvol*sizeof(Complex));
+	for(unsigned short mu=0;mu<ndim;mu++){
+#ifdef __NVCC__
+		cudaMemcpy(u11t+kvolHalo*mu, u11+kvol*mu, kvol*sizeof(Complex),cudaMemcpyDefault);
+		cudaMemcpy(u12t+kvolHalo*mu, u12+kvol*mu, kvol*sizeof(Complex),cudaMemcpyDefault);
+#else
+		memcpy(u11t+kvolHalo*mu, u11+kvol*mu, kvol*sizeof(Complex));
+		memcpy(u12t+kvolHalo*mu, u12+kvol*mu, kvol*sizeof(Complex));
+#endif
+	}
 	return 0;
 }
 int Par_swrite(const int itraj, const int icheck, const float beta, const float fmu, const float akappa, 
-		const Complex_f ajq, Complex *u11, Complex *u12){
-	/*
-	 * @brief	Copies u11 and u12 into arrays without halos which then get written to output
-	 *
-	 * Modified from an original version of swrite in FORTRAN
-	 *	
-	 *	@param	itraj:		Trajectory to write
-	 *	@param	icheck:		Not currently used but haven't gotten around to removing it
-	 *	@param	beta:			Inverse gauge coupling
-	 *	@param   fmu:			Chemical potential
-	 *	@param	akappa:		Hopping parameter
-	 *	@param	ajq:			Diquark source
-	 *	@param	u11,u12:		Gauge fields
-	 * 
-	 * @return	Zero on success, integer error code otherwise
-	 */
-	const char *funcname = "par_swrite";
-	#if (nproc>1)
+		const Complex_f ajq, const float c_sw, Complex *u11, Complex *u12){
+	const char funcname[] = "par_swrite";
+#if (nproc>1)
 	MPI_Status status;
 	//Used for seed array later on
 	MPI_Datatype MPI_SEED_TYPE = (sizeof(seed)==sizeof(int)) ? MPI_INT:MPI_LONG;
-	#endif
+#endif
 	Complex *u1buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
 	Complex *u2buff = (Complex *)aligned_alloc(AVX,kvol*sizeof(Complex));
 #ifdef _DEBUG
@@ -381,7 +349,7 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 		//Array to store the seeds. nth index is the nth processor
 #ifdef __RANLUX__
 		unsigned long *seed_array=(unsigned long*)calloc(nproc,sizeof(seed));
-#elif defined __INTEL_MKL__ && !defined USE_RAN2
+#elif defined __USE_MKL__ && !defined USE_RAN2
 		int *seed_array=(int *)calloc(nproc,sizeof(seed));
 #else
 		long *seed_array=(long*)calloc(nproc,sizeof(seed));
@@ -417,15 +385,12 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 #endif
 					//No need to do MPI Send/Receive on the master rank
 					//Array looping is slow so we use memcpy instead
-#if defined USE_BLAS
-					cblas_zcopy(kvol,u11+idim,ndim,u1buff,1);
-					cblas_zcopy(kvol,u12+idim,ndim,u2buff,1);
+#ifdef __NVCC__
+					cudaMemcpy(u1buff,u11+idim*kvol,kvol*sizeof(Complex),cudaMemcpyDefault);
+					cudaMemcpy(u2buff,u12+idim*kvol,kvol*sizeof(Complex),cudaMemcpyDefault);
 #else
-#pragma omp parallel for simd aligned(u11,u12,u1buff,u2buff:AVX)
-					for(int i=0;i<kvol;i++){
-						u1buff[i]=u11[i*ndim+idim];
-						u2buff[i]=u12[i*ndim+idim];
-					}
+					memcpy(u1buff,u11+idim*kvol,kvol*sizeof(Complex));
+					memcpy(u2buff,u12+idim*kvol,kvol*sizeof(Complex));
 #endif
 #ifdef _DEBUG
 					char part_dump[FILELEN]="";
@@ -433,7 +398,7 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 					sprintf(dump_buff,"_d%d",idim);
 					strcat(part_dump,dump_buff);
 					FILE *pdump=fopen(part_dump,"wb");
-					fwrite(u1buff,ndim*kvol*sizeof(Complex),1,pdump);
+					fwrite(u1buff,kvol*sizeof(Complex),1,pdump);
 					fclose(pdump);
 #endif
 #if(nproc>1)
@@ -481,6 +446,12 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 		buffer = (int)round(1000*creal(ajq));
 		sprintf(buff2,"j%03d",buffer);
 		strcat(gauge_title,buff2);
+		//c_sw
+		if(c_sw!=0){
+			buffer = (int)round(100*c_sw);
+			sprintf(buff2,"c%02d",buffer);
+			strcat(gauge_title,buff2);
+		}
 		//nx
 		sprintf(buff2,"s%02d",nx);
 		strcat(gauge_title,buff2);
@@ -529,15 +500,12 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 			MPI_Abort(comm,CANTSEND);
 		}
 		for(int idim = 0; idim<ndim; idim++){
-#if defined USE_BLAS
-			cblas_zcopy(kvol,u11+idim,ndim,u1buff,1);
-			cblas_zcopy(kvol,u12+idim,ndim,u2buff,1);
+#ifdef __NVCC__
+			cudaMemcpy(u1buff,u11+idim*kvol,kvol*sizeof(Complex),cudaMemcpyDefault);
+			cudaMemcpy(u2buff,u12+idim*kvol,kvol*sizeof(Complex),cudaMemcpyDefault);
 #else
-#pragma omp parallel for simd aligned(u11,u12,u1buff,u2buff:AVX)
-			for(int i=0;i<kvol;i++){
-				u1buff[i]=u11[i*ndim+idim];
-				u2buff[i]=u12[i*ndim+idim];
-			}
+			memcpy(u1buff,u11+idim*kvol,kvol*sizeof(Complex));
+			memcpy(u2buff,u12+idim*kvol,kvol*sizeof(Complex));
 #endif
 #ifdef _DEBUG
 			char part_dump[FILELEN]="";
@@ -545,7 +513,7 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 			sprintf(dump_buff,"_d%d",idim);
 			strcat(part_dump,dump_buff);
 			FILE *pdump=fopen(part_dump,"wb");
-			fwrite(u1buff,ndim*kvol*sizeof(Complex),1,pdump);
+			fwrite(u1buff,kvol*sizeof(Complex),1,pdump);
 			fclose(pdump);
 #endif
 			int i=0;
@@ -569,46 +537,18 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 //rather than type them all every single time
 #if(nproc>1)
 inline int Par_isum(int *ival){
-	/*
-	 * Performs a reduction on a double ival to get a sum which is
-	 * then distributed to all ranks.
-	 *
-	 * Parameters:
-	 * -----------
-	 * double *ival: The pointer to the element being summed, and
-	 * 		the container for said sum.
-	 *
-	 * Returns:
-	 * --------
-	 * Zero on success. Integer error code otherwise.
-	 *
-	 */
-	const char *funcname = "Par_isum";
+	const char funcname[] = "Par_isum";
 	//Container to receive data.
 	int *itmp;
 
-	if(MPI_Allreduce(ival, itmp, 1, MPI_DOUBLE, MPI_SUM, comm)){
+	if(MPI_Allreduce(ival, itmp, 1, MPI_INTEGER, MPI_SUM, comm)){
 		fprintf(stderr,"Error %i in %s: Couldn't complete reduction for %i.\nExiting...\n\n", REDUCERR, funcname, *ival);
 		MPI_Abort(comm,REDUCERR);
 	}
 	return 0;
 }
 inline int Par_dsum(double *dval){
-	/*
-	 * Performs a reduction on a double dval to get a sum which is
-	 * then distributed to all ranks.
-	 *
-	 * Parameters:
-	 * -----------
-	 * double *dval: The pointer to the element being summed, and
-	 * 		the container for said sum.
-	 *
-	 * Returns:
-	 * --------
-	 * Zero on success. Integer error code otherwise.
-	 *
-	 */
-	const char *funcname = "Par_dsum";
+	const char funcname[] = "Par_dsum";
 	//Container to receive data.
 	double dtmp;
 
@@ -620,21 +560,7 @@ inline int Par_dsum(double *dval){
 	return 0;
 }
 inline int Par_fsum(float *fval){
-	/*
-	 * Performs a reduction on a double dval to get a sum which is
-	 * then distributed to all ranks.
-	 *
-	 * Parameters:
-	 * -----------
-	 * double *dval: The pointer to the element being summed, and
-	 * 		the container for said sum.
-	 *
-	 * Returns:
-	 * --------
-	 * Zero on success. Integer error code otherwise.
-	 *
-	 */
-	const char *funcname = "far_dsum";
+	const char funcname[] = "far_dsum";
 	//Container to receive data.
 	float ftmp;
 
@@ -646,21 +572,7 @@ inline int Par_fsum(float *fval){
 	return 0;
 }
 inline int Par_csum(Complex_f *cval){
-	/*
-	 * Performs a reduction on a Complex zval to get a sum which is
-	 * then distributed to all ranks.
-	 *
-	 * Parameters:
-	 * -----------
-	 * Complex_f *cval: The pointer to the element being summed, and
-	 * 		the container for said sum.
-	 *
-	 * Returns:
-	 * --------
-	 * Zero on success. Integer error code otherwise.
-	 *
-	 */
-	const char *funcname = "Par_csum";
+	const char funcname[] = "Par_csum";
 	//Container to receive data.
 	Complex_f ctmp;
 
@@ -675,21 +587,7 @@ inline int Par_csum(Complex_f *cval){
 	return 0;
 }
 inline int Par_zsum(Complex *zval){
-	/*
-	 * Performs a reduction on a Complex zval to get a sum which is
-	 * then distributed to all ranks.
-	 *
-	 * Parameters:
-	 * -----------
-	 * Complex *zval: The pointer to the element being summed, and
-	 * 		the container for said sum.
-	 *
-	 * Returns:
-	 * --------
-	 * Zero on success. Integer error code otherwise.
-	 *
-	 */
-	const char *funcname = "Par_zsum";
+	const char funcname[] = "Par_zsum";
 	//Container to receive data.
 	Complex ztmp;
 
@@ -704,18 +602,7 @@ inline int Par_zsum(Complex *zval){
 	return 0;
 }
 inline int Par_icopy(int *ival){
-	/*
-	 * Broadcasts an integer to the other processes
-	 *
-	 * Parameters:
-	 * ----------
-	 * int ival
-	 *
-	 * Returns:
-	 * -------
-	 * Zero on success, integer error code otherwise
-	 */
-	const char *funcname = "Par_icopy";
+	const char funcname[] = "Par_icopy";
 	if(MPI_Bcast(ival,1,MPI_INT,masterproc,comm)){
 		fprintf(stderr, "Error %i in %s: Failed to broadcast %i from %i.\nExiting...\n\n",
 				BROADERR, funcname, *ival, rank);
@@ -724,18 +611,7 @@ inline int Par_icopy(int *ival){
 	return 0;
 }
 inline int Par_dcopy(double *dval){
-	/*
-	 * Broadcasts an double to the other processes
-	 *
-	 * Parameters:
-	 * ----------
-	 * double dval
-	 *
-	 * Returns:
-	 * -------
-	 * Zero on success, integer error code otherwise
-	 */
-	const char *funcname = "Par_dcopy";
+	const char funcname[] = "Par_dcopy";
 	if(MPI_Bcast(dval,1,MPI_DOUBLE,masterproc,comm)){
 		fprintf(stderr, "Error %i in %s: Failed to broadcast %f from %i.\nExiting...\n\n",
 				BROADERR, funcname, *dval, rank);
@@ -744,18 +620,7 @@ inline int Par_dcopy(double *dval){
 	return 0;
 }
 inline int Par_fcopy(float *fval){
-	/*
-	 * Broadcasts an float to the other processes
-	 *
-	 * Parameters:
-	 * ----------
-	 * float dval
-	 *
-	 * Returns:
-	 * -------
-	 * Zero on success, integer error code otherwise
-	 */
-	const char *funcname = "Par_dfopy";
+	const char funcname[] = "Par_dfopy";
 	if(MPI_Bcast(fval,1,MPI_FLOAT,masterproc,comm)){
 		fprintf(stderr, "Error %i in %s: Failed to broadcast %f from %i.\nExiting...\n\n",
 				BROADERR, funcname, *fval, rank);
@@ -764,18 +629,7 @@ inline int Par_fcopy(float *fval){
 	return 0;
 }
 inline int Par_ccopy(Complex *cval){
-	/*
-	 * Broadcasts a Complex value to the other processes
-	 *
-	 * Parameters:
-	 * ----------
-	 * Complex *zval
-	 *
-	 * Returns:
-	 * -------
-	 * Zero on success, integer error code otherwise
-	 */
-	const char *funcname = "Par_ccopy";
+	const char funcname[] = "Par_ccopy";
 	if(MPI_Bcast(cval,1,MPI_C_FLOAT_COMPLEX,masterproc,comm)){
 #ifndef __NVCC__
 		fprintf(stderr, "Error %i in %s: Failed to broadcast %f+i%f from %i.\nExiting...\n\n",
@@ -786,18 +640,7 @@ inline int Par_ccopy(Complex *cval){
 	return 0;
 }
 inline int Par_zcopy(Complex *zval){
-	/*
-	 * Broadcasts a Complex value to the other processes
-	 *
-	 * Parameters:
-	 * ----------
-	 * Complex *zval
-	 *
-	 * Returns:
-	 * -------
-	 * Zero on success, integer error code otherwise
-	 */
-	const char *funcname = "Par_zcopy";
+	const char funcname[] = "Par_zcopy";
 	if(MPI_Bcast(zval,1,MPI_C_DOUBLE_COMPLEX,masterproc,comm)){
 #ifndef __NVCC__
 		fprintf(stderr, "Error %i in %s: Failed to broadcast %f+i%f from %i.\nExiting...\n\n",
@@ -817,19 +660,7 @@ inline int Par_zcopy(Complex *zval){
  *	function or DOWN FORTRAN function
  */
 inline int ZHalo_swap_all(Complex *z, int ncpt){
-	/*
-	 * Calls the functions to send data to both the up and down halos
-	 *
-	 * Parameters:
-	 * -----------
-	 * Complex z:	The data being sent
-	 * int	ncpt:	Number of components being sent
-	 *
-	 * Returns:
-	 * -------
-	 * Zero on success, integer error code otherwise
-	 */
-	const char *funcname = "ZHalo_swap_all";
+	const char funcname[] = "ZHalo_swap_all";
 
 	//FORTRAN called zdnhaloswapall and zuphaloswapall here
 	//Those functions looped over the directions and called zXXhaloswapdir
@@ -856,100 +687,75 @@ inline int ZHalo_swap_all(Complex *z, int ncpt){
 	return 0;
 }
 int ZHalo_swap_dir(Complex *z, int ncpt, int idir, int layer){
-	/*
-	 * Swaps the halos along the axis given by idir in the direction
-	 * given by layer
-	 *
-	 * Parameters:
-	 * -----------
-	 *  Complex	*z:	The data being moved about. It should be an array of dimension [kvol+halo][something else]
-	 *  int		ncpt: Number of components being sent
-	 *  int		idir:	The axis being moved along in C Indexing
-	 *  int		layer:	Either DOWN (0) or UP (1)
-	 *
-	 *  Returns:
-	 *  -------
-	 *  Zero on success, Integer Error code otherwise
-	 */
-	const char *funcname = "ZHalo_swap_dir";
-	MPI_Status status;
+	const char funcname[] = "ZHalo_swap_dir";
 	if(layer!=DOWN && layer!=UP){
 		fprintf(stderr, "Error %i in %s: Cannot swap in the direction given by %i.\nExiting...\n\n",
 				LAYERROR, funcname, layer);
 		MPI_Abort(comm,BROADERR);
 	}
 	//How big is the data being sent and received
-	int msg_size=ncpt*halosize[idir];
-	Complex *sendbuf = (Complex *)aligned_alloc(AVX,msg_size*sizeof(Complex));
-	//In each case we set up the data being sent then do the exchange
-	switch(layer){
-		case(DOWN):
-			if(halosize[idir]+h1u[idir]>kvol+halo){
-				fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
-						"a memory leak on rank %i.\nExiting...\n\n"
-						,BOUNDERROR, funcname, msg_size, ncpt*h1u[idir], rank);
-				MPI_Abort(comm,BOUNDERROR);
-			}
-#pragma omp parallel for
-			for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
-#pragma omp simd aligned(z, sendbuf:AVX)
-				for(int icpt = 0; icpt <ncpt; icpt++)
-					sendbuf[ihalo*ncpt+icpt]=z[ncpt*hd[ndim*ihalo+idir]+icpt];
-			//For the zdnhaloswapdir we send off the down halo and receive into the up halo
-			if(MPI_Isend(sendbuf, msg_size, MPI_C_DOUBLE_COMPLEX, pd[idir], tag, comm, &request)){
-				fprintf(stderr,"Error %i in %s: Failed to send off the down halo from rank %i to rank %i.\nExiting...\n"
-						,CANTSEND, funcname, rank, pd[idir]);
-				MPI_Abort(comm,CANTSEND);
-			}
-			if(MPI_Recv(&z[ncpt*h1u[idir]], msg_size, MPI_C_DOUBLE_COMPLEX, pu[idir], tag, comm, &status)){
-				fprintf(stderr,"Error %i in %s: Rank %i failed to receive into up halo from rank %i.\nExiting...\n",
-						CANTRECV, funcname, rank, pu[idir]);
-				MPI_Abort(comm,CANTRECV);
-			}
-			break;
-		case(UP):
-			if(halosize[idir]+h1d[idir]>kvol+halo){
-				fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
-						"a memory leak on rank %i.\nExiting...\n\n"
-						,BOUNDERROR, funcname, msg_size, ncpt*h1d[idir], rank);
-				MPI_Abort(comm,BOUNDERROR);
-			}
-#pragma omp parallel for
-			for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
-#pragma omp simd aligned(z, sendbuf:AVX)
-				for(int icpt = 0; icpt <ncpt; icpt++)
-					sendbuf[ihalo*ncpt+icpt]=z[ncpt*hu[ndim*ihalo+idir]+icpt];
-			//For the zuphaloswapdir we send off the up halo and receive into the down halo
-			if(MPI_Isend(sendbuf, msg_size, MPI_C_DOUBLE_COMPLEX, pu[idir], 0, comm, &request)){
-				fprintf(stderr,"Error %i in %s: Failed to send off the up halo from rank %i to rank %i.\nExiting...\n",
-						CANTSEND, funcname, rank, pu[idir]);
-				MPI_Abort(comm,CANTSEND);
-			}
-			if(MPI_Recv(&z[ncpt*h1d[idir]], msg_size, MPI_C_DOUBLE_COMPLEX, pd[idir], tag, comm, &status)){
-				fprintf(stderr,"Error %i in %s: Rank %i failed to receive into doww halo from rank %i.\nExiting...\n",
-						CANTRECV, funcname, rank, pd[idir]);
-				MPI_Abort(comm,CANTRECV);
-			}
-			break;
+	//#pragma omp parallel for
+	for(unsigned short icpt=0;icpt<ncpt;icpt++){
+#ifdef _DEBUG_MPI
+		printf("Rank %d: Function %s: dir: %d icpt= %d of %d\n",rank, funcname, idir, icpt,ncpt);
+#endif
+		MPI_Request req; MPI_Status stat;
+		Complex *sendbuff = (Complex *)aligned_alloc(AVX,halosize[idir]*sizeof(Complex));
+		switch(layer){
+			case(DOWN):
+				if(halosize[idir]+h1u[idir]>kvol+halo){
+					fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
+							"a memory leak on rank %i.\nExiting...\n\n"
+							,BOUNDERROR, funcname, halosize[idir], ncpt*h1u[idir], rank);
+					MPI_Abort(comm,BOUNDERROR);
+				}
+#pragma omp simd aligned(sendbuff,z:AVX)
+				//In each case we set up the data being sent then do the exchange
+				for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
+					sendbuff[ihalo]=z[hd[ndim*ihalo+idir]+kvolHalo*icpt];
+				//For the zdnhaloswapdir we send off the down halo and receive into the up halo
+				if(MPI_Isend(sendbuff, halosize[idir], MPI_C_DOUBLE_COMPLEX, pd[idir], icpt, comm, &req)){
+					fprintf(stderr,"Error %i in %s: Failed to send off the down halo from rank %i to rank %i.\nExiting...\n"
+							,CANTSEND, funcname, rank, pd[idir]);
+					MPI_Abort(comm,CANTSEND);
+				}
+				if(MPI_Recv(z+h1u[idir]+kvolHalo*icpt, halosize[idir], MPI_C_DOUBLE_COMPLEX, pu[idir], icpt, comm, &stat)){
+					fprintf(stderr,"Error %i in %s: Rank %i failed to receive into up halo from rank %i.\nExiting...\n",
+							CANTRECV, funcname, rank, pu[idir]);
+					MPI_Abort(comm,CANTRECV);
+				}
+				break;
+			case(UP):
+				if(halosize[idir]+h1d[idir]>kvol+halo){
+					fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
+							"a memory leak on rank %i.\nExiting...\n\n"
+							,BOUNDERROR, funcname, halosize[idir], ncpt*h1d[idir], rank);
+					MPI_Abort(comm,BOUNDERROR);
+				}
+#pragma omp simd aligned(sendbuff,z:AVX)
+				//In each case we set up the data being sent then do the exchange
+				for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
+					sendbuff[ihalo]=z[hu[ndim*ihalo+idir]+kvolHalo*icpt];
+				//For the zuphaloswapdir we send off the up halo and receive into the down halo
+				if(MPI_Isend(sendbuff, halosize[idir], MPI_C_DOUBLE_COMPLEX, pu[idir], icpt, comm, &req)){
+					fprintf(stderr,"Error %i in %s: Failed to send off the up halo from rank %i to rank %i.\nExiting...\n",
+							CANTSEND, funcname, rank, pu[idir]);
+					MPI_Abort(comm,CANTSEND);
+				}
+				if(MPI_Recv(z+h1d[idir]+kvolHalo*icpt, halosize[idir], MPI_C_DOUBLE_COMPLEX, pd[idir], icpt, comm, &stat)){
+					fprintf(stderr,"Error %i in %s: Rank %i failed to receive into doww halo from rank %i.\nExiting...\n",
+							CANTRECV, funcname, rank, pd[idir]);
+					MPI_Abort(comm,CANTRECV);
+				}
+				break;
+		}
+		MPI_Wait(&req, &stat);
+		free(sendbuff);
 	}
-	free(sendbuf);
-	MPI_Wait(&request, &status);
 	return 0;
 }
 inline int CHalo_swap_all(Complex_f *c, int ncpt){
-	/*
-	 * Calls the functions to send data to both the up and down halos
-	 *
-	 * Parameters:
-	 * -----------
-	 * Complex z:	The data being sent
-	 * int	ncpt:	Number of components being sent
-	 *
-	 * Returns:
-	 * -------
-	 * Zero on success, integer error code otherwise
-	 */
-	const char *funcname = "ZHalo_swap_all";
+	const char funcname[] = "CHalo_swap_all";
 
 	//FORTRAN called zdnhaloswapall and zuphaloswapall here
 	//Those functions looped over the directions and called zXXhaloswapdir
@@ -976,100 +782,73 @@ inline int CHalo_swap_all(Complex_f *c, int ncpt){
 	return 0;
 }
 int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer){
-	/*
-	 * Swaps the halos along the axis given by idir in the direction
-	 * given by layer
-	 *
-	 * Parameters:
-	 * -----------
-	 *  Complex	*z:	The data being moved about. It should be an array of dimension [kvol+halo][something else]
-	 *  int		ncpt: The size of something else above. 	
-	 *  int		idir:	The axis being moved along in C Indexing
-	 *  int		layer:	Either DOWN (0) or UP (1)
-	 *
-	 *  Returns:
-	 *  -------
-	 *  Zero on success, Integer Error code otherwise
-	 */
-	const char *funcname = "CHalo_swap_dir";
-	MPI_Status status;
+	const char funcname[] = "CHalo_swap_dir";
 	if(layer!=DOWN && layer!=UP){
 		fprintf(stderr, "Error %i in %s: Cannot swap in the direction given by %i.\nExiting...\n\n",
 				LAYERROR, funcname, layer);
 		MPI_Abort(comm,LAYERROR);
 	}
-	//How big is the data being sent and received
-	int msg_size=ncpt*halosize[idir];
-	Complex_f *sendbuf = (Complex_f *)aligned_alloc(AVX,msg_size*sizeof(Complex_f));
-	//In each case we set up the data being sent then do the exchange
-	switch(layer){
-		case(DOWN):
-			if(halosize[idir]+h1u[idir]>kvol+halo){
-				fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
-						"a memory leak on rank %i.\nExiting...\n\n"
-						,BOUNDERROR, funcname, msg_size, ncpt*h1u[idir], rank);
-				MPI_Abort(comm,BOUNDERROR);
-			}
-#pragma omp parallel for
-			for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
-#pragma omp simd aligned(c, sendbuf:AVX)
-				for(int icpt = 0; icpt <ncpt; icpt++)
-					sendbuf[ihalo*ncpt+icpt]=c[ncpt*hd[ndim*ihalo+idir]+icpt];
-			//For the zdnhaloswapdir we send off the down halo and receive into the up halo
-			if(MPI_Isend(sendbuf, msg_size, MPI_C_FLOAT_COMPLEX, pd[idir], tag, comm, &request)){
-				fprintf(stderr,"Error %i in %s: Failed to send off the down halo from rank %i to rank %i.\nExiting...\n"
-						,CANTSEND, funcname, rank, pd[idir]);
-				MPI_Abort(comm,CANTSEND);
-			}
-			if(MPI_Recv(&c[ncpt*h1u[idir]], msg_size, MPI_C_FLOAT_COMPLEX, pu[idir], tag, comm, &status)){
-				fprintf(stderr,"Error %i in %s: Rank %i failed to receive into up halo from rank %i.\nExiting...\n",
-						CANTRECV, funcname, rank, pu[idir]);
-				MPI_Abort(comm,CANTRECV);
-			}
-			break;
-		case(UP):
-			if(halosize[idir]+h1d[idir]>kvol+halo){
-				fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
-						"a memory leak on rank %i.\nExiting...\n\n"
-						,BOUNDERROR, funcname, msg_size, ncpt*h1d[idir], rank);
-				MPI_Abort(comm,BOUNDERROR);
-			}
-#pragma omp parallel for
-			for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
-#pragma omp simd aligned(c, sendbuf:AVX)
-				for(int icpt = 0; icpt <ncpt; icpt++)
-					sendbuf[ihalo*ncpt+icpt]=c[ncpt*hu[ndim*ihalo+idir]+icpt];
-			//For the zuphaloswapdir we send off the up halo and receive into the down halo
-			if(MPI_Isend(sendbuf, msg_size, MPI_C_FLOAT_COMPLEX, pu[idir], 0, comm, &request)){
-				fprintf(stderr,"Error %i in %s: Failed to send off the up halo from rank %i to rank %i.\nExiting...\n",
-						CANTSEND, funcname, rank, pu[idir]);
-				MPI_Abort(comm,CANTSEND);
-			}
-			if(MPI_Recv(&c[ncpt*h1d[idir]], msg_size, MPI_C_FLOAT_COMPLEX, pd[idir], tag, comm, &status)){
-				fprintf(stderr,"Error %i in %s: Rank %i failed to receive into doww halo from rank %i.\nExiting...\n",
-						CANTRECV, funcname, rank, pd[idir]);
-				MPI_Abort(comm,CANTRECV);
-			}
-			break;
+	//#pragma omp parallel for
+	for(unsigned short icpt=0;icpt<ncpt;icpt++){
+#ifdef _DEBUG_MPI
+		printf("Rank %d: Function %s: dir: %d icpt= %d of %d\n",rank, funcname, idir, icpt,ncpt);
+#endif
+		MPI_Request req; MPI_Status stat;
+		Complex_f *sendbuff = (Complex_f *)aligned_alloc(AVX,halosize[idir]*sizeof(Complex_f));
+		switch(layer){
+			case(DOWN):
+				if(halosize[idir]+h1u[idir]>kvol+halo){
+					fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
+							"a memory leak on rank %i.\nExiting...\n\n"
+							,BOUNDERROR, funcname, halosize[idir], ncpt*h1u[idir], rank);
+					MPI_Abort(comm,BOUNDERROR);
+				}
+				//In each case we set up the data being sent then do the exchange
+#pragma omp simd aligned(sendbuff,c:AVX)
+				for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
+					sendbuff[ihalo]=c[hd[ndim*ihalo+idir]+kvolHalo*icpt];
+				//For the cdnhaloswapdir we send off the down halo and receive into the up halo
+				if(MPI_Isend(sendbuff, halosize[idir], MPI_C_FLOAT_COMPLEX, pd[idir], icpt, comm, &req)){
+					fprintf(stderr,"Error %i in %s: Failed to send off the down halo from rank %i to rank %i.\nExiting...\n"
+							,CANTSEND, funcname, rank, pd[idir]);
+					MPI_Abort(comm,CANTSEND);
+				}
+				if(MPI_Recv(c+h1u[idir]+kvolHalo*icpt, halosize[idir], MPI_C_FLOAT_COMPLEX, pu[idir], icpt, comm, &stat)){
+					fprintf(stderr,"Error %i in %s: Rank %i failed to receive into up halo from rank %i.\nExiting...\n",
+							CANTRECV, funcname, rank, pu[idir]);
+					MPI_Abort(comm,CANTRECV);
+				}
+				break;
+			case(UP):
+				if(halosize[idir]+h1d[idir]>kvol+halo){
+					fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
+							"a memory leak on rank %i.\nExiting...\n\n"
+							,BOUNDERROR, funcname, halosize[idir], ncpt*h1d[idir], rank);
+					MPI_Abort(comm,BOUNDERROR);
+				}
+#pragma omp simd aligned(sendbuff,c:AVX)
+				for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
+					sendbuff[ihalo]=c[hu[ndim*ihalo+idir]+kvolHalo*icpt];
+				//For the cuphaloswapdir we send off the up halo and receive into the down halo
+				if(MPI_Isend(sendbuff, halosize[idir], MPI_C_FLOAT_COMPLEX, pu[idir], icpt, comm, &req)){
+					fprintf(stderr,"Error %i in %s: Failed to send off the up halo from rank %i to rank %i.\nExiting...\n",
+							CANTSEND, funcname, rank, pu[idir]);
+					MPI_Abort(comm,CANTSEND);
+				}
+				if(MPI_Recv(c+h1d[idir]+kvolHalo*icpt, halosize[idir], MPI_C_FLOAT_COMPLEX, pd[idir], icpt, comm, &stat)){
+					fprintf(stderr,"Error %i in %s: Rank %i failed to receive into doww halo from rank %i.\nExiting...\n",
+							CANTRECV, funcname, rank, pd[idir]);
+					MPI_Abort(comm,CANTRECV);
+				}
+				break;
+		}
+		MPI_Wait(&req, &stat);
+		free(sendbuff);
 	}
-	free(sendbuf);
-	MPI_Wait(&request, &status);
 	return 0;
 }
 inline int DHalo_swap_all(double *d, int ncpt){
-	/*
-	 * Calls the functions to send data to both the up and down halos
-	 *
-	 * Parameters:
-	 * -----------
-	 * Complex z:	The data being sent
-	 * int	ncpt:	Number of components being sent
-	 *
-	 * Returns:
-	 * -------
-	 * Zero on success, integer error code otherwise
-	 */
-	const char *funcname = "DHalo_swap_all";
+	const char funcname[] = "DHalo_swap_all";
 
 	//FORTRAN called zdnhaloswapall and zuphaloswapall here
 	//Those functions looped over the directions and called zXXhaloswapdir
@@ -1096,82 +875,168 @@ inline int DHalo_swap_all(double *d, int ncpt){
 	return 0;
 }
 int DHalo_swap_dir(double *d, int ncpt, int idir, int layer){
-	/*
-	 * Swaps the halos along the axis given by idir in the direction
-	 * given by layer
-	 *
-	 * Parameters:
-	 * -----------
-	 *  double	*d:	The data being moved about
-	 *  int		ncpt:	Number of components being sent
-	 *  int		idir:	The axis being moved along
-	 *  int		layer:	Either DOWN (0) or UP (1)
-	 *
-	 *  Returns:
-	 *  -------
-	 *  Zero on success, Integer Error code otherwise
-	 */
-	const char *funcname = "DHalo_swap_dir";
-	MPI_Status status;
+	const char funcname[] = "DHalo_swap_dir";
 	//How big is the data being sent and received
-	int msg_size=ncpt*halosize[idir];
-	double *sendbuf = (double *)aligned_alloc(AVX,msg_size*sizeof(double));
 	if(layer!=DOWN && layer!=UP){
 		fprintf(stderr, "Error %i in %s: Cannot swap in the direction given by %i.\nExiting...\n\n",
 				LAYERROR, funcname, layer);
 		MPI_Abort(comm,LAYERROR);
 	}
-	//Impliment the switch. The code is taken from the end of the dedicated functions in the FORTRAN code.
-	switch(layer){
-		case(DOWN):
-			if(halosize[idir]+h1u[idir]>kvol+halo){
-				fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
-						"a memory leak on rank %i.\nExiting...\n\n"
-						,BOUNDERROR, funcname, msg_size, ncpt*h1u[idir], rank);
-				MPI_Abort(comm,BOUNDERROR);
-			}
-#pragma omp parallel for
-			for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
-#pragma omp simd aligned(d,sendbuf:AVX)
-				for(int icpt = 0; icpt <ncpt; icpt++)
-					sendbuf[ihalo*ncpt+icpt]=d[ncpt*hd[ndim*ihalo+idir]+icpt];
-			//For the cdnhaloswapdir we send off the down halo and receive into the up halo
-			if(MPI_Isend(sendbuf, msg_size, MPI_DOUBLE, pd[idir], tag, comm, &request)){
-				fprintf(stderr, "Error %i in %s: Failed to send off the down halo from rank %i to rank %i.\nExiting...\n\n",
-						CANTSEND, funcname, rank, pd[idir]);
-				MPI_Abort(comm,CANTSEND);
-			}
-			if(MPI_Recv(&d[ncpt*h1u[idir]], msg_size, MPI_DOUBLE, pu[idir], tag, comm, &status)){
-				fprintf(stderr, "Error %i in %s: Rank %i failed to receive into up halo from rank %i.\nExiting...\n\n",
-						CANTRECV, funcname, rank, pu[idir]);
-				MPI_Abort(comm,CANTRECV);
-			}
-		case(UP):
-			if(halosize[idir]+h1d[idir]>kvol+halo){
-				fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
-						"a memory leak on rank %i.\nExiting...\n\n"
-						,BOUNDERROR, funcname, msg_size, ncpt*h1d[idir], rank);
-				MPI_Abort(comm,BOUNDERROR);
-			}
-#pragma omp parallel for
-			for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
-#pragma omp simd aligned(d,sendbuf:AVX)
-				for(int icpt = 0; icpt <ncpt; icpt++)
-					sendbuf[ihalo*ncpt+icpt]=d[ncpt*hu[ndim*ihalo+idir]+icpt];
-			//For the cuphaloswapdir we send off the up halo and receive into the down halo
-			if(MPI_Isend(sendbuf, msg_size, MPI_DOUBLE, pu[idir], 0, comm, &request)){
-				fprintf(stderr,"Error %i in %s: Failed to send off the up halo from rank %i to rank %i.\nExiting...\n\n",
-						CANTSEND, funcname, rank, pu[idir]);
-				MPI_Abort(comm,CANTSEND);
-			}
-			if(MPI_Recv(&d[ncpt*h1d[idir]], msg_size, MPI_DOUBLE, pd[idir], tag, comm, &status)){
-				fprintf(stderr, "Error %i in %s: Rank %i failed to receive into doww halo from rank %i.\nExiting...\n\n",
-						CANTRECV, funcname, rank, pd[idir]);
-				MPI_Abort(comm,CANTRECV);
-			}
+	//#pragma omp parallel for
+	for(unsigned short icpt=0;icpt<ncpt;icpt++){
+#ifdef _DEBUG_MPI
+		printf("Rank %d: Function %s: dir: %d icpt= %d of %d\n",rank, funcname, idir, icpt,ncpt);
+#endif
+		//Implement the switch. The code is taken from the end of the dedicated functions in the FORTRAN code.
+		MPI_Request req; MPI_Status stat;
+		double *sendbuff = (double *)aligned_alloc(AVX,halosize[idir]*sizeof(double));
+		switch(layer){
+			case(DOWN):
+				if(halosize[idir]+h1u[idir]>kvol+halo){
+					fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
+							"a memory leak on rank %i.\nExiting...\n\n"
+							,BOUNDERROR, funcname, halosize[idir], ncpt*h1u[idir], rank);
+					MPI_Abort(comm,BOUNDERROR);
+				}
+				//In each case we set up the data being sent then do the exchange
+#pragma omp simd aligned(sendbuff,d:AVX)
+				for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
+					sendbuff[ihalo]=d[hd[ndim*ihalo+idir]+kvolHalo*icpt];
+				//For the ddnhaloswapdir we send off the down halo and receive into the up halo
+				if(MPI_Isend(sendbuff, halosize[idir], MPI_DOUBLE, pd[idir], icpt, comm, &req)){
+					fprintf(stderr, "Error %i in %s: Failed to send off the down halo from rank %i to rank %i.\nExiting...\n\n",
+							CANTSEND, funcname, rank, pd[idir]);
+					MPI_Abort(comm,CANTSEND);
+				}
+				if(MPI_Recv(d+h1u[idir]+kvolHalo*icpt, halosize[idir], MPI_DOUBLE, pu[idir], icpt, comm, &stat)){
+					fprintf(stderr, "Error %i in %s: Rank %i failed to receive into up halo from rank %i.\nExiting...\n\n",
+							CANTRECV, funcname, rank, pu[idir]);
+					MPI_Abort(comm,CANTRECV);
+				}
+				break;
+			case(UP):
+				if(halosize[idir]+h1d[idir]>kvol+halo){
+					fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
+							"a memory leak on rank %i.\nExiting...\n\n"
+							,BOUNDERROR, funcname, halosize[idir], ncpt*h1d[idir], rank);
+					MPI_Abort(comm,BOUNDERROR);
+				}
+#pragma omp simd aligned(sendbuff,d:AVX)
+				//In each case we set up the data being sent then do the exchange
+				for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
+					sendbuff[ihalo]=d[hu[ndim*ihalo+idir]+kvolHalo*icpt];
+				//For the duphaloswapdir we send off the up halo and receive into the down halo
+				if(MPI_Isend(sendbuff, halosize[idir], MPI_DOUBLE, pu[idir], icpt, comm, &req)){
+					fprintf(stderr,"Error %i in %s: Failed to send off the up halo from rank %i to rank %i.\nExiting...\n\n",
+							CANTSEND, funcname, rank, pu[idir]);
+					MPI_Abort(comm,CANTSEND);
+				}
+				if(MPI_Recv(d+h1d[idir]+kvolHalo*icpt, halosize[idir], MPI_DOUBLE, pd[idir], icpt, comm, &stat)){
+					fprintf(stderr, "Error %i in %s: Rank %i failed to receive into doww halo from rank %i.\nExiting...\n\n",
+							CANTRECV, funcname, rank, pd[idir]);
+					MPI_Abort(comm,CANTRECV);
+				}
+				break;
+		}
+		MPI_Wait(&req, &stat);
+		free(sendbuff);
 	}	
-	free(sendbuf);
-	MPI_Wait(&request, &status);
+	return 0;
+}
+inline int SHalo_swap_all(float *d, int ncpt){
+	const char funcname[] = "SHalo_swap_all";
+
+	//FORTRAN called zdnhaloswapall and zuphaloswapall here
+	//Those functions looped over the directions and called zXXhaloswapdir
+	//As the only place they are called in the FORTRAN code is right here,
+	//I'm going to omit them entirely and just put the direction loop here
+	//instead
+	//Unrolling the loop so we can have pre-processor directives for each dimension
+#if(npx>1)
+	SHalo_swap_dir(d, ncpt, 0, DOWN);
+	SHalo_swap_dir(d, ncpt, 0, UP);			
+#endif
+#if(npy>1)
+	SHalo_swap_dir(d, ncpt, 1, DOWN);
+	SHalo_swap_dir(d, ncpt, 1, UP);			
+#endif
+#if(npz>1)
+	SHalo_swap_dir(d, ncpt, 2, DOWN);
+	SHalo_swap_dir(d, ncpt, 2, UP);			
+#endif
+#if(npt>1)
+	SHalo_swap_dir(d, ncpt, 3, DOWN);
+	SHalo_swap_dir(d, ncpt, 3, UP);			
+#endif
+	return 0;
+}
+int SHalo_swap_dir(float *d, int ncpt, int idir, int layer){
+	const char funcname[] = "SHalo_swap_dir";
+	//How big is the data being sent and received
+	if(layer!=DOWN && layer!=UP){
+		fprintf(stderr, "Error %i in %s: Cannot swap in the direction given by %i.\nExiting...\n\n",
+				LAYERROR, funcname, layer);
+		MPI_Abort(comm,LAYERROR);
+	}
+	//#pragma omp parallel for
+	for(unsigned short icpt=0;icpt<ncpt;icpt++){
+#ifdef _DEBUG_MPI
+		printf("Rank %d: Function %s: dir: %d icpt= %d of %d\n",rank, funcname, idir, icpt,ncpt);
+#endif
+		//Implement the switch. The code is taken from the end of the dedicated functions in the FORTRAN code.
+		MPI_Request req; MPI_Status stat;
+		float *sendbuff = (float *)aligned_alloc(AVX,halosize[idir]*sizeof(float));
+		switch(layer){
+			case(DOWN):
+				if(halosize[idir]+h1u[idir]>kvol+halo){
+					fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
+							"a memory leak on rank %i.\nExiting...\n\n"
+							,BOUNDERROR, funcname, halosize[idir], ncpt*h1u[idir], rank);
+					MPI_Abort(comm,BOUNDERROR);
+				}
+				//In each case we set up the data being sent then do the exchange
+#pragma omp simd aligned(sendbuff,d:AVX)
+				for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
+					sendbuff[ihalo]=d[hd[ndim*ihalo+idir]+kvolHalo*icpt];
+				//For the sdnhaloswapdir we send off the down halo and receive into the up halo
+				if(MPI_Isend(sendbuff, halosize[idir], MPI_FLOAT, pd[idir], icpt, comm, &req)){
+					fprintf(stderr, "Error %i in %s: Failed to send off the down halo from rank %i to rank %i.\nExiting...\n\n",
+							CANTSEND, funcname, rank, pd[idir]);
+					MPI_Abort(comm,CANTSEND);
+				}
+				if(MPI_Recv(d+h1u[idir]+kvolHalo*icpt, halosize[idir], MPI_FLOAT, pu[idir], icpt, comm, &stat)){
+					fprintf(stderr, "Error %i in %s: Rank %i failed to receive into up halo from rank %i.\nExiting...\n\n",
+							CANTRECV, funcname, rank, pu[idir]);
+					MPI_Abort(comm,CANTRECV);
+				}
+				break;
+			case(UP):
+				if(halosize[idir]+h1d[idir]>kvol+halo){
+					fprintf(stderr, "Error %i in %s: Writing a message of size %i to flattened index %i will cause "\
+							"a memory leak on rank %i.\nExiting...\n\n"
+							,BOUNDERROR, funcname, halosize[idir], ncpt*h1d[idir], rank);
+					MPI_Abort(comm,BOUNDERROR);
+				}
+#pragma omp simd aligned(sendbuff,d:AVX)
+				//In each case we set up the data being sent then do the exchange
+				for(int ihalo = 0; ihalo < halosize[idir]; ihalo++)
+					sendbuff[ihalo]=d[hu[ndim*ihalo+idir]+kvolHalo*icpt];
+				//For the suphaloswapdir we send off the up halo and receive into the down halo
+				if(MPI_Isend(sendbuff, halosize[idir], MPI_FLOAT, pu[idir], icpt, comm, &req)){
+					fprintf(stderr,"Error %i in %s: Failed to send off the up halo from rank %i to rank %i.\nExiting...\n\n",
+							CANTSEND, funcname, rank, pu[idir]);
+					MPI_Abort(comm,CANTSEND);
+				}
+				if(MPI_Recv(d+h1d[idir]+kvolHalo*icpt, halosize[idir], MPI_FLOAT, pd[idir], icpt, comm, &stat)){
+					fprintf(stderr, "Error %i in %s: Rank %i failed to receive into doww halo from rank %i.\nExiting...\n\n",
+							CANTRECV, funcname, rank, pd[idir]);
+					MPI_Abort(comm,CANTRECV);
+				}
+				break;
+		}
+		MPI_Wait(&req, &stat);
+		free(sendbuff);
+	}	
 	return 0;
 }
 #endif
@@ -1188,80 +1053,70 @@ int Trial_Exchange(Complex *ut[2],Complex_f *ut_f[2]){
 #ifdef __NVCC__
 	int device=-1;
 	cudaGetDevice(&device);
-	cudaMemPrefetchAsync(ut[0], ndim*kvol*sizeof(Complex),cudaCpuDeviceId,NULL);
-	cudaMemPrefetchAsync(ut[1], ndim*kvol*sizeof(Complex),cudaCpuDeviceId,NULL);
+	Complex *z;
+#ifdef _DEBUG
+	cudaMallocManaged((void **)&z,kvolHalo*sizeof(Complex),cudaMemAttachGlobal);
+#else
+	cudaMallocAsync((void **)&z,kvolHalo*sizeof(Complex),streams[0]);
 #endif
-	Complex *z = (Complex *)aligned_alloc(AVX,(kvol+halo)*sizeof(Complex));
+	cudaDeviceSynchronise();
+#else
+	Complex *z = (Complex *)aligned_alloc(AVX,kvolHalo*sizeof(Complex));
+#endif
+	//	ZHalo_swap_all(ut[0],ndim); ZHalo_swap_all(ut[1],ndim);
+	//	
 	for(int mu=0;mu<ndim;mu++){
 		//Copy the column from ut[0]
-#ifdef USE_BLAS
-		cblas_zcopy(kvol, &ut[0][mu], ndim, z, 1);
+#ifdef __NVCC__
+		cudaMemcpy(z,ut[0]+kvolHalo*mu,kvol*sizeof(Complex),cudaMemcpyDefault);
 #else
-		for(int i=0; i<kvol;i++)
-			z[i]=ut[0][i*ndim+mu];
+		memcpy(z,ut[0]+kvolHalo*mu,kvol*sizeof(Complex));
 #endif
+
 		//Halo exchange on that column
 		ZHalo_swap_all(z, 1);
-		//And the swap back
-#ifdef USE_BLAS
-		cblas_zcopy(kvol+halo, z, 1, &ut[0][mu], ndim);
-		//Now we prefetch the halo
+		//And the swap back/getting the next halo
 #ifdef __NVCC__
-		cudaMemPrefetchAsync(ut[0]+ndim*kvol, ndim*halo*sizeof(Complex),device,NULL);
-#endif
-		//Repeat for ut[1]
-		cblas_zcopy(kvol, &ut[1][mu], ndim, z, 1);
+		cudaMemcpy(ut[0]+kvolHalo*mu,z,kvolHalo*sizeof(Complex),cudaMemcpyDefault);
+		cudaMemcpy(z,ut[1]+kvolHalo*mu,kvol*sizeof(Complex),cudaMemcpyDefault);
 #else
-		for(int i=0; i<kvol+halo;i++){
-			ut[0][i*ndim+mu]=z[i];
-			z[i]=ut[1][i*ndim+mu];
-		}
+		memcpy(ut[0]+kvolHalo*mu,z,kvolHalo*sizeof(Complex));
+		memcpy(z,ut[1]+kvolHalo*mu,kvol*sizeof(Complex));
 #endif
+
+		//Repeat
 		ZHalo_swap_all(z, 1);
-#ifdef USE_BLAS
-		cblas_zcopy(kvol+halo, z, 1, &ut[1][mu], ndim);
+#ifdef __NVCC__
+		cudaMemcpy(ut[1]+kvolHalo*mu,z,kvolHalo*sizeof(Complex),cudaMemcpyDefault);
 #else
-		for(int i=0; i<kvol+halo;i++)
-			ut[1][i*ndim+mu]=z[i];
+		memcpy(ut[1]+kvolHalo*mu,z,kvolHalo*sizeof(Complex));
 #endif
 	}
 	//Now we prefetch the halo
+	//And get the single precision gauge fields preppeed
+	//Since we want the halos converted too set the stride to one
 #ifdef __NVCC__
-	cudaMemPrefetchAsync(ut[1]+ndim*kvol, ndim*halo*sizeof(Complex),device,NULL);
+#ifdef _DEBUG
+	cudaFree(z);
+#else
+	cudaFreeAsync(z,streams[0]);
 #endif
-	free(z);
-#endif
-//And get the single precision gauge fields preppeed
-#ifdef __NVCC__
-	cuComplex_convert(ut_f[0],ut[0],ndim*(kvol+halo),true,dimBlock,dimGrid);
-	cuComplex_convert(ut_f[1],ut[1],ndim*(kvol+halo),true,dimBlock,dimGrid);
 	cudaDeviceSynchronise();
 #else
-#pragma omp parallel for simd 
-	for(int i=0;i<ndim*(kvol+halo);i++){
-		ut_f[0][i]=(Complex_f)ut[0][i];
-		ut_f[1][i]=(Complex_f)ut[1][i];
-	}
+	free(z);
 #endif
+#endif
+	ComplexConvert(ut_f[0],ut[0],ndim*kvolHalo,true,1);
+	ComplexConvert(ut_f[1],ut[1],ndim*kvolHalo,true,1);
 	return 0;
 }
 #if(npt>1)
 int Par_tmul(Complex_f *z11, Complex_f *z12){
-	/*
-	 * Parameters:
-	 * ===========
-	 * Complex *z11
-	 * Complex *z12
-	 *
-	 * Returns:
-	 * =======
-	 * Zero on success, integer error code otherwise.
-	 */
 #ifdef __NVCC_
 #error Par_tmul is not yet implimented in CUDA as Sigma12 in Polyakov is device only memory
 #endif
 	MPI_Status status;
-	const char *funcname = "Par_tmul";
+	const char funcname[] = "Par_tmul";
 	Complex_f *a11, *a12, *t11, *t12;
 	int i, itime;
 

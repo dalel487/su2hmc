@@ -2,14 +2,12 @@
  * @file	random.h
  *
  * @brief	Header for random number configuration
+ * @defgroup Random PRNG
  */
 #ifndef	RANDOM
 #define	RANDOM
 //Need two cases here. MKL/CUDA or not for BLAS and CUDA or not for complex
-#ifdef __NVCC__ 
-#include <cublas_v2.h>
-#endif
-#ifdef __INTEL_MKL__
+#ifdef __USE_MKL__
 #include <mkl.h>
 #include <mkl_vsl.h>
 #define M_PI		3.14159265358979323846	/* pi */
@@ -17,27 +15,27 @@
 #ifdef __RANLUX__
 #include <gsl/gsl_rng.h>
 #endif
-#include <math.h>
 #if (defined__INTEL_COMPILER || __INTEL_LLVM_COMPILER)
 #include <mathimf.h>
 #endif
 #include <par_mpi.h>
-#include <sizes.h>
 //Configuration for existing generators if called
 //===============================================
-#if (defined USE_RAN2||(!defined __INTEL_MKL__&&!defined __RANLUX__))
+#if (defined USE_RAN2||(!defined __USE_MKL__&&!defined __RANLUX__))
+///@brief PRNG seed
 extern long seed;
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-/**
- * @brief Dummy seed the ran2 generator
- *
- * @param seed pointer to seed
- * 
- *	@return 0
- */
+	/**
+	 * @brief Dummy seed the ran2 generator
+	 *	@ingroup Random
+	 *
+	 * @param[in] seed pointer to seed
+	 * 
+	 *	@return 0
+	 */
 	int ranset(long *seed);
 	/**
 	 * @brief Uses the rank to get a new seed.
@@ -46,9 +44,10 @@ extern "C"
 	 * c     having a range of 0*seed gave an unfortunate pattern
 	 * c     in the underlying value of ds(1) (it was always 10 times bigger
 	 * c     on the last processor). This does not appear to happen with 9.
+	 *	@ingroup Random
 	 *
-	 * @param	seed:	The seed from the rank in question.
-	 * @param	iread:	Do we read from file or not. Don't remember why it's here as it's not used	
+	 * @param[in]	seed:	The seed from the rank in question.
+	 * @param[in]	iread:	Do we read from file or not. Don't remember why it's here as it's not used	
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
@@ -56,8 +55,9 @@ extern "C"
 	/**
 	 * @brief	Generates uniformly distributed random double between zero and one as
 	 * 			described in numerical recipes. It's also thread-safe for different seeds.
+	 *	@ingroup Random
 	 *
-	 * @param	idum: Pointer to the seed
+	 * @param[in]	idum: Pointer to the seed
 	 *
 	 * @return	The random double between zero and one
 	 *
@@ -67,6 +67,7 @@ extern "C"
 }
 #endif
 #elif defined __RANLUX__
+///@brief RANLUX instance
 extern gsl_rng *ranlux_instd;
 //Need to get a float version that uses a different seed for performance reasons.
 //Otherwise we get two generators (one float, one double) starting from the same seed. Not good
@@ -77,13 +78,14 @@ extern unsigned long seed;
 extern "C"
 {
 #endif
-/**
- * @brief Seed the ranlux generator from GSL
- *
- * @param seed pointer to seed
- * 
- *	@return 0
- */
+	/**
+	 * @brief Seed the ranlux generator from GSL
+	 * @ingroup Random
+	 *
+	 * @param[in] seed pointer to seed
+	 * 
+	 *	@return 0
+	 */
 	int ranset(unsigned long *seed);
 	/**
 	 * @brief Uses the rank to get a new seed.
@@ -92,9 +94,10 @@ extern "C"
 	 * c     having a range of 0*seed gave an unfortunate pattern
 	 * c     in the underlying value of ds(1) (it was always 10 times bigger
 	 * c     on the last processor). This does not appear to happen with 9.
+	 * @ingroup Random
 	 *
-	 * @param	seed:	The seed from the rank in question.
-	 * @param	iread:	Do we read from file or not. Don't remember why it's here as it's not used	
+	 * @param[in]	seed:	The seed from the rank in question.
+	 * @param[in]	iread:	Do we read from file or not. Don't remember why it's here as it's not used	
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
@@ -102,20 +105,21 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif
-#elif defined __INTEL_MKL__
+#elif defined __USE_MKL__
 extern VSLStreamStatePtr stream;
 extern unsigned int seed;
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-/**
- * @brief Seed the Intel Mersenne twister generator
- *
- * @param seed pointer to seed
- *
- *	@return 0
- */
+	/**
+	 * @brief Seed the Intel Mersenne twister generator
+	 * @ingroup Random
+	 *
+	 * @param[in] seed pointer to seed
+	 *
+	 *	@return 0
+	 */
 	int ranset(unsigned int *seed);
 	/**
 	 * @brief Uses the rank to get a new seed.
@@ -124,9 +128,10 @@ extern "C"
 	 * c     having a range of 0*seed gave an unfortunate pattern
 	 * c     in the underlying value of ds(1) (it was always 10 times bigger
 	 * c     on the last processor). This does not appear to happen with 9.
+	 * @ingroup Random
 	 *
-	 * @param	seed:	The seed from the rank in question.
-	 * @param	iread:	Do we read from file or not. Don't remember why it's here as it's not used	
+	 * @param[in]	seed:	The seed from the rank in question.
+	 * @param[in]	iread:	Do we read from file or not. Don't remember why it's here as it's not used	
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
@@ -158,44 +163,48 @@ extern "C"
 	//Use Box-Müller to generate an array of complex numbers
 	/**
 	 * @brief	Generates a vector of normally distributed random double precision complex numbers using the Box-Muller Method
+	 * @ingroup Random
 	 * 
-	 * @param	ps:		The output array
-	 * @param	n:			The array length
-	 * @param	mu:		mean
-	 * @param	sigma:	variance
+	 * @param[out]	ps:		The output array
+	 * @param[in]	n:			The array length
+	 * @param[in]	mu:		mean
+	 * @param[in]	sigma:	variance
 	 * 
 	 * @return Zero on success integer error code otherwise
 	 */
 	int Gauss_z(Complex *ps, unsigned int n, const Complex mu, const double sigma);
 	/**
 	 * @brief	Generates a vector of normally distributed random double precision numbers using the Box-Muller Method
+	 * @ingroup Random
 	 * 
-	 * @param	ps:		The output array
-	 * @param	n:			The array length
-	 * @param	mu:		mean
-	 * @param	sigma:	variance
+	 * @param[out]	ps:		The output array
+	 * @param[in]	n:			The array length
+	 * @param[in]	mu:		mean
+	 * @param[in]	sigma:	variance
 	 *
 	 * @return Zero on success integer error code otherwise
 	 */
 	int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma);
 	/**
 	 * @brief	Generates a vector of normally distributed random single precision complex numbers using the Box-Muller Method
+	 * @ingroup Random
 	 * 
-	 * @param	ps:		The output array
-	 * @param	n:			The array length
-	 * @param	mu:		mean
-	 * @param	sigma:	variance
+	 * @param[out]	ps:		The output array
+	 * @param[in]	n:			The array length
+	 * @param[in]	mu:		mean
+	 * @param[in]	sigma:	variance
 	 * 
 	 * @return Zero on success integer error code otherwise
 	 */
 	int Gauss_c(Complex_f *ps, unsigned int n, const Complex_f mu, const float sigma);
 	/**
 	 * @brief	Generates a vector of normally distributed random single precision numbers using the Box-Muller Method
+	 * @ingroup Random
 	 * 
-	 * @param	ps:		The output array
-	 * @param	n:			The array length
-	 * @param	mu:		mean
-	 * @param	sigma:	variance
+	 * @param[out]	ps:		The output array
+	 * @param[in]	n:			The array length
+	 * @param[in]	mu:		mean
+	 * @param[in]	sigma:	variance
 	 *
 	 * @return Zero on success integer error code otherwise
 	 */
@@ -207,21 +216,21 @@ extern "C"
 	 * @brief Reads ps from a file
 	 * Since this function is very similar to Par_sread, I'm not really going to comment it
 	 * check there if you are confused about things. 
+	 * @ingroup Random
 	 *
-	 * @param	filename: The name of the file we're reading from
-	 * @param	ranval:	The destination for the file's contents
+	 * @param[in]	filename: The name of the file we're reading from
+	 * @param[in]	ranval:	The destination for the file's contents
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
 	int Par_ranread(char *filename, double *ranval);
 	/**
 	 * @brief Generates a random double which is then sent to the other ranks
+	 * @ingroup Random
 	 *
 	 * @return the random number generated
 	 */
 	double Par_granf();
-	/// @brief Test Functions
-	int	ran_test();
 
 #ifdef __cplusplus
 }

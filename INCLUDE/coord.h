@@ -1,6 +1,9 @@
 /**
  *	@file coord.h
  *	@brief Header for routines related to lattice sites
+ *
+ *	@defgroup Indexing Site Indexing
+ *	@ingroup Helper
  */
 #ifndef COORD
 #define COORD
@@ -13,7 +16,7 @@
 #if (defined__INTEL_COMPILER || __INTEL_LLVM_COMPILER)
 #include <mathimf.h>
 #endif
-#if defined __INTEL_MKL__
+#if defined __USE_MKL__
 #define USE_BLAS
 #include <mkl.h>
 #elif defined GSL_BLAS
@@ -27,16 +30,16 @@
 #ifdef __CUDACC__
 __managed__
 #endif
+///@brief Up halo starting element
+extern unsigned int h1u[ndim];
+///@brief Down halo starting element
+extern unsigned int h1d[ndim];
 ///@brief Up halo indices
 extern unsigned int *hu;
 ///@brief Down halo indices
 extern unsigned int *hd;
-///@brief Up halo starting element
-extern unsigned int *h1u;
-///@brief Down halo starting element
-extern unsigned int *h1d;
 ///@brief Array containing the size of the halo in each direction
-extern unsigned int  *halosize;;
+extern unsigned int halosize[ndim];
 #ifdef __cplusplus
 extern "C"
 {
@@ -45,9 +48,10 @@ extern "C"
 	//========
 	/**
 	 * @brief	Loads the addresses required during the update
+	 * @ingroup Indexing
 	 * 
-	 * @param	iu:	Upper halo indices
-	 * @param	id:	Lower halo indices
+	 * @param[out]	iu:	Upper halo indices
+	 * @param[out]	id:	Lower halo indices
 	 *
 	 * @see hu, hd, h1u, h1d, h2u, h2d, halosize
 	 *
@@ -57,8 +61,9 @@ extern "C"
 	/**
 	 * @brief Described as a 21st Century address calculator, it gets the memory
 	 * address of an array entry.
+	 * @ingroup Indexing
 	 *
-	 * @param x, y, z, t: The coordinates
+	 * @param[in] x, y, z, t: The coordinates
 	 *
 	 * @return An integer corresponding to the position of the entry in a flattened
 	 * row-major array.
@@ -66,13 +71,15 @@ extern "C"
 	 * @todo	Future... Switch for Row and column major, and zero or one indexing
 	 */
 	int ia(int x,int y,int z, int t);
-	/** Checks that the addresses are within bounds before an update
+	/** 
+	 * @brief Checks that the addresses are within bounds before an update
+	 * @ingroup Indexing
 	 *
-	 * @param	table:	Pointer to the table in question
-	 * @param	lns:		Size of each spacial dimension
-	 * @param	lnt:		Size of the time dimension
-	 * @param	imin:		Lower bound for element of the table
-	 * @param	imax:		Upper bound for an element of the table
+	 * @param[in]	table:	Pointer to the table in question
+	 * @param[in]	lns:		Size of each spacial dimension
+	 * @param[in]	lnt:		Size of the time dimension
+	 * @param[in]	imin:		Lower bound for element of the table
+	 * @param[in]	imax:		Upper bound for an element of the table
 	 *
 	 * @return	Zero on success, integer error code otherwise.
 	 */
@@ -81,6 +88,7 @@ extern "C"
 	 *@brief Converts the index of a point in memory to the equivalent point
 	 * in the 4 dimensional array, where the time index is the last
 	 * coordinate in the array.
+	 * @ingroup Indexing
 	 *
 	 * This is a rather nuanced function, as C and Fortran are rather
 	 * different in how they store arrays. C starts with index 0 and
@@ -89,8 +97,8 @@ extern "C"
 	 * Also C and Fortran store data in the opposite memory order so
 	 * be careful when calling this function!
 	 *
-	 * @param	index:	The index of the point as stored linearly in computer memory
-	 * @param	coord:	The 4-array for the coordinates. The first three spots are for the time index.
+	 * @param[in]	index:	The index of the point as stored linearly in computer memory
+	 * @param[out]	coord:	The 4-array for the coordinates. The first three spots are for the time index.
 	 *
 	 * @return Zero on success. Integer Error code otherwise
 	 */ 
@@ -99,6 +107,7 @@ extern "C"
 	 * @brief Converts the index of a point in memory to the equivalent point
 	 * in the 4 dimensional array, where the time index is the last
 	 * coordinate in the array.
+	 * @ingroup Indexing
 	 *
 	 * This is a rather nuanced function, as C and Fortran are rather
 	 * different in how they store arrays. C starts with index 0 and
@@ -107,8 +116,8 @@ extern "C"
 	 * Also C and Fortran store data in the opposite memory order so
 	 * be careful when calling this function!
 	 *
-	 * @param	index:	The index of the point as stored linearly in computer memory
-	 * @param 	coord:	The 4-array for the coordinates. The first three spots are for the time index.
+	 * @param[in]	index:	The index of the point as stored linearly in computer memory
+	 * @param[out] 	coord:	The 4-array for the coordinates. The first three spots are for the time index.
 	 *
 	 * @return	Zero on success. Integer Error code otherwise
 	 */ 
@@ -116,6 +125,7 @@ extern "C"
 	/**
 	 * @brief Converts the coordinates of a local lattice point to its index in the 
 	 * computer memory.
+	 * @ingroup Indexing
 	 *
 	 * This is a rather nuanced function, as C and Fortran are rather
 	 * different in how they store arrays. C starts with index 0 and
@@ -124,16 +134,15 @@ extern "C"
 	 * Also C and Fortran store data in the opposite memory order so
 	 * be careful when calling this function!
 	 *
-	 * @param ix,iy,iz,it:	Index in each direction
+	 * @param[in] ix,iy,iz,it:	Index in each direction
 	 *
-	 * Returns:
-	 * ========
-	 * int index: The position of the point
+	 * @return The position of the point in the flattened array
 	 */
 	int Coord2lindex(int ix, int iy, int iz, int it);
 	/**
 	 * @brief Converts the coordinates of a global lattice point to its index in the 
 	 * computer memory.
+	 * @ingroup Indexing
 	 *
 	 * This is a rather nuanced function, as C and Fortran are rather
 	 * different in how they store arrays. C starts with index 0 and
@@ -142,15 +151,14 @@ extern "C"
 	 * Also C and Fortran store data in the opposite memory order so
 	 * be careful when calling this function!
 	 *
-	 * @param ix,iy,iz,it:	Index in each direction
+	 * @param[in] ix,iy,iz,it:	Index in each direction
 	 *
-	 * Returns:
-	 * ========
-	 * int index: The position of the point
+	 * @return The position of the point in the flattened array
 	 */
 	int Coord2gindex(int ix, int iy, int iz, int it);
 	/**
 	 * @brief Tests if the local coordinate transformation functions are working
+	 * @ingroup Indexing
 	 * 
 	 * Going to expand a little on the original here and do the following
 	 * 1. Convert from int to lcoord (the original code)
@@ -159,13 +167,14 @@ extern "C"
 	 * If we get the same value we started with then we're probably doing
 	 * something right.
 	 *
-	 * @param cap: The max value the index can take on. Should be the size of the array
+	 * @param[in] cap: The max value the index can take on. Should be the size of the array
 	 *
 	 * @return Zero on success, integer error code otherwise.
 	 */
 	int Testlcoord(int cap);
 	/**
 	 * @brief This is completely new and missing from the original code.
+	 * @ingroup Indexing
 	 *
 	 * We test the coordinate conversion functions by doing the following
 	 * 1. Convert from int to gcoord (new)
@@ -176,7 +185,7 @@ extern "C"
 	 * The code is basically the same as the previous function with different
 	 * magic numbers.
 	 *
-	 * @param cap: The max value the index can take on. Should be the size of our array
+	 * @param[in] cap: The max value the index can take on. Should be the size of our array
 	 *
 	 * @return Zero on success, integer error code otherwise 
 	 */

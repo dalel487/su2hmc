@@ -1,38 +1,33 @@
 /**
  * @file		su2hmc.h
  * @brief	Function declarations for most of the routines
+ *
+ * @defgroup Helper  Helper functions
+ * 
+ * @defgroup Observables  Observable Quantities
+ *
+ * @defgroup Bose  Bosonic Observables
+ * @ingroup Observables
+ *
+ * @defgroup Fermi Fermionic Observables
+ * @ingroup Observables
  */
-#ifndef SU2HEAD
-#define SU2HEAD
+#pragma once
 //ARM Based machines. BLAS routines should work with other libraries, so we can set a compiler
 //flag to sort them out. But the PRNG routines etc. are MKL exclusive
-#include <errorcodes.h>
 #include <integrate.h>
-#ifdef	__INTEL_MKL__
-#define	USE_BLAS
-#include	<mkl.h>
-#elif defined GSL_BLAS
-#define	USE_BLAS
-#include <gsl/gsl_cblas.h>
-#elif defined AMD_BLAS
-#define	USE_BLAS
-#include	<cblas.h>
-#endif
-#include	<sizes.h>
 #ifdef __cplusplus
 #include	<cstdio>
 #include	<cstdlib>
 #include	<ctime>
 #else
-#include	<stdio.h>
-#include	<stdlib.h>
 #include	<time.h>
 #endif
 
 //Definitions:
 //###########
 #ifdef _DEBUGCG
-#define _DEBUG
+#define _DEBUG 1
 #endif
 //Function Declarations:
 //#####################
@@ -42,147 +37,205 @@ extern "C"
 #endif
 	/**
 	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
+	 *	@ingroup MD
 	 *	
-	 *	@param	dSdpi:			The force
-	 *	@param	iflag:			Invert before evaluating the force. 0 to invert, one not to. Blame FORTRAN...	
-	 *	@param	res1:				Conjugate gradient residule
-	 *	@param	X0:				Up/down partitioned pseudofermion field
-	 *	@param	X1:				Holder for the partitioned fermion field, then the conjugate gradient output
-	 *	@param	Phi:				Pseudofermion field
-	 *	@param	ut					Double precision colour fields
-	 *	@param	u2t_f:			Single precision colour fields
-	 *	@param	iu,id:			Lattice indices
-	 *	@param	gamin:			Gamma indices
-	 *	@param	gamval:			Double precision gamma matrices rescaled by kappa
-	 *	@param	gamval_f:		Single precision gamma matrices rescaled by kappa
-	 * @param	dk:				@f$e^{-\mu}@f$ and @f$e^\mu@f$
-	 * @param	dk_f:				@f$e^{-\mu}@f$ and @f$e^\mu@f$ float
-	 * @param 	jqq:				Diquark source
-	 *	@param	akappa:			Hopping parameter
-	 *	@param	beta:				Inverse gauge coupling
-	 *	@param	ancg:				Counter for conjugate gradient iterations
+	 *	@param[in,out]	dSdpi:				The force
+	 *	@param[in]	ut:					Float precision colour fields
+	 *	@param[in]	X1:					Inverted field
+	 *	@param[in]	X2:					@f$MX_1@f$
+	 *	@param[in]	gamval:				Gamma matrices rescaled by @f$\kappa@f$
+	 *	@param[in]	iu:					Lattice indices
+	 *	@param[in]	gamin:				Gamma indices
+	 *	@param[in]	akappa:				Hopping parameter
+	 *	@param[in]	mu:					Force direction
+	 *
+	 *	@post	Force added to @p dSdpi 
+	 */
+	void Force_s(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, Complex_f gamval[20],\
+			unsigned int *iu, const unsigned short gamin[16],const float akappa, const unsigned short mu);
+	/**
+	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
+	 *	@ingroup MD
+	 *	
+	 *	@param[in,out]	dSdpi:				The force
+	 *	@param[in]	ut:					Float precision colour fields
+	 *	@param[in]	X1:					Inverted field
+	 *	@param[in]	X2:					@f$MX_1@f$
+	 *	@param[in]	gamval:				Gamma matrices rescaled by @f$\kappa@f$
+	 * @param[in]	dk:					@f$e^{-\mu}@f$ and @f$e^\mu@f$
+	 *	@param[in]	iu:					Lattice indices
+	 *	@param[in]	gamin:				Gamma indices
+	 *	@param[in]	akappa:				Hopping parameter
+	 *
+	 *	@post	Force added to @p dSdpi 
+	 */
+	void Force_t(double *dSdpi, Complex_f *ut[2],Complex_f *X1, Complex_f *X2, Complex_f gamval[20],\
+			float *dk[2], unsigned int *iu, const unsigned short gamin[16],float akappa);
+	/**
+	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
+	 *	@ingroup MD
+	 *
+	 *	@param[in,out]	dSdpi:				The force
+	 *	@param[in]	iflag:				Invert before evaluating the force. 0 to invert, one not to. Blame FORTRAN...	
+	 *	@param[in]	res1:					Conjugate gradient residue
+	 *	@param[in]	X0:					Up/down partitioned pseudofermion field
+	 *	@param[in]	X1:					Holder for the partitioned fermion field, then the inverted dield
+	 *	@param[in]	Phi:					Pseudofermion field
+	 *	@param[in]	ut,ut_f:				Double/float precision colour fields
+	 *	@param[in]	iu,id:				Lattice indices
+	 *	@param[in]	gamval,gamval_f:	Double/float precision gamma matrices rescaled by @f$\kappa@f$
+	 *	@param[in]	gamin:				Gamma indices
+	 *	@param[in]	sigval,sigval_f:	Double/float Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}{2}@f$
+	 * @param[in]	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
+	 * @param[in]	dk,dk_f:				Double/float @f$e^{-\mu}@f$ and @f$e^\mu@f$
+	 * @param[in] 	jqq:					Diquark source
+	 *	@param[in]	akappa:				Hopping parameter
+	 *	@param[in]	beta:					Inverse gauge coupling
+	 *	@param[in]	c_sw:					Clover coefficient. If non-zero calculate the clover contribution
+	 *	@param[in]	ancg:					Counter for conjugate gradient iterations
 	 *
 	 *	@return Zero on success, integer error code otherwise
+	 *	@post	Force added to @p dSdpi 
 	 */
-	int Force(double *dSdpi, int iflag, double res1, Complex *X0, Complex *X1, Complex *Phi,Complex *ut[2],\
-			Complex_f *ut_f[2],unsigned int *iu,unsigned int *id,Complex *gamval,Complex_f *gamval_f,\
-			int *gamin,double *dk[2], float *dk_f[2],Complex_f jqq, float akappa,float beta,double *ancg);
+	int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1, Complex *Phi,\
+			Complex *ut[2], Complex_f *ut_f[2],unsigned int *iu,unsigned int *id,\
+			Complex gamval[20],Complex_f gamval_f[20],const unsigned short gamin[16],Complex *sigval,Complex_f *sigval_f, unsigned short *sigin,\
+			double *dk[2], float *dk_f[2],const Complex_f jqq, const float akappa,const float beta,const float c_sw,double *ancg);
 	/**
 	 * @brief	Calculates the gauge force due to the Wilson Action at each intermediate time
+	 *	@ingroup MD
 	 *
-	 * @param	dSdpi:		The force
-	 *	@param	ut:			Gauge fields
-	 * @param	iu,id:		Lattice indices 
-	 * @param	beta:			Inverse gauge coupling
+	 * @param[out]	dSdpi:		The force
+	 *	@param[in]	ut:			Gauge fields
+	 * @param[in]	iu,id:		Lattice indices 
+	 * @param[in]	beta:			Inverse gauge coupling
 	 *
 	 * @return Zero on success, integer error code otherwise
+	 * @post	Contents of @p dSdpi replaced by gauge force
 	 */
 	int Gauge_force(double *dSdpi, Complex_f *ut[2],unsigned int *iu,unsigned int *id, float beta);
 	/**
 	 * @brief Initialises the system
+	 * @ingroup Helper
 	 *
-	 * @param	istart:				Zero for cold, >1 for hot, <1 for none
-	 * @param	ibound:				Periodic boundary conditions
-	 * @param	iread:				Read configuration from file
-	 * @param	beta:					Inverse gauge coupling
-	 * @param	fmu:					Chemical potential
-	 * @param	akappa:				Hopping parameter
-	 * @param	ajq:					Diquark source
-	 * @param	u:						Gauge fields
-	 * @param	ut						Trial gauge field
-	 * @param	ut_f:					Trial gauge field (single precision)
-	 * @param	dk						@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)^\mu@f$
-	 * @param	dk_f					@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)^\mu@f$ float
-	 * @param	iu,id:				Up halo indices
-	 * @param	gamin:				Gamma matrix indices
-	 *	@param	gamval:				Double precision gamma matrices rescaled by kappa
-	 *	@param	gamval_f:			Single precision gamma matrices rescaled by kappa
+	 * @param[in]	istart:				Zero for cold, >1 for hot, <1 for none
+	 * @param[in]	ibound:				Periodic boundary conditions
+	 * @param[in]	iread:				Read configuration from file
+	 * @param[in]	beta:					Inverse gauge coupling
+	 * @param[in]	fmu:					Chemical potential
+	 * @param[in]	akappa:				Hopping parameter
+	 * @param[in]	ajq:					Diquark source
+	 * @param[in]	c_sw:					Clover coefficient
+	 * @param[out]	u:						Gauge fields
+	 * @param[out]	ut,ut_f:				Double/float Trial gauge field
+	 * @param[out]	dk,dk_f:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)^\mu@f$
+	 * @param[out]	iu,id:				Up halo indices
+	 *	@param[out]	gamval,gamval_f:	Double/float precision gamma matrices rescaled by kappa
+	 * @param[out]	gamin:				Gamma matrix indices
 	 *
 	 * @return Zero on success, integer error code otherwise
+	 * @post	Contents of all out arguments overwritten
 	 */
-	int Init(int istart, int ibound, int iread, float beta, float fmu, float akappa, Complex_f ajq,\
-			Complex *u[2], Complex *ut[2], Complex_f *ut_f[2], Complex *gamval, Complex_f *gamval_f,int *gamin, 
-#ifdef __CLOVER__
-			Complex *sigval, Complex_f *sigval_f, int *sigin,
-#endif
-			double *dk[2], float *dk_f[2], unsigned int *iu, unsigned int *id);
+	int Init(const int istart, const int ibound, const int iread, const float beta, const float fmu, const float akappa,\
+			const Complex_f ajq, const float c_sw, Complex *u[2], Complex *ut[2], Complex_f *ut_f[2], Complex gamval[20],\
+			Complex_f gamval_f[20], unsigned short gamin[16], double *dk[2], float *dk_f[2],\
+			unsigned int *iu, unsigned int *id);
 	/**
 	 * @brief Calculate the Hamiltonian
+	 * @ingroup Observables
 	 *
-	 * @param	h:						Hamiltonian
-	 * @param	s:						Action
-	 * @param	res2:					Limit for conjugate gradient
-	 * @param	pp:					Momentum field
-	 *	@param	X0:					Up/down partitioned pseudofermion field
-	 *	@param	X1:					Holder for the partitioned fermion field, then the conjugate gradient output
-	 * @param	Phi:					Pseudofermion field
-	 * @param	ut:					Gauge fields (single precision)
-	 * @param	iu,id:				Lattice indices
-	 *	@param	gamval_f:			Single precision gamma matrices rescaled by kappa
-	 * @param	gamin:				Gamma indices
-	 * @param	dk_f:					@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$ float
-	 * @param	jqq:					Diquark source
-	 * @param	akappa:				Hopping parameter
-	 * @param	beta:					Inverse gauge coupling
-	 * @param	ancgh:				Conjugate gradient iterations counter 
-	 * @param	traj:					Calling trajectory for error reporting
+	 * @param[out]	h:				Hamiltonian
+	 * @param[out]	s:				Action
+	 * @param[in]	res2:			Limit for conjugate gradient
+	 * @param[in]	pp:			Momentum field
+	 *	@param[in]	X0:			Up/down partitioned pseudofermion field
+	 *	@param[in]	X1:			Holder for the partitioned fermion field, then the conjugate gradient output
+	 * @param[in]	Phi:			Pseudofermion field
+	 * @param[in]	ut,ud:		Gauge fields (single/double precision)
+	 * @param[in]	iu,id:		Lattice indices
+	 *	@param[in]	gamval,gamval_f:	Gamma matrices rescaled by kappa
+	 * @param[in]	gamin:		Gamma indices
+	 *	@param[in]	sigval,sigval_f:	Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}{2}@f$
+	 * @param[in]	sigin:		What element of the spinor is multiplied by row idirac each sigma matrix?
+	 * @param[in]	dk,dk_f:		@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$ float
+	 * @param[in]	jqq:			Diquark source
+	 * @param[in]	akappa:		Hopping parameter
+	 * @param[in]	beta:			Inverse gauge coupling
+	 * @param[in]	c_sw:			Clover coefficient. If non-zero calculate the clover contribution
+	 * @param[in]	ancgh:		Conjugate gradient iterations counter 
+	 * @param[in]	traj:			Calling trajectory for error reporting
 	 *
 	 * @return	Zero on success. Integer Error code otherwise.
+	 * @post	@p h and @p s overwritten with output
 	 */	
-	int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,Complex *Phi,\
-			Complex_f *ut[2],unsigned int *iu,unsigned int *id, Complex_f *gamval_f,int *gamin,\
-			float *dk[2],Complex_f jqq,float akappa,float beta,double *ancgh,int traj);
+	int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,Complex *Phi, Complex *ud[2],Complex_f *ut[2],
+			unsigned int *iu,unsigned int *id, Complex gamval[20], Complex_f gamval_f[20],const unsigned short gamin[16], Complex *sigval, Complex_f *sigval_f,
+			unsigned short *sigin, double *dk[2],float *dk_f[2],Complex_f jqq,float akappa,float beta,float c_sw, double *ancgh,
+			int traj);
 	/**
 	 * @brief Matrix Inversion via Conjugate Gradient (up/down flavour partitioning).
 	 * Solves @f$(M^\dagger)Mx=\Phi@f$
 	 * Implements up/down partitioning
-	 * The matrix multiplication step is done at single precision, while the update is done at double
+	 * The matrix multiplication step is done at mixed precision, while the update is done at double
+	 * @ingroup MD
 	 *
-	 * @param	na:			Flavour index
-	 * @param	res:			Limit for conjugate gradient
-	 * @param	X1:			Pseudofermion field @f$\Phi@f$ initially, returned as @f$(M^\dagger M)^{-1} \Phi@f$
-	 * @param	r:				Partition of @f$\Phi@f$ being used. Gets recycled as the residual vector
-	 * @param	ut:			Trial colour fields
-	 * @param	iu:			Upper halo indices
-	 * @param	id:			Lower halo indices
-	 *	@param	gamval_f:	Single precision gamma matrices rescaled by kappa
-	 * @param	gamin:		Dirac indices
-	 * @param	dk:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$
-	 * @param	jqq:			Diquark source
-	 * @param	akappa:		Hopping Parameter
-	 * @param	itercg:		Counts the iterations of the conjugate gradient
+	 * @param[in]	na:					Flavour index
+	 * @param[in]	res:					Limit for conjugate gradient
+	 * @param[in,out]	X1:					Pseudofermion field @f$\Phi@f$ initially, returned as @f$(M^\dagger M)^{-1} \Phi@f$
+	 * @param[in]	r:						Partition of @f$\Phi@f$ being used. Gets recycled as the residual vector
+	 * @param[in]	ud,ut:				Double/float Trial colour fields
+	 * @param[in]	iu,id:				Upper/lower halo indices
+	 *	@param[in]	gamval,gamval_f:	Double/float gamma matrices rescaled by kappa
+	 * @param[in]	gamin:				What element of the spinor is multiplied by row idirac each gamma matrix?
+	 *	@param[in]	clover_f:			Array of clover fields
+	 *	@param[in]	sigval,sigval_f:	Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}{2}@f$
+	 * @param[in]	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
+	 * @param[in]	dk,dk_f:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$
+	 * @param[in]	jqq:					Diquark source
+	 * @param[in]	akappa:				Hopping Parameter
+	 * @param[in]	c_sw:					Clover coefficient. If non-zero calculate the clover contribution
+	 * @param[in]	itercg:				Counts the iterations of the conjugate gradient
 	 *
 	 * @return 0 on success, integer error code otherwise
+	 * @post	Contents of @p X1 and @p r overwritten
 	 */
-	int Congradq(int na,double res,Complex *X1,Complex *r,Complex_f *ut[2],unsigned int *iu,unsigned int *id,\
-			Complex_f *gamval_f,int *gamin,float *dk[2],Complex_f jqq,float akappa,int *itercg);
+	int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f *ut[2],Complex_f *clover_f[nc],
+			unsigned int *iu, unsigned int *id, Complex gamval[20], Complex_f gamval_f[20],const unsigned short gamin[16],
+			Complex *sigval, Complex_f *sigval_f,unsigned short *sigin, double *dk[2], float *dk_f[2],
+			Complex_f jqq,float akappa,float c_sw,int *itercg);
 	/**
 	 * @brief Matrix Inversion via Conjugate Gradient (no up/down flavour partitioning).
 	 * Solves @f$(M^\dagger)Mx=\Phi@f$
 	 * The matrix multiplication step is done at single precision, while the update is done at double
+	 * @ingroup MD
 	 *
-	 * @param 	na:			Flavour index
-	 * @param 	res:			Limit for conjugate gradient
-	 * @param 	Phi:			Pseudofermion field.
-	 * @param 	xi:			Returned as @f$(M^\dagger M)^{-1} \Phi@f$
-	 * @param 	u11t:			First colour's trial field
-	 * @param 	u12t:			Second colour's trial field
-	 * @param 	iu:			Upper halo indices
-	 * @param 	id:			Lower halo indices
-	 *	@param	gamval_f:	Single precision gamma matrices rescaled by kappa
-	 * @param 	gamin:		Dirac indices
-	 * @param	dk4m:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$
-	 * @param	dk4p:			@f$\left(1-\gamma_0\right)e^\mu@f$
-	 * @param 	jqq:			Diquark source
-	 * @param 	akappa:		Hopping Parameter
-	 * @param 	itercg:		Counts the iterations of the conjugate gradient
+	 * @param[in] 	na:						Flavour index
+	 * @param[in] 	res:						Limit for conjugate gradient
+	 * @param[in] 	Phi:						Pseudofermion field.
+	 * @param[in,out] 	xi:						Returned as @f$(M^\dagger M)^{-1} \Phi@f$
+	 * @param[in] 	ut,ud:					Double/float Gauge fields
+	 * @param[in] 	iu,id:					Upper/Lower halo indices
+	 *	@param[in]	gamval,gamval_f:		double float Gamma matrices rescaled by kappa
+	 * @param[in] 	gamin:					Dirac indices
+	 *	@param[in]	clover_f:				Array of clover fields
+	 *	@param[in]	sigval,sigval_f:		Double/float Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}{2}@f$
+	 * @param[in]	sigin:					What element of the spinor is multiplied by row idirac each sigma matrix?
+	 * @param[in]	dk,dk_f:					Double/float @f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$
+	 * @param[in] 	jqq:						Diquark source
+	 * @param[in] 	akappa:					Hopping Parameter
+	 * @param[in] 	c_sw:						Clover coefficient.
+	 * @param[in] 	itercg:					Counts the iterations of the conjugate gradient
 	 * 
 	 * @return 0 on success, integer error code otherwise
+	 * @post	Contents of @p Phi overwritten
 	 */
-	int Congradp(int na,double res,Complex *Phi,Complex *xi,Complex_f *ut[2],unsigned int *iu,unsigned int *id,\
-			Complex_f *gamval,int *gamin,float *dk[2],Complex_f jqq,float akappa,int *itercg);
+	int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Complex_f *ut[2], Complex_f *clover_f[nc],
+			unsigned int *iu, unsigned int *id, Complex gamval[20], Complex_f gamval_f[20], const unsigned short gamin[16],
+			Complex *sigval, Complex_f *sigval_f,unsigned short *sigin, double *dk[2], float *dk_f[2],
+			Complex_f jqq,float akappa,float c_sw,int *itercg);
 	/**
 	 * @brief	Calculate fermion expectation values via a noisy estimator
+	 * @ingroup Fermi
 	 * 
 	 * Matrix inversion via conjugate gradient algorithm
 	 * Solves @f$MX=X_1@f$
@@ -190,74 +243,73 @@ extern "C"
 	 * uses NEW lookup tables **
 	 * Implemented in Congradp()
 	 *
-	 * @param	pbp:				@f$\langle\bar{\Psi}\Psi\rangle@f$
-	 *	@param	endenf:			Energy density
-	 *	@param	denf:				Number Density
-	 *	@param	qq:				Diquark condensate
-	 *	@param	qbqb:				Antidiquark condensate
-	 *	@param	res:				Conjugate Gradient Residue
-	 *	@param	itercg:			Iterations of Conjugate Gradient
-	 * @param	ut:				Double precisiongauge field
-	 * @param	ut_f:				Single precision gauge fields
-	 *	@param	iu,id				Lattice indices
-	 *	@param	gamval:			Double precision gamma matrices rescaled by kappa
-	 *	@param	gamval_f:		Single precision gamma matrices rescaled by kappa
-	 *	@param	gamin:			Indices for Dirac terms
-	 * @param	dk:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$ double
-	 * @param	dk_f:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and	@f$\left(1-\gamma_0\right)e^\mu@f$ float
-	 *	@param	jqq:				Diquark source
-	 *	@param	akappa:			Hopping parameter
-	 *	@param	Phi:				Pseudofermion field	
-	 *	@param	R1:				A useful array for holding things that was already assigned in main.
-	 *									In particular, we'll be using it to catch the output of
-	 *									@f$ M^\dagger\Xi@f$ before the inversion, then used to store the
-	 *									output of the inversion
+	 * @param[out]	pbp:							@f$\langle\bar{\Psi}\Psi\rangle@f$
+	 *	@param[out]	endenf:						Energy density
+	 *	@param[out]	denf:							Number Density
+	 *	@param[out]	qq:							Diquark condensate
+	 *	@param[out]	qbqb:							Antidiquark condensate
+	 *	@param[in]	res:							Conjugate Gradient Residue
+	 *	@param[in]	itercg:						Iterations of Conjugate Gradient
+	 * @param[in]	ut,ut_f:						Double/float precision gauge field
+	 *	@param[in]	iu,id							Up/down Lattice indices
+	 *	@param[in]	gamval,gamval_f:			Double/float precision gamma matrices rescaled by kappa
+	 *	@param[in]	gamin:						Indices for Dirac terms
+	 *	@param[in]	sigval,sigval_f:			Double/float Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/2@f$
+	 * @param[in]	sigin:						What element of the spinor is multiplied by row idirac each sigma matrix?
+	 * @param[in]	dk,dk_f:						Double/float @f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$ 
+	 *	@param[in]	jqq:							Diquark source
+	 *	@param[in]	akappa:						Hopping parameter
+	 *	@param[in]	c_sw:							Clover parameter
+	 *	@param[in]	Phi:							Pseudofermion field	
 	 *
 	 * @return Zero on success, integer error code otherwise
+	 * @post The values of @p Phi are not used. Since the memory is allocated already it is instead overwritten with the
+	 * noisy estimator.
 	 */
 	int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbqb, double res, int *itercg,\
 			Complex *ut[2], Complex_f *ut_f[2], unsigned int *iu, unsigned int *id,\
-			Complex *gamval, Complex_f *gamval_f,	int *gamin, double *dk[2],\
-			float *dk_f[2], Complex_f jqq, float akappa,	Complex *Phi, Complex *R1);
+			Complex gamval[20], Complex_f gamval_f[20],	const unsigned short gamin[16],\
+			Complex *sigval,Complex_f *sigval_f, unsigned short *sigin, double *dk[2],float *dk_f[2],\
+			Complex_f jqq, float akappa,	float c_sw,Complex *Phi);
 	/** 
 	 * @brief	Calculates the gauge action using new (how new?) lookup table
-	 * @brief	Follows a routine called qedplaq in some QED3 code
+	 * 			Follows a routine called qedplaq in some QED3 code
+	 * @ingroup Bose
 	 *
-	 * @param	hg				Gauge component of Hamilton
-	 * @param	avplaqs		Average spacial Plaquette
-	 * @param	avplaqt		Average Temporal Plaquette
-	 * @param	ut:			The trial fields
-	 * @param	iu				Upper halo indices
-	 * @param	beta			Inverse gauge coupling
+	 * @param[out]	hg				Gauge component of Hamilton
+	 * @param[out]	avplaqs		Average spacial Plaquette
+	 * @param[out]	avplaqt		Average Temporal Plaquette
+	 * @param[in]	ut:			The trial fields
+	 * @param[in]	iu				Upper halo indices
+	 * @param[in]	beta			Inverse gauge coupling
 	 *
-	 * @see Par_dsum
 	 *
 	 * @return Zero on success, integer error code otherwise
+	 * @post	Contents of @p hg, @p avplaqs and @p avplaqt replaced with output
 	 */
 	int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *ut[2],unsigned int *iu, float beta);
 	/**
 	 * @brief Calculates the plaquette at site i in the @f$\mu--\nu@f$ direction
+	 * @ingroup Bose
 	 *
-	 * @param	u2t:			Trial fields
-	 * @param	Sigma:		Plaquette components
-	 * @param	i:				Lattice site
-	 * @param	iu:			Upper halo indices
-	 * @param 	mu, nu:		Plaquette direction. Note that mu and nu can be negative
+	 * @param[in]	ut:			Trial fields
+	 * @param[out]	Sigma:		Plaquette components
+	 * @param[in]	i:				Lattice site
+	 * @param[in]	iu:			Upper halo indices
+	 * @param[in] 	mu, nu:		Plaquette direction. Note that mu and nu can be negative
 	 * 							to facilitate calculating plaquettes for Clover terms. No
 	 * 							sanity checks are conducted on them in this routine.
 	 *
-	 * @return double corresponding to the plaquette value
-	 *
+	 *	@return	Zero on success, integer error code otherwise
+	 * @post	Plaquettes written into @p Sigma
 	 */
-#ifndef __NVCC__
 	int SU2plaq(Complex_f *ut[2], Complex_f Sigma[2], unsigned int *iu, int i, int mu, int nu);
-#endif
+
 	/**
 	 * @brief Calculate the Polyakov loop (no prizes for guessing that one...)
+	 * @ingroup Bose
 	 * 
-	 * @param	u11t, u12t	The gauge fields
-	 *
-	 * @see Par_tmul, Par_dsum
+	 * @param[in]	ut:	The gauge fields
 	 * 
 	 * @return Double corresponding to the polyakov loop
 	 */
@@ -265,120 +317,250 @@ extern "C"
 	//Inline functions
 	/**
 	 * @brief	Extracts all the single precision gauge links in the @f$\mu@f$ direction only
+	 * @ingroup Helper
 	 *
-	 * @param	x:			The output 
-	 * @param	y:			The gauge field for a particular colour
-	 * @param	n:			Number of sites in the gauge field. This is typically kvol
-	 * @param	table:	Table containing information on nearest neighbours. Usually id or iu
-	 * @param	mu:		Direciton we're interested in extractng	
+	 * @param[out]	x:			The output 
+	 * @param[in]	y:			The gauge field for a particular colour
+	 * @param[in]	n:			Number of sites in the gauge field. This is typically kvol
+	 * @param[in]	table:	Table containing information on nearest neighbours. Usually id or iu
+	 * @param[in]	mu:		Direction we're interested in extracting	
 	 *
 	 * @return Zero on success, integer error code otherwise
+	 * @post	Contents of @p x replaced with output
 	 */
 	int C_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu);
 	/**
 	 * @brief	Extracts all the double precision gauge links in the @f$\mu@f$ direction only
+	 * @ingroup Helper
 	 *
-	 * @param	x:			The output 
-	 * @param	y:			The gauge field for a particular colour
-	 * @param	n:			Number of sites in the gauge field. This is typically kvol
-	 * @param	table:	Table containing information on nearest neighbours. Usually id or iu
-	 * @param	mu:		Direciton we're interested in extractng	
+	 * @param[out]	x:			The output 
+	 * @param[in]	y:			The gauge field for a particular colour
+	 * @param[in]	n:			Number of sites in the gauge field. This is typically kvol
+	 * @param[in]	table:	Table containing information on nearest neighbours. Usually id or iu
+	 * @param[in]	mu:		Direciton we're interested in extracting	
 	 *
 	 * @return Zero on success, integer error code otherwise
+	 * @post	Contents of @p x replaced with output
 	 */
 	int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu);
 	/**
-	 * Copies necessary (2*4*kvol) elements of Phi into a vector variable
+	 * @brief Copies necessary (2*4*kvol) elements of Phi into a vector variable
+	 * @ingroup Helper
 	 *
-	 * @param	na: 				flavour index
-	 * @param	smallPhi:		The partitioned output
-	 * @param	Phi:				The pseudofermion field
+	 * @param[in]	na: 				flavour index
+	 * @param[out]	smallPhi:		The partitioned output
+	 * @param[in]	Phi:				The pseudofermion field
 	 *
 	 * @return Zero on success, integer error code otherwise
+	 *	@post	Result written into @p smallPhi
 	 */
 	int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi);
-	/*
+	/**
 	 *	@brief Up/Down partitioning of the pseudofermion field
+	 * @ingroup Helper
 	 *
-	 *	@param	na:	Flavour index
-	 *	@param	X0:	Partitioned field
-	 *	@param	R1:	Full pseudofermion field
+	 *	@param[in]	na:	Flavour index
+	 *	@param[out]	X0:	Partitioned field
+	 *	@param[in]	R1:	Full pseudofermion field
 	 *
 	 *	@return	Zero on success, integer error code otherwise	
+	 *	@post	Result written into @p X0
 	 */
-	int UpDownPart(const int na, Complex *X0, Complex *R1);
+	int UpDownPart(const unsigned int na, Complex *X0, Complex *R1);
 	/**
 	 * @brief Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1
+	 * @ingroup Helper
 	 *
 	 * If you're looking at the FORTRAN code be careful. There are two header files
 	 * for the /trial/ header. One with u11 u12 (which was included here originally)
 	 * and the other with u11t and u12t.
 	 *
-	 * @param ut:	 Trial fields to be reunitarised
+	 * @param[out,in] ut:	 Trial fields to be reunitarised
 	 *
 	 * @return Zero on success, integer error code otherwise
+	 * @post	@p ut replaced with reunitarised gauge fields
 	 */
 	int Reunitarise(Complex *ut[2]);
+	/**
+	 * @brief takes an array of complex float and double precision numbers and converts the precision
+	 * @ingroup Helper
+	 *
+	 * @param[out,in]	a:				Float array
+	 * @param[out,in]	b:				Double array
+	 * @param[in]	len:			Number of elements to convert per stride. Striding needed to handle halo terms
+	 * @param[in]	dtof:			If true, convert double to float. Otherwise convert float to double
+	 * @param[in]	stride:		For terms with a halo, we need to convert in blocks of len separated by (len+halo)
+	 *
+	 * @return Zero on success, integer error code otherwise
+	 * @post Depending on the value of @p dtof, either the contents of @p a or @p b are overwritten with those of the
+	 * other array in the opposite precision.
+	 */
+	int ComplexConvert(Complex_f *a, Complex *b, const unsigned int len, const bool dtof, const unsigned short stride);
+
+#ifdef DIAGNOSTIC
+	int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
+			unsigned int *iu, unsigned int *id, int *hu, int *hd, double *dk[2], float *dk_f[2],\
+			const unsigned short gamin[16], const Complex gamval[20], const Complex_f gamval_f[20],\
+			const Complex *sigval, const Complex_f *sigval_f, const unsigned short *sigin,
+			Complex_f jqq,float akappa,float beta, float c_sw, double ancg);
+#endif
 	//CUDA Declarations:
 	//#################
 #ifdef __NVCC__
-	//Not a function. An array of concurrent GPU streams to keep it busy
+	/// @brief	An array of concurrent GPU streams to keep it busy
 	extern cudaStream_t streams[ndirac*ndim*nadj];
 	//Calling Functions:
 	//=================
+	/** 
+	 * @brief	Calculates the gauge action using new (how new?) lookup table
+	 * 		Follows a routine called qedplaq in some QED3 code
+	 * @ingroup Bose
+	 *
+	 * @param[out]	hgs,hgt			Gauge component of Hamilton
+	 * @param[in]	u11t,u12t		Gauge fields
+	 * @param[in]	iu					Upper halo indices
+	 * @param[in]	dimGrid			CUDA grid dimensions
+	 * @param[in]	dimBlock			CUDA block dimensions
+	 *
+	 * @post	Contents of @p hgs and @p hgt replaced with the results
+	 */
 	void cuAverage_Plaquette(double *hgs, double *hgt, Complex_f *u11t, Complex_f *u12t, unsigned int *iu,dim3 dimGrid, dim3 dimBlock);
+	/**
+	 * @brief Calculate the Polyakov loop (no prizes for guessing that one...)
+	 * @ingroup Bose
+	 *
+	 * @param[out]	Sigma		Components of the Polyakov loop
+	 * @param[in]	ut:		The gauge fields
+	 * @param[in]	dimGrid	CUDA grid dimensions
+	 * @param[in]	dimBlock	CUDA block dimensions
+	 * 
+	 * @post	Contents of @p Sigma replaced with the Polyakov loop values
+	 */
 	void cuPolyakov(Complex_f *Sigma[2], Complex_f *ut[2],dim3 dimGrid, dim3 dimBlock);
+	/**
+	 * @brief Calculate the gauge contribution to the force
+	 *	@ingroup MD
+	 * 
+	 * @param[in] ut:						Gauge fields
+	 * @param[out] dSdpi:					Force
+	 * @param[in] beta:					Inverse gauge coupling
+	 * @param[in] iu,id:					Upper/lower indices
+	 * @param[in] dimGrid,dimBlock:	CUDA grid/block size
+	 *
+	 * @post	Contents of @p dSdpi overwritten
+	 */
 	void cuGauge_force(Complex_f *ut[2],double *dSdpi,float beta,unsigned int *iu,unsigned int *id,dim3 dimGrid, dim3 dimBlock);
-	void cuPlus_staple(int mu, int nu, unsigned int *iu, Complex_f *Sigma11, Complex_f *Sigma12, Complex_f *u11t, Complex_f *u12t,\
-			dim3 dimGrid, dim3 dimBlock);
-	void cuMinus_staple(int mu, int nu, unsigned int *iu, unsigned int *id, Complex_f *Sigma11, Complex_f *Sigma12,\
-			Complex_f *u11sh, Complex_f *u12sh,Complex_f *u11t, Complex_f*u12t,	dim3 dimGrid, dim3 dimBlock);
+	/**
+	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
+	 *	@ingroup MD
+	 *	
+	 *	@param[in,out]	dSdpi:				The force
+	 *	@param[in]	ut:					Gauge fields
+	 *	@param[in]	X1:					Inverted field
+	 *	@param[in]	X2:					@f$MX_1@f$
+	 *	@param[in]	gamval:				Double/float precision gamma matrices rescaled by @f$\kappa@f$
+	 *	@param[in]	gamin:				Gamma indices
+	 *	@param[in]	iu:					Lattice indices
+	 * @param[in]	dk:					@f$e^{-\mu}@f$ and @f$e^\mu@f$
+	 *	@param[in]	akappa:				Hopping parameter
+	 * @param[in] 	dimGrid,dimBlock:	CUDA grid/block size
+	 *
+	 * @post	Fermion force added onto @p dSdpi
+	 */
 	void cuForce(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, \
-			Complex_f *gamval,float *dk[2],unsigned int *iu,int *gamin,\
+			Complex_f gamval[20],float *dk[2],unsigned int *iu,const unsigned short gamin[16],\
 			float akappa, dim3 dimGrid, dim3 dimBlock);
-	//cuInit was taken already by CUDA (unsurprisingly)
-	void Init_CUDA(Complex *u11t, Complex *u12t,Complex *gamval, Complex_f *gamval_f, int *gamin, double*dk4m,\
+	/**
+	 * @brief  Initialise CUDA cuInit was taken already by CUDA (unsurprisingly)
+	 * @ingroup Helper
+	 * 
+	 * @param[in]	u11t,u12t:			Trial gauge fields
+	 * @param[in]	gamval,gamval_f:	Double/float precision gamma matrices rescaled by kappa
+	 * @param[in]	gamin:				Gamma matrix indices
+	 * @param[in]	dk4m,dk4p:			@f$e^{-\mu}@f$ and @f$e^\mu@f$
+	 * @param[in]	iu,id:				Up/lower halo indices
+	 *
+	 * @todo CUDA 13 changed how setting devices work, so it's not just an integer any more. Those lines are commented out for now.
+	 * 		They are not critical. Only hints for unified memory management.
+	 */
+	void Init_CUDA(Complex *u11t, Complex *u12t,Complex gamval[20], Complex_f gamval_f[20], unsigned short gamin[16], double*dk4m,\
 			double *dk4p, unsigned int *iu, unsigned int *id);
-	void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi,dim3 dimBlock, dim3 dimGrid);
-	void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu,dim3 dimBlock, dim3 dimGrid);
-	void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu,dim3 dimBlock, dim3 dimGrid);
-	void cuComplex_convert(Complex_f *a, Complex *b, int len, bool ftod, dim3 dimBlock, dim3 dimGrid);
-	void cuReal_convert(float *a, double *b, int len, bool ftod, dim3 dimBlock, dim3 dimGrid);
-	void cuUpDownPart(int na, Complex *X0, Complex *R1,dim3 dimBlock, dim3 dimGrid);
-	void cuReunitarise(Complex *u11t, Complex *u12t,dim3 dimGrid, dim3 dimBlock);
-	//And a little something to set the CUDA grid and block sizes
+	/**
+	 * @brief Copies necessary (2*4*kvol) elements of Phi into a vector variable
+	 * @ingroup Helper
+	 *
+	 * @param[in]	na:					flavour index
+	 * @param[out]	smallPhi:			The partitioned output
+	 * @param[in]	Phi:					The pseudofermion field
+	 * @param[in] 	dimGrid,dimBlock:	CUDA grid/block size
+	 * 
+	 */
+	void cuFill_Small_Phi(const unsigned int na, Complex *smallPhi, Complex *Phi,dim3 dimBlock, dim3 dimGrid);
+	/**
+	 * @brief takes an array of complex float and double precision numbers and converts the precision
+	 * @ingroup Helper
+	 *
+	 * @param[out,in]	a:						Float array
+	 * @param[out,in]	b:						Double array
+	 * @param[in]	len:					Number of elements to convert
+	 * @param[in]	dtof:					If true, convert double to float. Otherwise convert float to double
+	 * @param[in] 	dimGrid,dimBlock:	CUDA grid/block size
+	 *
+	 * @post Depending on the value of @p dtof, either the contents of @p a or @p b are overwritten with those of the
+	 * other array in the opposite precision.
+	 */
+	void cuComplex_convert(Complex_f *a, Complex *b, const unsigned int len,  const bool dtof, dim3 dimBlock, dim3 dimGrid);
+	/**
+	 * @brief takes an array of real-valued float and double precision numbers and converts the precision
+	 * @ingroup Helper
+	 *
+	 * @param[out,in]	a:						Float array
+	 * @param[out,in]	b:						Double array
+	 * @param[in]	len:					Number of elements to convert
+	 * @param[in]	dtof:					If true, convert double to float. Otherwise convert float to double
+	 * @param[in] 	dimGrid,dimBlock:	CUDA grid/block size
+	 *
+	 * @post Depending on the value of @p dtof, either the contents of @p a or @p b are overwritten with those of the
+	 * other array in the opposite precision.
+	 */
+	void cuReal_convert(float *a, double *b, const unsigned int len, const bool dtof, dim3 dimBlock, dim3 dimGrid);
+	/**
+	 *	@brief Up/Down partitioning of the pseudofermion field
+	 * @ingroup Helper
+	 *
+	 *	@param[in]	na:	Flavour index
+	 *	@param[out]	X0:	Partitioned field
+	 *	@param[in]	R1:	Full pseudofermion field
+	 * @param[in] 	dimGrid,dimBlock:	CUDA grid/block size
+	 *
+	 *	@post	Result written into @p X0
+	 */
+	void cuUpDownPart(const unsigned int na, Complex *X0, Complex *R1,dim3 dimBlock, dim3 dimGrid);
+	/**
+	 * @brief Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1
+	 * @ingroup Helper
+	 *
+	 * If you're looking at the FORTRAN code be careful. There are two header files
+	 * for the /trial/ header. One with u11 u12 (which was included here originally)
+	 * and the other with u11t and u12t.
+	 *
+	 * @param[out,in] ut:						Trial fields to be reunitarised
+	 * @param[in] dimGrid,dimBlock:	CUDA grid/block size
+	 *
+	 * @post	@p ut replaced with reunitarised gauge fields
+	 */
+	void cuReunitarise(Complex *ut[2],dim3 dimGrid, dim3 dimBlock);
+	/**	
+	 * @brief Initialises the CUDA grid and block size for a given lattice
+	 * @ingroup Helper
+	 *
+	 * @param[in]	x,y,z,t:				Lattice dimensions
+	 * @param[out] 	dimGrid,dimBlock:	CUDA grid/block size
+	 *
+	 * @post	@p dimGrid and @p dimBlock initialised
+	 */
 	void blockInit(int x, int y, int z, int t, dim3 *dimBlock, dim3 *dimGrid);
 #endif
 #if (defined __cplusplus)
 }
-#endif
-//CUDA Kernels:
-//============
-#ifdef __CUDACC__
-//__global__ void cuForce(double *dSdpi, Complex *u11t, Complex *u12t, Complex *X1, Complex *X2, Complex *gamval,\
-//		double *dk4m, double *dk4p, unsigned int *iu, int *gamin,float akappa);
-__global__ void Plus_staple(int mu, int nu,unsigned int *iu, Complex_f *Sigma11, Complex_f *Sigma12,\
-		Complex_f *u11t, Complex_f *u12t);
-__global__ void Minus_staple(int mu, int nu,unsigned int *iu,unsigned int *id, Complex_f *Sigma11, Complex_f *Sigma12,\
-		Complex_f *u11sh, Complex_f *u12sh, Complex_f *u11t, Complex_f *u12t);
-__global__ void cuGaugeForce(int mu, Complex_f *Sigma11, Complex_f *Sigma12,double* dSdpi,Complex_f *u11t, Complex_f *u12t,\
-		float beta);
-__global__ void cuAverage_Plaquette(float *hgs_d, float *hgt_d, Complex_f *u11t, Complex_f *u12t, unsigned int *iu);
-__global__ void cuPolyakov(Complex_f *Sigma11, Complex_f * Sigma12, Complex_f *u11t, Complex_f *u12t);
-__device__ void cuSU2plaq(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11, Complex_f *Sigma12, unsigned int *iu, int i, int mu, int nu);
-//Force Kernels. We've taken each nadj index and the spatial/temporal components and created a separate kernel for each
-//CPU code just has these as a huge blob that the vectoriser can't handle. May be worth splitting it there too?
-//It might not be a bad idea to make a seperate header for all these kernels...
-__global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Complex_f *X1, Complex_f *X2, Complex_f *gamval,
-		unsigned int *iu, int *gamin,float akappa, int mu);
-__global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t,Complex_f *X1, Complex_f *X2, Complex_f *gamval,\
-		float *dk4m, float *dk4p, unsigned int *iu, int *gamin,float akappa);
-__global__ void cuFill_Small_Phi(int na, Complex *smallPhi, Complex *Phi);
-__global__ void cuC_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu);
-__global__ void cuZ_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu);
-__global__ void cuComplex_convert(Complex_f *a, Complex *b, int len, bool dtof);
-__global__ void cuReal_convert(float *a, double *b, int len, bool dtof);
-__global__ void cuUpDownPart(int na, Complex *X0, Complex *R1);
-__global__ void cuReunitarise(Complex *u11t, Complex *u12t);
-#endif
 #endif
