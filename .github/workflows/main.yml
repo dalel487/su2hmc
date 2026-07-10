@@ -23,7 +23,7 @@ jobs:
           doxyfile-path: /github/workspace/doxygen_config
           working-directory: /github/workspace/docs
       - name: Pages Deployment
-        uses: peaceiris/actions-gh-pages@v4.1
+        uses: peaceiris/actions-gh-pages@v4.1.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs/html/
