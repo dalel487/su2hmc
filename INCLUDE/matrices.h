@@ -233,8 +233,8 @@ extern "C"
 	 *
 	 * @post		Result written to @p phi
 	 */
-	void cuDslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned int *id,\
-			Complex gamval[20], const unsigned short gamin[16], double *dk[nc], Complex_f jqq, float akappa,\
+	void cuDslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned int *id,
+			Complex gamval[20], const unsigned short gamin[16], double *dk[nc], Complex_f jqq, float akappa,
 			dim3 dimGrid, dim3 dimBlock);
 	/**
 	 * @brief GPU calling wrapper for @f$\Phi=M^\dagger r@f$ in double precision.
@@ -252,8 +252,8 @@ extern "C"
 	 *
 	 * @post		Result written to @p phi
 	 */
-	void cuDslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned int *id,\
-			Complex gamval[20], const unsigned short gamin[16], double *dk[nc], Complex_f jqq, float akappa,\
+	void cuDslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned int *id,
+			Complex gamval[20], const unsigned short gamin[16], double *dk[nc], Complex_f jqq, float akappa,
 			dim3 dimGrid, dim3 dimBlock);
 	/**
 	 * @brief GPU calling wrapper for @f$\Phi=M^\dagger r@f$ in double precision.
