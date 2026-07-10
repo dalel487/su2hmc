@@ -100,11 +100,11 @@ __global__ void cuGaugeForce(int mu, Complex_f *Sigma11, Complex_f *Sigma12,doub
 /**
  * @brief	Extracts all the single precision gauge links in the @f$\mu@f$ direction only
  *
- * @param	x:			The output 
- * @param	y:			The gauge field for a particular colour
- * @param	n:			Number of sites in the gauge field. This is typically kvol
- * @param	table:	Table containing information on nearest neighbours. Usually id or iu
- * @param	mu:		Direciton we're interested in extractng	
+ * @param[out]	x:			The output 
+ * @param[in]	y:			The gauge field for a particular colour
+ * @param[in]	n:			Number of sites in the gauge field. This is typically kvol
+ * @param[in]	table:	Table containing information on nearest neighbours. Usually id or iu
+ * @param[in]	mu:		Direciton we're interested in extractng	
  *
  */
 	template <typename T>

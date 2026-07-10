@@ -21,6 +21,7 @@
 //Configuration for existing generators if called
 //===============================================
 #if (defined USE_RAN2||(!defined __USE_MKL__&&!defined __RANLUX__))
+///@brief PRNG seed
 extern long seed;
 #ifdef __cplusplus
 extern "C"
@@ -29,7 +30,7 @@ extern "C"
 /**
  * @brief Dummy seed the ran2 generator
  *
- * @param seed pointer to seed
+ * @param[in] seed pointer to seed
  * 
  *	@return 0
  */
@@ -42,8 +43,8 @@ extern "C"
 	 * c     in the underlying value of ds(1) (it was always 10 times bigger
 	 * c     on the last processor). This does not appear to happen with 9.
 	 *
-	 * @param	seed:	The seed from the rank in question.
-	 * @param	iread:	Do we read from file or not. Don't remember why it's here as it's not used	
+	 * @param[in]	seed:	The seed from the rank in question.
+	 * @param[in]	iread:	Do we read from file or not. Don't remember why it's here as it's not used	
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
@@ -52,7 +53,7 @@ extern "C"
 	 * @brief	Generates uniformly distributed random double between zero and one as
 	 * 			described in numerical recipes. It's also thread-safe for different seeds.
 	 *
-	 * @param	idum: Pointer to the seed
+	 * @param[in]	idum: Pointer to the seed
 	 *
 	 * @return	The random double between zero and one
 	 *
@@ -62,11 +63,13 @@ extern "C"
 }
 #endif
 #elif defined __RANLUX__
+///@brief RANLUX instance
 extern gsl_rng *ranlux_instd;
 //Need to get a float version that uses a different seed for performance reasons.
 //Otherwise we get two generators (one float, one double) starting from the same seed. Not good
 //For now, the float generator will be a cast of the double one.
 //gsl_rng *ranlux_instf;
+extern long seed;
 extern unsigned long seed;
 #ifdef __cplusplus
 extern "C"
@@ -75,7 +78,7 @@ extern "C"
 /**
  * @brief Seed the ranlux generator from GSL
  *
- * @param seed pointer to seed
+ * @param[in] seed pointer to seed
  * 
  *	@return 0
  */
@@ -88,8 +91,8 @@ extern "C"
 	 * c     in the underlying value of ds(1) (it was always 10 times bigger
 	 * c     on the last processor). This does not appear to happen with 9.
 	 *
-	 * @param	seed:	The seed from the rank in question.
-	 * @param	iread:	Do we read from file or not. Don't remember why it's here as it's not used	
+	 * @param[in]	seed:	The seed from the rank in question.
+	 * @param[in]	iread:	Do we read from file or not. Don't remember why it's here as it's not used	
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
@@ -107,7 +110,7 @@ extern "C"
 /**
  * @brief Seed the Intel Mersenne twister generator
  *
- * @param seed pointer to seed
+ * @param[in] seed pointer to seed
  *
  *	@return 0
  */
@@ -120,8 +123,8 @@ extern "C"
 	 * c     in the underlying value of ds(1) (it was always 10 times bigger
 	 * c     on the last processor). This does not appear to happen with 9.
 	 *
-	 * @param	seed:	The seed from the rank in question.
-	 * @param	iread:	Do we read from file or not. Don't remember why it's here as it's not used	
+	 * @param[in]	seed:	The seed from the rank in question.
+	 * @param[in]	iread:	Do we read from file or not. Don't remember why it's here as it's not used	
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
@@ -154,10 +157,10 @@ extern "C"
 	/**
 	 * @brief	Generates a vector of normally distributed random double precision complex numbers using the Box-Muller Method
 	 * 
-	 * @param	ps:		The output array
-	 * @param	n:			The array length
-	 * @param	mu:		mean
-	 * @param	sigma:	variance
+	 * @param[out]	ps:		The output array
+	 * @param[in]	n:			The array length
+	 * @param[in]	mu:		mean
+	 * @param[in]	sigma:	variance
 	 * 
 	 * @return Zero on success integer error code otherwise
 	 */
@@ -165,10 +168,10 @@ extern "C"
 	/**
 	 * @brief	Generates a vector of normally distributed random double precision numbers using the Box-Muller Method
 	 * 
-	 * @param	ps:		The output array
-	 * @param	n:			The array length
-	 * @param	mu:		mean
-	 * @param	sigma:	variance
+	 * @param[out]	ps:		The output array
+	 * @param[in]	n:			The array length
+	 * @param[in]	mu:		mean
+	 * @param[in]	sigma:	variance
 	 *
 	 * @return Zero on success integer error code otherwise
 	 */
@@ -176,10 +179,10 @@ extern "C"
 	/**
 	 * @brief	Generates a vector of normally distributed random single precision complex numbers using the Box-Muller Method
 	 * 
-	 * @param	ps:		The output array
-	 * @param	n:			The array length
-	 * @param	mu:		mean
-	 * @param	sigma:	variance
+	 * @param[out]	ps:		The output array
+	 * @param[in]	n:			The array length
+	 * @param[in]	mu:		mean
+	 * @param[in]	sigma:	variance
 	 * 
 	 * @return Zero on success integer error code otherwise
 	 */
@@ -187,10 +190,10 @@ extern "C"
 	/**
 	 * @brief	Generates a vector of normally distributed random single precision numbers using the Box-Muller Method
 	 * 
-	 * @param	ps:		The output array
-	 * @param	n:			The array length
-	 * @param	mu:		mean
-	 * @param	sigma:	variance
+	 * @param[out]	ps:		The output array
+	 * @param[in]	n:			The array length
+	 * @param[in]	mu:		mean
+	 * @param[in]	sigma:	variance
 	 *
 	 * @return Zero on success integer error code otherwise
 	 */
@@ -203,8 +206,8 @@ extern "C"
 	 * Since this function is very similar to Par_sread, I'm not really going to comment it
 	 * check there if you are confused about things. 
 	 *
-	 * @param	filename: The name of the file we're reading from
-	 * @param	ranval:	The destination for the file's contents
+	 * @param[in]	filename: The name of the file we're reading from
+	 * @param[in]	ranval:	The destination for the file's contents
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */

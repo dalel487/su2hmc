@@ -46,8 +46,8 @@ extern "C"
 	/**
 	 * @brief	Loads the addresses required during the update
 	 * 
-	 * @param	iu:	Upper halo indices
-	 * @param	id:	Lower halo indices
+	 * @param[out]	iu:	Upper halo indices
+	 * @param[out]	id:	Lower halo indices
 	 *
 	 * @see hu, hd, h1u, h1d, h2u, h2d, halosize
 	 *
@@ -58,7 +58,7 @@ extern "C"
 	 * @brief Described as a 21st Century address calculator, it gets the memory
 	 * address of an array entry.
 	 *
-	 * @param x, y, z, t: The coordinates
+	 * @param[in] x, y, z, t: The coordinates
 	 *
 	 * @return An integer corresponding to the position of the entry in a flattened
 	 * row-major array.
@@ -68,11 +68,11 @@ extern "C"
 	int ia(int x,int y,int z, int t);
 	/** Checks that the addresses are within bounds before an update
 	 *
-	 * @param	table:	Pointer to the table in question
-	 * @param	lns:		Size of each spacial dimension
-	 * @param	lnt:		Size of the time dimension
-	 * @param	imin:		Lower bound for element of the table
-	 * @param	imax:		Upper bound for an element of the table
+	 * @param[in]	table:	Pointer to the table in question
+	 * @param[in]	lns:		Size of each spacial dimension
+	 * @param[in]	lnt:		Size of the time dimension
+	 * @param[in]	imin:		Lower bound for element of the table
+	 * @param[in]	imax:		Upper bound for an element of the table
 	 *
 	 * @return	Zero on success, integer error code otherwise.
 	 */
@@ -89,8 +89,8 @@ extern "C"
 	 * Also C and Fortran store data in the opposite memory order so
 	 * be careful when calling this function!
 	 *
-	 * @param	index:	The index of the point as stored linearly in computer memory
-	 * @param	coord:	The 4-array for the coordinates. The first three spots are for the time index.
+	 * @param[in]	index:	The index of the point as stored linearly in computer memory
+	 * @param[out]	coord:	The 4-array for the coordinates. The first three spots are for the time index.
 	 *
 	 * @return Zero on success. Integer Error code otherwise
 	 */ 
@@ -107,8 +107,8 @@ extern "C"
 	 * Also C and Fortran store data in the opposite memory order so
 	 * be careful when calling this function!
 	 *
-	 * @param	index:	The index of the point as stored linearly in computer memory
-	 * @param 	coord:	The 4-array for the coordinates. The first three spots are for the time index.
+	 * @param[in]	index:	The index of the point as stored linearly in computer memory
+	 * @param[out] 	coord:	The 4-array for the coordinates. The first three spots are for the time index.
 	 *
 	 * @return	Zero on success. Integer Error code otherwise
 	 */ 
@@ -124,11 +124,9 @@ extern "C"
 	 * Also C and Fortran store data in the opposite memory order so
 	 * be careful when calling this function!
 	 *
-	 * @param ix,iy,iz,it:	Index in each direction
+	 * @param[in] ix,iy,iz,it:	Index in each direction
 	 *
-	 * Returns:
-	 * ========
-	 * int index: The position of the point
+	 * @return The position of the point in the flattened array
 	 */
 	int Coord2lindex(int ix, int iy, int iz, int it);
 	/**
@@ -142,11 +140,9 @@ extern "C"
 	 * Also C and Fortran store data in the opposite memory order so
 	 * be careful when calling this function!
 	 *
-	 * @param ix,iy,iz,it:	Index in each direction
+	 * @param[in] ix,iy,iz,it:	Index in each direction
 	 *
-	 * Returns:
-	 * ========
-	 * int index: The position of the point
+	 * @return The position of the point in the flattened array
 	 */
 	int Coord2gindex(int ix, int iy, int iz, int it);
 	/**
@@ -159,7 +155,7 @@ extern "C"
 	 * If we get the same value we started with then we're probably doing
 	 * something right.
 	 *
-	 * @param cap: The max value the index can take on. Should be the size of the array
+	 * @param[in] cap: The max value the index can take on. Should be the size of the array
 	 *
 	 * @return Zero on success, integer error code otherwise.
 	 */
@@ -176,7 +172,7 @@ extern "C"
 	 * The code is basically the same as the previous function with different
 	 * magic numbers.
 	 *
-	 * @param cap: The max value the index can take on. Should be the size of our array
+	 * @param[in] cap: The max value the index can take on. Should be the size of our array
 	 *
 	 * @return Zero on success, integer error code otherwise 
 	 */

@@ -430,7 +430,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #if (nproc>1)
 				Par_dsum((double *)&alpha);
 #endif
-				///@f$alpha=\frac{\alpha_n}{\alpha_d}=\frac{r\cdot r}{p(M^\dagger M+c_\text{SW} \sum\limits_{\mu\ne\nu}\frac{1}{2}\sigma_{\mu\nu}F_{\mu\nu}+J^2)p}@f$
+				///@f$\alpha=\frac{\alpha_n}{\alpha_d}=\frac{r\cdot r}{p(M^\dagger M+c_\text{SW} \sum\limits_{\mu\ne\nu}\frac{1}{2}\sigma_{\mu\nu}F_{\mu\nu}+J^2)p}@f$
 				alpha=alphan/creal(alpha);
 				/// @f$x+\alpha p@f$ 
 #ifdef __NVCC__
@@ -569,7 +569,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 						x2_f[i+j*kvol]+=fac_f*p_f[i+j*kvolHalo];
 #endif
 			}
-			/// First iteration @f$ \vec{r}_0=\vec{p}_0@f$
+			/// First iteration @f$ \vec{r}_0=\vec{p}_0@f$\n
 			/// @f$\alpha_d= p* (M^\dagger M+c_\text{SW} \sum\limits_{\mu\ne\nu}\frac{1}{2}\sigma_{\mu\nu}F_{\mu\nu}+J^2)p@f$
 			if(*itercg){
 				alphad=0;
@@ -600,7 +600,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #if (nproc>1)
 				Par_fsum((float *)&alphad);
 #endif
-				///@f$alpha=\frac{\alpha_n}{\alpha_d}=\frac{r\cdot r}{p(M^\dagger M+c_\text{SW} \sum\limits_{\mu\ne\nu}\frac{1}{2}\sigma_{\mu\nu}F_{\mu\nu}+J^2)p}@f$
+				///@f$\alpha=\frac{\alpha_n}{\alpha_d}=\frac{r\cdot r}{p(M^\dagger M+c_\text{SW} \sum\limits_{\mu\ne\nu}\frac{1}{2}\sigma_{\mu\nu}F_{\mu\nu}+J^2)p}@f$
 				alpha=alphan/creal(alphad);
 				/// @f$x+\alpha p@f$ 
 #ifdef __NVCC__

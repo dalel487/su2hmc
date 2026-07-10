@@ -30,9 +30,11 @@
 #define	USE_BLAS
 #include	<mkl.h>
 #elif (defined AMD_BLAS||defined OPENBLAS)
+///@brief Flag to choose BLAS path
 #define	USE_BLAS
 #include	<cblas.h>
 #elif defined GSL_BLAS
+///@brief Flag to choose BLAS path
 #define	USE_BLAS
 #include <gsl/gsl_cblas.h>
 #endif
@@ -296,5 +298,6 @@ extern dim3	dimGrid;
 extern dim3	dimBlockOne;
 ///@brief Grid size of one
 extern dim3	dimGridOne;
+///@brief Flag to choose BLAS path
 #define	USE_BLAS
 #endif

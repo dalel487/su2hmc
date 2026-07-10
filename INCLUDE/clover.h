@@ -4,6 +4,8 @@
  *	@brief	Routines needed for Clover imporved wilson fermions
  *
  *	@author 	D. Lawlor
+ *	@todo	Multiple MPI Ranks are not currently supported for the clover action. This is due to the corner halo terms
+ *				needed to compute the clover force not being implemented.
  */
 #pragma once
 #include <su2hmc.h>
@@ -62,7 +64,7 @@ void ByGenRight(Complex_f a[nc],const unsigned short gen);
  * @param[in] mu, nu:	Plaquette direction. Note that mu and nu can be negative
  * 					to facilitate calculating plaquettes for Clover terms. No
  * 					sanity checks are conducted on them in this routine.
- *
+ *	@post	Leaves overwritten by plaquette values
  */
 int Clover_SU2plaq(Complex_f *ut[nc], Complex_f Leaves[nc], unsigned int *iu,  int i, int mu, int nu);
 /**
@@ -100,8 +102,6 @@ int Leaf(Complex_f Leaves[nc],Complex_f *ut[nc], unsigned int *iu, unsigned int 
  *	@param[in]	iu,id:	Upper and lower indices
  *
  *	@post		Clover stored in @p clover
- *	@todo	Multiple MPI Ranks are not currently supported for the clover action. This is due to the corner halo terms
- *				needed to compute the clover force not being implemented.
  */
 void Clover(Complex_f *clover[2], Complex_f *ut[2], unsigned int *iu, unsigned int *id);
 /**
@@ -167,12 +167,12 @@ void HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2],Complex_f *s
 /**
  *	@brief	Gets @f$X_{\mu\nu}@f$ for the clover force
  *
- *	@param	Xmunu:	All Xmunu values
- *	@param	X1:		Congrad output @f$\left(M^\dagger M\right)\Phi@f$
- *	@param	X2:		@f$M\left(M^\dagger M\right)^{-1}\Phi@f$
- *	@param	sigval:	@f$\sigma_{\mu\nu}@f$ scaled by @f$\frac{c_\text{SW}}{2}@f$
- *	@param	sigin:	Dirac index of @f$\sigma_{\mu\nu}@f$
- *	@param	mu,nu:	Lattice directions
+ *	@param[out]	Xmunu:	All Xmunu values
+ *	@param[in]	X1:		Congrad output @f$\left(M^\dagger M\right)\Phi@f$
+ *	@param[in]	X2:		@f$M\left(M^\dagger M\right)^{-1}\Phi@f$
+ *	@param[in]	sigval:	@f$\sigma_{\mu\nu}@f$ scaled by @f$\frac{c_\text{SW}}{2}@f$
+ *	@param[in]	sigin:	Dirac index of @f$\sigma_{\mu\nu}@f$
+ *	@param[in]	mu,nu:	Lattice directions
  *
  *	@post	Bilinears written to @p Xmunu
  */
@@ -197,10 +197,10 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
 /**
  *	@brief	Initialise values needed for the clover terms
  *
- *	@param	sigval,sigval_f:	@f$ \sigma_{\mu\nu}=\frac{1}{2i}[\gamma_\mu,\gamma_\nu]@f$ in double and single precision
+ *	@param[out]	sigval,sigval_f:	@f$ \sigma_{\mu\nu}=\frac{1}{2i}[\gamma_\mu,\gamma_\nu]@f$ in double and single precision
  *										scaled by @f$c_{sw}@f$
- *	@param	sigin:				Which column does row idirac of @f$\sigma_{\mu\nu}@f$ act on
- *	@param	c_sw:					Clover coefficient
+ *	@param[out]	sigin:				Which column does row idirac of @f$\sigma_{\mu\nu}@f$ act on
+ *	@param[in]	c_sw:					Clover coefficient
  *
  *	@post		@p sigval and @p sigval_f initialised with matrix entries. @p sigin initialised with index of non-zero
  *				entries
@@ -209,7 +209,7 @@ int Init_clover(Complex **sigval, Complex_f **sigval_f,unsigned short **sigin, f
 /**
  *	@brief	Free's memory used for clover terms and leaves
  *
- *	@param	clover:	Clovers
+ *	@param[in,out]	clover:	Clovers
  *	
  *	@post		@p clover memory freed
  */
@@ -225,9 +225,9 @@ extern "C"
  *	@brief CUDA wrapper for calculating the clovers in all directions at all sites
  *			@f$ F_{\mu\nu}(n)=\frac{-i}{8a^2}\left(Q_{\mu\nu}(n)-Q_{\nu\mu}(n)\right)@f$
  *
- *	@param	clover:	Array of clovers
- *	@param	ut:		Gauge fields
- *	@param	iu,id:	Upper and lower indices
+ *	@param[out]	clover:	Array of clovers
+ *	@param[in]	ut:		Gauge fields
+ *	@param[in]	iu,id:	Upper and lower indices
  *
  *	@post		Clover stored in @p clover
  */

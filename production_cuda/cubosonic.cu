@@ -14,11 +14,13 @@ namespace Device{
 /**
  * @brief	Calculates the SU2 plaquette
  *
- * @param	u11t, u12t:			Gauge fields
- * @param	Sigma11,Sigma12:	Plaquette entries
- * @param	iu:					Site indices in the up direction
- * @param	i:						Site
- * @param	mu,nu:				Plaquette direction
+ * @param[in]	u11t, u12t:			Gauge fields
+ * @param[out]	Sigma11,Sigma12:	Plaquette entries
+ * @param[in]	iu:					Site indices in the up direction
+ * @param[in]	i:						Site
+ * @param[in]	mu,nu:				Plaquette direction
+ *
+ * @post	Contents of @p Sigma11 and @p Sigma12 replaced with plaquettes.
  */
 __device__  void cuSU2plaq(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11, Complex_f *Sigma12, unsigned int *iu,\
 									const unsigned int i, const unsigned short mu, const unsigned short nu){
@@ -45,11 +47,11 @@ namespace Kernels{
 using namespace Device;
 	/** 
 	 * @brief	Calculates the gauge action using new (how new?) lookup table
-	 * @brief	Follows a routine called qedplaq in some QED3 code
+	 * 	Follows a routine called qedplaq in some QED3 code
 	 *
-	 * @param	hgs_d,hgt_d		Gauge component of Hamilton
-	 * @param	u11t,u12t		Gauge fields
-	 * @param	iu					Upper halo indices
+	 * @param[out]	hgs_d,hgt_d		Gauge component of Hamilton
+	 * @param[in]	u11t,u12t		Gauge fields
+	 * @param[in]	iu					Upper halo indices
 	 *
 	 */
 __global__ void Average_Plaquette(float *hgs_d, float *hgt_d, Complex_f *u11t, Complex_f *u12t, unsigned int *iu){
@@ -85,8 +87,8 @@ __global__ void Average_Plaquette(float *hgs_d, float *hgt_d, Complex_f *u11t, C
 	/**
 	 * @brief Calculate the Polyakov loop (no prizes for guessing that one...)
 	 *
-	 * @param	Sigma11,Sigma12	Components of the Polyakov loop
-	 * @param	u11t,u12t:	The gauge fields
+	 * @param[out]	Sigma11,Sigma12	Components of the Polyakov loop
+	 * @param[in]	u11t,u12t:	The gauge fields
 	 * 
 	 */
 __global__ void Polyakov(Complex_f *Sigma11, Complex_f * Sigma12, Complex_f * u11t,Complex_f *u12t){

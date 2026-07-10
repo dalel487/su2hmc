@@ -365,18 +365,18 @@ extern "C"
 
 	/**
 	 * @brief	Sum all terms in an array of doubles
-	 * @param	input:	Input array
-	 * @param	n:			Number of terms
-	 * @param	stream:	What stream to use (useful for simultaneous reductions)
+	 * @param[in]	input:	Input array
+	 * @param[in]	n:			Number of terms
+	 * @param[in]	stream:	What stream to use (useful for simultaneous reductions)
 	 *
 	 * @return	Sum of all terms in input
 	 */
 	double cureduce_sum_d(double *input, const unsigned int n,const unsigned short stream);
 	/**
 	 * @brief	Sum all terms in an array of floats
-	 * @param	input:	Input array
-	 * @param	n:			Number of terms
-	 * @param	stream:	What stream to use (useful for simultaneous reductions)
+	 * @param[in]	input:	Input array
+	 * @param[in]	n:			Number of terms
+	 * @param[in]	stream:	What stream to use (useful for simultaneous reductions)
 	 *
 	 * @return	Sum of all terms in input
 	 */

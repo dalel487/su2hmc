@@ -11,8 +11,10 @@ namespace Device{
 	/**
 	 * @brief Performs a warp reduction for sum
 	 *
-	 * @param sdata:	The shared data array
-	 * @param tid:		The thread ID
+	 * @param[out,in] sdata:	The shared data array
+	 * @param[in] tid:		The thread ID
+	 *
+	 * @post	Sum written to zeroth index of @p sdata
 	 */
 	template <typename T,unsigned int bsize>
 		__device__ void warpReduce_sum(volatile T* sdata, const unsigned int tid){
@@ -472,10 +474,10 @@ namespace Kernels{
 	/**
 	 * @brief Swaps the order of the gauge field so that it is now SoA instead of AoS and it is nice and coalesced in memory
 	 * 
-	 * @param out:			The flipped array
-	 * @param in:			The original array
-	 * @param fast_out:	The size of the slowest moving dimension. This is the lattice site when read in from disk
-	 * @param fast_in:	The size of the fastest moving dimension. This is the direction index when read in from disk.
+	 * @param[out] out:			The flipped array
+	 * @param[in] in:			The original array
+	 * @param[in] fast_out:	The size of the slowest moving dimension. This is the lattice site when read in from disk
+	 * @param[in] fast_in:	The size of the fastest moving dimension. This is the direction index when read in from disk.
 	 * 
 	 */
 	template <typename T>
@@ -504,9 +506,9 @@ namespace Kernels{
 	/**
 	 * @brief Sums a float array into a double array
 	 *
-	 * @param d:		The double array
-	 * @param f:		The float array
-	 * @param n:		The size of the arrays
+	 * @param[out] d:		The double array
+	 * @param[in] f:		The float array
+	 * @param[in] n:		The size of the arrays
 	 */
 	__global__ void Mixed_Sumto(double *d, float *f, const unsigned int n){
 		const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
@@ -523,10 +525,11 @@ namespace Kernels{
 	/**
 	 * @brief Performs a block reduction for sum
 	 *
-	 * @param g_in_data:		The input global data array
-	 * @param g_out_data:	The output global data array
-	 * @param n:				The size of the input array
+	 * @param[in] g_in_data:		The input global data array
+	 * @param[out] g_out_data:	The output global data array
+	 * @param[in] n:				The size of the input array
 	 *
+	 * @post sum saved in zeroth entry of @p g_out_data
 	 */
 	template <typename T,unsigned int bsize>
 		__global__ void reduce_sum(T *g_in_data, T *g_out_data, const unsigned int n){

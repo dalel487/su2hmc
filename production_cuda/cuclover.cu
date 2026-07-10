@@ -287,6 +287,8 @@ namespace Kernels{
 	 *	@param[in]	u11t,u12t:				Gauge fields
 	 *	@param[in]	iu,id:					Upper and lower indices
 	 *	@param[in]	mu,nu:					Clover direction
+	 *	
+	 *	@post Contents of @p hLeaves0 and @p hLeaves1 overwritten
 	 */
 	template <typename T>
 		__global__ void Half_Leaves(complex<T> *hLeaves0,complex<T> *hLeaves1,complex<T> *u11t,complex<T> *u12t,\
@@ -313,6 +315,8 @@ namespace Kernels{
 	 *	@param[in]	u11t,u12t:			Gauge fields
 	 *	@param[in]	iu,id:				Upper and lower indices
 	 *	@param[in]	mu,nu:				Clover direction
+	 *
+	 *	@post Contents of @p clover1 and @p clover2 overwritten
 	 */
 	template <typename T>
 		__global__  void Full_Clover(complex<T> *clover1, complex<T> *clover2,\
@@ -356,6 +360,8 @@ namespace Kernels{
 	 *	@param[in]	sigval:	@f$\sigma_{\mu\nu}@f$ scaled by @f$\frac{c_\text{SW}}{2}@f$
 	 *	@param[in]	sigin:	Dirac index of @f$\sigma_{\mu\nu}@f$
 	 *	@param[in]	clov:		Index of clover being used
+	 *
+	 *	@post	Contents of @p Xmunu overwritten
 	 */
 	template <typename T>
 		__global__ void cuCalcXmunu(Bilinear_a Xmunu, const complex<T> *X1, const complex<T> *X2,

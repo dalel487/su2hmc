@@ -91,33 +91,35 @@ extern "C"
 	/**
 	 * @brief	Calculates the gauge force due to the Wilson Action at each intermediate time
 	 *
-	 * @param	dSdpi:		The force
-	 *	@param	ut:			Gauge fields
-	 * @param	iu,id:		Lattice indices 
-	 * @param	beta:			Inverse gauge coupling
+	 * @param[out]	dSdpi:		The force
+	 *	@param[in]	ut:			Gauge fields
+	 * @param[in]	iu,id:		Lattice indices 
+	 * @param[in]	beta:			Inverse gauge coupling
 	 *
 	 * @return Zero on success, integer error code otherwise
+	 * @post	Contents of @p dSdpi replaced by gauge force
 	 */
 	int Gauge_force(double *dSdpi, Complex_f *ut[2],unsigned int *iu,unsigned int *id, float beta);
 	/**
 	 * @brief Initialises the system
 	 *
-	 * @param	istart:				Zero for cold, >1 for hot, <1 for none
-	 * @param	ibound:				Periodic boundary conditions
-	 * @param	iread:				Read configuration from file
-	 * @param	beta:					Inverse gauge coupling
-	 * @param	fmu:					Chemical potential
-	 * @param	akappa:				Hopping parameter
-	 * @param	ajq:					Diquark source
-	 * @param	c_sw:					Clover coefficient
-	 * @param	u:						Gauge fields
-	 * @param	ut,ut_f:				Double/float Trial gauge field
-	 * @param	dk,dk_f:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)^\mu@f$
-	 * @param	iu,id:				Up halo indices
-	 *	@param	gamval,gamval_f:	Double/float precision gamma matrices rescaled by kappa
-	 * @param	gamin:				Gamma matrix indices
+	 * @param[in]	istart:				Zero for cold, >1 for hot, <1 for none
+	 * @param[in]	ibound:				Periodic boundary conditions
+	 * @param[in]	iread:				Read configuration from file
+	 * @param[in]	beta:					Inverse gauge coupling
+	 * @param[in]	fmu:					Chemical potential
+	 * @param[in]	akappa:				Hopping parameter
+	 * @param[in]	ajq:					Diquark source
+	 * @param[in]	c_sw:					Clover coefficient
+	 * @param[out]	u:						Gauge fields
+	 * @param[out]	ut,ut_f:				Double/float Trial gauge field
+	 * @param[out]	dk,dk_f:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)^\mu@f$
+	 * @param[out]	iu,id:				Up halo indices
+	 *	@param[out]	gamval,gamval_f:	Double/float precision gamma matrices rescaled by kappa
+	 * @param[out]	gamin:				Gamma matrix indices
 	 *
 	 * @return Zero on success, integer error code otherwise
+	 * @post	Contents of all out arguments overwritten
 	 */
 	int Init(const int istart, const int ibound, const int iread, const float beta, const float fmu, const float akappa,\
 			const Complex_f ajq, const float c_sw, Complex *u[2], Complex *ut[2], Complex_f *ut_f[2], Complex gamval[20],\
@@ -148,6 +150,7 @@ extern "C"
 	 * @param[in]	traj:			Calling trajectory for error reporting
 	 *
 	 * @return	Zero on success. Integer Error code otherwise.
+	 * @post	@p h and @p s overwritten with output
 	 */	
 	int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,Complex *Phi, Complex *ud[2],Complex_f *ut[2],
 			unsigned int *iu,unsigned int *id, Complex gamval[20], Complex_f gamval_f[20],const unsigned short gamin[16], Complex *sigval, Complex_f *sigval_f,
@@ -157,26 +160,27 @@ extern "C"
 	 * @brief Matrix Inversion via Conjugate Gradient (up/down flavour partitioning).
 	 * Solves @f$(M^\dagger)Mx=\Phi@f$
 	 * Implements up/down partitioning
-	 * The matrix multiplication step is done at single precision, while the update is done at double
+	 * The matrix multiplication step is done at mixed precision, while the update is done at double
 	 *
-	 * @param	na:					Flavour index
-	 * @param	res:					Limit for conjugate gradient
-	 * @param	X1:					Pseudofermion field @f$\Phi@f$ initially, returned as @f$(M^\dagger M)^{-1} \Phi@f$
-	 * @param	r:						Partition of @f$\Phi@f$ being used. Gets recycled as the residual vector
-	 * @param	ud,ut:				Double/float Trial colour fields
-	 * @param	iu,id:				Upper/lower halo indices
-	 *	@param	gamval,gamval_f:	Double/float gamma matrices rescaled by kappa
-	 * @param	gamin:				What element of the spinor is multiplied by row idirac each gamma matrix?
-	 *	@param	clover_f:			Array of clover fields
-	 *	@param	sigval,sigval_f:	Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/2@f$
-	 * @param	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
-	 * @param	dk,dk_f:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$
-	 * @param	jqq:					Diquark source
-	 * @param	akappa:				Hopping Parameter
-	 * @param	c_sw:					Clover coefficient. If non-zero calculate the clover contribution
-	 * @param	itercg:				Counts the iterations of the conjugate gradient
+	 * @param[in]	na:					Flavour index
+	 * @param[in]	res:					Limit for conjugate gradient
+	 * @param[in,out]	X1:					Pseudofermion field @f$\Phi@f$ initially, returned as @f$(M^\dagger M)^{-1} \Phi@f$
+	 * @param[in]	r:						Partition of @f$\Phi@f$ being used. Gets recycled as the residual vector
+	 * @param[in]	ud,ut:				Double/float Trial colour fields
+	 * @param[in]	iu,id:				Upper/lower halo indices
+	 *	@param[in]	gamval,gamval_f:	Double/float gamma matrices rescaled by kappa
+	 * @param[in]	gamin:				What element of the spinor is multiplied by row idirac each gamma matrix?
+	 *	@param[in]	clover_f:			Array of clover fields
+	 *	@param[in]	sigval,sigval_f:	Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/2@f$
+	 * @param[in]	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
+	 * @param[in]	dk,dk_f:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$
+	 * @param[in]	jqq:					Diquark source
+	 * @param[in]	akappa:				Hopping Parameter
+	 * @param[in]	c_sw:					Clover coefficient. If non-zero calculate the clover contribution
+	 * @param[in]	itercg:				Counts the iterations of the conjugate gradient
 	 *
 	 * @return 0 on success, integer error code otherwise
+	 * @post	Contents of @p X1 and @p r overwritten
 	 */
 	int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f *ut[2],Complex_f *clover_f[nc],
 			unsigned int *iu, unsigned int *id, Complex gamval[20], Complex_f gamval_f[20],const unsigned short gamin[16],
@@ -187,24 +191,25 @@ extern "C"
 	 * Solves @f$(M^\dagger)Mx=\Phi@f$
 	 * The matrix multiplication step is done at single precision, while the update is done at double
 	 *
-	 * @param 	na:						Flavour index
-	 * @param 	res:						Limit for conjugate gradient
-	 * @param 	Phi:						Pseudofermion field.
-	 * @param 	xi:						Returned as @f$(M^\dagger M)^{-1} \Phi@f$
-	 * @param 	ut,ud:					Double/float Gauge fields
-	 * @param 	iu,id:					Upper/Lower halo indices
-	 *	@param	gamval,gamval_f:		double float Gamma matrices rescaled by kappa
-	 * @param 	gamin:					Dirac indices
-	 *	@param	clover_f:				Array of clover fields
-	 *	@param	sigval,sigval_f:		Double/float Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/2@f$
-	 * @param	sigin:					What element of the spinor is multiplied by row idirac each sigma matrix?
-	 * @param	dk,dk_f:					Double/float @f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$
-	 * @param 	jqq:						Diquark source
-	 * @param 	akappa:					Hopping Parameter
-	 * @param 	c_sw:						Clover coefficient.
-	 * @param 	itercg:					Counts the iterations of the conjugate gradient
+	 * @param[in] 	na:						Flavour index
+	 * @param[in] 	res:						Limit for conjugate gradient
+	 * @param[in] 	Phi:						Pseudofermion field.
+	 * @param[in,out] 	xi:						Returned as @f$(M^\dagger M)^{-1} \Phi@f$
+	 * @param[in] 	ut,ud:					Double/float Gauge fields
+	 * @param[in] 	iu,id:					Upper/Lower halo indices
+	 *	@param[in]	gamval,gamval_f:		double float Gamma matrices rescaled by kappa
+	 * @param[in] 	gamin:					Dirac indices
+	 *	@param[in]	clover_f:				Array of clover fields
+	 *	@param[in]	sigval,sigval_f:		Double/float Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/2@f$
+	 * @param[in]	sigin:					What element of the spinor is multiplied by row idirac each sigma matrix?
+	 * @param[in]	dk,dk_f:					Double/float @f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$
+	 * @param[in] 	jqq:						Diquark source
+	 * @param[in] 	akappa:					Hopping Parameter
+	 * @param[in] 	c_sw:						Clover coefficient.
+	 * @param[in] 	itercg:					Counts the iterations of the conjugate gradient
 	 * 
 	 * @return 0 on success, integer error code otherwise
+	 * @post	Contents of @p Phi overwritten
 	 */
 	int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Complex_f *ut[2], Complex_f *clover_f[nc],
 			unsigned int *iu, unsigned int *id, Complex gamval[20], Complex_f gamval_f[20], const unsigned short gamin[16],
@@ -219,26 +224,28 @@ extern "C"
 	 * uses NEW lookup tables **
 	 * Implemented in Congradp()
 	 *
-	 * @param	pbp:							@f$\langle\bar{\Psi}\Psi\rangle@f$
-	 *	@param	endenf:						Energy density
-	 *	@param	denf:							Number Density
-	 *	@param	qq:							Diquark condensate
-	 *	@param	qbqb:							Antidiquark condensate
-	 *	@param	res:							Conjugate Gradient Residue
-	 *	@param	itercg:						Iterations of Conjugate Gradient
-	 * @param	ut,ut_f:						Double/float precision gauge field
-	 *	@param	iu,id							Up/down Lattice indices
-	 *	@param	gamval/gamval_f:			Double/float precision gamma matrices rescaled by kappa
-	 *	@param	gamin:						Indices for Dirac terms
-	 *	@param	sigval,sigval_f:			Double/float Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/2@f$
-	 * @param	sigin:						What element of the spinor is multiplied by row idirac each sigma matrix?
-	 * @param	dk,dk_f:						Double/float @f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$ 
-	 *	@param	jqq:							Diquark source
-	 *	@param	akappa:						Hopping parameter
-	 *	@param	c_sw:							Clover parameter
-	 *	@param	Phi:							Pseudofermion field	
+	 * @param[out]	pbp:							@f$\langle\bar{\Psi}\Psi\rangle@f$
+	 *	@param[out]	endenf:						Energy density
+	 *	@param[out]	denf:							Number Density
+	 *	@param[out]	qq:							Diquark condensate
+	 *	@param[out]	qbqb:							Antidiquark condensate
+	 *	@param[in]	res:							Conjugate Gradient Residue
+	 *	@param[in]	itercg:						Iterations of Conjugate Gradient
+	 * @param[in]	ut,ut_f:						Double/float precision gauge field
+	 *	@param[in]	iu,id							Up/down Lattice indices
+	 *	@param[in]	gamval/gamval_f:			Double/float precision gamma matrices rescaled by kappa
+	 *	@param[in]	gamin:						Indices for Dirac terms
+	 *	@param[in]	sigval,sigval_f:			Double/float Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/2@f$
+	 * @param[in]	sigin:						What element of the spinor is multiplied by row idirac each sigma matrix?
+	 * @param[in]	dk,dk_f:						Double/float @f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$ 
+	 *	@param[in]	jqq:							Diquark source
+	 *	@param[in]	akappa:						Hopping parameter
+	 *	@param[in]	c_sw:							Clover parameter
+	 *	@param[in]	Phi:							Pseudofermion field	
 	 *
 	 * @return Zero on success, integer error code otherwise
+	 * @post The values of @p Phi are not used. Since the memory is allocated already it is instead overwritten with the
+	 * noisy estimator.
 	 */
 	int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbqb, double res, int *itercg,\
 			Complex *ut[2], Complex_f *ut_f[2], unsigned int *iu, unsigned int *id,\
