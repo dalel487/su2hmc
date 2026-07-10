@@ -2,18 +2,14 @@
  * @file		su2hmc.h
  * @brief	Function declarations for most of the routines
  *
- * @defgroup Helper
- * Helper functions
+ * @defgroup Helper  Helper functions
  * 
- * @defgroup Observables
- * Observable Quantities
+ * @defgroup Observables  Observable Quantities
  *
- * @defgroup Bose
- * Bosonic Observables
+ * @defgroup Bose  Bosonic Observables
  * @ingroup Observables
  *
- * @defgroup Fermi
- * Fermionic Observables
+ * @defgroup Fermi Fermionic Observables
  * @ingroup Observables
  */
 #pragma once
@@ -476,6 +472,7 @@ extern "C"
 			float akappa, dim3 dimGrid, dim3 dimBlock);
 	/**
 	 * @brief  Initialise CUDA cuInit was taken already by CUDA (unsurprisingly)
+	 * @ingroup Helper
 	 * 
 	 * @param[in]	u11t,u12t:			Trial gauge fields
 	 * @param[in]	gamval,gamval_f:	Double/float precision gamma matrices rescaled by kappa

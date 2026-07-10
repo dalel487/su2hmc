@@ -11,6 +11,7 @@
 namespace Device{
 	/**
 	 * @brief Multiply leaf (or part of one) by generator from left
+	 * @ingroup Clover_Force
 	 *
 	 *	The leaves contributing to each force term need to be scaled by the generator, but the generator appears at
 	 *	different points in each leaf.  This routine multiples by the generator from the left side.
@@ -43,6 +44,7 @@ namespace Device{
 		}
 	/**
 	 * @brief Multiply leaf (or part of one) by generator from right
+	 * @ingroup Clover_Force
 	 *
 	 *	The leaves contributing to each force term need to be scaled by the generator, but the generator appears at
 	 *	different points in each leaf.  This routine multiples by the generator from the right side.

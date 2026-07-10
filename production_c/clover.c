@@ -54,6 +54,7 @@ void ByGenRight(Complex_f a[nc],const unsigned short gen){
 /**
  *	@brief	Calculates the first half of the leaf for a clover term. We split it so that the force term can reuse the
  *				first half of the leaf
+ *	@ingroup Clover
  *
  *	@param[out]	Leaves:	Leaf
  *	@param[in]	ut:		Gauge fields
@@ -428,6 +429,7 @@ void HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2],Complex_f *s
 //===========
 /**
  * @brief Loads the compacted bilinear form into a @f$2\times2@f$ complex valued matrix
+ * @ingroup Clover_Force
  *
  * @param[out]	Z:		Complex matrix on stack
  * @param[in]	Xmn:	Hermitian form of @f$X_{\mu\nu}@f$ in memory

@@ -3,8 +3,7 @@
  *
  * @brief Matrix multiplication and related declarations
  *
- *	@defgroup Dslashes
- *	Fermion matrix products
+ *	@defgroup Dslashes Fermion matrix products
  */
 #pragma once
 #ifdef __NVCC__

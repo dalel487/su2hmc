@@ -30,6 +30,8 @@ using thrust::complex;
 #define	I_f	Complex_f(0.0f,1.0f)	
 /**
  * @brief	Complex Conjugation
+ * @ingroup	Helper
+ *
  * @param	z Number to be conjugated
  * @return	Conjugate of @p z
  */

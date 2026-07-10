@@ -2,10 +2,8 @@
  * @file		integrate.h
  * @brief	Integrators for the HMC
  * @author D.Lawlor
- */
-/**
- *	@defgroup MD
- *	Molecular dynamics functions
+ *
+ *	@defgroup MD Molecular dynamics
  */
 #ifndef INTEGRATE_H
 #define INTEGRATE_H

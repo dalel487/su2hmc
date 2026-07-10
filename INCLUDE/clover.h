@@ -6,16 +6,14 @@
  *	@author 	D. Lawlor
  *	@todo	Multiple MPI Ranks are not currently supported for the clover action. This is due to the corner halo terms
  *				needed to compute the clover force not being implemented.
- *	@defgroup Clover
- *	Clover related functions
+ *				
+ *	@defgroup Clover Clover
  *
- *	@defgroup Clover_Force
- *	Clover Force related functions
+ *	@defgroup Clover_Force 	Clover Force
  *	@ingroup Clover
  *	@ingroup MD
  *
- *	@defgroup Clover_Prod
- *	Clover Multiplication routines
+ *	@defgroup Clover_Prod Clover Multiplication routines
  *	@ingroup Clover
  *	@ingroup Dslashes
  */

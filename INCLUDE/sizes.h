@@ -23,6 +23,7 @@
  *
  *    @author D. Lawlor September 2020
  *
+ * 	@defgroup Diagnostics Debugging Functions
  ******************************************************************/
 #pragma once
 #ifdef	__USE_MKL__

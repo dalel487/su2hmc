@@ -9,6 +9,7 @@
 #include <matrices.h>
 /**
  * @brief Gets average for each generator of the Lie algebra
+ * @ingroup Diagnostics
  *
  * @param[out]	ave_dSdpi: The average
  * @param[in]	dSdpi:	What's being averaged. Can be the momentum either

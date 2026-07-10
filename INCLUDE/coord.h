@@ -1,6 +1,9 @@
 /**
  *	@file coord.h
  *	@brief Header for routines related to lattice sites
+ *
+ *	@defgroup Indexing Site Indexing
+ *	@ingroup Helper
  */
 #ifndef COORD
 #define COORD
@@ -45,6 +48,7 @@ extern "C"
 	//========
 	/**
 	 * @brief	Loads the addresses required during the update
+	 * @ingroup Indexing
 	 * 
 	 * @param[out]	iu:	Upper halo indices
 	 * @param[out]	id:	Lower halo indices
@@ -57,6 +61,7 @@ extern "C"
 	/**
 	 * @brief Described as a 21st Century address calculator, it gets the memory
 	 * address of an array entry.
+	 * @ingroup Indexing
 	 *
 	 * @param[in] x, y, z, t: The coordinates
 	 *
@@ -66,7 +71,9 @@ extern "C"
 	 * @todo	Future... Switch for Row and column major, and zero or one indexing
 	 */
 	int ia(int x,int y,int z, int t);
-	/** @brief Checks that the addresses are within bounds before an update
+	/** 
+	 * @brief Checks that the addresses are within bounds before an update
+	 * @ingroup Indexing
 	 *
 	 * @param[in]	table:	Pointer to the table in question
 	 * @param[in]	lns:		Size of each spacial dimension
@@ -81,6 +88,7 @@ extern "C"
 	 *@brief Converts the index of a point in memory to the equivalent point
 	 * in the 4 dimensional array, where the time index is the last
 	 * coordinate in the array.
+	 * @ingroup Indexing
 	 *
 	 * This is a rather nuanced function, as C and Fortran are rather
 	 * different in how they store arrays. C starts with index 0 and
@@ -99,6 +107,7 @@ extern "C"
 	 * @brief Converts the index of a point in memory to the equivalent point
 	 * in the 4 dimensional array, where the time index is the last
 	 * coordinate in the array.
+	 * @ingroup Indexing
 	 *
 	 * This is a rather nuanced function, as C and Fortran are rather
 	 * different in how they store arrays. C starts with index 0 and
@@ -116,6 +125,7 @@ extern "C"
 	/**
 	 * @brief Converts the coordinates of a local lattice point to its index in the 
 	 * computer memory.
+	 * @ingroup Indexing
 	 *
 	 * This is a rather nuanced function, as C and Fortran are rather
 	 * different in how they store arrays. C starts with index 0 and
@@ -132,6 +142,7 @@ extern "C"
 	/**
 	 * @brief Converts the coordinates of a global lattice point to its index in the 
 	 * computer memory.
+	 * @ingroup Indexing
 	 *
 	 * This is a rather nuanced function, as C and Fortran are rather
 	 * different in how they store arrays. C starts with index 0 and
@@ -147,6 +158,7 @@ extern "C"
 	int Coord2gindex(int ix, int iy, int iz, int it);
 	/**
 	 * @brief Tests if the local coordinate transformation functions are working
+	 * @ingroup Indexing
 	 * 
 	 * Going to expand a little on the original here and do the following
 	 * 1. Convert from int to lcoord (the original code)
@@ -162,6 +174,7 @@ extern "C"
 	int Testlcoord(int cap);
 	/**
 	 * @brief This is completely new and missing from the original code.
+	 * @ingroup Indexing
 	 *
 	 * We test the coordinate conversion functions by doing the following
 	 * 1. Convert from int to gcoord (new)

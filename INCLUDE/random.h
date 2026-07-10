@@ -2,8 +2,7 @@
  * @file	random.h
  *
  * @brief	Header for random number configuration
- * @defgroup Random
- * PRNG Routines
+ * @defgroup Random PRNG
  */
 #ifndef	RANDOM
 #define	RANDOM
