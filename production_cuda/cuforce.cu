@@ -7,6 +7,7 @@
 #include	<matrices.h>
 #include	<su2hmc.h>
 //CUDA Kernels
+namespace Kernels{
 /**
  * @brief Calculates the staple in the positive @f$\mu@f$ direction
  *
@@ -39,13 +40,14 @@ __global__ void Plus_staple(const int mu, const int nu,unsigned int *iu, Complex
 /**
  * @brief Calculates the staple in the positive @f$\mu@f$ direction
  *
- * @param mu:						@f$\mu@f$ direction
- * @param nu:						@f$\nu@f$ direction
- * @param iu:						Upper indices
- * @param Sigma11,Sigma12:		Staple output
- * @param u11sh,u12sh:			Gauge fields in @f$\mu@f$ direction only 
- * @param u11t,u12t:				Gauge fields
+ * @param[in] mu:						@f$\mu@f$ direction
+ * @param[in] nu:						@f$\nu@f$ direction
+ * @param[in] iu,id:					Upper/lower indices
+ * @param[out] Sigma11,Sigma12:		Staple output
+ * @param[in] u11sh,u12sh:			Gauge fields in @f$\mu@f$ direction only 
+ * @param[in] u11t,u12t:				Gauge fields
  *
+ * @post Staples written to @p Sigma11 and @p Sigma12
  */
 __global__ void Minus_staple(const int mu,const int nu,unsigned int *iu,unsigned int *id, Complex_f *Sigma11, Complex_f *Sigma12,\
 		Complex_f *u11sh, Complex_f *u12sh, Complex_f *u11t, Complex_f *u12t){
@@ -69,6 +71,17 @@ __global__ void Minus_staple(const int mu,const int nu,unsigned int *iu,unsigned
 		Sigma12[i]+=a11*u12s+a12*conj(u11s);
 	}
 }
+	/**
+	 * @brief	Calculates the gauge force due to the Wilson Action at each intermediate time
+	 *
+	 * @param[out]	dSdpi:		The force
+	 *	@param[in]	u11t,u12t:			Gauge fields
+	 *	@param[in]	Sigma11,Sigma12:	Staples
+	 * @param[in]	mu:		Generator index
+	 * @param[in]	beta:			Inverse gauge coupling
+	 *
+	 * @post	Gauge force written to @p dSdpi.
+	 */
 __global__ void cuGaugeForce(int mu, Complex_f *Sigma11, Complex_f *Sigma12,double* dSdpi,Complex_f *u11t, Complex_f *u12t, float beta){
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -109,6 +122,21 @@ __global__ void Gather(T *x, T *y, const unsigned int n, unsigned int *table, co
 		x[i]=y[table[i+kvbmu]+kvbmu];
 }
 
+	/**
+	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
+	 *	
+	 *	@param[in,out]	dSdpi:				The force
+	 *	@param[in]	ut:					Float precision colour fields
+	 *	@param[in]	X1:					Inverted field
+	 *	@param[in]	X2:					@f$MX_1@f$
+	 *	@param[in]	gamval:				Gamma matrices rescaled by @f$\kappa@f$
+	 *	@param[in]	iu:					Lattice indices
+	 *	@param[in]	gamin:				Gamma indices
+	 *	@param[in]	akappa:				Hopping parameter
+	 *	@param[in]	mu:					Force direction
+	 *
+	 *	@post	Force added to @p dSdpi 
+	 */
 __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Complex_f *X1, Complex_f *X2, Complex_f gamval[20],\
 		unsigned int *iu, const unsigned short gamin[16],float akappa, const unsigned short mu){
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
@@ -190,6 +218,21 @@ __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 		}
 	}
 }
+	/**
+	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
+	 *	
+	 *	@param[in,out]	dSdpi:				The force
+	 *	@param[in]	ut:					Float precision colour fields
+	 *	@param[in]	X1:					Inverted field
+	 *	@param[in]	X2:					@f$MX_1@f$
+	 *	@param[in]	gamval:				Gamma matrices rescaled by @f$\kappa@f$
+	 * @param[in]	dk:					@f$e^{-\mu}@f$ and @f$e^\mu@f$
+	 *	@param[in]	iu:					Lattice indices
+	 *	@param[in]	gamin:				Gamma indices
+	 *	@param[in]	akappa:				Hopping parameter
+	 *
+	 *	@post	Force added to @p dSdpi 
+	 */
 __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t,Complex_f *X1, Complex_f *X2, Complex_f gamval[20],\
 		float *dk4m, float *dk4p, unsigned int *iu, const unsigned short gamin[16],float akappa){
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
@@ -264,7 +307,7 @@ __global__ void cuForce_t(double *dSdpi, Complex_f *u11t, Complex_f *u12t,Comple
 		}
 	}
 }
-
+}
 //Calling functions
 void cuGauge_force(Complex_f *ut[2],double *dSdpi,float beta,unsigned int *iu,unsigned int *id,dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Gauge_force";
@@ -290,9 +333,9 @@ void cuGauge_force(Complex_f *ut[2],double *dSdpi,float beta,unsigned int *iu,un
 		for(unsigned short nu=0; nu<ndim; nu++)
 			if(nu!=mu){
 				//The @f$-\nu@f$ Staple
-				Plus_staple<<<dimGrid,dimBlock,0,streams[mu]>>>(mu, nu, iu, Sigma[mu][0], Sigma[mu][1],ut[0],ut[1]);
-				Gather<<<dimGrid,dimBlock,0,streams[mu]>>>(ush[mu][0], ut[0], kvol, id, nu);
-				Gather<<<dimGrid,dimBlock,0,streams[mu]>>>(ush[mu][1], ut[1], kvol, id, nu);
+				Kernels::Plus_staple<<<dimGrid,dimBlock,0,streams[mu]>>>(mu, nu, iu, Sigma[mu][0], Sigma[mu][1],ut[0],ut[1]);
+				Kernels::Gather<<<dimGrid,dimBlock,0,streams[mu]>>>(ush[mu][0], ut[0], kvol, id, nu);
+				Kernels::Gather<<<dimGrid,dimBlock,0,streams[mu]>>>(ush[mu][1], ut[1], kvol, id, nu);
 
 #if(nproc>1)
 				//Prefetch to the CPU for until we get NCCL working
@@ -303,11 +346,11 @@ void cuGauge_force(Complex_f *ut[2],double *dSdpi,float beta,unsigned int *iu,un
 				//cudaMemPrefetchAsync(ush[1]+kvol, halo*sizeof(Complex_f),device,streams[1]);
 #endif
 				//Next up, the @f$-\nu@f$ staple
-				Minus_staple<<<dimGrid,dimBlock,0,streams[mu]>>>(mu, nu, iu, id,Sigma[mu][0],Sigma[mu][1],\
+				Kernels::Minus_staple<<<dimGrid,dimBlock,0,streams[mu]>>>(mu, nu, iu, id,Sigma[mu][0],Sigma[mu][1],\
 						ush[mu][0],ush[mu][1],ut[0],ut[1]);
 			}
 		//Now get the gauge force acting in the @f$\mu@f$ direction
-		cuGaugeForce<<<dimGrid,dimBlock,0,streams[mu]>>>(mu,Sigma[mu][0],Sigma[mu][1],dSdpi,ut[0],ut[1],beta);
+		Kernels::cuGaugeForce<<<dimGrid,dimBlock,0,streams[mu]>>>(mu,Sigma[mu][0],Sigma[mu][1],dSdpi,ut[0],ut[1],beta);
 	}
 	for(unsigned short i=0;i<ndim;i++){
 #ifdef _DEBUG
@@ -329,12 +372,10 @@ void cuForce(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, \
 	cudaDeviceSynchronise();
 #pragma unroll
 	for(unsigned short mu=0;mu<3;mu++){
-		cuForce_s<<<dimGrid,dimBlock,0,streams[mu]>>>(dSdpi,ut[0],ut[1],X1,X2,gamval,iu,gamin,akappa,mu);
+		Kernels::cuForce_s<<<dimGrid,dimBlock,0,streams[mu]>>>(dSdpi,ut[0],ut[1],X1,X2,gamval,iu,gamin,akappa,mu);
 	}
 	//Set stream for time direction
 	unsigned short mu=3;
-	cuForce_t<<<dimGrid,dimBlock,0,streams[mu]>>>(dSdpi,ut[0],ut[1],X1,X2,gamval,dk[0],dk[1],iu,gamin,akappa);
-	cudaDeviceSynchronise();
-	//	Transpose_z(X1,kvol,ndirac*nc); Transpose_z(X2,kvol,ndirac*nc);
+	Kernels::cuForce_t<<<dimGrid,dimBlock,0,streams[mu]>>>(dSdpi,ut[0],ut[1],X1,X2,gamval,dk[0],dk[1],iu,gamin,akappa);
 	cudaDeviceSynchronise();
 }

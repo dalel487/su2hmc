@@ -30,8 +30,8 @@ extern "C"
 	 *	
 	 *	@param[in,out]	dSdpi:				The force
 	 *	@param[in]	ut:					Float precision colour fields
-	 *	@param[in]	X1:					Holder for the partitioned fermion field, then the inverted dield
-	 *	@param[in]	X2:					Pseudofermion field
+	 *	@param[in]	X1:					Inverted field
+	 *	@param[in]	X2:					@f$MX_1@f$
 	 *	@param[in]	gamval:				Gamma matrices rescaled by @f$\kappa@f$
 	 *	@param[in]	iu:					Lattice indices
 	 *	@param[in]	gamin:				Gamma indices
@@ -40,15 +40,15 @@ extern "C"
 	 *
 	 *	@post	Force added to @p dSdpi 
 	 */
-void Force_s(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, Complex_f gamval[20],\
-		unsigned int *iu, const unsigned short gamin[16],const float akappa, const unsigned short mu);
+	void Force_s(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, Complex_f gamval[20],\
+			unsigned int *iu, const unsigned short gamin[16],const float akappa, const unsigned short mu);
 	/**
 	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
 	 *	
 	 *	@param[in,out]	dSdpi:				The force
 	 *	@param[in]	ut:					Float precision colour fields
-	 *	@param[in]	X1:					Holder for the partitioned fermion field, then the inverted dield
-	 *	@param[in]	X2:					Pseudofermion field
+	 *	@param[in]	X1:					Inverted field
+	 *	@param[in]	X2:					@f$MX_1@f$
 	 *	@param[in]	gamval:				Gamma matrices rescaled by @f$\kappa@f$
 	 * @param[in]	dk:					@f$e^{-\mu}@f$ and @f$e^\mu@f$
 	 *	@param[in]	iu:					Lattice indices
@@ -57,8 +57,8 @@ void Force_s(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, Comp
 	 *
 	 *	@post	Force added to @p dSdpi 
 	 */
-void Force_t(double *dSdpi, Complex_f *ut[2],Complex_f *X1, Complex_f *X2, Complex_f gamval[20],\
-		float *dk[2], unsigned int *iu, const unsigned short gamin[16],float akappa);
+	void Force_t(double *dSdpi, Complex_f *ut[2],Complex_f *X1, Complex_f *X2, Complex_f gamval[20],\
+			float *dk[2], unsigned int *iu, const unsigned short gamin[16],float akappa);
 	/**
 	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
 	 *	
@@ -116,39 +116,36 @@ void Force_t(double *dSdpi, Complex_f *ut[2],Complex_f *X1, Complex_f *X2, Compl
 	 * @param	iu,id:				Up halo indices
 	 *	@param	gamval,gamval_f:	Double/float precision gamma matrices rescaled by kappa
 	 * @param	gamin:				Gamma matrix indices
-	 *	@param	sigval,sigval_f:	@f$ \sigma_{\mu\nu}=\frac{1}{2i}[\gamma_\mu,\gamma_\nu]@f$ in double and single
-	 *										precision
-	 *	@param	sigin:				Which column does row idirac of @f$(\sigma_{\mu\nu}@f$ act on
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 */
-int Init(const int istart, const int ibound, const int iread, const float beta, const float fmu, const float akappa,\
+	int Init(const int istart, const int ibound, const int iread, const float beta, const float fmu, const float akappa,\
 			const Complex_f ajq, const float c_sw, Complex *u[2], Complex *ut[2], Complex_f *ut_f[2], Complex gamval[20],\
 			Complex_f gamval_f[20], unsigned short gamin[16], double *dk[2], float *dk_f[2],\
 			unsigned int *iu, unsigned int *id);
 	/**
 	 * @brief Calculate the Hamiltonian
 	 *
-	 * @param	h:				Hamiltonian
-	 * @param	s:				Action
-	 * @param	res2:			Limit for conjugate gradient
-	 * @param	pp:			Momentum field
-	 *	@param	X0:			Up/down partitioned pseudofermion field
-	 *	@param	X1:			Holder for the partitioned fermion field, then the conjugate gradient output
-	 * @param	Phi:			Pseudofermion field
-	 * @param	ut:			Gauge fields (single precision)
-	 * @param	iu,id:		Lattice indices
-	 *	@param	gamval_f:	Single precision gamma matrices rescaled by kappa
-	 * @param	gamin:		Gamma indices
-	 *	@param	sigval_f:	Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/2@f$
-	 * @param	sigin:		What element of the spinor is multiplied by row idirac each sigma matrix?
-	 * @param	dk:			@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$ float
-	 * @param	jqq:			Diquark source
-	 * @param	akappa:		Hopping parameter
-	 * @param	beta:			Inverse gauge coupling
-	 * @param	c_sw:			Clover coefficient. If non-zero calculate the clover contribution
-	 * @param	ancgh:		Conjugate gradient iterations counter 
-	 * @param	traj:			Calling trajectory for error reporting
+	 * @param[out]	h:				Hamiltonian
+	 * @param[out]	s:				Action
+	 * @param[in]	res2:			Limit for conjugate gradient
+	 * @param[in]	pp:			Momentum field
+	 *	@param[in]	X0:			Up/down partitioned pseudofermion field
+	 *	@param[in]	X1:			Holder for the partitioned fermion field, then the conjugate gradient output
+	 * @param[in]	Phi:			Pseudofermion field
+	 * @param[in]	ut,ud:		Gauge fields (single/double precision)
+	 * @param[in]	iu,id:		Lattice indices
+	 *	@param[in]	gamval/gamval_f:	Gamma matrices rescaled by kappa
+	 * @param[in]	gamin:		Gamma indices
+	 *	@param[in]	sigval/sigval_f:	Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/3@f$
+	 * @param[in]	sigin:		What element of the spinor is multiplied by row idirac each sigma matrix?
+	 * @param[in]	dk,dk_f:		@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$ float
+	 * @param[in]	jqq:			Diquark source
+	 * @param[in]	akappa:		Hopping parameter
+	 * @param[in]	beta:			Inverse gauge coupling
+	 * @param[in]	c_sw:			Clover coefficient. If non-zero calculate the clover contribution
+	 * @param[in]	ancgh:		Conjugate gradient iterations counter 
+	 * @param[in]	traj:			Calling trajectory for error reporting
 	 *
 	 * @return	Zero on success. Integer Error code otherwise.
 	 */	
@@ -360,11 +357,11 @@ int Init(const int istart, const int ibound, const int iread, const float beta, 
 	int ComplexConvert(Complex_f *a, Complex *b, const unsigned int len, const bool dtof, const unsigned short stride);
 
 #ifdef DIAGNOSTIC
-int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
-		unsigned int *iu, unsigned int *id, int *hu, int *hd, double *dk[2], float *dk_f[2],\
-		const unsigned short gamin[16], const Complex gamval[20], const Complex_f gamval_f[20],\
-		const Complex *sigval, const Complex_f *sigval_f, const unsigned short *sigin,
-		Complex_f jqq,float akappa,float beta, float c_sw, double ancg);
+	int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
+			unsigned int *iu, unsigned int *id, int *hu, int *hd, double *dk[2], float *dk_f[2],\
+			const unsigned short gamin[16], const Complex gamval[20], const Complex_f gamval_f[20],\
+			const Complex *sigval, const Complex_f *sigval_f, const unsigned short *sigin,
+			Complex_f jqq,float akappa,float beta, float c_sw, double ancg);
 #endif
 	//CUDA Declarations:
 	//#################
@@ -409,9 +406,9 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 	 *	
 	 *	@param	dSdpi:				The force
 	 *	@param	ut:					Gauge fields
-	 *	@param	X0:					Up/down partitioned pseudofermion field
 	 *	@param	X1:					Inverted field
-	 *	@param	gamval,gamval_f:	Double/float precision gamma matrices rescaled by @f$\kappa@f$
+	 *	@param	X2:					@f$MX_1@f$
+	 *	@param	gamval:				Double/float precision gamma matrices rescaled by @f$\kappa@f$
 	 *	@param	gamin:				Gamma indices
 	 *	@param	iu:					Lattice indices
 	 * @param	dk:					@f$e^{-\mu}@f$ and @f$e^\mu@f$

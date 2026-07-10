@@ -57,11 +57,11 @@ void ByGenRight(Complex_f a[nc],const unsigned short gen);
 /**
  * @brief Calculates the SU2 plaquette at site i in the @f$\mu--\nu@f$ direction
  *
- * @param ut:		Trial fields
- * @param Leaves:	Trial fields
- * @param iu:		Upper halo indices
- * @param i:		site index
- * @param mu, nu:	Plaquette direction. Note that mu and nu can be negative
+ * @param[in] ut:		Trial fields
+ * @param[out] Leaves:	Trial fields
+ * @param[in] iu:		Upper halo indices
+ * @param[in] i:		site index
+ * @param[in] mu, nu:	Plaquette direction. Note that mu and nu can be negative
  * 					to facilitate calculating plaquettes for Clover terms. No
  * 					sanity checks are conducted on them in this routine.
  *
@@ -70,10 +70,10 @@ int Clover_SU2plaq(Complex_f *ut[nc], Complex_f Leaves[nc], unsigned int *iu,  i
 /**
  *	@brief Calculates the products of the first two links in a plaquette
  *
- *	@param	hLeaves:		Product of first two links
- *	@param	ut:			Gauge fields
- *	@param	iu,id:		Upper and lower indices
- *	@param	mu,nu:		Clover direction
+ *	@param[out]	hLeaves:		Product of first two links
+ *	@param[in]	ut:			Gauge fields
+ *	@param[in]	iu,id:		Upper and lower indices
+ *	@param[in]	mu,nu:		Clover direction
  *
  *	@post	Product of first two links stored in @p hLeaves
  */
@@ -82,38 +82,24 @@ void Half_Leaves(Complex_f *hLeaves[2],Complex_f *ut[2], unsigned int *iu,unsign
 /**
  *	@brief	Calculates a leaf for a clover term.
  *
- *	@param	Leaves:	Array of leaves
- *	@param	ut:		Gauge fields
- *	@param	iu,id:	Upper and lower site indices
- *	@param	i:			Lattice index of the clover in question
- *	@param	mu,nu:	Direction in which we're evaluating the leaf
- *	@param	leaf:		Which leaf of the clover is being calculated
+ *	@param[out]	Leaves:	Array of leaves
+ *	@param[in]	ut:		Gauge fields
+ *	@param[in]	iu,id:	Upper and lower site indices
+ *	@param[in]	i:			Lattice index of the clover in question
+ *	@param[in]	mu,nu:	Direction in which we're evaluating the leaf
+ *	@param[in]	leaf:		Which leaf of the clover is being calculated
  *	
  *	@post		Clover leaf stored in @p Leaves
  */
 int Leaf(Complex_f Leaves[nc],Complex_f *ut[nc], unsigned int *iu, unsigned int *id, unsigned int i,\
 		const unsigned short mu, const unsigned short nu,const unsigned short leaf);
 /**
- *	@brief	Calculates the clover in the forward direction and the leaves. Subtracting the conjugate of this yields the
- *	full clover
- *
- *	@param	clover:	Clover array
- *	@param	Leaves:	Array of leaves
- *	@param	ut:		Gauge fields
- *	@param	iu,id:	Upper and lower site indices
- *	@param	i:			Lattice index of the clover in question
- *	@param	mu,nu:	Direction of the clover
- *
- *	@post		Half clover stored in @p clover
- */
-int Half_Clover(Complex_f *clover[nc],	Complex_f *ut[nc], unsigned int *iu, unsigned int *id, int i, int mu, int nu,short clov);
-/**
  *	@brief Calculates the clovers in all directions at all sites
  *	@f[ F_{\mu\nu}(n)=\frac{-i}{8a^2}\left(Q_{\mu\nu}(n)-Q_{\nu\mu}(n)\right)@f]
  *
- *	@param	clover:	Array of clovers
- *	@param	ut:		Gauge fields
- *	@param	iu,id:	Upper and lower indices
+ *	@param[out]	clover:	Array of clovers
+ *	@param[in]	ut:		Gauge fields
+ *	@param[in]	iu,id:	Upper and lower indices
  *
  *	@post		Clover stored in @p clover
  */
@@ -319,14 +305,14 @@ void cuCalcXmunu(Bilinear_a Xmunu, Complex_f *X1, Complex_f *X2, const Complex_f
 /**
  *	@brief	CUDA wrapper for Clover_Force
  *
- *	@param[in,out]	dSdpi:		Force
- *	@param[in]	u11t,u12t:	Gauge fields
+ *	@param[in,out]	dSdpi:	Force
+ *	@param[in]	ut:			Gauge fields
  *	@param[in]	X1:			@f$\left(M^\dagger M\right)^{-1} \Psi@f$
  *	@param[in]	X2:			@f$M\left(M^\dagger M\right)^{-1} \Psi@f$
  *	@param[in]	sigval:		@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$c_sw@f$
  * @param[in]	sigin:		What element of the spinor is multiplied by row idirac each sigma matrix?
  * @param[in]	iu,id:		Up/down indices
- * @param[in]	kappa:		Hopping parameter
+ * @param[in]	akappa:		Hopping parameter
  *	
  *	@post		Force contribution added to @p dSdpi
  */

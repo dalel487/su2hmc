@@ -598,8 +598,8 @@ double cureduce_sum_d(double *input, const unsigned int n,const unsigned short s
 	cudaFreeAsync(cacheout,streams[stream]);
 	return output;
 }
-void cuDslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned int *id,\
-		Complex gamval[20], const unsigned short gamin[16], double *dk[nc], Complex_f jqq, float akappa,\
+void cuDslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned int *id,
+		Complex gamval[20], const unsigned short gamin[16], double *dk[nc], Complex_f jqq, float akappa,
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslash";
 	int cuCpyStat=0;
@@ -612,8 +612,8 @@ void cuDslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigne
 	Kernels::cuDslash<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa);
 	return;
 }
-void cuDslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned int *id,\
-		Complex gamval[20], const unsigned short gamin[16], double *dk[nc], Complex_f jqq, float akappa,\ 
+void cuDslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned int *id,
+		Complex gamval[20], const unsigned short gamin[16], double *dk[nc], Complex_f jqq, float akappa,
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslashd";
 	int cuCpyStat=0;

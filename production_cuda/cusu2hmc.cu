@@ -5,7 +5,17 @@
  */
 #include	<cuda_runtime.h>
 #include	<su2hmc.h>
+/**
+ *	@brief Return the max of two values
+ *
+ *	@param x,y	values being checked
+ */
 #define MIN(x,y) (x<y?x:y)
+/**
+ *	@brief Return the min of two values
+ *
+ *	@param x,y	values being checked
+ */
 #define MAX(x,y) (x>y?x:y)
 dim3 dimBlockOne = dim3(1,1,1);
 dim3 dimGridOne= dim3(1,1,1);
