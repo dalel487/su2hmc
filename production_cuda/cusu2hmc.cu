@@ -32,6 +32,7 @@ __device__ __forceinline__ T conj(const T& z){
 	return T(z.real(),-z.imag());
 }
 //CUDA Kernels
+namespace::Kernels{
 	/**
 	 * @brief takes an array of real float and double precision numbers and converts the precision
 	 *
@@ -56,6 +57,15 @@ __global__ void Real_convert(float *a, double *b, const unsigned int len, const 
 		for(unsigned int i = gthreadId; i<len;i+=gsize*bsize)
 			b[i]=(double)a[i];
 }
+	/**
+	 * @brief Copies necessary (2*4*kvol) elements of Phi into a vector variable
+	 *
+	 * @param	na: 				flavour index
+	 * @param	smallPhi:		The partitioned output
+	 * @param	Phi:				The pseudofermion field
+	 *
+	 * @post	Result written into @p smallPhi
+	 */
 __global__ void cuFill_Small_Phi(const unsigned int na, Complex *smallPhi, Complex *Phi)
 {
 	/*Copies necessary (2*4*kvol) elements of Phi into a vector variable
@@ -86,6 +96,15 @@ __global__ void cuFill_Small_Phi(const unsigned int na, Complex *smallPhi, Compl
 				//	  PHI_index=i*16+j*2+k;
 				smallPhi[i + kvol * (ic + nc * idirac)] = Phi[i + kvol * (ic + nc * (idirac + ngorkov * na))];
 }
+	/**
+	 *	@brief Up/Down partitioning of the pseudofermion field
+	 *
+	 *	@param[in]	na:	Flavour index
+	 *	@param[out]	X0:	Partitioned field
+	 *	@param[in]	R1:	Full pseudofermion field
+	 *
+	 *	@post	Result written to @p X0
+	 */
 __global__ void cuUpDownPart(const unsigned int na, Complex *X0, Complex *R1){
 
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
@@ -101,6 +120,17 @@ __global__ void cuUpDownPart(const unsigned int na, Complex *X0, Complex *R1){
 			X0[i+kvol*(1+nc*(idirac+ndirac*na))]=R1[i+kvol*(1+nc*idirac)];
 		}
 }
+	/**
+	 * @brief Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1
+	 *
+	 * If you're looking at the FORTRAN code be careful. There are two header files
+	 * for the /trial/ header. One with u11 u12 (which was included here originally)
+	 * and the other with u11t and u12t.
+	 *
+	 * @param[out,in] u11t,u12t:						Trial fields to be reunitarised
+	 *
+	 * @post	@p u11t and @p u12t replaced with reunitarised gauge fields
+	 */
 template <typename T>
 __global__ void cuReunitarise(complex<T> *u11t, complex<T> * u12t){
 	/*
@@ -163,6 +193,7 @@ __global__ void cuGauge_Update(const double d, double *pp, Complex *u11t, Comple
 		u11t[ind] = a11*b11-a12*conj(u12t[ind]);
 		u12t[ind] = a11*u12t[ind]+a12*conj(b11);
 	}
+}
 }
 
 //Calling functions
@@ -242,32 +273,26 @@ void	Init_CUDA(Complex *u11t, Complex *u12t,Complex gamval[20], Complex_f gamval
 	//cudaMemPrefetchAsync(u12t, ndim*kvol*sizeof(Complex),device,streams[5]);
 }
 void cuReal_convert(float *a, double *b, const unsigned int len, const bool dtof, dim3 dimBlock, dim3 dimGrid){
-	/* 
-	 * Kernel wrapper for conversion between sp and dp complex on the GPU.
-	 */
 	const char *funcname = "cuComplex_convert";
-	Real_convert<<<dimGrid,dimBlock>>>(a,b,len,dtof);
+	Kernels::Real_convert<<<dimGrid,dimBlock>>>(a,b,len,dtof);
 }
 void cuComplex_convert(Complex_f *a, Complex *b, const unsigned int len, const bool dtof, dim3 dimBlock, dim3 dimGrid){
-	/* 
-	 * Kernel wrapper for conversion between sp and dp complex on the GPU.
-	 */
 	const char *funcname = "cuComplex_convert";
-	Real_convert<<<dimGrid,dimBlock>>>((float *)a,(double *)b,2*len,dtof);
+	Kernels::Real_convert<<<dimGrid,dimBlock>>>((float *)a,(double *)b,2*len,dtof);
 }
 void cuFill_Small_Phi(const unsigned int na, Complex *smallPhi, Complex *Phi, dim3 dimBlock, dim3 dimGrid){
-	cuFill_Small_Phi<<<dimGrid,dimBlock>>>(na,smallPhi,Phi);
+	Kernels::cuFill_Small_Phi<<<dimGrid,dimBlock>>>(na,smallPhi,Phi);
 }
 void cuUpDownPart(const unsigned int na, Complex *X0, Complex *R1,dim3 dimBlock, dim3 dimGrid){
-	cuUpDownPart<<<dimGrid,dimBlock>>>(na,X0,R1);	
+	Kernels::cuUpDownPart<<<dimGrid,dimBlock>>>(na,X0,R1);	
 }
 void cuReunitarise(Complex *ut[2], dim3 dimGrid, dim3 dimBlock){
-	cuReunitarise<<<dimGrid,dimBlock>>>(ut[0],ut[1]);
+	Kernels::cuReunitarise<<<dimGrid,dimBlock>>>(ut[0],ut[1]);
 	cudaDeviceSynchronise();
 }
 void cuGauge_Update(const double d, double *pp, Complex *ut[2], dim3 dimGrid, dim3 dimBlock){
 	for(int mu=0;mu<ndim;mu++)
-		cuGauge_Update<<<dimGrid,dimBlock,0,streams[mu]>>>(d,pp,ut[0],ut[1],mu);
+		Kernels::cuGauge_Update<<<dimGrid,dimBlock,0,streams[mu]>>>(d,pp,ut[0],ut[1],mu);
 	cudaDeviceSynchronise();
 }
 

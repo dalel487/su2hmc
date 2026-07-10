@@ -270,7 +270,7 @@ extern "C"
 	 *
 	 * @post		Result written to @p phi
 	 */
-	void cuHdslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned int *id,\
+	void cuHdslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned int *id,
 			Complex gamval[20], const unsigned short gamin[16], double *dk[nc], float akappa,dim3 dimGrid, dim3 dimBlock);
 	/**
 	 * @brief GPU calling wrapper for @f$\Phi=M^\dagger r@f$ in double precision.
@@ -287,7 +287,7 @@ extern "C"
 	 *
 	 * @post		Result written to @p phi
 	 */
-	void cuHdslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned int *id,\
+	void cuHdslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned int *id,
 			Complex gamval[20], const unsigned short gamin[16], double *dk[nc], float akappa, dim3 dimGrid, dim3 dimBlock);
 	//Float version
 	/**

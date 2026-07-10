@@ -236,7 +236,10 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 #endif
 #ifndef NO_GAUGE
 	Gauge_force(dSdpi,ut_f,iu,id,beta);
+#else
 #endif
+///@todo If @ref Gauge_force has not been called then set dSdpi to zero. The rest of the force uses += and as a result will
+///add onto the previous answer instead of giving just the fermion force at this step
 	if(!akappa)
 		return 0;
 	//X1=(M†M)^{1} Phi

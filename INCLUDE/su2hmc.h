@@ -61,7 +61,7 @@ extern "C"
 			float *dk[2], unsigned int *iu, const unsigned short gamin[16],float akappa);
 	/**
 	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
-	 *	
+	 *
 	 *	@param[in,out]	dSdpi:				The force
 	 *	@param[in]	iflag:				Invert before evaluating the force. 0 to invert, one not to. Blame FORTRAN...	
 	 *	@param[in]	res1:					Conjugate gradient residue
@@ -72,7 +72,7 @@ extern "C"
 	 *	@param[in]	iu,id:				Lattice indices
 	 *	@param[in]	gamval,gamval_f:	Double/float precision gamma matrices rescaled by @f$\kappa@f$
 	 *	@param[in]	gamin:				Gamma indices
-	 *	@param[in]	sigval,sigval_f:	Double/float Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/2@f$
+	 *	@param[in]	sigval,sigval_f:	Double/float Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}{2}@f$
 	 * @param[in]	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
 	 * @param[in]	dk,dk_f:				Double/float @f$e^{-\mu}@f$ and @f$e^\mu@f$
 	 * @param[in] 	jqq:					Diquark source
@@ -247,42 +247,39 @@ extern "C"
 			Complex_f jqq, float akappa,	float c_sw,Complex *Phi);
 	/** 
 	 * @brief	Calculates the gauge action using new (how new?) lookup table
-	 * @brief	Follows a routine called qedplaq in some QED3 code
+	 * 			Follows a routine called qedplaq in some QED3 code
 	 *
-	 * @param	hg				Gauge component of Hamilton
-	 * @param	avplaqs		Average spacial Plaquette
-	 * @param	avplaqt		Average Temporal Plaquette
-	 * @param	ut:			The trial fields
-	 * @param	iu				Upper halo indices
-	 * @param	beta			Inverse gauge coupling
+	 * @param[out]	hg				Gauge component of Hamilton
+	 * @param[out]	avplaqs		Average spacial Plaquette
+	 * @param[out]	avplaqt		Average Temporal Plaquette
+	 * @param[in]	ut:			The trial fields
+	 * @param[in]	iu				Upper halo indices
+	 * @param[in]	beta			Inverse gauge coupling
 	 *
-	 * @see Par_dsum
 	 *
 	 * @return Zero on success, integer error code otherwise
+	 * @post	Contents of @p hg, @p avplaqs and @p avplaqt replaced with output
 	 */
 	int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *ut[2],unsigned int *iu, float beta);
 	/**
 	 * @brief Calculates the plaquette at site i in the @f$\mu--\nu@f$ direction
 	 *
-	 * @param	ut:			Trial fields
-	 * @param	Sigma:		Plaquette components
-	 * @param	i:				Lattice site
-	 * @param	iu:			Upper halo indices
-	 * @param 	mu, nu:		Plaquette direction. Note that mu and nu can be negative
+	 * @param[in]	ut:			Trial fields
+	 * @param[out]	Sigma:		Plaquette components
+	 * @param[in]	i:				Lattice site
+	 * @param[in]	iu:			Upper halo indices
+	 * @param[in] 	mu, nu:		Plaquette direction. Note that mu and nu can be negative
 	 * 							to facilitate calculating plaquettes for Clover terms. No
 	 * 							sanity checks are conducted on them in this routine.
 	 *
-	 * @return double corresponding to the plaquette value
-	 *
+	 * @post	Plaquettes written intp @p Sigma
 	 */
 	int SU2plaq(Complex_f *ut[2], Complex_f Sigma[2], unsigned int *iu, int i, int mu, int nu);
 
 	/**
 	 * @brief Calculate the Polyakov loop (no prizes for guessing that one...)
 	 * 
-	 * @param	ut:	The gauge fields
-	 *
-	 * @see Par_tmul, Par_dsum
+	 * @param[in]	ut:	The gauge fields
 	 * 
 	 * @return Double corresponding to the polyakov loop
 	 */
@@ -291,45 +288,49 @@ extern "C"
 	/**
 	 * @brief	Extracts all the single precision gauge links in the @f$\mu@f$ direction only
 	 *
-	 * @param	x:			The output 
-	 * @param	y:			The gauge field for a particular colour
-	 * @param	n:			Number of sites in the gauge field. This is typically kvol
-	 * @param	table:	Table containing information on nearest neighbours. Usually id or iu
-	 * @param	mu:		Direciton we're interested in extractng	
+	 * @param[out]	x:			The output 
+	 * @param[in]	y:			The gauge field for a particular colour
+	 * @param[in]	n:			Number of sites in the gauge field. This is typically kvol
+	 * @param[in]	table:	Table containing information on nearest neighbours. Usually id or iu
+	 * @param[in]	mu:		Direciton we're interested in extractng	
 	 *
 	 * @return Zero on success, integer error code otherwise
+	 * @post	Contents of @p x replaced with output
 	 */
 	int C_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu);
 	/**
 	 * @brief	Extracts all the double precision gauge links in the @f$\mu@f$ direction only
 	 *
-	 * @param	x:			The output 
-	 * @param	y:			The gauge field for a particular colour
-	 * @param	n:			Number of sites in the gauge field. This is typically kvol
-	 * @param	table:	Table containing information on nearest neighbours. Usually id or iu
-	 * @param	mu:		Direciton we're interested in extractng	
+	 * @param[out]	x:			The output 
+	 * @param[in]	y:			The gauge field for a particular colour
+	 * @param[in]	n:			Number of sites in the gauge field. This is typically kvol
+	 * @param[in]	table:	Table containing information on nearest neighbours. Usually id or iu
+	 * @param[in]	mu:		Direciton we're interested in extractng	
 	 *
 	 * @return Zero on success, integer error code otherwise
+	 * @post	Contents of @p x replaced with output
 	 */
 	int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu);
 	/**
 	 * Copies necessary (2*4*kvol) elements of Phi into a vector variable
 	 *
-	 * @param	na: 				flavour index
-	 * @param	smallPhi:		The partitioned output
-	 * @param	Phi:				The pseudofermion field
+	 * @param[in]	na: 				flavour index
+	 * @param[out]	smallPhi:		The partitioned output
+	 * @param[in]	Phi:				The pseudofermion field
 	 *
 	 * @return Zero on success, integer error code otherwise
+	 *	@post	Result written into @p smallPhi
 	 */
 	int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi);
 	/**
 	 *	@brief Up/Down partitioning of the pseudofermion field
 	 *
-	 *	@param	na:	Flavour index
-	 *	@param	X0:	Partitioned field
-	 *	@param	R1:	Full pseudofermion field
+	 *	@param[in]	na:	Flavour index
+	 *	@param[out]	X0:	Partitioned field
+	 *	@param[in]	R1:	Full pseudofermion field
 	 *
 	 *	@return	Zero on success, integer error code otherwise	
+	 *	@post	Result written into @p X0
 	 */
 	int UpDownPart(const unsigned int na, Complex *X0, Complex *R1);
 	/**
@@ -339,20 +340,23 @@ extern "C"
 	 * for the /trial/ header. One with u11 u12 (which was included here originally)
 	 * and the other with u11t and u12t.
 	 *
-	 * @param ut:	 Trial fields to be reunitarised
+	 * @param[out,in] ut:	 Trial fields to be reunitarised
 	 *
 	 * @return Zero on success, integer error code otherwise
+	 * @post	@p ut replaced with reunitarised gauge fields
 	 */
 	int Reunitarise(Complex *ut[2]);
 	/**
 	 * @brief takes an array of complex float and double precision numbers and converts the precision
 	 *
-	 * @param	a:				Float array
-	 * @param	b:				Double array
-	 * @param	len:			Number of elements to convert per stride. Striding needed to handle halo terms
-	 * @param	dtof:			If true, convert double to float. Otherwise convert float to double
-	 * @param	stride:		For terms with a halo, we need to convert in blocks of len seperated by (len+halo)
+	 * @param[out,in]	a:				Float array
+	 * @param[out,in]	b:				Double array
+	 * @param[in]	len:			Number of elements to convert per stride. Striding needed to handle halo terms
+	 * @param[in]	dtof:			If true, convert double to float. Otherwise convert float to double
+	 * @param[in]	stride:		For terms with a halo, we need to convert in blocks of len seperated by (len+halo)
 	 *
+	 * @post Depending on the value of @p dtof, either the contents of @p a or @p b are overwritten with those of the
+	 * other array in the opposite precision.
 	 */
 	int ComplexConvert(Complex_f *a, Complex *b, const unsigned int len, const bool dtof, const unsigned short stride);
 
@@ -372,49 +376,55 @@ extern "C"
 	//=================
 	/** 
 	 * @brief	Calculates the gauge action using new (how new?) lookup table
-	 * @brief	Follows a routine called qedplaq in some QED3 code
+	 * 		Follows a routine called qedplaq in some QED3 code
 	 *
-	 * @param	hgs,hgt			Gauge component of Hamilton
-	 * @param	u11t,u12t		Gauge fields
-	 * @param	iu					Upper halo indices
-	 * @param	dimGrid			CUDA grid dimensions
-	 * @param	dimBlock			CUDA block dimensions
+	 * @param[out]	hgs,hgt			Gauge component of Hamilton
+	 * @param[in]	u11t,u12t		Gauge fields
+	 * @param[in]	iu					Upper halo indices
+	 * @param[in]	dimGrid			CUDA grid dimensions
+	 * @param[in]	dimBlock			CUDA block dimensions
+	 *
+	 * @post	Contents of @p hgs and @p hgt replaced with the results
 	 */
 	void cuAverage_Plaquette(double *hgs, double *hgt, Complex_f *u11t, Complex_f *u12t, unsigned int *iu,dim3 dimGrid, dim3 dimBlock);
 	/**
 	 * @brief Calculate the Polyakov loop (no prizes for guessing that one...)
 	 *
-	 * @param	Sigma		Components of the Polyakov loop
-	 * @param	ut:		The gauge fields
-	 * @param	dimGrid	CUDA grid dimensions
-	 * @param	dimBlock	CUDA block dimensions
+	 * @param[out]	Sigma		Components of the Polyakov loop
+	 * @param[in]	ut:		The gauge fields
+	 * @param[in]	dimGrid	CUDA grid dimensions
+	 * @param[in]	dimBlock	CUDA block dimensions
 	 * 
+	 * @post	Contents of @p Sigma replaced with the Polyakov loop values
 	 */
 	void cuPolyakov(Complex_f *Sigma[2], Complex_f *ut[2],dim3 dimGrid, dim3 dimBlock);
 	/**
 	 * @brief Calculate the gauge contribution to the force
 	 * 
-	 * @param ut:						Gauge fields
-	 * @param dSdpi:					Force
-	 * @param beta:					Inverse gauge coupling
-	 * @param iu,id:					Upper/lower indices
-	 * @param dimGrid,dimBlock:	CUDA grid/block size
+	 * @param[in] ut:						Gauge fields
+	 * @param[out] dSdpi:					Force
+	 * @param[in] beta:					Inverse gauge coupling
+	 * @param[in] iu,id:					Upper/lower indices
+	 * @param[in] dimGrid,dimBlock:	CUDA grid/block size
+	 *
+	 * @post	Contents of @p dSdpi overwritten
 	 */
 	void cuGauge_force(Complex_f *ut[2],double *dSdpi,float beta,unsigned int *iu,unsigned int *id,dim3 dimGrid, dim3 dimBlock);
 	/**
 	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
 	 *	
-	 *	@param	dSdpi:				The force
-	 *	@param	ut:					Gauge fields
-	 *	@param	X1:					Inverted field
-	 *	@param	X2:					@f$MX_1@f$
-	 *	@param	gamval:				Double/float precision gamma matrices rescaled by @f$\kappa@f$
-	 *	@param	gamin:				Gamma indices
-	 *	@param	iu:					Lattice indices
-	 * @param	dk:					@f$e^{-\mu}@f$ and @f$e^\mu@f$
-	 *	@param	akappa:				Hopping parameter
-	 * @param 	dimGrid,dimBlock:	CUDA grid/block size
+	 *	@param[in,out]	dSdpi:				The force
+	 *	@param[in]	ut:					Gauge fields
+	 *	@param[in]	X1:					Inverted field
+	 *	@param[in]	X2:					@f$MX_1@f$
+	 *	@param[in]	gamval:				Double/float precision gamma matrices rescaled by @f$\kappa@f$
+	 *	@param[in]	gamin:				Gamma indices
+	 *	@param[in]	iu:					Lattice indices
+	 * @param[in]	dk:					@f$e^{-\mu}@f$ and @f$e^\mu@f$
+	 *	@param[in]	akappa:				Hopping parameter
+	 * @param[in] 	dimGrid,dimBlock:	CUDA grid/block size
 	 *
+	 * @post	Fermion force added onto @p dSdpi
 	 */
 	void cuForce(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, \
 			Complex_f gamval[20],float *dk[2],unsigned int *iu,const unsigned short gamin[16],\
@@ -436,40 +446,48 @@ extern "C"
 	/**
 	 * Copies necessary (2*4*kvol) elements of Phi into a vector variable
 	 *
-	 * @param	na:					flavour index
-	 * @param	smallPhi:			The partitioned output
-	 * @param	Phi:					The pseudofermion field
-	 * @param 	dimGrid,dimBlock:	CUDA grid/block size
+	 * @param[in]	na:					flavour index
+	 * @param[out]	smallPhi:			The partitioned output
+	 * @param[in]	Phi:					The pseudofermion field
+	 * @param[in] 	dimGrid,dimBlock:	CUDA grid/block size
 	 * 
 	 */
 	void cuFill_Small_Phi(const unsigned int na, Complex *smallPhi, Complex *Phi,dim3 dimBlock, dim3 dimGrid);
 	/**
 	 * @brief takes an array of complex float and double precision numbers and converts the precision
 	 *
-	 * @param	a:						Float array
-	 * @param	b:						Double array
-	 * @param	len:					Number of elements to convert
-	 * @param	dtof:					If true, convert double to float. Otherwise convert float to double
-	 * @param 	dimGrid,dimBlock:	CUDA grid/block size
+	 * @param[out,in]	a:						Float array
+	 * @param[out,in]	b:						Double array
+	 * @param[in]	len:					Number of elements to convert
+	 * @param[in]	dtof:					If true, convert double to float. Otherwise convert float to double
+	 * @param[in] 	dimGrid,dimBlock:	CUDA grid/block size
+	 *
+	 * @post Depending on the value of @p dtof, either the contents of @p a or @p b are overwritten with those of the
+	 * other array in the opposite precision.
 	 */
 	void cuComplex_convert(Complex_f *a, Complex *b, const unsigned int len,  const bool dtof, dim3 dimBlock, dim3 dimGrid);
 	/**
 	 * @brief takes an array of real-valued float and double precision numbers and converts the precision
 	 *
-	 * @param	a:						Float array
-	 * @param	b:						Double array
-	 * @param	len:					Number of elements to convert
-	 * @param	dtof:					If true, convert double to float. Otherwise convert float to double
-	 * @param 	dimGrid,dimBlock:	CUDA grid/block size
+	 * @param[out,in]	a:						Float array
+	 * @param[out,in]	b:						Double array
+	 * @param[in]	len:					Number of elements to convert
+	 * @param[in]	dtof:					If true, convert double to float. Otherwise convert float to double
+	 * @param[in] 	dimGrid,dimBlock:	CUDA grid/block size
+	 *
+	 * @post Depending on the value of @p dtof, either the contents of @p a or @p b are overwritten with those of the
+	 * other array in the opposite precision.
 	 */
 	void cuReal_convert(float *a, double *b, const unsigned int len, const bool dtof, dim3 dimBlock, dim3 dimGrid);
 	/**
 	 *	@brief Up/Down partitioning of the pseudofermion field
 	 *
-	 *	@param	na:	Flavour index
-	 *	@param	X0:	Partitioned field
-	 *	@param	R1:	Full pseudofermion field
-	 * @param 	dimGrid,dimBlock:	CUDA grid/block size
+	 *	@param[in]	na:	Flavour index
+	 *	@param[out]	X0:	Partitioned field
+	 *	@param[in]	R1:	Full pseudofermion field
+	 * @param[in] 	dimGrid,dimBlock:	CUDA grid/block size
+	 *
+	 *	@post	Result written into @p X0
 	 */
 	void cuUpDownPart(const unsigned int na, Complex *X0, Complex *R1,dim3 dimBlock, dim3 dimGrid);
 	/**
@@ -479,16 +497,19 @@ extern "C"
 	 * for the /trial/ header. One with u11 u12 (which was included here originally)
 	 * and the other with u11t and u12t.
 	 *
-	 * @param ut:						Trial fields to be reunitarised
-	 * @param dimGrid,dimBlock:	CUDA grid/block size
+	 * @param[out,in] ut:						Trial fields to be reunitarised
+	 * @param[in] dimGrid,dimBlock:	CUDA grid/block size
 	 *
+	 * @post	@p ut replaced with reunitarised gauge fields
 	 */
 	void cuReunitarise(Complex *ut[2],dim3 dimGrid, dim3 dimBlock);
 	/**	
 	 * @brief Initialises the CUDA grid and block size for a given lattice
 	 *
-	 * @param	x,y,z,t:				Lattice dimensions
-	 * @param 	dimGrid,dimBlock:	CUDA grid/block size
+	 * @param[in]	x,y,z,t:				Lattice dimensions
+	 * @param[out] 	dimGrid,dimBlock:	CUDA grid/block size
+	 *
+	 * @post	@p dimGrid and @p dimBlock initialised
 	 */
 	void blockInit(int x, int y, int z, int t, dim3 *dimBlock, dim3 *dimGrid);
 #endif

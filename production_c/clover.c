@@ -55,14 +55,15 @@ void ByGenRight(Complex_f a[nc],const unsigned short gen){
  *	@brief	Calculates the first half of the leaf for a clover term. We split it so that the force term can reuse the
  *				first half of the leaf
  *
- *	@param	Leaves:	Leaf
- *	@param	ut:		Gauge fields
- *	@param	a:			Buffer array
- *	@param	iu,id:	Upper and lower site indices
- *	@param	i:			Lattice index of the clover in question
- *	@param	mu,nu:	Direction in which we're evaluating the leaf
- *	@param	leaf:		Which leaf of the clover is being calculated
+ *	@param[out]	Leaves:	Leaf
+ *	@param[in]	ut:		Gauge fields
+ *	@param[in]	a:			Buffer array
+ *	@param[in]	iu,id:	Upper and lower site indices
+ *	@param[in]	i:			Lattice index of the clover in question
+ *	@param[in]	mu,nu:	Direction in which we're evaluating the leaf
+ *	@param[in]	leaf:		Which leaf of the clover is being calculated
  *	
+ *	@post	@p Leaves replaced with output
  */
 #pragma omp declare simd
 int Half_Leaf(Complex_f Leaves[nc], Complex_f *ut[nc], Complex_f a[nc], unsigned int *iu,\
@@ -111,7 +112,6 @@ int Half_Leaf(Complex_f Leaves[nc], Complex_f *ut[nc], Complex_f a[nc], unsigned
 			const unsigned int din_didm=id[nu*kvol+uidm];
 
 			/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})@f$
-			/// TODO: Copy to CUDA if working
 			Leaves[0]=a[0]*conjf(ut[0][din_didm+kvolHalo*nu])+a[1]*conjf(ut[1][din_didm+kvolHalo*nu]);
 			Leaves[1]=-a[0]*ut[1][din_didm+kvolHalo*nu]+a[1]*ut[0][din_didm+kvolHalo*nu];
 			break;
@@ -174,7 +174,6 @@ int Leaf(Complex_f Leaves[nc],Complex_f *ut[nc], unsigned int *iu, unsigned int 
 			a[1]=Leaves[0]*ut[1][uim_didn+kvolHalo*nu]+Leaves[1]*conjf(ut[0][uim_didn+kvolHalo*nu]);
 
 			/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})U^\dagger_\mu(x)@f$
-			/// TODO: If works, copy to CUDA
 			Leaves[0]=a[0]*conjf(ut[0][i+kvolHalo*mu])+a[1]*conjf(ut[1][i+kvolHalo*mu]);
 			Leaves[1]=-a[0]*ut[1][i+kvolHalo*mu]+a[1]*ut[0][i+kvolHalo*mu];
 

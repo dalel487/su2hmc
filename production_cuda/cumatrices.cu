@@ -28,21 +28,21 @@ namespace Kernels{
 	/**
 	 * @brief Evaluates @f$\Phi=M r@f$
 	 *
-	 * @param	phi:			The product
-	 * @param	r:				The array being acted on by M
-	 * @param	u11t,u12t	Gauge field
-	 *	@param	iu,id:		Upper/lower halo indices
-	 *	@param	gamval:		Gamma matrices rescaled by kappa
-	 *	@param	gamin:		Indices for dirac terms
-	 * @param	dk4m,dk4p:	@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
-	 *	@param	jqq:			Diquark source
-	 *	@param	akappa:		Hopping parameter
+	 * @param[in,out]	phi:			The product
+	 * @param[in]	r:				The array being acted on by M
+	 * @param[in]	u11t,u12t	Gauge field
+	 *	@param[in]	iu,id:		Upper/lower halo indices
+	 *	@param[in]	gamval:		Gamma matrices rescaled by kappa
+	 *	@param[in]	gamin:		Indices for dirac terms
+	 * @param[in]	dk4m,dk4p:	@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
+	 *	@param[in]	jqq:			Diquark source
+	 *	@param[in]	akappa:		Hopping parameter
 	 *
-	 * @return Zero on success, integer error code otherwise
+	 * @post	Result added to @p phi
 	 */
 	template <typename T>
 		__global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, complex<T> *u12t,const unsigned int *iu, const unsigned int *id,\
-				complex<T> gamval_d[20],	const unsigned short gamin_d[16], const T *dk4m, const T *dk4p, const Complex_f jqq, const float akappa){
+				complex<T> gamval[20],	const unsigned short gamin[16], const T *dk4m, const T *dk4p, const Complex_f jqq, const float akappa){
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -56,9 +56,9 @@ namespace Kernels{
 				for(unsigned short idirac=0;idirac<ndirac*nc;idirac+=nc){
 					unsigned short igork = ((idirac>>1)+4)<<1;
 					unsigned int ind_d =4*ndirac+(idirac>>1);
-					complex<T> a_1=conj(jqq)*gamval_d[ind_d];
+					complex<T> a_1=conj(jqq)*gamval[ind_d];
 					//We subtract a_2, hence the minus
-					complex<T> a_2=-jqq*gamval_d[ind_d];
+					complex<T> a_2=-jqq*gamval[ind_d];
 					ind_d=i+kvolHalo*(idirac); unsigned int ind_g=i+kvolHalo*(igork);
 					phi_s[idirac]=phi[ind_d]+a_1*r[ind_g];
 					phi_s[igork]=phi[ind_g]+a_2*r[ind_d];
@@ -81,9 +81,9 @@ namespace Kernels{
 					for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
 						unsigned short idirac=igorkov&3;		
 						unsigned short gind=mu*ndirac+idirac;
-						const complex<T> gam=gamval_d[gind];
+						const complex<T> gam=gamval[gind];
 						//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing in the dirac term.
-						unsigned short igork1 = (igorkov<4) ? gamin_d[gind] : gamin_d[gind]+4;
+						unsigned short igork1 = (igorkov<4) ? gamin[gind] : gamin[gind]+4;
 						for(unsigned short c=0;c<nc;c++){
 							ru[c]=r[uid+kvolHalo*(igorkov*nc+c)]; rd[c]=r[did+kvolHalo*(igorkov*nc+c)];
 							rgu[c]=r[uid+kvolHalo*(igork1*nc+c)]; rgd[c]=r[did+kvolHalo*(igork1*nc+c)];
@@ -116,7 +116,7 @@ namespace Kernels{
 				u11sd=u11t[ind]; u12sd=u12t[ind];
 				const T dk4msd=dk4m[did];	const T dk4psd=dk4p[did];
 				for(unsigned short igorkov=0;igorkov<ndirac;igorkov++){
-					unsigned short igork1 = gamin_d[3*ndirac+igorkov];
+					unsigned short igork1 = gamin[3*ndirac+igorkov];
 					for(unsigned short c=0;c<nc;c++){
 						ru[c]=r[uid+kvolHalo*(igorkov*nc+c)]; rd[c]=r[did+kvolHalo*(igorkov*nc+c)];
 						rgu[c]=r[uid+kvolHalo*(igork1*nc+c)]; rgd[c]=r[did+kvolHalo*(igork1*nc+c)];
@@ -154,21 +154,21 @@ namespace Kernels{
 	/**
 	 * @brief Evaluates @f$\Phi=M^\dagger r@f$
 	 *
-	 * @param	phi:			The product
-	 * @param	r:				The array being acted on by M
-	 * @param	u11t,u12t	Gauge field
-	 *	@param	iu,id:		Upper/lower halo indices
-	 *	@param	gamval:		Gamma matrices rescaled by kappa
-	 *	@param	gamin:		Indices for dirac terms
-	 * @param	dk4m,dk4p:	@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
-	 *	@param	jqq:			Diquark source
-	 *	@param	akappa:		Hopping parameter
+	 * @param[in,out]	phi:			The product
+	 * @param[in]	r:				The array being acted on by M
+	 * @param[in]	u11t,u12t	Gauge field
+	 *	@param[in]	iu,id:		Upper/lower halo indices
+	 *	@param[in]	gamval:		Gamma matrices rescaled by kappa
+	 *	@param[in]	gamin:		Indices for dirac terms
+	 * @param[in]	dk4m,dk4p:	@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
+	 *	@param[in]	jqq:			Diquark source
+	 *	@param[in]	akappa:		Hopping parameter
 	 *
-	 * @return Zero on success, integer error code otherwise
+	 * @post	Result added to @p phi
 	 */
 	template <typename T>
 		__global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T> *u11t, const complex<T> *u12t,const unsigned int *iu, const unsigned int *id,\
-				complex<T> gamval_d[20], const unsigned short gamin_d[16], const T *dk4m, const T *dk4p, const Complex_f jqq, const float akappa){
+				complex<T> gamval[20], const unsigned short gamin[16], const T *dk4m, const T *dk4p, const Complex_f jqq, const float akappa){
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -182,8 +182,8 @@ namespace Kernels{
 				for(unsigned short idirac=0;idirac<ndirac*nc;idirac+=nc){
 					unsigned short igork = ((idirac>>1)+4)<<1;
 					unsigned int ind_d =4*ndirac+(idirac>>1);
-					complex<T> a_1=-conj(jqq)*gamval_d[ind_d];
-					complex<T> a_2=jqq*gamval_d[ind_d];
+					complex<T> a_1=-conj(jqq)*gamval[ind_d];
+					complex<T> a_2=jqq*gamval[ind_d];
 					ind_d=i+kvol*(idirac); unsigned int ind_g=i+kvol*(igork);
 					phi_s[idirac]=phi[ind_d]+a_1*r[ind_g];
 					phi_s[igork]=phi[ind_g]+a_2*r[ind_d];
@@ -205,9 +205,9 @@ namespace Kernels{
 					u11sd=u11t[ind]; u12sd=u12t[ind];
 					for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
 						unsigned short idirac=igorkov&3;		
-						const complex<T> gam=gamval_d[mu*ndirac+idirac];
+						const complex<T> gam=gamval[mu*ndirac+idirac];
 						//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing.
-						unsigned short igork1 = (igorkov<4) ? gamin_d[mu*ndirac+idirac] : gamin_d[mu*ndirac+idirac]+4;
+						unsigned short igork1 = (igorkov<4) ? gamin[mu*ndirac+idirac] : gamin[mu*ndirac+idirac]+4;
 						for(unsigned short c=0;c<nc;c++){
 							ru[c]=r[uid+kvolHalo*(igorkov*nc+c)]; rd[c]=r[did+kvolHalo*(igorkov*nc+c)];
 							rgd[c]=r[did+kvolHalo*(igork1*nc+c)]; rgu[c]=r[uid+kvolHalo*(igork1*nc+c)];
@@ -243,7 +243,7 @@ namespace Kernels{
 				u11sd=u11t[ind]; u12sd=u12t[ind];
 				const T dk4msd=dk4m[did];	const T dk4psd=dk4p[did];
 				for(unsigned short igorkov=0; igorkov<ndirac; igorkov++){
-					unsigned short igork1 = gamin_d[3*ndirac+igorkov];	
+					unsigned short igork1 = gamin[3*ndirac+igorkov];	
 					for(unsigned short c=0;c<nc;c++){
 						ru[c]=r[uid+kvolHalo*(igorkov*nc+c)]; rd[c]=r[did+kvolHalo*(igorkov*nc+c)];
 						rgu[c]=r[uid+kvolHalo*(igork1*nc+c)]; rgd[c]=r[did+kvolHalo*(igork1*nc+c)];
@@ -281,21 +281,20 @@ namespace Kernels{
 	/**
 	 * @brief Evaluates @f$\Phi=Mr@f$ using up/down partitioning
 	 *
-	 * @param	phi:			The product
-	 * @param	r:				The array being acted on by M
-	 * @param	u11t,u12t	Gauge field
-	 *	@param	iu,id:		Upper/lower halo indices
-	 *	@param	gamval:		Gamma matrices rescaled by kappa
-	 *	@param	gamin:		Indices for dirac terms
-	 * @param	dk4m,dk4p:	@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
-	 *	@param	jqq:			Diquark source
-	 *	@param	akappa:		Hopping parameter
+	 * @param[out,in]	phi:			The product
+	 * @param[in]	r:				The array being acted on by M
+	 * @param[in]	u11t,u12t	Gauge field
+	 *	@param[in]	iu,id:		Upper/lower halo indices
+	 *	@param[in]	gamval:		Gamma matrices rescaled by kappa
+	 *	@param[in]	gamin:		Indices for dirac terms
+	 * @param[in]	dk4m,dk4p:	@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
+	 *	@param[in]	akappa:		Hopping parameter
 	 *
-	 * @return Zero on success, integer error code otherwise
+	 * @post	Result added to @p phi
 	 */
 	template <typename T>
 		__global__ void cuHdslash(complex<T> *phi, const complex<T> *r, const complex<T> *u11t, const complex<T> *u12t,unsigned int *iu, unsigned int *id,\
-				__constant__ complex<T> gamval[20],	const unsigned short gamin_d[16],	const T *dk4m, const T *dk4p, const __grid_constant__ float akappa){
+				__constant__ complex<T> gamval[20],	const unsigned short gamin[16],	const T *dk4m, const T *dk4p, const __grid_constant__ float akappa){
 			/*
 			 * Half Dslash T precision
 			 */
@@ -327,7 +326,7 @@ namespace Kernels{
 					const complex<T> u11sd=u11t[ind];	const complex<T> u12sd=u12t[ind];
 #pragma unroll
 					for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
-						const unsigned short igork1 = gamin_d[mu*ndirac+(idirac>>1)] << (nc-1);
+						const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
 #pragma unroll
 						for(unsigned short c=0;c<nc;c++){
 							ind =kvolHalo*(idirac+c);
@@ -377,21 +376,20 @@ namespace Kernels{
 	/**
 	 * @brief Evaluates @f$\Phi=M^\dagger r@f$ using up/down partitioning
 	 *
-	 * @param	phi:			The product
-	 * @param	r:				The array being acted on by M
-	 * @param	u11t,u12t	Gauge field
-	 *	@param	iu,id:		Upper/lower halo indices
-	 *	@param	gamval:		Gamma matrices rescaled by kappa
-	 *	@param	gamin:		Indices for dirac terms
-	 * @param	dk4m,dk4p:	@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
-	 *	@param	jqq:			Diquark source
-	 *	@param	akappa:		Hopping parameter
+	 * @param[in,out]	phi:			The product
+	 * @param[in]	r:				The array being acted on by M
+	 * @param[in]	u11t,u12t	Gauge field
+	 *	@param[in]	iu,id:		Upper/lower halo indices
+	 *	@param[in]	gamval:		Gamma matrices rescaled by kappa
+	 *	@param[in]	gamin:		Indices for dirac terms
+	 * @param[in]	dk4m,dk4p:	@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1+\gamma_0\right)e^{+\mu}@f$
+	 *	@param[in]	akappa:		Hopping parameter
 	 *
-	 * @return Zero on success, integer error code otherwise
+	 * @post	Result added to @p phi
 	 */
 	template <typename T>
 		__global__ void cuHdslashd(complex<T> *phi, const complex<T>* r, const complex<T>* u11t, const complex<T>* u12t,unsigned int* iu, unsigned int* id,\
-				__constant__ complex<T> gamval[20],	const unsigned short gamin_d[16],	const T* dk4m, const T* dk4p, const __grid_constant__ float akappa){
+				__constant__ complex<T> gamval[20],	const unsigned short gamin[16],	const T* dk4m, const T* dk4p, const __grid_constant__ float akappa){
 			/*
 			 * Half Dslash Dagger T precision 
 			 */
@@ -421,7 +419,7 @@ namespace Kernels{
 					const complex<T> u11sd=u11t[ind];	const complex<T> u12sd=u12t[ind];
 #pragma unroll
 					for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc){
-						const unsigned short igork1 = gamin_d[mu*ndirac+(idirac>>1)] << (nc-1);
+						const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
 						complex<T> ru[2];  complex<T> rd[2];
 						complex<T> rgu[2];  complex<T> rgd[2];
 #pragma unroll
@@ -626,8 +624,8 @@ void cuDslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsign
 	Kernels::cuDslashd<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa);
 	return;
 }
-void cuHdslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned int *id,\
-		Complex gamval[20], const unsigned short gamin[16], double *dk[nc], float akappa,\ 
+void cuHdslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned int *id,
+		Complex gamval[20], const unsigned short gamin[16], double *dk[nc], float akappa, 
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Hdslash";
 	int cuCpyStat=0;
@@ -640,8 +638,8 @@ void cuHdslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsign
 	Kernels::cuHdslash<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa);
 	return;
 }
-void cuHdslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned int *id,\
-		Complex gamval[20], const unsigned short gamin[16],double *dk[nc], float akappa,\ 
+void cuHdslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned int *id,
+		Complex gamval[20], const unsigned short gamin[16],double *dk[nc], float akappa, 
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Hdslashd";
 	//Spacelike term
@@ -657,8 +655,8 @@ void cuHdslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsig
 }
 
 //Float editions
-void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,unsigned int *id,\
-		Complex_f gamval[20],const unsigned short gamin[16],	float *dk[nc], Complex_f jqq, float akappa,\ 
+void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,unsigned int *id,
+		Complex_f gamval[20],const unsigned short gamin[16],	float *dk[nc], Complex_f jqq, float akappa,
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslash_f";
 	int cuCpyStat=0;
@@ -671,8 +669,8 @@ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu
 	Kernels::cuDslash<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa);
 	return;
 }
-void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,unsigned int *id,\
-		Complex_f gamval[20],const unsigned short gamin[16],	float *dk[nc], Complex_f jqq, float akappa,\ 
+void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,unsigned int *id,
+		Complex_f gamval[20],const unsigned short gamin[16],	float *dk[nc], Complex_f jqq, float akappa,
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslashd_f";
 	int cuCpyStat=0;

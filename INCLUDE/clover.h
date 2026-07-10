@@ -10,22 +10,20 @@
 
 /**
  * @brief	Structure of arrays for Hermitian bilinear @f$X_{\mu\nu}@f$ in memory.
- *
- * @param	diag: Real valued diagonal terms.
- * @param	offd:	Complex valued off-diagonal terms. We only need to store one of these to get the other in @f$SU(2)@f$.
  */
 typedef struct{
+ ///	Real valued diagonal terms.
 	float *diag;
+ ///	Complex valued off-diagonal terms. We only need to store one of these to get the other in @f$SU(2)@f$.
 	Complex_f *offd;
 }Bilinear_a;
 /**
  * @brief	Hermitian bilinear @f$X_{\mu\nu}@f$ on the local stack.
- *
- * @param	diag: Real valued diagonal terms.
- * @param	offd:	Complex valued off-diagonal terms. We only need to store one of these to get the other in @f$SU(2)@f$.
  */
 typedef struct{
+ ///	Real valued diagonal terms.
 	float diag[2];
+ ///	Complex valued off-diagonal terms. We only need to store one of these to get the other in @f$SU(2)@f$.
 	Complex_f offd;
 }Bilinear;
 
@@ -102,18 +100,20 @@ int Leaf(Complex_f Leaves[nc],Complex_f *ut[nc], unsigned int *iu, unsigned int 
  *	@param[in]	iu,id:	Upper and lower indices
  *
  *	@post		Clover stored in @p clover
+ *	@todo	Multiple MPI Ranks are not currently supported for the clover action. This is due to the corner halo terms
+ *				needed to compute the clover force not being implemented.
  */
 void Clover(Complex_f *clover[2], Complex_f *ut[2], unsigned int *iu, unsigned int *id);
 /**
  *	@brief Clover analogue of the Dslash operation. This version acts on all flavours simiilar to Dslash and Dslash_d
  *
- *	@param	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
- *	@param	r:						Pseudofermion field before multiplication. The thing we want to multiply by the clover
- *	@param	clover:				Array of clovers
- *	@param	sigval:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
- *	@param	akappa:				Hopping Parameter
- * @param	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
- * @param	dag:					Daggered output has no MPI halo, but undaggered does.
+ *	@param[out,in]	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
+ *	@param[in]	r:						Pseudofermion field before multiplication. The thing we want to multiply by the clover
+ *	@param[in]	clover:				Array of clovers
+ *	@param[in]	sigval:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
+ *	@param[in]	akappa:				Hopping Parameter
+ * @param[in]	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param[in]	dag:					Daggered output has no MPI halo, but undaggered does.
  *
  * @post		Result added to @p phi
  */
@@ -122,13 +122,13 @@ void ByClover(Complex *phi, Complex *r, Complex *clover[2], Complex *sigval, con
  *	@brief Clover analogue of the Dslash operation. This version acts on all flavours simiilar to Dslash and Dslash_d
  *	
  *
- *	@param	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
- *	@param	r:						Pseudofermion field before multiplication. The thing we want to multiply by the clover
- *	@param	clover:				Array of clovers
- *	@param	sigval:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
- *	@param	akappa:				Hopping Parameter
- * @param	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
- * @param	dag:					Daggered output has no MPI halo, but undaggered does.
+ *	@param[out,in]	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
+ *	@param[in]	r:						Pseudofermion field before multiplication. The thing we want to multiply by the clover
+ *	@param[in]	clover:				Array of clovers
+ *	@param[in]	sigval:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
+ *	@param[in]	akappa:				Hopping Parameter
+ * @param[in]	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param[in]	dag:					Daggered output has no MPI halo, but undaggered does.
  * 
  * @post		Result added to @p phi
  */
@@ -137,13 +137,13 @@ void ByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2], Complex_f *s
  *	@brief Clover analogue of the Dslash operation. This version acts on all flavours simiilar to Dslash and Dslash_d
  *	
  *
- *	@param	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
- *	@param	r:						Pseudofermion field before multiplication. The thing we want to multiply by the clover
- *	@param	clover:				Array of clovers
- *	@param	sigval:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
- *	@param	akappa:				Hopping Parameter
- * @param	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
- * @param	dag:					Daggered output has no MPI halo, but undaggered does.
+ *	@param[out,in]	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
+ *	@param[in]	r:						Pseudofermion field before multiplication. The thing we want to multiply by the clover
+ *	@param[in]	clover:				Array of clovers
+ *	@param[in]	sigval:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
+ *	@param[in]	akappa:				Hopping Parameter
+ * @param[in]	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param[in]	dag:					Daggered output has no MPI halo, but undaggered does.
  * 
  * @post		Result added to @p phi
  */
@@ -152,13 +152,13 @@ void HbyClover(Complex *phi, Complex *r, Complex *clover[2],Complex *sigval, con
  *	@brief Clover analogue of the Dslash operation. This version acts on all flavours simiilar to Dslash and Dslash_d
  *	
  *
- *	@param	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
- *	@param	r:						Pseudofermion field before multiplication. The thing we want to multiply by the clover
- *	@param	clover:				Array of clovers
- *	@param	sigval:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
- *	@param	akappa:				Hopping Parameter
- * @param	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
- * @param	dag:					Daggered output has no MPI halo, but undaggered does.
+ *	@param[out,in]	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
+ *	@param[in]	r:						Pseudofermion field before multiplication. The thing we want to multiply by the clover
+ *	@param[in]	clover:				Array of clovers
+ *	@param[in]	sigval:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
+ *	@param[in]	akappa:				Hopping Parameter
+ * @param[in]	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
+ * @param[in]	dag:					Daggered output has no MPI halo, but undaggered does.
  * 
  * @post		Result added to @p phi
  */

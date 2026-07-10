@@ -126,7 +126,7 @@ __global__ void Gather(T *x, T *y, const unsigned int n, unsigned int *table, co
 	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
 	 *	
 	 *	@param[in,out]	dSdpi:				The force
-	 *	@param[in]	ut:					Float precision colour fields
+	 *	@param[in]	u11t,u12t:					Float precision colour fields
 	 *	@param[in]	X1:					Inverted field
 	 *	@param[in]	X2:					@f$MX_1@f$
 	 *	@param[in]	gamval:				Gamma matrices rescaled by @f$\kappa@f$
@@ -222,11 +222,11 @@ __global__ void cuForce_s(double *dSdpi, Complex_f *u11t, Complex_f *u12t, Compl
 	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
 	 *	
 	 *	@param[in,out]	dSdpi:				The force
-	 *	@param[in]	ut:					Float precision colour fields
+	 *	@param[in]	u11t,u12t:					Float precision colour fields
 	 *	@param[in]	X1:					Inverted field
 	 *	@param[in]	X2:					@f$MX_1@f$
 	 *	@param[in]	gamval:				Gamma matrices rescaled by @f$\kappa@f$
-	 * @param[in]	dk:					@f$e^{-\mu}@f$ and @f$e^\mu@f$
+	 * @param[in]	dk4m,dk4p:					@f$e^{-\mu}@f$ and @f$e^\mu@f$
 	 *	@param[in]	iu:					Lattice indices
 	 *	@param[in]	gamin:				Gamma indices
 	 *	@param[in]	akappa:				Hopping parameter

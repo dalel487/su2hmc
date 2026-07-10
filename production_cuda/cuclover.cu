@@ -355,11 +355,11 @@ namespace Kernels{
 	 *	@param[in]	X2:		@f$M\left(M^\dagger M\right)^{-1}\Phi@f$
 	 *	@param[in]	sigval:	@f$\sigma_{\mu\nu}@f$ scaled by @f$\frac{c_\text{SW}}{2}@f$
 	 *	@param[in]	sigin:	Dirac index of @f$\sigma_{\mu\nu}@f$
-	 *	@param[in]	mu,nu:	Lattice directions
 	 *	@param[in]	clov:		Index of clover being used
 	 */
 	template <typename T>
-		__global__ void cuCalcXmunu(Bilinear_a Xmunu, const complex<T> *X1, const complex<T> *X2, const complex<T> *sigval, const unsigned short *sigin,const unsigned short clov){
+		__global__ void cuCalcXmunu(Bilinear_a Xmunu, const complex<T> *X1, const complex<T> *X2,
+						const complex<T> *sigval, const unsigned short *sigin,const unsigned short clov){
 			const char funcname[] = "Xmunu";
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
