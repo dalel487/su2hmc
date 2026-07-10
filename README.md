@@ -115,5 +115,5 @@ Blank space does not matter, so long as there is some gap between the input para
 on a single line.
 
 ### Known issues
-- Cannot currently run the clover improved action with MPI. This is due to the $$x\pm\hat{\mu}\pm\hat{\nu}$$ terms not
-  being storted in the halo at present. Single rank or GPU runs do work.
+- One cannot currently run the clover improved action with MPI. This is due to the $$x\pm\hat{\mu}\pm\hat{\nu}$$ terms
+not being storted in the halo at present. Single rank or GPU runs do work.
