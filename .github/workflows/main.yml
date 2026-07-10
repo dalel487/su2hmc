@@ -20,7 +20,7 @@ jobs:
       - name: Run Doxygen
         uses: mattnotmitt/doxygen-action@v1.12.0
         with:
-          doxyfile-path: /github/workspace/doxygen_config
+          doxyfile-path: /github/workspace/docs/doxygen_config
           working-directory: /github/workspace/docs
       - name: Pages Deployment
         uses: peaceiris/actions-gh-pages@v4.1.0
