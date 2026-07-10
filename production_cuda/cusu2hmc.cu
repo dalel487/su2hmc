@@ -156,6 +156,16 @@ __global__ void cuReunitarise(complex<T> *u11t, complex<T> * u12t){
 		u12t[i]/=anorm;
 	}
 }
+	/**
+	 * @brief Gauge update for the integration step of the HMC
+	 *
+	 * @param[in] d:		Gauge step size
+	 * @param[in] pp:		Momentum field
+	 * @param[in,out] u11t,u12t:		Double precision gauge fields
+	 * @param[in]	mu:	Lattice direction being updated	
+	 *
+	 * @post @p ut and @p ut_f updated in place
+	 */
 __global__ void cuGauge_Update(const double d, double *pp, Complex *u11t, Complex *u12t,int mu){
 	const	unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const	unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
