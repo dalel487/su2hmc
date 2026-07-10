@@ -32,7 +32,7 @@ __device__ __forceinline__ T conj(const T& z){
 	return T(z.real(),-z.imag());
 }
 //CUDA Kernels
-namespace::Kernels{
+namespace Kernels{
 	/**
 	 * @brief takes an array of real float and double precision numbers and converts the precision
 	 *
@@ -71,21 +71,6 @@ __global__ void Real_convert(float *a, double *b, const unsigned int len, const 
 	 */
 __global__ void cuFill_Small_Phi(const unsigned int na, Complex *smallPhi, Complex *Phi)
 {
-	/*Copies necessary (2*4*kvol) elements of Phi into a vector variable
-	 *
-	 * Globals:
-	 * =======
-	 * Phi:	  The source array
-	 * 
-	 * Parameters:
-	 * ==========
-	 * int na: flavour index
-	 * Complex *smallPhi:	  The target array
-	 *
-	 * Returns:
-	 * =======
-	 * Zero on success, integer error code otherwise
-	 */
 	//BIG and small phi index
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -299,6 +284,5 @@ void cuGauge_Update(const double d, double *pp, Complex *ut[2], dim3 dimGrid, di
 	cudaDeviceSynchronise();
 }
 
-//Conj template instantiation
 template __device__ __forceinline__ complex<float> conj(const complex<float>& z);
 template __device__ __forceinline__ complex<double> conj(const complex<double>& z);

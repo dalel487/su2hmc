@@ -116,7 +116,7 @@
 /// @brief Index goes beyond the halo
 #define	HALOLIM		13002
 
-/// @section Physics/Maths Errors. Leading digits are 14
+/// @section Physics and Maths Errors. Leading digits are 14
 //=================================
 //Errors:
 //-------

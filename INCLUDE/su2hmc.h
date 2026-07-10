@@ -279,7 +279,8 @@ extern "C"
 	 * 							to facilitate calculating plaquettes for Clover terms. No
 	 * 							sanity checks are conducted on them in this routine.
 	 *
-	 * @post	Plaquettes written intp @p Sigma
+	 *	@return	Zero on success, integer error code otherwise
+	 * @post	Plaquettes written into @p Sigma
 	 */
 	int SU2plaq(Complex_f *ut[2], Complex_f Sigma[2], unsigned int *iu, int i, int mu, int nu);
 
@@ -299,7 +300,7 @@ extern "C"
 	 * @param[in]	y:			The gauge field for a particular colour
 	 * @param[in]	n:			Number of sites in the gauge field. This is typically kvol
 	 * @param[in]	table:	Table containing information on nearest neighbours. Usually id or iu
-	 * @param[in]	mu:		Direciton we're interested in extractng	
+	 * @param[in]	mu:		Direction we're interested in extracting	
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 * @post	Contents of @p x replaced with output
@@ -312,7 +313,7 @@ extern "C"
 	 * @param[in]	y:			The gauge field for a particular colour
 	 * @param[in]	n:			Number of sites in the gauge field. This is typically kvol
 	 * @param[in]	table:	Table containing information on nearest neighbours. Usually id or iu
-	 * @param[in]	mu:		Direciton we're interested in extractng	
+	 * @param[in]	mu:		Direciton we're interested in extracting	
 	 *
 	 * @return Zero on success, integer error code otherwise
 	 * @post	Contents of @p x replaced with output
@@ -360,8 +361,9 @@ extern "C"
 	 * @param[out,in]	b:				Double array
 	 * @param[in]	len:			Number of elements to convert per stride. Striding needed to handle halo terms
 	 * @param[in]	dtof:			If true, convert double to float. Otherwise convert float to double
-	 * @param[in]	stride:		For terms with a halo, we need to convert in blocks of len seperated by (len+halo)
+	 * @param[in]	stride:		For terms with a halo, we need to convert in blocks of len separated by (len+halo)
 	 *
+	 * @return Zero on success, integer error code otherwise
 	 * @post Depending on the value of @p dtof, either the contents of @p a or @p b are overwritten with those of the
 	 * other array in the opposite precision.
 	 */

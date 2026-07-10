@@ -11,12 +11,13 @@ namespace Kernels{
 /**
  * @brief Calculates the staple in the positive @f$\mu@f$ direction
  *
- * @param mu:						@f$\mu@f$ direction
- * @param nu:						@f$\nu@f$ direction
- * @param iu:						Upper indices
- * @param Sigma11,Sigma12:		Staple output
- * @param u11t,u12t:				Gauge fields
+ * @param[in] mu:						@f$\mu@f$ direction
+ * @param[in] nu:						@f$\nu@f$ direction
+ * @param[in] iu:						Upper indices
+ * @param[in,out] Sigma11,Sigma12:		Staple output
+ * @param[in] u11t,u12t:				Gauge fields
  *
+ * @post Staples added to @p Sigma11 and @p Sigma12
  */
 __global__ void Plus_staple(const int mu, const int nu,unsigned int *iu, Complex_f *Sigma11, Complex_f *Sigma12, Complex_f *u11t, Complex_f *u12t){
 	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
@@ -43,11 +44,11 @@ __global__ void Plus_staple(const int mu, const int nu,unsigned int *iu, Complex
  * @param[in] mu:						@f$\mu@f$ direction
  * @param[in] nu:						@f$\nu@f$ direction
  * @param[in] iu,id:					Upper/lower indices
- * @param[out] Sigma11,Sigma12:		Staple output
+ * @param[in,out] Sigma11,Sigma12:		Staple output
  * @param[in] u11sh,u12sh:			Gauge fields in @f$\mu@f$ direction only 
  * @param[in] u11t,u12t:				Gauge fields
  *
- * @post Staples written to @p Sigma11 and @p Sigma12
+ * @post Staples added to @p Sigma11 and @p Sigma12
  */
 __global__ void Minus_staple(const int mu,const int nu,unsigned int *iu,unsigned int *id, Complex_f *Sigma11, Complex_f *Sigma12,\
 		Complex_f *u11sh, Complex_f *u12sh, Complex_f *u11t, Complex_f *u12t){
@@ -104,7 +105,7 @@ __global__ void cuGaugeForce(int mu, Complex_f *Sigma11, Complex_f *Sigma12,doub
  * @param[in]	y:			The gauge field for a particular colour
  * @param[in]	n:			Number of sites in the gauge field. This is typically kvol
  * @param[in]	table:	Table containing information on nearest neighbours. Usually id or iu
- * @param[in]	mu:		Direciton we're interested in extractng	
+ * @param[in]	mu:		Direction we're interested in extracting	
  *
  */
 	template <typename T>

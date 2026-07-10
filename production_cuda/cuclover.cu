@@ -85,7 +85,7 @@ namespace Device{
 	 *	
 	 */
 	template <typename T>
-		__device__ int Half_Leaf(complex<T> Leaves[nc], complex<T> *u11t, complex<T> *u12t, complex<T> a[nc], unsigned int *iu,\
+		__device__ void Half_Leaf(complex<T> Leaves[nc], complex<T> *u11t, complex<T> *u12t, complex<T> a[nc], unsigned int *iu,\
 				unsigned int *id, const unsigned int i, const unsigned short mu, const unsigned short nu, const unsigned short leaf){
 			unsigned int uidm;
 			switch(leaf){
@@ -135,7 +135,7 @@ namespace Device{
 					Leaves[1]=-a[0]*u12t[din_didm+kvolHalo*nu]+a[1]*u11t[din_didm+kvolHalo*nu];
 					break;
 			}
-			return 0;
+			return;
 		}
 	/**
 	 *	@brief	Calculates a leaf for a clover term.
@@ -148,7 +148,7 @@ namespace Device{
 	 *	@param[in]	leaf:			Which leaf of the clover is being calculated
 	 */
 	template <typename T>
-		__device__ int Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[nc],\
+		__device__ void Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[nc],\
 				unsigned int *iu, unsigned int *id, unsigned int i,const unsigned short mu,\
 				const unsigned short nu,const unsigned short leaf){
 			complex<T> a[nc];
@@ -214,7 +214,7 @@ namespace Device{
 					//						Leaves[0]=0; Leaves[1]=0;
 					break;
 			}
-			return 0;
+			return;
 		}
 
 	/**
@@ -567,7 +567,7 @@ namespace Kernels{
 
 	//Clover multiplication
 	/**
-	 *	@brief Clover analogue of the Dslash operation. This version acts on all flavours simiilar to Dslash and Dslash_d
+	 *	@brief Clover analogue of the Dslash operation. This version acts on all flavours similar to Dslash and Dslash_d
 	 *	
 	 *
 	 *	@param[out]	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function

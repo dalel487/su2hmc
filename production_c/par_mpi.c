@@ -537,20 +537,6 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 //rather than type them all every single time
 #if(nproc>1)
 inline int Par_isum(int *ival){
-	/*
-	 * Performs a reduction on a double ival to get a sum which is
-	 * then distributed to all ranks.
-	 *
-	 * Parameters:
-	 * -----------
-	 * double *ival: The pointer to the element being summed, and
-	 * 		the container for said sum.
-	 *
-	 * Returns:
-	 * --------
-	 * Zero on success. Integer error code otherwise.
-	 *
-	 */
 	const char funcname[] = "Par_isum";
 	//Container to receive data.
 	int *itmp;
@@ -562,20 +548,6 @@ inline int Par_isum(int *ival){
 	return 0;
 }
 inline int Par_dsum(double *dval){
-	/*
-	 * Performs a reduction on a double dval to get a sum which is
-	 * then distributed to all ranks.
-	 *
-	 * Parameters:
-	 * -----------
-	 * double *dval: The pointer to the element being summed, and
-	 * 		the container for said sum.
-	 *
-	 * Returns:
-	 * --------
-	 * Zero on success. Integer error code otherwise.
-	 *
-	 */
 	const char funcname[] = "Par_dsum";
 	//Container to receive data.
 	double dtmp;
@@ -588,20 +560,6 @@ inline int Par_dsum(double *dval){
 	return 0;
 }
 inline int Par_fsum(float *fval){
-	/*
-	 * Performs a reduction on a double dval to get a sum which is
-	 * then distributed to all ranks.
-	 *
-	 * Parameters:
-	 * -----------
-	 * double *dval: The pointer to the element being summed, and
-	 * 		the container for said sum.
-	 *
-	 * Returns:
-	 * --------
-	 * Zero on success. Integer error code otherwise.
-	 *
-	 */
 	const char funcname[] = "far_dsum";
 	//Container to receive data.
 	float ftmp;
@@ -614,20 +572,6 @@ inline int Par_fsum(float *fval){
 	return 0;
 }
 inline int Par_csum(Complex_f *cval){
-	/*
-	 * Performs a reduction on a Complex zval to get a sum which is
-	 * then distributed to all ranks.
-	 *
-	 * Parameters:
-	 * -----------
-	 * Complex_f *cval: The pointer to the element being summed, and
-	 * 		the container for said sum.
-	 *
-	 * Returns:
-	 * --------
-	 * Zero on success. Integer error code otherwise.
-	 *
-	 */
 	const char funcname[] = "Par_csum";
 	//Container to receive data.
 	Complex_f ctmp;
@@ -643,20 +587,6 @@ inline int Par_csum(Complex_f *cval){
 	return 0;
 }
 inline int Par_zsum(Complex *zval){
-	/*
-	 * Performs a reduction on a Complex zval to get a sum which is
-	 * then distributed to all ranks.
-	 *
-	 * Parameters:
-	 * -----------
-	 * Complex *zval: The pointer to the element being summed, and
-	 * 		the container for said sum.
-	 *
-	 * Returns:
-	 * --------
-	 * Zero on success. Integer error code otherwise.
-	 *
-	 */
 	const char funcname[] = "Par_zsum";
 	//Container to receive data.
 	Complex ztmp;
@@ -672,17 +602,6 @@ inline int Par_zsum(Complex *zval){
 	return 0;
 }
 inline int Par_icopy(int *ival){
-	/*
-	 * Broadcasts an integer to the other processes
-	 *
-	 * Parameters:
-	 * ----------
-	 * int ival
-	 *
-	 * Returns:
-	 * -------
-	 * Zero on success, integer error code otherwise
-	 */
 	const char funcname[] = "Par_icopy";
 	if(MPI_Bcast(ival,1,MPI_INT,masterproc,comm)){
 		fprintf(stderr, "Error %i in %s: Failed to broadcast %i from %i.\nExiting...\n\n",
@@ -692,17 +611,6 @@ inline int Par_icopy(int *ival){
 	return 0;
 }
 inline int Par_dcopy(double *dval){
-	/*
-	 * Broadcasts an double to the other processes
-	 *
-	 * Parameters:
-	 * ----------
-	 * double dval
-	 *
-	 * Returns:
-	 * -------
-	 * Zero on success, integer error code otherwise
-	 */
 	const char funcname[] = "Par_dcopy";
 	if(MPI_Bcast(dval,1,MPI_DOUBLE,masterproc,comm)){
 		fprintf(stderr, "Error %i in %s: Failed to broadcast %f from %i.\nExiting...\n\n",
@@ -712,17 +620,6 @@ inline int Par_dcopy(double *dval){
 	return 0;
 }
 inline int Par_fcopy(float *fval){
-	/*
-	 * Broadcasts an float to the other processes
-	 *
-	 * Parameters:
-	 * ----------
-	 * float dval
-	 *
-	 * Returns:
-	 * -------
-	 * Zero on success, integer error code otherwise
-	 */
 	const char funcname[] = "Par_dfopy";
 	if(MPI_Bcast(fval,1,MPI_FLOAT,masterproc,comm)){
 		fprintf(stderr, "Error %i in %s: Failed to broadcast %f from %i.\nExiting...\n\n",
@@ -732,17 +629,6 @@ inline int Par_fcopy(float *fval){
 	return 0;
 }
 inline int Par_ccopy(Complex *cval){
-	/*
-	 * Broadcasts a Complex value to the other processes
-	 *
-	 * Parameters:
-	 * ----------
-	 * Complex *zval
-	 *
-	 * Returns:
-	 * -------
-	 * Zero on success, integer error code otherwise
-	 */
 	const char funcname[] = "Par_ccopy";
 	if(MPI_Bcast(cval,1,MPI_C_FLOAT_COMPLEX,masterproc,comm)){
 #ifndef __NVCC__
@@ -754,17 +640,6 @@ inline int Par_ccopy(Complex *cval){
 	return 0;
 }
 inline int Par_zcopy(Complex *zval){
-	/*
-	 * Broadcasts a Complex value to the other processes
-	 *
-	 * Parameters:
-	 * ----------
-	 * Complex *zval
-	 *
-	 * Returns:
-	 * -------
-	 * Zero on success, integer error code otherwise
-	 */
 	const char funcname[] = "Par_zcopy";
 	if(MPI_Bcast(zval,1,MPI_C_DOUBLE_COMPLEX,masterproc,comm)){
 #ifndef __NVCC__
@@ -785,18 +660,6 @@ inline int Par_zcopy(Complex *zval){
  *	function or DOWN FORTRAN function
  */
 inline int ZHalo_swap_all(Complex *z, int ncpt){
-	/*
-	 * Calls the functions to send data to both the up and down halos
-	 *
-	 * Parameters:
-	 * -----------
-	 * Complex z:	The data being sent
-	 * int	ncpt:	Number of components being sent
-	 *
-	 * Returns:
-	 * -------
-	 * Zero on success, integer error code otherwise
-	 */
 	const char funcname[] = "ZHalo_swap_all";
 
 	//FORTRAN called zdnhaloswapall and zuphaloswapall here
@@ -824,21 +687,6 @@ inline int ZHalo_swap_all(Complex *z, int ncpt){
 	return 0;
 }
 int ZHalo_swap_dir(Complex *z, int ncpt, int idir, int layer){
-	/*
-	 * Swaps the halos along the axis given by idir in the direction
-	 * given by layer
-	 *
-	 * Parameters:
-	 * -----------
-	 *  Complex	*z:	The data being moved about. It should be an array of dimension [kvol+halo][something else]
-	 *  int		ncpt: Number of components being sent
-	 *  int		idir:	The axis being moved along in C Indexing
-	 *  int		layer:	Either DOWN (0) or UP (1)
-	 *
-	 *  Returns:
-	 *  -------
-	 *  Zero on success, Integer Error code otherwise
-	 */
 	const char funcname[] = "ZHalo_swap_dir";
 	if(layer!=DOWN && layer!=UP){
 		fprintf(stderr, "Error %i in %s: Cannot swap in the direction given by %i.\nExiting...\n\n",
@@ -907,18 +755,6 @@ int ZHalo_swap_dir(Complex *z, int ncpt, int idir, int layer){
 	return 0;
 }
 inline int CHalo_swap_all(Complex_f *c, int ncpt){
-	/*
-	 * Calls the functions to send data to both the up and down halos
-	 *
-	 * Parameters:
-	 * -----------
-	 * Complex z:	The data being sent
-	 * int	ncpt:	Number of components being sent
-	 *
-	 * Returns:
-	 * -------
-	 * Zero on success, integer error code otherwise
-	 */
 	const char funcname[] = "CHalo_swap_all";
 
 	//FORTRAN called zdnhaloswapall and zuphaloswapall here
@@ -946,21 +782,6 @@ inline int CHalo_swap_all(Complex_f *c, int ncpt){
 	return 0;
 }
 int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer){
-	/*
-	 * Swaps the halos along the axis given by idir in the direction
-	 * given by layer
-	 *
-	 * Parameters:
-	 * -----------
-	 *  Complex	*z:	The data being moved about. It should be an array of dimension [kvol+halo][something else]
-	 *  int		ncpt: The size of something else above. 	
-	 *  int		idir:	The axis being moved along in C Indexing
-	 *  int		layer:	Either DOWN (0) or UP (1)
-	 *
-	 *  Returns:
-	 *  -------
-	 *  Zero on success, Integer Error code otherwise
-	 */
 	const char funcname[] = "CHalo_swap_dir";
 	if(layer!=DOWN && layer!=UP){
 		fprintf(stderr, "Error %i in %s: Cannot swap in the direction given by %i.\nExiting...\n\n",
@@ -1027,18 +848,6 @@ int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer){
 	return 0;
 }
 inline int DHalo_swap_all(double *d, int ncpt){
-	/*
-	 * Calls the functions to send data to both the up and down halos
-	 *
-	 * Parameters:
-	 * -----------
-	 * Complex z:	The data being sent
-	 * int	ncpt:	Number of components being sent
-	 *
-	 * Returns:
-	 * -------
-	 * Zero on success, integer error code otherwise
-	 */
 	const char funcname[] = "DHalo_swap_all";
 
 	//FORTRAN called zdnhaloswapall and zuphaloswapall here
@@ -1066,21 +875,6 @@ inline int DHalo_swap_all(double *d, int ncpt){
 	return 0;
 }
 int DHalo_swap_dir(double *d, int ncpt, int idir, int layer){
-	/*
-	 * Swaps the halos along the axis given by idir in the direction
-	 * given by layer
-	 *
-	 * Parameters:
-	 * -----------
-	 *  double	*d:	The data being moved about
-	 *  int		ncpt:	Number of components being sent
-	 *  int		idir:	The axis being moved along
-	 *  int		layer:	Either DOWN (0) or UP (1)
-	 *
-	 *  Returns:
-	 *  -------
-	 *  Zero on success, Integer Error code otherwise
-	 */
 	const char funcname[] = "DHalo_swap_dir";
 	//How big is the data being sent and received
 	if(layer!=DOWN && layer!=UP){
@@ -1150,18 +944,6 @@ int DHalo_swap_dir(double *d, int ncpt, int idir, int layer){
 	return 0;
 }
 inline int SHalo_swap_all(float *d, int ncpt){
-	/*
-	 * Calls the functions to send data to both the up and down halos
-	 *
-	 * Parameters:
-	 * -----------
-	 * Complex z:	The data being sent
-	 * int	ncpt:	Number of components being sent
-	 *
-	 * Returns:
-	 * -------
-	 * Zero on success, integer error code otherwise
-	 */
 	const char funcname[] = "SHalo_swap_all";
 
 	//FORTRAN called zdnhaloswapall and zuphaloswapall here
@@ -1189,21 +971,6 @@ inline int SHalo_swap_all(float *d, int ncpt){
 	return 0;
 }
 int SHalo_swap_dir(float *d, int ncpt, int idir, int layer){
-	/*
-	 * Swaps the halos along the axis given by idir in the direction
-	 * given by layer
-	 *
-	 * Parameters:
-	 * -----------
-	 *  float	*d:	The data being moved about
-	 *  int		ncpt:	Number of components being sent
-	 *  int		idir:	The axis being moved along
-	 *  int		layer:	Either DOWN (0) or UP (1)
-	 *
-	 *  Returns:
-	 *  -------
-	 *  Zero on success, Integer Error code otherwise
-	 */
 	const char funcname[] = "SHalo_swap_dir";
 	//How big is the data being sent and received
 	if(layer!=DOWN && layer!=UP){
@@ -1345,16 +1112,6 @@ int Trial_Exchange(Complex *ut[2],Complex_f *ut_f[2]){
 }
 #if(npt>1)
 int Par_tmul(Complex_f *z11, Complex_f *z12){
-	/*
-	 * Parameters:
-	 * ===========
-	 * Complex *z11
-	 * Complex *z12
-	 *
-	 * Returns:
-	 * =======
-	 * Zero on success, integer error code otherwise.
-	 */
 #ifdef __NVCC_
 #error Par_tmul is not yet implimented in CUDA as Sigma12 in Polyakov is device only memory
 #endif

@@ -80,7 +80,7 @@ int main(int argc, char *argv[]){
 #endif
 
 	/**
-	 * @subsection Input Parameters:
+	 * @section Input Parameters
 	 * The input file format is like the table below, with values sepearated by whitespace
 	 *
 	 * 0.0100|1.7|0.1780|0.00|0.000|0.0|0.0|100|4|1|5|1|

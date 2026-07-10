@@ -1,7 +1,7 @@
 /**
  *	@file		clover.h
  *
- *	@brief	Routines needed for Clover imporved wilson fermions
+ *	@brief	Routines needed for Clover improved wilson fermions
  *
  *	@author 	D. Lawlor
  *	@todo	Multiple MPI Ranks are not currently supported for the clover action. This is due to the corner halo terms
@@ -66,7 +66,7 @@ void ByGenRight(Complex_f a[nc],const unsigned short gen);
  * 					sanity checks are conducted on them in this routine.
  *	@post	Leaves overwritten by plaquette values
  */
-int Clover_SU2plaq(Complex_f *ut[nc], Complex_f Leaves[nc], unsigned int *iu,  int i, int mu, int nu);
+void Clover_SU2plaq(Complex_f *ut[nc], Complex_f Leaves[nc], unsigned int *iu,  int i, int mu, int nu);
 /**
  *	@brief Calculates the products of the first two links in a plaquette
  *
@@ -91,7 +91,7 @@ void Half_Leaves(Complex_f *hLeaves[2],Complex_f *ut[2], unsigned int *iu,unsign
  *	
  *	@post		Clover leaf stored in @p Leaves
  */
-int Leaf(Complex_f Leaves[nc],Complex_f *ut[nc], unsigned int *iu, unsigned int *id, unsigned int i,\
+void Leaf(Complex_f Leaves[nc],Complex_f *ut[nc], unsigned int *iu, unsigned int *id, unsigned int i,\
 		const unsigned short mu, const unsigned short nu,const unsigned short leaf);
 /**
  *	@brief Calculates the clovers in all directions at all sites
@@ -105,7 +105,7 @@ int Leaf(Complex_f Leaves[nc],Complex_f *ut[nc], unsigned int *iu, unsigned int 
  */
 void Clover(Complex_f *clover[2], Complex_f *ut[2], unsigned int *iu, unsigned int *id);
 /**
- *	@brief Clover analogue of the Dslash operation. This version acts on all flavours simiilar to Dslash and Dslash_d
+ *	@brief Clover analogue of the Dslash operation. This version acts on all flavours similar to Dslash and Dslash_d
  *
  *	@param[out,in]	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
  *	@param[in]	r:						Pseudofermion field before multiplication. The thing we want to multiply by the clover
@@ -119,7 +119,7 @@ void Clover(Complex_f *clover[2], Complex_f *ut[2], unsigned int *iu, unsigned i
  */
 void ByClover(Complex *phi, Complex *r, Complex *clover[2], Complex *sigval, const float akappa, unsigned short *sigin, bool dag);
 /**
- *	@brief Clover analogue of the Dslash operation. This version acts on all flavours simiilar to Dslash and Dslash_d
+ *	@brief Clover analogue of the Dslash operation. This version acts on all flavours similar to Dslash and Dslash_d
  *	
  *
  *	@param[out,in]	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
@@ -134,7 +134,7 @@ void ByClover(Complex *phi, Complex *r, Complex *clover[2], Complex *sigval, con
  */
 void ByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2], Complex_f *sigval, const float akappa, unsigned short *sigin, bool dag);
 /**
- *	@brief Clover analogue of the Dslash operation. This version acts on all flavours simiilar to Dslash and Dslash_d
+ *	@brief Clover analogue of the Dslash operation. This version acts on all flavours similar to Dslash and Dslash_d
  *	
  *
  *	@param[out,in]	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
@@ -149,7 +149,7 @@ void ByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2], Complex_f *s
  */
 void HbyClover(Complex *phi, Complex *r, Complex *clover[2],Complex *sigval, const float akappa, unsigned short *sigin,bool dag);
 /**
- *	@brief Clover analogue of the Dslash operation. This version acts on all flavours simiilar to Dslash and Dslash_d
+ *	@brief Clover analogue of the Dslash operation. This version acts on all flavours similar to Dslash and Dslash_d
  *	
  *
  *	@param[out,in]	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
@@ -202,6 +202,7 @@ void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, c
  *	@param[out]	sigin:				Which column does row idirac of @f$\sigma_{\mu\nu}@f$ act on
  *	@param[in]	c_sw:					Clover coefficient
  *
+ *	@return	Zero on success, integer error code otherwise
  *	@post		@p sigval and @p sigval_f initialised with matrix entries. @p sigin initialised with index of non-zero
  *				entries
  */
@@ -213,7 +214,7 @@ int Init_clover(Complex **sigval, Complex_f **sigval_f,unsigned short **sigin, f
  *	
  *	@post		@p clover memory freed
  */
-int Clover_free(Complex_f *clover[nc]);
+void Clover_free(Complex_f *clover[nc]);
 
 #ifdef __NVCC__
 #ifdef __cplusplus
@@ -229,6 +230,7 @@ extern "C"
  *	@param[in]	ut:		Gauge fields
  *	@param[in]	iu,id:	Upper and lower indices
  *
+ *	@return	Zero on success, integer error code otherwise
  *	@post		Clover stored in @p clover
  */
 int cuClover(Complex_f *clover[nc],Complex_f *ut[nc], unsigned int *iu, unsigned int *id);
@@ -314,6 +316,7 @@ void cuCalcXmunu(Bilinear_a Xmunu, Complex_f *X1, Complex_f *X2, const Complex_f
  * @param[in]	iu,id:		Up/down indices
  * @param[in]	akappa:		Hopping parameter
  *	
+ *	@return	Zero on success, integer error code otherwise
  *	@post		Force contribution added to @p dSdpi
  */
 int cuClov_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2, const Complex_f *sigval,\

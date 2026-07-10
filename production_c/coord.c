@@ -11,22 +11,6 @@
 unsigned int *hu, *hd;
 alignas(AVX) unsigned int halosize[ndim], h1u[ndim], h1d[ndim];
 int Addrc(unsigned int *iu, unsigned int *id){
-	/*
-	 * Loads the addresses required during the update
-	 * 
-	 * Globals (Only referenced by the CPU):
-	 * ======
-	 * hu, hd, h1u, h1d, h2u, h2d, halosize
-	 * 
-	 * Parameters (Used for CPU and GPU):
-	 * =========
-	 * unsigned int *iu:	Upper halo indices
-	 * unsigned int *id:	Lower halo indices
-	 *
-	 * Returns:
-	 * ========
-	 * Zero on success, integer error code otherwise
-	 */
 	const char funcname[] = "Addrc";
 		//Rather than having 8 ih variables I'm going to use a 2x4 array
 		//down is 0, up is 1
@@ -307,21 +291,6 @@ int Addrc(unsigned int *iu, unsigned int *id){
 }
 //No point making this parallel because Addrc is serial and the only thing that calls ia
 inline int ia(int x, int y, int z, int t){
-	/*
-	 * Described as a 21st Century address calculator, it gets the memory
-	 * address of an array entry.
-	 *
-	 * Parameters:
-	 * ==========
-	 * int x, y, z, t. The coordinates
-	 *
-	 * Returns:
-	 * =======
-	 * An integer corresponding to the position of the entry in a flattened
-	 * row-major array
-	 *
-	 * Future... Switch for Row and column major, and zero or one indexing
-	 */
 	const char funcname[] = "ia";
 	//We need to ensure that the indices aren't out of bounds using while loops
 	while(x<0) x+=ksizex; while(x>=ksizex) x-= ksizex;
@@ -334,20 +303,6 @@ inline int ia(int x, int y, int z, int t){
 	return ((t*ksizez+z)*ksizey+y)*ksizex+x;
 }
 int Check_addr(unsigned int *table, int lns, int lnt, int imin, int imax){
-	/* Checks that the addresses are within bounds before an update
-	 *
-	 * Parameters:
-	 * ==========
-	 * int *table:	Pointer to the table in question
-	 * int lns:	Size of each spacial dimension
-	 * int lnt:	Size of the time dimension
-	 * int imin:	Lower bound for element of the table
-	 * int imax:	Upper bound for an element of the table
-	 *
-	 * Returns:
-	 * =======
-	 * Zero on success, integer error code otherwise.
-	 */
 	const char funcname[] = "Check_addr";
 	//Get the total number of elements in each dimension of the table
 	int ntable = lns*lns*lns*lnt;
@@ -369,28 +324,6 @@ int Check_addr(unsigned int *table, int lns, int lnt, int imin, int imax){
 	return 0;
 }
 inline int Index2lcoord(int index, int *coord){
-	/* Converts the index of a point in memory to the equivalent point
-	 * in the 4 dimensional array, where the time index is the last
-	 * coordinate in the array
-	 *
-	 * This is a rather nuanced function, as C and Fortran are rather
-	 * different in how they store arrays. C starts with index 0 and
-	 * Fortran (by default) starts with index 1
-	 *
-	 * Also C and Fortran store data in the opposite memory order so
-	 * be careful when calling this function!
-	 *
-	 * Parameters:
-	 * ==========
-	 * int index:	The index of the point as stored linearly in computer
-	 *			memory
-	 * int *coord:	The 4-array for the coordinates. The first three spots
-	 *			are for the time index.
-	 *
-	 * Returns:
-	 * ========
-	 * Zero on success. Integer Error code otherwise
-	 */ 
 
 	const char funcname[] = "Index2lcoord";
 	//A divide and conquer approach. Going from the deepest coordinate
@@ -406,28 +339,6 @@ inline int Index2lcoord(int index, int *coord){
 	return 0;
 }
 inline int Index2gcoord(int index, int *coord){
-	/* Converts the index of a point in memory to the equivalent point
-	 * in the 4 dimensional array, where the time index is the last
-	 * coordinate in the array
-	 *
-	 * This is a rather nuanced function, as C and Fortran are rather
-	 * different in how they store arrays. C starts with index 0 and
-	 * Fortran (by default) starts with index 1
-	 *
-	 * Also C and Fortran store data in the opposite memory order so
-	 * be careful when calling this function!
-	 *
-	 * Parameters:
-	 * ==========
-	 * int index:	The index of the point as stored linearly in computer
-	 *			memory
-	 * int *coord:	The 4-array for the coordinates. The first three spots
-	 *			are for the time index.
-	 *
-	 * Returns:
-	 * ========
-	 * Zero on success. Integer Error code otherwise
-	 */ 
 
 	const char funcname[] = "Index2gcoord";
 	//A divide and conquer approach. Going from the deepest coordinate
@@ -443,23 +354,6 @@ inline int Index2gcoord(int index, int *coord){
 	return 0;
 }
 inline int Coord2lindex(int ix, int iy, int iz, int it){
-	/* Converts the coordinates of a local lattice point to its index in the 
-	 * computer memory
-	 *
-	 * This is a rather nuanced function, as C and Fortran are rather
-	 * different in how they store arrays. C starts with index 0 and
-	 * Fortran (by default) starts with index 1
-	 *
-	 * Also C and Fortran store data in the opposite memory order so
-	 * be careful when calling this function!
-	 * Parameters:
-	 * ==========
-	 * int i?: The coordinate being converted 
-	 *
-	 * Returns:
-	 * ========
-	 * int index: The position of the point
-	 */
 	const char funcname[] = "Coord2gindex";
 
 	//I've factorised this function compared to its original 
@@ -469,23 +363,6 @@ inline int Coord2lindex(int ix, int iy, int iz, int it){
 	return it+ksizet*(iz+ksizez*(iy+ksizey*ix));
 }
 inline int Coord2gindex(int ix, int iy, int iz, int it){
-	/* Converts the coordinates of a point in the global gauge field 
-	 * to its flattened index in the computer memory
-	 * 
-	 * This is a rather nuanced function, as C and Fortran are rather
-	 * different in how they store arrays. C starts with index 0 and
-	 * Fortran (by default) starts with index 1
-	 *
-	 * Also C and Fortran store data in the opposite memory order so
-	 * be careful when calling this function!
-	 * Parameters:
-	 * ==========
-	 * int *coord: The pointer to the 4-vector being considered
-	 *
-	 * Returns:
-	 * ========
-	 * int index: The position of the point
-	 */
 	const char funcname[] = "Coord2gindex";
 
 	//I've factorised this function compared to its original 
@@ -495,26 +372,6 @@ inline int Coord2gindex(int ix, int iy, int iz, int it){
 	return ix+nx*(iy+ny*(iz+nz*it));
 }
 int Testlcoord(int cap){
-	/* Tests if the coordinate transformation functions are working
-	 * Going to expand a little on the original here and do the following
-	 * 1. Convert from int to lcoord (the original code)
-	 * And the planned additional features
-	 * 2. Convert from lcoord to int (new, function doesn't exist in the original
-	 * If we get the same value we started with then we're probably doing
-	 * something right.
-	 *
-	 * Parameters:
-	 * ===========
-	 * int cap: The max value the index can take on. Should be the size of the array
-	 *
-	 * Calls:
-	 * =====
-	 * Index2lcoord, Coord2lindex
-	 *
-	 * Returns:
-	 * ========
-	 * Zero on success, integer error code otherwise.
-	 */
 	const char funcname[] = "Testlcoord";
 	//The storage array for the coordinates, and the index and its test value.
 	int coord[4], index, index2;
@@ -537,28 +394,6 @@ int Testlcoord(int cap){
 	return 0;
 }
 int Testgcoord(int cap){
-	/* This is completely new and missing from the original code.
-	 * We test the coordinate conversion functions by doing the following
-	 * 1. Convert from int to gcoord (new)
-	 * 2. Convert from gcoord to int (also new) and compare to input.
-	 * If we get the same value we started with then we're probably doing
-	 * something right
-	 *
-	 * The code is basically the same as the previous function with different
-	 * magic numbers.
-	 *
-	 * Parameters:
-	 * ===========
-	 * int cap: The max value the index can take on. Should be the size of our array
-	 *
-	 * Calls:
-	 * ======
-	 * Index2gcoord, Coord2gindex
-	 *
-	 * Returns:
-	 * ========
-	 * Zero on success, integer error code otherwise 
-	 */
 	const char funcname[] = "Testgcoord";
 	int coord[4], index, index2;
 #pragma omp parallel for private(coord, index, index2)

@@ -14,7 +14,7 @@
  * 		
  * @param[out]	p_f			Holder for fermion field during inversion
  * @param[out]	x1_f,x2_f	@f$M@f$ and @f$M^\dagger M@f$
- * @param[out]	r_f			Redidue vector for conjugate gradient
+ * @param[out]	r_f			Residue vector for conjugate gradient
  * @param[out]	X1_f			Pseudofermion field
  *
  * @post	Memory allocated
@@ -91,7 +91,7 @@ void Q_allocate(Complex **p, Complex **x1, Complex **x2, Complex *clover[2]){
  * 		the memory to. This is similar behaviour to cudaMalloc
  * 		
  * @param[out]	p_f			Holder for fermion field during inversion
- * @param[out]	r_f			Redidue vector for conjugate gradient
+ * @param[out]	r_f			Residue vector for conjugate gradient
  * @param[out]	x1_f,x2_f	@f$M@f$ and @f$M^\dagger M@f$
  * @param[out]	xi_f			Accumulator array for conjugate gradient
  *
@@ -127,7 +127,7 @@ void P_allocate_f(Complex_f **p_f,Complex_f **r_f, Complex_f **x1_f, Complex_f *
  * 		the memory to. This is similar behaviour to cudaMalloc
  * 		
  * @param[out]	p				Holder for fermion field during inversion
- * @param[out]	r				Redidue vector for conjugate gradient
+ * @param[out]	r				Residue vector for conjugate gradient
  * @param[out]	x1,x2			@f$M@f$ and @f$M^\dagger M@f$
  * @param[out]	clover		Clover Fields
  *
@@ -168,7 +168,7 @@ void P_allocate(Complex **p, Complex **r, Complex **x1, Complex **x2,Complex *cl
  * 		
  * @param[out,in]	p_f			Holder for fermion field during inversion
  * @param[out,in]	x1_f,x2_f	@f$M@f$ and @f$M^\dagger M@f$
- * @param[out,in]	r_f			Redidue vector for conjugate gradient
+ * @param[out,in]	r_f			Residue vector for conjugate gradient
  * @param[out,in]	X1_f			Pseudofermion field
  *
  * @post	Memory freed
@@ -227,7 +227,7 @@ void Q_free(Complex **p, Complex **x1, Complex **x2, Complex *clover[2]){
  * 		the memory to. This is similar behaviour to cudaMalloc
  * 		
  * @param[out,in]	p_f			Holder for fermion field during inversion
- * @param[out,in]	r_f			Redidue vector for conjugate gradient
+ * @param[out,in]	r_f			Residue vector for conjugate gradient
  * @param[out,in]	x1_f,x2_f	@f$M@f$ and @f$M^\dagger M@f$
  * @param[out,in]	xi_f			Conjugate gradient accumulator
  *
@@ -247,7 +247,7 @@ void P_free_f(Complex_f **p_f,Complex_f **r_f, Complex_f **x1_f, Complex_f **x2_
  * 		
  * @param[out,in]	p			Holder for fermion field during inversion
  * @param[out,in]	x1,x2		@f$M@f$ and @f$M^\dagger M@f$
- * @param[out,in]	r			Redidue vector for conjugate gradient
+ * @param[out,in]	r			Residue vector for conjugate gradient
  * @param[out,in]	clover	Clover fields
  *
  * @post	Memory freed

@@ -66,7 +66,7 @@ void ByGenRight(Complex_f a[nc],const unsigned short gen){
  *	@post	@p Leaves replaced with output
  */
 #pragma omp declare simd
-int Half_Leaf(Complex_f Leaves[nc], Complex_f *ut[nc], Complex_f a[nc], unsigned int *iu,\
+void Half_Leaf(Complex_f Leaves[nc], Complex_f *ut[nc], Complex_f a[nc], unsigned int *iu,\
 		unsigned int *id, const unsigned int i, const unsigned short mu, const unsigned short nu, const unsigned short leaf){
 	unsigned int uidm;
 	switch(leaf){
@@ -116,7 +116,7 @@ int Half_Leaf(Complex_f Leaves[nc], Complex_f *ut[nc], Complex_f a[nc], unsigned
 			Leaves[1]=-a[0]*ut[1][din_didm+kvolHalo*nu]+a[1]*ut[0][din_didm+kvolHalo*nu];
 			break;
 	}
-	return 0;
+	return;
 }
 void Half_Leaves(Complex_f *hLeaves[2],Complex_f *ut[2], unsigned int *iu,unsigned int *id,\
 		const unsigned short mu,const unsigned short nu){
@@ -131,7 +131,7 @@ void Half_Leaves(Complex_f *hLeaves[2],Complex_f *ut[2], unsigned int *iu,unsign
 	return;
 }
 #pragma omp declare simd
-int Leaf(Complex_f Leaves[nc],Complex_f *ut[nc], unsigned int *iu, unsigned int *id, unsigned int i,\
+void Leaf(Complex_f Leaves[nc],Complex_f *ut[nc], unsigned int *iu, unsigned int *id, unsigned int i,\
 		const unsigned short mu, const unsigned short nu,const unsigned short leaf){
 	Complex_f a[nc];
 	Half_Leaf(Leaves,ut,a,iu,id,i,mu,nu,leaf);
@@ -197,7 +197,7 @@ int Leaf(Complex_f Leaves[nc],Complex_f *ut[nc], unsigned int *iu, unsigned int 
 			//						Leaves[0]=0; Leaves[1]=0;
 			break;
 	}
-	return 0;
+	return;
 }
 void Clover(Complex_f *clover[2], Complex_f *ut[2], unsigned int *iu, unsigned int *id){
 	const char funcname[]="Full_Clover";
@@ -742,7 +742,7 @@ int Init_clover(Complex **sigval, Complex_f **sigval_f,unsigned short **sigin, f
 #endif
 	return 0;
 }
-inline int Clover_free(Complex_f *clover[nc]){
+inline void Clover_free(Complex_f *clover[nc]){
 	for(unsigned short c=0;c<nc;c++){
 #ifdef __NVCC__
 #ifdef _DEBUG
@@ -754,5 +754,4 @@ inline int Clover_free(Complex_f *clover[nc]){
 		free(clover[c]);
 #endif
 	}
-	return 0;	
 }

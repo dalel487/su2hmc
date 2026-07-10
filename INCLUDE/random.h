@@ -69,7 +69,6 @@ extern gsl_rng *ranlux_instd;
 //Otherwise we get two generators (one float, one double) starting from the same seed. Not good
 //For now, the float generator will be a cast of the double one.
 //gsl_rng *ranlux_instf;
-extern long seed;
 extern unsigned long seed;
 #ifdef __cplusplus
 extern "C"
@@ -218,8 +217,6 @@ extern "C"
 	 * @return the random number generated
 	 */
 	double Par_granf();
-	/// @brief Test Functions
-	int	ran_test();
 
 #ifdef __cplusplus
 }

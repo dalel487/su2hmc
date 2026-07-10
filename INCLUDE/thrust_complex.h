@@ -31,6 +31,7 @@ using thrust::complex;
 /**
  * @brief	Complex Conjugation
  * @param	z Number to be conjugated
+ * @return	Conjugate of @p z
  */
 template <typename T> __device__ __forceinline__ T conj(const T& z);
 #endif

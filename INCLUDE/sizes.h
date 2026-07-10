@@ -195,7 +195,7 @@ extern cudaMemPool_t mempool;
 ///		@brief	sublattice size including Dirac indices
 #define	kferm2	(nc*ndirac*kvol)
 /**
- * 	@subsection halo MPI Halos 
+ * 	@section halo MPI Halos 
  *
  *    For those who may not have used MPI Before, halos are just a bit 
  *    of padding we put outside of the sublattices we're using in MPI
