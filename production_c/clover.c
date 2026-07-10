@@ -492,6 +492,7 @@ void CalcXmunu(Bilinear_a Xmunu, Complex_f *X1, Complex_f *X2, const Complex_f *
 
 /**
  *	@brief	Multiplies @f$ X_{\mu\nu}@f$ by a gauge field from the left
+ *	@ingroup Clover_Force
  *
  *	@param[out]	out:	Result
  *	@param[in]	X:		@f$X_{\mu\nu}(x)@f$
@@ -506,6 +507,7 @@ static inline void GLeft(Complex_f out[4],const Complex_f G[2], const Complex_f 
 }
 /**
  *	@brief	Multiplies @f$ X_{\mu\nu}@f$ by a gauge field from the right
+ *	@ingroup Clover_Force
  *
  *	@param[out]	out:	Result
  *	@param[in]	X:		@f$X_{\mu\nu}(x)@f$
@@ -520,6 +522,7 @@ static inline void GRight(Complex_f out[4],const Complex_f G[2], const Complex_f
 }
 /**
  *	@brief	Multiplies @f$ X_{\mu\nu}@f$ by a gauge field from the left and the right
+ *	@ingroup Clover_Force
  *
  *	@param[out]	out:		Result
  *	@param[in,out]	tmp:		Buffer for intermediate result. Passing as an argument to reduce register pressure.

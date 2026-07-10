@@ -11,6 +11,7 @@
  * @brief Allocates memory needed for Congradq. Just to improve readability
  * 		Note that since C does not modify it's arguments, you need to pass a pointer to the pointer you want to assign
  * 		the memory to. This is similar behaviour to cudaMalloc
+ * @ingroup Helper
  * 		
  * @param[out]	p_f			Holder for fermion field during inversion
  * @param[out]	x1_f,x2_f	@f$M@f$ and @f$M^\dagger M@f$
@@ -52,6 +53,7 @@ void Q_allocate_f(Complex_f **p_f, Complex_f **x1_f, Complex_f **x2_f, Complex_f
  * @brief Allocates double precision memory needed for Congradq. Just to improve readability
  * 		Note that since C does not modify it's arguments, you need to pass a pointer to the pointer you want to assign
  * 		the memory to. This is similar behaviour to cudaMalloc
+ * @ingroup Helper
  * 		
  * @param[out]	p				Holder for fermion field during inversion
  * @param[out]	x1,x2			@f$M@f$ and @f$M^\dagger M@f$
@@ -89,6 +91,7 @@ void Q_allocate(Complex **p, Complex **x1, Complex **x2, Complex *clover[2]){
  * @brief Allocates memory needed for Congradp. Just to improve readability
  * 		Note that since C does not modify it's arguments, you need to pass a pointer to the pointer you want to assign
  * 		the memory to. This is similar behaviour to cudaMalloc
+ * @ingroup Helper
  * 		
  * @param[out]	p_f			Holder for fermion field during inversion
  * @param[out]	r_f			Residue vector for conjugate gradient
@@ -125,6 +128,7 @@ void P_allocate_f(Complex_f **p_f,Complex_f **r_f, Complex_f **x1_f, Complex_f *
  * @brief Allocates double precision memory needed for Congradp. Just to improve readability
  * 		Note that since C does not modify it's arguments, you need to pass a pointer to the pointer you want to assign
  * 		the memory to. This is similar behaviour to cudaMalloc
+ * @ingroup Helper
  * 		
  * @param[out]	p				Holder for fermion field during inversion
  * @param[out]	r				Residue vector for conjugate gradient
@@ -165,11 +169,12 @@ void P_allocate(Complex **p, Complex **r, Complex **x1, Complex **x2,Complex *cl
  * @brief Frees memory needed for Congradq. Just to improve readability
  * 		Note that since C does not modify it's arguments, you need to pass a pointer to the pointer you want to assign
  * 		the memory to. This is similar behaviour to cudaMalloc
+ * @ingroup Helper
  * 		
- * @param[out,in]	p_f			Holder for fermion field during inversion
- * @param[out,in]	x1_f,x2_f	@f$M@f$ and @f$M^\dagger M@f$
- * @param[out,in]	r_f			Residue vector for conjugate gradient
- * @param[out,in]	X1_f			Pseudofermion field
+ * @param[in,out]	p_f			Holder for fermion field during inversion
+ * @param[in,out]	x1_f,x2_f	@f$M@f$ and @f$M^\dagger M@f$
+ * @param[in,out]	r_f			Residue vector for conjugate gradient
+ * @param[in,out]	X1_f			Pseudofermion field
  *
  * @post	Memory freed
  */
@@ -195,10 +200,11 @@ void Q_free_f(Complex_f **p_f, Complex_f **x1_f, Complex_f **x2_f, Complex_f **r
  * @brief Frees double precision memory needed for Congradq. Just to improve readability
  * 		Note that since C does not modify it's arguments, you need to pass a pointer to the pointer you want to assign
  * 		the memory to. This is similar behaviour to cudaMalloc
+ * @ingroup Helper
  * 		
- * @param[out,in]	p			Holder for fermion field during inversion
- * @param[out,in]	x1,x2		@f$M@f$ and @f$M^\dagger M@f$
- * @param[out,in]	clover	clover fields
+ * @param[in,out]	p			Holder for fermion field during inversion
+ * @param[in,out]	x1,x2		@f$M@f$ and @f$M^\dagger M@f$
+ * @param[in,out]	clover	clover fields
  *
  * @post	Memory freed
  */
@@ -225,11 +231,12 @@ void Q_free(Complex **p, Complex **x1, Complex **x2, Complex *clover[2]){
  * @brief Frees memory needed for Congradp. Just to improve readability
  * 		Note that since C does not modify it's arguments, you need to pass a pointer to the pointer you want to assign
  * 		the memory to. This is similar behaviour to cudaMalloc
+ * @ingroup Helper
  * 		
- * @param[out,in]	p_f			Holder for fermion field during inversion
- * @param[out,in]	r_f			Residue vector for conjugate gradient
- * @param[out,in]	x1_f,x2_f	@f$M@f$ and @f$M^\dagger M@f$
- * @param[out,in]	xi_f			Conjugate gradient accumulator
+ * @param[in,out]	p_f			Holder for fermion field during inversion
+ * @param[in,out]	r_f			Residue vector for conjugate gradient
+ * @param[in,out]	x1_f,x2_f	@f$M@f$ and @f$M^\dagger M@f$
+ * @param[in,out]	xi_f			Conjugate gradient accumulator
  *
  * @post	Memory freed
  */
@@ -241,14 +248,15 @@ void P_free_f(Complex_f **p_f,Complex_f **r_f, Complex_f **x1_f, Complex_f **x2_
 #endif
 }
 /**
- * @brief Frees memory needed for Congradq. Just to improve readability
+ * @brief Frees memory needed for Congradp. Just to improve readability
  * 		Note that since C does not modify it's arguments, you need to pass a pointer to the pointer you want to assign
  * 		the memory to. This is similar behaviour to cudaMalloc
+ * @ingroup Helper
  * 		
- * @param[out,in]	p			Holder for fermion field during inversion
- * @param[out,in]	x1,x2		@f$M@f$ and @f$M^\dagger M@f$
- * @param[out,in]	r			Residue vector for conjugate gradient
- * @param[out,in]	clover	Clover fields
+ * @param[in,out]	p			Holder for fermion field during inversion
+ * @param[in,out]	x1,x2		@f$M@f$ and @f$M^\dagger M@f$
+ * @param[in,out]	r			Residue vector for conjugate gradient
+ * @param[in,out]	clover	Clover fields
  *
  * @post	Memory freed
  */
@@ -266,6 +274,7 @@ void P_free(Complex **p, Complex **r, Complex **x1, Complex **x2,Complex *clover
 	free(clover[0]); free(clover[1]);
 #endif
 }
+
 int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f *ut[2],Complex_f *clover_f[nc],
 		unsigned int *iu, unsigned int *id, Complex gamval[20], Complex_f gamval_f[20],const unsigned short gamin[16],
 		Complex *sigval, Complex_f *sigval_f,unsigned short *sigin, double *dk[2], float *dk_f[2],

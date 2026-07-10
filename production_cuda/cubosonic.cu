@@ -11,105 +11,108 @@
 
 ///CUDA Device code
 namespace Device{
-/**
- * @brief	Calculates the SU2 plaquette
- *
- * @param[in]	u11t, u12t:			Gauge fields
- * @param[out]	Sigma11,Sigma12:	Plaquette entries
- * @param[in]	iu:					Site indices in the up direction
- * @param[in]	i:						Site
- * @param[in]	mu,nu:				Plaquette direction
- *
- * @post	Contents of @p Sigma11 and @p Sigma12 replaced with plaquettes.
- */
-__device__  void cuSU2plaq(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11, Complex_f *Sigma12, unsigned int *iu,\
-									const unsigned int i, const unsigned short mu, const unsigned short nu){
-	const unsigned int uidm = iu[i+kvol*mu]; 
-	unsigned int ind=i+kvol*mu;
-	//Need a second index in the nu direction for the first step
-	unsigned int indn=uidm+kvol*nu;
-	*Sigma11=u11t[ind]*u11t[indn]-u12t[ind]*conj(u12t[indn]);
-	*Sigma12=u11t[ind]*u12t[indn]+u12t[ind]*conj(u11t[indn]);
+	/**
+	 * @brief	Calculates the SU2 plaquette
+	 * @ingroup Bose
+	 *
+	 * @param[in]	u11t, u12t:			Gauge fields
+	 * @param[out]	Sigma11,Sigma12:	Plaquette entries
+	 * @param[in]	iu:					Site indices in the up direction
+	 * @param[in]	i:						Site
+	 * @param[in]	mu,nu:				Plaquette direction
+	 *
+	 * @post	Contents of @p Sigma11 and @p Sigma12 replaced with plaquettes.
+	 */
+	__device__  void cuSU2plaq(Complex_f *u11t, Complex_f *u12t, Complex_f *Sigma11, Complex_f *Sigma12, unsigned int *iu,\
+			const unsigned int i, const unsigned short mu, const unsigned short nu){
+		const unsigned int uidm = iu[i+kvol*mu]; 
+		unsigned int ind=i+kvol*mu;
+		//Need a second index in the nu direction for the first step
+		unsigned int indn=uidm+kvol*nu;
+		*Sigma11=u11t[ind]*u11t[indn]-u12t[ind]*conj(u12t[indn]);
+		*Sigma12=u11t[ind]*u12t[indn]+u12t[ind]*conj(u11t[indn]);
 
-	const int uidn = iu[i+kvol*nu]; 
-	ind=uidn+kvol*mu;
-	Complex_f a11=*Sigma11*conj(u11t[ind])+*Sigma12*conj(u12t[ind]);
-	Complex_f a12=-*Sigma11*u12t[ind]+*Sigma12*u11t[ind];
+		const int uidn = iu[i+kvol*nu]; 
+		ind=uidn+kvol*mu;
+		Complex_f a11=*Sigma11*conj(u11t[ind])+*Sigma12*conj(u12t[ind]);
+		Complex_f a12=-*Sigma11*u12t[ind]+*Sigma12*u11t[ind];
 
-	ind=i+kvol*nu;
-	*Sigma11=a11*conj(u11t[ind])+a12*conj(u12t[ind]);
-	*Sigma12=-a11*u12t[ind]+a12*u11t[ind];
-	return;
-}
+		ind=i+kvol*nu;
+		*Sigma11=a11*conj(u11t[ind])+a12*conj(u12t[ind]);
+		*Sigma12=-a11*u12t[ind]+a12*u11t[ind];
+		return;
+	}
 }
 ///CUDA Kernels
 namespace Kernels{
-using namespace Device;
+	using namespace Device;
 	/** 
 	 * @brief	Calculates the gauge action using new (how new?) lookup table
 	 * 	Follows a routine called qedplaq in some QED3 code
+	 * @ingroup Bose
 	 *
 	 * @param[out]	hgs_d,hgt_d		Gauge component of Hamilton
 	 * @param[in]	u11t,u12t		Gauge fields
 	 * @param[in]	iu					Upper halo indices
 	 *
 	 */
-__global__ void Average_Plaquette(float *hgs_d, float *hgt_d, Complex_f *u11t, Complex_f *u12t, unsigned int *iu){
-	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const unsigned int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	Complex_f Sigma11=0; Complex_f Sigma12=0;
-	//TODO: Check if μ and ν loops inside of site loop is faster. I suspect it is due to memory locality.
-	for(unsigned int i=threadId;i<kvol;i+=bsize*gsize){
-		float hg_c[2];
-		hg_c[0]=0; hg_c[1]=0;
+	__global__ void Average_Plaquette(float *hgs_d, float *hgt_d, Complex_f *u11t, Complex_f *u12t, unsigned int *iu){
+		const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
+		const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
+		const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+		const unsigned int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+		Complex_f Sigma11=0; Complex_f Sigma12=0;
+		//TODO: Check if μ and ν loops inside of site loop is faster. I suspect it is due to memory locality.
+		for(unsigned int i=threadId;i<kvol;i+=bsize*gsize){
+			float hg_c[2];
+			hg_c[0]=0; hg_c[1]=0;
 
-		for(unsigned short mu=1;mu<ndim;mu++)
-			for(unsigned short nu=0;nu<mu;nu++){
-				//This is threadsafe as the μ and ν loops are not distributed across threads
-				cuSU2plaq(u11t,u12t,&Sigma11,&Sigma12,iu,i,mu,nu);
-				switch(mu){
-					//Time component
-					case(ndim-1):
-					hg_c[0] -= creal(Sigma11);
-					break;
-					//Space component
-					default:
-					hg_c[1] -=	creal(Sigma11);
-					break;
+			for(unsigned short mu=1;mu<ndim;mu++)
+				for(unsigned short nu=0;nu<mu;nu++){
+					//This is threadsafe as the μ and ν loops are not distributed across threads
+					cuSU2plaq(u11t,u12t,&Sigma11,&Sigma12,iu,i,mu,nu);
+					switch(mu){
+						//Time component
+						case(ndim-1):
+							hg_c[0] -= creal(Sigma11);
+							break;
+							//Space component
+						default:
+							hg_c[1] -=	creal(Sigma11);
+							break;
+					}
 				}
-			}
 			hgt_d[i]=hg_c[0]; hgs_d[i]=hg_c[1];
+		}
 	}
-}
 
 	/**
 	 * @brief Calculate the Polyakov loop (no prizes for guessing that one...)
+	 * @ingroup Bose
 	 *
 	 * @param[out]	Sigma11,Sigma12	Components of the Polyakov loop
 	 * @param[in]	u11t,u12t:	The gauge fields
 	 * 
 	 */
-__global__ void Polyakov(Complex_f *Sigma11, Complex_f * Sigma12, Complex_f * u11t,Complex_f *u12t){
-	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const unsigned int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	for(unsigned int i=threadId;i<kvol3;i+=gsize*bsize){
-		Complex_f Sig[2]; Sig[0]=Sigma11[i]; Sig[1]=Sigma12[i];
-		Complex_f u[2];
-		for(unsigned int it=1;it<ksizet;it++){
-			const unsigned int indexu=it*kvol3+i;
-			u[0]=u11t[indexu+3*kvol];u[1]=u12t[indexu+3*kvol];
-			Complex_f a11=Sig[0]*u[0]-Sig[1]*conj(u[1]);
-			//Instead of having to store a second buffer just assign it directly
-			Sig[1]=Sig[0]*u[1]+Sig[1]*conj(u[0]);
-			Sig[0]=a11;
+	__global__ void Polyakov(Complex_f *Sigma11, Complex_f * Sigma12, Complex_f * u11t,Complex_f *u12t){
+		const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
+		const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
+		const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+		const unsigned int threadId= blockId * bsize+(threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+		for(unsigned int i=threadId;i<kvol3;i+=gsize*bsize){
+			Complex_f Sig[2]; Sig[0]=Sigma11[i]; Sig[1]=Sigma12[i];
+			Complex_f u[2];
+			for(unsigned int it=1;it<ksizet;it++){
+				const unsigned int indexu=it*kvol3+i;
+				u[0]=u11t[indexu+3*kvol];u[1]=u12t[indexu+3*kvol];
+				Complex_f a11=Sig[0]*u[0]-Sig[1]*conj(u[1]);
+				//Instead of having to store a second buffer just assign it directly
+				Sig[1]=Sig[0]*u[1]+Sig[1]*conj(u[0]);
+				Sig[0]=a11;
+			}
+			Sigma11[i]=Sig[0]; Sigma12[i]=Sig[1];
 		}
-		Sigma11[i]=Sig[0]; Sigma12[i]=Sig[1];
 	}
-}
 }
 
 using namespace Kernels;
@@ -133,7 +136,7 @@ __host__ void cuAverage_Plaquette(double *hgs, double *hgt, Complex_f *u11t, Com
 	cudaDeviceSynchronise();
 
 	cudaFreeAsync(hgs_d,streams[0]); cudaFreeAsync(hgt_d,streams[1]);
-	}
+}
 void cuPolyakov(Complex_f *Sigma[2], Complex_f *ut[2], dim3 dimGrid, dim3 dimBlock){
 	int device=-1;
 	cudaGetDevice(&device);

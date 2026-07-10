@@ -74,6 +74,7 @@ namespace Device{
 	/**
 	 *	@brief	Calculates the first half of the leaf for a clover term. We split it so that the force term can reuse the
 	 *				first half of the leaf
+	 *	@ingroup Clover
 	 *
 	 *	@param[out]	Leaves:				Leaf
 	 *	@param[in]	u11t,u12t:			Gauge fields
@@ -139,6 +140,7 @@ namespace Device{
 		}
 	/**
 	 *	@brief	Calculates a leaf for a clover term.
+	 *	@ingroup Clover
 	 *
 	 *	@param[out]	Leaves:		Array of leaves
 	 *	@param[in]	u11t,u12t:	Gauge fields
@@ -219,6 +221,7 @@ namespace Device{
 
 	/**
 	 *	@brief	Multiplies @f$ X_{\mu\nu}@f$ by a gauge field from the left
+	 *	@ingroup Clover_Force
 	 *
 	 *	@param[out]	out:	Result
 	 *	@param[in]	X:		@f$X_{\mu\nu}(x)@f$
@@ -234,6 +237,7 @@ namespace Device{
 		}
 	/**
 	 *	@brief	Multiplies @f$ X_{\mu\nu}@f$ by a gauge field from the right
+	 *	@ingroup Clover_Force
 	 *
 	 *	@param[out]	out:	Result
 	 *	@param[in]	X:		@f$X_{\mu\nu}(x)@f$
@@ -249,6 +253,7 @@ namespace Device{
 		}
 	/**
 	 *	@brief	Multiplies @f$ X_{\mu\nu}@f$ by a gauge field from the left and the right
+	 *	@ingroup Clover_Force
 	 *
 	 *	@param[out]	out:		Result
 	 *	@param[in]	tmp:		Buffer for intermediate result. Passing as an argument to reduce register pressure.
@@ -263,6 +268,7 @@ namespace Device{
 		}
 	/**
 	 * @brief Loads the compacted bilinear form into a @f$2\times2@f$ complex valued matrix
+	 *	@ingroup Clover_Force
 	 *
 	 * @param[out]	Z:		Complex matrix on stack
 	 * @param[in]	Xmn:	Hermitian form of @f$X_{\mu\nu}@f$ in memory
@@ -282,6 +288,7 @@ namespace Kernels{
 	using namespace Device;
 	/**
 	 *	@brief Calculates the products of the first two links in a plaquette
+	 *	@ingroup Clover
 	 *
 	 *	@param[out]	hLeaves0,hLeaves1:	Product of first two links 
 	 *	@param[in]	u11t,u12t:				Gauge fields
@@ -310,6 +317,7 @@ namespace Kernels{
 	/**
 	 *	@brief Calculates the clovers in all directions at all sites
 	 *	@f$ F_{\mu\nu}(n)=\frac{-i}{8a^2}\left(Q_{\mu\nu}(n)-Q_{\nu\mu}(n)\right)@f$
+	 *	@ingroup Clover
 	 *
 	 *	@param[out]	clover1,clover2:	Array of clovers
 	 *	@param[in]	u11t,u12t:			Gauge fields
@@ -353,6 +361,7 @@ namespace Kernels{
 
 	/**
 	 *	@brief	Gets @f$X_{\mu\nu}@f$ for the clover force
+	 *	@ingroup Clover_Force
 	 *
 	 *	@param[out]	Xmunu:	All Xmunu values
 	 *	@param[in]	X1:		Congrad output @f$\left(M^\dagger M\right)\Phi@f$
@@ -408,6 +417,7 @@ namespace Kernels{
 		}
 	/**
 	 *	@brief cuGets the clover contribution to the force
+	 *	@ingroup Clover_Force
 	 *
 	 *	@param[out]	dSdpi:			Force.
 	 *	@param[in]	u11t,u12t:		Gauge fields
@@ -568,7 +578,7 @@ namespace Kernels{
 	//Clover multiplication
 	/**
 	 *	@brief Clover analogue of the Dslash operation. This version acts on all flavours similar to Dslash and Dslash_d
-	 *	
+	 *	@ingroup Clover_Prod
 	 *
 	 *	@param[out]	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
 	 *	@param[in]	r:						Pseudofermion field before multiplication. The thing we want to multiply by the clover
@@ -629,8 +639,9 @@ namespace Kernels{
 			return;
 		}
 	/**
-	 *	@brief Clover analogue of the Dslash operation. The H in front is for half, as we only act on the fermions of flavour
+	 *	@brief Clover analogue of the Hdslash operation. The H in front is for half, as we only act on the fermions of flavour
 	 *	1
+	 *	@ingroup Clover_Prod
 	 *
 	 *	@param[out]	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
 	 *	@param[in]	r:						Pseudofermion field before multiplication. The thing we want to multiply by the clover

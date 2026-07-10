@@ -7,12 +7,14 @@
 #include	<su2hmc.h>
 /**
  *	@brief Return the max of two values
+ *	@ingroup Helper
  *
  *	@param[in] x,y	values being checked
  */
 #define MIN(x,y) (x<y?x:y)
 /**
  *	@brief Return the min of two values
+ *	@ingroup Helper
  *
  *	@param[in]	 x,y	values being checked
  */
@@ -35,6 +37,7 @@ __device__ __forceinline__ T conj(const T& z){
 namespace Kernels{
 	/**
 	 * @brief takes an array of real float and double precision numbers and converts the precision
+	 * @ingroup Helper
 	 *
 	 * @param[in,out]	a:						Float array
 	 * @param[in,out]	b:						Double array
@@ -62,6 +65,7 @@ __global__ void Real_convert(float *a, double *b, const unsigned int len, const 
 }
 	/**
 	 * @brief Copies necessary (2*4*kvol) elements of Phi into a vector variable
+	 * @ingroup Helper
 	 *
 	 * @param	na: 				flavour index
 	 * @param	smallPhi:		The partitioned output
@@ -86,6 +90,7 @@ __global__ void cuFill_Small_Phi(const unsigned int na, Complex *smallPhi, Compl
 }
 	/**
 	 *	@brief Up/Down partitioning of the pseudofermion field
+	 * @ingroup Helper
 	 *
 	 *	@param[in]	na:	Flavour index
 	 *	@param[out]	X0:	Partitioned field
@@ -110,6 +115,7 @@ __global__ void cuUpDownPart(const unsigned int na, Complex *X0, Complex *R1){
 }
 	/**
 	 * @brief Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1
+	 * @ingroup Helper
 	 *
 	 * If you're looking at the FORTRAN code be careful. There are two header files
 	 * for the /trial/ header. One with u11 u12 (which was included here originally)
@@ -158,6 +164,7 @@ __global__ void cuReunitarise(complex<T> *u11t, complex<T> * u12t){
 }
 	/**
 	 * @brief Gauge update for the integration step of the HMC
+	 * @ingroup MD
 	 *
 	 * @param[in] d:		Gauge step size
 	 * @param[in] pp:		Momentum field

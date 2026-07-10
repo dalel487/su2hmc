@@ -10,6 +10,7 @@
 namespace Device{
 	/**
 	 * @brief Performs a warp reduction for sum
+	 * @ingroup Helper
 	 *
 	 * @param[out,in] sdata:	The shared data array
 	 * @param[in] tid:		The thread ID
@@ -29,6 +30,7 @@ namespace Device{
 namespace Kernels{
 	/**
 	 * @brief Evaluates @f$\Phi=M r@f$
+	 * @ingroup Dslashes
 	 *
 	 * @param[in,out]	phi:			The product
 	 * @param[in]	r:				The array being acted on by M
@@ -155,6 +157,7 @@ namespace Kernels{
 		}
 	/**
 	 * @brief Evaluates @f$\Phi=M^\dagger r@f$
+	 * @ingroup Dslashes
 	 *
 	 * @param[in,out]	phi:			The product
 	 * @param[in]	r:				The array being acted on by M
@@ -282,6 +285,7 @@ namespace Kernels{
 
 	/**
 	 * @brief Evaluates @f$\Phi=Mr@f$ using up/down partitioning
+	 * @ingroup Dslashes
 	 *
 	 * @param[out,in]	phi:			The product
 	 * @param[in]	r:				The array being acted on by M
@@ -377,6 +381,7 @@ namespace Kernels{
 		}
 	/**
 	 * @brief Evaluates @f$\Phi=M^\dagger r@f$ using up/down partitioning
+	 * @ingroup Dslashes
 	 *
 	 * @param[in,out]	phi:			The product
 	 * @param[in]	r:				The array being acted on by M
@@ -473,6 +478,7 @@ namespace Kernels{
 
 	/**
 	 * @brief Swaps the order of the gauge field so that it is now SoA instead of AoS and it is nice and coalesced in memory
+	 * @ingroup Helper
 	 * 
 	 * @param[out] out:			The flipped array
 	 * @param[in] in:			The original array
@@ -505,6 +511,7 @@ namespace Kernels{
 
 	/**
 	 * @brief Sums a float array into a double array
+	 * @ingroup Helper
 	 *
 	 * @param[out] d:		The double array
 	 * @param[in] f:		The float array
@@ -524,6 +531,7 @@ namespace Kernels{
 
 	/**
 	 * @brief Performs a block reduction for sum
+	 * @ingroup Helper
 	 *
 	 * @param[in] g_in_data:		The input global data array
 	 * @param[out] g_out_data:	The output global data array

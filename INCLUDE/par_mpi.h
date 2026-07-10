@@ -2,6 +2,9 @@
  * @file par_mpi.h
  *
  * @brief MPI headers
+ * @author D. Lawlor
+ * @defgroup MPI
+ * MPI functions
  */
 #ifndef	PAR_MPI
 #define	PAR_MPI
@@ -84,6 +87,7 @@ extern "C"
 	//=====================
 	/**
 	 * @brief Initialises the MPI configuration
+	 * @ingroup MPI
 	 *
 	 * @param[in]	argc		Number of arguments given to the programme
 	 * @param[in]	argv		Array of arguments
@@ -94,6 +98,7 @@ extern "C"
 	int Par_begin(int argc, char *argv[]);
 	/**
 	 * @brief Reads and assigns the gauges from file
+	 * @ingroup MPI
 	 *	
 	 *	@param[in]	iread:		Configuration to read in
 	 *	@param[in]	beta:			Inverse gauge coupling
@@ -111,6 +116,7 @@ extern "C"
 			const float c_sw, Complex *u11, Complex *u12, Complex *u11t, Complex *u12t);
 	/**
 	 * @brief	Copies u11 and u12 into arrays without halos which then get written to output
+	 * @ingroup MPI
 	 *
 	 * Modified from an original version of swrite in FORTRAN
 	 *	
@@ -132,6 +138,7 @@ extern "C"
 	/**
 	 * @brief	Performs a reduction on an integer ival to get a sum which is
 	 * 			then distributed to all ranks.
+	 * @ingroup MPI
 	 *
 	 * @param[in,out] ival: The pointer to the element being summed, and
 	 * 		the container for said sum.
@@ -143,6 +150,7 @@ extern "C"
 	/**
 	 * @brief	Performs a reduction on a double dval to get a sum which is
 	 * 			then distributed to all ranks.
+	 * @ingroup MPI
 	 *
 	 * @param[in,out] dval: The pointer to the element being summed, and
 	 * 		the container for said sum.
@@ -155,6 +163,7 @@ extern "C"
 	/**
 	 * @brief	Performs a reduction on a float dval to get a sum which is
 	 * 			then distributed to all ranks.
+	 * @ingroup MPI
 	 *
 	 * @param[in,out] dval: The pointer to the element being summed, and
 	 * 		the container for said sum.
@@ -167,6 +176,7 @@ extern "C"
 	/**
 	 * @brief	Performs a reduction on a complex float cval to get a sum which is
 	 * 			then distributed to all ranks.
+	 * @ingroup MPI
 	 *
 	 * @param[in,out] cval: The pointer to the element being summed, and
 	 * 		the container for said sum.
@@ -179,6 +189,7 @@ extern "C"
 	/**
 	 * @brief	Performs a reduction on a complex double zval to get a sum which is
 	 * 			then distributed to all ranks.
+	 * @ingroup MPI
 	 *
 	 * @param[in,out] zval: The pointer to the element being summed, and
 	 * 		the container for said sum.
@@ -190,6 +201,7 @@ extern "C"
 	int Par_zsum(Complex *zval);
 	/**
 	 * @brief Broadcasts an integer to the other processes
+	 * @ingroup MPI
 	 *
 	 * @param[in,out]	ival: Integer being broadcast
 	 *
@@ -199,6 +211,7 @@ extern "C"
 	int Par_icopy(int *ival);
 	/**
 	 * @brief Broadcasts a double to the other processes
+	 * @ingroup MPI
 	 *
 	 * @param[in,out]	dval: double being broadcast
 	 *
@@ -208,6 +221,7 @@ extern "C"
 	int Par_dcopy(double *dval);
 	/**
 	 * @brief Broadcasts a float to the other processes
+	 * @ingroup MPI
 	 *
 	 * @param[in,out]	fval: float being broadcast
 	 *
@@ -217,6 +231,7 @@ extern "C"
 	int Par_fcopy(float *fval);
 	/**
 	 * @brief Broadcasts a complex float to the other processes
+	 * @ingroup MPI
 	 *
 	 * @param[in,out]	cval: Complex float being broadcast
 	 *
@@ -226,6 +241,7 @@ extern "C"
 	int Par_ccopy(Complex *cval);
 	/**
 	 * @brief Broadcasts a complex double to the other processes
+	 * @ingroup MPI
 	 *
 	 * @param[in,out]	zval: Complex double being broadcast
 	 *
@@ -236,6 +252,7 @@ extern "C"
 	//Halo Manipulation
 	/**
 	 * @brief Calls the functions to send data to both the up and down halos
+	 * @ingroup MPI
 	 *
 	 * @param[in,out]	z:		The data being sent
 	 * @param[in]	ncpt:	Number of components being sent
@@ -247,6 +264,7 @@ extern "C"
 	/**
 	 * @brief	Swaps the halos along the axis given by idir in the direction
 	 * given by layer
+	 * @ingroup MPI
 	 *
 	 * @param[in,out]	z:			The data being moved about. It should be an array of dimension [kvol+halo][something else]
 	 * @param[in]	ncpt: 	Number of components being sent
@@ -259,6 +277,7 @@ extern "C"
 	int ZHalo_swap_dir(Complex *z, int ncpt, int idir, int layer);
 	/**
 	 * @brief Calls the functions to send data to both the up and down halos
+	 * @ingroup MPI
 	 *
 	 * @param[in,out]	c:		The data being sent
 	 * @param[in]	ncpt:	Number of components being sent
@@ -270,6 +289,7 @@ extern "C"
 	/**
 	 * @brief	Swaps the halos along the axis given by idir in the direction
 	 * given by layer
+	 * @ingroup MPI
 	 *
 	 * @param[in,out]	c:			The data being moved about. It should be an array of dimension [kvol+halo][something else]
 	 * @param[in]	ncpt: 	Number of components being sent
@@ -282,6 +302,7 @@ extern "C"
 	int CHalo_swap_dir(Complex_f *c, int ncpt, int idir, int layer);
 	/**
 	 * @brief Calls the functions to send data to both the up and down halos
+	 * @ingroup MPI
 	 *
 	 * @param[in,out]	d:		The data being sent
 	 * @param[in]	ncpt:	Number of components being sent
@@ -293,6 +314,7 @@ extern "C"
 	/**
 	 * @brief	Swaps the halos along the axis given by idir in the direction
 	 * given by layer
+	 * @ingroup MPI
 	 *
 	 * @param[in,out]	d:			The data being moved about. It should be an array of dimension [kvol+halo][something else]
 	 * @param[in]	ncpt: 	Number of components being sent
@@ -305,6 +327,7 @@ extern "C"
 	int DHalo_swap_dir(double *d, int ncpt, int idir, int layer);
 	/**
 	 * @brief Calls the functions to send data to both the up and down halos
+	 * @ingroup MPI
 	 *
 	 * @param[in,out]	d:		The data being sent
 	 * @param[in]	ncpt:	Number of components being sent
@@ -316,6 +339,7 @@ extern "C"
 	/**
 	 * @brief	Swaps the halos along the axis given by idir in the direction
 	 * given by layer
+	 * @ingroup MPI
 	 *
 	 * @param[in,out]	d:			The data being moved about. It should be an array of dimension [kvol+halo][something else]
 	 * @param[in]	ncpt: 	Number of components being sent
@@ -328,6 +352,7 @@ extern "C"
 	int SHalo_swap_dir(float *d, int ncpt, int idir, int layer);
 	/**
 	 *	@brief Exchanges the trial fields.
+	 * @ingroup MPI
 	 *
 	 *	I noticed that this halo exchange was happening
 	 *	even though the trial fields hadn't been updated. To get around this
@@ -345,6 +370,7 @@ extern "C"
 #if(npt>1)
 	/**
 	 * @brief	Multiplication along the time extent for the polyakov loop
+	 * @ingroup Bosonic
 	 *
 	 * @param[in,out]	z11,z12	The inputs and the products
 	 *

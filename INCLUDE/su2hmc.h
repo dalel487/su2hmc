@@ -1,6 +1,20 @@
 /**
  * @file		su2hmc.h
  * @brief	Function declarations for most of the routines
+ *
+ * @defgroup Helper
+ * Helper functions
+ * 
+ * @defgroup Observables
+ * Observable Quantities
+ *
+ * @defgroup Bose
+ * Bosonic Observables
+ * @ingroup Observables
+ *
+ * @defgroup Fermi
+ * Fermionic Observables
+ * @ingroup Observables
  */
 #pragma once
 //ARM Based machines. BLAS routines should work with other libraries, so we can set a compiler
@@ -27,6 +41,7 @@ extern "C"
 #endif
 	/**
 	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
+	 *	@ingroup MD
 	 *	
 	 *	@param[in,out]	dSdpi:				The force
 	 *	@param[in]	ut:					Float precision colour fields
@@ -44,6 +59,7 @@ extern "C"
 			unsigned int *iu, const unsigned short gamin[16],const float akappa, const unsigned short mu);
 	/**
 	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
+	 *	@ingroup MD
 	 *	
 	 *	@param[in,out]	dSdpi:				The force
 	 *	@param[in]	ut:					Float precision colour fields
@@ -61,6 +77,7 @@ extern "C"
 			float *dk[2], unsigned int *iu, const unsigned short gamin[16],float akappa);
 	/**
 	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
+	 *	@ingroup MD
 	 *
 	 *	@param[in,out]	dSdpi:				The force
 	 *	@param[in]	iflag:				Invert before evaluating the force. 0 to invert, one not to. Blame FORTRAN...	
@@ -90,6 +107,7 @@ extern "C"
 			double *dk[2], float *dk_f[2],const Complex_f jqq, const float akappa,const float beta,const float c_sw,double *ancg);
 	/**
 	 * @brief	Calculates the gauge force due to the Wilson Action at each intermediate time
+	 *	@ingroup MD
 	 *
 	 * @param[out]	dSdpi:		The force
 	 *	@param[in]	ut:			Gauge fields
@@ -102,6 +120,7 @@ extern "C"
 	int Gauge_force(double *dSdpi, Complex_f *ut[2],unsigned int *iu,unsigned int *id, float beta);
 	/**
 	 * @brief Initialises the system
+	 * @ingroup Helper
 	 *
 	 * @param[in]	istart:				Zero for cold, >1 for hot, <1 for none
 	 * @param[in]	ibound:				Periodic boundary conditions
@@ -127,6 +146,7 @@ extern "C"
 			unsigned int *iu, unsigned int *id);
 	/**
 	 * @brief Calculate the Hamiltonian
+	 * @ingroup Observables
 	 *
 	 * @param[out]	h:				Hamiltonian
 	 * @param[out]	s:				Action
@@ -139,7 +159,7 @@ extern "C"
 	 * @param[in]	iu,id:		Lattice indices
 	 *	@param[in]	gamval,gamval_f:	Gamma matrices rescaled by kappa
 	 * @param[in]	gamin:		Gamma indices
-	 *	@param[in]	sigval,sigval_f:	Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/3@f$
+	 *	@param[in]	sigval,sigval_f:	Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}{2}@f$
 	 * @param[in]	sigin:		What element of the spinor is multiplied by row idirac each sigma matrix?
 	 * @param[in]	dk,dk_f:		@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$ float
 	 * @param[in]	jqq:			Diquark source
@@ -161,6 +181,7 @@ extern "C"
 	 * Solves @f$(M^\dagger)Mx=\Phi@f$
 	 * Implements up/down partitioning
 	 * The matrix multiplication step is done at mixed precision, while the update is done at double
+	 * @ingroup MD
 	 *
 	 * @param[in]	na:					Flavour index
 	 * @param[in]	res:					Limit for conjugate gradient
@@ -171,7 +192,7 @@ extern "C"
 	 *	@param[in]	gamval,gamval_f:	Double/float gamma matrices rescaled by kappa
 	 * @param[in]	gamin:				What element of the spinor is multiplied by row idirac each gamma matrix?
 	 *	@param[in]	clover_f:			Array of clover fields
-	 *	@param[in]	sigval,sigval_f:	Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/2@f$
+	 *	@param[in]	sigval,sigval_f:	Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}{2}@f$
 	 * @param[in]	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
 	 * @param[in]	dk,dk_f:				@f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$
 	 * @param[in]	jqq:					Diquark source
@@ -190,6 +211,7 @@ extern "C"
 	 * @brief Matrix Inversion via Conjugate Gradient (no up/down flavour partitioning).
 	 * Solves @f$(M^\dagger)Mx=\Phi@f$
 	 * The matrix multiplication step is done at single precision, while the update is done at double
+	 * @ingroup MD
 	 *
 	 * @param[in] 	na:						Flavour index
 	 * @param[in] 	res:						Limit for conjugate gradient
@@ -200,7 +222,7 @@ extern "C"
 	 *	@param[in]	gamval,gamval_f:		double float Gamma matrices rescaled by kappa
 	 * @param[in] 	gamin:					Dirac indices
 	 *	@param[in]	clover_f:				Array of clover fields
-	 *	@param[in]	sigval,sigval_f:		Double/float Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/2@f$
+	 *	@param[in]	sigval,sigval_f:		Double/float Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}{2}@f$
 	 * @param[in]	sigin:					What element of the spinor is multiplied by row idirac each sigma matrix?
 	 * @param[in]	dk,dk_f:					Double/float @f$\left(1+\gamma_0\right)e^{-\mu}@f$ and @f$\left(1-\gamma_0\right)e^\mu@f$
 	 * @param[in] 	jqq:						Diquark source
@@ -217,6 +239,7 @@ extern "C"
 			Complex_f jqq,float akappa,float c_sw,int *itercg);
 	/**
 	 * @brief	Calculate fermion expectation values via a noisy estimator
+	 * @ingroup Fermi
 	 * 
 	 * Matrix inversion via conjugate gradient algorithm
 	 * Solves @f$MX=X_1@f$
@@ -255,6 +278,7 @@ extern "C"
 	/** 
 	 * @brief	Calculates the gauge action using new (how new?) lookup table
 	 * 			Follows a routine called qedplaq in some QED3 code
+	 * @ingroup Bose
 	 *
 	 * @param[out]	hg				Gauge component of Hamilton
 	 * @param[out]	avplaqs		Average spacial Plaquette
@@ -270,6 +294,7 @@ extern "C"
 	int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *ut[2],unsigned int *iu, float beta);
 	/**
 	 * @brief Calculates the plaquette at site i in the @f$\mu--\nu@f$ direction
+	 * @ingroup Bose
 	 *
 	 * @param[in]	ut:			Trial fields
 	 * @param[out]	Sigma:		Plaquette components
@@ -286,6 +311,7 @@ extern "C"
 
 	/**
 	 * @brief Calculate the Polyakov loop (no prizes for guessing that one...)
+	 * @ingroup Bose
 	 * 
 	 * @param[in]	ut:	The gauge fields
 	 * 
@@ -295,6 +321,7 @@ extern "C"
 	//Inline functions
 	/**
 	 * @brief	Extracts all the single precision gauge links in the @f$\mu@f$ direction only
+	 * @ingroup Helper
 	 *
 	 * @param[out]	x:			The output 
 	 * @param[in]	y:			The gauge field for a particular colour
@@ -308,6 +335,7 @@ extern "C"
 	int C_gather(Complex_f *x, Complex_f *y, int n, unsigned int *table, unsigned int mu);
 	/**
 	 * @brief	Extracts all the double precision gauge links in the @f$\mu@f$ direction only
+	 * @ingroup Helper
 	 *
 	 * @param[out]	x:			The output 
 	 * @param[in]	y:			The gauge field for a particular colour
@@ -321,6 +349,7 @@ extern "C"
 	int Z_gather(Complex *x, Complex *y, int n, unsigned int *table, unsigned int mu);
 	/**
 	 * @brief Copies necessary (2*4*kvol) elements of Phi into a vector variable
+	 * @ingroup Helper
 	 *
 	 * @param[in]	na: 				flavour index
 	 * @param[out]	smallPhi:		The partitioned output
@@ -332,6 +361,7 @@ extern "C"
 	int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi);
 	/**
 	 *	@brief Up/Down partitioning of the pseudofermion field
+	 * @ingroup Helper
 	 *
 	 *	@param[in]	na:	Flavour index
 	 *	@param[out]	X0:	Partitioned field
@@ -343,6 +373,7 @@ extern "C"
 	int UpDownPart(const unsigned int na, Complex *X0, Complex *R1);
 	/**
 	 * @brief Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1
+	 * @ingroup Helper
 	 *
 	 * If you're looking at the FORTRAN code be careful. There are two header files
 	 * for the /trial/ header. One with u11 u12 (which was included here originally)
@@ -356,6 +387,7 @@ extern "C"
 	int Reunitarise(Complex *ut[2]);
 	/**
 	 * @brief takes an array of complex float and double precision numbers and converts the precision
+	 * @ingroup Helper
 	 *
 	 * @param[out,in]	a:				Float array
 	 * @param[out,in]	b:				Double array
@@ -386,6 +418,7 @@ extern "C"
 	/** 
 	 * @brief	Calculates the gauge action using new (how new?) lookup table
 	 * 		Follows a routine called qedplaq in some QED3 code
+	 * @ingroup Bose
 	 *
 	 * @param[out]	hgs,hgt			Gauge component of Hamilton
 	 * @param[in]	u11t,u12t		Gauge fields
@@ -398,6 +431,7 @@ extern "C"
 	void cuAverage_Plaquette(double *hgs, double *hgt, Complex_f *u11t, Complex_f *u12t, unsigned int *iu,dim3 dimGrid, dim3 dimBlock);
 	/**
 	 * @brief Calculate the Polyakov loop (no prizes for guessing that one...)
+	 * @ingroup Bose
 	 *
 	 * @param[out]	Sigma		Components of the Polyakov loop
 	 * @param[in]	ut:		The gauge fields
@@ -409,6 +443,7 @@ extern "C"
 	void cuPolyakov(Complex_f *Sigma[2], Complex_f *ut[2],dim3 dimGrid, dim3 dimBlock);
 	/**
 	 * @brief Calculate the gauge contribution to the force
+	 *	@ingroup MD
 	 * 
 	 * @param[in] ut:						Gauge fields
 	 * @param[out] dSdpi:					Force
@@ -421,6 +456,7 @@ extern "C"
 	void cuGauge_force(Complex_f *ut[2],double *dSdpi,float beta,unsigned int *iu,unsigned int *id,dim3 dimGrid, dim3 dimBlock);
 	/**
 	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
+	 *	@ingroup MD
 	 *	
 	 *	@param[in,out]	dSdpi:				The force
 	 *	@param[in]	ut:					Gauge fields
@@ -454,6 +490,7 @@ extern "C"
 			double *dk4p, unsigned int *iu, unsigned int *id);
 	/**
 	 * @brief Copies necessary (2*4*kvol) elements of Phi into a vector variable
+	 * @ingroup Helper
 	 *
 	 * @param[in]	na:					flavour index
 	 * @param[out]	smallPhi:			The partitioned output
@@ -464,6 +501,7 @@ extern "C"
 	void cuFill_Small_Phi(const unsigned int na, Complex *smallPhi, Complex *Phi,dim3 dimBlock, dim3 dimGrid);
 	/**
 	 * @brief takes an array of complex float and double precision numbers and converts the precision
+	 * @ingroup Helper
 	 *
 	 * @param[out,in]	a:						Float array
 	 * @param[out,in]	b:						Double array
@@ -477,6 +515,7 @@ extern "C"
 	void cuComplex_convert(Complex_f *a, Complex *b, const unsigned int len,  const bool dtof, dim3 dimBlock, dim3 dimGrid);
 	/**
 	 * @brief takes an array of real-valued float and double precision numbers and converts the precision
+	 * @ingroup Helper
 	 *
 	 * @param[out,in]	a:						Float array
 	 * @param[out,in]	b:						Double array
@@ -490,6 +529,7 @@ extern "C"
 	void cuReal_convert(float *a, double *b, const unsigned int len, const bool dtof, dim3 dimBlock, dim3 dimGrid);
 	/**
 	 *	@brief Up/Down partitioning of the pseudofermion field
+	 * @ingroup Helper
 	 *
 	 *	@param[in]	na:	Flavour index
 	 *	@param[out]	X0:	Partitioned field
@@ -501,6 +541,7 @@ extern "C"
 	void cuUpDownPart(const unsigned int na, Complex *X0, Complex *R1,dim3 dimBlock, dim3 dimGrid);
 	/**
 	 * @brief Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1
+	 * @ingroup Helper
 	 *
 	 * If you're looking at the FORTRAN code be careful. There are two header files
 	 * for the /trial/ header. One with u11 u12 (which was included here originally)
@@ -514,6 +555,7 @@ extern "C"
 	void cuReunitarise(Complex *ut[2],dim3 dimGrid, dim3 dimBlock);
 	/**	
 	 * @brief Initialises the CUDA grid and block size for a given lattice
+	 * @ingroup Helper
 	 *
 	 * @param[in]	x,y,z,t:				Lattice dimensions
 	 * @param[out] 	dimGrid,dimBlock:	CUDA grid/block size

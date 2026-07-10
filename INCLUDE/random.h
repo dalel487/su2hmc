@@ -2,6 +2,8 @@
  * @file	random.h
  *
  * @brief	Header for random number configuration
+ * @defgroup Random
+ * PRNG Routines
  */
 #ifndef	RANDOM
 #define	RANDOM
@@ -27,13 +29,14 @@ extern long seed;
 extern "C"
 {
 #endif
-/**
- * @brief Dummy seed the ran2 generator
- *
- * @param[in] seed pointer to seed
- * 
- *	@return 0
- */
+	/**
+	 * @brief Dummy seed the ran2 generator
+	 *	@ingroup Random
+	 *
+	 * @param[in] seed pointer to seed
+	 * 
+	 *	@return 0
+	 */
 	int ranset(long *seed);
 	/**
 	 * @brief Uses the rank to get a new seed.
@@ -42,6 +45,7 @@ extern "C"
 	 * c     having a range of 0*seed gave an unfortunate pattern
 	 * c     in the underlying value of ds(1) (it was always 10 times bigger
 	 * c     on the last processor). This does not appear to happen with 9.
+	 *	@ingroup Random
 	 *
 	 * @param[in]	seed:	The seed from the rank in question.
 	 * @param[in]	iread:	Do we read from file or not. Don't remember why it's here as it's not used	
@@ -52,6 +56,7 @@ extern "C"
 	/**
 	 * @brief	Generates uniformly distributed random double between zero and one as
 	 * 			described in numerical recipes. It's also thread-safe for different seeds.
+	 *	@ingroup Random
 	 *
 	 * @param[in]	idum: Pointer to the seed
 	 *
@@ -74,13 +79,14 @@ extern unsigned long seed;
 extern "C"
 {
 #endif
-/**
- * @brief Seed the ranlux generator from GSL
- *
- * @param[in] seed pointer to seed
- * 
- *	@return 0
- */
+	/**
+	 * @brief Seed the ranlux generator from GSL
+	 * @ingroup Random
+	 *
+	 * @param[in] seed pointer to seed
+	 * 
+	 *	@return 0
+	 */
 	int ranset(unsigned long *seed);
 	/**
 	 * @brief Uses the rank to get a new seed.
@@ -89,6 +95,7 @@ extern "C"
 	 * c     having a range of 0*seed gave an unfortunate pattern
 	 * c     in the underlying value of ds(1) (it was always 10 times bigger
 	 * c     on the last processor). This does not appear to happen with 9.
+	 * @ingroup Random
 	 *
 	 * @param[in]	seed:	The seed from the rank in question.
 	 * @param[in]	iread:	Do we read from file or not. Don't remember why it's here as it's not used	
@@ -106,13 +113,14 @@ extern unsigned int seed;
 extern "C"
 {
 #endif
-/**
- * @brief Seed the Intel Mersenne twister generator
- *
- * @param[in] seed pointer to seed
- *
- *	@return 0
- */
+	/**
+	 * @brief Seed the Intel Mersenne twister generator
+	 * @ingroup Random
+	 *
+	 * @param[in] seed pointer to seed
+	 *
+	 *	@return 0
+	 */
 	int ranset(unsigned int *seed);
 	/**
 	 * @brief Uses the rank to get a new seed.
@@ -121,6 +129,7 @@ extern "C"
 	 * c     having a range of 0*seed gave an unfortunate pattern
 	 * c     in the underlying value of ds(1) (it was always 10 times bigger
 	 * c     on the last processor). This does not appear to happen with 9.
+	 * @ingroup Random
 	 *
 	 * @param[in]	seed:	The seed from the rank in question.
 	 * @param[in]	iread:	Do we read from file or not. Don't remember why it's here as it's not used	
@@ -155,6 +164,7 @@ extern "C"
 	//Use Box-Müller to generate an array of complex numbers
 	/**
 	 * @brief	Generates a vector of normally distributed random double precision complex numbers using the Box-Muller Method
+	 * @ingroup Random
 	 * 
 	 * @param[out]	ps:		The output array
 	 * @param[in]	n:			The array length
@@ -166,6 +176,7 @@ extern "C"
 	int Gauss_z(Complex *ps, unsigned int n, const Complex mu, const double sigma);
 	/**
 	 * @brief	Generates a vector of normally distributed random double precision numbers using the Box-Muller Method
+	 * @ingroup Random
 	 * 
 	 * @param[out]	ps:		The output array
 	 * @param[in]	n:			The array length
@@ -177,6 +188,7 @@ extern "C"
 	int Gauss_d(double *ps, unsigned int n, const double mu, const double sigma);
 	/**
 	 * @brief	Generates a vector of normally distributed random single precision complex numbers using the Box-Muller Method
+	 * @ingroup Random
 	 * 
 	 * @param[out]	ps:		The output array
 	 * @param[in]	n:			The array length
@@ -188,6 +200,7 @@ extern "C"
 	int Gauss_c(Complex_f *ps, unsigned int n, const Complex_f mu, const float sigma);
 	/**
 	 * @brief	Generates a vector of normally distributed random single precision numbers using the Box-Muller Method
+	 * @ingroup Random
 	 * 
 	 * @param[out]	ps:		The output array
 	 * @param[in]	n:			The array length
@@ -204,6 +217,7 @@ extern "C"
 	 * @brief Reads ps from a file
 	 * Since this function is very similar to Par_sread, I'm not really going to comment it
 	 * check there if you are confused about things. 
+	 * @ingroup Random
 	 *
 	 * @param[in]	filename: The name of the file we're reading from
 	 * @param[in]	ranval:	The destination for the file's contents
@@ -213,6 +227,7 @@ extern "C"
 	int Par_ranread(char *filename, double *ranval);
 	/**
 	 * @brief Generates a random double which is then sent to the other ranks
+	 * @ingroup Random
 	 *
 	 * @return the random number generated
 	 */

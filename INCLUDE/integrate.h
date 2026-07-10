@@ -1,6 +1,11 @@
 /**
  * @file		integrate.h
  * @brief	Integrators for the HMC
+ * @author D.Lawlor
+ */
+/**
+ *	@defgroup MD
+ *	Molecular dynamics functions
  */
 #ifndef INTEGRATE_H
 #define INTEGRATE_H
@@ -12,6 +17,7 @@ extern "C"
 #endif
 	/**
 	 * @brief Gauge update for the integration step of the HMC
+	 *	@ingroup MD
 	 *
 	 * @param[in] d:		Gauge step size
 	 * @param[in] pp:		Momentum field
@@ -24,6 +30,7 @@ extern "C"
 	int Gauge_Update(const double d, double *pp, Complex *ut[2],Complex_f *ut_f[2]);
 	/**
 	 * @brief Wrapper for the momentum update during the integration step of the HMC
+	 *	@ingroup MD
 	 *
 	 * @param[in] d:		Step size
 	 * @param[in,out] pp:		Momentum field
@@ -37,6 +44,7 @@ extern "C"
 	 *	@brief	Leapfrog integrator. Each trajectory step takes the form of p->p+dt/2,u->u+dt,p->p+dt/2
 	 *				In practice this is implemented for the entire trajectory as
 	 *				p->p+dt/2,u->u+dt,p->p+dt,u->u+dt,p->p+dt,...p->p+dt/2,u->u+dt,p->p+dt/2
+	 *	@ingroup MD
 	 *	
 	 *	@param[in,out]	ut					Double precision colour fields
 	 *	@param[in,out]	ut_f:				Single precision colour fields
@@ -51,7 +59,7 @@ extern "C"
 	 *	@param[in]	gamin:			Gamma indices
 	 *	@param[in]	gamval:			Double precision gamma matrices rescaled by kappa
 	 *	@param[in]	gamval_f:		Single precision gamma matrices rescaled by kappa
-	 *	@param[in]	sigval,sigval_f:	Double/float Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/2@f$
+	 *	@param[in]	sigval,sigval_f:	Double/float Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}{2}@f$
 	 * @param[in]	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
 	 * @param[in]	c_sw:				Clover coefficient
 	 * @param[in] 	jqq:				Diquark source
@@ -72,6 +80,7 @@ extern "C"
 			const float c_sw, const int stepl, const float dt, double *ancg, int *itot, const float proby);
 	/**
 	 *	@brief	OMF second order five step integrator.
+	 *	@ingroup MD
 	 *	
 	 *	@param[in,out]	ut					Double precision colour fields
 	 *	@param[in,out]	ut_f:				Single precision colour fields
@@ -86,7 +95,7 @@ extern "C"
 	 *	@param[in]	gamin:			Gamma indices
 	 *	@param[in]	gamval:			Double precision gamma matrices rescaled by kappa
 	 *	@param[in]	gamval_f:		Single precision gamma matrices rescaled by kappa
-	 *	@param[in]	sigval,sigval_f:	Double/float Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/2@f$
+	 *	@param[in]	sigval,sigval_f:	Double/float Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}{2}@f$
 	 * @param[in]	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
 	 * @param[in]	c_sw:				Clover coefficient
 	 * @param[in] 	jqq:				Diquark source
@@ -107,6 +116,7 @@ extern "C"
 			const float c_sw, const int stepl, const float dt, double *ancg, int *itot, const float proby);
 	/**
 	 *	@brief	OMF fourth order eleven step integrator.
+	 *	@ingroup MD
 	 *	
 	 *	@param[in,out]	ut					Double precision colour fields
 	 *	@param[in,out]	ut_f:				Single precision colour fields
@@ -121,7 +131,7 @@ extern "C"
 	 *	@param[in]	gamin:			Gamma indices
 	 *	@param[in]	gamval:			Double precision gamma matrices rescaled by kappa
 	 *	@param[in]	gamval_f:		Single precision gamma matrices rescaled by kappa
-	 *	@param[in]	sigval,sigval_f:	Double/float Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}/2@f$
+	 *	@param[in]	sigval,sigval_f:	Double/float Commutators of gamma matrices scaled by @f$\frac{c_\text{SW}}{2}@f$
 	 * @param[in]	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
 	 * @param[in]	c_sw:				Clover coefficient
 	 * @param[in] 	jqq:				Diquark source
@@ -144,6 +154,7 @@ extern "C"
 #ifdef __NVCC__
 	/**
 	 * @brief CUDA wrapper for the gauge update during the integration step of the HMC
+	 *	@ingroup MD
 	 *
 	 * @param[in] d:						Gauge step size
 	 * @param[in] pp:						Momentum field

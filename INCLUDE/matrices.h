@@ -2,6 +2,9 @@
  * @file matrices.h
  *
  * @brief Matrix multiplication and related declarations
+ *
+ *	@defgroup Dslashes
+ *	Fermion matrix products
  */
 #pragma once
 #ifdef __NVCC__
@@ -14,6 +17,7 @@ extern "C"
 #endif
 	/**
 	 * @brief Evaluates @f$\Phi=M r@f$ in double precision.
+	 * @ingroup Dslashes
 	 *
 	 * @param[out]	phi:			The product
 	 * @param[in]	r:				The array being acted on by M
@@ -32,6 +36,7 @@ extern "C"
 			Complex gamval[20], const unsigned short gamin[16], double *dk[nc], Complex_f jqq, float akappa);
 	/**
 	 * @brief Evaluates @f$\Phi=M^\dagger r@f$ in double precision.
+	 * @ingroup Dslashes
 	 *
 	 * @param[out]	phi:			The product
 	 * @param[in]	r:				The array being acted on by M
@@ -50,6 +55,7 @@ extern "C"
 			Complex gamval[20], const unsigned short gamin[16], double *dk[nc], Complex_f jqq, float akappa);
 	/**
 	 * @brief Evaluates @f$\Phi=M r@f$ in double precision
+	 * @ingroup Dslashes
 	 *
 	 * @param[out]	phi:		The product
 	 * @param[in]		r:			The array being acted on by M
@@ -67,6 +73,7 @@ extern "C"
 			Complex gamval[20], const unsigned short gamin[16], double *dk[nc], float akappa);
 	/**
 	 * @brief Evaluates @f$\Phi=M^\dagger r@f$ in double precision
+	 * @ingroup Dslashes
 	 *
 	 * @param[out]	phi:		The product
 	 * @param[in]	r:			The array being acted on by M
@@ -85,6 +92,7 @@ extern "C"
 	//Float version
 	/**
 	 * @brief Evaluates @f$\Phi=M r@f$ in single precision.
+	 * @ingroup Dslashes
 	 *
 	 * @param[out]	phi:			The product
 	 * @param[in]	r:				The array being acted on by M
@@ -103,6 +111,7 @@ extern "C"
 			Complex_f gamval[20],const unsigned short gamin[16], float *dk[nc], Complex_f jqq, float akappa);
 	/**
 	 * @brief Evaluates @f$\Phi=M^\dagger r@f$ in single precision.
+	 * @ingroup Dslashes
 	 *
 	 * @param[out]	phi:			The product
 	 * @param[in]	r:				The array being acted on by M
@@ -121,6 +130,7 @@ extern "C"
 			Complex_f gamval[20],const unsigned short gamin[16], float *dk[nc], Complex_f jqq, float akappa);
 	/**
 	 * @brief Evaluates @f$\Phi=M r@f$ in single precision
+	 * @ingroup Dslashes
 	 *
 	 * @param[out]	phi:		The product
 	 * @param[in]	r:			The array being acted on by M
@@ -138,6 +148,7 @@ extern "C"
 			Complex_f gamval[20], const unsigned short gamin[16], float *dk[nc], float akappa);
 	/**
 	 * @brief Evaluates @f$\Phi=M^\dagger r@f$ in single precision
+	 * @ingroup Dslashes
 	 *
 	 * @param[out]	phi:		The product
 	 * @param[in]	r:			The array being acted on by M
@@ -156,6 +167,7 @@ extern "C"
 
 	/**
 	 * @brief In place transpose used to convert from AoS to SoA memory layout
+	 * @ingroup Helper
 	 *
 	 * @param[in,out] out: 			The array being transposed
 	 * @param[in]		fast_in:		The old outermost/fastest index
@@ -166,6 +178,7 @@ extern "C"
 	void Transpose_z(Complex *out, const int, const int);
 	/**
 	 * @brief In place transpose used to convert from AoS to SoA memory layout
+	 * @ingroup Helper
 	 *
 	 * @param[in,out] out: 			The array being transposed
 	 * @param[in]		fast_in:		The old outermost/fastest index
@@ -176,6 +189,7 @@ extern "C"
 	void Transpose_c(Complex_f *out, const int, const int);
 	/**
 	 * @brief In place transpose used to convert from AoS to SoA memory layout
+	 * @ingroup Helper
 	 *
 	 * @param[in,out] out: 			The array being transposed
 	 * @param[in]		fast_in:		The old outermost/fastest index
@@ -186,6 +200,7 @@ extern "C"
 	void Transpose_d(double *out, const int, const int);
 	/**
 	 * @brief In place transpose used to convert from AoS to SoA memory layout
+	 * @ingroup Helper
 	 *
 	 * @param[in,out] out: 			The array being transposed
 	 * @param[in]		fast_in:		The old outermost/fastest index
@@ -196,6 +211,7 @@ extern "C"
 	void Transpose_f(float *out, const int, const int);
 	/**
 	 * @brief In place transpose used to convert from AoS to SoA memory layout
+	 * @ingroup Helper
 	 *
 	 * @param[in,out] out: 			The array being transposed
 	 * @param[in]		fast_in:		The old outermost/fastest index
@@ -206,6 +222,7 @@ extern "C"
 	void Transpose_I(int *out, const int, const int);
 	/**
 	 * @brief In place transpose used to convert from AoS to SoA memory layout
+	 * @ingroup Helper
 	 *
 	 * @param[in,out] out: 			The array being transposed
 	 * @param[in]		fast_in:		The old outermost/fastest index
@@ -219,6 +236,7 @@ extern "C"
 	//Calling Functions
 	/**
 	 * @brief GPU calling wrapper for @f$\Phi=M r@f$ in double precision.
+	 * @ingroup Dslashes
 	 *
 	 * @param[out]	phi:			The product
 	 * @param[in]	r:				The array being acted on by M
@@ -238,6 +256,7 @@ extern "C"
 			dim3 dimGrid, dim3 dimBlock);
 	/**
 	 * @brief GPU calling wrapper for @f$\Phi=M^\dagger r@f$ in double precision.
+	 * @ingroup Dslashes
 	 *
 	 * @param[out]	phi:			The product
 	 * @param[in]	r:				The array being acted on by M
@@ -257,6 +276,7 @@ extern "C"
 			dim3 dimGrid, dim3 dimBlock);
 	/**
 	 * @brief GPU calling wrapper for @f$\Phi=M^\dagger r@f$ in double precision.
+	 * @ingroup Dslashes
 	 *
 	 * @param[out]	phi:			The product
 	 * @param[in]	r:				The array being acted on by M
@@ -274,6 +294,7 @@ extern "C"
 			Complex gamval[20], const unsigned short gamin[16], double *dk[nc], float akappa,dim3 dimGrid, dim3 dimBlock);
 	/**
 	 * @brief GPU calling wrapper for @f$\Phi=M^\dagger r@f$ in double precision.
+	 * @ingroup Dslashes
 	 *
 	 * @param[out]	phi:			The product
 	 * @param[in]	r:				The array being acted on by M
@@ -292,6 +313,7 @@ extern "C"
 	//Float version
 	/**
 	 * @brief GPU calling wrapper for @f$\Phi=M^\dagger r@f$ in double precision.
+	 * @ingroup Dslashes
 	 *
 	 * @param[out]	phi:			The product
 	 * @param[in]	r:				The array being acted on by M
@@ -311,6 +333,7 @@ extern "C"
 			dim3 dimGrid, dim3 dimBlock);
 	/**
 	 * @brief GPU calling wrapper for @f$\Phi=M^\dagger r@f$ in double precision.
+	 * @ingroup Dslashes
 	 *
 	 * @param[out]	phi:			The product
 	 * @param[in]	r:				The array being acted on by M
@@ -330,6 +353,7 @@ extern "C"
 			dim3 dimGrid, dim3 dimBlock);
 	/**
 	 * @brief GPU calling wrapper for @f$\Phi=M r@f$ in single precision
+	 * @ingroup Dslashes
 	 *
 	 * @param[out]	phi:		The product
 	 * @param[in]	r:			The array being acted on by M
@@ -347,6 +371,7 @@ extern "C"
 			Complex_f gamval[20],const unsigned short gamin[16], float *dk[nc], float akappa,dim3 dimGrid, dim3 dimBlock);
 	/**
 	 * @brief GPU calling wrapper for @f$\Phi=M^\dagger r@f$ in single precision
+	 * @ingroup Dslashes
 	 *
 	 * @param[out]	phi:		The product
 	 * @param[in]	r:			The array being acted on by M
@@ -365,6 +390,7 @@ extern "C"
 
 	/**
 	 * @brief	Sum all terms in an array of doubles
+	 * @ingroup Helper
 	 * @param[in]	input:	Input array
 	 * @param[in]	n:			Number of terms
 	 * @param[in]	stream:	What stream to use (useful for simultaneous reductions)
@@ -374,6 +400,7 @@ extern "C"
 	double cureduce_sum_d(double *input, const unsigned int n,const unsigned short stream);
 	/**
 	 * @brief	Sum all terms in an array of floats
+	 * @ingroup Helper
 	 * @param[in]	input:	Input array
 	 * @param[in]	n:			Number of terms
 	 * @param[in]	stream:	What stream to use (useful for simultaneous reductions)
@@ -383,6 +410,7 @@ extern "C"
 	float cureduce_sum_f(float *input, const unsigned int n,const unsigned short stream);
 	/**
 	 * @brief In place transpose used to convert from AoS to SoA memory layout
+	 * @ingroup Helper
 	 *
 	 * @param[in,out] out: 			The array being transposed
 	 * @param[in]		fast_in:		The old outermost/fastest index
@@ -395,6 +423,7 @@ extern "C"
 	void cuTranspose_z(Complex *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
 	/**
 	 * @brief In place transpose used to convert from AoS to SoA memory layout
+	 * @ingroup Helper
 	 *
 	 * @param[in,out] out: 			The array being transposed
 	 * @param[in]		fast_in:		The old outermost/fastest index
@@ -407,6 +436,7 @@ extern "C"
 	void cuTranspose_c(Complex_f *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
 	/**
 	 * @brief In place transpose used to convert from AoS to SoA memory layout
+	 * @ingroup Helper
 	 *
 	 * @param[in,out] out: 			The array being transposed
 	 * @param[in]		fast_in:		The old outermost/fastest index
@@ -419,6 +449,7 @@ extern "C"
 	void cuTranspose_d(double *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
 	/**
 	 * @brief In place transpose used to convert from AoS to SoA memory layout
+	 * @ingroup Helper
 	 *
 	 * @param[in,out] out: 			The array being transposed
 	 * @param[in]		fast_in:		The old outermost/fastest index
@@ -431,6 +462,7 @@ extern "C"
 	void cuTranspose_f(float *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
 	/**
 	 * @brief In place transpose used to convert from AoS to SoA memory layout
+	 * @ingroup Helper
 	 *
 	 * @param[in,out] out: 			The array being transposed
 	 * @param[in]		fast_in:		The old outermost/fastest index
@@ -443,6 +475,7 @@ extern "C"
 	void cuTranspose_I(int *out, const int fast_in, const int fast_out, const dim3 dimGrid, const dim3 dimBlock);
 	/**
 	 * @brief In place transpose used to convert from AoS to SoA memory layout
+	 * @ingroup Helper
 	 *
 	 * @param[in,out] out: 			The array being transposed
 	 * @param[in]		fast_in:		The old outermost/fastest index
@@ -457,6 +490,7 @@ extern "C"
 	 *	@brief Add a single to a double value, and save the output in the double array
 	 *			For complex valued arrays, one may cast the complex<double> and complex<float> arrays to double and float
 	 *			arrays, and use 2N for the array length instead.
+	 * @ingroup Helper
 	 *	
 	 *	@param[in,out]	d:						Double array
 	 *	@param[in]		f:						float array
