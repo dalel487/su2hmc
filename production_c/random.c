@@ -3,7 +3,7 @@
  *
  * @brief Random number generator related routines
  */
-#ifdef	__NVCC__
+#ifdef	USE_GPU
 #include <curand.h>
 #endif
 #ifdef	__USE_MKL__

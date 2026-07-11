@@ -202,7 +202,7 @@ void Leaf(Complex_f Leaves[nc],Complex_f *ut[nc], unsigned int *iu, unsigned int
 }
 void Clover(Complex_f *clover[2], Complex_f *ut[2], unsigned int *iu, unsigned int *id){
 	const char funcname[]="Full_Clover";
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cuClover(clover,ut,iu,id);
 #else
 	clover[0]=aligned_alloc(AVX,6*kvol*sizeof(Complex_f));
@@ -241,7 +241,7 @@ void Clover(Complex_f *clover[2], Complex_f *ut[2], unsigned int *iu, unsigned i
 //Multiplication for Congradq
 //=========================
 void ByClover(Complex *phi, Complex *r, Complex *clover[2], Complex *sigval, const float akappa, unsigned short *sigin, bool dag){
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cuByClover(phi,r,clover,sigval,akappa,sigin,dag);
 #else
 #pragma omp parallel for simd
@@ -288,7 +288,7 @@ void ByClover(Complex *phi, Complex *r, Complex *clover[2], Complex *sigval, con
 }
 void HbyClover(Complex *phi, Complex *r, Complex *clover[2],Complex *sigval, const float akappa, unsigned short *sigin,bool dag){
 	const char funcname[] = "HbyClover";
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cuHbyClover(phi,r,clover,sigval,akappa,sigin,dag);
 #else
 #pragma omp parallel for simd
@@ -334,7 +334,7 @@ void HbyClover(Complex *phi, Complex *r, Complex *clover[2],Complex *sigval, con
 }
 //Float versions
 void ByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2], Complex_f *sigval, const float akappa, unsigned short *sigin, bool dag){
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cuByClover_f(phi,r,clover,sigval,akappa,sigin,dag);
 #else
 #pragma omp parallel for simd
@@ -381,7 +381,7 @@ void ByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2], Complex_f *s
 }
 void HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2],Complex_f *sigval, const float akappa, unsigned short *sigin,bool dag){
 	const char funcname[] = "HbyClover_f";
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cuHbyClover_f(phi,r,clover,sigval,akappa,sigin,dag);
 #else
 #pragma omp parallel for simd
@@ -445,7 +445,7 @@ static inline void GetBilinear(Complex_f Z[nc*nc], Bilinear_a Xmn,unsigned int i
 void CalcXmunu(Bilinear_a Xmunu, Complex_f *X1, Complex_f *X2, const Complex_f *sigval, const unsigned short *sigin,\
 		const unsigned short mu, const unsigned short nu){
 	const char funcname[] = "Xmunu";
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cuCalcXmunu(Xmunu,X1,X2,sigval,sigin,mu,nu);
 #else
 	unsigned short clov;
@@ -542,7 +542,7 @@ static inline void GSandwich(Complex_f out[4],Complex_f tmp[4], const Complex_f 
 void Clov_Force(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, const Complex_f *sigval,\
 		const unsigned short *sigin, unsigned int *iu, unsigned int *id, const float akappa){
 	const char funcname[] = "Clov_Force";
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cuClov_Force(dSdpi,ut,X1,X2,sigval,sigin,iu,id,akappa);
 #else
 	//Allocate the @f$X_{\mu\nu}@f$ array
@@ -724,7 +724,7 @@ int Init_clover(Complex **sigval, Complex_f **sigval_f,unsigned short **sigin, f
 			sigval_t[i][j]*=c_sw*0.5;
 #endif
 
-#ifdef __NVCC__
+#ifdef USE_GPU
 	int device = -1; 
 	cudaGetDevice(&device);
 
@@ -749,7 +749,7 @@ int Init_clover(Complex **sigval, Complex_f **sigval_f,unsigned short **sigin, f
 }
 inline void Clover_free(Complex_f *clover[nc]){
 	for(unsigned short c=0;c<nc;c++){
-#ifdef __NVCC__
+#ifdef USE_GPU
 #ifdef _DEBUG
 		cudaFree(clover[c]);
 #else

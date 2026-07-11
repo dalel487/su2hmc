@@ -36,7 +36,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 	Complex_f *clover_f[nc], *hLeaves[ndim][nc]; Complex *clover[nc];
 	Bilinear_a Xmn[nclov];
 	Complex *ut_save[nc];
-#ifdef __NVCC__
+#ifdef USE_GPU
 	int device=-1;
 	cudaGetDevice(&device);
 	Complex *xi,*R1,*Phi,*X0,*X1, *smallPhi;
@@ -320,7 +320,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				//NOTE: Each line corresponds to one lattice direction, in the form of colour 0, colour 1.
 				//Each block to one lattice site
 				input = fopen("dslash_in", "w"); input_f = fopen("dslash_f_in", "w"); input_diff = fopen("dslash_diff_in", "w");
-#ifdef __NVCC__
+#ifdef USE_GPU
 				cudaDeviceSynchronise();
 #endif
 				for(unsigned int i = 0; i< kvol; i++){
@@ -335,7 +335,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				fclose(input); fclose(input_f); fclose(input_diff);
 				Dslash(xi,R1,ut,iu,id,gamval,gamin,dk,jqq,akappa);
 				Dslash_f(xi_f,R1_f,ut_f,iu,id,gamval_f,gamin,dk_f,jqq,akappa);
-#ifdef __NVCC__
+#ifdef USE_GPU
 				cudaDeviceSynchronise();
 #endif
 				output = fopen("dslash", "w"); output_f = fopen("dslash_f", "w"); output_diff = fopen("dslash_diff", "w");
@@ -364,7 +364,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				//NOTE: Each line corresponds to one lattice direction, in the form of colour 0, colour 1.
 				//Each block to one lattice site
 				input = fopen("dslashd_in", "w"); input_f = fopen("dslashd_f_in", "w"); input_diff = fopen("dslashd_diff_in", "w");
-#ifdef __NVCC__
+#ifdef USE_GPU
 				cudaDeviceSynchronise();
 #endif
 				for(unsigned int i = 0; i< kvol; i++){
@@ -379,7 +379,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				fclose(input); fclose(input_f);fclose(input_diff);
 				Dslashd(xi,R1,ut,iu,id,gamval,gamin,dk,jqq,akappa);
 				Dslashd_f(xi_f,R1_f,ut_f,iu,id,gamval_f,gamin,dk_f,jqq,akappa);
-#ifdef __NVCC__
+#ifdef USE_GPU
 				cudaDeviceSynchronise();
 #endif
 				output = fopen("dslashd", "w"); output_f = fopen("dslashd_f", "w"); output_diff = fopen("dslashd_diff", "w");
@@ -422,7 +422,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				fclose(input);fclose(input_f);fclose(input_diff);
 				Hdslash(X1,X0,ut,iu,id,gamval,gamin,dk,akappa);
 				Hdslash_f(X1_f,X0_f,ut_f,iu,id,gamval_f,gamin,dk_f,akappa);
-#ifdef __NVCC__
+#ifdef USE_GPU
 				cudaDeviceSynchronise();
 #endif
 				output = fopen("hdslash", "w");	output_f = fopen("hdslash_f", "w"); output_diff = fopen("hdslash_diff", "w");
@@ -451,7 +451,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				ComplexConvert(X0_f,X0,kvol,false,nc*ndirac);
 				memset(X1,0,kferm2Halo*sizeof(Complex)); memset(X1_f,0,kferm2Halo*sizeof(Complex_f));
 				input = fopen("hdslashd_in", "w"); input_f = fopen("hdslashd_f_in", "w"); input_diff = fopen("hdslashd_diff_in", "w");
-#ifdef __NVCC__
+#ifdef USE_GPU
 				cudaDeviceSynchronise();
 #endif
 				for(unsigned int i = 0; i< kvol; i++){
@@ -466,7 +466,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				fclose(input);fclose(input_f);fclose(input_diff);
 				Hdslashd(X1,X0,ut,iu,id,gamval,gamin,dk,akappa);
 				Hdslashd_f(X1_f,X0_f,ut_f,iu,id,gamval_f,gamin,dk_f,akappa);
-#ifdef __NVCC__
+#ifdef USE_GPU
 				cudaDeviceSynchronise();
 #endif
 				output = fopen("hdslashd", "w");	output_f = fopen("hdslashd_f", "w"); output_diff = fopen("hdslashd_diff", "w");
@@ -540,7 +540,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				//NOTE: Each line corresponds to one lattice direction, in the form of colour 0, colour 1.
 				//Each block to one lattice site
 				input = fopen("byclover_in", "w"); input_f = fopen("byclover_f_in", "w"); input_diff = fopen("byclover_diff_in", "w");
-#ifdef __NVCC__
+#ifdef USE_GPU
 				cudaDeviceSynchronise();
 #endif
 				for(unsigned int i = 0; i< kvol; i++){
@@ -558,7 +558,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				fclose(input); fclose(input_f); fclose(input_diff);
 				ByClover(xi,R1,clover,sigval,akappa,sigin,false);
 				ByClover_f(xi_f,R1_f,clover_f,sigval_f,akappa,sigin,false);
-#ifdef __NVCC__
+#ifdef USE_GPU
 				cudaDeviceSynchronise();
 #endif
 				output = fopen("byclover", "w"); output_f = fopen("byclover_f", "w"); output_diff = fopen("byclover_diff", "w");
@@ -590,7 +590,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				ComplexConvert(X0_f,X0,kvol,false,nc*ndirac);
 				memset(X1,0,kferm2Halo*sizeof(Complex)); memset(X1_f,0,kferm2Halo*sizeof(Complex_f));
 				input = fopen("hbyclover_in", "w"); input_f = fopen("hbyclover_f_in", "w"); input_diff = fopen("hbyclover_diff_in", "w");
-#ifdef __NVCC__
+#ifdef USE_GPU
 				cudaDeviceSynchronise();
 #endif
 				for(unsigned int i = 0; i< kvol; i++){
@@ -605,7 +605,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				fclose(input);fclose(input_f);fclose(input_diff);
 				HbyClover(X1,X0,clover,sigval,akappa,sigin,false);
 				HbyClover_f(X1_f,X0_f,clover_f,sigval_f,akappa,sigin,false);
-#ifdef __NVCC__
+#ifdef USE_GPU
 				cudaDeviceSynchronise();
 #endif
 				output = fopen("hbyclover", "w");	output_f = fopen("hbyclover_f", "w"); output_diff = fopen("hbyclover_diff", "w");
@@ -688,13 +688,13 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 				break;
 			case(11): //Gauge Force
 				memset(dSdpi,0,kmom*sizeof(double));
-#ifdef __NVCC__
+#ifdef USE_GPU
 				//cudaMemPrefetchAsync(dSdpi,kmom*sizeof(double),device,NULL);
 #endif
 				//Isolate Gauge force contribution
 				memset(dSdpi,0,kmom*sizeof(double));
 				Gauge_force(dSdpi,ut_f,iu,id,beta);
-#ifdef __NVCC__
+#ifdef USE_GPU
 				cudaDeviceSynchronise();
 #endif
 				output = fopen("Gauge_Force","w");
@@ -907,7 +907,7 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 		}
 	}
 	//George Michael's favourite bit of the code
-#ifdef __NVCC__
+#ifdef USE_GPU
 	//Make a routine that does this for us
 	cudaFree(dk[0]); cudaFree(dk[1]); cudaFree(R1); cudaFree(dSdpi); cudaFree(pp);
 	cudaFree(Phi); cudaFree(ut[0]); cudaFree(ut[1]);

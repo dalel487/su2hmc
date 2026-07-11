@@ -42,7 +42,7 @@
 #include	<assert.h>
 #include	<clover.h>
 #include	<matrices.h>
-#ifdef	__NVCC__
+#ifdef	USE_GPU
 #include	<cuda_runtime.h>
 cublasHandle_t cublas_handle;
 cublasStatus_t cublas_status;
@@ -104,7 +104,7 @@ int main(int argc, char *argv[]){
 	 */
 	float beta = 1.7f;
 	float akappa = 0.1780f;
-#ifdef __NVCC__
+#ifdef USE_GPU
 	__managed__ 
 #endif
 		Complex_f jqq = 0;
@@ -154,7 +154,7 @@ int main(int argc, char *argv[]){
 	//	jqq=ajq*cexp(athq*I);
 	jqq=ajq;
 	//End of input
-#ifdef __NVCC__
+#ifdef USE_GPU
 	//CUBLAS Handle
 	cublasCreate(&cublas_handle);
 	//Set up grid and blocks
@@ -200,7 +200,7 @@ int main(int argc, char *argv[]){
 	unsigned int *iu, *id;
 	//And clover arrays. These only get assigned if @f$c_\text{SW}>0@f$
 	Complex *sigval; Complex_f *sigval_f; unsigned short *sigin;
-#ifdef __NVCC__
+#ifdef USE_GPU
 	//Managed here because it's easier to fill them on CPU
 	cudaMallocManaged((void**)&iu,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
 	cudaMallocManaged((void**)&id,ndim*kvol*sizeof(int),cudaMemAttachGlobal);
@@ -267,14 +267,14 @@ int main(int argc, char *argv[]){
 		Init_clover(&sigval,&sigval_f,&sigin,c_sw);
 
 	/// @f$\sigma_{\mu\nu}@f$ if we're using clover fermions
-#ifdef __NVCC__
+#ifdef USE_GPU
 	//GPU Initialisation stuff
 	Init_CUDA(ut[0],ut[1],gamval,gamval_f,gamin,dk[0],dk[1],iu,id);//&dimBlock,&dimGrid);
 #endif
 	//Send trials to accelerator for reunitarisation
 	Reunitarise(ut);
 	//Get trials back
-#ifdef __NVCC__
+#ifdef USE_GPU
 #if(nproc>1) //Memcpy routines need to be strided if there is a halo since the lattice is not contiguous in memory
 	for(unsigned short mu=0;mu<ndim;mu++){
 		cudaMemcpyAsync(u[0]+kvol*mu, ut[0]+kvolHalo*mu, kvol*sizeof(Complex),cudaMemcpyDefault,streams[mu]);
@@ -290,7 +290,7 @@ int main(int argc, char *argv[]){
 		memcpy(u[1]+kvol*mu, ut[1]+kvolHalo*mu, kvol*sizeof(Complex));
 	}
 #endif
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cudaDeviceSynchronise();
 #endif
 #ifdef DIAGNOSTIC
@@ -387,7 +387,7 @@ int main(int argc, char *argv[]){
 	Complex *Phi, *X0, *X1;
 	//Initialise Arrays. Leaving it late for scoping
 	//check the sizes in sizes.h
-#ifdef __NVCC__
+#ifdef USE_GPU
 #ifdef _DEBUG
 	cudaMallocManaged((void **)&X0, nf*kferm2*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&Phi, nf*kferm*sizeof(Complex),cudaMemAttachGlobal);
@@ -444,7 +444,7 @@ int main(int argc, char *argv[]){
 			//
 			//How do we optimise this for use in CUDA? Do we use CUDA's PRNG
 			//or stick with MKL and synchronise/copy over the array
-#ifdef __NVCC__
+#ifdef USE_GPU
 			Complex_f *R1_f,*R; Complex *R1;
 			cudaMallocManaged((void **)&R,kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
 #ifdef _DEBUG
@@ -465,7 +465,7 @@ int main(int argc, char *argv[]){
 			//The FORTRAN code had two Gaussian routines.
 			//gaussp was the normal Box-Muller and gauss0 didn't have 2 inside the square root
 			//Using σ=1/sqrt(2) in these routines has the same effect as gauss0
-#if (defined __NVCC__ && defined _DEBUG)
+#if (defined USE_GPU && defined _DEBUG)
 			//cudaMemPrefetchAsync(R1_f,kferm*sizeof(Complex_f),device,streams[1]);
 #endif
 			//Split into chunks to take into account the halos.
@@ -475,7 +475,7 @@ int main(int argc, char *argv[]){
 			Dslashd_f(R1_f,R,ut_f,iu,id,gamval_f,gamin,dk_f,jqq,akappa);
 			if(c_sw)
 				ByClover_f(R1_f,R,clover,sigval_f,akappa,sigin,true);
-#ifdef __NVCC__
+#ifdef USE_GPU
 			//Make sure the multiplication is finished before freeing its input!!
 			cudaFree(R);//cudaDeviceSynchronise(); 
 							//cudaFree is blocking so don't need to synchronise
@@ -498,7 +498,7 @@ int main(int argc, char *argv[]){
 			//Up/down partitioning (using only pseudofermions of flavour 1)
 #endif
 			UpDownPart(na, X0, R1);
-#ifdef __NVCC__
+#ifdef USE_GPU
 #ifdef _DEBUG
 			cudaFree(R1);
 #else
@@ -516,7 +516,7 @@ int main(int argc, char *argv[]){
 		//========
 		//We're going to make the most of the new Gauss_d routine to send a flattened array
 		//and do this all in one step.
-#ifdef __NVCC__
+#ifdef USE_GPU
 #if(nproc>1)//Strided memcpy
 		for(unsigned short mu=0;mu<ndim;mu++){
 			cudaMemcpyAsync(ut[0]+kvolHalo*mu, u[0]+kvol*mu, kvol*sizeof(Complex),cudaMemcpyDefault,streams[mu]);
@@ -604,7 +604,7 @@ int main(int argc, char *argv[]){
 			//Original FORTRAN Comment:
 			//JIS 20100525: write config here to preempt troubles during measurement!
 			//JIS 20100525: remove when all is ok....
-#ifdef __NVCC__
+#ifdef USE_GPU
 #if(nproc>1) //strided Memcpy
 			for(unsigned short mu=0;mu<ndim;mu++){
 				cudaMemcpyAsync(u[0]+kvol*mu,ut[0]+kvolHalo*mu,kvol*sizeof(Complex),cudaMemcpyDefault,streams[mu]);
@@ -632,7 +632,7 @@ int main(int argc, char *argv[]){
 		}
 		actiona+=action; 
 		double vel2=0.0;
-#ifdef __NVCC__
+#ifdef USE_GPU
 		cublasDnrm2(cublas_handle,kmom, pp, 1,&vel2);
 		vel2*=vel2;
 		cudaDeviceSynchronise();
@@ -652,7 +652,7 @@ int main(int argc, char *argv[]){
 		if(itraj%iprint==0){
 			//If rejected, copy the previously accepted field in for measurements
 			if(!acc){
-#ifdef __NVCC__
+#ifdef USE_GPU
 #if(nproc>1) //Strided Memcpy
 				for(unsigned short mu=0;mu<ndim;mu++){
 					cudaMemcpyAsync(ut[0]+kvolHalo*mu, u[0]+kvol*mu, kvol*sizeof(Complex),cudaMemcpyDefault,streams[mu]);
@@ -799,7 +799,7 @@ int main(int argc, char *argv[]){
 #endif
 	//End of main loop
 	//Free arrays
-#ifdef __NVCC__
+#ifdef USE_GPU
 	//Make a routine that does this for us
 	cudaFree(dk[0]); cudaFree(dk[1]); cudaFree(dSdpi); cudaFree(pp);
 	cudaFree(Phi); cudaFree(ut[0]); cudaFree(ut[1]);
@@ -828,7 +828,7 @@ int main(int argc, char *argv[]){
 #if (defined SA3AT)
 	if(!rank){
 		FILE *sa3at = fopen("Bench_times.csv", "a");
-#ifdef __NVCC__
+#ifdef USE_GPU
 		char version[256];
 		int cuversion; cudaRuntimeGetVersion(&cuversion);
 		sprintf(version,"CUDA %d\tBlock: (%d,%d,%d)\tGrid: (%d,%d,%d)\n%s\n",cuversion,\

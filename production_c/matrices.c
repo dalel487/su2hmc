@@ -23,7 +23,7 @@ int Dslash(Complex *phi, Complex *r, Complex *ut[nc], unsigned int *iu,unsigned 
 
 	//Mass term
 	//Diquark Term (antihermitian)
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cuDslash(phi,r,ut,iu,id,gamval,gamin,dk,jqq,akappa,dimGrid,dimBlock);
 #else
 	for(unsigned short j=0;j<nc*ngorkov;j++)
@@ -141,7 +141,7 @@ int Dslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned 
 #endif
 
 	//Mass term
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cuDslashd(phi,r,ut,iu,id,gamval,gamin,dk,jqq,akappa,dimGrid,dimBlock);
 #else
 	for(unsigned short j=0;j<nc*ngorkov;j++)
@@ -261,7 +261,7 @@ int Hdslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned  int *iu,unsigned
 
 	//Mass term
 	//Spacelike term
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cuHdslash(phi,r,ut,iu,id,gamval,gamin,dk,akappa,dimGrid,dimBlock);
 #else
 	for(unsigned short j=0;j<nc*ndirac;j++)
@@ -344,7 +344,7 @@ int Hdslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned  int *iu,unsigne
 #endif
 
 	//Mass term
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cuHdslashd(phi,r,ut,iu,id,gamval,gamin,dk,akappa,dimGrid,dimBlock);
 #else
 	for(unsigned short j=0;j<nc*ndirac;j++)
@@ -432,7 +432,7 @@ int Dslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu, u
 
 	//Mass term
 	//Diquark Term (antihermitian)
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cuDslash_f(phi,r,ut,iu,id,gamval,gamin,dk,jqq,akappa,dimGrid,dimBlock);
 #else
 	for(unsigned short j=0;j<nc*ngorkov;j++)
@@ -550,7 +550,7 @@ int Dslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,u
 #endif
 
 	//Mass term
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cuDslashd_f(phi,r,ut,iu,id,gamval,gamin,dk,jqq,akappa,dimGrid,dimBlock);
 #else
 	for(unsigned short j=0;j<nc*ngorkov;j++)
@@ -667,7 +667,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned  int *iu,
 #if(nproc>1)
 	CHalo_swap_all(r, 8);
 #endif
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cuHdslash_f(phi,r,ut,iu,id,gamval,gamin,dk,akappa,dimGrid,dimBlock);
 #else
 	//Mass term
@@ -754,7 +754,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,
 #endif
 
 	//Mass term
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cuHdslashd_f(phi,r,ut,iu,id,gamval,gamin,dk,akappa,dimGrid,dimBlock);
 #else
 	for(unsigned short j=0;j<nc*ndirac;j++)
@@ -836,7 +836,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,
 inline void Transpose_c(Complex_f *out, const int fast_in, const int fast_out){
 	const volatile char funcname[]="Transpose_c";
 
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cuTranspose_c(out,fast_in,fast_out,dimGrid,dimBlock);
 #else
 	Complex_f *in = (Complex_f *)aligned_alloc(AVX,fast_in*fast_out*sizeof(Complex_f));
@@ -859,7 +859,7 @@ inline void Transpose_c(Complex_f *out, const int fast_in, const int fast_out){
 inline void Transpose_z(Complex *out, const int fast_in, const int fast_out){
 	const volatile char funcname[]="Transpose_c";
 
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cuTranspose_z(out,fast_in,fast_out,dimGrid,dimBlock);
 #else
 	Complex *in = (Complex *)aligned_alloc(AVX,fast_in*fast_out*sizeof(Complex));
@@ -882,7 +882,7 @@ inline void Transpose_z(Complex *out, const int fast_in, const int fast_out){
 inline void Transpose_f(float *out, const int fast_in, const int fast_out){
 	const char funcname[]="Transpose_f";
 
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cuTranspose_f(out,fast_in,fast_out,dimGrid,dimBlock);
 #else
 	float *in = (float *)aligned_alloc(AVX,fast_in*fast_out*sizeof(float));
@@ -905,7 +905,7 @@ inline void Transpose_f(float *out, const int fast_in, const int fast_out){
 inline void Transpose_d(double *out, const int fast_in, const int fast_out){
 	const char funcname[]="Transpose_f";
 
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cuTranspose_d(out,fast_in,fast_out,dimGrid,dimBlock);
 #else
 	double *in = (double *)aligned_alloc(AVX,fast_in*fast_out*sizeof(double));
@@ -928,7 +928,7 @@ inline void Transpose_d(double *out, const int fast_in, const int fast_out){
 inline void Transpose_I(int *out, const int fast_in, const int fast_out){
 	const char funcname[]="Transpose_I";
 
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cuTranspose_I(out,fast_in,fast_out,dimGrid,dimBlock);
 #else
 	int *in = (int *)aligned_alloc(AVX,fast_in*fast_out*sizeof(int));
@@ -951,7 +951,7 @@ inline void Transpose_I(int *out, const int fast_in, const int fast_out){
 inline void Transpose_U(unsigned int *out, const int fast_in, const int fast_out){
 	const char funcname[]="Transpose_I";
 
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cuTranspose_U(out,fast_in,fast_out,dimGrid,dimBlock);
 #else
 	unsigned int *in = (unsigned int *)aligned_alloc(AVX,fast_in*fast_out*sizeof(unsigned int));

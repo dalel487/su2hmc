@@ -19,7 +19,7 @@ int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u
 	  Should work since in the FORTRAN Sigma11[i] only depends on i components  for example
 	  Since the \nu loop doesn't get called for \mu=0 we'll start at \mu=1
 	  */
-#ifdef __NVCC__
+#ifdef USE_GPU
 	__managed__ double hgs = 0; __managed__ double hgt = 0;
 	cuAverage_Plaquette(&hgs, &hgt, ut[0], ut[1], iu,dimGrid,dimBlock);
 #else
@@ -53,7 +53,7 @@ int Average_Plaquette(double *hg, double *avplaqs, double *avplaqt, Complex_f *u
 #endif
 	return 0;
 }
-#ifndef __NVCC__
+#ifndef USE_GPU
 #pragma omp declare simd
 inline int SU2plaq(Complex_f *ut[2], Complex_f Sigma[2], unsigned int *iu,  int i, int mu, int nu){
 	const char funcname[] = "SU2plaq";
@@ -75,7 +75,7 @@ double Polyakov(Complex_f *ut[2]){
 	const char funcname[] = "Polyakov";
 	double poly = 0;
 	Complex_f *Sigma[2];
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cuPolyakov(Sigma,ut,dimGrid,dimBlock);
 #else
 	Sigma[0] = (Complex_f *)aligned_alloc(AVX,kvol3*sizeof(Complex_f));
@@ -138,7 +138,7 @@ double Polyakov(Complex_f *ut[2]){
 #pragma omp parallel for simd reduction(+:poly)
 		for(unsigned int i=0;i<kvol3;i++)
 			poly+=creal(Sigma[0][i]);
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cudaFree(Sigma[0]);
 #else
 	free(Sigma[0]); 

@@ -149,7 +149,7 @@ extern "C"
 			Complex *sigval, Complex_f *sigval_f, unsigned short *sigin, const Complex jqq, const float beta, const float akappa, 
 			const float c_sw, const int stepl, const float dt, double *ancg, int *itot, const float proby);
 	//CUDA Calling functions
-#ifdef __NVCC__
+#ifdef USE_GPU
 	/**
 	 * @brief CUDA wrapper for the gauge update during the integration step of the HMC
 	 *	@ingroup MD

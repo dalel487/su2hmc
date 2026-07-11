@@ -53,7 +53,7 @@ int Init(const int istart, const int ibound, const int iread, const float beta, 
 	DHalo_swap_dir(dk[0], 1, 3, UP);
 #endif
 	//Float versions
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cuReal_convert(dk_f[1],dk[1],kvol+halo,true,dimBlock,dimGrid);
 	cuReal_convert(dk_f[0],dk[0],kvol+halo,true,dimBlock,dimGrid);
 #else
@@ -68,7 +68,7 @@ int Init(const int istart, const int ibound, const int iread, const float beta, 
 	//Gamma Matrices in Chiral Representation
 	//See Appendix 8.1.2 of Montvay and Munster
 	//_t is for temp. We copy these into the real gamvals later
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cudaMemcpy(gamin,gamin_t,4*4*sizeof(short),cudaMemcpyHostToDevice);
 #else
 	memcpy(gamin,gamin_t,4*4*sizeof(short));
@@ -88,7 +88,7 @@ int Init(const int istart, const int ibound, const int iread, const float beta, 
 #endif
 
 
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cudaMemcpy(gamval,gamval_t,5*4*sizeof(Complex),cudaMemcpyHostToDevice);
 	cuComplex_convert(gamval_f,gamval,20,true,dimBlockOne,dimGridOne);	
 #else
@@ -134,7 +134,7 @@ int Init(const int istart, const int ibound, const int iread, const float beta, 
 		else
 			fprintf(stderr,"Warning %i in %s: Gauge fields are not initialised.\n", NOINIT, funcname);
 
-#ifdef __NVCC__
+#ifdef USE_GPU
 		int device=-1;
 		cudaGetDevice(&device);
 		//cudaMemPrefetchAsync(ut[0], ndim*kvol*sizeof(Complex),device,streams[0]);
@@ -143,7 +143,7 @@ int Init(const int istart, const int ibound, const int iread, const float beta, 
 		//Send trials to accelerator for reunitarisation
 		Reunitarise(ut);
 		//Get trials back
-#ifdef __NVCC__
+#ifdef USE_GPU
 #if (nproc>1) //Strided for multi-GPU
 		for(unsigned short mu=0;mu<ndim;mu++){
 			cudaMemcpy(u[0]+kvol*mu, ut[0]+kvolHalo*mu, kvol*sizeof(Complex),cudaMemcpyDefault);
@@ -171,7 +171,7 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 		int traj){
 	const char funcname[] = "Hamilton";
 	//Iterate over momentum terms.
-#ifdef __NVCC__
+#ifdef USE_GPU
 	double hp;
 	int device=-1;
 	cudaGetDevice(&device);
@@ -193,7 +193,7 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 	Average_Plaquette(&hg,&avplaqs,&avplaqt,ut,iu,beta);
 
 	alignas(8) double hf = 0; int itercg = 0;
-#ifdef __NVCC__
+#ifdef USE_GPU
 	Complex *smallPhi;
 #ifdef _DEBUG
 	cudaMallocManaged((void **)&smallPhi,kferm2*sizeof(Complex),cudaMemAttachGlobal);
@@ -208,7 +208,7 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 		Clover(clover,ut,iu,id);
 	//Iterating over flavours
 	for(unsigned short na=0;na<nf;na++){
-#ifdef __NVCC__
+#ifdef USE_GPU
 #if (nproc>1) //strided for multi-GPU
 		for(unsigned short j=0;j<nc*ndirac;j++)
 			cudaMemcpyAsync(X1+j*kvolHalo,X0+na*kferm2+j*kvol,kvol*sizeof(Complex),cudaMemcpyDeviceToDevice,streams[j]);
@@ -225,7 +225,7 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 			fprintf(stderr,"Trajectory %d\n", traj);
 
 		*ancgh+=itercg;
-#ifdef __NVCC__
+#ifdef USE_GPU
 #if (nproc>1) //strided for multi-GPU
 		for(unsigned short j=0;j<nc*ndirac;j++)
 			cudaMemcpyAsync(X0+na*kferm2+j*kvol,X1+j*kvolHalo,kvol*sizeof(Complex),cudaMemcpyDeviceToDevice,streams[j]);
@@ -237,7 +237,7 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 			memcpy(X0+na*kferm2+j*kvol,X1+j*kvolHalo,kvol*sizeof(Complex));
 #endif
 		Fill_Small_Phi(na, smallPhi,Phi);
-#ifdef __NVCC__
+#ifdef USE_GPU
 		alignas(16) Complex dot=0;
 #if (nproc>1)
 		for(unsigned short j=0;j<nc*ndirac;j++){
@@ -268,7 +268,7 @@ int Hamilton(double *h,double *s,double res2,double *pp,Complex *X0,Complex *X1,
 	}
 	if(c_sw)
 		Clover_free(clover);
-#ifdef __NVCC__
+#ifdef USE_GPU
 #ifdef _DEBUG
 	cudaFree(smallPhi);
 #else
@@ -312,7 +312,7 @@ inline int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
 {
 	const char funcname[] = "Fill_Small_Phi";
 	//BIG and small phi index
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cuFill_Small_Phi(na,smallPhi,Phi,dimBlock,dimGrid);
 #else
 #pragma omp parallel for simd aligned(smallPhi,Phi:AVX) collapse(3)
@@ -325,7 +325,7 @@ inline int Fill_Small_Phi(int na, Complex *smallPhi, Complex *Phi)
 	return 0;
 }
 inline int UpDownPart(const unsigned int na, Complex *X0, Complex *R1){
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cuUpDownPart(na,X0,R1,dimBlock,dimGrid);
 	cudaDeviceSynchronise();
 #else
@@ -341,7 +341,7 @@ inline int UpDownPart(const unsigned int na, Complex *X0, Complex *R1){
 }
 inline int Reunitarise(Complex *ut[2]){
 	const char funcname[] = "Reunitarise";
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cuReunitarise(ut,dimGrid,dimBlock);
 #else
 #pragma omp parallel for simd

@@ -22,7 +22,7 @@
  */
 void Q_allocate_f(Complex_f **p_f, Complex_f **x1_f, Complex_f **x2_f, Complex_f **r_f, Complex_f **X1_f){
 	const char funcname[] = "Q_allocate";
-#ifdef __NVCC__
+#ifdef USE_GPU
 #ifdef _DEBUG
 	cudaMallocManaged((void **)p_f, kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)x1_f, kferm2Halo*sizeof(Complex_f),cudaMemAttachGlobal);
@@ -63,7 +63,7 @@ void Q_allocate_f(Complex_f **p_f, Complex_f **x1_f, Complex_f **x2_f, Complex_f
  */
 void Q_allocate(Complex **p, Complex **x1, Complex **x2, Complex *clover[2]){
 	const char funcname[] = "Q_allocate";
-#ifdef __NVCC__
+#ifdef USE_GPU
 #ifdef _DEBUG
 	cudaMallocManaged((void **)&clover[0], 6*kvol*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&clover[1], 6*kvol*sizeof(Complex),cudaMemAttachGlobal);
@@ -101,7 +101,7 @@ void Q_allocate(Complex **p, Complex **x1, Complex **x2, Complex *clover[2]){
  * @post	Memory allocated
  */
 void P_allocate_f(Complex_f **p_f,Complex_f **r_f, Complex_f **x1_f, Complex_f **x2_f, Complex_f **xi_f){
-#ifdef __NVCC__
+#ifdef USE_GPU
 #ifdef _DEBUG
 	cudaMallocManaged((void **)p_f, kfermHalo*sizeof(Complex_f),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)r_f, kferm*sizeof(Complex_f),cudaMemAttachGlobal);
@@ -138,7 +138,7 @@ void P_allocate_f(Complex_f **p_f,Complex_f **r_f, Complex_f **x1_f, Complex_f *
  * @post	Memory allocated
  */
 void P_allocate(Complex **p, Complex **r, Complex **x1, Complex **x2,Complex *clover[2]){
-#ifdef __NVCC__
+#ifdef USE_GPU
 #ifdef _DEBUG
 	cudaMallocManaged((void **)&clover[0], 6*kvol*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&clover[1], 6*kvol*sizeof(Complex),cudaMemAttachGlobal);
@@ -180,7 +180,7 @@ void P_allocate(Complex **p, Complex **r, Complex **x1, Complex **x2,Complex *cl
  */
 void Q_free_f(Complex_f **p_f, Complex_f **x1_f, Complex_f **x2_f, Complex_f **r_f, Complex_f **X1_f){
 	const char funcname[] = "Q_free";
-#ifdef __NVCC__
+#ifdef USE_GPU
 #ifdef _DEBUG
 	cudaDeviceSynchronise();
 	cudaFree(*x1_f);cudaFree(*x2_f); cudaFree(*p_f);
@@ -210,7 +210,7 @@ void Q_free_f(Complex_f **p_f, Complex_f **x1_f, Complex_f **x2_f, Complex_f **r
  */
 void Q_free(Complex **p, Complex **x1, Complex **x2, Complex *clover[2]){
 	const char funcname[] = "Qree";
-#ifdef __NVCC__
+#ifdef USE_GPU
 #ifdef _DEBUG
 	cudaDeviceSynchronise();
 	cudaFree(*x1);cudaFree(*x2); cudaFree(*p);
@@ -241,7 +241,7 @@ void Q_free(Complex **p, Complex **x1, Complex **x2, Complex *clover[2]){
  * @post	Memory freed
  */
 void P_free_f(Complex_f **p_f,Complex_f **r_f, Complex_f **x1_f, Complex_f **x2_f, Complex_f **xi_f){
-#ifdef	__NVCC__
+#ifdef	USE_GPU
 	cudaFree(*p_f); cudaFree(*r_f);cudaFree(*x1_f); cudaFree(*x2_f); cudaFree(*xi_f); 
 #else
 	free(*p_f); free(*r_f); free(*x1_f); free(*x2_f); free(*xi_f); 
@@ -261,7 +261,7 @@ void P_free_f(Complex_f **p_f,Complex_f **r_f, Complex_f **x1_f, Complex_f **x2_
  * @post	Memory freed
  */
 void P_free(Complex **p, Complex **r, Complex **x1, Complex **x2,Complex *clover[2]){
-#ifdef __NVCC__
+#ifdef USE_GPU
 #ifdef _DEBUG
 	cudaFree(clover[0]); cudaFree(clover[1]);
 	cudaFree(*p);cudaFree(*r);cudaFree(*x1); cudaFree(*x2);
@@ -325,7 +325,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 		ComplexConvert(clover_f[0],clover[0],6*kvol,false,1);
 		ComplexConvert(clover_f[1],clover[1],6*kvol,false,1);
 	}
-#ifdef __NVCC__
+#ifdef USE_GPU
 	//Ensure conversion is done
 	cudaDeviceSynchronise();
 	//Needs to be strided
@@ -356,7 +356,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #endif
 			ComplexConvert(r_f,r,kferm2,false,1);
 			ComplexConvert(p_f,p,kvol,false,nc*ndirac);
-#ifdef __NVCC__
+#ifdef USE_GPU
 			//Update the residue vector, but not on the first call.
 			//TODO: Check for multi-gpu. I fear this will get messy
 			if(*itercg)
@@ -384,12 +384,12 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			//Clover contribution
 			if(c_sw)
 				HbyClover(x2,x1,clover,sigval,akappa,sigin,true);
-#ifdef	__NVCC__
+#ifdef	USE_GPU
 			cudaDeviceSynchronise();
 #endif
 			if(fac_f!=0){
 				alignas(16) const double fac=(double)fac_f;
-#ifdef	__NVCC__
+#ifdef	USE_GPU
 				//Multiple ranks means we need striding
 #if (nproc>1)
 				for(unsigned short j=0;j<nc*ndirac;j++) 
@@ -412,7 +412,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			/// @f$\alpha_d= p* (M^\dagger M+c_\text{SW} \sum\limits_{\mu\ne\nu}\frac{1}{2}\sigma_{\mu\nu}F_{\mu\nu}+J^2)p@f$
 			if(*itercg){
 				alpha=0;
-#ifdef __NVCC__
+#ifdef USE_GPU
 #if (nproc>1)
 				for(unsigned short j=0;j<nc*ndirac;j++){
 					Complex alpha_t=0;
@@ -442,7 +442,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 				///@f$\alpha=\frac{\alpha_n}{\alpha_d}=\frac{r\cdot r}{p(M^\dagger M+c_\text{SW} \sum\limits_{\mu\ne\nu}\frac{1}{2}\sigma_{\mu\nu}F_{\mu\nu}+J^2)p}@f$
 				alpha=alphan/creal(alpha);
 				/// @f$x+\alpha p@f$ 
-#ifdef __NVCC__
+#ifdef USE_GPU
 #if (nproc>1)
 				for(unsigned short j=0;j<nc*ndirac;j++)
 					cublasZaxpy(cublas_handle,kvol,(cuDoubleComplex *)&alpha,(cuDoubleComplex *)p+j*kvolHalo,1,(cuDoubleComplex *)X1+j*kvolHalo,1);
@@ -460,7 +460,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #endif
 			}
 
-#ifdef	__NVCC__
+#ifdef	USE_GPU
 			alignas(16) Complex alpha_m=(Complex)(-alpha);
 			cublasZaxpy(cublas_handle, kferm2,(cuDoubleComplex *)&alpha_m,(cuDoubleComplex *)x2,1,(cuDoubleComplex *)r,1);
 			alignas(16) double betan_d;
@@ -495,7 +495,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 #endif
 			alignas(16) const Complex beta = (*itercg) ?  betan/betad : 0;
 			betad=betan; alphan=betan;
-#ifdef __NVCC__
+#ifdef USE_GPU
 			alpha_m=1;
 			//Strided multi-gpu
 #if (nproc>1)
@@ -553,13 +553,13 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			//Clover contribution
 			if(c_sw)
 				HbyClover_f(x2_f,x1_f,clover_f,sigval_f,akappa,sigin,true);
-#ifdef	__NVCC__
+#ifdef	USE_GPU
 			cudaDeviceSynchronise();
 #endif
 			///@f$x2 =  (M^\dagger M+J^2)p@f$
 			//No point adding zero a couple of hundred times if the diquark source is zero
 			if(fac_f!=0){
-#ifdef	__NVCC__
+#ifdef	USE_GPU
 				//Strided multi-gpu
 #if (nproc>1)
 				for(unsigned short j=0;j<nc*ndirac;j++) 
@@ -582,7 +582,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			/// @f$\alpha_d= p* (M^\dagger M+c_\text{SW} \sum\limits_{\mu\ne\nu}\frac{1}{2}\sigma_{\mu\nu}F_{\mu\nu}+J^2)p@f$
 			if(*itercg){
 				alphad=0;
-#ifdef __NVCC__
+#ifdef USE_GPU
 #if (nproc>1)
 				for(unsigned short j=0;j<nc*ndirac;j++){
 					Complex alpha_t=0;
@@ -612,7 +612,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 				///@f$\alpha=\frac{\alpha_n}{\alpha_d}=\frac{r\cdot r}{p(M^\dagger M+c_\text{SW} \sum\limits_{\mu\ne\nu}\frac{1}{2}\sigma_{\mu\nu}F_{\mu\nu}+J^2)p}@f$
 				alpha=alphan/creal(alphad);
 				/// @f$x+\alpha p@f$ 
-#ifdef __NVCC__
+#ifdef USE_GPU
 				alignas(8) Complex_f alpha_f = (Complex_f)alpha;
 #if (nproc>1)
 				for(unsigned short j=0;j<nc*ndirac;j++)
@@ -633,7 +633,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			}			
 			/// @f$r_{n+1} = r_n-\alpha(M^\dagger M)p_n@f$ and @f$\beta_n=r^\dagger r@f$
 			// And no Halos here so nice and easy
-#ifdef	__NVCC__
+#ifdef	USE_GPU
 			alignas(8) __managed__ Complex_f alpha_m=(Complex_f)(-alpha);
 			cublasCaxpy(cublas_handle, kferm2,(cuComplex *)&alpha_m,(cuComplex *)x2_f,1,(cuComplex *)r_f,1);
 			alignas(8) float betan_f;
@@ -694,7 +694,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			betad=betan; alphan=betan;
 			//BLAS for p=r+\betap doesn't exist in standard BLAS. This is NOT an axpy case as we're multiplying y by
 			//\beta instead of x.
-#ifdef __NVCC__
+#ifdef USE_GPU
 			alignas(8) Complex_f beta_f=(Complex_f)beta;
 			alpha_m = 1.0;
 #if (nproc>1)
@@ -770,7 +770,7 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 		ComplexConvert(clover_f[1],clover[1],6*kvol,false,1);
 	}
 	//Instead of copying element-wise in a loop, use memcpy.
-#ifdef __NVCC__
+#ifdef USE_GPU
 	//Get r in single precision
 	//Get xi  in single precision
 	cudaMemcpy(r,Phi+na*kferm,kferm*sizeof(Complex),cudaMemcpyDefault);
@@ -809,7 +809,7 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 			ComplexConvert(r_f,r,kferm,false,1);
 			//TODO: Banking on converting the halo too being faster than multiple launches
 			ComplexConvert(p_f,p,kvol,false,nc*ngorkov);
-#ifdef __NVCC__
+#ifdef USE_GPU
 			//Update the residue vector, but not on the first call.
 			if(*itercg)
 				cuMixed_Sumto((double *)xi,(float *)xi_f,2*kferm,dimGrid,dimBlock);
@@ -833,14 +833,14 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 			Dslashd(x2,x1,ud,iu,id,gamval,gamin,dk,jqq,akappa);
 			if(c_sw)
 				ByClover(x2,x1,clover,sigval,akappa,sigin,true);
-#ifdef	__NVCC__
+#ifdef	USE_GPU
 			cudaDeviceSynchronise();
 #endif
 
 			/// @f$\alpha_d= p* (M^\dagger M)p@f$
 			if(*itercg){
 				alpha=0;
-#ifdef __NVCC__
+#ifdef USE_GPU
 #if (nproc>1)//Strided
 				for(unsigned short j=0;j<nc*ngorkov;j++){
 					alignas(16) Complex alpha_t=0;
@@ -870,7 +870,7 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 				///@f$alpha=\frac{\alpha_n} {\alpha_d}=\frac{r\cdot r}{p(M^\dagger M)p}@f$
 				alpha=alphan/creal(alpha);
 				/// @f$x+\alpha p@f$
-#ifdef __NVCC__
+#ifdef USE_GPU
 #if (nproc>1)
 				for(unsigned short j=0;j<nc*ngorkov;j++)
 					cublasZaxpy(cublas_handle,kvol,(cuDoubleComplex *)&alpha,(cuDoubleComplex *)p+j*kvolHalo,1,(cuDoubleComplex *)xi+j*kvol,1);
@@ -888,7 +888,7 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 #endif
 			}
 
-#ifdef	__NVCC__
+#ifdef	USE_GPU
 			Complex alpha_m=(Complex)(-alpha);
 			cublasZaxpy(cublas_handle, kferm,(cuDoubleComplex *)&alpha_m,(cuDoubleComplex *)x2,1,(cuDoubleComplex *)r,1);
 			double betan_d;
@@ -923,7 +923,7 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 #endif
 			alignas(16) const Complex beta = (*itercg) ?    betan/betad :   0;
 			betad=betan; alphan=betan;
-#ifdef __NVCC__
+#ifdef USE_GPU
 			alpha_m=1;
 #if (nproc>1)
 			for(unsigned short j=0;j<nc*ngorkov;j++){
@@ -976,14 +976,14 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 			Dslashd_f(x2_f,x1_f,ut,iu,id,gamval_f,gamin,dk_f,jqq,akappa);
 			if(c_sw)
 				ByClover_f(x2_f,x1_f,clover_f,sigval_f,akappa,sigin,true);
-#ifdef __NVCC__
+#ifdef USE_GPU
 			cudaDeviceSynchronise();
 #endif
 			//We can't evaluate \alpha on the first niterx because we need to get \beta_n.
 			if(*itercg){
 				//x*.x
 				alphad=0;
-#ifdef __NVCC__
+#ifdef USE_GPU
 #if(nproc>1)//strided
 				for(unsigned short j=0;j<nc*ngorkov;j++){
 					alignas(8) Complex_f alpha_t=0;
@@ -1014,7 +1014,7 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 				//x+\alpha p
 #ifdef USE_BLAS
 				alignas(8) Complex_f alpha_f=(float)alpha;
-#ifdef __NVCC__
+#ifdef USE_GPU
 #if (nproc>1) //strided
 				for(unsigned short j=0;j<nc*ngorkov;j++)
 					cublasCaxpy(cublas_handle,kvol,(cuComplex*) &alpha_f,(cuComplex*) p_f+j*kvolHalo,1,(cuComplex*) xi_f+j*kvol,1);
@@ -1037,7 +1037,7 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 			alignas(8) float betan_f=0;
 #if defined USE_BLAS
 			alignas(16) Complex_f alpha_m=(Complex_f)(-alpha);
-#ifdef __NVCC__
+#ifdef USE_GPU
 			cublasCaxpy(cublas_handle,kferm, (cuComplex *)&alpha_m,(cuComplex *) x2_f, 1,(cuComplex *) r_f, 1);
 			//cudaDeviceSynchronise();
 			//r*.r
@@ -1101,7 +1101,7 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 #ifdef USE_BLAS
 			alignas(8) Complex_f beta_f = (Complex_f)beta;
 			alignas(8) Complex_f a = 1.0;
-#ifdef __NVCC__
+#ifdef USE_GPU
 #if (nproc>1) //strided
 			for(unsigned short j=0;j<nc*ngorkov;j++){
 				cublasCscal(cublas_handle,kvol,(cuComplex *)&beta_f,(cuComplex *)p_f+j*kvolHalo,1);
@@ -1129,7 +1129,7 @@ int Congradp(int na, double res, Complex *Phi, Complex *xi, Complex *ud[2], Comp
 #endif
 		}
 	}
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cudaDeviceSynchronise();
 #endif
 	P_free_f(&p_f,&r_f,&x1_f,&x2_f,&xi_f);

@@ -242,7 +242,7 @@ int Init_clover(Complex **sigval, Complex_f **sigval_f,unsigned short **sigin, f
  */
 void Clover_free(Complex_f *clover[nc]);
 
-#ifdef __NVCC__
+#ifdef USE_GPU
 #ifdef __cplusplus
 extern "C"
 {

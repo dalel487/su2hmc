@@ -6,7 +6,7 @@
  *	@defgroup Dslashes Fermion matrix products
  */
 #pragma once
-#ifdef __NVCC__
+#ifdef USE_GPU
 #include <curand.h>
 #endif
 #include <par_mpi.h>
@@ -231,7 +231,7 @@ extern "C"
 	 */
 	void Transpose_U(unsigned int *out, const int, const int);
 
-#ifdef __NVCC__
+#ifdef USE_GPU
 	//Calling Functions
 	/**
 	 * @brief GPU calling wrapper for @f$\Phi=M r@f$ in double precision.
