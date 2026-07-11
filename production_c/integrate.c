@@ -17,7 +17,7 @@
  * @post	@p ave_dSdpi overwritten with the averages.
  */
 void Force_debug(double ave_dSdpi[3],double *dSdpi){
-#ifdef __NVCC__
+#ifdef USE_GPU
 	ave_dSdpi[0]=cureduce_sum_d(dSdpi,kvol*ndim,0);
 	ave_dSdpi[1]=cureduce_sum_d(dSdpi+kvol*ndim,kvol*ndim,1);
 	ave_dSdpi[2]=cureduce_sum_d(dSdpi+2*kvol*ndim,kvol*ndim,2);
@@ -36,7 +36,7 @@ void Force_debug(double ave_dSdpi[3],double *dSdpi){
 
 int Gauge_Update(const double d, double *pp, Complex *ut[2],Complex_f *ut_f[2]){
 	char funcname[] = "Gauge_Update"; 
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cuGauge_Update(d,pp,ut,dimGrid,dimBlock);
 #else
 #pragma omp parallel for simd collapse(2) aligned(pp:AVX) 
@@ -71,7 +71,7 @@ int Gauge_Update(const double d, double *pp, Complex *ut[2],Complex_f *ut_f[2]){
 inline int Momentum_Update(const double d, const double *dSdpi, double *pp)
 {
 	const char funcname[] = "Momentum_Update";
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cublasDaxpy(cublas_handle,kmom, &d, dSdpi, 1, pp, 1);
 	cudaDeviceSynchronise();
 #elif defined USE_BLAS

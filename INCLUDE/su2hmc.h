@@ -406,7 +406,7 @@ extern "C"
 #endif
 	//CUDA Declarations:
 	//#################
-#ifdef __NVCC__
+#ifdef USE_GPU
 	/// @brief	An array of concurrent GPU streams to keep it busy
 	extern cudaStream_t streams[ndirac*ndim*nadj];
 	//Calling Functions:

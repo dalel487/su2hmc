@@ -429,7 +429,7 @@ int ComplexConvert(Complex_f *a, Complex *b, const unsigned int len, const bool 
 #endif
 			break;
 		case(1):
-#ifdef __NVCC__
+#ifdef USE_GPU
 			cuComplex_convert(a,b,len*stride,dtof,dimBlock,dimGrid);
 #else
 			if(dtof)
@@ -444,7 +444,7 @@ int ComplexConvert(Complex_f *a, Complex *b, const unsigned int len, const bool 
 			break;
 		default:
 			for(unsigned short j=0;j<stride;j++){
-#ifdef __NVCC__
+#ifdef USE_GPU
 				cuComplex_convert(a+j*(len+halo),b+j*(len+halo),len,dtof,dimBlock,dimGrid);
 #else
 				if(dtof)

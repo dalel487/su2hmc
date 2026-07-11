@@ -35,7 +35,6 @@ $(info Compiling with NVIDIA C Compiler)
 CFLAGS += -tp=native -mp -mp=multicore 
 else ifneq (,$(filter clang%,$(CC)))
 $(info Compiling with Clang)
-    #$(error As of 20251101, the libstdc++ headers break when compiling with clang. This is due to NVCC not supporting noexcept(true) in the header for rsqrt(), and clang being stricter than GCC. You may have more luck with a version of nvcc greater than 13.0 or an older libstdc++ library)
 CFLAGS += -fveclib=AMDLIBM -march=native -fcommon -flto -fopenmp -fopenmp-simd -static-libgcc -Wno-exception
 LFLAGS += -latomic
 #NVCCFLAGS+= -D_GLIBCC_USE_CC11_ABI=0

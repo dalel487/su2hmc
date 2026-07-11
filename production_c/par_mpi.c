@@ -240,7 +240,7 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 #endif
 				}
 				if(!iproc){
-#ifdef __NVCC__
+#ifdef USE_GPU
 					cudaMemcpy(u11+idim*kvol,u1buff,kvol*sizeof(Complex),cudaMemcpyDefault);
 					cudaMemcpy(u12+idim*kvol,u2buff,kvol*sizeof(Complex),cudaMemcpyDefault);
 #else
@@ -299,7 +299,7 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 						CANTRECV, funcname, rank);
 				MPI_Abort(comm,CANTRECV);
 			}
-#ifdef __NVCC__
+#ifdef USE_GPU
 			cudaMemcpy(u11+idim*kvol,u1buff,kvol*sizeof(Complex),cudaMemcpyDefault);
 			cudaMemcpy(u12+idim*kvol,u2buff,kvol*sizeof(Complex),cudaMemcpyDefault);
 #else
@@ -311,7 +311,7 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 #endif
 	free(u1buff); free(u2buff);
 	for(unsigned short mu=0;mu<ndim;mu++){
-#ifdef __NVCC__
+#ifdef USE_GPU
 		cudaMemcpy(u11t+kvolHalo*mu, u11+kvol*mu, kvol*sizeof(Complex),cudaMemcpyDefault);
 		cudaMemcpy(u12t+kvolHalo*mu, u12+kvol*mu, kvol*sizeof(Complex),cudaMemcpyDefault);
 #else
@@ -385,7 +385,7 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 #endif
 					//No need to do MPI Send/Receive on the master rank
 					//Array looping is slow so we use memcpy instead
-#ifdef __NVCC__
+#ifdef USE_GPU
 					cudaMemcpy(u1buff,u11+idim*kvol,kvol*sizeof(Complex),cudaMemcpyDefault);
 					cudaMemcpy(u2buff,u12+idim*kvol,kvol*sizeof(Complex),cudaMemcpyDefault);
 #else
@@ -500,7 +500,7 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 			MPI_Abort(comm,CANTSEND);
 		}
 		for(int idim = 0; idim<ndim; idim++){
-#ifdef __NVCC__
+#ifdef USE_GPU
 			cudaMemcpy(u1buff,u11+idim*kvol,kvol*sizeof(Complex),cudaMemcpyDefault);
 			cudaMemcpy(u2buff,u12+idim*kvol,kvol*sizeof(Complex),cudaMemcpyDefault);
 #else
@@ -577,7 +577,7 @@ inline int Par_csum(Complex_f *cval){
 	Complex_f ctmp;
 
 	if(MPI_Allreduce(cval, &ctmp, 1, MPI_C_FLOAT_COMPLEX, MPI_SUM, comm)){
-#ifndef __NVCC__
+#ifndef USE_GPU
 		fprintf(stderr, "Error %i in %s: Couldn't complete reduction for %f+%f i.\nExiting...\n\n",
 				REDUCERR, funcname, creal(*cval), cimag(*cval));
 #endif
@@ -592,7 +592,7 @@ inline int Par_zsum(Complex *zval){
 	Complex ztmp;
 
 	if(MPI_Allreduce(zval, &ztmp, 1, MPI_C_DOUBLE_COMPLEX, MPI_SUM, comm)){
-#ifndef __NVCC__
+#ifndef USE_GPU
 		fprintf(stderr, "Error %i in %s: Couldn't complete reduction for %f+%f i.\nExiting...\n\n",
 				REDUCERR, funcname, creal(*zval), cimag(*zval));
 #endif
@@ -631,7 +631,7 @@ inline int Par_fcopy(float *fval){
 inline int Par_ccopy(Complex *cval){
 	const char funcname[] = "Par_ccopy";
 	if(MPI_Bcast(cval,1,MPI_C_FLOAT_COMPLEX,masterproc,comm)){
-#ifndef __NVCC__
+#ifndef USE_GPU
 		fprintf(stderr, "Error %i in %s: Failed to broadcast %f+i%f from %i.\nExiting...\n\n",
 				BROADERR, funcname, creal(*cval), cimag(*cval), rank);
 #endif
@@ -642,7 +642,7 @@ inline int Par_ccopy(Complex *cval){
 inline int Par_zcopy(Complex *zval){
 	const char funcname[] = "Par_zcopy";
 	if(MPI_Bcast(zval,1,MPI_C_DOUBLE_COMPLEX,masterproc,comm)){
-#ifndef __NVCC__
+#ifndef USE_GPU
 		fprintf(stderr, "Error %i in %s: Failed to broadcast %f+i%f from %i.\nExiting...\n\n",
 				BROADERR, funcname, creal(*zval), cimag(*zval), rank);
 #endif
@@ -1050,7 +1050,7 @@ int Trial_Exchange(Complex *ut[2],Complex_f *ut_f[2]){
 	const char *funchame = "Trial_Exchange";
 	//Prefetch the trial fields from the GPU, halos come later
 #if(nproc>1)
-#ifdef __NVCC__
+#ifdef USE_GPU
 	int device=-1;
 	cudaGetDevice(&device);
 	Complex *z;
@@ -1067,7 +1067,7 @@ int Trial_Exchange(Complex *ut[2],Complex_f *ut_f[2]){
 	//	
 	for(int mu=0;mu<ndim;mu++){
 		//Copy the column from ut[0]
-#ifdef __NVCC__
+#ifdef USE_GPU
 		cudaMemcpy(z,ut[0]+kvolHalo*mu,kvol*sizeof(Complex),cudaMemcpyDefault);
 #else
 		memcpy(z,ut[0]+kvolHalo*mu,kvol*sizeof(Complex));
@@ -1076,7 +1076,7 @@ int Trial_Exchange(Complex *ut[2],Complex_f *ut_f[2]){
 		//Halo exchange on that column
 		ZHalo_swap_all(z, 1);
 		//And the swap back/getting the next halo
-#ifdef __NVCC__
+#ifdef USE_GPU
 		cudaMemcpy(ut[0]+kvolHalo*mu,z,kvolHalo*sizeof(Complex),cudaMemcpyDefault);
 		cudaMemcpy(z,ut[1]+kvolHalo*mu,kvol*sizeof(Complex),cudaMemcpyDefault);
 #else
@@ -1086,7 +1086,7 @@ int Trial_Exchange(Complex *ut[2],Complex_f *ut_f[2]){
 
 		//Repeat
 		ZHalo_swap_all(z, 1);
-#ifdef __NVCC__
+#ifdef USE_GPU
 		cudaMemcpy(ut[1]+kvolHalo*mu,z,kvolHalo*sizeof(Complex),cudaMemcpyDefault);
 #else
 		memcpy(ut[1]+kvolHalo*mu,z,kvolHalo*sizeof(Complex));
@@ -1095,7 +1095,7 @@ int Trial_Exchange(Complex *ut[2],Complex_f *ut_f[2]){
 	//Now we prefetch the halo
 	//And get the single precision gauge fields preppeed
 	//Since we want the halos converted too set the stride to one
-#ifdef __NVCC__
+#ifdef USE_GPU
 #ifdef _DEBUG
 	cudaFree(z);
 #else

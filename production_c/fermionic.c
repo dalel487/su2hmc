@@ -12,7 +12,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	const char funcname[] = "Measure";
 	//This x is just a storage container
 
-#ifdef __NVCC__
+#ifdef USE_GPU
 	int device=-1;
 	cudaGetDevice(&device);
 	Complex	*x, *xi, *R1 ; Complex_f *xi_f, *R1_f, *clover[nc];
@@ -39,7 +39,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 		Gauss_c(xi_f+j*kvolHalo, kvol, 0, (float)(1/sqrt(2)));
 		ComplexConvert(xi_f+j*kvolHalo,xi+j*kvol,kvol,false,1);
 	}
-#ifdef __NVCC__
+#ifdef USE_GPU
 #if (nproc>1) //strided
 	for(unsigned short j=0;j<nc*ngorkov;j++){
 		cudaMemcpyAsync(x+j*kvolHalo, xi+j*kvol, kvol*sizeof(Complex),cudaMemcpyDefault,0);
@@ -61,7 +61,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 		ByClover_f(R1_f,xi_f,clover,sigval_f,akappa,sigin,true);
 	}
 	ComplexConvert(R1_f,R1,kferm,false,1);
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cudaFree(xi_f);	
 	cudaDeviceSynchronise();
 #ifdef _DEBUG
@@ -78,7 +78,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	///Evaluate xi = (M^† M)^-1 R_1 
 	if(Congradp(0, res, Phi,R1,ut,ut_f,clover,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,jqq,akappa,c_sw,itercg)==ITERLIM){
 		//Clean exit
-#ifdef __NVCC__
+#ifdef USE_GPU
 #ifdef _DEBUG
 		if(c_sw){
 			cudaFree(clover[0]); cudaFree(clover[1]);
@@ -99,7 +99,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 		return ITERLIM;
 #endif
 	}
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cudaMemcpyAsync(xi,R1,kferm*sizeof(Complex),cudaMemcpyDefault,streams[0]);
 #ifdef _DEBUG
 	if(c_sw){
@@ -124,7 +124,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	*pbp = 0;
 #ifdef USE_BLAS
 	alignas(16) Complex buff;
-#ifdef __NVCC__
+#ifdef USE_GPU
 #if(nproc>1)
 	for(unsigned short j=0;j<ngorkov*nc;j++){
 		buff=0;
@@ -164,13 +164,13 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 			//Because we have kvol on the outer index and are summing over it, we set the
 			//step for BLAS to be ngorkov*nc=16. 
 			//Does this make sense to do on the GPU?
-#ifdef __NVCC__
+#ifdef USE_GPU
 			cublasZdotc(cublas_handle,kvol,(cuDoubleComplex *)x+kvolHalo*(idirac*nc+ic),1,(cuDoubleComplex *)xi+kvol*(igork*nc+ic), 1,(cuDoubleComplex *)&dot);
 #else
 			cblas_zdotc_sub(kvol, x+kvolHalo*(idirac*nc+ic), 1, xi+kvol*(igork*nc+ic), 1, &dot);
 #endif
 			*qbqb+=gamval[4*ndirac+idirac]*dot;
-#ifdef __NVCC__
+#ifdef USE_GPU
 			cublasZdotc(cublas_handle,kvol,(cuDoubleComplex *)x+kvolHalo*(igork*nc+ic),1,(cuDoubleComplex *)xi+kvol*(idirac*nc+ic), 1,(cuDoubleComplex *)&dot);
 #else
 			cblas_zdotc_sub(kvol, x+kvolHalo*(igork*nc+ic), 1, xi+kvol*(idirac*nc+ic), 1, &dot);
@@ -273,7 +273,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #endif
 	*endenf/=2*gvol; *denf/=2*gvol;
 	//Future task. Chiral susceptibility measurements
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cudaFree(x); cudaFree(xi);
 	//Revert index and gauge arrays
 	//	Transpose_z(ut[0],ndim,kvol);

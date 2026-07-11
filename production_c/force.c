@@ -17,7 +17,7 @@ int Gauge_force(double *dSdpi, Complex_f *ut[2],unsigned int *iu,unsigned int *i
 	//		memset(ut[1][kvol], 0, ndim*halo*sizeof(Complex_f));	
 	//	#endif
 	//Was a trial field halo exchange here at one point.
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cuGauge_force(ut,dSdpi,beta,iu,id,dimGrid,dimBlock);
 	cudaDeviceSynchronise();
 #else
@@ -230,7 +230,7 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 		Complex gamval[20],Complex_f gamval_f[20],const unsigned short gamin[16],Complex *sigval,Complex_f *sigval_f, unsigned short *sigin,\
 		double *dk[2], float *dk_f[2],const Complex_f jqq, const float akappa,const float beta,const float c_sw,double *ancg){
 	const char funcname[] = "Force";
-#ifdef __NVCC__
+#ifdef USE_GPU
 	int device=-1;
 	cudaGetDevice(&device);
 #endif
@@ -245,7 +245,7 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 	//X1=(M†M)^{1} Phi
 	int itercg=1;
 	Complex_f *clover[2];
-#ifdef __NVCC__
+#ifdef USE_GPU
 	Complex_f *X1_f, *X2_f;
 	cudaMallocAsync((void **)&X1_f,kferm2Halo*sizeof(Complex_f),streams[1]);
 	cudaMallocAsync((void **)&X2_f,kferm2Halo*sizeof(Complex_f),streams[0]);
@@ -257,7 +257,7 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 	Clover(clover,ut_f,iu,id);
 
 	for(int na = 0; na<nf; na++){
-#ifdef __NVCC__
+#ifdef USE_GPU
 #if(nproc>1) //Strided
 		for(unsigned short j=0;j<nc*idirac;j++)
 			cudaMemcpyAsync(X1+j*kvolHalo,X0+na*kferm2+j*kvol,kvol*sizeof(Complex),cudaMemcpyDeviceToDevice,streams[j]);
@@ -270,7 +270,7 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 #endif
 		if(!iflag){
 			int itercg=1;
-#ifdef __NVCC__
+#ifdef USE_GPU
 			Complex *smallPhi;
 			cudaMallocAsync((void **)&smallPhi,kferm2*sizeof(Complex),streams[0]);
 #else
@@ -280,13 +280,13 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 			///@f$(X1=(M\dagger M)^{-1} \Phi@f$
 			Congradq(na,res1,X1,smallPhi,ut,ut_f,clover,iu,id,gamval,gamval_f,gamin,sigval,sigval_f,sigin,dk,dk_f,\
 					jqq,akappa,c_sw,&itercg);
-#ifdef __NVCC__
+#ifdef USE_GPU
 			cudaFreeAsync(smallPhi,streams[0]);
 #else
 			free(smallPhi);
 #endif
 			*ancg+=itercg;
-#ifdef __NVCC__
+#ifdef USE_GPU
 			alignas(16) const Complex blasa=2.0; alignas(16) const double blasb=-1.0;
 			cublasZdscal(cublas_handle,kferm2,&blasb,(cuDoubleComplex *)(X0+na*kferm2),1);
 #if(nproc>1) //strided
@@ -316,7 +316,7 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 			}
 #endif
 		}
-#ifdef __NVCC__
+#ifdef USE_GPU
 		cudaDeviceSynchronise();
 #endif
 		//Since it has to be stridded in MPI, we have to pass kvol and nc*ndirac instead of kferm2
@@ -327,7 +327,7 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 		//NOTE: This was orginally two. But was changed as a test for Claude so the two appears inside Force_s and Force_t
 		//It may need to be reverted back later
 		alignas(8) const float blasd=1.0;
-#ifdef __NVCC__
+#ifdef USE_GPU
 		cudaDeviceSynchronise();
 #if(nproc>1)
 		for(unsigned short j=0;j<nc*ndirac;j++)
@@ -370,7 +370,7 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 		//  as a result, need to swap the DOWN halos in all dirs for
 		//  both these arrays, each of which has 8 cpts
 		//
-#ifdef __NVCC__
+#ifdef USE_GPU
 		cuForce(dSdpi,ut_f,X1_f,X2_f,gamval_f,dk_f,iu,gamin,akappa,dimGrid,dimBlock);
 		cudaDeviceSynchronise();
 #else
@@ -385,7 +385,7 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 		Clover_free(clover);
 		}
 	}
-#ifdef __NVCC__
+#ifdef USE_GPU
 	cudaFreeAsync(X1_f,streams[0]); cudaFreeAsync(X2_f,streams[1]);
 #else
 	free(X1_f); free(X2_f);

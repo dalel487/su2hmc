@@ -39,7 +39,7 @@
 #define	USE_BLAS
 #include <gsl/gsl_cblas.h>
 #endif
-#ifdef	__NVCC__
+#ifdef	USE_GPU
 #include	<cuda.h>
 #include	<cuda_runtime_api.h>
 #include	<cublas_v2.h>
@@ -136,7 +136,7 @@ extern cudaMemPool_t mempool;
 
 ///	@brief	Number of processors for MPI
 #define	nproc	(npx*npy*npz*npt)
-#if (defined __NVCC__ && nproc>1)
+#if (defined USE_GPU && nproc>1)
 #error	"Multi-GPU is not yet supported"
 #endif
 
@@ -279,7 +279,7 @@ extern cudaMemPool_t mempool;
 #define	AVX	16
 #endif
 
-#ifdef	__NVCC__
+#ifdef	USE_GPU
 /**
  * @section gridblock Grids and Blocks
  *
