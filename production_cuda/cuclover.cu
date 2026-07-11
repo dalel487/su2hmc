@@ -90,56 +90,50 @@ namespace Device{
 	template <typename T>
 		__device__ void Half_Leaf(complex<T> Leaves[nc], complex<T> *u11t, complex<T> *u12t, complex<T> a[nc], unsigned int *iu,\
 				unsigned int *id, const unsigned int i, const unsigned short mu, const unsigned short nu, const unsigned short leaf){
-			unsigned int uidm;
+
+			unsigned int ind; unsigned int double_ind=id[nu*kvol+ind];
 			switch(leaf){
 				case(0):
 					///Both positive is just a standard plaquette
 					a[0]=u11t[i+kvolHalo*mu]; a[1]=u12t[i+kvolHalo*mu];
-					uidm = iu[mu*kvol+i]; 
+					ind = iu[mu*kvol+i]; 
 
 					/// @f$U_\mu(x)U_\nu(x+\hat{\mu})@f$
-					Leaves[0]=a[0]*u11t[uidm+kvolHalo*nu]-a[1]*conj(u12t[uidm+kvolHalo*nu]);
-					Leaves[1]=a[0]*u12t[uidm+kvolHalo*nu]+a[1]*conj(u11t[uidm+kvolHalo*nu]);
+					Leaves[0]=a[0]*u11t[ind+kvolHalo*nu]-a[1]*conj(u12t[ind+kvolHalo*nu]);
+					Leaves[1]=a[0]*u12t[ind+kvolHalo*nu]+a[1]*conj(u11t[ind+kvolHalo*nu]);
 					break;
-				case(1)://Need braces for strict C++ standard compliance as a variable is declared in the case
-					{
+				case(1):
 						///Leaf in the forward nu and backwards mu direction
-						//Should really read didm, but I've already declared this 
-						uidm = id[mu*kvol+i];
+						ind = id[mu*kvol+i];
 						a[0]=u11t[i+kvolHalo*nu]; a[1]=u12t[i+kvolHalo*nu];
 						//Awkward index...
-						const unsigned int uin_didm=iu[nu*kvol+uidm];
+						double_ind=iu[nu*kvol+ind];
 						/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})@f$
-						Leaves[0]=a[0]*conj(u11t[uin_didm+kvolHalo*mu])+a[1]*conj(u12t[uin_didm+kvolHalo*mu]);
-						Leaves[1]=-a[0]*u12t[uin_didm+kvolHalo*mu]+a[1]*u11t[uin_didm+kvolHalo*mu];
-					}
+						Leaves[0]=a[0]*conj(u11t[double_ind+kvolHalo*mu])+a[1]*conj(u12t[double_ind+kvolHalo*mu]);
+						Leaves[1]=-a[0]*u12t[double_ind+kvolHalo*mu]+a[1]*u11t[double_ind+kvolHalo*mu];
 					break;
 				case(2):
 					///Leaf in the backwards nu and forwards mu direction
-					//Should really read didn, but I've already declared this 
-					uidm = id[nu*kvol+i];
+					ind = id[nu*kvol+i];
 					//Daggered. So Conj what goes into a[0] and negate what goes into a[1]
-					a[0]=conj(u11t[uidm+kvolHalo*nu]); a[1]=-u12t[uidm+kvolHalo*nu];
+					a[0]=conj(u11t[ind+kvolHalo*nu]); a[1]=-u12t[ind+kvolHalo*nu];
 
 					/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})@f$
-					Leaves[0]=a[0]*u11t[uidm+kvolHalo*mu]-a[1]*conj(u12t[uidm+kvolHalo*mu]);
+					Leaves[0]=a[0]*u11t[ind+kvolHalo*mu]-a[1]*conj(u12t[ind+kvolHalo*mu]);
 					//Don't forget negatiion of second term was handled earlier!
-					Leaves[1]=a[0]*u12t[uidm+kvolHalo*mu]+a[1]*conj(u11t[uidm+kvolHalo*mu]);
+					Leaves[1]=a[0]*u12t[ind+kvolHalo*mu]+a[1]*conj(u11t[ind+kvolHalo*mu]);
 					break;
-				case(3)://Need braces for strict C++ standard compliance as a variable is declared in the case
-					{
+				case(3):
 						///Leaf in the backwards mu and backwards nu direction
-						//Should really read didm, but I've already declared this 
-						uidm  =  id[i+kvol*mu];
+						ind  =  id[i+kvol*mu];
 						//Daggered. So Conj what goes into a[0] and negate what goes into a[1]
-						a[0]=conj(u11t[uidm+kvolHalo*mu]); a[1]=-u12t[uidm+kvolHalo*mu];
+						a[0]=conj(u11t[ind+kvolHalo*mu]); a[1]=-u12t[ind+kvolHalo*mu];
 						//Another awkward index
-						const unsigned int din_didm=id[nu*kvol+uidm];
+						double_ind=id[nu*kvol+ind];
 
 						/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})@f$
-						Leaves[0]=a[0]*conj(u11t[din_didm+kvolHalo*nu])+a[1]*conj(u12t[din_didm+kvolHalo*nu]);
-						Leaves[1]=-a[0]*u12t[din_didm+kvolHalo*nu]+a[1]*u11t[din_didm+kvolHalo*nu];
-					}
+						Leaves[0]=a[0]*conj(u11t[double_ind+kvolHalo*nu])+a[1]*conj(u12t[double_ind+kvolHalo*nu]);
+						Leaves[1]=-a[0]*u12t[double_ind+kvolHalo*nu]+a[1]*u11t[double_ind+kvolHalo*nu];
 					break;
 			}
 			return;
@@ -161,14 +155,14 @@ namespace Device{
 				const unsigned short nu,const unsigned short leaf){
 			complex<T> a[nc];
 			Half_Leaf(Leaves,u11t,u12t,a,iu,id,i,mu,nu,leaf);
-			unsigned int didm,didn,uidm;
+			unsigned int ind,double_ind;
 			switch(leaf){
 				case(0)://Need braces for strict C++ standard compliance as a variable is declared in the case
 					{
-						unsigned int uidn = iu[nu*kvol+i]; 
+						ind = iu[nu*kvol+i]; 
 						/// @f$U_\mu(x)U_\nu(x+\hat{\mu})U^\dagger_\mu(x+\hat{\nu})@f$
-						a[0]=Leaves[0]*conj(u11t[uidn+kvolHalo*mu])+Leaves[1]*conj(u12t[uidn+kvolHalo*mu]);
-						a[1]=-Leaves[0]*u12t[uidn+kvolHalo*mu]+Leaves[1]*u11t[uidn+kvolHalo*mu];
+						a[0]=Leaves[0]*conj(u11t[ind+kvolHalo*mu])+Leaves[1]*conj(u12t[ind+kvolHalo*mu]);
+						a[1]=-Leaves[0]*u12t[ind+kvolHalo*mu]+Leaves[1]*u11t[ind+kvolHalo*mu];
 
 						/// @f$U_\mu(x)U_\nu(x+\hat{\mu})U^\dagger_\mu(x+\hat{\nu})U^\dagger_\nu(x)@f$
 						Leaves[0]=a[0]*conj(u11t[i+kvolHalo*nu])+a[1]*conj(u12t[i+kvolHalo*nu]);
@@ -178,45 +172,41 @@ namespace Device{
 					break;
 				case(1):
 					///Leaf in the forwards nu and backwards nu direction
-					didm = id[mu*kvol+i];
+					ind = id[mu*kvol+i];
 
 					/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})U^\dagger_\nu(x-\hat{\mu})@f$
-					a[0]=Leaves[0]*conj(u11t[didm+kvolHalo*nu])+Leaves[1]*conj(u12t[didm+kvolHalo*nu]);
-					a[1]=-Leaves[0]*u12t[didm+kvolHalo*nu]+Leaves[1]*u11t[didm+kvolHalo*nu];
+					a[0]=Leaves[0]*conj(u11t[ind+kvolHalo*nu])+Leaves[1]*conj(u12t[ind+kvolHalo*nu]);
+					a[1]=-Leaves[0]*u12t[ind+kvolHalo*nu]+Leaves[1]*u11t[ind+kvolHalo*nu];
 
 					/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})U^\dagger_\nu(x-\hat{\mu})U_\mu(x-\hat{\mu})@f$
-					Leaves[0]=a[0]*u11t[didm+kvolHalo*mu]-a[1]*conj(u12t[didm+kvolHalo*mu]);
-					Leaves[1]=a[0]*u12t[didm+kvolHalo*mu]+a[1]*conj(u11t[didm+kvolHalo*mu]);
+					Leaves[0]=a[0]*u11t[ind+kvolHalo*mu]-a[1]*conj(u12t[ind+kvolHalo*mu]);
+					Leaves[1]=a[0]*u12t[ind+kvolHalo*mu]+a[1]*conj(u11t[ind+kvolHalo*mu]);
 					break;
-				case(2)://Need braces for strict C++ standard compliance as a variable is declared in the case
-					{
+				case(2):
 						///Leaf in the forwards mu and backwards nu direction
-						didn = id[nu*kvol+i]; 
-						unsigned int uim_didn=iu[mu*kvol+didn];
+						ind = id[nu*kvol+i]; 
+						double_ind=iu[mu*kvol+ind];
 						/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})@f$
-						a[0]=Leaves[0]*u11t[uim_didn+kvolHalo*nu]-Leaves[1]*conj(u12t[uim_didn+kvolHalo*nu]);
-						a[1]=Leaves[0]*u12t[uim_didn+kvolHalo*nu]+Leaves[1]*conj(u11t[uim_didn+kvolHalo*nu]);
+						a[0]=Leaves[0]*u11t[double_ind+kvolHalo*nu]-Leaves[1]*conj(u12t[double_ind+kvolHalo*nu]);
+						a[1]=Leaves[0]*u12t[double_ind+kvolHalo*nu]+Leaves[1]*conj(u11t[double_ind+kvolHalo*nu]);
 
 						/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})U^\dagger_\mu(x)@f$
 						Leaves[0]=a[0]*conj(u11t[i+kvolHalo*mu])+a[1]*conj(u12t[i+kvolHalo*mu]);
 						Leaves[1]=-a[0]*u12t[i+kvolHalo*mu]+a[1]*u11t[i+kvolHalo*mu];
-					}
 
 					break;
 				case(3)://Need braces for strict C++ standard compliance as a variable is declared in the case
-					{
 						///Leaf in the backwards mu and backwards nu direction
-						didn = id[nu*kvol+i]; 
-						unsigned int din_didm=id[mu*kvol+didn];
+						ind = id[nu*kvol+i]; 
+						double_ind=id[mu*kvol+ind];
 
 						/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(n-\hat{\nu}-\hat{\mu})@f$
-						a[0]=Leaves[0]*u11t[din_didm+kvolHalo*mu]-Leaves[1]*conj(u12t[din_didm+kvolHalo*mu]);
-						a[1]=Leaves[0]*u12t[din_didm+kvolHalo*mu]+Leaves[1]*conj(u11t[din_didm+kvolHalo*mu]);
+						a[0]=Leaves[0]*u11t[double_ind+kvolHalo*mu]-Leaves[1]*conj(u12t[double_ind+kvolHalo*mu]);
+						a[1]=Leaves[0]*u12t[double_ind+kvolHalo*mu]+Leaves[1]*conj(u11t[double_ind+kvolHalo*mu]);
 
 						/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(n-\hat{\nu}-\hat{\mu})U_\nu(n-\hat{\nu})@f$
-						Leaves[0]=a[0]*u11t[didn+kvolHalo*nu]-a[1]*conj(u12t[didn+kvolHalo*nu]);
-						Leaves[1]=a[0]*u12t[didn+kvolHalo*nu]+a[1]*conj(u11t[didn+kvolHalo*nu]);
-					}
+						Leaves[0]=a[0]*u11t[ind+kvolHalo*nu]-a[1]*conj(u12t[ind+kvolHalo*nu]);
+						Leaves[1]=a[0]*u12t[ind+kvolHalo*nu]+a[1]*conj(u11t[ind+kvolHalo*nu]);
 					break;
 			}
 			return;
