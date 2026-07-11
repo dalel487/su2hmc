@@ -7,7 +7,7 @@ NVCC ?=		hipcc
 IFLAGS=     -I../INCLUDE -I ./ -I../production_c $(shell gsl-config --cflags)\
 				-I /usr/include/hipblas -I /usr/include/hiprand
 
-CFLAGS =	$(IFLAGS) $(shell hipconfig --cpp_config) -DUSE_GPU -D__RANLUX__ -DSA3AT -DINT_OMF2 -MMD
+CFLAGS =	$(IFLAGS) $(shell hipconfig --cpp_config) -DUSE_GPU -D__RANLUX__ -DSA3AT -DINT_OMF2 -MMD -fPIC
 
 ifeq ($(CXX),icpx)
 # NOTE: 20251101: Intel oneAPI 2024.0+ with NVCC 13 or earlier (possibly later, but they dont exist as of when I wrote
@@ -17,11 +17,12 @@ ifeq ($(CXX),icpx)
     $(error As of 20251101, the libstdc++ headers break when compiling with Intel OneAPI. This is due to NVCC not supporting noexcept(true) in the header for rsqrt(), and Intel OneAPI (clang) being stricter than GCC. You may have more luck with a version of nvcc greater than 13.0 or an older libstdc++ library)
 $(info Host compiling with Intel Compiler)
 CFLAGS+=  -qopt-zmm-usage=high -MD -ipo -static-intel -static-libgcc \
-			-xHOST -DMKL_DIRECT_CALL -D__USE_MKL__  -qopenmp \
+			-xHOST -DMKL_DIRECT_CALL -D__USE_MKL__  -qopenmp -D__NO_AVX10_2__\
 			-qopenmp-simd  -use-intel-optimized-headers -diag-disable=10441
 else ifneq (,$(filter g++%,$(CXX)))
 $(info Host compiling with GCC)
 CFLAGS+=		-march=native -fcommon -fopenmp -fopenmp-simd -static-libgcc #-foffload=disable
+LFLAGS+=		-lgomp
 else ifeq ($(CXX),nvc++)
     $(warning As of 20251101, the nvc/nvc++ compiler segfaults during the conjugate gradient. We recommend you use GNU instead. (echo CC+gcc, echo CXX=g++))
 $(info Host compiling with NVIDIA C Compiler)
@@ -39,11 +40,11 @@ ifeq ($(CXX),icpx)
 $(info Using MKL)
 #TODO: Currently only configured for using MKL with an Intel Compiler
 CFLAGS+=	-qmkl -DMKL_DIRECT_CALL 
-LFLAGS=	-L${MKLROOT}/lib/intel64 -limf -DUSE_MKL -DMKL_DIRECT_CALL #-DMKL_ILP64
+LFLAGS+=	-L${MKLROOT}/lib/intel64 -limf -DUSE_MKL -DMKL_DIRECT_CALL #-DMKL_ILP64
 else ifdef AOCL_ROOT
 $(info Using AMD BLIS)
 CFLAGS += -DAMD_BLAS -I ${AOCL_ROOT}/include
-LFLAGS = -L${AOCL_ROOT}/lib/ -lblis  -lalm
+LFLAGS += -L${AOCL_ROOT}/lib/ -lblis  -lalm
 else ifdef LIBSCI_BASE_DIR
 $(info Using Cray BLAS)
 CFLAGS += -DUSE_BLAS
@@ -56,11 +57,11 @@ LFLAGS += $(shell pkg-config --libs openblas)
 else
 $(info Using GSL BLAS)
 CFLAGS += -DGSL_BLAS
-LFLAGS	=	-lm $(shell gsl-config --libs)
+LFLAGS	+=	-lm $(shell gsl-config --libs)
 endif
 LFLAGS	+=	-lm $(shell gsl-config --libs-without-cblas)
 
-CULFLAGS=	
+CULFLAGS= -L/usr/lib64/rocm/lib -lamdhip64 -lhipblas
 
 LFLAGS += -lpthread -ldl #${CULFLAGS}
 
@@ -109,10 +110,10 @@ CU_SOURCES:= $(wildcard $(CUSRC_DIR)/*.cu)
 COBJ=	$(patsubst $(CSRC_DIR)/%.c, $(CSRC_DIR)/%.o, $(C_SOURCES))
 CUOBJ= $(patsubst $(CUSRC_DIR)/%.cu, $(CUSRC_DIR)/%.o, $(CU_SOURCES))
 CLIB= libc.a
-CULIB= libcu.a
-CULIB2= libcu2.a
+CULIB= #libcu.a
+CULIB2= #libhiprtc.a
 #OBJ=	$(CLIB) $(CULIB2)
-OBJ = $(COBJ) $(CUOBJ) 
+OBJ = $(COBJ) $(CUOBJ) ../main.o
 DEPS=	$(OBJ:.o=.d)
 
 #MOD=	$(CSRC:.c=.mod)
@@ -138,12 +139,14 @@ debug:		CFLAGS += -g -O0 -D_DEBUG #-D_DEBUGCG #-DNO_TIME -DNO_SPACE
 debug:		NVCCFLAGS += --resource-usage -Xptxas -O0,-v -G -g -D_DEBUG  -keep 
 debug:		$(EXE)
 		 
-$(EXE): $(OBJ) ../main.c
-	$(NVCC) $(NVCCFLAGS) -std=gnu++17 $(IFLAGS) (CFLAGS) -rdynamic  -D__NO_AVX10_2__  $(LFLAGS) $(CULFLAGS) $^ -o $@
+$(EXE): $(OBJ)
+	$(NVCC) $(NVCCFLAGS) --hip-link -fgpu-rdc $(IFLAGS) $(LFLAGS) $(CULFLAGS) $^ -o $@
 %.o: $(CUSRC_DIR)/%.cu
-	$(NVCC) $(NVCCFLAGS) -std=gnu++17 $(IFLAGS) $(CFLAGS)  -rdynamic  -D__NO_AVX10_2__ $< -fgpu-rdc -c -o $@
-%.o: $(CSRC_DIR)%.c
-	$(CC) $(CFLAGS) -std=gnu23 $(IFLAGS) -c $<  
+	$(NVCC) $(NVCCFLAGS) -std=gnu++17 $(IFLAGS) $(filter-out -fopenmp -fopenmp-simd,$(CFLAGS))  $< -fgpu-rdc -c -o $@
+%.o: $(CSRC_DIR)/%.c
+	$(CC) $(CFLAGS) -foffload=disable -std=gnu23 $(IFLAGS) -c $<  
+../main.o: ../main.c
+	$(CC) $(CFLAGS) -foffload=disable -std=gnu23 $(IFLAGS) -c $<  
 
 clean:
 	rm -f $(OBJ) $(COBJ) $(CUOBJ) $(CULIB) $(CLIB) $(TMP)  $(DEPS) *.cpp?.ii *.cudafe1.* *.*bin *.fatbin.c *.ptx *.sm_* *module_id \
