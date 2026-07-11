@@ -1,33 +1,48 @@
-# This workflow generates documentation for a project using Doxygen and sets it up for GitHub pages. It will push the
-# documentation onto a special orphan branch to avoid cluttering the source code. This implementation comes from
-# https://ntamonsec.blogspot.com/2020/06/github-actions-doxygen-documentation.html
+# Deploys Doxygen docs to GitHub Pages via the native Actions/artifact model.
+# No push to a 'pages' branch -> branch rulesets do not apply to deployment.
+# Deployment is gated by the github-pages environment (restrict to master in
+# Settings -> Environments -> github-pages -> Deployment branches).
 name: Deploy Documentation
 
-# Controls when the action will run. 
 on:
   workflow_dispatch:
   push:
     branches: [ master ]
-  pull_request:
-    branches: [ master ]
-    
+
+# Least-privilege token; id-token is required by deploy-pages for OIDC.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Don't run two deploys on top of each other.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
 jobs:
-  build-documentation:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Run Doxygen
-        uses: mattnotmitt/doxygen-action@v1.12.0
+        uses: mattnotmitt/doxygen-action@edge
         with:
           doxyfile-path: /github/workspace/docs/doxygen_config
           working-directory: /github/workspace/docs
-      - name: Pages Deployment
-        uses: peaceiris/actions-gh-pages@v4.1.0
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs/html/
-          enable_jekyll: false
-          allow_empty_commit: false
-          force_orphan: true
-          publish_branch: pages
+          path: ./docs/html
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-slim
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
