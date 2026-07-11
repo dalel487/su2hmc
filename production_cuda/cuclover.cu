@@ -101,16 +101,18 @@ namespace Device{
 					Leaves[0]=a[0]*u11t[uidm+kvolHalo*nu]-a[1]*conj(u12t[uidm+kvolHalo*nu]);
 					Leaves[1]=a[0]*u12t[uidm+kvolHalo*nu]+a[1]*conj(u11t[uidm+kvolHalo*nu]);
 					break;
-				case(1):
-					///Leaf in the forward nu and backwards mu direction
-					//Should really read didm, but I've already declared this 
-					uidm = id[mu*kvol+i];
-					a[0]=u11t[i+kvolHalo*nu]; a[1]=u12t[i+kvolHalo*nu];
-					//Awkward index...
-					const unsigned int uin_didm=iu[nu*kvol+uidm];
-					/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})@f$
-					Leaves[0]=a[0]*conj(u11t[uin_didm+kvolHalo*mu])+a[1]*conj(u12t[uin_didm+kvolHalo*mu]);
-					Leaves[1]=-a[0]*u12t[uin_didm+kvolHalo*mu]+a[1]*u11t[uin_didm+kvolHalo*mu];
+				case(1)://Need braces for strict C++ standard compliance as a variable is declared in the case
+					{
+						///Leaf in the forward nu and backwards mu direction
+						//Should really read didm, but I've already declared this 
+						uidm = id[mu*kvol+i];
+						a[0]=u11t[i+kvolHalo*nu]; a[1]=u12t[i+kvolHalo*nu];
+						//Awkward index...
+						const unsigned int uin_didm=iu[nu*kvol+uidm];
+						/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})@f$
+						Leaves[0]=a[0]*conj(u11t[uin_didm+kvolHalo*mu])+a[1]*conj(u12t[uin_didm+kvolHalo*mu]);
+						Leaves[1]=-a[0]*u12t[uin_didm+kvolHalo*mu]+a[1]*u11t[uin_didm+kvolHalo*mu];
+					}
 					break;
 				case(2):
 					///Leaf in the backwards nu and forwards mu direction
@@ -124,18 +126,20 @@ namespace Device{
 					//Don't forget negatiion of second term was handled earlier!
 					Leaves[1]=a[0]*u12t[uidm+kvolHalo*mu]+a[1]*conj(u11t[uidm+kvolHalo*mu]);
 					break;
-				case(3):
-					///Leaf in the backwards mu and backwards nu direction
-					//Should really read didm, but I've already declared this 
-					uidm  =  id[i+kvol*mu];
-					//Daggered. So Conj what goes into a[0] and negate what goes into a[1]
-					a[0]=conj(u11t[uidm+kvolHalo*mu]); a[1]=-u12t[uidm+kvolHalo*mu];
-					//Another awkward index
-					const unsigned int din_didm=id[nu*kvol+uidm];
+				case(3)://Need braces for strict C++ standard compliance as a variable is declared in the case
+					{
+						///Leaf in the backwards mu and backwards nu direction
+						//Should really read didm, but I've already declared this 
+						uidm  =  id[i+kvol*mu];
+						//Daggered. So Conj what goes into a[0] and negate what goes into a[1]
+						a[0]=conj(u11t[uidm+kvolHalo*mu]); a[1]=-u12t[uidm+kvolHalo*mu];
+						//Another awkward index
+						const unsigned int din_didm=id[nu*kvol+uidm];
 
-					/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})@f$
-					Leaves[0]=a[0]*conj(u11t[din_didm+kvolHalo*nu])+a[1]*conj(u12t[din_didm+kvolHalo*nu]);
-					Leaves[1]=-a[0]*u12t[din_didm+kvolHalo*nu]+a[1]*u11t[din_didm+kvolHalo*nu];
+						/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})@f$
+						Leaves[0]=a[0]*conj(u11t[din_didm+kvolHalo*nu])+a[1]*conj(u12t[din_didm+kvolHalo*nu]);
+						Leaves[1]=-a[0]*u12t[din_didm+kvolHalo*nu]+a[1]*u11t[din_didm+kvolHalo*nu];
+					}
 					break;
 			}
 			return;
@@ -159,18 +163,18 @@ namespace Device{
 			Half_Leaf(Leaves,u11t,u12t,a,iu,id,i,mu,nu,leaf);
 			unsigned int didm,didn,uidm;
 			switch(leaf){
-				case(0):
-					unsigned int uidn = iu[nu*kvol+i]; 
-					/// @f$U_\mu(x)U_\nu(x+\hat{\mu})U^\dagger_\mu(x+\hat{\nu})@f$
-					a[0]=Leaves[0]*conj(u11t[uidn+kvolHalo*mu])+Leaves[1]*conj(u12t[uidn+kvolHalo*mu]);
-					a[1]=-Leaves[0]*u12t[uidn+kvolHalo*mu]+Leaves[1]*u11t[uidn+kvolHalo*mu];
+				case(0)://Need braces for strict C++ standard compliance as a variable is declared in the case
+					{
+						unsigned int uidn = iu[nu*kvol+i]; 
+						/// @f$U_\mu(x)U_\nu(x+\hat{\mu})U^\dagger_\mu(x+\hat{\nu})@f$
+						a[0]=Leaves[0]*conj(u11t[uidn+kvolHalo*mu])+Leaves[1]*conj(u12t[uidn+kvolHalo*mu]);
+						a[1]=-Leaves[0]*u12t[uidn+kvolHalo*mu]+Leaves[1]*u11t[uidn+kvolHalo*mu];
 
-					/// @f$U_\mu(x)U_\nu(x+\hat{\mu})U^\dagger_\mu(x+\hat{\nu})U^\dagger_\nu(x)@f$
-					Leaves[0]=a[0]*conj(u11t[i+kvolHalo*nu])+a[1]*conj(u12t[i+kvolHalo*nu]);
-					Leaves[1]=-a[0]*u12t[i+kvolHalo*nu]+a[1]*u11t[i+kvolHalo*nu];
+						/// @f$U_\mu(x)U_\nu(x+\hat{\mu})U^\dagger_\mu(x+\hat{\nu})U^\dagger_\nu(x)@f$
+						Leaves[0]=a[0]*conj(u11t[i+kvolHalo*nu])+a[1]*conj(u12t[i+kvolHalo*nu]);
+						Leaves[1]=-a[0]*u12t[i+kvolHalo*nu]+a[1]*u11t[i+kvolHalo*nu];
 
-					//DEBUG
-					//						Leaves[0]=0; Leaves[1]=0;
+					}
 					break;
 				case(1):
 					///Leaf in the forwards nu and backwards nu direction
@@ -183,39 +187,36 @@ namespace Device{
 					/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})U^\dagger_\nu(x-\hat{\mu})U_\mu(x-\hat{\mu})@f$
 					Leaves[0]=a[0]*u11t[didm+kvolHalo*mu]-a[1]*conj(u12t[didm+kvolHalo*mu]);
 					Leaves[1]=a[0]*u12t[didm+kvolHalo*mu]+a[1]*conj(u11t[didm+kvolHalo*mu]);
-					//DEBUG
-					//			Leaves[0]=0; Leaves[1]=0;
 					break;
-				case(2):
-					///Leaf in the forwards mu and backwards nu direction
-					didn = id[nu*kvol+i]; 
-					unsigned int uim_didn=iu[mu*kvol+didn];
-					/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})@f$
-					a[0]=Leaves[0]*u11t[uim_didn+kvolHalo*nu]-Leaves[1]*conj(u12t[uim_didn+kvolHalo*nu]);
-					a[1]=Leaves[0]*u12t[uim_didn+kvolHalo*nu]+Leaves[1]*conj(u11t[uim_didn+kvolHalo*nu]);
+				case(2)://Need braces for strict C++ standard compliance as a variable is declared in the case
+					{
+						///Leaf in the forwards mu and backwards nu direction
+						didn = id[nu*kvol+i]; 
+						unsigned int uim_didn=iu[mu*kvol+didn];
+						/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})@f$
+						a[0]=Leaves[0]*u11t[uim_didn+kvolHalo*nu]-Leaves[1]*conj(u12t[uim_didn+kvolHalo*nu]);
+						a[1]=Leaves[0]*u12t[uim_didn+kvolHalo*nu]+Leaves[1]*conj(u11t[uim_didn+kvolHalo*nu]);
 
-					/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})U^\dagger_\mu(x)@f$
-					Leaves[0]=a[0]*conj(u11t[i+kvolHalo*mu])+a[1]*conj(u12t[i+kvolHalo*mu]);
-					Leaves[1]=-a[0]*u12t[i+kvolHalo*mu]+a[1]*u11t[i+kvolHalo*mu];
+						/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})U^\dagger_\mu(x)@f$
+						Leaves[0]=a[0]*conj(u11t[i+kvolHalo*mu])+a[1]*conj(u12t[i+kvolHalo*mu]);
+						Leaves[1]=-a[0]*u12t[i+kvolHalo*mu]+a[1]*u11t[i+kvolHalo*mu];
+					}
 
-					//DEBUG
-					//						Leaves[0]=0; Leaves[1]=0;
 					break;
-				case(3):
-					///Leaf in the backwards mu and backwards nu direction
-					didn = id[nu*kvol+i]; 
-					unsigned int din_didm=id[mu*kvol+didn];
+				case(3)://Need braces for strict C++ standard compliance as a variable is declared in the case
+					{
+						///Leaf in the backwards mu and backwards nu direction
+						didn = id[nu*kvol+i]; 
+						unsigned int din_didm=id[mu*kvol+didn];
 
-					/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(n-\hat{\nu}-\hat{\mu})@f$
-					a[0]=Leaves[0]*u11t[din_didm+kvolHalo*mu]-Leaves[1]*conj(u12t[din_didm+kvolHalo*mu]);
-					a[1]=Leaves[0]*u12t[din_didm+kvolHalo*mu]+Leaves[1]*conj(u11t[din_didm+kvolHalo*mu]);
+						/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(n-\hat{\nu}-\hat{\mu})@f$
+						a[0]=Leaves[0]*u11t[din_didm+kvolHalo*mu]-Leaves[1]*conj(u12t[din_didm+kvolHalo*mu]);
+						a[1]=Leaves[0]*u12t[din_didm+kvolHalo*mu]+Leaves[1]*conj(u11t[din_didm+kvolHalo*mu]);
 
-					/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(n-\hat{\nu}-\hat{\mu})U_\nu(n-\hat{\nu})@f$
-					Leaves[0]=a[0]*u11t[didn+kvolHalo*nu]-a[1]*conj(u12t[didn+kvolHalo*nu]);
-					Leaves[1]=a[0]*u12t[didn+kvolHalo*nu]+a[1]*conj(u11t[didn+kvolHalo*nu]);
-
-					//DEBUG
-					//						Leaves[0]=0; Leaves[1]=0;
+						/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(n-\hat{\nu}-\hat{\mu})U_\nu(n-\hat{\nu})@f$
+						Leaves[0]=a[0]*u11t[didn+kvolHalo*nu]-a[1]*conj(u12t[didn+kvolHalo*nu]);
+						Leaves[1]=a[0]*u12t[didn+kvolHalo*nu]+a[1]*conj(u11t[didn+kvolHalo*nu]);
+					}
 					break;
 			}
 			return;
@@ -376,7 +377,7 @@ namespace Kernels{
 	 */
 	template <typename T>
 		__global__ void cuCalcXmunu(Bilinear_a Xmunu, const complex<T> *X1, const complex<T> *X2,
-						const complex<T> *sigval, const unsigned short *sigin,const unsigned short clov){
+				const complex<T> *sigval, const unsigned short *sigin,const unsigned short clov){
 			const char funcname[] = "Xmunu";
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
