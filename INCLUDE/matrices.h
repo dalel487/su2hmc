@@ -6,9 +6,6 @@
  *	@defgroup Dslashes Fermion matrix products
  */
 #pragma once
-#ifdef USE_GPU
-#include <curand.h>
-#endif
 #include <par_mpi.h>
 #if (defined __cplusplus)
 extern "C"
