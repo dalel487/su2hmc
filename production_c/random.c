@@ -3,9 +3,6 @@
  *
  * @brief Random number generator related routines
  */
-#ifdef	USE_GPU
-#include <curand.h>
-#endif
 #ifdef	__USE_MKL__
 #include <mkl.h>
 //Bad practice? Yes but it is convenient
