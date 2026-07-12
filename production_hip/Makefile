@@ -123,7 +123,7 @@ CUEDT=	$(CUSRC:.cu=.cu~)
 TMP=	$(MOD) $(CEDT) $(CUEDT) core
 
 profiler:	CFLAGS += -g #-D_DEBUGCG
-profiler:	NVCCFLAGS += --resource-usage -Xptxas -O3,-v -lineinfo #-D_DEBUGCG #-keep
+profiler:	NVCCFLAGS += -Rpass-analysis=kernel-resource-usage #-D_DEBUGCG #-keep
 profiler:	release
 
 release:	CFLAGS +=  -O3  #-fprofile-use=./gcc_pgo
@@ -136,7 +136,7 @@ diagnostic: NVCCFLAGS+=-DDIAGNOSTIC #-DNO_TIME -DNO_SPACE
 diagnostic: debug
 
 debug:		CFLAGS += -g -O0 -D_DEBUG #-D_DEBUGCG #-DNO_TIME -DNO_SPACE
-debug:		NVCCFLAGS += --resource-usage -Xptxas -O0,-v -G -g -D_DEBUG  -keep 
+debug:		NVCCFLAGS += -Rpass-analysis-kernel-resource-usage -O0 -g -D_DEBUG  
 debug:		$(EXE)
 		 
 $(EXE): $(OBJ) #../main.o

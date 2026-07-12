@@ -11,6 +11,9 @@ hipify-perl --print-stats --inplace ../production_cuda/*.cu ../INCLUDE/*.h ../pr
 
 #Step 2: Deal with some unsupported __managed__ tags
 sed -i -e 's/__managed__ //g' ../production_c/*.c ../main.c
+sed -i -e 's/__forcedinline__ //g' ../production_cuda/*.cu ../INCLUDE/*.h*
+sed -i -e 's/__constant__ //g' ../production_cuda/*.cu ../INCLUDE/*.h*
+sed -i -e 's/__grid_constant__ //g' ../production_cuda/*.cu ../INCLUDE/*.h*
 
 #Step 3: Remove some over-zealous headers from the pure C code paths
 perl -ni -e 'print unless m{^\s*#include\s*[<"]hip/hip_runtime\.h[">]}' \
