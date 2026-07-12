@@ -548,7 +548,6 @@ namespace Kernels{
 			unsigned int i = blockIdx.x*(bsize*2) + tid;
 			const unsigned int gridSize = blockDim.x * 2 * gridDim.x;
 			sdata[tid] = 0;
-
 			while (i < n) {
 				sdata[tid] += g_in_data[i];
 				if (i + bsize < n) {
@@ -559,22 +558,22 @@ namespace Kernels{
 			__syncthreads();
 
 			// Perform reductions in steps, reducing thread synchronization
-			if (bsize >= 512) {
-				if (tid < 256) { sdata[tid] += sdata[tid + 256]; } __syncthreads();
+			// CUDA warps aren't guaranteed to be 32, and AMD vary. warpSize from the compiler fixes that.
+			for(unsigned int s=bsize/2;s>=warpSize;s>>=1){
+				if (tid < s)  
+					sdata[tid] += sdata[tid + s];  __syncthreads();
 			}
-			if (bsize >= 256) {
-				if (tid < 128) { sdata[tid] += sdata[tid + 128]; } __syncthreads();
-			}
-			if (bsize >= 128) {
-				if (tid < 64) { sdata[tid] += sdata[tid + 64]; } __syncthreads();
-			}
-
-			if (tid < 32)
+#if defined(__HIP_PLATFORM_AMD__) || defined(__HIP_PLATFORM_HCC__)
+#define SU2_WARP_MASK 0xffffffffffffffffULL   // 64-bit lane mask (HIP/AMD)
+#else
+#define SU2_WARP_MASK 0xffffffffU             // 32-bit lane mask (CUDA)
+#endif
+			if (tid < warpSize)
 				//Device::warpReduce_sum<T,bsize>(sdata, tid);
 			{
 				T val = sdata[tid];
-				for (int offset = 16; offset > 0; offset >>= 1)
-					val += __shfl_down_sync(0xffffffff, val, offset);
+				for (int offset = warpSize/2; offset > 0; offset >>= 1)
+					val += __shfl_down_sync(SU2_WARP_MASK, val, offset);
 				if (tid == 0) sdata[0] = val;
 			}
 
