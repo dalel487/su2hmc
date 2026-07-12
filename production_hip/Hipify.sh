@@ -11,7 +11,7 @@ hipify-perl --print-stats --inplace ../production_cuda/*.cu ../INCLUDE/*.h ../pr
 
 #Step 2: Deal with some unsupported __managed__ tags
 sed -i -e 's/__managed__ //g' ../production_c/*.c ../main.c
-sed -i -e 's/__forcedinline__ //g' ../production_cuda/*.cu ../INCLUDE/*.h*
+sed -i -e 's/__forceinline__ //g' ../production_cuda/*.cu ../INCLUDE/*.h*
 sed -i -e 's/__constant__ //g' ../production_cuda/*.cu ../INCLUDE/*.h*
 sed -i -e 's/__grid_constant__ //g' ../production_cuda/*.cu ../INCLUDE/*.h*
 
