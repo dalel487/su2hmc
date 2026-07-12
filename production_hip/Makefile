@@ -107,13 +107,13 @@ CINC=	\
 .PHONY: clean debug release profiler tar
 C_SOURCES:= $(wildcard $(CSRC_DIR)/*.c)
 CU_SOURCES:= $(wildcard $(CUSRC_DIR)/*.cu)
-COBJ=	$(patsubst $(CSRC_DIR)/%.c, $(CSRC_DIR)/%.o, $(C_SOURCES))
-CUOBJ= $(patsubst $(CUSRC_DIR)/%.cu, $(CUSRC_DIR)/%.o, $(CU_SOURCES))
+COBJ=	$(patsubst $(CSRC_DIR)/%.c, ./%.o, $(C_SOURCES))
+CUOBJ= $(patsubst $(CUSRC_DIR)/%.cu, ./%.o, $(CU_SOURCES))
 CLIB= libc.a
 CULIB= #libcu.a
 CULIB2= #libhiprtc.a
 #OBJ=	$(CLIB) $(CULIB2)
-OBJ = $(COBJ) $(CUOBJ) ../main.o
+OBJ = $(COBJ) $(CUOBJ) ./main.o
 DEPS=	$(OBJ:.o=.d)
 
 #MOD=	$(CSRC:.c=.mod)
@@ -139,13 +139,13 @@ debug:		CFLAGS += -g -O0 -D_DEBUG #-D_DEBUGCG #-DNO_TIME -DNO_SPACE
 debug:		NVCCFLAGS += --resource-usage -Xptxas -O0,-v -G -g -D_DEBUG  -keep 
 debug:		$(EXE)
 		 
-$(EXE): $(OBJ)
+$(EXE): $(OBJ) #../main.o
 	$(NVCC) $(NVCCFLAGS) --hip-link -fgpu-rdc $(IFLAGS) $(LFLAGS) $(CULFLAGS) $^ -o $@
 %.o: $(CUSRC_DIR)/%.cu
 	$(NVCC) $(NVCCFLAGS) -std=gnu++17 $(IFLAGS) $(filter-out -fopenmp -fopenmp-simd,$(CFLAGS))  $< -fgpu-rdc -c -o $@
 %.o: $(CSRC_DIR)/%.c
 	$(CC) $(CFLAGS) -foffload=disable -std=gnu23 $(IFLAGS) -c $<  
-../main.o: ../main.c
+./main.o: ../main.c
 	$(CC) $(CFLAGS) -foffload=disable -std=gnu23 $(IFLAGS) -c $<  
 
 clean:
