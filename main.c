@@ -222,6 +222,7 @@ int main(int argc, char *argv[]){
 
 	cudaMallocManaged((void **)&u[0],ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&u[1],ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
+	//Needs to be managed as fermionic.c still used them on CPU
 	cudaMallocManaged((void **)&ut[0],ndim*(kvolHalo)*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&ut[1],ndim*(kvolHalo)*sizeof(Complex),cudaMemAttachGlobal);
 #ifdef _DEBUG
@@ -230,6 +231,8 @@ int main(int argc, char *argv[]){
 #else
 	cudaMalloc((void **)&ut_f[0],ndim*(kvolHalo)*sizeof(Complex_f));
 	cudaMalloc((void **)&ut_f[1],ndim*(kvolHalo)*sizeof(Complex_f));
+//	cudaMalloc((void **)&ut[0],ndim*(kvolHalo)*sizeof(Complex));
+//	cudaMalloc((void **)&ut[1],ndim*(kvolHalo)*sizeof(Complex));
 #endif
 #else
 	id = (unsigned int*)aligned_alloc(AVX,ndim*kvol*sizeof(int));
@@ -392,13 +395,14 @@ int main(int argc, char *argv[]){
 	cudaMallocManaged((void **)&X0, nf*kferm2*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&Phi, nf*kferm*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&dSdpi, kmom*sizeof(double),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&X1, kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
 #else
+	cudaMalloc((void **)&X1, kferm2Halo*sizeof(Complex));
 	cudaMalloc((void **)&X0, nf*kferm2*sizeof(Complex));
 	cudaMalloc((void **)&Phi, nf*kferm*sizeof(Complex));
 	cudaMalloc((void **)&dSdpi, kmom*sizeof(double));
 #endif
 
-	cudaMallocManaged((void **)&X1, kferm2Halo*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&pp, kmom*sizeof(double),cudaMemAttachGlobal);
 	cudaDeviceSynchronise();
 #else
