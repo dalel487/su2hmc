@@ -448,7 +448,6 @@ namespace Kernels{
 
 				//@f$Z_2=X_{\mu\nu}\left(i-\hat{\nu}\right)@f$
 				complex<T> Z[nc*nc];
-#pragma unroll
 				Device::GetBilinear(Z,Xmn,ind);
 
 				//W0 is @f$U^\dagger_\mu@f(x-\hat{nu}\right)@f$
@@ -463,7 +462,6 @@ namespace Kernels{
 
 				//Z3 is the @f$X_{\mu\nu}\left(x+\hat{\mu}-\hat{\nu}\right)@f$. Store in Z
 				ind=iu[ind+kvol*mu];
-#pragma unroll
 				Device::GetBilinear(Z,Xmn,ind);
 
 				//Need a second Zbuffer for another intermediate result.
@@ -494,7 +492,6 @@ namespace Kernels{
 				W1[0]=conj(u11t[ind+kvolHalo*mu]); W1[1]=-u12t[ind+kvolHalo*mu];
 				//@f$Z_4=X_{\mu\nu}\left(x+\hat{\mu}+\hat{\nu}\right)@f$. Storing in Z
 				ind=iu[ind+kvol*mu];
-#pragma unroll
 				Device::GetBilinear(Z,Xmn,ind);
 				//Calculate and write into Zbuff1
 				Device::cuGSandwich(Zbuff1,Zbuff2,W0,Z,W1);
@@ -504,7 +501,6 @@ namespace Kernels{
 				W7[0]=W0[0]*W1[0]-W0[1]*conj(W1[1]); W7[1]=W0[0]*W1[1]+W0[1]*conj(W1[0]);
 				//@f$Z_5=X_{\mu\nu}\left(x+\hat{\nu}\right)@f$
 				ind=iu[i+kvol*nu]; 
-#pragma unroll
 				Device::GetBilinear(Z,Xmn,ind);
 				//And calculate the second term
 				Device::cuGLeft(Zbuff2,W7,Z);
@@ -529,7 +525,6 @@ namespace Kernels{
 				W0[0]-=W1[0]; W0[1]-=W1[1];
 
 				//Now load @f$@Z_0=X_{\mu\nu}(x)@f$
-#pragma unroll
 				Device::GetBilinear(Z,Xmn,i);
 				Device::cuGLeft(Zbuff1,W0,Z);
 				//And sum intermediate
@@ -539,7 +534,6 @@ namespace Kernels{
 
 				//Now load @f$@Z_1=X_{\mu\nu}(x)@f$
 				ind=iu[i+kvol*mu];
-#pragma unroll
 				Device::GetBilinear(Z,Xmn,ind);
 				Device::cuGRight(Zbuff1,W0,Z);
 				//And sum intermediate
