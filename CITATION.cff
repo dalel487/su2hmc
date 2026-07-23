@@ -4,8 +4,7 @@
 cff-version: 1.2.0
 title: su2hmc
 message: >-
-  If you use this software, please cite it using the
-  metadata from this file.
+  If you use this software, please cite it using the metadata from this file.
 type: software
 authors:
   - given-names: Dale
@@ -30,8 +29,8 @@ authors:
     orcid: 'https://orcid.org/0000-0002-8255-0043'
   - given-names: Tadeusz
     family-names: Janowski
-	 affiliation: 'University of Edinburgh'
-	 orcid: 'https://orcid.org/0000-0002-4113-3630'
+    affiliation: 'University of Edinburgh'
+    orcid: 'https://orcid.org/0000-0002-4113-3630'
 repository-code: 'https://github.com/dalel487/su2hmc'
 abstract: >-
   Hybrid Monte Carlo algorithm for Two Color QCD with
