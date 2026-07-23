@@ -44,4 +44,5 @@ keywords:
   - Clover Fermions
   - Dense QCD
   - Lattice QCD
-license: GPL-3.0
+license: BSD-3-Clause
+commit: 291a8e2
