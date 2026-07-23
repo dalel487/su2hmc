@@ -31,7 +31,10 @@ The code produces the following outputs:
 |diq.bβββkκκκmuμμμμjJJJcCCCsNXtNT|Diquark Condensate|
 
 - SJH March 2005
-- Hybrid code, P.Giudice, May 2013
+- Temporal Extent Parallelisation S. Kim (김세용)
+- Full MPI Parallelisation T. Janowski
+- BlueGene Optimisation J. Enright
+- Hybrid MPI-OpenMP code, P.Giudice, May 2013
 - Converted from Fortran to C by D. Lawlor March 2021
 - CUDA Implementation by D. Lawlor April 2024
 - Clover Action Implementation by D. Lawlor July 2026
