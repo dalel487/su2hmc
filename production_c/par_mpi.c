@@ -147,7 +147,7 @@ int Par_sread(const int iread, const float beta, const float fmu, const float ak
 		//c_sw
 		if(c_sw!=0){
 			buffer = (int)round(100*c_sw);
-			sprintf(buff2,"c%02d",buffer);
+			sprintf(buff2,"c%03d",buffer);
 			strcat(gauge_file,buff2);
 		}
 		//nx
@@ -449,7 +449,7 @@ int Par_swrite(const int itraj, const int icheck, const float beta, const float 
 		//c_sw
 		if(c_sw!=0){
 			buffer = (int)round(100*c_sw);
-			sprintf(buff2,"c%02d",buffer);
+			sprintf(buff2,"c%03d",buffer);
 			strcat(gauge_title,buff2);
 		}
 		//nx

@@ -740,27 +740,23 @@ int Diagnostics(int istart, Complex *u[2], Complex *ut[2],Complex_f *ut_f[2],\
 			case(13): //Clover Half Leaves
 				if(c_sw==0)
 					break;
-				//				unsigned short mu=0; unsigned short nu=1;
-				for(unsigned short mu=0;mu<ndim;mu++)
+				output=fopen("Half_leaves","w");
+				for(unsigned short mu=0;mu<ndim-1;mu++)
 					for(unsigned short nu=mu+1;nu<ndim;nu++){
 						Half_Leaves(hLeaves[mu],ut_f,iu,id,mu,nu);
 						Half_Leaves(hLeaves[nu],ut_f,iu,id,nu,mu);
-					}
-				output=fopen("Half_leaves","w");
-				for(unsigned int i=0;i<kvol;i++){
-					fprintf(output,"Site %d\n",i);
-					for(unsigned short mu=0;mu<ndim;mu++)
-						for(unsigned short nu=mu+1;nu<ndim;nu++){
-							fprintf(output,"mu %d nu %d\n",mu,nu);
-							unsigned short clov = (mu==0) ? nu-1 :mu+nu;
-							fprintf(output,"mu-nu: hLeaf1 %e+i%e hLeaf2 %e+i%e\nnu-mu: hLeaf1 %e+i%e hLeaf2 %e+i%e\n",\
-									crealf(hLeaves[mu][0][i+kvol*clov]), cimagf(hLeaves[mu][0][i+kvol*clov]),\
-									crealf(hLeaves[mu][1][i+kvol*clov]), cimagf(hLeaves[mu][1][i+kvol*clov]),\
-									crealf(hLeaves[nu][0][i+kvol*clov]), cimagf(hLeaves[nu][0][i+kvol*clov]),\
-									crealf(hLeaves[nu][1][i+kvol*clov]), cimagf(hLeaves[nu][1][i+kvol*clov]));
+						fprintf(output,"mu %d nu %d\n",mu,nu);
+						for(unsigned int i=0;i<kvol;i++){
+							fprintf(output,"Site %d\n",i);
+							for(unsigned short leaf=0;leaf<ndim;leaf++)
+								fprintf(output,"leaf %d: mu-nu: hLeaf1 %e+i%e hLeaf2 %e+i%e\tnu-mu: hLeaf1 %e+i%e hLeaf2 %e+i%e\n",leaf,\
+										crealf(hLeaves[mu][0][i+kvol*leaf]), cimagf(hLeaves[mu][0][i+kvol*leaf]),\
+										crealf(hLeaves[mu][1][i+kvol*leaf]), cimagf(hLeaves[mu][1][i+kvol*leaf]),\
+										crealf(hLeaves[nu][0][i+kvol*leaf]), cimagf(hLeaves[nu][0][i+kvol*leaf]),\
+										crealf(hLeaves[nu][1][i+kvol*leaf]), cimagf(hLeaves[nu][1][i+kvol*leaf]));
 						}
-					fprintf(output,"\n");
-				}
+						fprintf(output,"\n");
+					}
 				fclose(output);
 				break;
 			case(14): //Xmunu

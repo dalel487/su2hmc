@@ -274,8 +274,6 @@ void ByClover(Complex *phi, Complex *r, Complex *clover[2], Complex *sigval, con
 #pragma unroll
 		for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++)
 			for(unsigned short c=0; c<nc; c++){
-				///Also @f$\sigma_{\mu\nu}F_{\mu\nu}=\sigma_{\nu\mu}F_{\nu\mu}@f$ so we double it to take account of that
-				///But then we multiply by @f$-\frac{1}{2}@f$ so the @f$2@f$ disappears
 				//dag is just to do with the output layout and if it has a halo
 				if(dag)
 					phi[i+kvol*(nc*igorkov+c)]+=akappa*phi_s[igorkov][c];
@@ -321,8 +319,6 @@ void HbyClover(Complex *phi, Complex *r, Complex *clover[2],Complex *sigval, con
 #pragma unroll
 		for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc)
 			for(unsigned short c=0; c<nc; c++)
-				///@f$\sigma_{\mu\nu}F_{\mu\nu}=\sigma_{\nu\mu}F_{\nu\mu}@f$ so we double it to take account of that
-				///But then we multiply by @f$-\frac{1}{2}@f$ so the @f$2@f$ disappears
 				//dag is just to do with the output layout and if it has a halo
 				if(dag)
 					phi[i+kvol*(c+idirac)]+=akappa*phi_s[idirac+c];
@@ -367,8 +363,6 @@ void ByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2], Complex_f *s
 #pragma unroll
 		for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++)
 			for(unsigned short c=0; c<nc; c++){
-				///Also @f$\sigma_{\mu\nu}F_{\mu\nu}=\sigma_{\nu\mu}F_{\nu\mu}@f$ so we double it to take account of that
-				///But then we multiply by @f$-\frac{1}{2}@f$ so the @f$2@f$ disappears
 				//dag is just to do with the output layout and if it has a halo
 				if(dag)
 					phi[i+kvol*(nc*igorkov+c)]+=akappa*phi_s[igorkov][c];
@@ -413,8 +407,6 @@ void HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2],Complex_f *s
 #pragma unroll
 		for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc)
 			for(unsigned short c=0; c<nc; c++)
-				///@f$\sigma_{\mu\nu}F_{\mu\nu}=\sigma_{\nu\mu}F_{\nu\mu}@f$ so we double it to take account of that
-				///But then we multiply by @f$-\frac{1}{2}@f$ so the @f$2@f$ disappears
 				//dag is just to do with the output layout and if it has a halo
 				if(dag)
 					phi[i+kvol*(c+idirac)]+=akappa*phi_s[idirac+c];
