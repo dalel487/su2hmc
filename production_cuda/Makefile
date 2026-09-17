@@ -64,7 +64,7 @@ CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/latest/cuda/lib64/ \
 				-L/opt/nvidia/hpc_sdk/Linux_x86_64/latest/math_libs/lib64/ \
 				-lcuda -lcudart -lcublas 
 
-LFLAGS += -lpthread -ldl #${CULFLAGS}
+LFLAGS += -lpthread -ldl -lstdc++ #${CULFLAGS}
 
 NVCCFLAGS+=	${IFLAGS} -err-no -w -arch=native --allow-unsupported-compiler #-expt-relaxed-constexpr 
 
