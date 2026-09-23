@@ -64,11 +64,11 @@ namespace Kernels{
 					//We subtract a_2, hence the minus
 					complex<T> a_2=-jqq*gamval[ind_d];
 					ind_d=i+kvolHalo*(idirac); unsigned int ind_g=i+kvolHalo*(igork);
-					phi_s[idirac]=phi[ind_d]+a_1*r[ind_g];
-					phi_s[igork]=phi[ind_g]+a_2*r[ind_d];
+					phi_s[idirac]=r[ind_d]+a_1*r[ind_g];
+					phi_s[igork]=r[ind_g]+a_2*r[ind_d];
 					ind_d+=kvolHalo; ind_g+=kvolHalo;
-					phi_s[idirac+1]=phi[ind_d]+a_1*r[ind_g];
-					phi_s[igork+1]=phi[ind_g]+a_2*r[ind_d];
+					phi_s[idirac+1]=r[ind_d]+a_1*r[ind_g];
+					phi_s[igork+1]=r[ind_g]+a_2*r[ind_d];
 				}
 				complex<T> u11s;	complex<T> u12s;
 				complex<T> u11sd; complex<T> u12sd;
@@ -189,12 +189,12 @@ namespace Kernels{
 					unsigned int ind_d =4*ndirac+(idirac>>1);
 					complex<T> a_1=-conj(jqq)*gamval[ind_d];
 					complex<T> a_2=jqq*gamval[ind_d];
-					ind_d=i+kvol*(idirac); unsigned int ind_g=i+kvol*(igork);
-					phi_s[idirac]=phi[ind_d]+a_1*r[ind_g];
-					phi_s[igork]=phi[ind_g]+a_2*r[ind_d];
-					ind_d+=kvol; ind_g+=kvol;
-					phi_s[idirac+1]=phi[ind_d]+a_1*r[ind_g];
-					phi_s[igork+1]=phi[ind_g]+a_2*r[ind_d];
+					ind_d=i+kvolHalo*(idirac); unsigned int ind_g=i+kvol*(igork);
+					phi_s[idirac]=r[ind_d]+a_1*r[ind_g];
+					phi_s[igork]=r[ind_g]+a_2*r[ind_d];
+					ind_d+=kvolHalo; ind_g+=kvolHalo;
+					phi_s[idirac+1]=r[ind_d]+a_1*r[ind_g];
+					phi_s[igork+1]=r[ind_g]+a_2*r[ind_d];
 				}
 				complex<T> u11s;	 complex<T> u12s;
 				complex<T> u11sd;	 complex<T> u12sd;
@@ -310,21 +310,22 @@ namespace Kernels{
 			const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 			const unsigned int gthreadId= blockId * bsize+bthreadId;
 
-			//Right. Time to prefetch
-			complex<T> ru[2];  complex<T> rd[2];
-			complex<T> rgu[2];  complex<T> rgd[2];
-			complex<T> phi_s[ndirac*nc];
+			//Reuse values for indices to reduce registers needed to reevaluate
+			unsigned int ind;
 			for(unsigned int i=gthreadId;i<kvol;i+=bsize*gsize){
+				complex<T> phi_s[ndirac*nc];
 #pragma unroll
 				for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll
-					for(unsigned short c=0; c<nc; c++)
+					for(unsigned short c=0; c<nc; c++){
 						//NOTE: idirac is increasing by nc each time. So should be read as idirac*nc 
-						phi_s[idirac+c]=phi[i+kvolHalo*(c+idirac)];
+						ind =kvolHalo*(idirac+c);
+						phi_s[idirac+c]=r[i+ind];
+					}
 
 				//#pragma unroll
 				for(unsigned short mu = 0; mu <ndim; mu++){
-					unsigned int ind=i+kvolHalo*mu;
+					ind=i+kvolHalo*mu;
 					const complex<T> u11s=u11t[ind];	const complex<T> u12s=u12t[ind];
 					ind = i+kvol*mu;
 					const int did=id[ind];	const int uid = iu[ind];
@@ -333,6 +334,8 @@ namespace Kernels{
 #pragma unroll
 					for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
 						const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
+						complex<T> ru[2];  complex<T> rd[2];
+						complex<T> rgu[2];  complex<T> rgd[2];
 #pragma unroll
 						for(unsigned short c=0;c<nc;c++){
 							ind =kvolHalo*(idirac+c);
@@ -406,19 +409,23 @@ namespace Kernels{
 			const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 			const unsigned int gthreadId= blockId * bsize+bthreadId;
 
+			//Reuse values for indices to reduce registers needed to reevaluate
+			unsigned int ind;
 			//Right. Time to prefetch
 			for(unsigned int i=gthreadId;i<kvol;i+=gsize*bsize){
 				complex<T> phi_s[ndirac*nc];
 #pragma unroll
 				for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll
-					for(unsigned short c=0; c<nc; c++)
+					for(unsigned short c=0; c<nc; c++){
 						//NOTE: idirac is increasing by nc each time. So should be read as idirac*nc 
-						phi_s[idirac+c]=phi[i+kvol*(c+idirac)];
+						ind =kvolHalo*(idirac+c);
+						phi_s[idirac+c]=r[i+ind];
+					}
 
 				//#pragma unroll
 				for(unsigned short mu = 0; mu <ndim; mu++){
-					unsigned int ind=i+kvolHalo*mu;
+					ind=i+kvolHalo*mu;
 					const complex<T> u11s=u11t[ind];	const complex<T> u12s=u12t[ind];
 					ind = i+kvol*mu;
 					const int did=id[ind];	const int uid = iu[ind];
@@ -610,6 +617,7 @@ void cuDslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigne
 		Complex gamval[20], const unsigned short gamin[16], double *dk[nc], Complex_f jqq, float akappa,
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslash";
+	/*
 	int cuCpyStat=0;
 	for(unsigned short j=0;j<nc*ngorkov;j++)
 		if((cuCpyStat=cudaMemcpy(phi+j*kvolHalo, r+j*kvolHalo, kvol*sizeof(Complex),cudaMemcpyDefault))){
@@ -617,6 +625,7 @@ void cuDslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigne
 					CPYERROR,funcname,cuCpyStat);
 			exit(cuCpyStat);
 		}
+		*/
 	Kernels::cuDslash<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa);
 	return;
 }
@@ -624,6 +633,7 @@ void cuDslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsign
 		Complex gamval[20], const unsigned short gamin[16], double *dk[nc], Complex_f jqq, float akappa,
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslashd";
+	/*
 	int cuCpyStat=0;
 	for(unsigned short j=0;j<nc*ngorkov;j++)
 		if((cuCpyStat=cudaMemcpy(phi+j*kvol, r+j*kvolHalo, kvol*sizeof(Complex),cudaMemcpyDefault))){
@@ -631,6 +641,7 @@ void cuDslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsign
 					CPYERROR,funcname,cuCpyStat);
 			exit(cuCpyStat);
 		}
+		*/
 	Kernels::cuDslashd<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa);
 	return;
 }
@@ -638,13 +649,6 @@ void cuHdslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsign
 		Complex gamval[20], const unsigned short gamin[16], double *dk[nc], float akappa, 
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Hdslash";
-	int cuCpyStat=0;
-	for(unsigned short j=0;j<nc*ndirac;j++)
-		if((cuCpyStat=cudaMemcpy(phi+j*kvolHalo, r+j*kvolHalo, kvol*sizeof(Complex),cudaMemcpyDefault))){
-			fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
-					CPYERROR,funcname,cuCpyStat);
-			exit(cuCpyStat);
-		}
 	Kernels::cuHdslash<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa);
 	return;
 }
@@ -652,14 +656,6 @@ void cuHdslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsig
 		Complex gamval[20], const unsigned short gamin[16],double *dk[nc], float akappa, 
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Hdslashd";
-	//Spacelike term
-	int cuCpyStat=0;
-	for(unsigned short j=0;j<nc*ndirac;j++)
-		if((cuCpyStat=cudaMemcpy(phi+j*kvol, r+j*kvolHalo, kvol*sizeof(Complex),cudaMemcpyDefault))){
-			fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
-					CPYERROR,funcname,cuCpyStat);
-			exit(cuCpyStat);
-		}
 	Kernels::cuHdslashd<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa);
 	return;
 }
@@ -669,6 +665,7 @@ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu
 		Complex_f gamval[20],const unsigned short gamin[16],	float *dk[nc], Complex_f jqq, float akappa,
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslash_f";
+	/*
 	int cuCpyStat=0;
 	for(unsigned short j=0;j<nc*ngorkov;j++)
 		if((cuCpyStat=cudaMemcpy(phi+j*kvolHalo, r+j*kvolHalo, kvol*sizeof(Complex_f),cudaMemcpyDefault))){
@@ -676,6 +673,7 @@ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu
 					CPYERROR,funcname,cuCpyStat);
 			exit(cuCpyStat);
 		}
+		*/
 	Kernels::cuDslash<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa);
 	return;
 }
@@ -683,6 +681,7 @@ void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *i
 		Complex_f gamval[20],const unsigned short gamin[16],	float *dk[nc], Complex_f jqq, float akappa,
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslashd_f";
+	/*
 	int cuCpyStat=0;
 	for(unsigned short j=0;j<nc*ngorkov;j++)
 		if((cuCpyStat=cudaMemcpy(phi+j*kvol, r+j*kvolHalo, kvol*sizeof(Complex_f),cudaMemcpyDefault))){
@@ -690,34 +689,19 @@ void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *i
 					CPYERROR,funcname,cuCpyStat);
 			exit(cuCpyStat);
 		}
+		*/
 	Kernels::cuDslashd<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa);
 	return;
 }
 void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,unsigned int *id, Complex_f gamval[20],
 		const unsigned short gamin[16],	float *dk[nc], float akappa, dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Hdslash_f";
-	int cuCpyStat=0;
-	for(unsigned short j=0;j<nc*ndirac;j++)
-		if((cuCpyStat=cudaMemcpy(phi+j*kvolHalo, r+j*kvolHalo, kvol*sizeof(Complex_f),cudaMemcpyDefault))){
-			fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
-					CPYERROR,funcname,cuCpyStat);
-			exit(cuCpyStat);
-		}
-	const int bsize=dimGrid.x*dimGrid.y*dimGrid.z;
-	const int shareSize= ndim*bsize*nc*sizeof(Complex_f);
 	Kernels::cuHdslash<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa);
 	return;
 }
 void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,unsigned int *id,
 		Complex_f gamval[20],const unsigned short gamin[16],float *dk[nc], float akappa,dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Hdslashd_f";
-	int cuCpyStat=0;
-	for(unsigned short j=0;j<nc*ndirac;j++)
-		if((cuCpyStat=cudaMemcpy(phi+j*kvol, r+j*kvolHalo, kvol*sizeof(Complex_f),cudaMemcpyDefault))){
-			fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
-					CPYERROR,funcname,cuCpyStat);
-			exit(cuCpyStat);
-		}
 	Kernels::cuHdslashd<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa);
 	return;
 }

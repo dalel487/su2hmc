@@ -26,8 +26,6 @@ int Dslash(Complex *phi, Complex *r, Complex *ut[nc], unsigned int *iu,unsigned 
 #ifdef USE_GPU
 	cuDslash(phi,r,ut,iu,id,gamval,gamin,dk,jqq,akappa,dimGrid,dimBlock);
 #else
-	for(unsigned short j=0;j<nc*ngorkov;j++)
-		memcpy(phi+j*kvolHalo, r+j*kvolHalo, kvol*sizeof(Complex));
 #pragma omp parallel for simd
 	for(unsigned int i=0;i<kvol;i++){
 		Complex ru[nc]; Complex rd[nc];
@@ -40,11 +38,11 @@ int Dslash(Complex *phi, Complex *r, Complex *ut[nc], unsigned int *iu,unsigned 
 			//We subtract a_2, hence the minus
 			Complex a_2=-jqq*gamval[ind_d];
 			ind_d=i+kvolHalo*(idirac); unsigned int ind_g=i+kvolHalo*(igork);
-			phi_s[idirac]=phi[ind_d]+a_1*r[ind_g];
-			phi_s[igork]=phi[ind_g]+a_2*r[ind_d];
+			phi_s[idirac]=r[ind_d]+a_1*r[ind_g];
+			phi_s[igork]=r[ind_g]+a_2*r[ind_d];
 			ind_d+=kvolHalo; ind_g+=kvolHalo;
-			phi_s[idirac+1]=phi[ind_d]+a_1*r[ind_g];
-			phi_s[igork+1]=phi[ind_g]+a_2*r[ind_d];
+			phi_s[idirac+1]=r[ind_d]+a_1*r[ind_g];
+			phi_s[igork+1]=r[ind_g]+a_2*r[ind_d];
 		}
 		Complex u11s;	Complex u12s;
 		Complex u11sd; Complex u12sd;
@@ -144,8 +142,6 @@ int Dslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned 
 #ifdef USE_GPU
 	cuDslashd(phi,r,ut,iu,id,gamval,gamin,dk,jqq,akappa,dimGrid,dimBlock);
 #else
-	for(unsigned short j=0;j<nc*ngorkov;j++)
-		memcpy(phi+j*kvol, r+j*kvolHalo, kvol*sizeof(Complex));
 #pragma omp parallel for simd
 	for(unsigned int i=0;i<kvol;i++){
 		Complex ru[nc];  Complex rd[nc];
@@ -157,11 +153,11 @@ int Dslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned 
 			Complex a_1=-conj(jqq)*gamval[ind_d];
 			Complex a_2=jqq*gamval[ind_d];
 			//ind_d=i+kvolHalo*(idirac); unsigned int ind_g=i+kvolHalo*(igork);
-			phi_s[idirac]=phi[i+kvol*idirac]+a_1*r[i+kvolHalo*igork];
-			phi_s[igork]=phi[i+kvol*igork]+a_2*r[i+kvolHalo*idirac];
+			phi_s[idirac]=r[i+kvolHalo*idirac]+a_1*r[i+kvolHalo*igork];
+			phi_s[igork]=r[i+kvolHalo*igork]+a_2*r[i+kvolHalo*idirac];
 			//ind_d+=kvolHalo; ind_g+=kvolHalo;
-			phi_s[idirac+1]=phi[i+kvol*(idirac+1)]+a_1*r[i+kvolHalo*(igork+1)];
-			phi_s[igork+1]=phi[i+kvol*(igork+1)]+a_2*r[i+kvolHalo*(idirac+1)];
+			phi_s[idirac+1]=r[i+kvolHalo*(idirac+1)]+a_1*r[i+kvolHalo*(igork+1)];
+			phi_s[igork+1]=r[i+kvolHalo*(igork+1)]+a_2*r[i+kvolHalo*(idirac+1)];
 		}
 		Complex u11s;	 Complex u12s;
 		Complex u11sd;	 Complex u12sd;
@@ -264,18 +260,19 @@ int Hdslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned  int *iu,unsigned
 #ifdef USE_GPU
 	cuHdslash(phi,r,ut,iu,id,gamval,gamin,dk,akappa,dimGrid,dimBlock);
 #else
-	for(unsigned short j=0;j<nc*ndirac;j++)
-		memcpy(phi+j*kvolHalo, r+j*kvolHalo, kvol*sizeof(Complex));
 #pragma omp parallel for simd
 	for(unsigned int i=0;i<kvol;i++){
+		unsigned int ind=0;
 		Complex ru[nc];  Complex rd[nc];
 		Complex rgu[nc];  Complex rgd[nc];
 		Complex phi_s[ndirac*nc];
 		for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll
-			for(unsigned short c=0; c<nc; c++)
+			for(unsigned short c=0; c<nc; c++){
 				//NOTE: idirac is increasing by nc each time. So should be read as idirac*nc in a Dirac-counted loop
-				phi_s[idirac+c]=phi[i+kvolHalo*(c+idirac)];
+						ind =kvolHalo*(idirac+c);
+				phi_s[idirac+c]=r[i+ind];
+				}
 
 		//#pragma unroll
 		for(unsigned short mu = 0; mu <ndim; mu++){
@@ -347,20 +344,21 @@ int Hdslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned  int *iu,unsigne
 #ifdef USE_GPU
 	cuHdslashd(phi,r,ut,iu,id,gamval,gamin,dk,akappa,dimGrid,dimBlock);
 #else
-	for(unsigned short j=0;j<nc*ndirac;j++)
-		memcpy(phi+j*kvol, r+j*kvolHalo, kvol*sizeof(Complex));
 	//Spacelike term
 #pragma omp parallel for simd
 	for(unsigned int i=0;i<kvol;i++){
+		unsigned int ind=0;
 		//Right. Time to prefetch
 		Complex ru[nc];  Complex rd[nc];
 		Complex rgu[nc];  Complex rgd[nc];
 		Complex phi_s[ndirac*nc];
 		for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll
-			for(unsigned short c=0; c<nc; c++)
+			for(unsigned short c=0; c<nc; c++){
 				//NOTE: idirac is increasing by nc each time. So should be read as idirac*nc in a Dirac-counted loop
-				phi_s[idirac+c]=phi[i+kvol*(c+idirac)];
+						ind =kvolHalo*(idirac+c);
+				phi_s[idirac+c]=r[i+kvol*(c+idirac)];
+				}
 
 		//#pragma unroll
 		for(unsigned short mu = 0; mu <ndim; mu++){
@@ -670,20 +668,21 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned  int *iu,
 #ifdef USE_GPU
 	cuHdslash_f(phi,r,ut,iu,id,gamval,gamin,dk,akappa,dimGrid,dimBlock);
 #else
-	//Mass term
-	for(unsigned short j=0;j<nc*ndirac;j++)
-		memcpy(phi+j*kvolHalo, r+j*kvolHalo, kvol*sizeof(Complex_f));
 #pragma omp parallel for simd
 	for(unsigned int i=0;i<kvol;i++){
+			unsigned int ind;
 		Complex_f ru[nc];  Complex_f rd[nc];
 		Complex_f rgu[nc];  Complex_f rgd[nc];
 		Complex_f phi_s[ndirac*nc];
 		for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
+	//Mass term
 #pragma unroll
-			for(unsigned short c=0; c<nc; c++)
+			for(unsigned short c=0; c<nc; c++){
 				//NOTE: idirac is increasing by nc each time.
 				//So should be read as idirac*nc in a Dirac-counted loop
-				phi_s[idirac+c]=phi[i+kvolHalo*(c+idirac)];
+						ind =kvolHalo*(idirac+c);
+				phi_s[idirac+c]=r[i+ind];
+				}
 
 		//#pragma unroll
 		for(unsigned short mu = 0; mu <ndim; mu++){
@@ -753,29 +752,30 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,
 	CHalo_swap_all(r, 8);
 #endif
 
-	//Mass term
 #ifdef USE_GPU
 	cuHdslashd_f(phi,r,ut,iu,id,gamval,gamin,dk,akappa,dimGrid,dimBlock);
 #else
-	for(unsigned short j=0;j<nc*ndirac;j++)
-		memcpy(phi+j*kvol, r+j*kvolHalo, kvol*sizeof(Complex_f));
 
 	//Spacelike term
 #pragma omp parallel for simd
 	for(unsigned int i=0;i<kvol;i++){
+			unsigned int ind;
 		//Right. Time to prefetch
 		Complex_f ru[nc];  Complex_f rd[nc];
 		Complex_f rgu[nc];  Complex_f rgd[nc];
 		Complex_f phi_s[ndirac*nc];
+	//Mass term
 		for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll
-			for(unsigned short c=0; c<nc; c++)
+			for(unsigned short c=0; c<nc; c++){
 				//NOTE: idirac is increasing by nc each time. So should be read as idirac*nc in a Dirac counted loop 
-				phi_s[idirac+c]=phi[i+kvol*(c+idirac)];
+						ind =kvolHalo*(idirac+c);
+				phi_s[idirac+c]=r[i+ind];
+				}
 
 		//#pragma unroll
 		for(unsigned short mu = 0; mu <ndim; mu++){
-			unsigned int ind=i+kvolHalo*mu;
+			ind=i+kvolHalo*mu;
 			const Complex_f u11s=ut[0][ind];	const Complex_f u12s=ut[1][ind];
 			ind = i+kvol*mu;
 			const int did=id[ind];	const int uid = iu[ind];
