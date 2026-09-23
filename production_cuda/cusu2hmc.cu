@@ -47,22 +47,22 @@ namespace Kernels{
 	 * @post Depending on the value of @p dtof, either the contents of @p a or @p b are overwritten with those of the
 	 * other array in the opposite precision.
 	 */
-__global__ void Real_convert(float *a, double *b, const unsigned int len, const bool dtof){
-	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	const unsigned int gthreadId= blockId * bsize+bthreadId;
+	__global__ void Real_convert(float * __restrict__ a, double * __restrict__ b, const unsigned int len, const bool dtof){
+		const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
+		const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
+		const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+		const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+		const unsigned int gthreadId= blockId * bsize+bthreadId;
 
-	//True: Convert float to double
-	if(dtof)
-		for(unsigned int i = gthreadId; i<len;i+=gsize*bsize)
-			a[i]=(float)b[i];
-	//False: Convert double to float.
-	else
-		for(unsigned int i = gthreadId; i<len;i+=gsize*bsize)
-			b[i]=(double)a[i];
-}
+		//True: Convert float to double
+		if(dtof)
+			for(unsigned int i = gthreadId; i<len;i+=gsize*bsize)
+				a[i]=(float)b[i];
+		//False: Convert double to float.
+		else
+			for(unsigned int i = gthreadId; i<len;i+=gsize*bsize)
+				b[i]=(double)a[i];
+	}
 	/**
 	 * @brief Copies necessary (2*4*kvol) elements of Phi into a vector variable
 	 * @ingroup Helper
@@ -73,21 +73,21 @@ __global__ void Real_convert(float *a, double *b, const unsigned int len, const 
 	 *
 	 * @post	Result written into @p smallPhi
 	 */
-__global__ void cuFill_Small_Phi(const unsigned int na, Complex *smallPhi, Complex *Phi)
-{
-	//BIG and small phi index
-	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	const unsigned int gthreadId= blockId * bsize+bthreadId;
+	__global__ void cuFill_Small_Phi(const unsigned int na, Complex * __restrict__ smallPhi, Complex * __restrict__ Phi)
+	{
+		//BIG and small phi index
+		const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
+		const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
+		const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+		const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+		const unsigned int gthreadId= blockId * bsize+bthreadId;
 
-	for(unsigned int i = gthreadId; i<kvol;i+=gsize*bsize)
-		for(unsigned short idirac = 0; idirac<ndirac; idirac++)
-			for(unsigned short ic= 0; ic<nc; ic++)
-				//	  PHI_index=i*16+j*2+k;
-				smallPhi[i + kvol * (ic + nc * idirac)] = Phi[i + kvol * (ic + nc * (idirac + ngorkov * na))];
-}
+		for(unsigned int i = gthreadId; i<kvol;i+=gsize*bsize)
+			for(unsigned short idirac = 0; idirac<ndirac; idirac++)
+				for(unsigned short ic= 0; ic<nc; ic++)
+					//	  PHI_index=i*16+j*2+k;
+					smallPhi[i + kvol * (ic + nc * idirac)] = Phi[i + kvol * (ic + nc * (idirac + ngorkov * na))];
+	}
 	/**
 	 *	@brief Up/Down partitioning of the pseudofermion field
 	 * @ingroup Helper
@@ -98,21 +98,21 @@ __global__ void cuFill_Small_Phi(const unsigned int na, Complex *smallPhi, Compl
 	 *
 	 *	@post	Result written to @p X0
 	 */
-__global__ void cuUpDownPart(const unsigned int na, Complex *X0, Complex *R1){
+	__global__ void cuUpDownPart(const unsigned int na, Complex * __restrict__ X0, const Complex * __restrict__ R1){
 
-	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	const unsigned int gthreadId= blockId * bsize+bthreadId;
-	//Up/down partitioning (using only pseudofermions of flavour 1)
-	for(unsigned int i = gthreadId; i<kvol;i+=gsize*bsize)
-		for(unsigned short idirac = 0; idirac < ndirac; idirac++){
-		//R1 has ngorkov spinors, but we only want the first four.
-			X0[i+kvol*(0+nc*(idirac+ndirac*na))]=R1[i+kvol*(0+nc*idirac)];
-			X0[i+kvol*(1+nc*(idirac+ndirac*na))]=R1[i+kvol*(1+nc*idirac)];
-		}
-}
+		const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
+		const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
+		const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+		const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+		const unsigned int gthreadId= blockId * bsize+bthreadId;
+		//Up/down partitioning (using only pseudofermions of flavour 1)
+		for(unsigned int i = gthreadId; i<kvol;i+=gsize*bsize)
+			for(unsigned short idirac = 0; idirac < ndirac; idirac++){
+				//R1 has ngorkov spinors, but we only want the first four.
+				X0[i+kvol*(0+nc*(idirac+ndirac*na))]=R1[i+kvol*(0+nc*idirac)];
+				X0[i+kvol*(1+nc*(idirac+ndirac*na))]=R1[i+kvol*(1+nc*idirac)];
+			}
+	}
 	/**
 	 * @brief Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1
 	 * @ingroup Helper
@@ -125,43 +125,43 @@ __global__ void cuUpDownPart(const unsigned int na, Complex *X0, Complex *R1){
 	 *
 	 * @post	@p u11t and @p u12t replaced with reunitarised gauge fields
 	 */
-template <typename T>
-__global__ void cuReunitarise(complex<T> *u11t, complex<T> * u12t){
-	/*
-	 * Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1
-	 *
-	 * If you're looking at the FORTRAN code be careful. There are two header files
-	 * for the /trial/ header. One with u11 u12 (which was included here originally)
-	 * and the other with u11t and u12t.
-	 *
-	 * Globals:
-	 * =======
-	 * u11t, u12t
-	 *
-	 * Returns:
-	 * ========
-	 * Zero on success, integer error code otherwise
-	 */
-	const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	const unsigned int gthreadId= blockId * bsize+bthreadId;
-	for(unsigned int i=gthreadId; i<kvol*ndim; i+=gsize*bsize){
-		//Declaring anorm inside the loop will hopefully let the compiler know it
-		//is safe to vectorise aggessively
-		double anorm=sqrt(conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]).real();
-		//		Exception handling code. May be faster to leave out as the exit prevents vectorisation.
-		//		if(anorm==0){
-		//			fprintf(stderr, "Error %i in %s on rank %i: anorm = 0 for μ=%i and i=%i.\nExiting...\n\n",
-		//					DIVZERO, funcname, rank, mu, i);
-		//			MPI_Finalise();
-		//			exit(DIVZERO);
-		//		}
-		u11t[i]/=anorm;
-		u12t[i]/=anorm;
-	}
-}
+	template <typename T>
+		__global__ void cuReunitarise(complex<T> * __restrict__ u11t, complex<T> * __restrict__  u12t){
+			/*
+			 * Reunitarises u11t and u12t as in conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]=1
+			 *
+			 * If you're looking at the FORTRAN code be careful. There are two header files
+			 * for the /trial/ header. One with u11 u12 (which was included here originally)
+			 * and the other with u11t and u12t.
+			 *
+			 * Globals:
+			 * =======
+			 * u11t, u12t
+			 *
+			 * Returns:
+			 * ========
+			 * Zero on success, integer error code otherwise
+			 */
+			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
+			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
+			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+			const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+			const unsigned int gthreadId= blockId * bsize+bthreadId;
+			for(unsigned int i=gthreadId; i<kvol*ndim; i+=gsize*bsize){
+				//Declaring anorm inside the loop will hopefully let the compiler know it
+				//is safe to vectorise aggessively
+				double anorm=sqrt(conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]).real();
+				//		Exception handling code. May be faster to leave out as the exit prevents vectorisation.
+				//		if(anorm==0){
+				//			fprintf(stderr, "Error %i in %s on rank %i: anorm = 0 for μ=%i and i=%i.\nExiting...\n\n",
+				//					DIVZERO, funcname, rank, mu, i);
+				//			MPI_Finalise();
+				//			exit(DIVZERO);
+				//		}
+				u11t[i]/=anorm;
+				u12t[i]/=anorm;
+			}
+		}
 	/**
 	 * @brief Gauge update for the integration step of the HMC
 	 * @ingroup MD
@@ -173,32 +173,33 @@ __global__ void cuReunitarise(complex<T> *u11t, complex<T> * u12t){
 	 *
 	 * @post @p ut and @p ut_f updated in place
 	 */
-__global__ void cuGauge_Update(const double d, double *pp, Complex *u11t, Complex *u12t,int mu){
-	const	unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
-	const	unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
-	const	unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-	const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
-	const unsigned int gthreadId= blockId * bsize+bthreadId;
-	for(unsigned int i=gthreadId;i<kvol;i+=gsize*bsize){
-		//Sticking to what was in the FORTRAN for variable names.
-		//CCC for cosine SSS for sine AAA for...
-		//Re-exponentiating the force field. Can be done analytically in SU(2)
-		//using sine and cosine which is nice
-		const unsigned int ind = i+kvol*mu;
-		double AAA = d*sqrt(pp[ind]*pp[ind]\
-				+pp[i+kvol*(1*ndim+mu)]*pp[i+kvol*(1*ndim+mu)]\
-				+pp[i+kvol*(2*ndim+mu)]*pp[i+kvol*(2*ndim+mu)]);
-		double CCC = cos(AAA);
-		double SSS = d*sin(AAA)/AAA;
-		Complex a11 = CCC+I*SSS*pp[i+kvol*(2*ndim+mu)];
-		Complex a12 = pp[i+kvol*(1*ndim+mu)]*SSS + I*SSS*pp[ind];
-		//b11 and b12 are u11t and u12t terms, so we'll use u12t directly
-		//but use b11 for u11t to prevent RAW dependency
-		Complex b11 = u11t[ind];
-		u11t[ind] = a11*b11-a12*conj(u12t[ind]);
-		u12t[ind] = a11*u12t[ind]+a12*conj(b11);
+	__global__ void cuGauge_Update(const double d, const double * __restrict__ pp, Complex * __restrict__ u11t,
+			Complex * __restrict__ u12t,const int mu){
+		const	unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
+		const	unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
+		const	unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
+		const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+		const unsigned int gthreadId= blockId * bsize+bthreadId;
+		for(unsigned int i=gthreadId;i<kvol;i+=gsize*bsize){
+			//Sticking to what was in the FORTRAN for variable names.
+			//CCC for cosine SSS for sine AAA for...
+			//Re-exponentiating the force field. Can be done analytically in SU(2)
+			//using sine and cosine which is nice
+			const unsigned int ind = i+kvol*mu;
+			double AAA = d*sqrt(pp[ind]*pp[ind]\
+					+pp[i+kvol*(1*ndim+mu)]*pp[i+kvol*(1*ndim+mu)]\
+					+pp[i+kvol*(2*ndim+mu)]*pp[i+kvol*(2*ndim+mu)]);
+			double CCC = cos(AAA);
+			double SSS = d*sin(AAA)/AAA;
+			Complex a11 = CCC+I*SSS*pp[i+kvol*(2*ndim+mu)];
+			Complex a12 = pp[i+kvol*(1*ndim+mu)]*SSS + I*SSS*pp[ind];
+			//b11 and b12 are u11t and u12t terms, so we'll use u12t directly
+			//but use b11 for u11t to prevent RAW dependency
+			Complex b11 = u11t[ind];
+			u11t[ind] = a11*b11-a12*conj(u12t[ind]);
+			u12t[ind] = a11*u12t[ind]+a12*conj(b11);
+		}
 	}
-}
 }
 
 //Calling functions

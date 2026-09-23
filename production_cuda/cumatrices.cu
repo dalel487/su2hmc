@@ -45,8 +45,11 @@ namespace Kernels{
 	 * @post	Result added to @p phi
 	 */
 	template <typename T>
-		__global__ void cuDslash(complex<T> *phi, complex<T> *r, complex<T> *u11t, complex<T> *u12t,const unsigned int *iu, const unsigned int *id,\
-				complex<T> gamval[20],	const unsigned short gamin[16], const T *dk4m, const T *dk4p, const Complex_f jqq, const float akappa){
+		__global__ __launch_bounds__(128) void cuDslash(complex<T> * __restrict__ phi, const complex<T> * __restrict__ r, 
+				const complex<T> * __restrict__ u11t, const complex<T> * __restrict__ u12t,
+				const unsigned int * __restrict__ iu, const unsigned int * __restrict__ id, complex<T> gamval[20],
+				const unsigned short gamin[16], const T * __restrict__ dk4m, const T * __restrict__ dk4p,
+				const Complex_f jqq, const float akappa){
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -172,8 +175,10 @@ namespace Kernels{
 	 * @post	Result added to @p phi
 	 */
 	template <typename T>
-		__global__ void cuDslashd(complex<T> *phi, const complex<T> *r, const complex<T> *u11t, const complex<T> *u12t,const unsigned int *iu, const unsigned int *id,\
-				complex<T> gamval[20], const unsigned short gamin[16], const T *dk4m, const T *dk4p, const Complex_f jqq, const float akappa){
+		__global__ __launch_bounds__(128) void cuDslashd(complex<T> * __restrict__ phi, const complex<T> * __restrict__ r,
+				const complex<T> * __restrict__ u11t, const complex<T> * __restrict__ u12t,const unsigned int * __restrict__ iu, const unsigned int * __restrict__ id, complex<T> gamval[20],
+				const unsigned short gamin[16], const T * __restrict__ dk4m, const T * __restrict__ dk4p,
+				const Complex_f jqq, const float akappa){
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -299,8 +304,11 @@ namespace Kernels{
 	 * @post	Result added to @p phi
 	 */
 	template <typename T>
-		__global__ void cuHdslash(complex<T> *phi, const complex<T> *r, const complex<T> *u11t, const complex<T> *u12t,unsigned int *iu, unsigned int *id,\
-				__constant__ complex<T> gamval[20],	const unsigned short gamin[16],	const T *dk4m, const T *dk4p, const __grid_constant__ float akappa){
+		__global__ __launch_bounds__(128) void cuHdslash(complex<T> * __restrict__ phi, const complex<T> * __restrict__ r,
+				const complex<T> * __restrict__ u11t, const complex<T> * __restrict__ u12t,
+				const unsigned int * __restrict__ iu, const unsigned int * __restrict__ id,
+				__constant__ complex<T> gamval[20],	const unsigned short gamin[16], const T * __restrict__ dk4m,
+				const T * __restrict__ dk4p, const __grid_constant__ float akappa){
 			/*
 			 * Half Dslash T precision
 			 */
@@ -398,8 +406,11 @@ namespace Kernels{
 	 * @post	Result added to @p phi
 	 */
 	template <typename T>
-		__global__ void cuHdslashd(complex<T> *phi, const complex<T>* r, const complex<T>* u11t, const complex<T>* u12t,unsigned int* iu, unsigned int* id,\
-				__constant__ complex<T> gamval[20],	const unsigned short gamin[16],	const T* dk4m, const T* dk4p, const __grid_constant__ float akappa){
+		__global__ __launch_bounds__(128) void cuHdslashd(complex<T> * __restrict__ phi, const complex<T>* __restrict__  r, 
+				const complex<T>* __restrict__  u11t, const complex<T>* __restrict__  u12t,
+				const unsigned int* __restrict__  iu, const unsigned int* __restrict__  id,
+				__constant__ complex<T> gamval[20],	const unsigned short gamin[16],	const T* __restrict__  dk4m,
+				const T* __restrict__  dk4p, const __grid_constant__ float akappa){
 			/*
 			 * Half Dslash Dagger T precision 
 			 */
@@ -494,7 +505,7 @@ namespace Kernels{
 	 * 
 	 */
 	template <typename T>
-		__global__ void Transpose(T *out, const T *in, const int fast_in, const int fast_out){
+		__global__ __launch_bounds__(128) void Transpose(T * __restrict__ out, const T * __restrict__ in, const int fast_in, const int fast_out){
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -524,7 +535,7 @@ namespace Kernels{
 	 * @param[in] f:		The float array
 	 * @param[in] n:		The size of the arrays
 	 */
-	__global__ void Mixed_Sumto(double *d, float *f, const unsigned int n){
+	__global__ __launch_bounds__(128) void Mixed_Sumto(double * __restrict__ d, float * __restrict__ f, const unsigned int n){
 		const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 		const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 		const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -547,7 +558,7 @@ namespace Kernels{
 	 * @post sum saved in zeroth entry of @p g_out_data
 	 */
 	template <typename T,unsigned int bsize>
-		__global__ void reduce_sum(T *g_in_data, T *g_out_data, const unsigned int n){
+		__global__ __launch_bounds__(128) void reduce_sum(T * __restrict__ g_in_data, T * __restrict__ g_out_data, const unsigned int n){
 			extern __shared__ T sdata[];  // stored in the shared memory
 
 			// Each thread loading one element from global onto shared memory
@@ -618,12 +629,12 @@ void cuDslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigne
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslash";
 	/*
-	int cuCpyStat=0;
-	for(unsigned short j=0;j<nc*ngorkov;j++)
+		int cuCpyStat=0;
+		for(unsigned short j=0;j<nc*ngorkov;j++)
 		if((cuCpyStat=cudaMemcpy(phi+j*kvolHalo, r+j*kvolHalo, kvol*sizeof(Complex),cudaMemcpyDefault))){
-			fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
-					CPYERROR,funcname,cuCpyStat);
-			exit(cuCpyStat);
+		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
+		CPYERROR,funcname,cuCpyStat);
+		exit(cuCpyStat);
 		}
 		*/
 	Kernels::cuDslash<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa);
@@ -634,12 +645,12 @@ void cuDslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsign
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslashd";
 	/*
-	int cuCpyStat=0;
-	for(unsigned short j=0;j<nc*ngorkov;j++)
+		int cuCpyStat=0;
+		for(unsigned short j=0;j<nc*ngorkov;j++)
 		if((cuCpyStat=cudaMemcpy(phi+j*kvol, r+j*kvolHalo, kvol*sizeof(Complex),cudaMemcpyDefault))){
-			fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
-					CPYERROR,funcname,cuCpyStat);
-			exit(cuCpyStat);
+		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
+		CPYERROR,funcname,cuCpyStat);
+		exit(cuCpyStat);
 		}
 		*/
 	Kernels::cuDslashd<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa);
@@ -666,12 +677,12 @@ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslash_f";
 	/*
-	int cuCpyStat=0;
-	for(unsigned short j=0;j<nc*ngorkov;j++)
+		int cuCpyStat=0;
+		for(unsigned short j=0;j<nc*ngorkov;j++)
 		if((cuCpyStat=cudaMemcpy(phi+j*kvolHalo, r+j*kvolHalo, kvol*sizeof(Complex_f),cudaMemcpyDefault))){
-			fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
-					CPYERROR,funcname,cuCpyStat);
-			exit(cuCpyStat);
+		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
+		CPYERROR,funcname,cuCpyStat);
+		exit(cuCpyStat);
 		}
 		*/
 	Kernels::cuDslash<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa);
@@ -682,12 +693,12 @@ void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *i
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslashd_f";
 	/*
-	int cuCpyStat=0;
-	for(unsigned short j=0;j<nc*ngorkov;j++)
+		int cuCpyStat=0;
+		for(unsigned short j=0;j<nc*ngorkov;j++)
 		if((cuCpyStat=cudaMemcpy(phi+j*kvol, r+j*kvolHalo, kvol*sizeof(Complex_f),cudaMemcpyDefault))){
-			fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
-					CPYERROR,funcname,cuCpyStat);
-			exit(cuCpyStat);
+		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
+		CPYERROR,funcname,cuCpyStat);
+		exit(cuCpyStat);
 		}
 		*/
 	Kernels::cuDslashd<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa);
