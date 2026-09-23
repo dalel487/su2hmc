@@ -213,6 +213,7 @@ void blockInit(int x, int y, int z, int t, dim3 *dimBlock, dim3 *dimGrid){
 	int tpb=prop.maxThreadsPerBlock/8;
 	//Warp size
 	int tpw=prop.warpSize;
+	/*
 	int bx=1;
 	//Set bx to be the largest power of 2 less than x that fits in a block
 	while(bx<=x/2 && bx<tpb)
@@ -222,28 +223,30 @@ void blockInit(int x, int y, int z, int t, dim3 *dimBlock, dim3 *dimGrid){
 	while(by<=y/2 && bx*by<tpb)
 		by*=2;
 
-	if(bx*by>=128){
-		*dimBlock=dim3(bx,by);
-		//If the block size neatly divides the lattice size we can create
-		//extra blocks safely
-		int res= ((nx*ny)/(bx*by) > 1) ? (nx*ny)/(bx*by) :1;
-		//		int res = 1;
-		*dimGrid=dim3(nz,nt,res);
-	}
-	else{
-		int bz=1;
-		//Set by to be the largest power of 2 less than y such that bx*by fits in an optimal block
-		while(bz<z/2 && bx*by*bz<tpb)
-			bz*=2;
-		*dimBlock=dim3(bx,by,bz);
+		if(bx*by>=128){
+	 *dimBlock=dim3(bx,by);
+	//If the block size neatly divides the lattice size we can create
+	//extra blocks safely
+	int res= ((nx*ny)/(bx*by) > 1) ? (nx*ny)/(bx*by) :1;
+	//		int res = 1;
+	 *dimGrid=dim3(nz,nt,res);
+	 }
+	 else{
+	 int bz=1;
+	//Set by to be the largest power of 2 less than y such that bx*by fits in an optimal block
+	while(bz<z/2 && bx*by*bz<tpb)
+	bz*=2;
+	 *dimBlock=dim3(bx,by,bz);
 
-		//If we have an awkward block size then flag it.
-		if(bx*by*bz%tpw!=0)
-			fprintf(stderr,"Alert %i in %s: Suboptimal block size for warp size %d. bx=%d by=%d bz=%d\n",
-					BLOCKALERT,	funcname, tpw, bx, by,bz);
-		int res= ((nx*ny)/(bx*by) > 1) ? (nx*ny)/(bx*by) :1;
-		*dimGrid=dim3(z/bz,nt,res);
+	//If we have an awkward block size then flag it.
+	if(bx*by*bz%tpw!=0)
+	fprintf(stderr,"Alert %i in %s: Suboptimal block size for warp size %d. bx=%d by=%d bz=%d\n",
+	BLOCKALERT,	funcname, tpw, bx, by,bz);
+	int res= ((nx*ny)/(bx*by) > 1) ? (nx*ny)/(bx*by) :1;
 	}
+	*/
+	*dimBlock=dim3(__BSIZE__,1,1);
+	*dimGrid=dim3(kvol/__BSIZE__,1,1);
 	printf("Block: (%d,%d,%d)\tGrid: (%d,%d,%d)\n",dimBlock->x,dimBlock->y,dimBlock->z,dimGrid->x,dimGrid->y,dimGrid->z);
 }
 void	Init_CUDA(Complex *u11t, Complex *u12t,Complex gamval[20], Complex_f gamval_f[20], unsigned short gamin[16], double*dk4m,\

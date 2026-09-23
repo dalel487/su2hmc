@@ -43,6 +43,10 @@
 #include	<cuda.h>
 #include	<cuda_runtime_api.h>
 #include	<cublas_v2.h>
+#ifndef __BSIZE__
+///@brief Default block size
+#define __BSIZE__ 128
+#endif
 ///@brief	Handle for cuBLAS
 extern cublasHandle_t cublas_handle;
 ///@brief	Status of cuBLAS for error reporting

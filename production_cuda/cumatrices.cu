@@ -45,7 +45,7 @@ namespace Kernels{
 	 * @post	Result added to @p phi
 	 */
 	template <typename T>
-		__global__ __launch_bounds__(128) void cuDslash(complex<T> * __restrict__ phi, const complex<T> * __restrict__ r, 
+		__global__ __launch_bounds__(__BSIZE__) void cuDslash(complex<T> * __restrict__ phi, const complex<T> * __restrict__ r, 
 				const complex<T> * __restrict__ u11t, const complex<T> * __restrict__ u12t,
 				const unsigned int * __restrict__ iu, const unsigned int * __restrict__ id, complex<T> gamval[20],
 				const unsigned short gamin[16], const T * __restrict__ dk4m, const T * __restrict__ dk4p,
@@ -175,7 +175,7 @@ namespace Kernels{
 	 * @post	Result added to @p phi
 	 */
 	template <typename T>
-		__global__ __launch_bounds__(128) void cuDslashd(complex<T> * __restrict__ phi, const complex<T> * __restrict__ r,
+		__global__ __launch_bounds__(__BSIZE__) void cuDslashd(complex<T> * __restrict__ phi, const complex<T> * __restrict__ r,
 				const complex<T> * __restrict__ u11t, const complex<T> * __restrict__ u12t,const unsigned int * __restrict__ iu, const unsigned int * __restrict__ id, complex<T> gamval[20],
 				const unsigned short gamin[16], const T * __restrict__ dk4m, const T * __restrict__ dk4p,
 				const Complex_f jqq, const float akappa){
@@ -304,7 +304,7 @@ namespace Kernels{
 	 * @post	Result added to @p phi
 	 */
 	template <typename T>
-		__global__ __launch_bounds__(128) void cuHdslash(complex<T> * __restrict__ phi, const complex<T> * __restrict__ r,
+		__global__ __launch_bounds__(__BSIZE__) void cuHdslash(complex<T> * __restrict__ phi, const complex<T> * __restrict__ r,
 				const complex<T> * __restrict__ u11t, const complex<T> * __restrict__ u12t,
 				const unsigned int * __restrict__ iu, const unsigned int * __restrict__ id,
 				__constant__ complex<T> gamval[20],	const unsigned short gamin[16], const T * __restrict__ dk4m,
@@ -406,7 +406,7 @@ namespace Kernels{
 	 * @post	Result added to @p phi
 	 */
 	template <typename T>
-		__global__ __launch_bounds__(128) void cuHdslashd(complex<T> * __restrict__ phi, const complex<T>* __restrict__  r, 
+		__global__ __launch_bounds__(__BSIZE__) void cuHdslashd(complex<T> * __restrict__ phi, const complex<T>* __restrict__  r, 
 				const complex<T>* __restrict__  u11t, const complex<T>* __restrict__  u12t,
 				const unsigned int* __restrict__  iu, const unsigned int* __restrict__  id,
 				__constant__ complex<T> gamval[20],	const unsigned short gamin[16],	const T* __restrict__  dk4m,
@@ -462,12 +462,13 @@ namespace Kernels{
 							const complex<T> gam=gamval[mu*ndirac+(idirac>>1)];
 							phi_s[idirac]-=akappa*(u11s*ru[0] +u12s*ru[1]
 									+conj(u11sd)*rd[0] -u12sd *rd[1]);
+							phi_s[idirac+1]-=akappa*(-conj(u12s)*ru[0] +conj(u11s)*ru[1]
+									+conj(u12sd)*rd[0] +u11sd *rd[1]);
+
 							//Dirac term
 							phi_s[idirac]-=gam* (u11s*rgu[0] +u12s*rgu[1]
 									-conj(u11sd)*rgd[0] +u12sd *rgd[1]);
 
-							phi_s[idirac+1]-=akappa*(-conj(u12s)*ru[0] +conj(u11s)*ru[1]
-									+conj(u12sd)*rd[0] +u11sd *rd[1]);
 							//Dirac term
 							phi_s[idirac+1]-=gam*(-conj(u12s)*rgu[0] +conj(u11s)*rgu[1]
 									-conj(u12sd)*rgd[0] -u11sd *rgd[1]);
@@ -505,7 +506,7 @@ namespace Kernels{
 	 * 
 	 */
 	template <typename T>
-		__global__ __launch_bounds__(128) void Transpose(T * __restrict__ out, const T * __restrict__ in, const int fast_in, const int fast_out){
+		__global__ __launch_bounds__(__BSIZE__) void Transpose(T * __restrict__ out, const T * __restrict__ in, const int fast_in, const int fast_out){
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -535,7 +536,7 @@ namespace Kernels{
 	 * @param[in] f:		The float array
 	 * @param[in] n:		The size of the arrays
 	 */
-	__global__ __launch_bounds__(128) void Mixed_Sumto(double * __restrict__ d, float * __restrict__ f, const unsigned int n){
+	__global__ __launch_bounds__(__BSIZE__) void Mixed_Sumto(double * __restrict__ d, float * __restrict__ f, const unsigned int n){
 		const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 		const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 		const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -558,7 +559,7 @@ namespace Kernels{
 	 * @post sum saved in zeroth entry of @p g_out_data
 	 */
 	template <typename T,unsigned int bsize>
-		__global__ __launch_bounds__(128) void reduce_sum(T * __restrict__ g_in_data, T * __restrict__ g_out_data, const unsigned int n){
+		__global__ __launch_bounds__(__BSIZE__) void reduce_sum(T * __restrict__ g_in_data, T * __restrict__ g_out_data, const unsigned int n){
 			extern __shared__ T sdata[];  // stored in the shared memory
 
 			// Each thread loading one element from global onto shared memory
