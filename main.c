@@ -216,9 +216,9 @@ int main(int argc, char *argv[]){
 #endif
 
 	unsigned short	*gamin; Complex *gamval; Complex_f *gamval_f;
-	cudaMallocManaged((void **)&gamval_f,5*4*sizeof(Complex_f),cudaMemAttachGlobal);
-	cudaMallocManaged((void **)&gamval,5*4*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&gamin,4*4*sizeof(short),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&gamval,5*4*sizeof(Complex),cudaMemAttachGlobal);
+	cudaMallocManaged((void **)&gamval_f,5*4*sizeof(Complex_f),cudaMemAttachGlobal);
 
 	cudaMallocManaged((void **)&u[0],ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&u[1],ndim*kvol*sizeof(Complex),cudaMemAttachGlobal);

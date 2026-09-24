@@ -45,7 +45,7 @@ namespace Kernels{
 	 * @post	Result added to @p phi
 	 */
 	template <typename T>
-		__global__ __launch_bounds__(__BSIZE__) void cuDslash(complex<T> * __restrict__ phi, const complex<T> * __restrict__ r, 
+		__global__ __launch_bounds__(__BSIZE__) void cuDslash(complex<T> *phi, const complex<T> * __restrict__ r, 
 				const complex<T> * __restrict__ u11t, const complex<T> * __restrict__ u12t,
 				const unsigned int * __restrict__ iu, const unsigned int * __restrict__ id, complex<T> gamval[20],
 				const unsigned short gamin[16], const T * __restrict__ dk4m, const T * __restrict__ dk4p,
@@ -175,7 +175,7 @@ namespace Kernels{
 	 * @post	Result added to @p phi
 	 */
 	template <typename T>
-		__global__ __launch_bounds__(__BSIZE__) void cuDslashd(complex<T> * __restrict__ phi, const complex<T> * __restrict__ r,
+		__global__ __launch_bounds__(__BSIZE__) void cuDslashd(complex<T> *phi, const complex<T> * __restrict__ r,
 				const complex<T> * __restrict__ u11t, const complex<T> * __restrict__ u12t,const unsigned int * __restrict__ iu, const unsigned int * __restrict__ id, complex<T> gamval[20],
 				const unsigned short gamin[16], const T * __restrict__ dk4m, const T * __restrict__ dk4p,
 				const Complex_f jqq, const float akappa){
@@ -304,7 +304,7 @@ namespace Kernels{
 	 * @post	Result added to @p phi
 	 */
 	template <typename T>
-		__global__ __launch_bounds__(__BSIZE__) void cuHdslash(complex<T> * __restrict__ phi, const complex<T> * __restrict__ r,
+		__global__ __launch_bounds__(__BSIZE__) void cuHdslash(complex<T> *phi, const complex<T> * __restrict__ r,
 				const complex<T> * __restrict__ u11t, const complex<T> * __restrict__ u12t,
 				const unsigned int * __restrict__ iu, const unsigned int * __restrict__ id,
 				__constant__ complex<T> gamval[20],	const unsigned short gamin[16], const T * __restrict__ dk4m,
@@ -406,7 +406,7 @@ namespace Kernels{
 	 * @post	Result added to @p phi
 	 */
 	template <typename T>
-		__global__ __launch_bounds__(__BSIZE__) void cuHdslashd(complex<T> * __restrict__ phi, const complex<T>* __restrict__  r, 
+		__global__ __launch_bounds__(__BSIZE__) void cuHdslashd(complex<T> *phi, const complex<T>* __restrict__  r, 
 				const complex<T>* __restrict__  u11t, const complex<T>* __restrict__  u12t,
 				const unsigned int* __restrict__  iu, const unsigned int* __restrict__  id,
 				__constant__ complex<T> gamval[20],	const unsigned short gamin[16],	const T* __restrict__  dk4m,
@@ -444,7 +444,8 @@ namespace Kernels{
 					const complex<T> u11sd=u11t[ind];	const complex<T> u12sd=u12t[ind];
 #pragma unroll
 					for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc){
-						const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
+						__shared__ unsigned short igork1;
+						igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
 						complex<T> ru[2];  complex<T> rd[2];
 						complex<T> rgu[2];  complex<T> rgd[2];
 #pragma unroll
@@ -459,7 +460,8 @@ namespace Kernels{
 						//to read when split into different loops, but should be faster this way
 						//Spacelike terms
 						if(mu<3){
-							const complex<T> gam=gamval[mu*ndirac+(idirac>>1)];
+							__shared__ complex<T> gam;
+							gam=gamval[mu*ndirac+(idirac>>1)];
 							phi_s[idirac]-=akappa*(u11s*ru[0] +u12s*ru[1]
 									+conj(u11sd)*rd[0] -u12sd *rd[1]);
 							phi_s[idirac+1]-=akappa*(-conj(u12s)*ru[0] +conj(u11s)*ru[1]

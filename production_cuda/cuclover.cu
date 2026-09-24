@@ -103,14 +103,14 @@ namespace Device{
 					Leaves[1]=a[0]*u12t[ind+kvolHalo*nu]+a[1]*conj(u11t[ind+kvolHalo*nu]);
 					break;
 				case(1):
-						///Leaf in the forward nu and backwards mu direction
-						ind = id[mu*kvol+i];
-						a[0]=u11t[i+kvolHalo*nu]; a[1]=u12t[i+kvolHalo*nu];
-						//Awkward index...
-						double_ind=iu[nu*kvol+ind];
-						/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})@f$
-						Leaves[0]=a[0]*conj(u11t[double_ind+kvolHalo*mu])+a[1]*conj(u12t[double_ind+kvolHalo*mu]);
-						Leaves[1]=-a[0]*u12t[double_ind+kvolHalo*mu]+a[1]*u11t[double_ind+kvolHalo*mu];
+					///Leaf in the forward nu and backwards mu direction
+					ind = id[mu*kvol+i];
+					a[0]=u11t[i+kvolHalo*nu]; a[1]=u12t[i+kvolHalo*nu];
+					//Awkward index...
+					double_ind=iu[nu*kvol+ind];
+					/// @f$U_\nu(x)U^\dagger_\mu(x-\hat{\mu}+\hat{\nu})@f$
+					Leaves[0]=a[0]*conj(u11t[double_ind+kvolHalo*mu])+a[1]*conj(u12t[double_ind+kvolHalo*mu]);
+					Leaves[1]=-a[0]*u12t[double_ind+kvolHalo*mu]+a[1]*u11t[double_ind+kvolHalo*mu];
 					break;
 				case(2):
 					///Leaf in the backwards nu and forwards mu direction
@@ -124,16 +124,16 @@ namespace Device{
 					Leaves[1]=a[0]*u12t[ind+kvolHalo*mu]+a[1]*conj(u11t[ind+kvolHalo*mu]);
 					break;
 				case(3):
-						///Leaf in the backwards mu and backwards nu direction
-						ind  =  id[i+kvol*mu];
-						//Daggered. So Conj what goes into a[0] and negate what goes into a[1]
-						a[0]=conj(u11t[ind+kvolHalo*mu]); a[1]=-u12t[ind+kvolHalo*mu];
-						//Another awkward index
-						double_ind=id[nu*kvol+ind];
+					///Leaf in the backwards mu and backwards nu direction
+					ind  =  id[i+kvol*mu];
+					//Daggered. So Conj what goes into a[0] and negate what goes into a[1]
+					a[0]=conj(u11t[ind+kvolHalo*mu]); a[1]=-u12t[ind+kvolHalo*mu];
+					//Another awkward index
+					double_ind=id[nu*kvol+ind];
 
-						/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})@f$
-						Leaves[0]=a[0]*conj(u11t[double_ind+kvolHalo*nu])+a[1]*conj(u12t[double_ind+kvolHalo*nu]);
-						Leaves[1]=-a[0]*u12t[double_ind+kvolHalo*nu]+a[1]*u11t[double_ind+kvolHalo*nu];
+					/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})@f$
+					Leaves[0]=a[0]*conj(u11t[double_ind+kvolHalo*nu])+a[1]*conj(u12t[double_ind+kvolHalo*nu]);
+					Leaves[1]=-a[0]*u12t[double_ind+kvolHalo*nu]+a[1]*u11t[double_ind+kvolHalo*nu];
 					break;
 			}
 			return;
@@ -183,30 +183,30 @@ namespace Device{
 					Leaves[1]=a[0]*u12t[ind+kvolHalo*mu]+a[1]*conj(u11t[ind+kvolHalo*mu]);
 					break;
 				case(2):
-						///Leaf in the forwards mu and backwards nu direction
-						ind = id[nu*kvol+i]; 
-						double_ind=iu[mu*kvol+ind];
-						/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})@f$
-						a[0]=Leaves[0]*u11t[double_ind+kvolHalo*nu]-Leaves[1]*conj(u12t[double_ind+kvolHalo*nu]);
-						a[1]=Leaves[0]*u12t[double_ind+kvolHalo*nu]+Leaves[1]*conj(u11t[double_ind+kvolHalo*nu]);
+					///Leaf in the forwards mu and backwards nu direction
+					ind = id[nu*kvol+i]; 
+					double_ind=iu[mu*kvol+ind];
+					/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})@f$
+					a[0]=Leaves[0]*u11t[double_ind+kvolHalo*nu]-Leaves[1]*conj(u12t[double_ind+kvolHalo*nu]);
+					a[1]=Leaves[0]*u12t[double_ind+kvolHalo*nu]+Leaves[1]*conj(u11t[double_ind+kvolHalo*nu]);
 
-						/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})U^\dagger_\mu(x)@f$
-						Leaves[0]=a[0]*conj(u11t[i+kvolHalo*mu])+a[1]*conj(u12t[i+kvolHalo*mu]);
-						Leaves[1]=-a[0]*u12t[i+kvolHalo*mu]+a[1]*u11t[i+kvolHalo*mu];
+					/// @f$U^\dagger_\nu(x-\hat{\nu})U_\mu(x-\hat{\nu})U_\nu(x-\hat{\nu}+\hat{\mu})U^\dagger_\mu(x)@f$
+					Leaves[0]=a[0]*conj(u11t[i+kvolHalo*mu])+a[1]*conj(u12t[i+kvolHalo*mu]);
+					Leaves[1]=-a[0]*u12t[i+kvolHalo*mu]+a[1]*u11t[i+kvolHalo*mu];
 
 					break;
 				case(3)://Need braces for strict C++ standard compliance as a variable is declared in the case
-						///Leaf in the backwards mu and backwards nu direction
-						ind = id[nu*kvol+i]; 
-						double_ind=id[mu*kvol+ind];
+						  ///Leaf in the backwards mu and backwards nu direction
+					ind = id[nu*kvol+i]; 
+					double_ind=id[mu*kvol+ind];
 
-						/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(n-\hat{\nu}-\hat{\mu})@f$
-						a[0]=Leaves[0]*u11t[double_ind+kvolHalo*mu]-Leaves[1]*conj(u12t[double_ind+kvolHalo*mu]);
-						a[1]=Leaves[0]*u12t[double_ind+kvolHalo*mu]+Leaves[1]*conj(u11t[double_ind+kvolHalo*mu]);
+					/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(n-\hat{\nu}-\hat{\mu})@f$
+					a[0]=Leaves[0]*u11t[double_ind+kvolHalo*mu]-Leaves[1]*conj(u12t[double_ind+kvolHalo*mu]);
+					a[1]=Leaves[0]*u12t[double_ind+kvolHalo*mu]+Leaves[1]*conj(u11t[double_ind+kvolHalo*mu]);
 
-						/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(n-\hat{\nu}-\hat{\mu})U_\nu(n-\hat{\nu})@f$
-						Leaves[0]=a[0]*u11t[ind+kvolHalo*nu]-a[1]*conj(u12t[ind+kvolHalo*nu]);
-						Leaves[1]=a[0]*u12t[ind+kvolHalo*nu]+a[1]*conj(u11t[ind+kvolHalo*nu]);
+					/// @f$U_\mu^\dagger(x-\hat{\mu})U_\nu^\dagger(x-\hat{\mu}-\hat{\nu})U_\mu(n-\hat{\nu}-\hat{\mu})U_\nu(n-\hat{\nu})@f$
+					Leaves[0]=a[0]*u11t[ind+kvolHalo*nu]-a[1]*conj(u12t[ind+kvolHalo*nu]);
+					Leaves[1]=a[0]*u12t[ind+kvolHalo*nu]+a[1]*conj(u11t[ind+kvolHalo*nu]);
 					break;
 			}
 			return;
@@ -320,7 +320,7 @@ namespace Kernels{
 	 *	@post Contents of @p clover1 and @p clover2 overwritten
 	 */
 	template <typename T>
-		__global__  void Full_Clover(complex<T> *clover1, complex<T> *clover2,\
+		__global__ void Full_Clover(complex<T> *clover1, complex<T> *clover2,\
 				complex<T> *u11t, complex<T> *u12t, unsigned int *iu, unsigned int *id, int mu, int nu){
 			const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const volatile int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -366,7 +366,7 @@ namespace Kernels{
 	 *	@post	Contents of @p Xmunu overwritten
 	 */
 	template <typename T>
-		__global__ void cuCalcXmunu(Bilinear_a Xmunu, const complex<T> *X1, const complex<T> *X2,
+		__global__ __launch_bounds__(__BSIZE__) void cuCalcXmunu(Bilinear_a Xmunu, const complex<T> *X1, const complex<T> *X2,
 				const complex<T> *sigval, const unsigned short *sigin,const unsigned short clov){
 			const char funcname[] = "Xmunu";
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
@@ -424,7 +424,7 @@ namespace Kernels{
 	 *	@post	Clover force is added to @p dSdpi
 	 */
 	template <typename T>
-		__global__ void Clov_Force(double *dSdpi, const complex<T> *u11t, const complex<T> *u12t, Bilinear_a Xmn,\
+		__global__ __launch_bounds__(__BSIZE__) void Clov_Force(double *dSdpi, const complex<T> *u11t, const complex<T> *u12t, Bilinear_a Xmn,\
 				const complex<T> *sigval, const unsigned short *sigin, const unsigned int *iu,\
 				const unsigned int *id, const float akappa,const unsigned short mu, const unsigned short nu){
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
@@ -578,7 +578,10 @@ namespace Kernels{
 	 * @post	Result added to @p phi
 	 */
 	template <typename T>
-		__global__ void ByClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, complex<T> *clover2, complex<T> *sigval, const float akappa, unsigned short *sigin, bool dag){
+		__global__ void ByClover(complex<T> * phi,const complex<T> * __restrict__ r,
+				const complex<T> * __restrict__ clover1,
+				const complex<T> * __restrict__ clover2,const complex<T> * sigval,const float akappa,
+				const unsigned short * __restrict__ sigin,const bool dag){
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -639,7 +642,9 @@ namespace Kernels{
 	 * @post Result added to @p phi.
 	 */
 	template <typename T>
-		__global__ void HbyClover(complex<T> *phi, complex<T> *r, complex<T> *clover1, complex<T> *clover2,complex<T> *sigval, const float akappa, unsigned short *sigin,bool dag){
+		__global__ void HbyClover(complex<T> * phi,const complex<T> * __restrict__ __restrict__ r,
+				const complex<T> * __restrict__ clover1,const complex<T> * __restrict__ clover2,
+				const complex<T> * sigval, const float akappa,const unsigned short * sigin,const bool dag){
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;

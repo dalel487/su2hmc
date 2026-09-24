@@ -14,7 +14,7 @@ ifeq ($(CXX),icpx)
 # this) compatibility issues on AVX10.2+ CPUs (e.g., Granite Rapids)
 # If compilation fails with AVX10.2 intrinsic errors, replace -march=native with -march=skylake-avx512
 # or use an older Intel compiler version that doesn't include AVX10.2 intrinsics.
-    $(error As of 20251101, the libstdc++ headers break when compiling with Intel OneAPI. This is due to NVCC not supporting noexcept(true) in the header for rsqrt(), and Intel OneAPI (clang) being stricter than GCC. You may have more luck with a version of nvcc greater than 13.0 or an older libstdc++ library)
+$(error As of 20260924, compilation with clang based compilers fails with error: LLVM gold plugin: <inline asm>:89:1: symbol 'fatbinData' is already defined)
 $(info Host compiling with Intel Compiler)
 CFLAGS+=  -qopt-zmm-usage=high -MD -ipo -static-intel -static-libgcc \
 			-xHOST -DMKL_DIRECT_CALL -D__USE_MKL__  -qopenmp \
@@ -23,11 +23,11 @@ else ifneq (,$(filter g++%,$(CXX)))
 $(info Host compiling with GCC)
 CFLAGS+=		-march=native -fcommon -fopenmp -fopenmp-simd -static-libgcc -foffload=disable
 else ifeq ($(CXX),nvc++)
-    $(warning As of 20251101, the nvc/nvc++ compiler segfaults during the conjugate gradient. We recommend you use GNU instead. (echo CC+gcc, echo CXX=g++))
+$(error As of 20260924, the nvc/nvc++ compiler fails to compile with "cuda/13.3/include/driver_types.h", line 1272: error: identifier "size_t" is undefined)
 $(info Host compiling with NVIDIA C Compiler)
 CFLAGS+=		-tp=native -mp
 else ifneq (,$(filter clang++%,$(CXX)))
-    $(error As of 20251101, the libstdc++ headers break when compiling with clang. This is due to NVCC not supporting noexcept(true) in the header for rsqrt(), and clang being stricter than GCC. You may have more luck with a version of nvcc greater than 13.0 or an older libstdc++ library)
+$(error As of 20260924, compilation with clang based compilers fails with error: LLVM gold plugin: <inline asm>:89:1: symbol 'fatbinData' is already defined)
 $(info Host compiling with Clang)
 CFLAGS+=		-fveclib=AMDLIBM -march=native -fcommon -flto -fopenmp=libomp -fopenmp-simd -static-libgcc -Wno-exception-spec 
 #NVCCFLAGS+= -D_GLIBCXX_USE_CXX11_ABI=0
