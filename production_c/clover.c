@@ -391,6 +391,7 @@ void HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2],Complex_f *s
 #pragma unroll
 		for(unsigned short clov=0;clov<6;clov++){
 			clov_s[0]=clover[0][clov*kvol+i]; clov_s[1]=clover[1][clov*kvol+i];
+#pragma unroll
 			for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
 				const unsigned short sind = sigin[clov*ndirac+(idirac>>1)] << (nc-1);
 #pragma unroll

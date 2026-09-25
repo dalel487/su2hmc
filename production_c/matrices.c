@@ -282,6 +282,7 @@ int Hdslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned  int *iu,unsigned
 			const int did=id[ind];	const int uid = iu[ind];
 			ind=did+kvolHalo*mu;
 			const Complex u11sd=ut[0][ind];	const Complex u12sd=ut[1][ind];
+#pragma unroll
 			for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
 				const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
 #pragma unroll
@@ -368,6 +369,7 @@ int Hdslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned  int *iu,unsigne
 			const int did=id[ind];	const int uid = iu[ind];
 			ind=did+kvolHalo*mu;
 			const Complex u11sd=ut[0][ind];	const Complex u12sd=ut[1][ind];
+#pragma unroll
 			for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc){
 				unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
 #pragma unroll
@@ -692,6 +694,7 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned  int *iu,
 			const int did=id[ind];	const int uid = iu[ind];
 			ind=did+kvolHalo*mu;
 			const Complex_f u11sd=ut[0][ind];	const Complex_f u12sd=ut[1][ind];
+#pragma unroll
 			for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
 				const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
 #pragma unroll
@@ -781,6 +784,7 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,
 			const int did=id[ind];	const int uid = iu[ind];
 			ind=did+kvolHalo*mu;
 			const Complex_f u11sd=ut[0][ind];	const Complex_f u12sd=ut[1][ind];
+#pragma unroll
 			for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc){
 				unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
 #pragma unroll
