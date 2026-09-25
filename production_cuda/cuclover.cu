@@ -578,7 +578,7 @@ namespace Kernels{
 	 * @post	Result added to @p phi
 	 */
 	template <typename T>
-		__global__ void ByClover(complex<T> * phi,const complex<T> * __restrict__ r,
+		__global__ __launch_bounds__(__BSIZE__) void ByClover(complex<T> * phi,const complex<T> * __restrict__ r,
 				const complex<T> * __restrict__ clover1,
 				const complex<T> * __restrict__ clover2,const complex<T> * sigval,const float akappa,
 				const unsigned short * __restrict__ sigin,const bool dag){
@@ -642,7 +642,7 @@ namespace Kernels{
 	 * @post Result added to @p phi.
 	 */
 	template <typename T>
-		__global__ void HbyClover(complex<T> * phi,const complex<T> * __restrict__ __restrict__ r,
+		__global__ __launch_bounds__(__BSIZE__) void HbyClover(complex<T> * phi,const complex<T> * __restrict__ __restrict__ r,
 				const complex<T> * __restrict__ clover1,const complex<T> * __restrict__ clover2,
 				const complex<T> * sigval, const float akappa,const unsigned short * sigin,const bool dag){
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
