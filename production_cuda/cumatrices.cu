@@ -496,19 +496,22 @@ namespace Kernels{
 								ind =kvolHalo*(igork1+c);
 								rgu[c]=r[uid+ind]; rgd[c]=r[did+ind];
 							}
-							const T  dk4ms=dk4m[i];  const T dk4ps=dk4p[did];
+							T dk4s=dk4m[i];
 							//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
-
-							phi_s[idirac]+= -dk4ms*(u11s*(ru[0]+rgu[0])
+							//Note that CUDA is smart enough to reuse the additions/subtractions here later on ru[0]+rgu[0]
+							//gets kept in Register 39 on the test machine if you're interested!
+							phi_s[idirac]+= -dk4s*(u11s*(ru[0]+rgu[0])
 									+u12s*(ru[1]+rgu[1]));
-							phi_s[idirac]+= -dk4ps*(conj(u11sd)*(rd[0]-rgd[0])
-									-u12sd *(rd[1]-rgd[1]));
-							phi[i+kvol*(0+idirac)]=phi_s[idirac+0];
-
-							phi_s[idirac+1]-= dk4ms*(-conj(u12s)*(ru[0]+rgu[0])
+							phi_s[idirac+1]-= dk4s*(-conj(u12s)*(ru[0]+rgu[0])
 									+conj(u11s)*(ru[1]+rgu[1]));
-							phi_s[idirac+1]-= +dk4ps*(conj(u12sd)*(rd[0]-rgd[0])
+
+							dk4s=dk4p[did];
+							phi_s[idirac]+= -dk4s*(conj(u11sd)*(rd[0]-rgd[0])
+									-u12sd *(rd[1]-rgd[1]));
+							phi_s[idirac+1]-= +dk4s*(conj(u12sd)*(rd[0]-rgd[0])
 									+u11sd *(rd[1]-rgd[1]));
+
+							phi[i+kvol*(0+idirac)]=phi_s[idirac+0];
 							phi[i+kvol*(1+idirac)]=phi_s[idirac+1];
 						}
 					}
