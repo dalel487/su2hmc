@@ -419,19 +419,11 @@ namespace Kernels{
 		__global__ __launch_bounds__(__BSIZE__) void cuHdslashd(complex<T> *phi, const complex<T>* __restrict__  r, 
 				const complex<T>* __restrict__  u11t, const complex<T>* __restrict__  u12t,
 				const unsigned int* __restrict__  iu, const unsigned int* __restrict__  id,
-				const __grid_constant__ complex<T> gamval_G[20],	const __grid_constant__ unsigned short gamin_G[16],
+				const __grid_constant__ complex<T> gamval[20],	const __grid_constant__ unsigned short gamin[16],
 				const T* __restrict__  dk4m, const T* __restrict__  dk4p, const __grid_constant__ float akappa){
 			/*
 			 * Half Dslash Dagger T precision 
 			 */
-			__shared__ complex<T> gamval[20];
-			__shared__ unsigned short gamin[16];
-#pragma unroll
-			for(unsigned short i=0;i<20;i++)
-				gamval[i]=gamval_G[i];
-#pragma unroll
-			for(unsigned short i=0;i<16;i++)
-				gamin[i]=gamin_G[i];
 
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;

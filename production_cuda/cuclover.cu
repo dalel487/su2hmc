@@ -88,8 +88,10 @@ namespace Device{
 	 *	
 	 */
 	template <typename T>
-		__device__ void Half_Leaf(complex<T> Leaves[nc], complex<T> *u11t, complex<T> *u12t, complex<T> a[nc], unsigned int *iu,\
-				unsigned int *id, const unsigned int i, const unsigned short mu, const unsigned short nu, const unsigned short leaf){
+		__device__ void Half_Leaf(complex<T> Leaves[nc], const complex<T> * __restrict__ u11t,
+			const complex<T> * __restrict__ u12t, complex<T> a[nc], const unsigned int * __restrict__ iu,
+			const unsigned int * __restrict__ id, const unsigned int i, const unsigned short mu, const unsigned short nu,
+			const unsigned short leaf){
 
 			unsigned int ind; unsigned int double_ind=id[nu*kvol+ind];
 			switch(leaf){
@@ -150,9 +152,9 @@ namespace Device{
 	 *	@param[in]	leaf:			Which leaf of the clover is being calculated
 	 */
 	template <typename T>
-		__device__ void Leaf(complex<T> *u11t, complex<T> *u12t, complex<T> Leaves[nc],\
-				unsigned int *iu, unsigned int *id, unsigned int i,const unsigned short mu,\
-				const unsigned short nu,const unsigned short leaf){
+		__device__ void Leaf(const complex<T> * __restrict__ u11t, const complex<T> * __restrict__ u12t,
+			complex<T> Leaves[nc], const unsigned int * __restrict__ iu, const unsigned int * __restrict__ id,
+			const unsigned int i,const unsigned short mu, const unsigned short nu,const unsigned short leaf){
 			complex<T> a[nc];
 			Half_Leaf(Leaves,u11t,u12t,a,iu,id,i,mu,nu,leaf);
 			unsigned int ind,double_ind;
@@ -211,6 +213,7 @@ namespace Device{
 			}
 			return;
 		}
+
 
 	/**
 	 *	@brief	Multiplies @f$ X_{\mu\nu}@f$ by a gauge field from the left
@@ -321,7 +324,9 @@ namespace Kernels{
 	 */
 	template <typename T>
 		__global__ void Full_Clover(complex<T> *clover1, complex<T> *clover2,\
-				complex<T> *u11t, complex<T> *u12t, unsigned int *iu, unsigned int *id, int mu, int nu){
+				const complex<T> * __restrict__ u11t, const complex<T> * __restrict__ u12t,
+				const unsigned int * __restrict__ iu, const unsigned int * __restrict__ id, const __grid_constant__ int mu,
+				const __grid_constant__ int nu){
 			const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const volatile int bsize = blockDim.x*blockDim.y*blockDim.z;
 			const volatile int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -366,8 +371,9 @@ namespace Kernels{
 	 *	@post	Contents of @p Xmunu overwritten
 	 */
 	template <typename T>
-		__global__ __launch_bounds__(__BSIZE__) void cuCalcXmunu(Bilinear_a Xmunu, const complex<T> *X1, const complex<T> *X2,
-				const complex<T> *sigval, const unsigned short *sigin,const unsigned short clov){
+		__global__ __launch_bounds__(__BSIZE__) void cuCalcXmunu(Bilinear_a Xmunu, const complex<T> * __restrict__ X1,
+				const complex<T> * __restrict__ X2, const __grid_constant__ complex<T> sigval[24],
+				const __grid_constant__ unsigned short sigin[24], const __grid_constant__ unsigned short clov){
 			const char funcname[] = "Xmunu";
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -424,9 +430,11 @@ namespace Kernels{
 	 *	@post	Clover force is added to @p dSdpi
 	 */
 	template <typename T>
-		__global__ __launch_bounds__(__BSIZE__) void Clov_Force(double *dSdpi, const complex<T> *u11t, const complex<T> *u12t, Bilinear_a Xmn,\
-				const complex<T> *sigval, const unsigned short *sigin, const unsigned int *iu,\
-				const unsigned int *id, const float akappa,const unsigned short mu, const unsigned short nu){
+		__global__ __launch_bounds__(__BSIZE__) void Clov_Force(double *dSdpi, const complex<T> * __restrict__ u11t,
+				const complex<T> * __restrict__ u12t, const Bilinear_a Xmn, const __grid_constant__ complex<T> sigval[24],
+				const __grid_constant__ unsigned short sigin[24], const unsigned int * __restrict__ iu,
+				const unsigned int * __restrict__ id, const __grid_constant__ float akappa,
+				const __grid_constant__ unsigned short mu, const __grid_constant__ unsigned short nu){
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -580,8 +588,9 @@ namespace Kernels{
 	template <typename T>
 		__global__ __launch_bounds__(__BSIZE__) void ByClover(complex<T> * phi,const complex<T> * __restrict__ r,
 				const complex<T> * __restrict__ clover1,
-				const complex<T> * __restrict__ clover2,const complex<T> * sigval,const float akappa,
-				const unsigned short * __restrict__ sigin,const bool dag){
+				const complex<T> * __restrict__ clover2,const __grid_constant__ complex<T> sigval[24],
+				const __grid_constant__ float akappa,
+				const __grid_constant__ unsigned short sigin[24],const __grid_constant__ bool dag){
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -644,7 +653,8 @@ namespace Kernels{
 	template <typename T>
 		__global__ __launch_bounds__(__BSIZE__) void HbyClover(complex<T> * phi,const complex<T> * __restrict__ __restrict__ r,
 				const complex<T> * __restrict__ clover1,const complex<T> * __restrict__ clover2,
-				const complex<T> * sigval, const float akappa,const unsigned short * sigin,const bool dag){
+				const __grid_constant__ complex<T> sigval[24], const __grid_constant__ float akappa,
+				const __grid_constant__ unsigned short sigin[24],const __grid_constant__ bool dag){
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
