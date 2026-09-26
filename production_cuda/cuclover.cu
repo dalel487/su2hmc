@@ -431,8 +431,8 @@ namespace Kernels{
 	 *	@param[out]	dSdpi:			Force.
 	 *	@param[in]	u11t,u12t:		Gauge fields
 	 *	@param[in]	Xmn:				Pseudofermion bilinear contraction
-	 *	@param[in]	sigval_G:			@f$\sigma_{\mu\nu}@f$ scaled by @f$\frac{c_\text{SW}}{2}@f$
-	 *	@param[in]	sigin_G:			Dirac index of @f$\sigma_{\mu\nu}@f$
+	 *	@param[in]	sigval:			@f$\sigma_{\mu\nu}@f$ scaled by @f$\frac{c_\text{SW}}{2}@f$
+	 *	@param[in]	sigin:			Dirac index of @f$\sigma_{\mu\nu}@f$
 	 *	@param[in]	iu,id:			Neighbouring sites
 	 *	@param[in]	akappa:			Hopping Parameter
 	 *	@param[in]	mu,nu:			Clover direction
@@ -605,16 +605,9 @@ namespace Kernels{
 	template <typename T>
 		__global__ __launch_bounds__(__BSIZE__) void ByClover(complex<T> * phi,const complex<T> * __restrict__ r,
 				const complex<T> * __restrict__ clover1,
-				const complex<T> * __restrict__ clover2,const __grid_constant__ complex<T> sigval_G[24],
+				const complex<T> * __restrict__ clover2,const __grid_constant__ complex<T> sigval[24],
 				const __grid_constant__ float akappa,
-				const __grid_constant__ unsigned short sigin_G[24],const __grid_constant__ bool dag){
-			__shared__ complex<T> sigval[24]; __shared__ unsigned short sigin[24];
-#pragma unroll
-			for(unsigned short i=0;i<24;i++){
-				sigval[i]=sigval_G[i];
-				sigin[i]=sigin_G[i];
-				}
-			__syncthreads();
+				const __grid_constant__ unsigned short sigin[24],const __grid_constant__ bool dag){
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -667,9 +660,9 @@ namespace Kernels{
 	 *	@param[out]	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
 	 *	@param[in]	r:						Pseudofermion field before multiplication. The thing we want to multiply by the clover
 	 *	@param[in]	clover1,clover2:	Array of clovers
-	 *	@param[in]	sigval_G:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
+	 *	@param[in]	sigval:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
 	 *	@param[in]	akappa:				Hopping Parameter
-	 * @param[in]	sigin_G:				What element of the spinor is multiplied by row idirac each sigma matrix?
+	 * @param[in]	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
 	 * @param[in]	dag:					Daggered has no MPI halo, but undaggered does.
 	 *
 	 * @post Result added to @p phi.
@@ -677,15 +670,8 @@ namespace Kernels{
 	template <typename T>
 		__global__ __launch_bounds__(__BSIZE__) void HbyClover(complex<T> * phi,const complex<T> * __restrict__ __restrict__ r,
 				const complex<T> * __restrict__ clover1,const complex<T> * __restrict__ clover2,
-				const __grid_constant__ complex<T> sigval_G[24], const __grid_constant__ float akappa,
-				const __grid_constant__ unsigned short sigin_G[24],const __grid_constant__ bool dag){
-			__shared__ complex<T> sigval[24]; __shared__ unsigned short sigin[24];
-#pragma unroll
-			for(unsigned short i=0;i<24;i++){
-				sigval[i]=sigval_G[i];
-				sigin[i]=sigin_G[i];
-				}
-			__syncthreads();
+				const __grid_constant__ complex<T> sigval[24], const __grid_constant__ float akappa,
+				const __grid_constant__ unsigned short sigin[24],const __grid_constant__ bool dag){
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
