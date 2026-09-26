@@ -28,7 +28,7 @@ int Init(const int istart, const int ibound, const int iread, const float beta, 
 	printf("Checked addresses\n");
 #endif
 	double chem1=exp(-fmu); double chem2 = 1/chem1;
-	//CUDA this. Only limit will be the bus speed
+	//TODO: Recompute most of this at run time to reduce memory accesses
 #pragma omp parallel for simd //aligned(dk[0],dk[1]:AVX)
 	for(unsigned int i = 0; i<kvol; i++){
 		dk[0][i]=akappa*chem1; dk[1][i]=akappa*chem2;

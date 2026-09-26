@@ -57,8 +57,8 @@ namespace Kernels{
 	 * @param[in]	iu					Upper halo indices
 	 *
 	 */
-	__global__ void Average_Plaquette(float * __restrict__ hgs_d, float * __restrict__ hgt_d,
-			const Complex_f * __restrict__ u11t, const Complex_f * __restrict__ u12t,
+	__global__ __launch_bounds__(__BSIZE__) void Average_Plaquette(float * __restrict__ hgs_d,
+			float * __restrict__ hgt_d, const Complex_f * __restrict__ u11t, const Complex_f * __restrict__ u12t,
 			const unsigned int * __restrict__ iu){
 		const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 		const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -97,8 +97,9 @@ namespace Kernels{
 	 * @param[in]	u11t,u12t:	The gauge fields
 	 * 
 	 */
-	__global__ void Polyakov(Complex_f * __restrict__ Sigma11, Complex_f * __restrict__  Sigma12,
-			const Complex_f * __restrict__  u11t,const Complex_f * __restrict__ u12t){
+	__global__ __launch_bounds__(__BSIZE__) void Polyakov(Complex_f * __restrict__ Sigma11,
+			Complex_f * __restrict__  Sigma12, const Complex_f * __restrict__  u11t,
+			const Complex_f * __restrict__ u12t){
 		const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 		const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 		const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
