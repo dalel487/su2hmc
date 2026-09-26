@@ -441,17 +441,10 @@ namespace Kernels{
 	 */
 	template <typename T>
 		__global__ __launch_bounds__(__BSIZE__) void Clov_Force(double *dSdpi, const complex<T> * __restrict__ u11t,
-				const complex<T> * __restrict__ u12t, const Bilinear_a Xmn, const __grid_constant__ complex<T> sigval_G[24],
-				const __grid_constant__ unsigned short sigin_G[24], const unsigned int * __restrict__ iu,
+				const complex<T> * __restrict__ u12t, const Bilinear_a Xmn, const unsigned int * __restrict__ iu,
 				const unsigned int * __restrict__ id, const __grid_constant__ float akappa,
 				const __grid_constant__ unsigned short mu, const __grid_constant__ unsigned short nu){
-			__shared__ complex<T> sigval[24]; __shared__ unsigned short sigin[24];
-#pragma unroll
-			for(unsigned short i=0;i<24;i++){
-				sigval[i]=sigval_G[i];
-				sigin[i]=sigin_G[i];
-				}
-			__syncthreads();
+
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -790,8 +783,7 @@ int cuClov_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2,
 				else
 					clov = (nu==0) ? mu-1 : mu+nu;
 				//Compute force for @f$\mu\nu@f$ and @f$\nu\mu@f$
-				Kernels::Clov_Force<<<dimGrid,dimBlock,0,streams[mu]>>>(dSdpi,ut[0],ut[1],Xmn[clov],\
-						sigval,sigin,iu,id,akappa,mu,nu);
+				Kernels::Clov_Force<<<dimGrid,dimBlock,0,streams[mu]>>>(dSdpi,ut[0],ut[1],Xmn[clov],iu,id,akappa,mu,nu);
 
 			}
 	cudaDeviceSynchronise();
