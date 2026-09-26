@@ -431,8 +431,8 @@ namespace Kernels{
 	 *	@param[out]	dSdpi:			Force.
 	 *	@param[in]	u11t,u12t:		Gauge fields
 	 *	@param[in]	Xmn:				Pseudofermion bilinear contraction
-	 *	@param[in]	sigval:			@f$\sigma_{\mu\nu}@f$ scaled by @f$\frac{c_\text{SW}}{2}@f$
-	 *	@param[in]	sigin:			Dirac index of @f$\sigma_{\mu\nu}@f$
+	 *	@param[in]	sigval_G:			@f$\sigma_{\mu\nu}@f$ scaled by @f$\frac{c_\text{SW}}{2}@f$
+	 *	@param[in]	sigin_G:			Dirac index of @f$\sigma_{\mu\nu}@f$
 	 *	@param[in]	iu,id:			Neighbouring sites
 	 *	@param[in]	akappa:			Hopping Parameter
 	 *	@param[in]	mu,nu:			Clover direction
@@ -595,9 +595,9 @@ namespace Kernels{
 	 *	@param[out]	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
 	 *	@param[in]	r:						Pseudofermion field before multiplication. The thing we want to multiply by the clover
 	 *	@param[in]	clover1,clover2:	Array of clovers
-	 *	@param[in]	sigval:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
+	 *	@param[in]	sigval_G:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
 	 *	@param[in]	akappa:				Hopping Parameter
-	 * @param[in]	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
+	 * @param[in]	sigin_G:				What element of the spinor is multiplied by row idirac each sigma matrix?
 	 * @param[in]	dag:					Daggered output has no MPI halo, but undaggered does.
 	 *
 	 * @post	Result added to @p phi
@@ -667,9 +667,9 @@ namespace Kernels{
 	 *	@param[out]	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
 	 *	@param[in]	r:						Pseudofermion field before multiplication. The thing we want to multiply by the clover
 	 *	@param[in]	clover1,clover2:	Array of clovers
-	 *	@param[in]	sigval:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
+	 *	@param[in]	sigval_G:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
 	 *	@param[in]	akappa:				Hopping Parameter
-	 * @param[in]	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
+	 * @param[in]	sigin_G:				What element of the spinor is multiplied by row idirac each sigma matrix?
 	 * @param[in]	dag:					Daggered has no MPI halo, but undaggered does.
 	 *
 	 * @post Result added to @p phi.
