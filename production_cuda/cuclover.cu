@@ -294,8 +294,10 @@ namespace Kernels{
 	 *	@post Contents of @p hLeaves0 and @p hLeaves1 overwritten
 	 */
 	template <typename T>
-		__global__ void Half_Leaves(complex<T> *hLeaves0,complex<T> *hLeaves1,complex<T> *u11t,complex<T> *u12t,\
-				unsigned int *iu,unsigned int *id,const unsigned short mu,const unsigned short nu){
+		__global__ void Half_Leaves(complex<T> *hLeaves0,complex<T> *hLeaves1,const complex<T> * __restrict__ u11t,
+			const complex<T> * __restrict__ u12t,const unsigned int * __restrict__ iu,const unsigned int * __restrict__ id,
+			const __grid_constant__ unsigned short mu,const __grid_constant__ unsigned short nu){
+
 			const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const volatile int bsize = blockDim.x*blockDim.y*blockDim.z;
 			const volatile int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -364,16 +366,24 @@ namespace Kernels{
 	 *	@param[out]	Xmunu:	All Xmunu values
 	 *	@param[in]	X1:		Congrad output @f$\left(M^\dagger M\right)\Phi@f$
 	 *	@param[in]	X2:		@f$M\left(M^\dagger M\right)^{-1}\Phi@f$
-	 *	@param[in]	sigval:	@f$\sigma_{\mu\nu}@f$ scaled by @f$\frac{c_\text{SW}}{2}@f$
-	 *	@param[in]	sigin:	Dirac index of @f$\sigma_{\mu\nu}@f$
+	 *	@param[in]	sigval_G:	@f$\sigma_{\mu\nu}@f$ scaled by @f$\frac{c_\text{SW}}{2}@f$
+	 *	@param[in]	sigin_G:	Dirac index of @f$\sigma_{\mu\nu}@f$
 	 *	@param[in]	clov:		Index of clover being used
 	 *
 	 *	@post	Contents of @p Xmunu overwritten
 	 */
 	template <typename T>
 		__global__ __launch_bounds__(__BSIZE__) void cuCalcXmunu(Bilinear_a Xmunu, const complex<T> * __restrict__ X1,
-				const complex<T> * __restrict__ X2, const __grid_constant__ complex<T> sigval[24],
-				const __grid_constant__ unsigned short sigin[24], const __grid_constant__ unsigned short clov){
+				const complex<T> * __restrict__ X2, const __grid_constant__ complex<T> sigval_G[24],
+				const __grid_constant__ unsigned short sigin_G[24], const __grid_constant__ unsigned short clov){
+			__shared__ complex<T> sigval[24]; __shared__ unsigned short sigin[24];
+#pragma unroll
+			for(unsigned short i=0;i<24;i++){
+				sigval[i]=sigval_G[i];
+				sigin[i]=sigin_G[i];
+				}
+			__syncthreads();
+
 			const char funcname[] = "Xmunu";
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -431,10 +441,17 @@ namespace Kernels{
 	 */
 	template <typename T>
 		__global__ __launch_bounds__(__BSIZE__) void Clov_Force(double *dSdpi, const complex<T> * __restrict__ u11t,
-				const complex<T> * __restrict__ u12t, const Bilinear_a Xmn, const __grid_constant__ complex<T> sigval[24],
-				const __grid_constant__ unsigned short sigin[24], const unsigned int * __restrict__ iu,
+				const complex<T> * __restrict__ u12t, const Bilinear_a Xmn, const __grid_constant__ complex<T> sigval_G[24],
+				const __grid_constant__ unsigned short sigin_G[24], const unsigned int * __restrict__ iu,
 				const unsigned int * __restrict__ id, const __grid_constant__ float akappa,
 				const __grid_constant__ unsigned short mu, const __grid_constant__ unsigned short nu){
+			__shared__ complex<T> sigval[24]; __shared__ unsigned short sigin[24];
+#pragma unroll
+			for(unsigned short i=0;i<24;i++){
+				sigval[i]=sigval_G[i];
+				sigin[i]=sigin_G[i];
+				}
+			__syncthreads();
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -588,9 +605,16 @@ namespace Kernels{
 	template <typename T>
 		__global__ __launch_bounds__(__BSIZE__) void ByClover(complex<T> * phi,const complex<T> * __restrict__ r,
 				const complex<T> * __restrict__ clover1,
-				const complex<T> * __restrict__ clover2,const __grid_constant__ complex<T> sigval[24],
+				const complex<T> * __restrict__ clover2,const __grid_constant__ complex<T> sigval_G[24],
 				const __grid_constant__ float akappa,
-				const __grid_constant__ unsigned short sigin[24],const __grid_constant__ bool dag){
+				const __grid_constant__ unsigned short sigin_G[24],const __grid_constant__ bool dag){
+			__shared__ complex<T> sigval[24]; __shared__ unsigned short sigin[24];
+#pragma unroll
+			for(unsigned short i=0;i<24;i++){
+				sigval[i]=sigval_G[i];
+				sigin[i]=sigin_G[i];
+				}
+			__syncthreads();
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -653,8 +677,15 @@ namespace Kernels{
 	template <typename T>
 		__global__ __launch_bounds__(__BSIZE__) void HbyClover(complex<T> * phi,const complex<T> * __restrict__ __restrict__ r,
 				const complex<T> * __restrict__ clover1,const complex<T> * __restrict__ clover2,
-				const __grid_constant__ complex<T> sigval[24], const __grid_constant__ float akappa,
-				const __grid_constant__ unsigned short sigin[24],const __grid_constant__ bool dag){
+				const __grid_constant__ complex<T> sigval_G[24], const __grid_constant__ float akappa,
+				const __grid_constant__ unsigned short sigin_G[24],const __grid_constant__ bool dag){
+			__shared__ complex<T> sigval[24]; __shared__ unsigned short sigin[24];
+#pragma unroll
+			for(unsigned short i=0;i<24;i++){
+				sigval[i]=sigval_G[i];
+				sigin[i]=sigin_G[i];
+				}
+			__syncthreads();
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
