@@ -58,10 +58,10 @@ namespace Kernels{
 
 			__shared__ complex<T> gamval[20]; __shared__ unsigned short gamin[16];
 #pragma unroll
-			for(unsigned short i=gthreadId%__BSIZE__;i<20;i+=gsize*bsize)
+			for(unsigned short i=gthreadId%__BSIZE__;i<20;i+=bsize)
 				gamval[i]=gamval_G[i];
 #pragma unroll
-			for(unsigned short i=gthreadId%__BSIZE__;i<16;i+=gsize*bsize)
+			for(unsigned short i=gthreadId%__BSIZE__;i<16;i+=bsize)
 				gamin[i]=gamin_G[i];
 			__syncthreads();
 
@@ -201,10 +201,10 @@ namespace Kernels{
 
 			__shared__ complex<T> gamval[20]; __shared__ unsigned short gamin[16];
 #pragma unroll
-			for(unsigned short i=gthreadId%__BSIZE__;i<20;i+=gsize*bsize)
+			for(unsigned short i=gthreadId%__BSIZE__;i<20;i+=bsize)
 				gamval[i]=gamval_G[i];
 #pragma unroll
-			for(unsigned short i=gthreadId%__BSIZE__;i<16;i+=gsize*bsize)
+			for(unsigned short i=gthreadId%__BSIZE__;i<16;i+=bsize)
 				gamin[i]=gamin_G[i];
 			__syncthreads();
 
@@ -346,10 +346,10 @@ namespace Kernels{
 
 			__shared__ complex<T> gamval[20]; __shared__ unsigned short gamin[16];
 #pragma unroll
-			for(unsigned short i=gthreadId%__BSIZE__;i<20;i+=gsize*bsize)
+			for(unsigned short i=gthreadId%__BSIZE__;i<20;i+=bsize)
 				gamval[i]=gamval_G[i];
 #pragma unroll
-			for(unsigned short i=gthreadId%__BSIZE__;i<16;i+=gsize*bsize)
+			for(unsigned short i=gthreadId%__BSIZE__;i<16;i+=bsize)
 				gamin[i]=gamin_G[i];
 			__syncthreads();
 
@@ -466,10 +466,10 @@ namespace Kernels{
 
 			__shared__ complex<T> gamval[20]; __shared__ unsigned short gamin[16];
 #pragma unroll
-			for(unsigned short i=gthreadId%__BSIZE__;i<20;i+=gsize*bsize)
+			for(unsigned short i=gthreadId%__BSIZE__;i<20;i+=bsize)
 				gamval[i]=gamval_G[i];
 #pragma unroll
-			for(unsigned short i=gthreadId%__BSIZE__;i<16;i+=gsize*bsize)
+			for(unsigned short i=gthreadId%__BSIZE__;i<16;i+=bsize)
 				gamin[i]=gamin_G[i];
 			__syncthreads();
 
