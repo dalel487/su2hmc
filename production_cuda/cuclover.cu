@@ -385,7 +385,7 @@ namespace Kernels{
 
 			__shared__ complex<T> sigval[24]; __shared__ unsigned short sigin[24];
 #pragma unroll
-			for(unsigned short i=gthreadId%__BSIZE__;i<24;i++){
+			for(unsigned short i=gthreadId%__BSIZE__;i<24;i+=gsize*bsize){
 				sigval[i]=sigval_G[i];
 				sigin[i]=sigin_G[i];
 			}

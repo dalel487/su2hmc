@@ -58,10 +58,10 @@ namespace Kernels{
 
 			__shared__ complex<T> gamval[20]; __shared__ unsigned short gamin[16];
 #pragma unroll
-			for(unsigned short i=gthreadId%__BSIZE__;i<20;i++)
+			for(unsigned short i=gthreadId%__BSIZE__;i<20;i+=gsize*bsize)
 				gamval[i]=gamval_G[i];
 #pragma unroll
-			for(unsigned short i=gthreadId%__BSIZE__;i<16;i++)
+			for(unsigned short i=gthreadId%__BSIZE__;i<16;i+=gsize*bsize)
 				gamin[i]=gamin_G[i];
 			__syncthreads();
 
@@ -201,10 +201,10 @@ namespace Kernels{
 
 			__shared__ complex<T> gamval[20]; __shared__ unsigned short gamin[16];
 #pragma unroll
-			for(unsigned short i=gthreadId%__BSIZE__;i<20;i++)
+			for(unsigned short i=gthreadId%__BSIZE__;i<20;i+=gsize*bsize)
 				gamval[i]=gamval_G[i];
 #pragma unroll
-			for(unsigned short i=gthreadId%__BSIZE__;i<16;i++)
+			for(unsigned short i=gthreadId%__BSIZE__;i<16;i+=gsize*bsize)
 				gamin[i]=gamin_G[i];
 			__syncthreads();
 
@@ -346,10 +346,10 @@ namespace Kernels{
 
 			__shared__ complex<T> gamval[20]; __shared__ unsigned short gamin[16];
 #pragma unroll
-			for(unsigned short i=gthreadId%__BSIZE__;i<20;i++)
+			for(unsigned short i=gthreadId%__BSIZE__;i<20;i+=gsize*bsize)
 				gamval[i]=gamval_G[i];
 #pragma unroll
-			for(unsigned short i=gthreadId%__BSIZE__;i<16;i++)
+			for(unsigned short i=gthreadId%__BSIZE__;i<16;i+=gsize*bsize)
 				gamin[i]=gamin_G[i];
 			__syncthreads();
 
@@ -382,11 +382,11 @@ namespace Kernels{
 						//Spacelike terms
 						if(mu<3){
 							const complex<T> gam=gamval[mu*ndirac+(idirac>>1)];
-
 							ind =kvolHalo*idirac;
 							//The +kvolHalo is a faster way of getting the second colour index than an unrolled for loop.
 							const complex<T> ru[2]={r[uid+ind],r[uid+ind+kvolHalo]};
 							const complex<T> rd[2]={r[did+ind],r[did+ind+kvolHalo]};
+
 							const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
 							ind =kvolHalo*igork1;
 							const complex<T> rgu[2]={r[uid+ind],r[uid+ind+kvolHalo]};
@@ -407,6 +407,7 @@ namespace Kernels{
 							ind =kvolHalo*idirac;
 							const complex<T> ru[2]={r[uid+ind],r[uid+ind+kvolHalo]};
 							const complex<T> rd[2]={r[did+ind],r[did+ind+kvolHalo]};
+
 							const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
 							ind =kvolHalo*igork1;
 							const complex<T> rgu[2]={r[uid+ind],r[uid+ind+kvolHalo]};
@@ -465,10 +466,10 @@ namespace Kernels{
 
 			__shared__ complex<T> gamval[20]; __shared__ unsigned short gamin[16];
 #pragma unroll
-			for(unsigned short i=gthreadId%__BSIZE__;i<20;i++)
+			for(unsigned short i=gthreadId%__BSIZE__;i<20;i+=gsize*bsize)
 				gamval[i]=gamval_G[i];
 #pragma unroll
-			for(unsigned short i=gthreadId%__BSIZE__;i<16;i++)
+			for(unsigned short i=gthreadId%__BSIZE__;i<16;i+=gsize*bsize)
 				gamin[i]=gamin_G[i];
 			__syncthreads();
 
@@ -502,13 +503,12 @@ namespace Kernels{
 						//to read when split into different loops, but should be faster this way
 						//Spacelike terms
 						if(mu<3){
-							const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
 							const complex<T> gam = gamval[mu*ndirac+(idirac>>1)];
-							
 							ind =kvolHalo*idirac;
 							//The +kvolHalo is the same as accessing the second colour in memory, but faster!
 							const complex<T> ru[2]={r[uid+ind],r[uid+ind+kvolHalo]};
 							const complex<T> rd[2]={r[did+ind],r[did+ind+kvolHalo]};
+							const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
 							ind =kvolHalo*igork1;
 							const complex<T> rgu[2]={r[uid+ind],r[uid+ind+kvolHalo]};
 							const complex<T> rgd[2]={r[did+ind],r[did+ind+kvolHalo]};
@@ -527,11 +527,11 @@ namespace Kernels{
 						}
 						//Timelike terms
 						else{
-							const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
-
 							ind =kvolHalo*idirac;
 							const complex<T> ru[2]={r[uid+ind],r[uid+ind+kvolHalo]};
 							const complex<T> rd[2]={r[did+ind],r[did+ind+kvolHalo]};
+
+							const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
 							ind =kvolHalo*igork1;
 							const complex<T> rgu[2]={r[uid+ind],r[uid+ind+kvolHalo]};
 							const complex<T> rgd[2]={r[did+ind],r[did+ind+kvolHalo]};
