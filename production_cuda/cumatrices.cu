@@ -50,20 +50,21 @@ namespace Kernels{
 				const unsigned int * __restrict__ iu, const unsigned int * __restrict__ id,
 				const __grid_constant__ complex<T> gamval_G[20], const __grid_constant__ unsigned short gamin_G[16],
 				const T * __restrict__ dk4m, const T * __restrict__ dk4p, const __grid_constant__ Complex_f jqq, const __grid_constant__ float akappa){
-			__shared__ complex<T> gamval[20]; __shared__ unsigned short gamin[16];
-#pragma unroll
-			for(unsigned short i=0;i<20;i++)
-				gamval[i]=gamval_G[i];
-#pragma unroll
-			for(unsigned short i=0;i<16;i++)
-				gamin[i]=gamin_G[i];
-			__syncthreads();
-
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 			const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 			const unsigned int gthreadId= blockId * bsize+bthreadId;
+
+			__shared__ complex<T> gamval[20]; __shared__ unsigned short gamin[16];
+#pragma unroll
+			for(unsigned short i=gthreadId%__BSIZE__;i<20;i++)
+				gamval[i]=gamval_G[i];
+#pragma unroll
+			for(unsigned short i=gthreadId%__BSIZE__;i<16;i++)
+				gamin[i]=gamin_G[i];
+			__syncthreads();
+
 
 			for(unsigned int i=gthreadId;i<kvol;i+=gsize*bsize){
 				complex<T> phi_s[ngorkov*nc];
@@ -192,20 +193,20 @@ namespace Kernels{
 				const unsigned int * __restrict__ iu, const unsigned int * __restrict__ id,
 				const __grid_constant__ complex<T> gamval_G[20], const __grid_constant__ unsigned short gamin_G[16],
 				const T * __restrict__ dk4m, const T * __restrict__ dk4p, const __grid_constant__ Complex_f jqq, const __grid_constant__ float akappa){
-			__shared__ complex<T> gamval[20]; __shared__ unsigned short gamin[16];
-#pragma unroll
-			for(unsigned short i=0;i<20;i++)
-				gamval[i]=gamval_G[i];
-#pragma unroll
-			for(unsigned short i=0;i<16;i++)
-				gamin[i]=gamin_G[i];
-			__syncthreads();
-
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 			const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 			const unsigned int gthreadId= blockId * bsize+bthreadId;
+
+			__shared__ complex<T> gamval[20]; __shared__ unsigned short gamin[16];
+#pragma unroll
+			for(unsigned short i=gthreadId%__BSIZE__;i<20;i++)
+				gamval[i]=gamval_G[i];
+#pragma unroll
+			for(unsigned short i=gthreadId%__BSIZE__;i<16;i++)
+				gamin[i]=gamin_G[i];
+			__syncthreads();
 
 			for(unsigned int i=gthreadId;i<kvol;i+=gsize*bsize){
 				complex<T> phi_s[ngorkov*nc];
@@ -337,20 +338,20 @@ namespace Kernels{
 			/*
 			 * Half Dslash T precision
 			 */
-			__shared__ complex<T> gamval[20]; __shared__ unsigned short gamin[16];
-#pragma unroll
-			for(unsigned short i=0;i<20;i++)
-				gamval[i]=gamval_G[i];
-#pragma unroll
-			for(unsigned short i=0;i<16;i++)
-				gamin[i]=gamin_G[i];
-			__syncthreads();
-
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 			const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 			const unsigned int gthreadId= blockId * bsize+bthreadId;
+
+			__shared__ complex<T> gamval[20]; __shared__ unsigned short gamin[16];
+#pragma unroll
+			for(unsigned short i=gthreadId%__BSIZE__;i<20;i++)
+				gamval[i]=gamval_G[i];
+#pragma unroll
+			for(unsigned short i=gthreadId%__BSIZE__;i<16;i++)
+				gamin[i]=gamin_G[i];
+			__syncthreads();
 
 			//Reuse values for indices to reduce registers needed to reevaluate
 			unsigned int ind;
@@ -375,22 +376,22 @@ namespace Kernels{
 					const complex<T> u11sd=u11t[ind];	const complex<T> u12sd=u12t[ind];
 #pragma unroll
 					for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
-						complex<T> ru[2];  complex<T> rd[2];
-						complex<T> rgu[2];  complex<T> rgd[2];
 						//Can manually vectorise with a pragma?
 						//Wilson + Dirac term in that order. Definitely easier
 						//to read when split into different loops, but should be faster this way
 						//Spacelike terms
 						if(mu<3){
-							const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
 							const complex<T> gam=gamval[mu*ndirac+(idirac>>1)];
-#pragma unroll
-							for(unsigned short c=0;c<nc;c++){
-								ind =kvolHalo*(idirac+c);
-								ru[c]=r[uid+ind]; rd[c]=r[did+ind];
-								ind =kvolHalo*(igork1+c);
-								rgu[c]=r[uid+ind]; rgd[c]=r[did+ind];
-							}
+
+							ind =kvolHalo*idirac;
+							//The +kvolHalo is a faster way of getting the second colour index than an unrolled for loop.
+							const complex<T> ru[2]={r[uid+ind],r[uid+ind+kvolHalo]};
+							const complex<T> rd[2]={r[did+ind],r[did+ind+kvolHalo]};
+							const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
+							ind =kvolHalo*igork1;
+							const complex<T> rgu[2]={r[uid+ind],r[uid+ind+kvolHalo]};
+							const complex<T> rgd[2]={r[did+ind],r[did+ind+kvolHalo]};
+
 							phi_s[idirac]-=u11s*(akappa*ru[0]-gam*rgu[0])
 								+u12s*(akappa*ru[1]-gam*rgu[1]);
 							phi_s[idirac+1]-=-conj(u12s)*(akappa*ru[0]-gam*rgu[0])
@@ -400,40 +401,29 @@ namespace Kernels{
 								-u12sd*(akappa*rd[1]+gam*rgd[1]);
 							phi_s[idirac+1]-=conj(u12sd)*(akappa*rd[0]+gam*rgd[0])
 								+u11sd*(akappa*rd[1]+gam*rgd[1]);
-
-							/*
-								phi_s[idirac]+=-akappa*(u11s*ru[0]+u12s*ru[1]+\
-								conj(u11sd)*rd[0]-u12sd*rd[1]);
-								phi_s[idirac+1]+=-akappa*(-conj(u12s)*ru[0]+ conj(u11s)*ru[1]+\
-								conj(u12sd)*rd[0]+ u11sd*rd[1]);
-							//Dirac term
-							phi_s[idirac]+=gam*(u11s*ru[0]+u12s*ru[1]-\
-							conj(u11sd)*rd[0]+ u12sd*rd[1]);
-							phi_s[idirac+1]+=gam*(-conj(u12s)*ru[0]+ conj(u11s)*ru[1]-\
-							conj(u12sd)*rd[0]- u11sd*rd[1]);
-							*/
 						}
 						//Timelike terms
 						else{
+							ind =kvolHalo*idirac;
+							const complex<T> ru[2]={r[uid+ind],r[uid+ind+kvolHalo]};
+							const complex<T> rd[2]={r[did+ind],r[did+ind+kvolHalo]};
 							const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
-#pragma unroll
-							for(unsigned short c=0;c<nc;c++){
-								ind =kvolHalo*(idirac+c);
-								ru[c]=r[uid+ind]; rd[c]=r[did+ind];
-								ind =kvolHalo*(igork1+c);
-								rgu[c]=r[uid+ind]; rgd[c]=r[did+ind];
-							}
-							const T dk4ms=dk4m[did];   const T dk4ps=dk4p[i];
+							ind =kvolHalo*igork1;
+							const complex<T> rgu[2]={r[uid+ind],r[uid+ind+kvolHalo]};
+							const complex<T> rgd[2]={r[did+ind],r[did+ind+kvolHalo]};
+
+						   T dk4s=dk4p[i];
 							//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 
-							phi_s[idirac+0]-= dk4ps*(u11s*(ru[0]-rgu[0])
+							phi_s[idirac+0]-= dk4s*(u11s*(ru[0]-rgu[0])
 									+u12s*(ru[1]-rgu[1]));
-							phi_s[idirac+1]-= dk4ps*(-conj(u12s)*(ru[0]-rgu[0])
+							phi_s[idirac+1]-= dk4s*(-conj(u12s)*(ru[0]-rgu[0])
 									+conj(u11s)*(ru[1]-rgu[1]));
 
-							phi_s[idirac+0]-= dk4ms*(conj(u11sd)*(rd[0]+rgd[0])
+							dk4s=dk4m[did];
+							phi_s[idirac+0]-= dk4s*(conj(u11sd)*(rd[0]+rgd[0])
 									-u12sd *(rd[1]+rgd[1]));
-							phi_s[idirac+1]-= dk4ms*(conj(u12sd)*(rd[0]+rgd[0])
+							phi_s[idirac+1]-= dk4s*(conj(u12sd)*(rd[0]+rgd[0])
 									+u11sd *(rd[1]+rgd[1]));
 							phi[i+kvolHalo*(0+idirac)]=phi_s[idirac+0];
 							phi[i+kvolHalo*(1+idirac)]=phi_s[idirac+1];
@@ -466,21 +456,22 @@ namespace Kernels{
 			/*
 			 * Half Dslash Dagger T precision 
 			 */
-			__shared__ complex<T> gamval[20]; __shared__ unsigned short gamin[16];
-#pragma unroll
-			for(unsigned short i=0;i<20;i++)
-				gamval[i]=gamval_G[i];
-#pragma unroll
-			for(unsigned short i=0;i<16;i++)
-				gamin[i]=gamin_G[i];
-			__syncthreads();
-
 
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 			const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 			const unsigned int gthreadId= blockId * bsize+bthreadId;
+
+			__shared__ complex<T> gamval[20]; __shared__ unsigned short gamin[16];
+#pragma unroll
+			for(unsigned short i=gthreadId%__BSIZE__;i<20;i++)
+				gamval[i]=gamval_G[i];
+#pragma unroll
+			for(unsigned short i=gthreadId%__BSIZE__;i<16;i++)
+				gamin[i]=gamin_G[i];
+			__syncthreads();
+
 
 			//Reuse values for indices to reduce registers needed to reevaluate
 			unsigned int ind;
@@ -506,8 +497,6 @@ namespace Kernels{
 					const complex<T> u11sd=u11t[ind];	const complex<T> u12sd=u12t[ind];
 #pragma unroll
 					for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc){
-						complex<T> ru[2];  complex<T> rd[2];
-						complex<T> rgu[2];  complex<T> rgd[2];
 						//Can manually vectorise with a pragma?
 						//Wilson + Dirac term in that order. Definitely easier
 						//to read when split into different loops, but should be faster this way
@@ -515,13 +504,15 @@ namespace Kernels{
 						if(mu<3){
 							const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
 							const complex<T> gam = gamval[mu*ndirac+(idirac>>1)];
-#pragma unroll
-							for(unsigned short c=0;c<nc;c++){
-								ind =kvolHalo*(idirac+c);
-								ru[c]=r[uid+ind]; rd[c]=r[did+ind];
-								ind =kvolHalo*(igork1+c);
-								rgu[c]=r[uid+ind]; rgd[c]=r[did+ind];
-							}
+							
+							ind =kvolHalo*idirac;
+							//The +kvolHalo is the same as accessing the second colour in memory, but faster!
+							const complex<T> ru[2]={r[uid+ind],r[uid+ind+kvolHalo]};
+							const complex<T> rd[2]={r[did+ind],r[did+ind+kvolHalo]};
+							ind =kvolHalo*igork1;
+							const complex<T> rgu[2]={r[uid+ind],r[uid+ind+kvolHalo]};
+							const complex<T> rgd[2]={r[did+ind],r[did+ind+kvolHalo]};
+
 							//Factorising for performance, we get u1?*(+/-r_wilson -/+ r_dirac)
 							phi_s[idirac]-=u11s*(akappa*ru[0]+gam*rgu[0])
 								+u12s*(akappa*ru[1]+gam*rgu[1]);
@@ -537,13 +528,14 @@ namespace Kernels{
 						//Timelike terms
 						else{
 							const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
-#pragma unroll
-							for(unsigned short c=0;c<nc;c++){
-								ind =kvolHalo*(idirac+c);
-								ru[c]=r[uid+ind]; rd[c]=r[did+ind];
-								ind =kvolHalo*(igork1+c);
-								rgu[c]=r[uid+ind]; rgd[c]=r[did+ind];
-							}
+
+							ind =kvolHalo*idirac;
+							const complex<T> ru[2]={r[uid+ind],r[uid+ind+kvolHalo]};
+							const complex<T> rd[2]={r[did+ind],r[did+ind+kvolHalo]};
+							ind =kvolHalo*igork1;
+							const complex<T> rgu[2]={r[uid+ind],r[uid+ind+kvolHalo]};
+							const complex<T> rgd[2]={r[did+ind],r[did+ind+kvolHalo]};
+
 							T dk4s=dk4m[i];
 							//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 							//Note that CUDA is smart enough to reuse the additions/subtractions here later on ru[0]+rgu[0]

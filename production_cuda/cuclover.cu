@@ -89,9 +89,9 @@ namespace Device{
 	 */
 	template <typename T>
 		__device__ void Half_Leaf(complex<T> Leaves[nc], const complex<T> * __restrict__ u11t,
-			const complex<T> * __restrict__ u12t, complex<T> a[nc], const unsigned int * __restrict__ iu,
-			const unsigned int * __restrict__ id, const unsigned int i, const unsigned short mu, const unsigned short nu,
-			const unsigned short leaf){
+				const complex<T> * __restrict__ u12t, complex<T> a[nc], const unsigned int * __restrict__ iu,
+				const unsigned int * __restrict__ id, const unsigned int i, const unsigned short mu, const unsigned short nu,
+				const unsigned short leaf){
 
 			unsigned int ind; unsigned int double_ind=id[nu*kvol+ind];
 			switch(leaf){
@@ -153,8 +153,8 @@ namespace Device{
 	 */
 	template <typename T>
 		__device__ void Leaf(const complex<T> * __restrict__ u11t, const complex<T> * __restrict__ u12t,
-			complex<T> Leaves[nc], const unsigned int * __restrict__ iu, const unsigned int * __restrict__ id,
-			const unsigned int i,const unsigned short mu, const unsigned short nu,const unsigned short leaf){
+				complex<T> Leaves[nc], const unsigned int * __restrict__ iu, const unsigned int * __restrict__ id,
+				const unsigned int i,const unsigned short mu, const unsigned short nu,const unsigned short leaf){
 			complex<T> a[nc];
 			Half_Leaf(Leaves,u11t,u12t,a,iu,id,i,mu,nu,leaf);
 			unsigned int ind,double_ind;
@@ -295,8 +295,8 @@ namespace Kernels{
 	 */
 	template <typename T>
 		__global__ void Half_Leaves(complex<T> *hLeaves0,complex<T> *hLeaves1,const complex<T> * __restrict__ u11t,
-			const complex<T> * __restrict__ u12t,const unsigned int * __restrict__ iu,const unsigned int * __restrict__ id,
-			const __grid_constant__ unsigned short mu,const __grid_constant__ unsigned short nu){
+				const complex<T> * __restrict__ u12t,const unsigned int * __restrict__ iu,const unsigned int * __restrict__ id,
+				const __grid_constant__ unsigned short mu,const __grid_constant__ unsigned short nu){
 
 			const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const volatile int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -376,20 +376,20 @@ namespace Kernels{
 		__global__ __launch_bounds__(__BSIZE__) void cuCalcXmunu(Bilinear_a Xmunu, const complex<T> * __restrict__ X1,
 				const complex<T> * __restrict__ X2, const __grid_constant__ complex<T> sigval_G[24],
 				const __grid_constant__ unsigned short sigin_G[24], const __grid_constant__ unsigned short clov){
-			__shared__ complex<T> sigval[24]; __shared__ unsigned short sigin[24];
-#pragma unroll
-			for(unsigned short i=0;i<24;i++){
-				sigval[i]=sigval_G[i];
-				sigin[i]=sigin_G[i];
-				}
-			__syncthreads();
-
 			const char funcname[] = "Xmunu";
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 			const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 			const unsigned int gthreadId= blockId * bsize+bthreadId;
+
+			__shared__ complex<T> sigval[24]; __shared__ unsigned short sigin[24];
+#pragma unroll
+			for(unsigned short i=gthreadId%__BSIZE__;i<24;i++){
+				sigval[i]=sigval_G[i];
+				sigin[i]=sigin_G[i];
+			}
+			__syncthreads();
 			//Get sign and index of @f$\sigma_{\mu\nu}@f correct
 			for(unsigned int i=gthreadId;i<kvol;i+=gsize*bsize){
 				//Buffer. Four registers
@@ -679,31 +679,35 @@ namespace Kernels{
 					for(unsigned short c=0; c<nc; c++){
 						phi_s[idirac+c]=0;
 					}
-				complex<T> r_s[nc]; complex<T> clov_s[nc];
 #pragma unroll
 				for(unsigned short clov=0;clov<6;clov++){
-					clov_s[0]=clover1[clov*kvol+i]; clov_s[1]=clover2[clov*kvol+i];
+					const T clov_a=creal(clover1[clov*kvol+i]);
+					const complex<T> clov_b=clover2[clov*kvol+i];
+//					clov_s[0]=; clov_s[1]=k$;
+#pragma unroll
 					for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
-						const unsigned short sind = sigin[clov*ndirac+(idirac>>1)] << (nc-1);
+						const unsigned int sind = i+kvolHalo*(sigin[clov*ndirac+(idirac>>1)] << (nc-1));
+						const complex<T> r_s[nc]={r[sind],r[sind+kvolHalo]}; 
+						/*
 #pragma unroll
 						for(unsigned short c=0; c<nc; c++){
 							r_s[c]= r[i+kvolHalo*(sind+c)];
 						}
+						*/
 						///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
 						const complex<T> sig=sigval[clov*ndirac+(idirac>>1)];
-						phi_s[idirac+0]+=sig*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
+						phi_s[idirac+0]+=sig*(clov_a*r_s[0]+clov_b*r_s[1]);
 						//Clover is in the Lie Algebra, not Lie group. So signs are correct here.
-						phi_s[idirac+1]+=sig*(conj(clov_s[1])*r_s[0]-creal(clov_s[0])*r_s[1]);
+						phi_s[idirac+1]+=sig*(conj(clov_b)*r_s[0]-clov_a*r_s[1]);
 					}
 				}
 #pragma unroll
-				for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc)
-					for(unsigned short c=0; c<nc; c++)
+				for(unsigned short idirac=0; idirac<ndirac*nc; idirac++)
 						//dag is just to do with the output layout and if it has a halo
 						if(dag)
-							phi[i+kvol*(c+idirac)]+=akappa*phi_s[idirac+c];
+							phi[i+kvol*(idirac)]+=akappa*phi_s[idirac];
 						else
-							phi[i+kvolHalo*(c+idirac)]+=akappa*phi_s[idirac+c];
+							phi[i+kvolHalo*(idirac)]+=akappa*phi_s[idirac];
 			}
 			return;
 		}
