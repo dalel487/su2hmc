@@ -294,8 +294,9 @@ namespace Kernels{
 	 *	@post Contents of @p hLeaves0 and @p hLeaves1 overwritten
 	 */
 	template <typename T>
-		__global__ void Half_Leaves(complex<T> *hLeaves0,complex<T> *hLeaves1,const complex<T> * __restrict__ u11t,
-				const complex<T> * __restrict__ u12t,const unsigned int * __restrict__ iu,const unsigned int * __restrict__ id,
+		__global__ __launch_bounds__(__BSIZE__) void Half_Leaves(complex<T> *hLeaves0,complex<T> *hLeaves1,
+				const complex<T> * __restrict__ u11t, const complex<T> * __restrict__ u12t,
+				const unsigned int * __restrict__ iu,const unsigned int * __restrict__ id,
 				const __grid_constant__ unsigned short mu,const __grid_constant__ unsigned short nu){
 
 			const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
@@ -325,7 +326,7 @@ namespace Kernels{
 	 *	@post Contents of @p clover1 and @p clover2 overwritten
 	 */
 	template <typename T>
-		__global__ void Full_Clover(complex<T> *clover1, complex<T> *clover2,\
+		__global__ __launch_bounds__(__BSIZE__) void Full_Clover(complex<T> * __restrict__ clover1, complex<T> * __restrict__ clover2,\
 				const complex<T> * __restrict__ u11t, const complex<T> * __restrict__ u12t,
 				const unsigned int * __restrict__ iu, const unsigned int * __restrict__ id, const __grid_constant__ int mu,
 				const __grid_constant__ int nu){
@@ -440,7 +441,7 @@ namespace Kernels{
 	 *	@post	Clover force is added to @p dSdpi
 	 */
 	template <typename T>
-		__global__ __launch_bounds__(__BSIZE__) void Clov_Force(double *dSdpi, const complex<T> * __restrict__ u11t,
+		__global__ __launch_bounds__(__BSIZE__) void Clov_Force(double * __restrict__ dSdpi, const complex<T> * __restrict__ u11t,
 				const complex<T> * __restrict__ u12t, const Bilinear_a Xmn, const unsigned int * __restrict__ iu,
 				const unsigned int * __restrict__ id, const __grid_constant__ float akappa,
 				const __grid_constant__ unsigned short mu, const __grid_constant__ unsigned short nu){
@@ -588,9 +589,9 @@ namespace Kernels{
 	 *	@param[out]	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
 	 *	@param[in]	r:						Pseudofermion field before multiplication. The thing we want to multiply by the clover
 	 *	@param[in]	clover1,clover2:	Array of clovers
-	 *	@param[in]	sigval_G:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
+	 *	@param[in]	sigval:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
 	 *	@param[in]	akappa:				Hopping Parameter
-	 * @param[in]	sigin_G:				What element of the spinor is multiplied by row idirac each sigma matrix?
+	 * @param[in]	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
 	 * @param[in]	dag:					Daggered output has no MPI halo, but undaggered does.
 	 *
 	 * @post	Result added to @p phi
@@ -661,7 +662,7 @@ namespace Kernels{
 	 * @post Result added to @p phi.
 	 */
 	template <typename T>
-		__global__ __launch_bounds__(__BSIZE__) void HbyClover(complex<T> * phi,const complex<T> * __restrict__ __restrict__ r,
+		__global__ __launch_bounds__(__BSIZE__) void HbyClover(complex<T> * phi,const complex<T> * __restrict__ r,
 				const complex<T> * __restrict__ clover1,const complex<T> * __restrict__ clover2,
 				const __grid_constant__ complex<T> sigval[24], const __grid_constant__ float akappa,
 				const __grid_constant__ unsigned short sigin[24],const __grid_constant__ bool dag){
@@ -676,6 +677,7 @@ namespace Kernels{
 				complex<T> phi_s[ndirac*nc];
 #pragma unroll
 				for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc)
+#pragma unroll
 					for(unsigned short c=0; c<nc; c++){
 						phi_s[idirac+c]=0;
 					}
@@ -683,13 +685,13 @@ namespace Kernels{
 				for(unsigned short clov=0;clov<6;clov++){
 					const T clov_a=creal(clover1[clov*kvol+i]);
 					const complex<T> clov_b=clover2[clov*kvol+i];
-//					clov_s[0]=; clov_s[1]=k$;
+					//					clov_s[0]=; clov_s[1]=k$;
 #pragma unroll
 					for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
+						const complex<T> sig=sigval[clov*ndirac+(idirac>>1)];
 						const unsigned int sind = i+kvolHalo*(sigin[clov*ndirac+(idirac>>1)] << (nc-1));
 						const complex<T> r_s[nc]={r[sind],r[sind+kvolHalo]}; 
 						///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
-						const complex<T> sig=sigval[clov*ndirac+(idirac>>1)];
 						phi_s[idirac+0]+=sig*(clov_a*r_s[0]+clov_b*r_s[1]);
 						//Clover is in the Lie Algebra, not Lie group. So signs are correct here.
 						phi_s[idirac+1]+=sig*(conj(clov_b)*r_s[0]-clov_a*r_s[1]);
@@ -697,11 +699,11 @@ namespace Kernels{
 				}
 #pragma unroll
 				for(unsigned short idirac=0; idirac<ndirac*nc; idirac++)
-						//dag is just to do with the output layout and if it has a halo
-						if(dag)
-							phi[i+kvol*(idirac)]+=akappa*phi_s[idirac];
-						else
-							phi[i+kvolHalo*(idirac)]+=akappa*phi_s[idirac];
+					//dag is just to do with the output layout and if it has a halo
+					if(dag)
+						phi[i+kvol*(idirac)]+=akappa*phi_s[idirac];
+					else
+						phi[i+kvolHalo*(idirac)]+=akappa*phi_s[idirac];
 			}
 			return;
 		}

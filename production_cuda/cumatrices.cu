@@ -449,7 +449,7 @@ namespace Kernels{
 	 * @post	Result added to @p phi
 	 */
 	template <typename T>
-		__global__ __launch_bounds__(__BSIZE__) void cuHdslashd(complex<T> *phi, const complex<T>* __restrict__  r, 
+		__global__ __launch_bounds__(__BSIZE__) void cuHdslashd(complex<T> * __restrict__ phi, const complex<T>* __restrict__  r, 
 				const complex<T>* __restrict__  u11t, const complex<T>* __restrict__  u12t,
 				const unsigned int* __restrict__  iu, const unsigned int* __restrict__  id,
 				const __grid_constant__ complex<T> gamval_G[20],	const __grid_constant__ unsigned short gamin_G[16],
@@ -493,7 +493,7 @@ namespace Kernels{
 					ind=i+kvolHalo*mu;
 					const complex<T> u11s=u11t[ind];	const complex<T> u12s=u12t[ind];
 					ind = i+kvol*mu;
-					const int did=id[ind];	const int uid = iu[ind];
+					const unsigned int did=id[ind];	const unsigned int uid = iu[ind];
 					ind=did+kvolHalo*mu;
 					const complex<T> u11sd=u11t[ind];	const complex<T> u12sd=u12t[ind];
 #pragma unroll
