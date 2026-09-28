@@ -96,8 +96,8 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 			free(clover[0]); free(clover[1]);
 		}
 		free(x); free(xi); free(R1);
-		return ITERLIM;
 #endif
+		return ITERLIM;
 	}
 #ifdef USE_GPU
 	cudaMemcpyAsync(xi,R1,kferm*sizeof(Complex),cudaMemcpyDefault,streams[0]);
@@ -180,7 +180,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 	}
 #else
 	//What is the optimal order to evaluate these in?
-#pragma omp parallel for simd collapse(2) aligned(x,xi:AVX) reduction(+:*qq,*qbqb)
+#pragma omp parallel for simd collapse(2) aligned(x,xi:AVX) reduction(*qq,*qbqb:+)
 	for(int idirac = 0; idirac<ndirac; idirac++)
 		for(int i=0; i<kvol; i++){
 			int igork=idirac+4;
@@ -232,11 +232,11 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 		for(unsigned int i = 0; i<kvol; i++){
 			unsigned int uid=iu[3*kvol+i];
 			xd+=dk[0][i]*(conj(x[uid+kvolHalo*(igorkov*nc)])*(\
-						conj(ut[0][i+kvol*3])*(xi[i+kvol*(igork1*nc)]+xi[i+kvol*(igorkov*nc)])-\
-						ut[1][i+kvol*3]*(xi[i+kvol*(igork1*nc+1)]+xi[i+kvol*(igorkov*nc+1)]) )+\
+						conj(ut[0][i+kvolHalo*3])*(xi[i+kvol*(igork1*nc)]+xi[i+kvol*(igorkov*nc)])-\
+						ut[1][i+kvolHalo*3]*(xi[i+kvol*(igork1*nc+1)]+xi[i+kvol*(igorkov*nc+1)]) )+\
 					conj(x[uid+kvolHalo*(igorkov*nc+1)])*(\
-						ut[0][i+kvol*3]*(xi[i+kvol*(igork1*nc+1)]+xi[i+kvol*(igorkov*nc+1)])+\
-						conj(ut[1][i+kvol*3])*(xi[i+kvol*(igorkov*nc)]+xi[i+kvol*(igork1*nc)]) ) );
+						ut[0][i+kvolHalo*3]*(xi[i+kvol*(igork1*nc+1)]+xi[i+kvol*(igorkov*nc+1)])+\
+						conj(ut[1][i+kvolHalo*3])*(xi[i+kvol*(igorkov*nc)]+xi[i+kvol*(igork1*nc)]) ) );
 		}
 	}
 	for(unsigned short igorkovPP=4; igorkovPP<8; igorkovPP++){
@@ -245,11 +245,11 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 		for(unsigned int i = 0; i<kvol; i++){
 			unsigned int did=id[3*kvol+i];
 			xuu-=dk[0][did]*(conj(x[did+kvolHalo*(igorkovPP*nc)])*(\
-						ut[0][did+kvol*3]*(xi[i+kvol*(igork1PP*nc)]-xi[i+kvol*(igorkovPP*nc)])+\
-						ut[1][did+kvol*3]*(xi[i+kvol*(igork1PP*nc+1)]-xi[i+kvol*(igorkovPP*nc+1)]) )+\
+						ut[0][did+kvolHalo*3]*(xi[i+kvol*(igork1PP*nc)]-xi[i+kvol*(igorkovPP*nc)])+\
+						ut[1][did+kvolHalo*3]*(xi[i+kvol*(igork1PP*nc+1)]-xi[i+kvol*(igorkovPP*nc+1)]) )+\
 					conj(x[did+kvolHalo*(igorkovPP*nc+1)])*(\
-						conj(ut[0][did+kvol*3])*(xi[i+kvol*(igork1PP)*nc+1]-xi[i+kvol*(igorkovPP)*nc+1])+\
-						conj(ut[1][did+kvol*3])*(xi[i+kvol*(igorkovPP)*nc]-xi[i+kvol*(igork1PP)*nc]) ) );
+						conj(ut[0][did+kvolHalo*3])*(xi[i+kvol*(igork1PP)*nc+1]-xi[i+kvol*(igorkovPP)*nc+1])+\
+						conj(ut[1][did+kvolHalo*3])*(xi[i+kvol*(igorkovPP)*nc]-xi[i+kvol*(igork1PP)*nc]) ) );
 		}
 	}
 	for(unsigned short igorkovPP=4; igorkovPP<8; igorkovPP++){
@@ -258,11 +258,11 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 		for(unsigned int i = 0; i<kvol; i++){
 			unsigned int uid=iu[3*kvol+i];
 			xdd-=dk[1][i]*(conj(x[uid+kvolHalo*(igorkovPP*nc)])*(\
-						conj(ut[0][i+kvol*3])*(xi[i+kvol*(igork1PP*nc)]+xi[i+kvol*(igorkovPP*nc)])-\
-						ut[1][i+kvol*3]*(xi[i+kvol*(igork1PP*nc+1)]+xi[i+kvol*(igorkovPP*nc+1)]) )+\
+						conj(ut[0][i+kvolHalo*3])*(xi[i+kvol*(igork1PP*nc)]+xi[i+kvol*(igorkovPP*nc)])-\
+						ut[1][i+kvolHalo*3]*(xi[i+kvol*(igork1PP*nc+1)]+xi[i+kvol*(igorkovPP*nc+1)]) )+\
 					conj(x[uid+kvolHalo*(igorkovPP*nc+1)])*(\
-						ut[0][i+kvol*3]*(xi[i+kvol*(igork1PP*nc+1)]+xi[i+kvol*(igorkovPP*nc+1)])+\
-						conj(ut[1][i+kvol*3])*(xi[i+kvol*(igorkovPP*nc)]+xi[i+kvol*(igork1PP*nc)]) ) );
+						ut[0][i+kvolHalo*3]*(xi[i+kvol*(igork1PP*nc+1)]+xi[i+kvol*(igorkovPP*nc+1)])+\
+						conj(ut[1][i+kvolHalo*3])*(xi[i+kvol*(igorkovPP*nc)]+xi[i+kvol*(igork1PP*nc)]) ) );
 		}
 	}
 	*endenf=creal(xu-xd-xuu+xdd);

@@ -368,7 +368,7 @@ int Hdslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned  int *iu,unsigne
 			for(unsigned short c=0; c<nc; c++){
 				//NOTE: idirac is increasing by nc each time. So should be read as idirac*nc in a Dirac-counted loop
 				ind =kvolHalo*(idirac+c);
-				phi_s[idirac+c]=r[i+kvol*(c+idirac)];
+				phi_s[idirac+c]=r[i+kvolHalo*(c+idirac)];
 			}
 
 		//#pragma unroll
@@ -887,7 +887,6 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,
 #endif
 	return 0;
 }
-
 
 inline void Transpose_c(Complex_f *out, const int fast_in, const int fast_out){
 	const volatile char funcname[]="Transpose_c";

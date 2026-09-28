@@ -310,9 +310,9 @@ int Force(double *dSdpi, const bool iflag, double res1, Complex *X0, Complex *X1
 			for(int idirac=0;idirac<ndirac;idirac++){
 				for(int i=0;i<kvol;i++)
 					X0[i+kvol*(0+nc*(idirac+ndirac*na))]=
-						2*X1[i+kvolHalo*(0+idirac*c)]-X0[i+kvol*(0+nc*(idirac+ndirac*na))];
+						2*X1[i+kvolHalo*(0+idirac*nc)]-X0[i+kvol*(0+nc*(idirac+ndirac*na))];
 				X0[i+kvol*(1+nc*(idirac+ndirac*na))]=
-					2*X1[i+kvolHalo*(1+idirac*c)]-X0[i+kvol*(1+nc*(idirac+ndirac*na))];
+					2*X1[i+kvolHalo*(1+idirac*nc)]-X0[i+kvol*(1+nc*(idirac+ndirac*na))];
 			}
 #endif
 		}

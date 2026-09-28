@@ -23,18 +23,19 @@ ifneq ($(filter icc icx, $(CC)),)
 $(info Compiling with Intel Compiler)
 CFLAGS += -qopt-zmm-usage=high -ipo -static-intel -static-libgcc \
 			-xHOST -D__USE_MKL__  -inline-level=2 \
-			-qopenmp-simd  -use-intel-optimized-headers -diag-disable=10441 -qopenmp  
+			-qopenmp-simd  -use-intel-optimized-headers -diag-disable=10441 -qopenmp
 __USE_MKL__ = 1
 else ifneq (,$(filter gcc%,$(CC)))
 $(info Compiling with GCC)
-CFLAGS += -march=native -fcommon -fopenmp -fopenmp-simd -static-libgcc -foffload=disable
+CFLAGS += -march=native -fcommon -fopenmp -fopenmp-simd -static-libgcc -foffload=disable -fcx-fortran-rules
 else ifeq ($(CC),nvc)
 $(info Compiling with NVIDIA C Compiler)
 #    $(warning As of 20251101, the nvc/nvc++ compiler segfaults during the conjugate gradient. We recommend you use GNU instead. (echo CC+gcc, echo CC=g++))
 CFLAGS += -tp=native -mp -mp=multicore 
 else ifneq (,$(filter clang%,$(CC)))
 $(info Compiling with Clang)
-CFLAGS += -fveclib=AMDLIBM -march=native -fcommon -flto -fopenmp -fopenmp-simd -static-libgcc -Wno-exception
+CFLAGS += -fveclib=AMDLIBM -march=native -fcommon -flto -fopenmp -fopenmp-simd -static-libgcc -Wno-exception\
+			-ffp-model=fast
 LFLAGS += -latomic
 #NVCCFLAGS+= -D_GLIBCC_USE_CC11_ABI=0
 else
