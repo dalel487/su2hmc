@@ -35,20 +35,20 @@ correctness at this point.
 
 ### HIP Conversion Progress
 -   We can run on @f$8^3\times 8@f$ on a Radeon Pro W6400 which isn`t officially suppported. @f$24^3\times 24@f$ gives
-    incorrect results. We suspect this is due to the lack of xnack on the testbed GPU but until we run on officially
-    supported ones we cannot be certain.
-
--   Debug and profiling modes do not work fully yet as far as we can tell. We are unsure if this is an xnack issue but
-    cannot test it at this time (20260712).
+    incorrect results. We suspect this is due to the lack of xnack support on the testbed GPU.
+-   The code runs successfully on all volumes on the Cosma MI300A node. However, occupancy on the MI300A is low,
+    resulting in performance slightly below that achieved by the A100 40GB GPUs on the DiRAC Tursa system.
 
 ### Building for HIP
 Building for HIP is currently a three to five step process
 
 1.  To ensure the original cuda source code is uncorrupted, we recommend first checking out the latest master branch with
     no alterations. 
-2.  (Optional) Make any necessary changes to the Makefile. Before reverting to the master branch you may want to back
+2.  If you have previously built the HIP code, remove all .prehip files that were created during the hipify process.
+    Otherwise they will be copied back and overwrite the files just pulled from the git!
+3.  (Optional) Make any necessary changes to the Makefile. Before reverting to the master branch you may want to back
     this up as `Makefile.bak` so it is easier to restore.
-3.  Run `Hipify.sh` to produce HIP compatible code from the CUDA.
-4.  (Optional)  Edit sizes.h to set the desired lattice size and number of OpenMP threads.
-5.  Run make. We recommend using `make -B -f Makefile <target>`. The -B will forcibly rebuild any previous `.o` files
+4.  Run `Hipify.sh` to produce HIP compatible code from the CUDA.
+5.  (Optional)  Edit sizes.h to set the desired lattice size and number of OpenMP threads.
+6.  Run make. We recommend using `make -B -f Makefile <target>`. The -B will forcibly rebuild any previous `.o` files
     that may break the build.
