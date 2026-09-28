@@ -22,8 +22,7 @@ endif
 ifneq ($(filter icc icx, $(CC)),)
 $(info Compiling with Intel Compiler)
 CFLAGS += -qopt-zmm-usage=high -ipo -static-intel -static-libgcc \
-			-xHOST -axSKYLAKE-AVX512,CASCADELAKE,TIGERLAKE,COFFEELAKE,ALDERLAKE,RAPTORLAKE\
-			-D__USE_MKL__  -inline-level=2 \
+			-xHOST -D__USE_MKL__  -inline-level=2 \
 			-qopenmp-simd  -use-intel-optimized-headers -diag-disable=10441 -qopenmp  
 __USE_MKL__ = 1
 else ifneq (,$(filter gcc%,$(CC)))
@@ -42,11 +41,11 @@ else
     $(error Unknown compiler: $(CC))
 endif
 
-ifeq ($(CXX),icpx)
+ifeq ($(CC),icx)
 $(info Using MKL)
 #TODO: Currently only configured for use with an Intel Compiler
 CFLAGS +=	-qmkl -DMKL_DIRECT_CALL -I"${MKLROOT}/include"
-LFLAGS +=	-L${MKLROOT}/lib/intel64 -limf #-DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
+LFLAGS +=	-L${ONEAPI_ROOT}/compiler/latest/lib/ -L${MKLROOT}/lib/intel64 -limf #-DUSE_MKL -DMKL_DIRECT_CALL -DMKL_ILP64
 else ifdef AOCL_ROOT
 $(info Using AMD BLIS)
 CFLAGS += -DAMD_BLAS -I ${AOCL_ROOT}/include

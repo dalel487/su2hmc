@@ -298,32 +298,29 @@ void HbyClover(Complex *phi, Complex *r, Complex *clover[2],Complex *sigval, con
 			for(unsigned short c=0; c<nc; c++){
 				phi_s[idirac+c]=0;
 			}
-		Complex r_s[nc]; Complex clov_s[nc];
 #pragma unroll
 		for(unsigned short clov=0;clov<6;clov++){
-			clov_s[0]=clover[0][clov*kvol+i]; clov_s[1]=clover[1][clov*kvol+i];
-			for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
-				const unsigned short sind = sigin[clov*ndirac+(idirac>>1)] << (nc-1);
+			const double clov_a=creal(clover[0][clov*kvol+i]);
+			const Complex clov_b=clover[1][clov*kvol+i];
+			//					clov_s[0]=; clov_s[1]=k$;
 #pragma unroll
-				for(unsigned short c=0; c<nc; c++){
-					r_s[c]= r[i+kvolHalo*(sind+c)];
-				}
+			for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
+				const unsigned int sind = i+kvolHalo*(sigin[clov*ndirac+(idirac>>1)] << (nc-1));
+				const Complex r_s[nc]={r[sind],r[sind+kvolHalo]}; 
 				///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
 				const Complex sig=sigval[clov*ndirac+(idirac>>1)];
-				//creal just an optimisation. Compiler can't optimise out the zero imag.
-				phi_s[idirac+0]+=sig*(creal(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
+				phi_s[idirac+0]+=sig*(clov_a*r_s[0]+clov_b*r_s[1]);
 				//Clover is in the Lie Algebra, not Lie group. So signs are correct here.
-				phi_s[idirac+1]+=sig*(conj(clov_s[1])*r_s[0]-creal(clov_s[0])*r_s[1]);
+				phi_s[idirac+1]+=sig*(conj(clov_b)*r_s[0]-clov_a*r_s[1]);
 			}
 		}
 #pragma unroll
-		for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc)
-			for(unsigned short c=0; c<nc; c++)
-				//dag is just to do with the output layout and if it has a halo
-				if(dag)
-					phi[i+kvol*(c+idirac)]+=akappa*phi_s[idirac+c];
-				else
-					phi[i+kvolHalo*(c+idirac)]+=akappa*phi_s[idirac+c];
+		for(unsigned short idirac=0; idirac<ndirac*nc; idirac++)
+			//dag is just to do with the output layout and if it has a halo
+			if(dag)
+				phi[i+kvol*(idirac)]+=akappa*phi_s[idirac];
+			else
+				phi[i+kvolHalo*(idirac)]+=akappa*phi_s[idirac];
 	}
 #endif
 	return;
@@ -357,7 +354,7 @@ void ByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2], Complex_f *s
 				///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
 				phi_s[igorkov][0]+=sigval[clov*ndirac+idirac]*(crealf(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
 				//Clover is in the Lie Algebra, not Lie group. So signs are correct here.
-				phi_s[igorkov][1]+=sigval[clov*ndirac+idirac]*(conj(clov_s[1])*r_s[0]-crealf(clov_s[0])*r_s[1]);
+				phi_s[igorkov][1]+=sigval[clov*ndirac+idirac]*(conjf(clov_s[1])*r_s[0]-crealf(clov_s[0])*r_s[1]);
 			}
 		}
 #pragma unroll
@@ -378,41 +375,42 @@ void HbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[2],Complex_f *s
 #ifdef USE_GPU
 	cuHbyClover_f(phi,r,clover,sigval,akappa,sigin,dag);
 #else
-#pragma omp parallel for simd
-	for(unsigned int i=0;i<kvol;i++){
+#pragma omp parallel for
+	for(unsigned int i=0;i<kvol;i+=16){
 		//Prefetched r and Phi array
-		Complex_f phi_s[ndirac*nc];
-#pragma unroll
-		for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc)
-			for(unsigned short c=0; c<nc; c++){
-				phi_s[idirac+c]=0;
-			}
-		Complex_f r_s[nc]; Complex_f clov_s[nc];
-#pragma unroll
-		for(unsigned short clov=0;clov<6;clov++){
-			clov_s[0]=clover[0][clov*kvol+i]; clov_s[1]=clover[1][clov*kvol+i];
-#pragma unroll
-			for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
-				const unsigned short sind = sigin[clov*ndirac+(idirac>>1)] << (nc-1);
-#pragma unroll
+		Complex_f phi_s[ndirac*nc][16];
+#pragma omp simd
+		for(unsigned short j=0;j<16;j++){
+#pragma unroll(4)
+			for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc)
+#pragma unroll(2)
 				for(unsigned short c=0; c<nc; c++){
-					r_s[c]= r[i+kvolHalo*(sind+c)];
+					phi_s[idirac+c][j]=0;
 				}
-				///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
-				const Complex_f sig=sigval[clov*ndirac+(idirac>>1)];
-				phi_s[idirac+0]+=sig*(crealf(clov_s[0])*r_s[0]+clov_s[1]*r_s[1]);
-				//Clover is in the Lie Algebra, not Lie group. So signs are correct here.
-				phi_s[idirac+1]+=sig*(conj(clov_s[1])*r_s[0]-crealf(clov_s[0])*r_s[1]);
+#pragma unroll(6)
+			for(unsigned short clov=0;clov<6;clov++){
+				const float clov_a=crealf(clover[0][clov*kvol+(i+j)]);
+				const Complex_f clov_b=clover[1][clov*kvol+(i+j)];
+				//					clov_s[0]=; clov_s[1]=k$;
+#pragma unroll(4)
+				for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
+					const unsigned int sind = (i+j)+kvolHalo*(sigin[clov*ndirac+(idirac>>1)] << (nc-1));
+					const Complex_f r_s[nc]={r[sind],r[sind+kvolHalo]}; 
+					///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
+					const Complex_f sig=sigval[clov*ndirac+(idirac>>1)];
+					phi_s[idirac+0][j]+=sig*(clov_a*r_s[0]+clov_b*r_s[1]);
+					//Clover is in the Lie Algebra, not Lie group. So signs are correct here.
+					phi_s[idirac+1][j]+=sig*(conjf(clov_b)*r_s[0]-clov_a*r_s[1]);
+				}
 			}
-		}
-#pragma unroll
-		for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc)
-			for(unsigned short c=0; c<nc; c++)
+#pragma unroll(4)
+			for(unsigned short idirac=0; idirac<ndirac*nc; idirac++)
 				//dag is just to do with the output layout and if it has a halo
 				if(dag)
-					phi[i+kvol*(c+idirac)]+=akappa*phi_s[idirac+c];
+					phi[(i+j)+kvol*(idirac)]+=akappa*phi_s[idirac][j];
 				else
-					phi[i+kvolHalo*(c+idirac)]+=akappa*phi_s[idirac+c];
+					phi[(i+j)+kvolHalo*(idirac)]+=akappa*phi_s[idirac][j];
+		}
 	}
 #endif
 	return;

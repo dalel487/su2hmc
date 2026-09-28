@@ -270,9 +270,9 @@ int Hdslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned  int *iu,unsigned
 #pragma unroll
 			for(unsigned short c=0; c<nc; c++){
 				//NOTE: idirac is increasing by nc each time. So should be read as idirac*nc in a Dirac-counted loop
-						ind =kvolHalo*(idirac+c);
+				ind =kvolHalo*(idirac+c);
 				phi_s[idirac+c]=r[i+ind];
-				}
+			}
 
 		//#pragma unroll
 		for(unsigned short mu = 0; mu <ndim; mu++){
@@ -284,47 +284,57 @@ int Hdslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned  int *iu,unsigned
 			const Complex u11sd=ut[0][ind];	const Complex u12sd=ut[1][ind];
 #pragma unroll
 			for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
-				const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
-#pragma unroll
-				for(unsigned short c=0;c<nc;c++){
-					ind =kvolHalo*(idirac+c);
-					ru[c]=r[uid+ind]; rd[c]=r[did+ind];
-					ind =kvolHalo*(igork1+c);
-					rgu[c]=r[uid+ind]; rgd[c]=r[did+ind];
-				}
 				//Can manually vectorise with a pragma?
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
 				//Spacelike terms
 				if(mu<3){
 					const Complex gam=gamval[mu*ndirac+(idirac>>1)];
-					phi_s[idirac]+=-akappa*(u11s*ru[0]+u12s*ru[1]+\
-							conj(u11sd)*rd[0]-u12sd*rd[1]);
-					//Dirac term
-					phi_s[idirac]+=gam*(u11s*rgu[0]+u12s*rgu[1]-\
-							conj(u11sd)*rgd[0]+ u12sd*rgd[1]);
+					ind =kvolHalo*idirac;
+					//The +kvolHalo is a faster way of getting the second colour index than an unrolled for loop.
+					const Complex ru[2]={r[uid+ind],r[uid+ind+kvolHalo]};
+					const Complex rd[2]={r[did+ind],r[did+ind+kvolHalo]};
 
-					phi_s[idirac+1]+=-akappa*(-conj(u12s)*ru[0]+ conj(u11s)*ru[1]+\
-							conj(u12sd)*rd[0]+ u11sd*rd[1]);
-					//Dirac term
-					phi_s[idirac+1]+=gam*(-conj(u12s)*rgu[0]+ conj(u11s)*rgu[1]-\
-							conj(u12sd)*rgd[0]- u11sd*rgd[1]);
+					const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
+					ind =kvolHalo*igork1;
+					const Complex rgu[2]={r[uid+ind],r[uid+ind+kvolHalo]};
+					const Complex rgd[2]={r[did+ind],r[did+ind+kvolHalo]};
+
+					phi_s[idirac]-=u11s*(akappa*ru[0]-gam*rgu[0])
+						+u12s*(akappa*ru[1]-gam*rgu[1]);
+					phi_s[idirac+1]-=-conj(u12s)*(akappa*ru[0]-gam*rgu[0])
+						+conj(u11s)*(akappa*ru[1]-gam*rgu[1]);
+
+					phi_s[idirac]-=conj(u11sd)*(akappa*rd[0]+gam*rgd[0])
+						-u12sd*(akappa*rd[1]+gam*rgd[1]);
+					phi_s[idirac+1]-=conj(u12sd)*(akappa*rd[0]+gam*rgd[0])
+						+u11sd*(akappa*rd[1]+gam*rgd[1]);
 				}
 				//Timelike terms
 				else{
-					const double dk4ms=dk[0][did];   const double dk4ps=dk[1][i];
+					ind =kvolHalo*idirac;
+					const Complex ru[2]={r[uid+ind],r[uid+ind+kvolHalo]};
+					const Complex rd[2]={r[did+ind],r[did+ind+kvolHalo]};
+
+					const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
+					ind =kvolHalo*igork1;
+					const Complex rgu[2]={r[uid+ind],r[uid+ind+kvolHalo]};
+					const Complex rgd[2]={r[did+ind],r[did+ind+kvolHalo]};
+
+					double dk4s=dk[1][i];
 					//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 
-					phi_s[idirac+0]-= dk4ps*(u11s*(ru[0]-rgu[0])
+					phi_s[idirac+0]-= dk4s*(u11s*(ru[0]-rgu[0])
 							+u12s*(ru[1]-rgu[1]));
-					phi_s[idirac+0]-= dk4ms*(conj(u11sd)*(rd[0]+rgd[0])
-							-u12sd *(rd[1]+rgd[1]));
-					phi[i+kvolHalo*(0+idirac)]=phi_s[idirac+0];
-
-					phi_s[idirac+1]-= dk4ps*(-conj(u12s)*(ru[0]-rgu[0])
+					phi_s[idirac+1]-= dk4s*(-conj(u12s)*(ru[0]-rgu[0])
 							+conj(u11s)*(ru[1]-rgu[1]));
-					phi_s[idirac+1]-= dk4ms*(conj(u12sd)*(rd[0]+rgd[0])
+
+					dk4s=dk[0][did];
+					phi_s[idirac+0]-= dk4s*(conj(u11sd)*(rd[0]+rgd[0])
+							-u12sd *(rd[1]+rgd[1]));
+					phi_s[idirac+1]-= dk4s*(conj(u12sd)*(rd[0]+rgd[0])
 							+u11sd *(rd[1]+rgd[1]));
+					phi[i+kvolHalo*(0+idirac)]=phi_s[idirac+0];
 					phi[i+kvolHalo*(1+idirac)]=phi_s[idirac+1];
 				}
 			}
@@ -357,9 +367,9 @@ int Hdslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned  int *iu,unsigne
 #pragma unroll
 			for(unsigned short c=0; c<nc; c++){
 				//NOTE: idirac is increasing by nc each time. So should be read as idirac*nc in a Dirac-counted loop
-						ind =kvolHalo*(idirac+c);
+				ind =kvolHalo*(idirac+c);
 				phi_s[idirac+c]=r[i+kvol*(c+idirac)];
-				}
+			}
 
 		//#pragma unroll
 		for(unsigned short mu = 0; mu <ndim; mu++){
@@ -371,47 +381,60 @@ int Hdslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned  int *iu,unsigne
 			const Complex u11sd=ut[0][ind];	const Complex u12sd=ut[1][ind];
 #pragma unroll
 			for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc){
-				unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
-#pragma unroll
-				for(unsigned short c=0;c<nc;c++){
-					ind =kvolHalo*(idirac+c);
-					ru[c]=r[uid+ind]; rd[c]=r[did+ind];
-					ind =kvolHalo*(igork1+c);
-					rgu[c]=r[uid+ind]; rgd[c]=r[did+ind];
-				}
 				//Can manually vectorise with a pragma?
 				//Wilson + Dirac term in that order. Definitely easier
 				//to read when split into different loops, but should be faster this way
 				//Spacelike terms
 				if(mu<3){
-					const Complex gam=gamval[mu*ndirac+(idirac>>1)];
-					phi_s[idirac]-=akappa*(u11s*ru[0] +u12s*ru[1]
-							+conj(u11sd)*rd[0] -u12sd *rd[1]);
-					//Dirac term
-					phi_s[idirac]-=gam* (u11s*rgu[0] +u12s*rgu[1]
-							-conj(u11sd)*rgd[0] +u12sd *rgd[1]);
+					const Complex gam = gamval[mu*ndirac+(idirac>>1)];
+					ind =kvolHalo*idirac;
+					//The +kvolHalo is the same as accessing the second colour in memory, but faster!
+					const Complex ru[2]={r[uid+ind],r[uid+ind+kvolHalo]};
+					const Complex rd[2]={r[did+ind],r[did+ind+kvolHalo]};
+					const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
+					ind =kvolHalo*igork1;
+					const Complex rgu[2]={r[uid+ind],r[uid+ind+kvolHalo]};
+					const Complex rgd[2]={r[did+ind],r[did+ind+kvolHalo]};
 
-					phi_s[idirac+1]-=akappa*(-conj(u12s)*ru[0] +conj(u11s)*ru[1]
-							+conj(u12sd)*rd[0] +u11sd *rd[1]);
-					//Dirac term
-					phi_s[idirac+1]-=gam*(-conj(u12s)*rgu[0] +conj(u11s)*rgu[1]
-							-conj(u12sd)*rgd[0] -u11sd *rgd[1]);
+					//Factorising for performance, we get u1?*(+/-r_wilson -/+ r_dirac)
+					phi_s[idirac]-=u11s*(akappa*ru[0]+gam*rgu[0])
+						+u12s*(akappa*ru[1]+gam*rgu[1]);
+					phi_s[idirac+1]-=-conj(u12s)*(akappa*ru[0]+gam*rgu[0])
+						+conj(u11s)*(akappa*ru[1]+gam*rgu[1]);
+
+					phi_s[idirac]-=conj(u11sd)*(akappa*rd[0]-gam*rgd[0])
+						-u12sd*(akappa*rd[1]-gam*rgd[1]);
+					phi_s[idirac+1]-=conj(u12sd)*(akappa*rd[0]-gam*rgd[0])
+						+u11sd*(akappa*rd[1]-gam*rgd[1]);
+
 				}
 				//Timelike terms
 				else{
-					const double  dk4ms=dk[0][i];  const double dk4ps=dk[1][did];
+					ind =kvolHalo*idirac;
+					const Complex ru[2]={r[uid+ind],r[uid+ind+kvolHalo]};
+					const Complex rd[2]={r[did+ind],r[did+ind+kvolHalo]};
+
+					const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
+					ind =kvolHalo*igork1;
+					const Complex rgu[2]={r[uid+ind],r[uid+ind+kvolHalo]};
+					const Complex rgd[2]={r[did+ind],r[did+ind+kvolHalo]};
+
+					double dk4s=dk[0][i];
 					//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
-
-					phi_s[idirac]+= -dk4ms*(u11s*(ru[0]+rgu[0])
+					//Note that CUDA is smart enough to reuse the additions/subtractions here later on ru[0]+rgu[0]
+					//gets kept in Register 39 on the test machine if you're interested!
+					phi_s[idirac]+= -dk4s*(u11s*(ru[0]+rgu[0])
 							+u12s*(ru[1]+rgu[1]));
-					phi_s[idirac]+= -dk4ps*(conj(u11sd)*(rd[0]-rgd[0])
-							-u12sd *(rd[1]-rgd[1]));
-					phi[i+kvol*(0+idirac)]=phi_s[idirac+0];
-
-					phi_s[idirac+1]-= dk4ms*(-conj(u12s)*(ru[0]+rgu[0])
+					phi_s[idirac+1]-= dk4s*(-conj(u12s)*(ru[0]+rgu[0])
 							+conj(u11s)*(ru[1]+rgu[1]));
-					phi_s[idirac+1]-= +dk4ps*(conj(u12sd)*(rd[0]-rgd[0])
+
+					dk4s=dk[1][did];
+					phi_s[idirac]+= -dk4s*(conj(u11sd)*(rd[0]-rgd[0])
+							-u12sd *(rd[1]-rgd[1]));
+					phi_s[idirac+1]-= +dk4s*(conj(u12sd)*(rd[0]-rgd[0])
 							+u11sd *(rd[1]-rgd[1]));
+
+					phi[i+kvol*(0+idirac)]=phi_s[idirac+0];
 					phi[i+kvol*(1+idirac)]=phi_s[idirac+1];
 				}
 			}
@@ -670,74 +693,87 @@ int Hdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned  int *iu,
 #ifdef USE_GPU
 	cuHdslash_f(phi,r,ut,iu,id,gamval,gamin,dk,akappa,dimGrid,dimBlock);
 #else
-#pragma omp parallel for simd
-	for(unsigned int i=0;i<kvol;i++){
+#pragma omp parallel for
+	for(unsigned int i=0;i<kvol;i+=16){
+		Complex_f phi_s[ndirac*nc][16];
+#pragma omp simd
+		for(unsigned short j=0;j<16;j++)
+		{
 			unsigned int ind;
-		Complex_f ru[nc];  Complex_f rd[nc];
-		Complex_f rgu[nc];  Complex_f rgd[nc];
-		Complex_f phi_s[ndirac*nc];
-		for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
-	//Mass term
+#pragma unroll(4)
+			for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
+				//Mass term
 #pragma unroll
-			for(unsigned short c=0; c<nc; c++){
-				//NOTE: idirac is increasing by nc each time.
-				//So should be read as idirac*nc in a Dirac-counted loop
-						ind =kvolHalo*(idirac+c);
-				phi_s[idirac+c]=r[i+ind];
-				}
-
-		//#pragma unroll
-		for(unsigned short mu = 0; mu <ndim; mu++){
-			unsigned int ind=i+kvolHalo*mu;
-			const Complex_f u11s=ut[0][ind];	const Complex_f u12s=ut[1][ind];
-			ind = i+kvol*mu;
-			const int did=id[ind];	const int uid = iu[ind];
-			ind=did+kvolHalo*mu;
-			const Complex_f u11sd=ut[0][ind];	const Complex_f u12sd=ut[1][ind];
-#pragma unroll
-			for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
-				const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
-#pragma unroll
-				for(unsigned short c=0;c<nc;c++){
+				for(unsigned short c=0; c<nc; c++){
+					//NOTE: idirac is increasing by nc each time.
+					//So should be read as idirac*nc in a Dirac-counted loop
 					ind =kvolHalo*(idirac+c);
-					ru[c]=r[uid+ind]; rd[c]=r[did+ind];
-					ind =kvolHalo*(igork1+c);
-					rgu[c]=r[uid+ind]; rgd[c]=r[did+ind];
+					phi_s[idirac+c][j]=r[(i+j)+ind];
 				}
-				//Can manually vectorise with a pragma?
-				//Wilson + Dirac term in that order. Definitely easier
-				//to read when split into different loops, but should be faster this way
-				//Spacelike terms
-				if(mu<3){
-					const Complex_f gam=gamval[mu*ndirac+(idirac>>1)];
-					phi_s[idirac]+=-akappa*(u11s*ru[0]+u12s*ru[1]+\
-							conjf(u11sd)*rd[0]-u12sd*rd[1]);
-					//Dirac term
-					phi_s[idirac]+=gam*(u11s*rgu[0]+u12s*rgu[1]-\
-							conjf(u11sd)*rgd[0]+ u12sd*rgd[1]);
 
-					phi_s[idirac+1]+=-akappa*(-conjf(u12s)*ru[0]+ conjf(u11s)*ru[1]+\
-							conjf(u12sd)*rd[0]+ u11sd*rd[1]);
-					//Dirac term
-					phi_s[idirac+1]+=gam*(-conjf(u12s)*rgu[0]+ conjf(u11s)*rgu[1]-\
-							conjf(u12sd)*rgd[0]- u11sd*rgd[1]);
-				}
-				//Timelike terms
-				else{
-					const float dk4ms=dk[0][did];   const float dk4ps=dk[1][i];
-					//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
+#pragma unroll(4)
+			for(unsigned short mu = 0; mu <ndim; mu++){
+				unsigned int ind=(i+j)+kvolHalo*mu;
+				const Complex_f u11s=ut[0][ind];	const Complex_f u12s=ut[1][ind];
+				ind = (i+j)+kvol*mu;
+				const int did=id[ind];	const int uid = iu[ind];
+				ind=did+kvolHalo*mu;
+				const Complex_f u11sd=ut[0][ind];	const Complex_f u12sd=ut[1][ind];
+#pragma unroll(4)
+				for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
+					//Can manually vectorise with a pragma?
+					//Wilson + Dirac term in that order. Definitely easier
+					//to read when split into different loops, but should be faster this way
+					//Spacelike terms
+					if(mu<3){
+						const Complex_f gam=gamval[mu*ndirac+(idirac>>1)];
+						ind =kvolHalo*idirac;
+						//The +kvolHalo is a faster way of getting the second colour index than an unrolled for loop.
+						const Complex_f ru[2]={r[uid+ind],r[uid+ind+kvolHalo]};
+						const Complex_f rd[2]={r[did+ind],r[did+ind+kvolHalo]};
 
-					phi_s[idirac+0]-= dk4ps*(u11s*(ru[0]-rgu[0])
-							+u12s*(ru[1]-rgu[1]));
-					phi_s[idirac+0]-= dk4ms*(conjf(u11sd)*(rd[0]+rgd[0])
-							-u12sd *(rd[1]+rgd[1]));
-					phi[i+kvolHalo*(0+idirac)]=phi_s[idirac+0];
+						const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
+						ind =kvolHalo*igork1;
+						const Complex_f rgu[2]={r[uid+ind],r[uid+ind+kvolHalo]};
+						const Complex_f rgd[2]={r[did+ind],r[did+ind+kvolHalo]};
 
-					phi_s[idirac+1]-= dk4ps*(-conjf(u12s)*(ru[0]-rgu[0])
-							+conjf(u11s)*(ru[1]-rgu[1]));
-					phi_s[idirac+1]-= dk4ms*(conjf(u12sd)*(rd[0]+rgd[0])
-							+u11sd *(rd[1]+rgd[1]));
-					phi[i+kvolHalo*(1+idirac)]=phi_s[idirac+1];
+						phi_s[idirac][j]-=u11s*(akappa*ru[0]-gam*rgu[0])
+							+u12s*(akappa*ru[1]-gam*rgu[1]);
+						phi_s[idirac+1][j]-=-conjf(u12s)*(akappa*ru[0]-gam*rgu[0])
+							+conjf(u11s)*(akappa*ru[1]-gam*rgu[1]);
+
+						phi_s[idirac][j]-=conjf(u11sd)*(akappa*rd[0]+gam*rgd[0])
+							-u12sd*(akappa*rd[1]+gam*rgd[1]);
+						phi_s[idirac+1][j]-=conjf(u12sd)*(akappa*rd[0]+gam*rgd[0])
+							+u11sd*(akappa*rd[1]+gam*rgd[1]);
+					}
+					//Timelike terms
+					else{
+						ind =kvolHalo*idirac;
+						const Complex_f ru[2]={r[uid+ind],r[uid+ind+kvolHalo]};
+						const Complex_f rd[2]={r[did+ind],r[did+ind+kvolHalo]};
+
+						const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
+						ind =kvolHalo*igork1;
+						const Complex_f rgu[2]={r[uid+ind],r[uid+ind+kvolHalo]};
+						const Complex_f rgd[2]={r[did+ind],r[did+ind+kvolHalo]};
+
+						float dk4s=dk[1][i+j];
+						//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
+
+						phi_s[idirac+0][j]-= dk4s*(u11s*(ru[0]-rgu[0])
+								+u12s*(ru[1]-rgu[1]));
+						phi_s[idirac+1][j]-= dk4s*(-conjf(u12s)*(ru[0]-rgu[0])
+								+conjf(u11s)*(ru[1]-rgu[1]));
+
+						dk4s=dk[0][did];
+						phi_s[idirac+0][j]-= dk4s*(conjf(u11sd)*(rd[0]+rgd[0])
+								-u12sd *(rd[1]+rgd[1]));
+						phi_s[idirac+1][j]-= dk4s*(conjf(u12sd)*(rd[0]+rgd[0])
+								+u11sd *(rd[1]+rgd[1]));
+						phi[(i+j)+kvolHalo*(0+idirac)]=phi_s[idirac+0][j];
+						phi[(i+j)+kvolHalo*(1+idirac)]=phi_s[idirac+1][j];
+					}
 				}
 			}
 		}
@@ -760,74 +796,90 @@ int Hdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,
 #else
 
 	//Spacelike term
-#pragma omp parallel for simd
-	for(unsigned int i=0;i<kvol;i++){
+#pragma omp parallel for
+	for(unsigned int i=0;i<kvol;i+=16){
+		Complex_f phi_s[ndirac*nc][16];
+#pragma omp simd
+		for(unsigned short j=0;j<16;j++)
+		{
 			unsigned int ind;
-		//Right. Time to prefetch
-		Complex_f ru[nc];  Complex_f rd[nc];
-		Complex_f rgu[nc];  Complex_f rgd[nc];
-		Complex_f phi_s[ndirac*nc];
-	//Mass term
-		for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
+			//Right. Time to prefetch
+			//Mass term
+#pragma unroll(4)
+			for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll
-			for(unsigned short c=0; c<nc; c++){
-				//NOTE: idirac is increasing by nc each time. So should be read as idirac*nc in a Dirac counted loop 
-						ind =kvolHalo*(idirac+c);
-				phi_s[idirac+c]=r[i+ind];
-				}
-
-		//#pragma unroll
-		for(unsigned short mu = 0; mu <ndim; mu++){
-			ind=i+kvolHalo*mu;
-			const Complex_f u11s=ut[0][ind];	const Complex_f u12s=ut[1][ind];
-			ind = i+kvol*mu;
-			const int did=id[ind];	const int uid = iu[ind];
-			ind=did+kvolHalo*mu;
-			const Complex_f u11sd=ut[0][ind];	const Complex_f u12sd=ut[1][ind];
-#pragma unroll
-			for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc){
-				unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
-#pragma unroll
-				for(unsigned short c=0;c<nc;c++){
+				for(unsigned short c=0; c<nc; c++){
+					//NOTE: idirac is increasing by nc each time. So should be read as idirac*nc in a Dirac counted loop 
 					ind =kvolHalo*(idirac+c);
-					ru[c]=r[uid+ind]; rd[c]=r[did+ind];
-					ind =kvolHalo*(igork1+c);
-					rgu[c]=r[uid+ind]; rgd[c]=r[did+ind];
+					phi_s[idirac+c][j]=r[(i+j)+ind];
 				}
-				//Can manually vectorise with a pragma?
-				//Wilson + Dirac term in that order. Definitely easier
-				//to read when split into different loops, but should be faster this way
-				//Spacelike terms
-				if(mu<3){
-					const Complex_f gam=gamval[mu*ndirac+(idirac>>1)];
-					phi_s[idirac]-=akappa*(u11s*ru[0] +u12s*ru[1]
-							+conjf(u11sd)*rd[0] -u12sd *rd[1]);
-					//Dirac term
-					phi_s[idirac]-=gam* (u11s*rgu[0] +u12s*rgu[1]
-							-conjf(u11sd)*rgd[0] +u12sd *rgd[1]);
 
-					phi_s[idirac+1]-=akappa*(-conjf(u12s)*ru[0] +conjf(u11s)*ru[1]
-							+conjf(u12sd)*rd[0] +u11sd *rd[1]);
-					//Dirac term
-					phi_s[idirac+1]-=gam*(-conjf(u12s)*rgu[0] +conjf(u11s)*rgu[1]
-							-conjf(u12sd)*rgd[0] -u11sd *rgd[1]);
-				}
-				//Timelike terms
-				else{
-					const float  dk4ms=dk[0][i];  const float dk4ps=dk[1][did];
-					//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
+#pragma unroll(4)
+			for(unsigned short mu = 0; mu <ndim; mu++){
+				ind=(i+j)+kvolHalo*mu;
+				const Complex_f u11s=ut[0][ind];	const Complex_f u12s=ut[1][ind];
+				ind = (i+j)+kvol*mu;
+				const int did=id[ind];	const int uid = iu[ind];
+				ind=did+kvolHalo*mu;
+				const Complex_f u11sd=ut[0][ind];	const Complex_f u12sd=ut[1][ind];
+#pragma unroll(4)
+				for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc){
+					//Can manually vectorise with a pragma?
+					//Wilson + Dirac term in that order. Definitely easier
+					//to read when split into different loops, but should be faster this way
+					//Spacelike terms
+					if(mu<3){
+						const Complex_f gam = gamval[mu*ndirac+(idirac>>1)];
+						ind =kvolHalo*idirac;
+						//The +kvolHalo is the same as accessing the second colour in memory, but faster!
+						const Complex_f ru[2]={r[uid+ind],r[uid+ind+kvolHalo]};
+						const Complex_f rd[2]={r[did+ind],r[did+ind+kvolHalo]};
+						const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
+						ind =kvolHalo*igork1;
+						const Complex_f rgu[2]={r[uid+ind],r[uid+ind+kvolHalo]};
+						const Complex_f rgd[2]={r[did+ind],r[did+ind+kvolHalo]};
 
-					phi_s[idirac]+= -dk4ms*(u11s*(ru[0]+rgu[0])
-							+u12s*(ru[1]+rgu[1]));
-					phi_s[idirac]+= -dk4ps*(conjf(u11sd)*(rd[0]-rgd[0])
-							-u12sd *(rd[1]-rgd[1]));
-					phi[i+kvol*(0+idirac)]=phi_s[idirac+0];
+						//Factorising for performance, we get u1?*(+/-r_wilson -/+ r_dirac)
+						phi_s[idirac][j]-=u11s*(akappa*ru[0]+gam*rgu[0])
+							+u12s*(akappa*ru[1]+gam*rgu[1]);
+						phi_s[idirac+1][j]-=-conjf(u12s)*(akappa*ru[0]+gam*rgu[0])
+							+conjf(u11s)*(akappa*ru[1]+gam*rgu[1]);
 
-					phi_s[idirac+1]-= dk4ms*(-conjf(u12s)*(ru[0]+rgu[0])
-							+conjf(u11s)*(ru[1]+rgu[1]));
-					phi_s[idirac+1]-= +dk4ps*(conjf(u12sd)*(rd[0]-rgd[0])
-							+u11sd *(rd[1]-rgd[1]));
-					phi[i+kvol*(1+idirac)]=phi_s[idirac+1];
+						phi_s[idirac][j]-=conjf(u11sd)*(akappa*rd[0]-gam*rgd[0])
+							-u12sd*(akappa*rd[1]-gam*rgd[1]);
+						phi_s[idirac+1][j]-=conjf(u12sd)*(akappa*rd[0]-gam*rgd[0])
+							+u11sd*(akappa*rd[1]-gam*rgd[1]);
+
+					}
+					//Timelike terms
+					else{
+						ind =kvolHalo*idirac;
+						const Complex_f ru[2]={r[uid+ind],r[uid+ind+kvolHalo]};
+						const Complex_f rd[2]={r[did+ind],r[did+ind+kvolHalo]};
+
+						const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
+						ind =kvolHalo*igork1;
+						const Complex_f rgu[2]={r[uid+ind],r[uid+ind+kvolHalo]};
+						const Complex_f rgd[2]={r[did+ind],r[did+ind+kvolHalo]};
+
+						float dk4s=dk[0][i+j];
+						//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
+						//Note that CUDA is smart enough to reuse the additions/subtractions here later on ru[0]+rgu[0]
+						//gets kept in Register 39 on the test machine if you're interested!
+						phi_s[idirac][j]+= -dk4s*(u11s*(ru[0]+rgu[0])
+								+u12s*(ru[1]+rgu[1]));
+						phi_s[idirac+1][j]-= dk4s*(-conjf(u12s)*(ru[0]+rgu[0])
+								+conjf(u11s)*(ru[1]+rgu[1]));
+
+						dk4s=dk[1][did];
+						phi_s[idirac][j]+= -dk4s*(conjf(u11sd)*(rd[0]-rgd[0])
+								-u12sd *(rd[1]-rgd[1]));
+						phi_s[idirac+1][j]-= +dk4s*(conjf(u12sd)*(rd[0]-rgd[0])
+								+u11sd *(rd[1]-rgd[1]));
+
+						phi[(i+j)+kvol*(0+idirac)]=phi_s[idirac+0][j];
+						phi[(i+j)+kvol*(1+idirac)]=phi_s[idirac+1][j];
+					}
 				}
 			}
 		}

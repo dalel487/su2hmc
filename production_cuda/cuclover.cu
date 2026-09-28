@@ -688,12 +688,6 @@ namespace Kernels{
 					for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
 						const unsigned int sind = i+kvolHalo*(sigin[clov*ndirac+(idirac>>1)] << (nc-1));
 						const complex<T> r_s[nc]={r[sind],r[sind+kvolHalo]}; 
-						/*
-#pragma unroll
-						for(unsigned short c=0; c<nc; c++){
-							r_s[c]= r[i+kvolHalo*(sind+c)];
-						}
-						*/
 						///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
 						const complex<T> sig=sigval[clov*ndirac+(idirac>>1)];
 						phi_s[idirac+0]+=sig*(clov_a*r_s[0]+clov_b*r_s[1]);
