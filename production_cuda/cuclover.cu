@@ -589,9 +589,9 @@ namespace Kernels{
 	 *	@param[out]	phi:					Final pseudofermion field. This is almost always multiplied by Dslash before calling this function
 	 *	@param[in]	r:						Pseudofermion field before multiplication. The thing we want to multiply by the clover
 	 *	@param[in]	clover1,clover2:	Array of clovers
-	 *	@param[in]	sigval:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
+	 *	@param[in]	sigval_G:			@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
 	 *	@param[in]	akappa:				Hopping Parameter
-	 * @param[in]	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
+	 * @param[in]	sigin_G:				What element of the spinor is multiplied by row idirac each sigma matrix?
 	 * @param[in]	dag:					Daggered output has no MPI halo, but undaggered does.
 	 *
 	 * @post	Result added to @p phi
@@ -599,14 +599,21 @@ namespace Kernels{
 	template <typename T>
 		__global__ __launch_bounds__(__BSIZE__) void ByClover(complex<T> * phi,const complex<T> * __restrict__ r,
 				const complex<T> * __restrict__ clover1,
-				const complex<T> * __restrict__ clover2,const __grid_constant__ complex<T> sigval[24],
+				const complex<T> * __restrict__ clover2,const __grid_constant__ complex<T> sigval_G[24],
 				const __grid_constant__ float akappa,
-				const __grid_constant__ unsigned short sigin[24],const __grid_constant__ bool dag){
+				const __grid_constant__ unsigned short sigin_G[24],const __grid_constant__ bool dag){
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 			const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 			const unsigned int gthreadId= blockId * bsize+bthreadId;
+			__shared__ complex<T> sigval[24]; __shared__ unsigned short sigin[24];
+#pragma unroll
+			for(unsigned short i=gthreadId%__BSIZE__;i<24;i+=bsize){
+				sigval[i]=sigval_G[i];
+				sigin[i]=sigin_G[i];
+			}
+			__syncthreads();
 
 			for(unsigned int i=gthreadId;i<kvol;i+=bsize*gsize){
 				//Prefetched r and Phi array
@@ -618,9 +625,9 @@ namespace Kernels{
 					}
 				complex<T> r_s[nc];
 				complex<T> clov_s[nc];
-#pragma unroll
 				for(unsigned short clov=0;clov<6;clov++){
 					clov_s[0]=clover1[clov*kvol+i]; clov_s[1]=clover2[clov*kvol+i];
+#pragma unroll
 					for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
 						//Mod 4 done bitwise. In general n mod 2^m = n & (2^m-1)
 						const unsigned short idirac = igorkov&3;
