@@ -9,7 +9,7 @@ for f in "${prehips[@]}"; do mv -- "$f" "${f%.prehip}"; done
 
 #Step 2: Convert the CUDA files to HIP. Basically replaces cu or cuda with HIP in all CUDA standard functions, and
 #replaces __CUDACC__ with __HIPCC__
-hipify-perl -print-stats -inplace -whitelist="cudaDeviceSynchronise" ../production_cuda/*.cu ../INCLUDE/*.h ../production_c/*.c ../main.c
+hipify-perl -print-stats -inplace -whitelist="cudaDeviceSynchronise" ../production_cuda/*.cu ../INCLUDE/*.h ../production_c/*.c ../*.c
 
 #Step 3: Deal with some unsupported CUDA tags
 perl -i -pe 's/__managed__ //g' ../production_c/*.c ../main.c
@@ -17,4 +17,4 @@ perl -i -pe 's/(__forceinline__|__constant__|__grid_constant__) //g' ../producti
 
 #Step 4: Remove some over-zealous headers from the pure C code paths
 perl -ni -e 'print unless m{^\s*#include\s*[<"]hip/hip_runtime\.h[">]}' \
-  ../production_c/*.c ../main.c ../INCLUDE/*.h 
+  ../production_c/*.c ../*.c ../INCLUDE/*.h 
