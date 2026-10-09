@@ -219,11 +219,11 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 		for(unsigned int i = 0; i<kvol; i++){
 			unsigned int did=id[3*kvol+i];
 			xu+=dk[1][did]*(conj(x[did+kvolHalo*(igorkov*nc)])*(\
-						ut[0][did+kvol*3]*(xi[i+kvol*(igork1)*nc]-xi[i+kvol*(igorkov)*nc])+\
-						ut[1][did+kvol*3]*(xi[i+kvol*(igork1)*nc+1]-xi[i+kvol*(igorkov)*nc+1]) )+\
+						ut[0][did+kvolHalo*3]*(xi[i+kvol*(igork1*nc)]-xi[i+kvol*(igorkov*nc)])+\
+						ut[1][did+kvolHalo*3]*(xi[i+kvol*(igork1*nc+1)]-xi[i+kvol*(igorkov*nc+1)]) )+\
 					conj(x[did+kvolHalo*(igorkov*nc+1)])*(\
-						conj(ut[0][did+kvol*3])*(xi[i+kvol*(igork1)*nc+1]-xi[i+kvol*(igorkov)*nc+1])+\
-						conj(ut[1][did+kvol*3])*(xi[i+kvol*(igorkov)*nc]-xi[i+kvol*(igork1)*nc])));
+						conj(ut[0][did+kvolHalo*3])*(xi[i+kvol*(igork1*nc+1)]-xi[i+kvol*(igorkov*nc+1)])+\
+						conj(ut[1][did+kvolHalo*3])*(xi[i+kvol*(igorkov*nc)]-xi[i+kvol*(igork1*nc)])));
 		}
 	}
 	for(unsigned short igorkov=0; igorkov<4; igorkov++){
@@ -248,8 +248,8 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 						ut[0][did+kvolHalo*3]*(xi[i+kvol*(igork1PP*nc)]-xi[i+kvol*(igorkovPP*nc)])+\
 						ut[1][did+kvolHalo*3]*(xi[i+kvol*(igork1PP*nc+1)]-xi[i+kvol*(igorkovPP*nc+1)]) )+\
 					conj(x[did+kvolHalo*(igorkovPP*nc+1)])*(\
-						conj(ut[0][did+kvolHalo*3])*(xi[i+kvol*(igork1PP)*nc+1]-xi[i+kvol*(igorkovPP)*nc+1])+\
-						conj(ut[1][did+kvolHalo*3])*(xi[i+kvol*(igorkovPP)*nc]-xi[i+kvol*(igork1PP)*nc]) ) );
+						conj(ut[0][did+kvolHalo*3])*(xi[i+kvol*(igork1PP*nc+1)]-xi[i+kvol*(igorkovPP*nc+1)])+\
+						conj(ut[1][did+kvolHalo*3])*(xi[i+kvol*(igorkovPP*nc)]-xi[i+kvol*(igork1PP*nc)]) ) );
 		}
 	}
 	for(unsigned short igorkovPP=4; igorkovPP<8; igorkovPP++){

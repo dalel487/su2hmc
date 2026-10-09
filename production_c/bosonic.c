@@ -105,9 +105,9 @@ double Polyakov(Complex_f *ut[2]){
 			//Seems a bit more efficient to increment indexu instead of reassigning
 			//it every single loop
 			int indexu=it*kvol3+i;
-			Complex_f	a11=Sigma[0][i]*ut[0][indexu+kvol*3]-Sigma[1][i]*conj(ut[1][indexu+kvol*3]);
+			Complex_f	a11=Sigma[0][i]*ut[0][indexu+kvolHalo*3]-Sigma[1][i]*conj(ut[1][indexu+kvolHalo*3]);
 			//Instead of having to store a second buffer just assign it directly
-			Sigma[1][i]=Sigma[0][i]*ut[1][indexu+kvol*3]+Sigma[1][i]*conj(ut[0][indexu+kvol*3]);
+			Sigma[1][i]=Sigma[0][i]*ut[1][indexu+kvolHalo*3]+Sigma[1][i]*conj(ut[0][indexu+kvolHalo*3]);
 			Sigma[0][i]=a11;
 		}
 #endif

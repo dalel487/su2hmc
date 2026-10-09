@@ -310,7 +310,7 @@ int main(int argc, char *argv[]){
 	if(!rank) printf("Initial Polyakov loop evaluated as %e\n", poly);
 #endif
 	double hg, avplaqs, avplaqt;
-	//Halo exchange of the trial fields
+	//Get average plaquette value
 	Average_Plaquette(&hg,&avplaqs,&avplaqt,ut_f,iu,beta);
 	//Trajectory length
 	double traj=stepl*dt;

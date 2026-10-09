@@ -147,20 +147,21 @@ namespace Kernels{
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 			const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 			const unsigned int gthreadId= blockId * bsize+bthreadId;
-			for(unsigned int i=gthreadId; i<kvol*ndim; i+=gsize*bsize){
-				//Declaring anorm inside the loop will hopefully let the compiler know it
-				//is safe to vectorise aggessively
-				double anorm=sqrt(conj(u11t[i])*u11t[i]+conj(u12t[i])*u12t[i]).real();
-				//		Exception handling code. May be faster to leave out as the exit prevents vectorisation.
-				//		if(anorm==0){
-				//			fprintf(stderr, "Error %i in %s on rank %i: anorm = 0 for μ=%i and i=%i.\nExiting...\n\n",
-				//					DIVZERO, funcname, rank, mu, i);
-				//			MPI_Finalise();
-				//			exit(DIVZERO);
-				//		}
-				u11t[i]/=anorm;
-				u12t[i]/=anorm;
-			}
+			for(unsigned short mu=0;mu<ndim;mu++)
+				for(unsigned int i=gthreadId; i<kvol; i+=gsize*bsize){
+					//Declaring anorm inside the loop will hopefully let the compiler know it
+					//is safe to vectorise aggessively
+					double anorm=sqrt(conj(u11t[i+mu*kvolHalo])*u11t[i+mu*kvolHalo]+conj(u12t[i+mu*kvolHalo])*u12t[i+mu*kvolHalo]).real();
+					//		Exception handling code. May be faster to leave out as the exit prevents vectorisation.
+					//		if(anorm==0){
+					//			fprintf(stderr, "Error %i in %s on rank %i: anorm = 0 for μ=%i and i=%i.\nExiting...\n\n",
+					//					DIVZERO, funcname, rank, mu, i);
+					//			MPI_Finalise();
+					//			exit(DIVZERO);
+					//		}
+					u11t[i+mu*kvolHalo]/=anorm;
+					u12t[i+mu*kvolHalo]/=anorm;
+				}
 		}
 	/**
 	 * @brief Gauge update for the integration step of the HMC
@@ -185,7 +186,7 @@ namespace Kernels{
 			//CCC for cosine SSS for sine AAA for...
 			//Re-exponentiating the force field. Can be done analytically in SU(2)
 			//using sine and cosine which is nice
-			const unsigned int ind = i+kvol*mu;
+			unsigned int ind = i+kvol*mu;
 			double AAA = d*sqrt(pp[ind]*pp[ind]\
 					+pp[i+kvol*(1*ndim+mu)]*pp[i+kvol*(1*ndim+mu)]\
 					+pp[i+kvol*(2*ndim+mu)]*pp[i+kvol*(2*ndim+mu)]);
@@ -195,6 +196,7 @@ namespace Kernels{
 			Complex a12 = pp[i+kvol*(1*ndim+mu)]*SSS + I*SSS*pp[ind];
 			//b11 and b12 are u11t and u12t terms, so we'll use u12t directly
 			//but use b11 for u11t to prevent RAW dependency
+			ind = i+kvolHalo*mu;
 			Complex b11 = u11t[ind];
 			u11t[ind] = a11*b11-a12*conj(u12t[ind]);
 			u12t[ind] = a11*u12t[ind]+a12*conj(b11);
@@ -214,16 +216,16 @@ void blockInit(int x, int y, int z, int t, dim3 *dimBlock, dim3 *dimGrid){
 	//Warp size
 	int tpw=prop.warpSize;
 	/*
-	int bx=1;
+		int bx=1;
 	//Set bx to be the largest power of 2 less than x that fits in a block
 	while(bx<=x/2 && bx<tpb)
-		bx*=2;
+	bx*=2;
 	int by=1;
 	//Set by to be the largest power of 2 less than y such that bx*by fits in a block
 	while(by<=y/2 && bx*by<tpb)
-		by*=2;
+	by*=2;
 
-		if(bx*by>=128){
+	if(bx*by>=128){
 	 *dimBlock=dim3(bx,by);
 	//If the block size neatly divides the lattice size we can create
 	//extra blocks safely

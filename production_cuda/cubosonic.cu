@@ -27,14 +27,14 @@ namespace Device{
 			Complex_f * __restrict__ Sigma11, Complex_f * __restrict__ Sigma12, const unsigned int * __restrict__ iu, 
 			const unsigned int i, const unsigned short mu, const unsigned short nu){
 		const unsigned int uidm = iu[i+kvol*mu]; 
-		unsigned int ind=i+kvol*mu;
+		unsigned int ind=i+kvolHalo*mu;
 		//Need a second index in the nu direction for the first step
-		unsigned int indn=uidm+kvol*nu;
+		unsigned int indn=uidm+kvolHalo*nu;
 		*Sigma11=u11t[ind]*u11t[indn]-u12t[ind]*conj(u12t[indn]);
 		*Sigma12=u11t[ind]*u12t[indn]+u12t[ind]*conj(u11t[indn]);
 
 		const int uidn = iu[i+kvol*nu]; 
-		ind=uidn+kvol*mu;
+		ind=uidn+kvolHalo*mu;
 		Complex_f a11=*Sigma11*conj(u11t[ind])+*Sigma12*conj(u12t[ind]);
 		Complex_f a12=-*Sigma11*u12t[ind]+*Sigma12*u11t[ind];
 
@@ -109,7 +109,7 @@ namespace Kernels{
 			Complex_f u[2];
 			for(unsigned int it=1;it<ksizet;it++){
 				const unsigned int indexu=it*kvol3+i;
-				u[0]=u11t[indexu+3*kvol];u[1]=u12t[indexu+3*kvol];
+				u[0]=u11t[indexu+3*kvolHalo];u[1]=u12t[indexu+3*kvolHalo];
 				Complex_f a11=Sig[0]*u[0]-Sig[1]*conj(u[1]);
 				//Instead of having to store a second buffer just assign it directly
 				Sig[1]=Sig[0]*u[1]+Sig[1]*conj(u[0]);
