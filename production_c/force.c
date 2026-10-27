@@ -32,7 +32,7 @@ int Gauge_force(double *dSdpi, Complex_f *ut[2],unsigned int *iu,unsigned int *i
 		memset(Sigma[1],0, kvol*sizeof(Complex_f));
 		for(int nu=0; nu<ndim; nu++)
 			if(nu!=mu){
-				//The +ν Staple
+				//The +@f$\nu@f$ Staple
 #pragma omp parallel for simd //aligned(ut[0],ut[1],Sigma[0],Sigma[1],iu:AVX)
 				for(int i=0;i<kvol;i++){
 					int uidm = iu[mu*kvol+i];
@@ -49,7 +49,7 @@ int Gauge_force(double *dSdpi, Complex_f *ut[2],unsigned int *iu,unsigned int *i
 #if(nproc>1)
 				CHalo_swap_dir(ush[0], 1, mu, DOWN); CHalo_swap_dir(ush[1], 1, mu, DOWN);
 #endif
-				//Next up, the -ν staple
+				//Next up, the -@f$\nu@f$ staple
 #pragma omp parallel for simd //aligned(ut[0],ut[1],ush[0],ush[1],Sigma[0],Sigma[1],iu,id:AVX)
 				for(int i=0;i<kvol;i++){
 					int uidm = iu[mu*kvol+i];

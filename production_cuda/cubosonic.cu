@@ -72,7 +72,7 @@ namespace Kernels{
 
 			for(unsigned short mu=1;mu<ndim;mu++)
 				for(unsigned short nu=0;nu<mu;nu++){
-					//This is threadsafe as the μ and ν loops are not distributed across threads
+					//This is threadsafe as the @f$\mu@f$ and @f$\nu@f$ loops are not distributed across threads
 					cuSU2plaq(u11t,u12t,&Sigma11,&Sigma12,iu,i,mu,nu);
 					switch(mu){
 						//Time component

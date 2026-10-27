@@ -154,7 +154,7 @@ namespace Kernels{
 					double anorm=sqrt(conj(u11t[i+mu*kvolHalo])*u11t[i+mu*kvolHalo]+conj(u12t[i+mu*kvolHalo])*u12t[i+mu*kvolHalo]).real();
 					//		Exception handling code. May be faster to leave out as the exit prevents vectorisation.
 					//		if(anorm==0){
-					//			fprintf(stderr, "Error %i in %s on rank %i: anorm = 0 for μ=%i and i=%i.\nExiting...\n\n",
+					//			fprintf(stderr, "Error %i in %s on rank %i: anorm = 0 for @f$\mu@f$=%i and i=%i.\nExiting...\n\n",
 					//					DIVZERO, funcname, rank, mu, i);
 					//			MPI_Finalise();
 					//			exit(DIVZERO);

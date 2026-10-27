@@ -157,7 +157,7 @@ int Measure(double *pbp, double *endenf, double *denf, Complex *qq, Complex *qbq
 #if defined USE_BLAS
 	for(int idirac = 0; idirac<ndirac; idirac++){
 		int igork=idirac+4;
-		//Unrolling the colour indices, Then its just (γ_5*x)*Ξ or (γ_5*Ξ)*x 
+		//Unrolling the colour indices, Then its just (@f$\gamma@f$_5*x)*@f$\Xi@f$ or (@f$\gamma@f$_5*@f$\Xi@f$)*x 
 #pragma unroll
 		for(int ic = 0; ic<nc; ic++){
 			alignas(16) Complex dot=0;

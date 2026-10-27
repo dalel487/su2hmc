@@ -211,11 +211,11 @@ int main(int argc, char *argv[]){
 	buffer = (int)round(100*beta);
 	sprintf(buff2,"b%03d",buffer);
 	strcat(suffix,buff2);
-	//κ
+	//@f$\kappa@f$
 	buffer = (int)round(10000*kappa);
 	sprintf(buff2,"k%04d",buffer);
 	strcat(suffix,buff2);
-	//μ
+	//@f$\mu@f$
 	buffer = (int)round(1000*mu);
 	sprintf(buff2,"mu%04d",buffer);
 	strcat(suffix,buff2);
