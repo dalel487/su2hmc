@@ -360,13 +360,13 @@ int main(int argc, char *argv[]){
 		}
 		printf("hg = %e, <Ps> = %e, <Pt> = %e, <Poly> = %e\n", hg, avplaqs, avplaqt, poly);
 		fprintf(output, "ksize = %i ksizet = %i Nf = %i Halo =%i\nTime step dt = %e Trajectory length = %e\n"\
-				"No. of Trajectories = %i @f$\beta@f$ = %e\n@f$\kappa@f$ = %e @f$\mu@f$ = %e\nDiquark source = %e Clover coefficient = %e\n"\
+				"No. of Trajectories = %i beta = %e\nkappa = %e mu = %e\nDiquark source = %e Clover coefficient = %e\n"\
 				"Stopping Residuals: Guidance: %e Acceptance: %e, Estimator: %e\nSeed = %ld\n",
 				ksize, ksizet, nf, halo, dt, traj, ntraj, beta, akappa, fmu, ajq, c_sw, rescgg, rescga, respbp, seed);
 #ifdef _DEBUG
 		//Print to terminal during debugging
 		printf("ksize = %i ksizet = %i Nf = %i Halo = %i\nTime step dt = %e Trajectory length = %e\n"\
-				"No. of Trajectories = %i @f$\beta@f$ = %e\n@f$\kappa@f$ = %e @f$\mu@f$ = %e\nDiquark source = %e Clover coefficient = %e\n"\
+				"No. of Trajectories = %i beta = %e\nkappa = %e mu = %e\nDiquark source = %e Clover coefficient = %e\n"\
 				"Stopping Residuals: Guidance: %e Acceptance: %e, Estimator: %e\nSeed = %ld\n",
 				ksize, ksizet, nf, halo, dt, traj, ntraj, beta, akappa, fmu, ajq, c_sw, rescgg, rescga, respbp, seed);
 #endif
@@ -840,7 +840,7 @@ int main(int argc, char *argv[]){
 #else
 		char *version=__VERSION__;
 #endif
-		fprintf(sa3at, "%s\n@f$\beta@f$%0.3f @f$\kappa@f$:%0.4f @f$\mu@f$:%0.4f j:%0.3f s:%i t:%i kvol:%ld\n"
+		fprintf(sa3at, "%s\nbeta:%0.3f kappa:%0.4f mu:%0.4f j:%0.3f s:%i t:%i kvol:%ld\n"
 				"npx:%i npt:%i nthread:%i ncore:%i time:%f traj_time:%f\n\n",\
 				version,beta,akappa,fmu,ajq,nx,nt,kvol,npx,npt,nthreads,npx*npy*npz*npt*nthreads,elapsed,elapsed/ntraj);
 		fclose(sa3at);
