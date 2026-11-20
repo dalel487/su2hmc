@@ -7,6 +7,13 @@
 #include <su2hmc.h>
 #include <matrices.h>
 #include	<thrust_complex.h>
+
+#ifdef __HIP_PLATFORM_AMD__
+#define HDSLASH_ATTR __attribute__((amdgpu_waves_per_eu(1,2)))
+#else
+#define HDSLASH_ATTR
+#endif
+
 namespace Device{
 	/**
 	 * @brief Performs a warp reduction for sum
@@ -111,15 +118,15 @@ namespace Kernels{
 							phi_s[igorkov*nc]+=-conj(u11sd)*(akappa*rd[0]+gam*rgd[0])+u12sd*(akappa*rd[1]+gam*rgd[1]);
 							phi_s[igorkov*nc+1]+=-conj(u12sd)*(akappa*rd[0]+gam*rgd[0])-u11sd*(akappa*rd[1]+gam*rgd[1]);
 							/*
-							phi_s[igorkov*nc]+=-akappa*(u11s*ru[0]+ u12s*ru[1]+\
-									conj(u11sd)*rd[0]- u12sd*rd[1]);
-							phi_s[igorkov*nc+1]+=-akappa*(-conj(u12s)*ru[0]+ conj(u11s)*ru[1]+\
-									conj(u12sd)*rd[0]+ u11sd*rd[1]);
-							phi_s[igorkov*nc]+=gam*(u11s*rgu[0]+ u12s*rgu[1]-\
-									conj(u11sd)*rgd[0]+ u12sd*rgd[1]);
-							phi_s[igorkov*nc+1]+=gam*(-conj(u12s)*rgu[0]+ conj(u11s)*rgu[1]-\
-									conj(u12sd)*rgd[0]- u11sd*rgd[1]);
-									*/
+								phi_s[igorkov*nc]+=-akappa*(u11s*ru[0]+ u12s*ru[1]+\
+								conj(u11sd)*rd[0]- u12sd*rd[1]);
+								phi_s[igorkov*nc+1]+=-akappa*(-conj(u12s)*ru[0]+ conj(u11s)*ru[1]+\
+								conj(u12sd)*rd[0]+ u11sd*rd[1]);
+								phi_s[igorkov*nc]+=gam*(u11s*rgu[0]+ u12s*rgu[1]-\
+								conj(u11sd)*rgd[0]+ u12sd*rgd[1]);
+								phi_s[igorkov*nc+1]+=gam*(-conj(u12s)*rgu[0]+ conj(u11s)*rgu[1]-\
+								conj(u12sd)*rgd[0]- u11sd*rgd[1]);
+								*/
 						}
 					}
 					//Timelike terms next. These run from igorkov=0..3 and 4..7 with slightly different rules for each
@@ -446,7 +453,7 @@ namespace Kernels{
 	 * @post	Result added to @p phi
 	 */
 	template <typename T>
-		__global__ __launch_bounds__(__BSIZE__) void cuHdslashd(complex<T> * __restrict__ phi, const complex<T>* __restrict__  r, 
+		__global__ __launch_bounds__(__BSIZE__) HDSLASH_ATTR void cuHdslashd(complex<T> * __restrict__ phi, const complex<T>* __restrict__  r, 
 				const complex<T>* __restrict__  u11t, const complex<T>* __restrict__  u12t,
 				const unsigned int* __restrict__  iu, const unsigned int* __restrict__  id,
 				const __grid_constant__ complex<T> gamval_G[20],	const __grid_constant__ unsigned short gamin_G[16],
@@ -461,6 +468,10 @@ namespace Kernels{
 			const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 			const unsigned int gthreadId= blockId * bsize+bthreadId;
 
+#ifdef __HIP_PLATFORM_AMD__
+			const complex<T> *gamval = gamval_G;
+			constexpr unsigned short gamin[16] = {3,2,1,0, 3,2,1,0, 2,3,0,1, 2,3,0,1};
+#else
 			__shared__ complex<T> gamval[20]; __shared__ unsigned short gamin[16];
 #pragma unroll
 			for(unsigned short i=gthreadId%__BSIZE__;i<20;i+=bsize)
@@ -469,6 +480,7 @@ namespace Kernels{
 			for(unsigned short i=gthreadId%__BSIZE__;i<16;i+=bsize)
 				gamin[i]=gamin_G[i];
 			__syncthreads();
+#endif
 
 
 			//Reuse values for indices to reduce registers needed to reevaluate

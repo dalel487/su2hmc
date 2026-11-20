@@ -66,7 +66,7 @@ CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/latest/cuda/lib64/ \
 
 LFLAGS += -lpthread -ldl -lstdc++ #${CULFLAGS}
 
-NVCCFLAGS+=	${IFLAGS} -err-no -w -arch=native --allow-unsupported-compiler #-expt-relaxed-constexpr 
+NVCCFLAGS+=	${IFLAGS} -err-no -w -arch=sm_80 --allow-unsupported-compiler #-expt-relaxed-constexpr 
 
 EXE=	su2hmc_CUDA
 
