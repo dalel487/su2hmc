@@ -327,7 +327,7 @@ namespace Kernels{
 	 * @post	Result added to @p phi
 	 */
 	template <typename T>
-		__global__ __launch_bounds__(__BSIZE__) void cuHdslash(complex<T> *phi, const complex<T> * __restrict__ r,
+		__global__ __launch_bounds__(__BSIZE__) void cuHdslash(complex<T> * __restrict__ phi, const complex<T> * __restrict__ r,
 				const complex<T> * __restrict__ u11t, const complex<T> * __restrict__ u12t,
 				const unsigned int * __restrict__ iu, const unsigned int * __restrict__ id,
 				const __grid_constant__ complex<T> gamval_G[20],	const __grid_constant__ unsigned short gamin_G[16],
