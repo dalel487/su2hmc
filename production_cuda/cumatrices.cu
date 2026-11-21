@@ -4,6 +4,7 @@
  *	@author	D. Lawlor
  */
 #include <assert.h>
+#include <cucoord.h>
 #include <su2hmc.h>
 #include <matrices.h>
 #include	<thrust_complex.h>
@@ -455,7 +456,6 @@ namespace Kernels{
 	template <typename T>
 		__global__ __launch_bounds__(__BSIZE__) HDSLASH_ATTR void cuHdslashd(complex<T> * __restrict__ phi, const complex<T>* __restrict__  r, 
 				const complex<T>* __restrict__  u11t, const complex<T>* __restrict__  u12t,
-				const unsigned int* __restrict__  iu, const unsigned int* __restrict__  id,
 				const __grid_constant__ complex<T> gamval_G[20],	const __grid_constant__ unsigned short gamin_G[16],
 				const T* __restrict__  dk4m, const T* __restrict__  dk4p, const __grid_constant__ float akappa){
 			/*
@@ -470,6 +470,7 @@ namespace Kernels{
 
 #ifdef __HIP_PLATFORM_AMD__
 			const complex<T> *gamval = gamval_G;
+			//Note: Trying this on CUDA saves to Local memory (i.e. RAM)
 			constexpr unsigned short gamin[16] = {3,2,1,0, 3,2,1,0, 2,3,0,1, 2,3,0,1};
 #else
 			__shared__ complex<T> gamval[20]; __shared__ unsigned short gamin[16];
@@ -502,9 +503,13 @@ namespace Kernels{
 					ind=i+kvolHalo*mu;
 					const complex<T> u11s=u11t[ind];	const complex<T> u12s=u12t[ind];
 					ind = i+kvol*mu;
-					const unsigned int did=id[ind];	const unsigned int uid = iu[ind];
+					//const unsigned int did = id[ind]; //const unsigned int uid = iu[ind];
+					const unsigned int did = Device::HaloIndex(i,mu,DOWN);
 					ind=did+kvolHalo*mu;
+					//The main source of long scoreboard stalls is waiting for did. May be worth moving that from memory to
+					//calculating it on the fly.
 					const complex<T> u11sd=u11t[ind];	const complex<T> u12sd=u12t[ind];
+					const unsigned int uid = Device::HaloIndex(i,mu,UP);
 #pragma unroll
 					for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc){
 						//Can manually vectorise with a pragma?
@@ -741,7 +746,7 @@ void cuHdslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsig
 		Complex gamval[20], const unsigned short gamin[16],double *dk[nc], float akappa, 
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Hdslashd";
-	Kernels::cuHdslashd<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa);
+	Kernels::cuHdslashd<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],gamval,gamin,dk[0],dk[1],akappa);
 	return;
 }
 
@@ -787,7 +792,7 @@ void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *i
 void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,unsigned int *id,
 		Complex_f gamval[20],const unsigned short gamin[16],float *dk[nc], float akappa,dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Hdslashd_f";
-	Kernels::cuHdslashd<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa);
+	Kernels::cuHdslashd<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],gamval,gamin,dk[0],dk[1],akappa);
 	return;
 }
 

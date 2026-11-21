@@ -39,7 +39,10 @@ extern unsigned int *hu;
 ///@brief Down halo indices
 extern unsigned int *hd;
 ///@brief Array containing the size of the halo in each direction
-extern unsigned int halosize[ndim];
+#ifdef __CUDACC__
+__host__ __device__
+#endif
+extern const unsigned int halosize[ndim];
 #ifdef __cplusplus
 extern "C"
 {

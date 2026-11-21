@@ -8,12 +8,13 @@
  */
 #ifndef TCMPLX
 #define TCMPLX
+//std::complex doesn't support float*complex<double>
 #include <thrust/complex.h>
 using thrust::complex;
 #undef conj
 //#undef	complex
 ///@brief Single precision complex number 
-#define	Complex_f	 complex<float>
+#define	Complex_f complex<float>
 ///@brief Double precision complex number 
 #define	Complex	 complex<double>
 

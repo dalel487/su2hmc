@@ -9,7 +9,9 @@
 #include <su2hmc.h>
 
 unsigned int *hu, *hd;
-alignas(AVX) unsigned int halosize[ndim], h1u[ndim], h1d[ndim];
+//alignas(AVX) const unsigned int halosize[ndim]={halox,haloy,haloz,halot};
+alignas(AVX) const unsigned int halosize[ndim]={halox,haloy,haloz,halot};
+alignas(AVX) unsigned int h1u[ndim], h1d[ndim];
 int Addrc(unsigned int *iu, unsigned int *id){
 	const char funcname[] = "Addrc";
 		//Rather than having 8 ih variables I'm going to use a 2x4 array
@@ -29,21 +31,14 @@ int Addrc(unsigned int *iu, unsigned int *id){
 		//Need to watch these +/- 1 at the end. Is that a FORTRAN thing or a program thing?
 		//The only time I see h1d called that +1 term gets cancelled by a -1 so I'm going
 		//to omit it here at my own peril. (Turned out I was right)
-		///In original AOS code halo was stored after the sublattice
+		//In original AOS code halo was stored after the sublattice
 		h1d[0]=kvol; 
 		//For SOA each direction gets its own halo. Instead we have a j*kvol+h1?[i] term in the halo exchange
 		//h1d[0]=0; 
 		h1u[0]=h1d[0]+halox;
-		halosize[0]=halox;
-
 		h1d[1]=h1u[0]+halox; h1u[1]=h1d[1]+haloy;
-		halosize[1]=haloy;
-
 		h1d[2]=h1u[1]+haloy; h1u[2]=h1d[2]+haloz;
-		halosize[2]=haloz;
-
 		h1d[3]=h1u[2]+haloz; h1u[3]=h1d[3]+halot;
-		halosize[3]=halot;
 
 		//Time for the nitty-gritty
 		/*
@@ -331,10 +326,10 @@ inline int Index2lcoord(int index, int *coord){
 	//the length of that axis to get the coordinate, and then divide
 	//the index by the length of that coordinate to set up for the
 	//next coordinate. This works since int/int gives an int.
-	coord[3] = index%ksizet; index/=ksizet;
-	coord[2] = index%ksizez; index/=ksizez;
+	coord[0] = index%ksizex; index/=ksizex;
 	coord[1] = index%ksizey; index/=ksizey;
-	coord[0] = index; //No need to divide by nt since were done.
+	coord[2] = index%ksizez; index/=ksizez;
+	coord[3] = index; //No need to divide by nz since were done.
 
 	return 0;
 }
@@ -346,10 +341,10 @@ inline int Index2gcoord(int index, int *coord){
 	//the length of that axis to get the coordinate, and then divide
 	//the index by the length of that coordinate to set up for the
 	//next coordinate. This works since int/int gives an int.
-	coord[3] = index%nt; index/=nt;
-	coord[2] = index%nz; index/=nz;
+	coord[0] = index%nx; index/=nx;
 	coord[1] = index%ny; index/=ny;
-	coord[0] = index; //No need to divide by nt since were done.
+	coord[2] = index%nz; index/=nz;
+	coord[3] = index; //No need to divide by nt since were done.
 
 	return 0;
 }
@@ -359,8 +354,7 @@ inline int Coord2lindex(int ix, int iy, int iz, int it){
 	//I've factorised this function compared to its original 
 	//implementation to reduce the number of multiplications
 	//and hopefully improve performance
-	//int index = coord[3]+ksizez*(coord[2]+ksizey*(coord[1]+ksizex*coord[0]));
-	return it+ksizet*(iz+ksizez*(iy+ksizey*ix));
+	return ix+ksizex*(iy+ksizey*(iz+ksizez*it));
 }
 inline int Coord2gindex(int ix, int iy, int iz, int it){
 	const char funcname[] = "Coord2gindex";
@@ -368,7 +362,6 @@ inline int Coord2gindex(int ix, int iy, int iz, int it){
 	//I've factorised this function compared to its original 
 	//implementation to reduce the number of multiplications
 	//and hopefully improve performance
-	//	return it+nt*(iz+nz*(iy+ny*ix));
 	return ix+nx*(iy+ny*(iz+nz*it));
 }
 int Testlcoord(int cap){
