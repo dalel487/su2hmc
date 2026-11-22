@@ -36,6 +36,8 @@ namespace Device{
 		}
 }
 namespace Kernels{
+
+	__constant__ unsigned short gamin[16] = {3,2,1,0, 3,2,1,0, 2,3,0,1, 2,3,0,1};
 	/**
 	 * @brief Evaluates @f$\Phi=M r@f$
 	 * @ingroup Dslashes
@@ -127,7 +129,7 @@ namespace Kernels{
 								conj(u11sd)*rgd[0]+ u12sd*rgd[1]);
 								phi_s[igorkov*nc+1]+=gam*(-conj(u12s)*rgu[0]+ conj(u11s)*rgu[1]-\
 								conj(u12sd)*rgd[0]- u11sd*rgd[1]);
-								*/
+							 */
 						}
 					}
 					//Timelike terms next. These run from igorkov=0..3 and 4..7 with slightly different rules for each
@@ -162,7 +164,7 @@ namespace Kernels{
 								-dk4msd*(conj(u12sd)*(rd[0]+rgd[0]) +u11sd *(rd[1]+rgd[1]));
 							phi[i+kvolHalo*(igorkov*nc+1)]=phi_s[igorkov*nc+1];
 							const unsigned short igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
-																						//the FORTRAN code did it.
+							//the FORTRAN code did it.
 							igork1 += 4;
 							for(unsigned short c=0;c<nc;c++){
 								ru[c]=r[uid+kvolHalo*(igorkovPP*nc+c)]; rd[c]=r[did+kvolHalo*(igorkovPP*nc+c)];
@@ -298,7 +300,7 @@ namespace Kernels{
 								-dk4psd*(conj(u12sd)*(rd[0]-rgd[0]) +u11sd *(rd[1]-rgd[1]));
 							phi[i+kvol*(igorkov*nc+1)]=phi_s[igorkov*nc+1];
 							const unsigned short igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
-																						//the FORTRAN code did it.
+							//the FORTRAN code did it.
 							igork1 += 4;
 							for(unsigned short c=0;c<nc;c++){
 								ru[c]=r[uid+kvolHalo*(igorkovPP*nc+c)]; rd[c]=r[did+kvolHalo*(igorkovPP*nc+c)];
@@ -463,9 +465,9 @@ namespace Kernels{
 			 */
 
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
-			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
+			const unsigned short bsize = blockDim.x*blockDim.y*blockDim.z;
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-			const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+			const unsigned short bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 			const unsigned int gthreadId= blockId * bsize+bthreadId;
 
 #ifdef __HIP_PLATFORM_AMD__
@@ -473,13 +475,13 @@ namespace Kernels{
 			//Note: Trying this on CUDA saves to Local memory (i.e. RAM)
 			constexpr unsigned short gamin[16] = {3,2,1,0, 3,2,1,0, 2,3,0,1, 2,3,0,1};
 #else
-			__shared__ complex<T> gamval[20]; __shared__ unsigned short gamin[16];
+			__shared__ complex<T> gamval[20];// __shared__ unsigned short gamin[16];
 #pragma unroll
 			for(unsigned short i=gthreadId%__BSIZE__;i<20;i+=bsize)
 				gamval[i]=gamval_G[i];
-#pragma unroll
-			for(unsigned short i=gthreadId%__BSIZE__;i<16;i+=bsize)
-				gamin[i]=gamin_G[i];
+			//#pragma unroll
+			//			for(unsigned short i=gthreadId%__BSIZE__;i<16;i+=bsize)
+			//				gamin[i]=gamin_G[i];
 			__syncthreads();
 #endif
 
@@ -502,14 +504,13 @@ namespace Kernels{
 				for(unsigned short mu = 0; mu <ndim; mu++){
 					ind=i+kvolHalo*mu;
 					const complex<T> u11s=u11t[ind];	const complex<T> u12s=u12t[ind];
-					ind = i+kvol*mu;
 					//const unsigned int did = id[ind]; //const unsigned int uid = iu[ind];
-					const unsigned int did = Device::HaloIndex(i,mu,DOWN);
+					const unsigned int did = Device::HaloIndex(i,mu,DOWN,bthreadId);
+					const unsigned int uid = Device::HaloIndex(i,mu,UP,bthreadId);
 					ind=did+kvolHalo*mu;
 					//The main source of long scoreboard stalls is waiting for did. May be worth moving that from memory to
 					//calculating it on the fly.
 					const complex<T> u11sd=u11t[ind];	const complex<T> u12sd=u12t[ind];
-					const unsigned int uid = Device::HaloIndex(i,mu,UP);
 #pragma unroll
 					for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc){
 						//Can manually vectorise with a pragma?
@@ -715,7 +716,7 @@ void cuDslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigne
 		CPYERROR,funcname,cuCpyStat);
 		exit(cuCpyStat);
 		}
-		*/
+	 */
 	Kernels::cuDslash<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa);
 	return;
 }
@@ -731,7 +732,7 @@ void cuDslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsign
 		CPYERROR,funcname,cuCpyStat);
 		exit(cuCpyStat);
 		}
-		*/
+	 */
 	Kernels::cuDslashd<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa);
 	return;
 }
@@ -763,7 +764,7 @@ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu
 		CPYERROR,funcname,cuCpyStat);
 		exit(cuCpyStat);
 		}
-		*/
+	 */
 	Kernels::cuDslash<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa);
 	return;
 }
@@ -779,7 +780,7 @@ void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *i
 		CPYERROR,funcname,cuCpyStat);
 		exit(cuCpyStat);
 		}
-		*/
+	 */
 	Kernels::cuDslashd<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa);
 	return;
 }
