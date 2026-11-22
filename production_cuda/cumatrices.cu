@@ -57,23 +57,25 @@ namespace Kernels{
 	template <typename T>
 		__global__ __launch_bounds__(__BSIZE__) void cuDslash(complex<T> *phi, const complex<T> * __restrict__ r, 
 				const complex<T> * __restrict__ u11t, const complex<T> * __restrict__ u12t,
-				const unsigned int * __restrict__ iu, const unsigned int * __restrict__ id,
-				const __grid_constant__ complex<T> gamval_G[20], const __grid_constant__ unsigned short gamin_G[16],
-				const T * __restrict__ dk4m, const T * __restrict__ dk4p, const __grid_constant__ Complex_f jqq, const __grid_constant__ float akappa){
+				const __grid_constant__ complex<T> gamval_G[20], const __grid_constant__ T dk4m, 
+				const __grid_constant__ T dk4p, const __grid_constant__ Complex_f jqq, 
+				const __grid_constant__ float akappa, const __grid_constant__ bool flip_bound){
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 			const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 			const unsigned int gthreadId= blockId * bsize+bthreadId;
 
-			__shared__ complex<T> gamval[20]; __shared__ unsigned short gamin[16];
+#ifdef __HIP_PLATFORM_AMD__
+				const complex<T> *gamval = gamval_G;
+#else
+			__shared__ complex<T> gamval[20];
 #pragma unroll
 			for(unsigned short i=gthreadId%__BSIZE__;i<20;i+=bsize)
 				gamval[i]=gamval_G[i];
 #pragma unroll
-			for(unsigned short i=gthreadId%__BSIZE__;i<16;i+=bsize)
-				gamin[i]=gamin_G[i];
 			__syncthreads();
+#endif
 
 
 			for(unsigned int i=gthreadId;i<kvol;i+=gsize*bsize){
@@ -94,13 +96,13 @@ namespace Kernels{
 				unsigned int ind;
 				//Spacelike terms. Here's hoping I haven't put time as the zeroth component somewhere!
 				for(unsigned short mu = 0; mu <ndim; mu++){
+					const unsigned int did = Device::HaloIndex(i,mu,DOWN,bthreadId);
+					const unsigned int uid = Device::HaloIndex(i,mu,UP,bthreadId);
+					ind = i+kvolHalo*mu;
+					const complex<T> u11s=u11t[ind]; const complex<T> u12s=u12t[ind];
+					ind = did+kvolHalo*mu;
+					const complex<T> u11sd=u11t[ind]; const complex<T> u12sd=u12t[ind];
 					if(mu<3){
-						ind = i+kvol*mu;
-						const unsigned int did=id[ind]; const unsigned int uid = iu[ind];
-						ind = i+kvolHalo*mu;
-						const complex<T> u11s=u11t[ind]; const complex<T> u12s=u12t[ind];
-						ind = did+kvolHalo*mu;
-						const complex<T> u11sd=u11t[ind]; const complex<T> u12sd=u12t[ind];
 						for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
 							//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing in the dirac term.
 							const unsigned short idirac=igorkov&3;		
@@ -120,30 +122,17 @@ namespace Kernels{
 
 							phi_s[igorkov*nc]+=-conj(u11sd)*(akappa*rd[0]+gam*rgd[0])+u12sd*(akappa*rd[1]+gam*rgd[1]);
 							phi_s[igorkov*nc+1]+=-conj(u12sd)*(akappa*rd[0]+gam*rgd[0])-u11sd*(akappa*rd[1]+gam*rgd[1]);
-							/*
-								phi_s[igorkov*nc]+=-akappa*(u11s*ru[0]+ u12s*ru[1]+\
-								conj(u11sd)*rd[0]- u12sd*rd[1]);
-								phi_s[igorkov*nc+1]+=-akappa*(-conj(u12s)*ru[0]+ conj(u11s)*ru[1]+\
-								conj(u12sd)*rd[0]+ u11sd*rd[1]);
-								phi_s[igorkov*nc]+=gam*(u11s*rgu[0]+ u12s*rgu[1]-\
-								conj(u11sd)*rgd[0]+ u12sd*rgd[1]);
-								phi_s[igorkov*nc+1]+=gam*(-conj(u12s)*rgu[0]+ conj(u11s)*rgu[1]-\
-								conj(u12sd)*rgd[0]- u11sd*rgd[1]);
-							 */
 						}
 					}
 					//Timelike terms next. These run from igorkov=0..3 and 4..7 with slightly different rules for each
 					//We can fit it into a single loop by declaring igorkovPP=igorkov+4 instead of looping igorkov=4..7  separately
 					//Note that for the igorkov 4..7 loop idirac=igorkov-4, so we don't need to declare idiracPP separately
 					else{
-						ind=i+kvolHalo*3;
-						const complex<T> u11s=u11t[ind]; const complex<T> u12s=u12t[ind];
-						const T dk4ms=dk4m[i];	const T dk4ps=dk4p[i];
-						ind=i+kvol*3;
-						const unsigned int did=id[ind]; const unsigned int uid = iu[ind];
-						ind=did+kvolHalo*3;
-						const complex<T> u11sd=u11t[ind]; const complex<T> u12sd=u12t[ind];
-						const T dk4msd=dk4m[did];	const T dk4psd=dk4p[did];
+						const	T dk4ms = (flip_bound && i>kvol-kvol3) ? -dk4m:dk4m;
+						const	T dk4ps = (flip_bound && i>kvol-kvol3) ? -dk4p:dk4p;
+						//And the chemical potential in the down direction
+						const T dk4msd = (flip_bound && did>kvol-kvol3) ? -dk4m:dk4m;
+						const T dk4psd = (flip_bound && did>kvol-kvol3) ? -dk4p:dk4p;
 
 						complex<T> ru[nc]; complex<T> rd[nc];
 						complex<T> rgu[nc]; complex<T> rgd[nc];
@@ -164,7 +153,7 @@ namespace Kernels{
 								-dk4msd*(conj(u12sd)*(rd[0]+rgd[0]) +u11sd *(rd[1]+rgd[1]));
 							phi[i+kvolHalo*(igorkov*nc+1)]=phi_s[igorkov*nc+1];
 							const unsigned short igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
-							//the FORTRAN code did it.
+																						//the FORTRAN code did it.
 							igork1 += 4;
 							for(unsigned short c=0;c<nc;c++){
 								ru[c]=r[uid+kvolHalo*(igorkovPP*nc+c)]; rd[c]=r[did+kvolHalo*(igorkovPP*nc+c)];
@@ -201,25 +190,26 @@ namespace Kernels{
 	 * @post	Result added to @p phi
 	 */
 	template <typename T>
-		__global__ __launch_bounds__(__BSIZE__) void cuDslashd(complex<T> *phi, const complex<T> * __restrict__ r, 
+		__global__ __launch_bounds__(__BSIZE__) void cuDslashd(complex<T> * __restrict__ phi, const complex<T> * __restrict__ r, 
 				const complex<T> * __restrict__ u11t, const complex<T> * __restrict__ u12t,
-				const unsigned int * __restrict__ iu, const unsigned int * __restrict__ id,
-				const __grid_constant__ complex<T> gamval_G[20], const __grid_constant__ unsigned short gamin_G[16],
-				const T * __restrict__ dk4m, const T * __restrict__ dk4p, const __grid_constant__ Complex_f jqq, const __grid_constant__ float akappa){
+				const __grid_constant__ complex<T> gamval_G[20], const __grid_constant__ T dk4m, 
+				const __grid_constant__ T dk4p, const __grid_constant__ Complex_f jqq, 
+				const __grid_constant__ float akappa, const __grid_constant__ bool flip_bound){
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 			const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 			const unsigned int gthreadId= blockId * bsize+bthreadId;
 
-			__shared__ complex<T> gamval[20]; __shared__ unsigned short gamin[16];
+#ifdef __HIP_PLATFORM_AMD__
+			const complex<T> *gamval = gamval_G;
+#else
+			__shared__ complex<T> gamval[20]; 
 #pragma unroll
 			for(unsigned short i=gthreadId%__BSIZE__;i<20;i+=bsize)
 				gamval[i]=gamval_G[i];
-#pragma unroll
-			for(unsigned short i=gthreadId%__BSIZE__;i<16;i+=bsize)
-				gamin[i]=gamin_G[i];
 			__syncthreads();
+#endif
 
 			for(unsigned int i=gthreadId;i<kvol;i+=gsize*bsize){
 				complex<T> phi_s[ngorkov*nc];
@@ -238,13 +228,13 @@ namespace Kernels{
 				unsigned int ind;
 				//Spacelike terms. Here's hoping I haven't put time as the zeroth component somewhere!
 				for(unsigned short mu = 0; mu <ndim; mu++){
+					const unsigned int did = Device::HaloIndex(i,mu,DOWN,bthreadId);
+					const unsigned int uid = Device::HaloIndex(i,mu,UP,bthreadId);
+					ind = i+kvolHalo*mu;
+					const complex<T> u11s=u11t[ind]; const complex<T> u12s=u12t[ind];
+					ind = did+kvolHalo*mu;
+					const complex<T> u11sd=u11t[ind]; const complex<T> u12sd=u12t[ind];
 					if(mu<3){
-						ind = i+kvol*mu;
-						const unsigned int did=id[ind]; const unsigned int uid = iu[ind];
-						ind = i+kvolHalo*mu;
-						const complex<T> u11s=u11t[ind]; const complex<T> u12s=u12t[ind];
-						ind = did+kvolHalo*mu;
-						const complex<T> u11sd=u11t[ind]; const complex<T> u12sd=u12t[ind];
 						for(unsigned short igorkov=0; igorkov<ngorkov; igorkov++){
 							//FORTRAN had mod((igorkov-1),4)+1 to prevent issues with non-zero indexing.
 							const unsigned short idirac=igorkov&3;		
@@ -271,14 +261,11 @@ namespace Kernels{
 					//Note that for the igorkov 4..7 loop idirac=igorkov-4, so we don't need to declare idiracPP separately
 					//Under dagger, dk4p and dk4m get swapped and the dirac component flips sign.
 					else{
-						ind=i+kvolHalo*3;
-						const complex<T> u11s=u11t[ind]; const complex<T> u12s=u12t[ind];
-						const T dk4ms=dk4m[i];	const T dk4ps=dk4p[i];
-						ind = i+kvol*3;
-						const unsigned int did=id[ind]; const unsigned int uid = iu[ind];
-						ind=did+kvolHalo*3;
-						const complex<T> u11sd=u11t[ind]; const complex<T> u12sd=u12t[ind];
-						const T dk4msd=dk4m[did];	const T dk4psd=dk4p[did];
+						const	T dk4ms = (flip_bound && i>kvol-kvol3) ? -dk4m:dk4m;
+						const	T dk4ps = (flip_bound && i>kvol-kvol3) ? -dk4p:dk4p;
+						//And the chemical potential in the down direction
+						const T dk4msd = (flip_bound && did>kvol-kvol3) ? -dk4m:dk4m;
+						const T dk4psd = (flip_bound && did>kvol-kvol3) ? -dk4p:dk4p;
 
 						complex<T> ru[nc];  complex<T> rd[nc];
 						complex<T> rgu[nc];  complex<T> rgd[nc];
@@ -300,7 +287,7 @@ namespace Kernels{
 								-dk4psd*(conj(u12sd)*(rd[0]-rgd[0]) +u11sd *(rd[1]-rgd[1]));
 							phi[i+kvol*(igorkov*nc+1)]=phi_s[igorkov*nc+1];
 							const unsigned short igorkovPP=igorkov+4; 	//idirac = igorkov; It is a bit redundant but I'll mention it as that's how
-							//the FORTRAN code did it.
+																						//the FORTRAN code did it.
 							igork1 += 4;
 							for(unsigned short c=0;c<nc;c++){
 								ru[c]=r[uid+kvolHalo*(igorkovPP*nc+c)]; rd[c]=r[did+kvolHalo*(igorkovPP*nc+c)];
@@ -339,9 +326,9 @@ namespace Kernels{
 	template <typename T>
 		__global__ __launch_bounds__(__BSIZE__) void cuHdslash(complex<T> * __restrict__ phi, const complex<T> * __restrict__ r,
 				const complex<T> * __restrict__ u11t, const complex<T> * __restrict__ u12t,
-				const unsigned int * __restrict__ iu, const unsigned int * __restrict__ id,
-				const __grid_constant__ complex<T> gamval_G[20],	const __grid_constant__ unsigned short gamin_G[16],
-				const T* __restrict__  dk4m, const T* __restrict__  dk4p, const __grid_constant__ float akappa){
+				const __grid_constant__ complex<T> gamval_G[20], const __grid_constant__ T dk4m, 
+				const __grid_constant__ T dk4p, const __grid_constant__ float akappa,
+				const __grid_constant__ bool flip_bound){
 			/*
 			 * Half Dslash T precision
 			 */
@@ -351,14 +338,15 @@ namespace Kernels{
 			const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 			const unsigned int gthreadId= blockId * bsize+bthreadId;
 
-			__shared__ complex<T> gamval[20]; __shared__ unsigned short gamin[16];
+#ifdef __HIP_PLATFORM_AMD__
+			const complex<T> *gamval = gamval_G;
+#else
+			__shared__ complex<T> gamval[20];
 #pragma unroll
 			for(unsigned short i=gthreadId%__BSIZE__;i<20;i+=bsize)
 				gamval[i]=gamval_G[i];
-#pragma unroll
-			for(unsigned short i=gthreadId%__BSIZE__;i<16;i+=bsize)
-				gamin[i]=gamin_G[i];
 			__syncthreads();
+#endif
 
 			//Reuse values for indices to reduce registers needed to reevaluate
 			unsigned int ind;
@@ -377,8 +365,8 @@ namespace Kernels{
 				for(unsigned short mu = 0; mu <ndim; mu++){
 					ind=i+kvolHalo*mu;
 					const complex<T> u11s=u11t[ind];	const complex<T> u12s=u12t[ind];
-					ind = i+kvol*mu;
-					const int did=id[ind];	const int uid = iu[ind];
+					const unsigned int did = Device::HaloIndex(i,mu,DOWN,bthreadId);
+					const unsigned int uid = Device::HaloIndex(i,mu,UP,bthreadId);
 					ind=did+kvolHalo*mu;
 					const complex<T> u11sd=u11t[ind];	const complex<T> u12sd=u12t[ind];
 #pragma unroll
@@ -420,7 +408,7 @@ namespace Kernels{
 							const complex<T> rgu[2]={r[uid+ind],r[uid+ind+kvolHalo]};
 							const complex<T> rgd[2]={r[did+ind],r[did+ind+kvolHalo]};
 
-							T dk4s=dk4p[i];
+							T dk4s = (flip_bound && i>kvol-kvol3) ? -dk4p:dk4p;
 							//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 
 							phi_s[idirac+0]-= dk4s*(u11s*(ru[0]-rgu[0])
@@ -428,11 +416,12 @@ namespace Kernels{
 							phi_s[idirac+1]-= dk4s*(-conj(u12s)*(ru[0]-rgu[0])
 									+conj(u11s)*(ru[1]-rgu[1]));
 
-							dk4s=dk4m[did];
+							dk4s = (flip_bound && did>kvol-kvol3) ? -dk4m:dk4m;
 							phi_s[idirac+0]-= dk4s*(conj(u11sd)*(rd[0]+rgd[0])
 									-u12sd *(rd[1]+rgd[1]));
 							phi_s[idirac+1]-= dk4s*(conj(u12sd)*(rd[0]+rgd[0])
 									+u11sd *(rd[1]+rgd[1]));
+
 							phi[i+kvolHalo*(0+idirac)]=phi_s[idirac+0];
 							phi[i+kvolHalo*(1+idirac)]=phi_s[idirac+1];
 						}
@@ -473,8 +462,6 @@ namespace Kernels{
 
 #ifdef __HIP_PLATFORM_AMD__
 			const complex<T> *gamval = gamval_G;
-			//Note: Trying this on CUDA saves to Local memory (i.e. RAM)
-			constexpr unsigned short gamin[16] = {3,2,1,0, 3,2,1,0, 2,3,0,1, 2,3,0,1};
 #else
 			__shared__ complex<T> gamval[20];// __shared__ unsigned short gamin[16];
 #pragma unroll
@@ -711,39 +698,21 @@ void cuDslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigne
 		Complex gamval[20], const unsigned short gamin[16], double *dk[nc], Complex_f jqq, float akappa,
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslash";
-	/*
-		int cuCpyStat=0;
-		for(unsigned short j=0;j<nc*ngorkov;j++)
-		if((cuCpyStat=cudaMemcpy(phi+j*kvolHalo, r+j*kvolHalo, kvol*sizeof(Complex),cudaMemcpyDefault))){
-		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
-		CPYERROR,funcname,cuCpyStat);
-		exit(cuCpyStat);
-		}
-	 */
-	Kernels::cuDslash<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa);
+	Kernels::cuDslash<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],gamval,dk[0][0],dk[1][0],jqq,akappa,flip_bound);
 	return;
 }
 void cuDslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned int *id,
 		Complex gamval[20], const unsigned short gamin[16], double *dk[nc], Complex_f jqq, float akappa,
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslashd";
-	/*
-		int cuCpyStat=0;
-		for(unsigned short j=0;j<nc*ngorkov;j++)
-		if((cuCpyStat=cudaMemcpy(phi+j*kvol, r+j*kvolHalo, kvol*sizeof(Complex),cudaMemcpyDefault))){
-		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
-		CPYERROR,funcname,cuCpyStat);
-		exit(cuCpyStat);
-		}
-	 */
-	Kernels::cuDslashd<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa);
+	Kernels::cuDslashd<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],gamval,dk[0][0],dk[1][0],jqq,akappa,flip_bound);
 	return;
 }
 void cuHdslash(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned int *id,
 		Complex gamval[20], const unsigned short gamin[16], double *dk[nc], float akappa, 
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Hdslash";
-	Kernels::cuHdslash<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa);
+	Kernels::cuHdslash<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],gamval,dk[0][0],dk[1][0],akappa,flip_bound);
 	return;
 }
 void cuHdslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsigned int *id,
@@ -759,45 +728,27 @@ void cuDslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu
 		Complex_f gamval[20],const unsigned short gamin[16],	float *dk[nc], Complex_f jqq, float akappa,
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslash_f";
-	/*
-		int cuCpyStat=0;
-		for(unsigned short j=0;j<nc*ngorkov;j++)
-		if((cuCpyStat=cudaMemcpy(phi+j*kvolHalo, r+j*kvolHalo, kvol*sizeof(Complex_f),cudaMemcpyDefault))){
-		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
-		CPYERROR,funcname,cuCpyStat);
-		exit(cuCpyStat);
-		}
-	 */
-	Kernels::cuDslash<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa);
+	Kernels::cuDslash<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],gamval,dk[0][0],dk[1][0],jqq,akappa,flip_bound);
 	return;
 }
 void cuDslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,unsigned int *id,
 		Complex_f gamval[20],const unsigned short gamin[16],	float *dk[nc], Complex_f jqq, float akappa,
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Dslashd_f";
-	/*
-		int cuCpyStat=0;
-		for(unsigned short j=0;j<nc*ngorkov;j++)
-		if((cuCpyStat=cudaMemcpy(phi+j*kvol, r+j*kvolHalo, kvol*sizeof(Complex_f),cudaMemcpyDefault))){
-		fprintf(stderr,"Error %d in %s: Cuda failed to copy managed r into device Phi with code %d.\nExiting,,,\n\n",\
-		CPYERROR,funcname,cuCpyStat);
-		exit(cuCpyStat);
-		}
-	 */
-	Kernels::cuDslashd<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],jqq,akappa);
+	Kernels::cuDslashd<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],gamval,dk[0][0],dk[1][0],jqq,akappa,flip_bound);
 	return;
 }
 void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,unsigned int *id, Complex_f gamval[20],
 		const unsigned short gamin[16],	float *dk[nc], float akappa, dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Hdslash_f";
-	Kernels::cuHdslash<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],iu,id,gamval,gamin,dk[0],dk[1],akappa);
+	Kernels::cuHdslash<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],gamval,dk[0][0],dk[1][0],akappa,flip_bound);
 	return;
 }
 void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,unsigned int *id,
-		Complex_f gamval[20],const unsigned short gamin[16],float *dk[nc], float akappa,dim3 dimGrid, dim3 dimBlock){
+		Complex_f gamval[20],const unsigned short gamin[16],float *dk[nc],float akappa,dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Hdslashd_f";
 	const float dk4m=dk[0][0]; const float dk4p=dk[1][0];
-	Kernels::cuHdslashd<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],gamval,dk4m,dk4p,akappa,flip_bound);
+	Kernels::cuHdslashd<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],gamval,dk[0][0],dk[1][0],akappa,flip_bound);
 	return;
 }
 

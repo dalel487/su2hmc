@@ -6,6 +6,7 @@
  * @author	D. Lawlor
  */
 #include <clover.h>
+//#include <cucoord.h>
 
 //CUDA Device code
 namespace Device{
@@ -281,6 +282,8 @@ namespace Device{
 
 ///CUDA Kernels
 namespace Kernels{
+	///@brief sigma matrix indices stored flat
+	__constant__ unsigned short sigin[6*4] =	{0,1,2,3,1,0,3,2,1,0,3,2,1,0,3,2,1,0,3,2,0,1,2,3};
 	using namespace Device;
 	/**
 	 *	@brief Calculates the products of the first two links in a plaquette
@@ -328,8 +331,8 @@ namespace Kernels{
 	template <typename T>
 		__global__ __launch_bounds__(__BSIZE__) void Full_Clover(complex<T> * __restrict__ clover1, complex<T> * __restrict__ clover2,\
 				const complex<T> * __restrict__ u11t, const complex<T> * __restrict__ u12t,
-				const unsigned int * __restrict__ iu, const unsigned int * __restrict__ id, const __grid_constant__ int mu,
-				const __grid_constant__ int nu){
+				const unsigned int * __restrict__ iu, const unsigned int * __restrict__ id,
+				const __grid_constant__ int mu, const __grid_constant__ int nu){
 			const volatile int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const volatile int bsize = blockDim.x*blockDim.y*blockDim.z;
 			const volatile int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -368,7 +371,6 @@ namespace Kernels{
 	 *	@param[in]	X1:		Congrad output @f$\left(M^\dagger M\right)\Phi@f$
 	 *	@param[in]	X2:		@f$M\left(M^\dagger M\right)^{-1}\Phi@f$
 	 *	@param[in]	sigval_G:	@f$\sigma_{\mu\nu}@f$ scaled by @f$\frac{c_\text{SW}}{2}@f$
-	 *	@param[in]	sigin_G:	Dirac index of @f$\sigma_{\mu\nu}@f$
 	 *	@param[in]	clov:		Index of clover being used
 	 *
 	 *	@post	Contents of @p Xmunu overwritten
@@ -376,7 +378,7 @@ namespace Kernels{
 	template <typename T>
 		__global__ __launch_bounds__(__BSIZE__) void cuCalcXmunu(Bilinear_a Xmunu, const complex<T> * __restrict__ X1,
 				const complex<T> * __restrict__ X2, const __grid_constant__ complex<T> sigval_G[24],
-				const __grid_constant__ unsigned short sigin_G[24], const __grid_constant__ unsigned short clov){
+				const __grid_constant__ unsigned short clov){
 			const char funcname[] = "Xmunu";
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
@@ -384,11 +386,10 @@ namespace Kernels{
 			const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 			const unsigned int gthreadId= blockId * bsize+bthreadId;
 
-			__shared__ complex<T> sigval[24]; __shared__ unsigned short sigin[24];
+			__shared__ complex<T> sigval[24]; 
 #pragma unroll
 			for(unsigned short i=gthreadId%__BSIZE__;i<24;i+=bsize){
 				sigval[i]=sigval_G[i];
-				sigin[i]=sigin_G[i];
 			}
 			__syncthreads();
 			//Get sign and index of @f$\sigma_{\mu\nu}@f correct
@@ -433,7 +434,6 @@ namespace Kernels{
 	 *	@param[in]	u11t,u12t:		Gauge fields
 	 *	@param[in]	Xmn:				Pseudofermion bilinear contraction
 	 *	@param[in]	sigval:			@f$\sigma_{\mu\nu}@f$ scaled by @f$\frac{c_\text{SW}}{2}@f$
-	 *	@param[in]	sigin:			Dirac index of @f$\sigma_{\mu\nu}@f$
 	 *	@param[in]	iu,id:			Neighbouring sites
 	 *	@param[in]	akappa:			Hopping Parameter
 	 *	@param[in]	mu,nu:			Clover direction
@@ -459,8 +459,8 @@ namespace Kernels{
 				//But recycling to reduce register pressure on GPU
 				//First up, W0, W1 and W6 match their Documentation values
 				complex<T> W0[2]; complex<T> W1[2]; complex<T> W6[2];	
-				//Get the correct site. Originally ind and  stood for up and down. Then I realised only one was needed
-				//at a time and am too lazy to change it everywhere.
+				//Get the correct site. I tried not using a lookup table. It's far slower as we need so many neighbouring
+				//sites here.
 				unsigned int ind = id[i+kvol*nu];
 				//Gauge field @f$U_\nu\left(i-\hat{\nu}\right)
 				W1[0]=u11t[ind+kvolHalo*nu]; W1[1]=u12t[ind+kvolHalo*nu];
@@ -591,27 +591,24 @@ namespace Kernels{
 	 *	@param[in]	clover1,clover2:	Array of clovers
 	 *	@param[in]	sigval_G:			@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
 	 *	@param[in]	akappa:				Hopping Parameter
-	 * @param[in]	sigin_G:				What element of the spinor is multiplied by row idirac each sigma matrix?
 	 * @param[in]	dag:					Daggered output has no MPI halo, but undaggered does.
 	 *
 	 * @post	Result added to @p phi
 	 */
 	template <typename T>
 		__global__ __launch_bounds__(__BSIZE__) void ByClover(complex<T> * phi,const complex<T> * __restrict__ r,
-				const complex<T> * __restrict__ clover1,
-				const complex<T> * __restrict__ clover2,const __grid_constant__ complex<T> sigval_G[24],
-				const __grid_constant__ float akappa,
-				const __grid_constant__ unsigned short sigin_G[24],const __grid_constant__ bool dag){
+				const complex<T> * __restrict__ clover1, const complex<T> * __restrict__ clover2,
+				const __grid_constant__ complex<T> sigval_G[24], const __grid_constant__ float akappa,
+				const __grid_constant__ bool dag){
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 			const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 			const unsigned int gthreadId= blockId * bsize+bthreadId;
-			__shared__ complex<T> sigval[24]; __shared__ unsigned short sigin[24];
+			__shared__ complex<T> sigval[24];
 #pragma unroll
 			for(unsigned short i=gthreadId%__BSIZE__;i<24;i+=bsize){
 				sigval[i]=sigval_G[i];
-				sigin[i]=sigin_G[i];
 			}
 			__syncthreads();
 
@@ -663,7 +660,6 @@ namespace Kernels{
 	 *	@param[in]	clover1,clover2:	Array of clovers
 	 *	@param[in]	sigval:				@f$ \sigma_{\mu\nu}@f$ entries scaled by @f$ c_{sw}@f$
 	 *	@param[in]	akappa:				Hopping Parameter
-	 * @param[in]	sigin:				What element of the spinor is multiplied by row idirac each sigma matrix?
 	 * @param[in]	dag:					Daggered has no MPI halo, but undaggered does.
 	 *
 	 * @post Result added to @p phi.
@@ -671,24 +667,29 @@ namespace Kernels{
 	template <typename T>
 		__global__ __launch_bounds__(__BSIZE__) void HbyClover(complex<T> * phi,const complex<T> * __restrict__ r,
 				const complex<T> * __restrict__ clover1,const complex<T> * __restrict__ clover2,
-				const __grid_constant__ complex<T> sigval[24], const __grid_constant__ float akappa,
-				const __grid_constant__ unsigned short sigin[24],const __grid_constant__ bool dag){
+				const __grid_constant__ complex<T> sigval_G[24], const __grid_constant__ float akappa,
+				const __grid_constant__ bool dag){
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 			const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 			const unsigned int gthreadId= blockId * bsize+bthreadId;
 
+			__shared__ complex<T> sigval[24];
+//#pragma unroll
+			for(unsigned short i=gthreadId%__BSIZE__;i<24;i+=bsize){
+				sigval[i]=sigval_G[i];
+			}
+			__syncthreads();
 			for(unsigned int i=gthreadId;i<kvol;i+=bsize*gsize){
 				//Prefetched r and Phi array
 				complex<T> phi_s[ndirac*nc];
-#pragma unroll
+//#pragma unroll
 				for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc)
-#pragma unroll
 					for(unsigned short c=0; c<nc; c++){
 						phi_s[idirac+c]=0;
 					}
-#pragma unroll
+//#pragma unroll
 				for(unsigned short clov=0;clov<6;clov++){
 					const T clov_a=creal(clover1[clov*kvol+i]);
 					const complex<T> clov_b=clover2[clov*kvol+i];
@@ -704,7 +705,7 @@ namespace Kernels{
 						phi_s[idirac+1]+=sig*(conj(clov_b)*r_s[0]-clov_a*r_s[1]);
 					}
 				}
-#pragma unroll
+//#pragma unroll
 				for(unsigned short idirac=0; idirac<ndirac*nc; idirac++)
 					//dag is just to do with the output layout and if it has a halo
 					if(dag)
@@ -742,23 +743,23 @@ int cuClover(Complex_f *clover[nc],Complex_f *ut[nc], unsigned int *iu, unsigned
 	return 0;
 }
 void cuByClover(Complex *phi, Complex *r, Complex *clover[nc],Complex *sigval,const float akappa, unsigned short *sigin, bool dag){
-	Kernels::ByClover<<<dimGrid,dimBlock>>>(phi,r,clover[0],clover[1],sigval,akappa,sigin,dag);
+	Kernels::ByClover<<<dimGrid,dimBlock>>>(phi,r,clover[0],clover[1],sigval,akappa,dag);
 }
 void cuHbyClover(Complex *phi, Complex *r, Complex *clover[nc],Complex *sigval, const float akappa, unsigned short *sigin, bool dag){
-	Kernels::HbyClover<<<dimGrid,dimBlock>>>(phi,r,clover[0],clover[1],sigval,akappa,sigin,dag);
+	Kernels::HbyClover<<<dimGrid,dimBlock>>>(phi,r,clover[0],clover[1],sigval,akappa,dag);
 }	
 void cuByClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f *sigval, const float akappa, unsigned short *sigin,bool dag){
-	Kernels::ByClover<<<dimGrid,dimBlock>>>(phi,r,clover[0],clover[1],sigval,akappa,sigin,dag);
+	Kernels::ByClover<<<dimGrid,dimBlock>>>(phi,r,clover[0],clover[1],sigval,akappa,dag);
 }
 void cuHbyClover_f(Complex_f *phi, Complex_f *r, Complex_f *clover[nc],Complex_f *sigval, const float akappa, unsigned short *sigin,bool dag){
-	Kernels::HbyClover<<<dimGrid,dimBlock>>>(phi,r,clover[0],clover[1],sigval,akappa,sigin,dag);
+	Kernels::HbyClover<<<dimGrid,dimBlock>>>(phi,r,clover[0],clover[1],sigval,akappa,dag);
 }
 
 void cuCalcXmunu(Bilinear_a Xmunu, Complex_f *X1, Complex_f *X2, const Complex_f *sigval, const unsigned short *sigin,\
 		const unsigned short mu, const unsigned short nu){
 	//Get sign and index of @f$\sigma_{\mu\nu}@f correct
 	unsigned short clov = (mu==0) ? nu-1 : mu+nu;
-	Kernels::cuCalcXmunu<<<dimGrid,dimBlock,0,streams[clov]>>>(Xmunu,X1,X2,sigval,sigin,clov);
+	Kernels::cuCalcXmunu<<<dimGrid,dimBlock,0,streams[clov]>>>(Xmunu,X1,X2,sigval,clov);
 	return;
 }
 int cuClov_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2, const Complex_f *sigval,\
@@ -777,7 +778,7 @@ int cuClov_Force(double *dSdpi, Complex_f *ut[nc], Complex_f *X1, Complex_f *X2,
 				//Allocate and evaluate @f$X_{\mu\nu}@f$ terms
 				cudaMallocAsync((void **)&Xmn[clov].diag,nc*kvol*sizeof(float),streams[clov]);
 				cudaMallocAsync((void **)&Xmn[clov].offd,nc*kvol*sizeof(complex<float>),streams[clov]);
-				Kernels::cuCalcXmunu<<<dimGrid,dimBlock,0,streams[clov]>>>(Xmn[clov],X1,X2,sigval,sigin,clov);
+				Kernels::cuCalcXmunu<<<dimGrid,dimBlock,0,streams[clov]>>>(Xmn[clov],X1,X2,sigval,clov);
 			}
 	cudaDeviceSynchronise();
 

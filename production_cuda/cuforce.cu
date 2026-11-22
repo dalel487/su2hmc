@@ -6,6 +6,7 @@
  */
 #include	<matrices.h>
 #include	<su2hmc.h>
+#include	<cucoord.h>
 //CUDA Kernels
 namespace Kernels{
 	/**
@@ -143,7 +144,6 @@ namespace Kernels{
 	 *	@param[in]	X2:					@f$MX_1@f$
 	 *	@param[in]	gamval:				Gamma matrices rescaled by @f$\kappa@f$
 	 *	@param[in]	iu:					Lattice indices
-	 *	@param[in]	gamin:				Gamma indices
 	 *	@param[in]	akappa:				Hopping parameter
 	 *	@param[in]	mu:					Force direction
 	 *
@@ -152,20 +152,19 @@ namespace Kernels{
 	__global__ __launch_bounds__(__BSIZE__) void cuForce_s(double * __restrict__ dSdpi,
 			const Complex_f * __restrict__ u11t, const Complex_f * __restrict__ u12t, const Complex_f * __restrict__ X1,
 			const Complex_f * __restrict__ X2, const __grid_constant__ Complex_f gamval[20],
-			const unsigned int * __restrict__ iu, const __grid_constant__ unsigned short gamin[16],
 			const __grid_constant__ float akappa, const __grid_constant__ unsigned short mu){
 		const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 		const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 		volatile const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-		volatile const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+		const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 		const unsigned int gthreadId= blockId * bsize+bthreadId;
 
 		for(unsigned int i=gthreadId;i<kvol;i+=gsize*bsize){
 			unsigned int ind=i+kvolHalo*mu;
 			const Complex_f u11s=u11t[ind]; const Complex_f u12s=u12t[ind];
-			const unsigned int uid = iu[i+kvol*mu];
+			const unsigned int uid = Device::HaloIndex(i,mu,UP,bthreadId);
 			//Similarly to Hdslash we always see idirac*nc so we do that here too.
-				float dSdpis[3]={0,0,0};
+			float dSdpis[3]={0,0,0};
 			for(unsigned short idirac=0;idirac<nc*ndirac;idirac+=nc){
 				Complex_f X1s[nc];	 Complex_f X1su[nc];
 				Complex_f X2s[nc];	 Complex_f X2su[nc];
@@ -230,9 +229,9 @@ namespace Kernels{
 						 +conj(X1su[0])*(conj(u11s)*X2s[0]+u12s *X2s[1])
 						 +conj(X1su[1])*(conj(u12s)*X2s[0]-u11s *X2s[1]))).imag();
 			}
-				dSdpi[i+kvol*mu]+=dSdpis[0];
-				dSdpi[i+kvol*(ndim+mu)]+=dSdpis[1];
-				dSdpi[i+kvol*(2*ndim+mu)]+=dSdpis[2];
+			dSdpi[i+kvol*mu]+=dSdpis[0];
+			dSdpi[i+kvol*(ndim+mu)]+=dSdpis[1];
+			dSdpi[i+kvol*(2*ndim+mu)]+=dSdpis[2];
 		}
 	}
 	/**
@@ -255,21 +254,22 @@ namespace Kernels{
 	__global__ __launch_bounds__(__BSIZE__) void cuForce_t(double * __restrict__ dSdpi,
 			const Complex_f * __restrict__ u11t, const Complex_f * __restrict__ u12t, const Complex_f * __restrict__ X1,
 			const Complex_f * __restrict__ X2, const __grid_constant__ Complex_f gamval[20],
-			const float * __restrict__ dk4m, const float * __restrict__ dk4p, const unsigned int * __restrict__ iu,
-			const __grid_constant__ unsigned short gamin[16]){
+			const __grid_constant__ float dk4m, const __grid_constant__ float dk4p,
+			const __grid_constant__ bool flip_bound){
 		const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 		const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
 		volatile const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-		volatile const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+		const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 		const unsigned int gthreadId= blockId * bsize+bthreadId;
 
 		const unsigned short mu=3;
 		for(unsigned int i=gthreadId;i<kvol;i+=gsize*bsize){
 			unsigned int ind=i+kvolHalo*mu;
 			const Complex_f u11s=u11t[ind];	const Complex_f u12s=u12t[ind];
-			const float dk4ms=dk4m[i];	const float dk4ps=dk4p[i];
+			const	float dk4ms = (flip_bound && i>kvol-kvol3) ? -dk4m:dk4m;
+			const	float dk4ps = (flip_bound && i>kvol-kvol3) ? -dk4p:dk4p;
 			//Up indices
-			const unsigned int uid = iu[i+kvol*mu];
+			const unsigned int uid = Device::HaloIndex(i,mu,UP,bthreadId);
 			//Similarly to Hdslash we always see idirac*nc so we do that here too.
 			float dSdpis[3]={0,0,0};
 			for(unsigned short idirac=0;idirac<ndirac*nc;idirac+=nc){
@@ -398,10 +398,10 @@ void cuForce(double *dSdpi, Complex_f *ut[2], Complex_f *X1, Complex_f *X2, \
 	cudaDeviceSynchronise();
 #pragma unroll
 	for(unsigned short mu=0;mu<3;mu++){
-		Kernels::cuForce_s<<<dimGrid,dimBlock,0,streams[mu]>>>(dSdpi,ut[0],ut[1],X1,X2,gamval,iu,gamin,akappa,mu);
+		Kernels::cuForce_s<<<dimGrid,dimBlock,0,streams[mu]>>>(dSdpi,ut[0],ut[1],X1,X2,gamval,akappa,mu);
 	}
 	//Set stream for time direction
 	unsigned short mu=3;
-	Kernels::cuForce_t<<<dimGrid,dimBlock,0,streams[mu]>>>(dSdpi,ut[0],ut[1],X1,X2,gamval,dk[0],dk[1],iu,gamin);
+	Kernels::cuForce_t<<<dimGrid,dimBlock,0,streams[mu]>>>(dSdpi,ut[0],ut[1],X1,X2,gamval,dk[0][0],dk[1][0],flip_bound);
 	cudaDeviceSynchronise();
 }
