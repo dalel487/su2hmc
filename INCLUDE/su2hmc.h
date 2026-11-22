@@ -35,6 +35,9 @@
 extern "C"
 {
 #endif
+	/// @brief Periodic boundary conditions (true) or anti-periodic (false)
+	extern const bool pbound;
+	extern bool flip_bound;
 	/**
 	 *	@brief Calculates the force @f$\frac{dS}{d\pi}@f$ at each intermediate time
 	 *	@ingroup MD
@@ -136,7 +139,7 @@ extern "C"
 	 * @return Zero on success, integer error code otherwise
 	 * @post	Contents of all out arguments overwritten
 	 */
-	int Init(const int istart, const int ibound, const int iread, const float beta, const float fmu, const float akappa,\
+	int Init(const int istart, const int iread, const float beta, const float fmu, const float akappa,\
 			const Complex_f ajq, const float c_sw, Complex *u[2], Complex *ut[2], Complex_f *ut_f[2], Complex gamval[20],\
 			Complex_f gamval_f[20], unsigned short gamin[16], double *dk[2], float *dk_f[2],\
 			unsigned int *iu, unsigned int *id);

@@ -49,6 +49,9 @@ cublasStatus_t cublas_status;
 cudaMemPool_t mempool;
 //Fix this later
 #endif
+//Periodic boundary conditions (true) or anti-periodic (false)
+const bool pbound=false;
+bool flip_bound;
 /**
  * For the early phases of this translation, I'm going to try and
  * copy the original format as much as possible and keep things
@@ -111,7 +114,6 @@ int main(int argc, char *argv[]){
 	float fmu = 0.0f;	int iread = 0;	int istart = 1;
 	int iprint = 1; //How often are measurements made
 	int icheck = 5; //How often are configurations saved
-	int ibound = -1;
 
 	float dt=0.004;	float c_sw = 0.0;	float delb=0; //Not used?
 	float ajq = 0.0;	int stepl = 250;	int ntraj = 10;
@@ -137,14 +139,14 @@ int main(int argc, char *argv[]){
 	}
 	//Send inputs to other ranks
 #if(nproc>1)
-		if(c_sw!=0){
-			fprintf(stderr,"Error %i in %s: Multiple MPI Ranks are not currently supported for the clover action.\n"\
-					"This is due to the corner halo terms needed to compute the clover force not being implemented.\n"\
-					"Please recompile for a single MPI rank or run with c_sw=0.\n"\
-					"\nExiting...\n\n",NOIMPL,funcname);
-			MPI_Abort(comm,NOIMPL);
-			exit(NOIMPL);
-		}
+	if(c_sw!=0){
+		fprintf(stderr,"Error %i in %s: Multiple MPI Ranks are not currently supported for the clover action.\n"\
+				"This is due to the corner halo terms needed to compute the clover force not being implemented.\n"\
+				"Please recompile for a single MPI rank or run with c_sw=0.\n"\
+				"\nExiting...\n\n",NOIMPL,funcname);
+		MPI_Abort(comm,NOIMPL);
+		exit(NOIMPL);
+	}
 	Par_fcopy(&dt); Par_fcopy(&beta); Par_fcopy(&akappa); Par_fcopy(&ajq);
 	Par_fcopy(&c_sw); Par_fcopy(&fmu); Par_fcopy(&delb); //Not used?
 	Par_icopy(&stepl); Par_icopy(&ntraj); Par_icopy(&istart); Par_icopy(&icheck);
@@ -207,13 +209,8 @@ int main(int argc, char *argv[]){
 
 	cudaMallocManaged((void **)&dk[0],(kvolHalo)*sizeof(double),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&dk[1],(kvolHalo)*sizeof(double),cudaMemAttachGlobal);
-#ifdef _DEBUG
 	cudaMallocManaged((void **)&dk_f[0],(kvolHalo)*sizeof(float),cudaMemAttachGlobal);
 	cudaMallocManaged((void **)&dk_f[1],(kvolHalo)*sizeof(float),cudaMemAttachGlobal);
-#else
-	cudaMalloc((void **)&dk_f[0],(kvolHalo)*sizeof(float));
-	cudaMalloc((void **)&dk_f[1],(kvolHalo)*sizeof(float));
-#endif
 
 	unsigned short	*gamin; Complex *gamval; Complex_f *gamval_f;
 	cudaMallocManaged((void **)&gamin,4*4*sizeof(short),cudaMemAttachGlobal);
@@ -231,8 +228,8 @@ int main(int argc, char *argv[]){
 #else
 	cudaMalloc((void **)&ut_f[0],ndim*(kvolHalo)*sizeof(Complex_f));
 	cudaMalloc((void **)&ut_f[1],ndim*(kvolHalo)*sizeof(Complex_f));
-//	cudaMalloc((void **)&ut[0],ndim*(kvolHalo)*sizeof(Complex));
-//	cudaMalloc((void **)&ut[1],ndim*(kvolHalo)*sizeof(Complex));
+	//	cudaMalloc((void **)&ut[0],ndim*(kvolHalo)*sizeof(Complex));
+	//	cudaMalloc((void **)&ut[1],ndim*(kvolHalo)*sizeof(Complex));
 #endif
 #else
 	id = (unsigned int*)aligned_alloc(AVX,ndim*kvol*sizeof(int));
@@ -265,9 +262,11 @@ int main(int argc, char *argv[]){
 	 *
 	 * istart > 0: Random/Hot Start
 	 */
-	Init(istart,ibound,iread,beta,fmu,akappa,ajq,c_sw,u,ut,ut_f,gamval,gamval_f,gamin,dk,dk_f,iu,id);
+	Init(istart,iread,beta,fmu,akappa,ajq,c_sw,u,ut,ut_f,gamval,gamval_f,gamin,dk,dk_f,iu,id);
 	if(c_sw)
 		Init_clover(&sigval,&sigval_f,&sigin,c_sw);
+	//GPU: Flip boundary sign
+	flip_bound=(!pbound && pcoord[3+ndim*rank]==npt-1)?true:false;
 
 	/// @f$\sigma_{\mu\nu}@f$ if we're using clover fermions
 #ifdef USE_GPU

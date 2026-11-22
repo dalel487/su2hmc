@@ -7,7 +7,7 @@
 #include <clover.h>
 #include	<matrices.h>
 
-int Init(const int istart, const int ibound, const int iread, const float beta, const float fmu, const float akappa,\
+int Init(const int istart, const int iread, const float beta, const float fmu, const float akappa,\
 			const Complex_f ajq, const float c_sw, Complex *u[2], Complex *ut[2], Complex_f *ut_f[2], Complex gamval[20],\
 			Complex_f gamval_f[20], unsigned short gamin[16], double *dk[2], float *dk_f[2],\
 			unsigned int *iu, unsigned int *id){
@@ -35,7 +35,7 @@ int Init(const int istart, const int ibound, const int iread, const float beta, 
 	}
 	//Anti periodic Boundary Conditions. Flip the terms at the edge of the time
 	//direction
-	if(ibound == -1 && pcoord[3+ndim*rank]==npt-1){
+	if(!pbound && pcoord[3+ndim*rank]==npt-1){
 #ifdef _DEBUG
 		printf("Implementing antiperiodic boundary conditions on rank %i\n", rank);
 #endif

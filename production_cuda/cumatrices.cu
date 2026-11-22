@@ -458,8 +458,9 @@ namespace Kernels{
 	template <typename T>
 		__global__ __launch_bounds__(__BSIZE__) HDSLASH_ATTR void cuHdslashd(complex<T> * __restrict__ phi, const complex<T>* __restrict__  r, 
 				const complex<T>* __restrict__  u11t, const complex<T>* __restrict__  u12t,
-				const __grid_constant__ complex<T> gamval_G[20],	const __grid_constant__ unsigned short gamin_G[16],
-				const T* __restrict__  dk4m, const T* __restrict__  dk4p, const __grid_constant__ float akappa){
+				const __grid_constant__ complex<T> gamval_G[20], const __grid_constant__ T dk4m, 
+				const __grid_constant__ T dk4p, const __grid_constant__ float akappa,
+				const __grid_constant__ bool flip_bound){
 			/*
 			 * Half Dslash Dagger T precision 
 			 */
@@ -551,7 +552,8 @@ namespace Kernels{
 							const complex<T> rgu[2]={r[uid+ind],r[uid+ind+kvolHalo]};
 							const complex<T> rgd[2]={r[did+ind],r[did+ind+kvolHalo]};
 
-							T dk4s=dk4m[i];
+							//T dk4s=dk4m[i];
+							T dk4s = (flip_bound && i>kvol-kvol3) ? -dk4m:dk4m;
 							//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 							//Note that CUDA is smart enough to reuse the additions/subtractions here later on ru[0]+rgu[0]
 							//gets kept in Register 39 on the test machine if you're interested!
@@ -560,7 +562,8 @@ namespace Kernels{
 							phi_s[idirac+1]-= dk4s*(-conj(u12s)*(ru[0]+rgu[0])
 									+conj(u11s)*(ru[1]+rgu[1]));
 
-							dk4s=dk4p[did];
+							//dk4s=dk4p[did];
+							dk4s = (flip_bound && did>kvol-kvol3) ? -dk4p:dk4p;
 							phi_s[idirac]+= -dk4s*(conj(u11sd)*(rd[0]-rgd[0])
 									-u12sd *(rd[1]-rgd[1]));
 							phi_s[idirac+1]-= +dk4s*(conj(u12sd)*(rd[0]-rgd[0])
@@ -747,7 +750,7 @@ void cuHdslashd(Complex *phi, Complex *r, Complex *ut[nc],unsigned int *iu,unsig
 		Complex gamval[20], const unsigned short gamin[16],double *dk[nc], float akappa, 
 		dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Hdslashd";
-	Kernels::cuHdslashd<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],gamval,gamin,dk[0],dk[1],akappa);
+	Kernels::cuHdslashd<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],gamval,dk[0][0],dk[1][0],akappa,flip_bound);
 	return;
 }
 
@@ -793,7 +796,8 @@ void cuHdslash_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *i
 void cuHdslashd_f(Complex_f *phi, Complex_f *r, Complex_f *ut[nc],unsigned int *iu,unsigned int *id,
 		Complex_f gamval[20],const unsigned short gamin[16],float *dk[nc], float akappa,dim3 dimGrid, dim3 dimBlock){
 	const char funcname[] = "Hdslashd_f";
-	Kernels::cuHdslashd<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],gamval,gamin,dk[0],dk[1],akappa);
+	const float dk4m=dk[0][0]; const float dk4p=dk[1][0];
+	Kernels::cuHdslashd<<<dimGrid,dimBlock>>>(phi,r,ut[0],ut[1],gamval,dk4m,dk4p,akappa,flip_bound);
 	return;
 }
 
