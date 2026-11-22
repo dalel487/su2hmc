@@ -86,6 +86,7 @@ CUSRC=	\
 		cuclover.cu\
 		cumatrices.cu\
 		cuforce.cu\
+		cucoord.cu\
 		cusu2hmc.cu
 
 #CUSRC= CUDA_Compile.cu
