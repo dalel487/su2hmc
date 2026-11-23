@@ -614,10 +614,10 @@ namespace Kernels{
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
 			const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 			const unsigned int gthreadId= blockId * bsize+bthreadId;
-			__shared__ complex<T> sigval[24];
 #ifdef __HIP_PLATFORM_AMD__
 			const complex<T> *sigval = sigval_G;
 #else
+			__shared__ complex<T> sigval[24];
 #pragma unroll
 			for(unsigned short i=gthreadId%__BSIZE__;i<24;i+=bsize){
 				sigval[i]=sigval_G[i];
