@@ -8,7 +8,7 @@
 namespace Device{
 	///@brief Halo sizes. Mu index is slowest moving. Then down spacing, then up spacing.
 	#ifdef __HIP_PLATFORM_AMD__
-	__device__
+	__device__ const
 	#else
 	__constant__ 
 	#endif
@@ -18,14 +18,14 @@ namespace Device{
 		{kvol+2*halox+2*haloy+2*haloz, kvol+2*halox+2*haloy+2*haloz+halot}};
 	///@brief Lattice extents
 	#ifdef __HIP_PLATFORM_AMD__
-	__device__
+	__device__ const
 	#else
 	__constant__ 
 	#endif
 	unsigned short kind[ndim]={ksizex,ksizey,ksizez,ksizet};
 	///@brief Processor grid sizes
 	#ifdef __HIP_PLATFORM_AMD__
-	__device__
+	__device__ const
 	#else
 	__constant__ 
 	#endif

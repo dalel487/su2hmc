@@ -66,5 +66,11 @@ namespace Device{
 			const unsigned short tid);
 }
 namespace Kernels{
-	extern __constant__ unsigned short gamin[16];
+	extern
+	#ifdef __HIP_PLATFORM_AMD__
+	__device__ const
+	#else
+	__constant__ 
+	#endif
+	unsigned short gamin[16];
 }
