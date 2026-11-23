@@ -653,12 +653,15 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 				alpha=alphan/creal(alphad);
 				/// @f$x+\alpha p@f$ 
 #ifdef USE_GPU
-				alignas(8) Complex_f alpha_f = (Complex_f)alpha;
+				//alignas(8) Complex_f alpha_f = (Complex_f)alpha;
+				alignas(8) float alpha_f = (float)creal(alpha);
 #if (nproc>1)
 				for(unsigned short j=0;j<nc*ndirac;j++)
-					cublasCaxpy(cublas_handle,kvol,(cuComplex *)&alpha_f,(cuComplex *)p_f+j*kvolHalo,1,(cuComplex *)X1_f+j*kvol,1);
+					cublasSaxpy(cublas_handle,2*kvol,&alpha_f,(float *)p_f+j*2*kvolHalo,1,(float *)X1_f+j*2*kvol,1);
+					//cublasCaxpy(cublas_handle,kvol,(cuComplex *)&alpha_f,(cuComplex *)p_f+j*kvolHalo,1,(cuComplex *)X1_f+j*kvol,1);
 #else
-				cublasCaxpy(cublas_handle,kferm2,(cuComplex *)&alpha_f,(cuComplex *)p_f,1,(cuComplex *)X1_f,1);
+				cublasSaxpy(cublas_handle,2*kferm2,&alpha_f,(float *)p_f,1,(float *)X1_f,1);
+				//cublasCaxpy(cublas_handle,kferm2,(cuComplex *)&alpha_f,(cuComplex *)p_f,1,(cuComplex *)X1_f,1);
 #endif
 #elif defined USE_BLAS
 				Complex_f alpha_f = (Complex_f)alpha;
@@ -674,8 +677,10 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			/// @f$r_{n+1} = r_n-\alpha(M^\dagger M)p_n@f$ and @f$\beta_n=r^\dagger r@f$
 			// And no Halos here so nice and easy
 #ifdef	USE_GPU
-			alignas(8) __managed__ Complex_f alpha_m=(Complex_f)(-alpha);
-			cublasCaxpy(cublas_handle, kferm2,(cuComplex *)&alpha_m,(cuComplex *)x2_f,1,(cuComplex *)r_f,1);
+			//alignas(8) __managed__ Complex_f alpha_m=(Complex_f)(-alpha);
+			alignas(8) __managed__ float alpha_m=(float)(-creal(alpha));
+			//cublasCaxpy(cublas_handle, kferm2,(cuComplex *)&alpha_m,(cuComplex *)x2_f,1,(cuComplex *)r_f,1);
+			cublasSaxpy(cublas_handle, 2*kferm2,&alpha_m,(float *)x2_f,1,(float *)r_f,1);
 			alignas(8) float betan_f;
 			cublasScnrm2(cublas_handle,kferm2,(cuComplex *)r_f,1,&betan_f);
 			betan = betan_f*betan_f;
@@ -735,16 +740,20 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 			//BLAS for p=r+\betap doesn't exist in standard BLAS. This is NOT an axpy case as we're multiplying y by
 			//\beta instead of x.
 #ifdef USE_GPU
-			alignas(8) Complex_f beta_f=(Complex_f)beta;
+			//alignas(8) Complex_f beta_f=(Complex_f)beta;
+			alignas(8) float beta_f=(float)creal(beta);
 			alpha_m = 1.0;
 #if (nproc>1)
 			for(unsigned short j=0;j<nc*ndirac;j++){
-				cublasCscal(cublas_handle,kvol,(cuComplex *)&beta_f,(cuComplex *)p_f+j*kvolHalo,1);
-				cublasCaxpy(cublas_handle,kvol,(cuComplex *)&alpha_m,(cuComplex *)r_f+j*kvolHalo,1,(cuComplex *)p_f+j*kvolHalo,1);
+				//cublasCscal(cublas_handle,kvol,(cuComplex *)&beta_f,(cuComplex *)p_f+j*kvolHalo,1);
+				cublasSscal(cublas_handle,2*kvol,&beta_f,(float *)p_f+j*2*kvolHalo,1);
+//				cublasCaxpy(cublas_handle,kvol,(cuComplex *)&alpha_m,(cuComplex *)r_f+j*kvolHalo,1,(cuComplex *)p_f+j*kvolHalo,1);
+				cublasSaxpy(cublas_handle,2*kvol,&alpha_m,(float *)r_f+j*2*kvolHalo,1,(float *)p_f+j*2*kvolHalo,1);
 			}
 #else
-			cublasCscal(cublas_handle,kferm2,(cuComplex *)&beta_f,(cuComplex *)p_f,1);
-			cublasCaxpy(cublas_handle,kferm2,(cuComplex *)&alpha_m,(cuComplex *)r_f,1,(cuComplex *)p_f,1);
+//			cublasCscal(cublas_handle,kferm2,(cuComplex *)&beta_f,(cuComplex *)p_f,1);
+			cublasSscal(cublas_handle,2*kferm2,&beta_f,(float *)p_f,1);
+			cublasSaxpy(cublas_handle,2*kferm2,&alpha_m,(float *)r_f,1,(float *)p_f,1);
 #endif
 #elif (defined __USE_MKL__||defined OPENBLAS||defined AMD_BLAS)
 			Complex_f a = 1.0;
