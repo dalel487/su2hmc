@@ -37,7 +37,12 @@ namespace Device{
 }
 namespace Kernels{
 
-	__constant__ unsigned short gamin[16] = {3,2,1,0, 3,2,1,0, 2,3,0,1, 2,3,0,1};
+	#ifdef __HIP_PLATFORM_AMD__
+	__device__ const
+	#else
+	__constant__ 
+	#endif
+	unsigned short gamin[16] = {3,2,1,0, 3,2,1,0, 2,3,0,1, 2,3,0,1};
 	/**
 	 * @brief Evaluates @f$\Phi=M r@f$
 	 * @ingroup Dslashes

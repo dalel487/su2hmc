@@ -8,11 +8,29 @@
 #include <par_mpi.h>
 namespace Device{
 	///@brief Halo sizes. Mu index is slowest moving. Then down spacing, then up spacing.
-	extern __constant__ unsigned int hsize[ndim][nc];
+	extern
+	#ifdef __HIP_PLATFORM_AMD__
+	__device__
+	#else
+	__constant__ 
+	#endif
+	unsigned int hsize[ndim][nc];
 	///@brief Lattice extents
-	extern __constant__ unsigned short kind[ndim];
+	extern
+	#ifdef __HIP_PLATFORM_AMD__
+	__device__
+	#else
+	__constant__ 
+	#endif
+	unsigned short kind[ndim];
 	///@brief Processor grid sizes
-	extern __constant__ unsigned short np[ndim];
+	extern
+	#ifdef __HIP_PLATFORM_AMD__
+	__device__
+	#else
+	__constant__ 
+	#endif
+	unsigned short np[ndim];
 
 	//Don't use const here. index is passed by value
 	/**

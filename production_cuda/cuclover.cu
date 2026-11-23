@@ -283,7 +283,12 @@ namespace Device{
 ///CUDA Kernels
 namespace Kernels{
 	///@brief sigma matrix indices stored flat
-	__constant__ unsigned short sigin[6*4] =	{0,1,2,3,1,0,3,2,1,0,3,2,1,0,3,2,1,0,3,2,0,1,2,3};
+	#ifdef __HIP_PLATFORM_AMD__
+	__device__ const
+	#else
+	__constant__ 
+	#endif
+	unsigned short sigin[6*4] =	{0,1,2,3,1,0,3,2,1,0,3,2,1,0,3,2,1,0,3,2,0,1,2,3};
 	using namespace Device;
 	/**
 	 *	@brief Calculates the products of the first two links in a plaquette
@@ -386,12 +391,16 @@ namespace Kernels{
 			const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 			const unsigned int gthreadId= blockId * bsize+bthreadId;
 
+#ifdef __HIP_PLATFORM_AMD__
+			const complex<T> *sigval = sigval_G;
+#else
 			__shared__ complex<T> sigval[24]; 
 #pragma unroll
 			for(unsigned short i=gthreadId%__BSIZE__;i<24;i+=bsize){
 				sigval[i]=sigval_G[i];
 			}
 			__syncthreads();
+#endif
 			//Get sign and index of @f$\sigma_{\mu\nu}@f correct
 			for(unsigned int i=gthreadId;i<kvol;i+=gsize*bsize){
 				//Buffer. Four registers
@@ -606,11 +615,15 @@ namespace Kernels{
 			const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 			const unsigned int gthreadId= blockId * bsize+bthreadId;
 			__shared__ complex<T> sigval[24];
+#ifdef __HIP_PLATFORM_AMD__
+			const complex<T> *sigval = sigval_G;
+#else
 #pragma unroll
 			for(unsigned short i=gthreadId%__BSIZE__;i<24;i+=bsize){
 				sigval[i]=sigval_G[i];
 			}
 			__syncthreads();
+#endif
 
 			for(unsigned int i=gthreadId;i<kvol;i+=bsize*gsize){
 				//Prefetched r and Phi array
@@ -675,21 +688,25 @@ namespace Kernels{
 			const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 			const unsigned int gthreadId= blockId * bsize+bthreadId;
 
+#ifdef __HIP_PLATFORM_AMD__
+			const complex<T> *sigval = sigval_G;
+#else
 			__shared__ complex<T> sigval[24];
-//#pragma unroll
+			//#pragma unroll
 			for(unsigned short i=gthreadId%__BSIZE__;i<24;i+=bsize){
 				sigval[i]=sigval_G[i];
 			}
 			__syncthreads();
+#endif
 			for(unsigned int i=gthreadId;i<kvol;i+=bsize*gsize){
 				//Prefetched r and Phi array
 				complex<T> phi_s[ndirac*nc];
-//#pragma unroll
+				//#pragma unroll
 				for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc)
 					for(unsigned short c=0; c<nc; c++){
 						phi_s[idirac+c]=0;
 					}
-//#pragma unroll
+				//#pragma unroll
 				for(unsigned short clov=0;clov<6;clov++){
 					const T clov_a=creal(clover1[clov*kvol+i]);
 					const complex<T> clov_b=clover2[clov*kvol+i];
@@ -705,7 +722,7 @@ namespace Kernels{
 						phi_s[idirac+1]+=sig*(conj(clov_b)*r_s[0]-clov_a*r_s[1]);
 					}
 				}
-//#pragma unroll
+				//#pragma unroll
 				for(unsigned short idirac=0; idirac<ndirac*nc; idirac++)
 					//dag is just to do with the output layout and if it has a halo
 					if(dag)

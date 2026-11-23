@@ -7,14 +7,29 @@
 #include <cucoord.h>
 namespace Device{
 	///@brief Halo sizes. Mu index is slowest moving. Then down spacing, then up spacing.
-	__constant__ unsigned int hsize[ndim][nc]={{kvol,kvol+halox},
+	#ifdef __HIP_PLATFORM_AMD__
+	__device__
+	#else
+	__constant__ 
+	#endif
+	unsigned int hsize[ndim][nc]={{kvol,kvol+halox},
 		{kvol+2*halox,kvol+2*halox+haloy},
 		{kvol+2*halox+2*haloy, kvol+2*halox+2*haloy+haloz},
 		{kvol+2*halox+2*haloy+2*haloz, kvol+2*halox+2*haloy+2*haloz+halot}};
 	///@brief Lattice extents
-	__constant__ unsigned short kind[ndim]={ksizex,ksizey,ksizez,ksizet};
+	#ifdef __HIP_PLATFORM_AMD__
+	__device__
+	#else
+	__constant__ 
+	#endif
+	unsigned short kind[ndim]={ksizex,ksizey,ksizez,ksizet};
 	///@brief Processor grid sizes
-	__constant__ unsigned short np[ndim]={npx,npy,npz,npt};
+	#ifdef __HIP_PLATFORM_AMD__
+	__device__
+	#else
+	__constant__ 
+	#endif
+	unsigned short np[ndim]={npx,npy,npz,npt};
 
 	//Don't use const here. index is passed by value
 	/**
