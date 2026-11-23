@@ -10,7 +10,7 @@ namespace Device{
 	///@brief Halo sizes. Mu index is slowest moving. Then down spacing, then up spacing.
 	extern
 	#ifdef __HIP_PLATFORM_AMD__
-	__device__
+	__device__ const
 	#else
 	__constant__ 
 	#endif
@@ -18,7 +18,7 @@ namespace Device{
 	///@brief Lattice extents
 	extern
 	#ifdef __HIP_PLATFORM_AMD__
-	__device__
+	__device__ const
 	#else
 	__constant__ 
 	#endif
@@ -26,7 +26,7 @@ namespace Device{
 	///@brief Processor grid sizes
 	extern
 	#ifdef __HIP_PLATFORM_AMD__
-	__device__
+	__device__ const
 	#else
 	__constant__ 
 	#endif
