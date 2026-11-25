@@ -61,11 +61,11 @@ LFLAGS	+=	-lm $(shell gsl-config --libs)
 endif
 LFLAGS	+=	-lm $(shell gsl-config --libs-without-cblas)
 
-CULFLAGS= -L/usr/lib64/rocm/lib -lamdhip64 -lhipblas
+CULFLAGS= -L/usr/lib64/rocm/lib -lamdhip64 -lhipblas -foffload-lto
 
 LFLAGS += -lpthread -ldl #${CULFLAGS}
 
-NVCCFLAGS+=	${IFLAGS} -w --offload-arch=gfx1030  #-expt-relaxed-constexpr 
+NVCCFLAGS+=	${IFLAGS} -w --offload-arch=gfx1030  -foffload-lto #-expt-relaxed-constexpr 
 
 EXE=	su2hmc_HIP
 
