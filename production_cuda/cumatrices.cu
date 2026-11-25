@@ -37,12 +37,12 @@ namespace Device{
 }
 namespace Kernels{
 
-	#ifdef __HIP_PLATFORM_AMD__
+#ifdef __HIP_PLATFORM_AMD__
 	__device__ const
-	#else
-	__constant__ 
-	#endif
-	unsigned short gamin[16] = {3,2,1,0, 3,2,1,0, 2,3,0,1, 2,3,0,1};
+#else
+		__constant__ 
+#endif
+		unsigned short gamin[16] = {3,2,1,0, 3,2,1,0, 2,3,0,1, 2,3,0,1};
 	/**
 	 * @brief Evaluates @f$\Phi=M r@f$
 	 * @ingroup Dslashes
@@ -72,7 +72,7 @@ namespace Kernels{
 			const unsigned int gthreadId= blockId * bsize+bthreadId;
 
 #ifdef __HIP_PLATFORM_AMD__
-				const complex<T> *gamval = gamval_G;
+			const complex<T> *gamval = gamval_G;
 #else
 			__shared__ complex<T> gamval[20];
 #pragma unroll
@@ -357,7 +357,7 @@ namespace Kernels{
 			unsigned int ind;
 			for(unsigned int i=gthreadId;i<kvol;i+=bsize*gsize){
 				complex<T> phi_s[ndirac*nc];
-			//Right. Time to prefetch
+				//Right. Time to prefetch
 #pragma unroll
 				for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll
@@ -369,29 +369,26 @@ namespace Kernels{
 
 				//#pragma unroll
 				for(unsigned short mu = 0; mu <ndim; mu++){
-					const unsigned int did = Device::HaloIndex(i,mu,DOWN,bthreadId);
-					const unsigned int uid = Device::HaloIndex(i,mu,UP,bthreadId);
 					ind=i+kvolHalo*mu;
 					const complex<T> u11s=u11t[ind];	const complex<T> u12s=u12t[ind];
+					const unsigned int did = Device::HaloIndex(i,mu,DOWN,bthreadId);
 					ind=did+kvolHalo*mu;
 					const complex<T> u11sd=u11t[ind];	const complex<T> u12sd=u12t[ind];
+					const unsigned int uid = Device::HaloIndex(i,mu,UP,bthreadId);
 #pragma unroll
 					for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
-						//Can manually vectorise with a pragma?
-						//Wilson + Dirac term in that order. Definitely easier
-						//to read when split into different loops, but should be faster this way
+						ind =kvolHalo*idirac;
+						//The +kvolHalo is a faster way of getting the second colour index than an unrolled for loop.
+						const complex<T> ru[2]={r[uid+ind],r[uid+ind+kvolHalo]};
+						const complex<T> rd[2]={r[did+ind],r[did+ind+kvolHalo]};
+						const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
+						ind =kvolHalo*igork1;
+						const complex<T> rgu[2]={r[uid+ind],r[uid+ind+kvolHalo]};
+						const complex<T> rgd[2]={r[did+ind],r[did+ind+kvolHalo]};
+
 						//Spacelike terms
 						if(mu<3){
 							const complex<T> gam=gamval[mu*ndirac+(idirac>>1)];
-							ind =kvolHalo*idirac;
-							//The +kvolHalo is a faster way of getting the second colour index than an unrolled for loop.
-							const complex<T> ru[2]={r[uid+ind],r[uid+ind+kvolHalo]};
-							const complex<T> rd[2]={r[did+ind],r[did+ind+kvolHalo]};
-							const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
-							ind =kvolHalo*igork1;
-							const complex<T> rgu[2]={r[uid+ind],r[uid+ind+kvolHalo]};
-							const complex<T> rgd[2]={r[did+ind],r[did+ind+kvolHalo]};
-
 							//Factorising for performance, we get u1?*(+/-r_wilson -/+ r_dirac)
 							phi_s[idirac]-=u11s*(akappa*ru[0]-gam*rgu[0])
 								+u12s*(akappa*ru[1]-gam*rgu[1]);
@@ -405,19 +402,9 @@ namespace Kernels{
 						}
 						//Timelike terms
 						else{
-							ind =kvolHalo*idirac;
-							const complex<T> ru[2]={r[uid+ind],r[uid+ind+kvolHalo]};
-							const complex<T> rd[2]={r[did+ind],r[did+ind+kvolHalo]};
-
-							const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
-							ind =kvolHalo*igork1;
-							const complex<T> rgu[2]={r[uid+ind],r[uid+ind+kvolHalo]};
-							const complex<T> rgd[2]={r[did+ind],r[did+ind+kvolHalo]};
-
 							T dk4s = (flip_bound && i>kvol-kvol3) ? -dk4p:dk4p;
+
 							//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
-
-
 							phi_s[idirac+0]-= dk4s*(u11s*(ru[0]-rgu[0])
 									+u12s*(ru[1]-rgu[1]));
 							phi_s[idirac+1]-= dk4s*(-conj(u12s)*(ru[0]-rgu[0])
@@ -480,7 +467,7 @@ namespace Kernels{
 			unsigned int ind;
 			for(unsigned int i=gthreadId;i<kvol;i+=gsize*bsize){
 				complex<T> phi_s[ndirac*nc];
-			//Right. Time to prefetch
+				//Right. Time to prefetch
 #pragma unroll
 				for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll
@@ -493,28 +480,28 @@ namespace Kernels{
 				//#pragma unroll
 				for(unsigned short mu = 0; mu <ndim; mu++){
 					ind=i+kvolHalo*mu;
-					const unsigned int did = Device::HaloIndex(i,mu,DOWN,bthreadId);
-					const unsigned int uid = Device::HaloIndex(i,mu,UP,bthreadId);
 					const complex<T> u11s=u11t[ind];	const complex<T> u12s=u12t[ind];
+					const unsigned int did = Device::HaloIndex(i,mu,DOWN,bthreadId);
 					ind=did+kvolHalo*mu;
 					const complex<T> u11sd=u11t[ind];	const complex<T> u12sd=u12t[ind];
+					const unsigned int uid = Device::HaloIndex(i,mu,UP,bthreadId);
 #pragma unroll
 					for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc){
 						//Can manually vectorise with a pragma?
 						//Wilson + Dirac term in that order. Definitely easier
 						//to read when split into different loops, but should be faster this way
 						//Spacelike terms
+						ind =kvolHalo*idirac;
+						//The +kvolHalo is the same as accessing the second colour in memory, but faster!
+						const complex<T> ru[2]={r[uid+ind],r[uid+ind+kvolHalo]};
+						const complex<T> rd[2]={r[did+ind],r[did+ind+kvolHalo]};
+						const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
+						ind =kvolHalo*igork1;
+						const complex<T> rgu[2]={r[uid+ind],r[uid+ind+kvolHalo]};
+						const complex<T> rgd[2]={r[did+ind],r[did+ind+kvolHalo]};
+
 						if(mu<3){
 							const complex<T> gam = gamval[mu*ndirac+(idirac>>1)];
-							ind =kvolHalo*idirac;
-							//The +kvolHalo is the same as accessing the second colour in memory, but faster!
-							const complex<T> ru[2]={r[uid+ind],r[uid+ind+kvolHalo]};
-							const complex<T> rd[2]={r[did+ind],r[did+ind+kvolHalo]};
-							const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
-							ind =kvolHalo*igork1;
-							const complex<T> rgu[2]={r[uid+ind],r[uid+ind+kvolHalo]};
-							const complex<T> rgd[2]={r[did+ind],r[did+ind+kvolHalo]};
-
 							//Factorising for performance, we get u1?*(+/-r_wilson -/+ r_dirac)
 							phi_s[idirac]-=u11s*(akappa*ru[0]+gam*rgu[0])
 								+u12s*(akappa*ru[1]+gam*rgu[1]);
@@ -528,15 +515,6 @@ namespace Kernels{
 						}
 						//Timelike terms
 						else{
-							ind =kvolHalo*idirac;
-							const complex<T> ru[2]={r[uid+ind],r[uid+ind+kvolHalo]};
-							const complex<T> rd[2]={r[did+ind],r[did+ind+kvolHalo]};
-
-							const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
-							ind =kvolHalo*igork1;
-							const complex<T> rgu[2]={r[uid+ind],r[uid+ind+kvolHalo]};
-							const complex<T> rgd[2]={r[did+ind],r[did+ind+kvolHalo]};
-
 							T dk4s = (flip_bound && i>kvol-kvol3) ? -dk4m:dk4m;
 							//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 							//Note that CUDA is smart enough to reuse the additions/subtractions here later on ru[0]+rgu[0]

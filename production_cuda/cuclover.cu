@@ -678,21 +678,21 @@ namespace Kernels{
 	 * @post Result added to @p phi.
 	 */
 	template <typename T>
-		__global__ __launch_bounds__(__BSIZE__) void HbyClover(complex<T> * phi,const complex<T> * __restrict__ r,
+		__global__ __launch_bounds__(__BSIZE__) void HbyClover(complex<T> * __restrict__  phi,const complex<T> * __restrict__ r,
 				const complex<T> * __restrict__ clover1,const complex<T> * __restrict__ clover2,
 				const __grid_constant__ complex<T> sigval_G[24], const __grid_constant__ float akappa,
 				const __grid_constant__ bool dag){
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
-			const unsigned int bsize = blockDim.x*blockDim.y*blockDim.z;
+			const unsigned short bsize = blockDim.x*blockDim.y*blockDim.z;
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
-			const unsigned int bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
+			const unsigned short bthreadId= (threadIdx.z * blockDim.y+ threadIdx.y)* blockDim.x+ threadIdx.x;
 			const unsigned int gthreadId= blockId * bsize+bthreadId;
 
 #ifdef __HIP_PLATFORM_AMD__
 			const complex<T> *sigval = sigval_G;
 #else
 			__shared__ complex<T> sigval[24];
-			//#pragma unroll
+			#pragma unroll
 			for(unsigned short i=gthreadId%__BSIZE__;i<24;i+=bsize){
 				sigval[i]=sigval_G[i];
 			}
@@ -701,7 +701,7 @@ namespace Kernels{
 			for(unsigned int i=gthreadId;i<kvol;i+=bsize*gsize){
 				//Prefetched r and Phi array
 				complex<T> phi_s[ndirac*nc];
-				//#pragma unroll
+				#pragma unroll
 				for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc)
 					for(unsigned short c=0; c<nc; c++){
 						phi_s[idirac+c]=0;
@@ -713,16 +713,16 @@ namespace Kernels{
 					//					clov_s[0]=; clov_s[1]=k$;
 #pragma unroll
 					for(unsigned short idirac=0; idirac<ndirac*nc; idirac+=nc){
-						const complex<T> sig=sigval[clov*ndirac+(idirac>>1)];
 						const unsigned int sind = i+kvolHalo*(sigin[clov*ndirac+(idirac>>1)] << (nc-1));
 						const complex<T> r_s[nc]={r[sind],r[sind+kvolHalo]}; 
+						const complex<T> sig=sigval[clov*ndirac+(idirac>>1)];
 						///Note that @f$\sigma_{\mu\nu}@f$ was scaled by @f$\frac{c_\text{SW}}{2}@f$ when we defined it.
 						phi_s[idirac+0]+=sig*(clov_a*r_s[0]+clov_b*r_s[1]);
 						//Clover is in the Lie Algebra, not Lie group. So signs are correct here.
 						phi_s[idirac+1]+=sig*(conj(clov_b)*r_s[0]-clov_a*r_s[1]);
 					}
 				}
-				//#pragma unroll
+				#pragma unroll
 				for(unsigned short idirac=0; idirac<ndirac*nc; idirac++)
 					//dag is just to do with the output layout and if it has a halo
 					if(dag)
