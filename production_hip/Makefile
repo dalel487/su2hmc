@@ -61,11 +61,11 @@ LFLAGS	+=	-lm $(shell gsl-config --libs)
 endif
 LFLAGS	+=	-lm $(shell gsl-config --libs-without-cblas)
 
-CULFLAGS= -L/usr/lib64/rocm/lib -lamdhip64 -lhipblas -foffload-lto
+CULFLAGS= -L/usr/lib64/rocm/lib -lamdhip64 -lhipblas #-foffload-lto #MI250X doesn't like foffload-lto with ROCm 7.2.4
 
 LFLAGS += -lpthread -ldl #${CULFLAGS}
 
-NVCCFLAGS+=	${IFLAGS} -w --offload-arch=gfx1030  -foffload-lto #-expt-relaxed-constexpr 
+NVCCFLAGS+=	${IFLAGS} -w --offload-arch=gfx1030  #-foffload-lto #-expt-relaxed-constexpr 
 
 EXE=	su2hmc_HIP
 
