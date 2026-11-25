@@ -357,6 +357,7 @@ namespace Kernels{
 			unsigned int ind;
 			for(unsigned int i=gthreadId;i<kvol;i+=bsize*gsize){
 				complex<T> phi_s[ndirac*nc];
+			//Right. Time to prefetch
 #pragma unroll
 				for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll
@@ -368,10 +369,10 @@ namespace Kernels{
 
 				//#pragma unroll
 				for(unsigned short mu = 0; mu <ndim; mu++){
-					ind=i+kvolHalo*mu;
-					const complex<T> u11s=u11t[ind];	const complex<T> u12s=u12t[ind];
 					const unsigned int did = Device::HaloIndex(i,mu,DOWN,bthreadId);
 					const unsigned int uid = Device::HaloIndex(i,mu,UP,bthreadId);
+					ind=i+kvolHalo*mu;
+					const complex<T> u11s=u11t[ind];	const complex<T> u12s=u12t[ind];
 					ind=did+kvolHalo*mu;
 					const complex<T> u11sd=u11t[ind];	const complex<T> u12sd=u12t[ind];
 #pragma unroll
@@ -386,12 +387,12 @@ namespace Kernels{
 							//The +kvolHalo is a faster way of getting the second colour index than an unrolled for loop.
 							const complex<T> ru[2]={r[uid+ind],r[uid+ind+kvolHalo]};
 							const complex<T> rd[2]={r[did+ind],r[did+ind+kvolHalo]};
-
 							const unsigned short igork1 = gamin[mu*ndirac+(idirac>>1)] << (nc-1);
 							ind =kvolHalo*igork1;
 							const complex<T> rgu[2]={r[uid+ind],r[uid+ind+kvolHalo]};
 							const complex<T> rgd[2]={r[did+ind],r[did+ind+kvolHalo]};
 
+							//Factorising for performance, we get u1?*(+/-r_wilson -/+ r_dirac)
 							phi_s[idirac]-=u11s*(akappa*ru[0]-gam*rgu[0])
 								+u12s*(akappa*ru[1]-gam*rgu[1]);
 							phi_s[idirac+1]-=-conj(u12s)*(akappa*ru[0]-gam*rgu[0])
@@ -415,6 +416,7 @@ namespace Kernels{
 
 							T dk4s = (flip_bound && i>kvol-kvol3) ? -dk4p:dk4p;
 							//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
+
 
 							phi_s[idirac+0]-= dk4s*(u11s*(ru[0]-rgu[0])
 									+u12s*(ru[1]-rgu[1]));
@@ -458,7 +460,6 @@ namespace Kernels{
 			/*
 			 * Half Dslash Dagger T precision 
 			 */
-
 			const unsigned int gsize = gridDim.x*gridDim.y*gridDim.z;
 			const unsigned short bsize = blockDim.x*blockDim.y*blockDim.z;
 			const unsigned int blockId = blockIdx.x+ blockIdx.y * gridDim.x+ gridDim.x * gridDim.y * blockIdx.z;
@@ -472,18 +473,14 @@ namespace Kernels{
 #pragma unroll
 			for(unsigned short i=gthreadId%__BSIZE__;i<20;i+=bsize)
 				gamval[i]=gamval_G[i];
-			//#pragma unroll
-			//			for(unsigned short i=gthreadId%__BSIZE__;i<16;i+=bsize)
-			//				gamin[i]=gamin_G[i];
 			__syncthreads();
 #endif
 
-
 			//Reuse values for indices to reduce registers needed to reevaluate
 			unsigned int ind;
-			//Right. Time to prefetch
 			for(unsigned int i=gthreadId;i<kvol;i+=gsize*bsize){
 				complex<T> phi_s[ndirac*nc];
+			//Right. Time to prefetch
 #pragma unroll
 				for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc)
 #pragma unroll
@@ -495,14 +492,11 @@ namespace Kernels{
 
 				//#pragma unroll
 				for(unsigned short mu = 0; mu <ndim; mu++){
-					ind=i+kvolHalo*mu;
-					const complex<T> u11s=u11t[ind];	const complex<T> u12s=u12t[ind];
-					//const unsigned int did = id[ind]; //const unsigned int uid = iu[ind];
 					const unsigned int did = Device::HaloIndex(i,mu,DOWN,bthreadId);
 					const unsigned int uid = Device::HaloIndex(i,mu,UP,bthreadId);
+					ind=i+kvolHalo*mu;
+					const complex<T> u11s=u11t[ind];	const complex<T> u12s=u12t[ind];
 					ind=did+kvolHalo*mu;
-					//The main source of long scoreboard stalls is waiting for did. May be worth moving that from memory to
-					//calculating it on the fly.
 					const complex<T> u11sd=u11t[ind];	const complex<T> u12sd=u12t[ind];
 #pragma unroll
 					for(unsigned short idirac=0; idirac<nc*ndirac; idirac+=nc){
@@ -531,7 +525,6 @@ namespace Kernels{
 								-u12sd*(akappa*rd[1]-gam*rgd[1]);
 							phi_s[idirac+1]-=conj(u12sd)*(akappa*rd[0]-gam*rgd[0])
 								+u11sd*(akappa*rd[1]-gam*rgd[1]);
-
 						}
 						//Timelike terms
 						else{
@@ -544,7 +537,6 @@ namespace Kernels{
 							const complex<T> rgu[2]={r[uid+ind],r[uid+ind+kvolHalo]};
 							const complex<T> rgd[2]={r[did+ind],r[did+ind+kvolHalo]};
 
-							//T dk4s=dk4m[i];
 							T dk4s = (flip_bound && i>kvol-kvol3) ? -dk4m:dk4m;
 							//Factorising for performance, we get dk4?*u1?*(+/-r_wilson -/+ r_dirac)
 							//Note that CUDA is smart enough to reuse the additions/subtractions here later on ru[0]+rgu[0]

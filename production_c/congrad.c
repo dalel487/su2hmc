@@ -753,7 +753,7 @@ int Congradq(int na,double res,Complex *X1,Complex *r,Complex *ud[2], Complex_f 
 				cublasSaxpy(cublas_handle,2*kvol,&alpha_m,(float *)r_f+j*2*kvolHalo,1,(float *)p_f+j*2*kvolHalo,1);
 			}
 #else
-			cublasCscal(cublas_handle,kferm2,&beta_f,(cuComplex *)p_f,1);
+			cublasCsscal(cublas_handle,kferm2,&beta_f,(cuComplex *)p_f,1);
 			cublasSaxpy(cublas_handle,2*kferm2,&alpha_m,(float *)r_f,1,(float *)p_f,1);
 #endif
 #elif (defined __USE_MKL__||defined OPENBLAS||defined AMD_BLAS)
