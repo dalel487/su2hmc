@@ -32,27 +32,6 @@ namespace Device{
 	#endif
 	unsigned short np[ndim];
 
-	//Don't use const here. index is passed by value
-	/**
-	 *	@brief	From a flattened array index, get the x,y,z,t coordinates
-	 *
-	 *	@param[in]	index:	Flattened index
-	 *	@param[out]	coord:	x,y,z,t coordinates
-	 *	@param[in]	tid:		Block thread index
-	 *
-	 *	@post	@p coord updated with x,y,z,t coordinates.
-	 */
-	__device__ inline void Index2lcoord(unsigned int index, short site[ndim][__BSIZE__],
-			const unsigned short tid);
-	/**
-	 *	@brief	From  x,y,z,t coordinates, get thea flattened array index
-	 *
-	 *	@param[in]	coord:	x,y,z,t coordinates
-	 *	@param[in]	tid:		Block thread index
-	 *
-	 * @return	Flattened array index
-	 */
-	__device__ unsigned int Coord2lindex(short site[ndim][__BSIZE__],const unsigned short tid);
 	/**
 	 *	@brief	Get the index of a neighbouring site on the lattice, including boundary condition
 	 *

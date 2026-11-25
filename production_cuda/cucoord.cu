@@ -62,7 +62,7 @@ namespace Device{
 	 *
 	 * @return	Flattened array index
 	 */
-	__device__ unsigned int Coord2lindex(short site[ndim][__BSIZE__],const unsigned short tid){
+	__device__ inline unsigned int Coord2lindex(short site[ndim][__BSIZE__],const unsigned short tid){
 		//Ensure index is in range. Reverse module arithmetic basically
 		while(site[0][tid]<0) site[0][tid]+=ksizex; while(site[0][tid]>=ksizex) site[0][tid]-= ksizex;
 		while(site[1][tid]<0) site[1][tid]+=ksizey; while(site[1][tid]>=ksizey) site[1][tid]-= ksizey;
@@ -71,15 +71,7 @@ namespace Device{
 
 		return site[0][tid]+ksizex*(site[1][tid]+ksizey*(site[2][tid]+ksizez*site[3][tid]));
 	}
-	/**
-	 *	@brief	Get the index of a neighbouring site on the lattice, including boundary condition
-	 *
-	 *	@param[in]	i:		Flattened index
-	 *	@param[in]	mu:	Direction of neighbour (x,y,z,t)
-	 *	@param[in]	dir:	Are we looking for the neighbour in the up or down direction?
-	 *
-	 *	@return	Flattened index of neighbouring lattice site
-	 */
+
 	__device__ unsigned int HaloIndex(const unsigned int i, const unsigned short mu, const unsigned short dir,
 			const unsigned short tid){
 			//Buffer to get x,y,z,t index. Shared to prevent it from being stored in RAM

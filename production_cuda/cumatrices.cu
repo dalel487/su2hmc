@@ -492,9 +492,9 @@ namespace Kernels{
 
 				//#pragma unroll
 				for(unsigned short mu = 0; mu <ndim; mu++){
+					ind=i+kvolHalo*mu;
 					const unsigned int did = Device::HaloIndex(i,mu,DOWN,bthreadId);
 					const unsigned int uid = Device::HaloIndex(i,mu,UP,bthreadId);
-					ind=i+kvolHalo*mu;
 					const complex<T> u11s=u11t[ind];	const complex<T> u12s=u12t[ind];
 					ind=did+kvolHalo*mu;
 					const complex<T> u11sd=u11t[ind];	const complex<T> u12sd=u12t[ind];

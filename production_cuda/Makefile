@@ -62,7 +62,7 @@ LFLAGS	+=	-lm $(shell gsl-config --libs-without-cblas)
 
 CULFLAGS=	-L/opt/nvidia/hpc_sdk/Linux_x86_64/latest/cuda/lib64/ \
 				-L/opt/nvidia/hpc_sdk/Linux_x86_64/latest/math_libs/lib64/ \
-				-lcuda -lcudart -lcublas 
+				-lcuda -lcudart -lcublas -dlto
 
 LFLAGS += -lpthread -ldl -lstdc++ #${CULFLAGS}
 
@@ -125,7 +125,7 @@ CUEDT=	$(CUSRC:.cu=.cu~)
 TMP=	$(MOD) $(CEDT) $(CUEDT) core
 
 profiler:	CFLAGS += -g #-D_DEBUGCG
-profiler:	NVCCFLAGS += --resource-usage -Xptxas -O3,-v -lineinfo #-D_DEBUGCG #-keep
+profiler:	NVCCFLAGS += --resource-usage -Xptxas -O3,-v -lineinfo  #-D_DEBUGCG #-keep
 profiler:	release
 
 release:	CFLAGS +=  -O3  #-fprofile-use=./gcc_pgo
@@ -144,7 +144,7 @@ debug:		$(EXE)
 $(EXE): $(OBJ) ../main.c
 	$(NVCC) $(NVCCFLAGS) -std=c++17 $(IFLAGS) -ccbin $(CC) -Xcompiler "$(CFLAGS) -rdynamic" --compiler-options -D__NO_AVX10_2__  $(LFLAGS) $(CULFLAGS) $^ -o $@
 %.o: $(CUSRC_DIR)/%.cu
-	$(NVCC) $(NVCCFLAGS) -std=c++17 $(IFLAGS) -ccbin $(CXX) -Xcompiler "$(CFLAGS)  -rdynamic" --compiler-options -D__NO_AVX10_2__ $< -dc $@
+	$(NVCC) $(NVCCFLAGS) -std=c++17 $(IFLAGS) -ccbin $(CXX) -Xcompiler "$(CFLAGS)  -rdynamic" --compiler-options -D__NO_AVX10_2__ $< -dc -dlto $@
 %.o: $(CSRC_DIR)%.c
 	$(CC) $(CFLAGS) -std=gnu23 $(IFLAGS) -c $<  
 
